@@ -1,9 +1,13 @@
 <template>
-  <q-page class="flex flex-center">
-    <img
-      alt="Quasar logo"
-      src="~assets/quasar-logo-full.svg"
-    >
+  <q-page class="q-pa-lg">
+    <div>
+      <p>Escrow address:</p>
+      <p>{{ $store.state.global.user.escrowAddress }}</p>
+    </div>
+    <div>
+      <p>Private address:</p>
+      <p>{{ $store.state.global.user.privateAddress }}</p>
+    </div>
   </q-page>
 </template>
 
