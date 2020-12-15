@@ -1,0 +1,17 @@
+{
+  "name": "paytaca",
+  "version": "0.0.1",
+  "description": "Secure and convenient payment wallet app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "joemar@paytaca.com",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^2.4.5",
+    "@capacitor/cli": "^2.4.5",
+    "@capacitor/core": "^2.4.5",
+    "@capacitor/ios": "^2.4.5"
+  }
+}
