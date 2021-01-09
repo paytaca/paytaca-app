@@ -26,13 +26,13 @@ export default function ({ store }) {
     base: process.env.VUE_ROUTER_BASE
   })
 
-  Router.beforeEach((to, from, next) => {
-    if (to.path === '/' && store.state.global.user.onboardingStep === 0) {
-      next('/onboarding/register')
-    } else {
-      next()
-    }
-  })
+  // Router.beforeEach((to, from, next) => {
+  //   if (to.path === '/' && store.state.global.user.onboardingStep === 0) {
+  //     next('/onboarding/register')
+  //   } else {
+  //     next()
+  //   }
+  // })
 
   return Router
 }
