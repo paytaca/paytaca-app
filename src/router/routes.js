@@ -2,9 +2,23 @@
 const routes = [
   {
     path: '/',
-    component: () => import('layouts/Landingpage.vue'),
+    component: () => import('layouts/Transaction.vue'),
     children: [
-      { path: '', component: () => import('pages/landingpage/Index.vue') }
+      { path: '', component: () => import('pages/transaction/index.vue') }
+    ]
+  },
+  {
+    path: '/receive',
+    component: () => import('layouts/Transaction.vue'),
+    children: [
+      { path: '', component: () => import('pages/transaction/receive.vue') }
+    ]
+  },
+  {
+    path: '/get-started',
+    component: () => import('layouts/Getstarted.vue'),
+    children: [
+      { path: '', component: () => import('pages/registration/index.vue') }
     ]
   },
   {

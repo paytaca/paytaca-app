@@ -7,7 +7,7 @@
 <script>
 
 export default {
-  name: 'Landing-page',
+  name: 'transaction-page',
   data () {
     return {
     }
