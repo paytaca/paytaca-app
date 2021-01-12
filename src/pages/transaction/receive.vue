@@ -11,8 +11,10 @@
                 <p class="text-center receive-add-amount"><b>Add amount</b></p>
                 <div class="col qr-code"></div>
                 <span class="qr-code-text">e342qeewrt456323erweb57wv78894r</span>
+                <!-- <div class="row">
+                    <i class="material-icons">accessibility</i>
+                </div> -->
             </div>
-            <div class="row"></div>
         </div>
     </div>
     <div class="row">
@@ -49,7 +51,7 @@ export default {
     background-color: #012121;
   }
   .receive {
-    color: #E8EFEF;
+    color: #fff;
   }
   .col-qr-code-container {
     margin-top: 70px;
@@ -92,7 +94,7 @@ export default {
     width: 32%;
     border-radius: 20px;
     border: none;
-    color: #636767;
+    color: #444646;
     background-color: transparent;
     /*background-color: rgba(43, 126, 209, .04);*/
     outline:0;

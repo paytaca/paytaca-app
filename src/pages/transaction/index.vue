@@ -22,10 +22,10 @@
     </div>
     <div class="row">
         <div class="col">
-            <p class="q-ml-lg payment-methods default-text-color">Assets</p>
+            <p class="q-ml-lg q-mb-sm payment-methods default-text-color">Assets</p>
         </div>
     </div>
-    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-sm" style="overflow: scroll;">
+    <div class="row no-wrap q-gutter-md q-pl-lg q-pr-lg q-pb-md" style="overflow: scroll;">
         <!-- <button class="btn-add-payment-method q-ml-lg">+</button> -->
         <div class="method-cards q-pa-md">
             <img src="bitcoin-cash-bch-logo.png" width="40">
@@ -53,34 +53,15 @@
         </div>
     </div>
     <div class="row">
-        <div class="col transaction-container q-pb-lg">
+        <div class="col transaction-container">
             <p class="q-ma-lg transaction-wallet"><b>TRANSACTIONS</b></p>
-            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-pa-none q-pl-none text-center btn-transaction">
-                <button class="btn-custom q-mt-none active-btn btn-all">All</button>
-                <a to="/send"><button class="btn-custom q-mt-none">Send</button></a>
-                <a to="/receive"><button class="btn-custom q-mt-none">Receive</button></a>
+            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
+                <button class="btn-custom q-mt-none active-btn btn-all" @click="swtichActiveBtn('all')">All</button>
+                <button class="btn-custom q-mt-none btn-send" @click="swtichActiveBtn('send')">Send</button>
+                <button class="btn-custom q-mt-none btn-receive" @click="swtichActiveBtn('receive')">Receive</button>
             </div>
             <div class="row">
-                <div class="col q-mt-lg q-mr-lg q-ml-lg q-pt-sm q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                  <div class="row q-pb-sm">
-                    <div class="q-mr-sm">
-                      <img src="bitcoin-cash-bch-logo.png" width="40">
-                    </div>
-                    <div class="col col-transaction">
-                      <div>
-                        <p class="q-mb-none transactions-wallet ib-text"><b>My BCH wallet</b></p>
-                        <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>₱0.00</b></p>
-                      </div>
-                      <div class="col">
-                          <span class="float-left subtext"><b>0 BCH</b></span>
-                          <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                      </div>
-                    </div>
-                  </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col q-mt-lg q-mr-lg q-ml-lg q-pt-sm q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                   <div class="row">
                     <div class="q-mr-sm">
                       <img src="bitcoin-cash-bch-logo.png" width="40">
@@ -99,7 +80,26 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col q-mt-lg q-mr-lg q-ml-lg q-pt-sm q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                  <div class="row">
+                    <div class="q-mr-sm">
+                      <img src="bitcoin-cash-bch-logo.png" width="40">
+                    </div>
+                    <div class="col col-transaction">
+                      <div>
+                        <p class="q-mb-none transactions-wallet ib-text"><b>My BCH wallet</b></p>
+                        <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>₱0.00</b></p>
+                      </div>
+                      <div class="col">
+                          <span class="float-left subtext"><b>0 BCH</b></span>
+                          <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                   <div class="row">
                     <div class="q-mr-sm">
                       <img src="bitcoin-cash-bch-logo.png" width="40">
@@ -128,6 +128,11 @@ export default {
   name: 'Transaction-page',
   data () {
     return {
+    }
+  },
+  methods: {
+    swtichActiveBtn (btn) {
+      // alert(btn)
     }
   }
 }
@@ -186,6 +191,7 @@ export default {
     background-color: teal;
     border-radius: 16px;
     background-color: #3992EA;
+    box-shadow: 1px 2px 2px 3px rgba(99, 103, 103, .2);
   }
   .ib-text {
     display: inline-block;
@@ -205,7 +211,8 @@ export default {
   }
   .transaction-container {
     min-height: 350px;
-    border-radius: 36px;
+    border-top-left-radius: 36px;
+    border-top-right-radius: 36px;
     background-color: #fff;
     margin-top: 24px;
   }
@@ -214,7 +221,7 @@ export default {
   }
   .transaction-wallet {
     font-size: 20px;
-    color: #4C4F4F;
+    color: #444646;
   }
   .transactions-wallet {
     color: #4C4F4F;

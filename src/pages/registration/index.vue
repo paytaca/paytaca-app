@@ -62,7 +62,7 @@ export default {
 
 <style lang="scss">
   body {
-    background-color: #012121;
+    background-color: #2E73D2;
   }
   .brandname {
     color: #fff;
