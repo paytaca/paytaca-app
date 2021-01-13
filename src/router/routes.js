@@ -15,10 +15,10 @@ const routes = [
     ]
   },
   {
-    path: '/select-token',
+    path: '/select-asset',
     component: () => import('layouts/Transaction.vue'),
     children: [
-      { path: '', component: () => import('pages/transaction/select-token.vue') }
+      { path: '', component: () => import('pages/transaction/select-asset.vue') }
     ]
   },
   {

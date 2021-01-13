@@ -22,7 +22,8 @@ module.exports = function (/* ctx */) {
       'capacitor',
       'i18n',
       'axios',
-      'aes256'
+      'aes256',
+      'qrcoderader'
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css

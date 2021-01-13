@@ -7,22 +7,28 @@
     </div>
     <div class="row">
         <div class="col col-qr-code-container">
-            <div class="col col-qr-code q-pl-md q-pr-md q-pt-md text-center">
+            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+              <div class="row text-center">
+                <div class="col">
                 <p class="text-center receive-add-amount"><b>Add amount</b></p>
                 <div class="col qr-code"></div>
                 <span class="qr-code-text">e342qeewrt456323erweb57wv78894r</span>
-                <!-- <div class="row">
-                    <i class="material-icons">accessibility</i>
-                </div> -->
+                </div>
+              </div>
+              <div class="row">
+                <div class="col q-ma-sm q-mb-md">
+                  <q-icon class="color-light-gray icon-copy float-right q-mr-md" :name="fasClone" @click="copyAddress" />
+                </div>
+              </div>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="currencies">
             <div class="col q-gutter-xs q-ml-lg q-mr-lg q-pa-none q-pl-none text-center btn-transaction">
-                <button class="btn-custom q-mt-none active-btn btn-all"><b>BCH</b></button>
-                <a to="/send"><button class="btn-custom q-mt-none"><b>SPICE</b></button></a>
-                <a to="/receive"><button class="btn-custom q-mt-none"><b>PESO</b></button></a>
+                <button class="btn-custom q-mt-none active-btn btn-bch" @click="swtichActiveBtn('btn-bch')" id="btn-bch"><b>BCH</b></button>
+                <a to="/send"><button class="btn-custom q-mt-none btn-spice" @click="swtichActiveBtn('btn-spice')" id="btn-spice"><b>SPICE</b></button></a>
+                <a to="/receive"><button class="btn-custom q-mt-none btn-spice" @click="swtichActiveBtn('btn-peso')" id="btn-peso"><b>PESO</b></button></a>
             </div>
             <div class="row">
                 <div class="col q-ml-lg q-mt-md">
@@ -36,19 +42,40 @@
 </template>
 
 <script>
+import { fasClone } from '@quasar/extras/fontawesome-v5'
 
 export default {
   name: 'Receive-page',
   data () {
     return {
+      activeBtn: 'btn-bch'
     }
+  },
+  methods: {
+    swtichActiveBtn (btn) {
+      var element = document.getElementById(btn)
+      var name = 'active-btn'
+      var arr = element.className.split(' ')
+      if (arr.indexOf(name) === -1) {
+        element.className += ' ' + name
+      }
+      var customBtn = document.getElementById(this.activeBtn)
+      customBtn.classList.remove('active-btn')
+      this.activeBtn = btn
+    },
+    copyAddress () {
+      alert('copy address')
+    }
+  },
+  created () {
+    this.fasClone = fasClone
   }
 }
 </script>
 
 <style lang="scss">
   body {
-    background-color: #012121;
+    background-color: #012121 !important;
   }
   .receive {
     color: #fff;
@@ -58,9 +85,14 @@ export default {
     padding-left: 28px;
     padding-right: 28px;
   }
+  /* iPhone 5/SE */
+  @media (min-width: 280px) and (max-width: 320px) {
+    .col-qr-code-container {
+      margin-top: 10px;
+    }
+  }
   .col-qr-code {
     width: 100%;
-    height: 300px;
     background-color: #fff;
     border-radius: 16px;
   }
@@ -86,7 +118,7 @@ export default {
     background-color: #fff;
     padding-top: 28px;
   }
-  .btn-all {
+  .btn-bch {
     margin-left: 0px;
   }
   .btn-custom {
@@ -106,8 +138,9 @@ export default {
   }
   .btn-custom.active-btn {
     /*background-color: rgba(206, 38, 38, .8);*/
-    background-color: #EEF5FB;
+    /*background-color: #EEF5FB;*/
     /*color: #fff;*/;
+    background-color: #fff;
     color: #3992EA;
   }
   .btn-transaction {
@@ -122,5 +155,9 @@ export default {
   }
   .receive-wallet {
     color: #373939;
+  }
+  .icon-copy {
+    color: rgba(230, 188, 75, .8);
+    font-size: 22px;
   }
 </style>

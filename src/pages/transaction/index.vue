@@ -25,9 +25,9 @@
             <p class="q-ml-lg q-mb-sm payment-methods default-text-color">Assets</p>
         </div>
     </div>
-    <div class="row no-wrap q-gutter-md q-pl-lg q-pr-lg q-pb-md" style="overflow: scroll;">
+    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
         <!-- <button class="btn-add-payment-method q-ml-lg">+</button> -->
-        <div class="method-cards q-pa-md">
+        <div class="method-cards q-pa-md" @click="chooseAsset(0)">
             <img src="bitcoin-cash-bch-logo.png" width="40">
             <p class="pay-text q-mb-none float-right ib-text">BCH</p>
             <div class="row">
@@ -35,7 +35,7 @@
                 <p class="float-right q-mt-sm text-num-lg">000</p>
             </div>
         </div>
-        <div class="method-cards q-pa-md">
+        <div class="method-cards q-pa-md" @click="chooseAsset(130)">
             <img src="bitcoin-cash-bch-logo.png" width="40">
             <p class="pay-text q-mb-none float-right ib-tex">Spice</p>
             <div class="row">
@@ -43,7 +43,7 @@
                 <p class="float-right q-mt-sm text-num-lg">000</p>
             </div>
         </div>
-        <div class="method-cards q-pa-md">
+        <div class="method-cards q-pa-md" @click="chooseAsset(250)">
             <img src="bitcoin-cash-bch-logo.png" width="40">
             <p class="pay-text q-mb-none float-right ib-tex">Peso</p>
             <div class="row">
@@ -52,13 +52,19 @@
             </div>
         </div>
     </div>
+    <div class="row q-mt-md">
+        <div class="col text-center q-gutter-xs">
+          <router-link to="select-asset"><button class="float-center btn-action"><b>SEND</b></button></router-link>
+          <router-link to="receive"><button class="float-center btn-action btn-receive"><b>RECEIVE</b></button></router-link>
+        </div>
+    </div>
     <div class="row">
         <div class="col transaction-container">
             <p class="q-ma-lg transaction-wallet"><b>TRANSACTIONS</b></p>
             <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
-                <button class="btn-custom q-mt-none active-btn btn-all" @click="swtichActiveBtn('all')">All</button>
-                <button class="btn-custom q-mt-none btn-send" @click="swtichActiveBtn('send')">Send</button>
-                <button class="btn-custom q-mt-none btn-receive" @click="swtichActiveBtn('receive')">Receive</button>
+                <button class="btn-custom q-mt-none active-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
+                <button class="btn-custom q-mt-none btn-send" @click="switchActiveBtn('btn-send')" id="btn-send"><b>Send</b></button>
+                <button class="btn-custom q-mt-none btn-receive" @click="switchActiveBtn('btn-receive')" id="btn-receive"><b>Receive</b></button>
             </div>
             <div class="row">
                 <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
@@ -128,11 +134,28 @@ export default {
   name: 'Transaction-page',
   data () {
     return {
+      activeBtn: 'btn-all'
     }
   },
   methods: {
-    swtichActiveBtn (btn) {
-      // alert(btn)
+    chooseAsset (scrollX) {
+      var el = document.getElementById('asset-container')
+      el.scrollTo({
+        top: 0,
+        left: scrollX,
+        behavior: 'smooth'
+      })
+    },
+    switchActiveBtn (btn) {
+      var element = document.getElementById(btn)
+      var name = 'active-btn'
+      var arr = element.className.split(' ')
+      if (arr.indexOf(name) === -1) {
+        element.className += ' ' + name
+      }
+      var customBtn = document.getElementById(this.activeBtn)
+      customBtn.classList.remove('active-btn')
+      this.activeBtn = btn
     }
   }
 }
@@ -140,12 +163,8 @@ export default {
 
 <style lang="scss">
   body {
-    background-color: #ECF3F3;
+    background-color: #ECF3F3 !important;
   }
-/*  .currency {
-    font-size: 50px;
-    color: rgba(206, 38, 38, .8);
-  }*/
   .p-label {
     margin-bottom: 0px !important;
   }
@@ -188,10 +207,9 @@ export default {
   .method-cards {
     height: 110px;
     min-width: 180px;
-    background-color: teal;
     border-radius: 16px;
     background-color: #3992EA;
-    box-shadow: 1px 2px 2px 3px rgba(99, 103, 103, .2);
+    box-shadow: 1px 2px 2px 2px rgba(99, 103, 103, .2);
   }
   .ib-text {
     display: inline-block;
@@ -200,6 +218,14 @@ export default {
     font-size: 24px;
     color: #DBE7E7;
   }
+  p {
+  -webkit-touch-callout: none;
+    -webkit-user-select: none;
+     -khtml-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+          }
   .text-num-lg {
     font-size: 18px;
     color: #DBE7E7;
@@ -208,6 +234,23 @@ export default {
     margin-top: 13px;
     font-size: 12px;
     color: #DBE7E7;
+  }
+  .btn-action {
+    height: 40px;
+    width: 32%;
+    color: #4C4F4F;
+    border: 1px solid #9F9E9E;
+    border-radius: 20px;
+    background-color: #fff;
+    outline: 0;
+  }
+  .btn-receive {
+    background-color: #E6BC4B;
+    color: #fff;
+    border: 1px solid #C7A64C;
+  }
+  .btn-action:focus {
+    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .2);
   }
   .transaction-container {
     min-height: 350px;
