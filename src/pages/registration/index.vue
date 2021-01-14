@@ -56,13 +56,16 @@ export default {
   data () {
     return {
     }
+  },
+  created () {
+    this.$q.dark.set(false)
   }
 }
 </script>
 
 <style lang="scss">
-  body {
-    background-color: #2E73D2;
+  body.body--light {
+    background-color: #2E73D2 !important;
   }
   .brandname {
     color: #fff;
@@ -96,8 +99,8 @@ export default {
     color: #BAC2C2;
   }
   .submit-btn {
-    background-color: #15568E;
-    border: 1px solid gray;
+    background-color: #2E73D2;
+    border: 1px solid #15568E;
     width: 100%;
     height: 40px;
     border-radius: 20px;

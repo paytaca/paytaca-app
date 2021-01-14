@@ -1,23 +1,23 @@
 <template>
   <div>
+    <sidebar-mode-toggler />
     <div class="row">
         <div class="col q-mt-md">
              <p class="text-center receive"><b>RECEIVE</b></p>
         </div>
     </div>
     <div class="row">
-        <div class="col col-qr-code-container">
+        <div class="col qr-code-container">
             <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
-                <div class="col">
-                <p class="text-center receive-add-amount"><b>Add amount</b></p>
-                <div class="col qr-code"></div>
-                <span class="qr-code-text">e342qeewrt456323erweb57wv78894r</span>
+                <div class="col q-pt-md">
+                  <Vue-qr-code class="qr-code" value="sadasdasdasdadasdewrfd" />
+                  <span class="qr-code-text">{{sadasdasdasdadasdewrfd}}</span>
                 </div>
               </div>
               <div class="row">
                 <div class="col q-ma-sm q-mb-md">
-                  <q-icon class="color-light-gray icon-copy float-right q-mr-md" :name="fasClone" @click="copyAddress" />
+                  <i class="eva eva-copy-outline color-light-gray icon-copy float-right q-mr-md" @click="copyAddress"></i>
                 </div>
               </div>
             </div>
@@ -42,14 +42,19 @@
 </template>
 
 <script>
-import { fasClone } from '@quasar/extras/fontawesome-v5'
+// import { fasClone } from '@quasar/extras/fontawesome-v5'
+import VueQrCode from 'vue-weblineindia-qrcode'
 
 export default {
   name: 'Receive-page',
   data () {
     return {
-      activeBtn: 'btn-bch'
+      activeBtn: 'btn-bch',
+      address: ''
     }
+  },
+  components: {
+    VueQrCode,
   },
   methods: {
     swtichActiveBtn (btn) {
@@ -64,23 +69,31 @@ export default {
       this.activeBtn = btn
     },
     copyAddress () {
-      alert('copy address')
+      this.$q.notify({
+        message: 'Copied address',
+        timeout: 800
+      })
     }
   },
   created () {
-    this.fasClone = fasClone
+      var result           = '';
+      var characters       = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      var charactersLength = characters.length;
+      for ( var i = 0; i < length; i++ ) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      }
+
+      this.address = result
+    this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
 </script>
 
 <style lang="scss">
-  body {
-    background-color: #012121 !important;
-  }
   .receive {
-    color: #fff;
+    color: #3992EA;
   }
-  .col-qr-code-container {
+  .qr-code-container {
     margin-top: 70px;
     padding-left: 28px;
     padding-right: 28px;
@@ -91,10 +104,17 @@ export default {
       margin-top: 10px;
     }
   }
+  /* Galaxy Fold */
+  @media (min-width: 200px) and (max-width: 280px) {
+    .col-qr-code-container {
+      margin-top: 70px;
+    }
+  }
   .col-qr-code {
     width: 100%;
     background-color: #fff;
     border-radius: 16px;
+    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
   }
   .receive-add-amount {
     color: #3992EA;
@@ -107,6 +127,7 @@ export default {
   }
   .qr-code-text {
     font-size: 12px;
+    color: #000;
   }
   .currencies {
     position: fixed;
@@ -128,7 +149,6 @@ export default {
     border: none;
     color: #444646;
     background-color: transparent;
-    /*background-color: rgba(43, 126, 209, .04);*/
     outline:0;
     cursor: pointer;
     transition: .2s;
@@ -137,10 +157,7 @@ export default {
     background-color: #fff;
   }
   .btn-custom.active-btn {
-    /*background-color: rgba(206, 38, 38, .8);*/
-    /*background-color: #EEF5FB;*/
-    /*color: #fff;*/;
-    background-color: #fff;
+    background-color: #fff !important;
     color: #3992EA;
   }
   .btn-transaction {
@@ -157,7 +174,7 @@ export default {
     color: #373939;
   }
   .icon-copy {
-    color: rgba(230, 188, 75, .8);
-    font-size: 22px;
+    color: #3992EA;
+    font-size: 26px;
   }
 </style>

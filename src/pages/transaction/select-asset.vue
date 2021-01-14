@@ -1,5 +1,6 @@
 <template>
   <div>
+    <sidebar-mode-toggler />
     <div class="row">
         <div class="col q-mt-md q-pl-md text-center q-pr-md">
           <router-link to="/"><i class="icon-size-1 material-icons q-mt-sm icon-arrow-left">arrow_back</i></router-link>
@@ -8,7 +9,7 @@
     </div>
     <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
-          <p class="slp_tokens q-mb-sm"><b>SELECT AN ASSET</b></p>
+          <p class="slp_tokens q-mb-sm"><b>SLP TOKENS</b></p>
         </div>
     </div>
     <div to="send" class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link">
@@ -34,52 +35,24 @@
     </div>
     <div class="row">
       <div class="col q-pa-lg">
-        <p class="error">{{ error }}</p>
-
-        <p class="decode-result">Last result: <b>{{ result }}</b></p>
       </div>
     </div>
 
-    <qrcode-stream camera="auto" @decode="onDecode" @init="onInit" />
   </div>
 </template>
 
 <script>
-import { QrcodeStream } from 'vue-qrcode-reader'
 
 export default {
   name: 'Select-token-page',
-  components: { QrcodeStream },
   data () {
     return {
-      result: '',
-      error: ''
     }
   },
   methods: {
-    onDecode (result) {
-      this.result = result
-    },
-    async onInit (promise) {
-      try {
-        // promise.catch(console.error).then(this.resetValidationState)
-        await promise
-      } catch (error) {
-        if (error.name === 'NotAllowedError') {
-          this.error = 'ERROR: you need to grant camera access permisson'
-        } else if (error.name === 'NotFoundError') {
-          this.error = 'ERROR: no camera on this device'
-        } else if (error.name === 'NotSupportedError') {
-          this.error = 'ERROR: secure context required (HTTPS, localhost)'
-        } else if (error.name === 'NotReadableError') {
-          this.error = 'ERROR: is the camera already in use?'
-        } else if (error.name === 'OverconstrainedError') {
-          this.error = 'ERROR: installed cameras are not suitable'
-        } else if (error.name === 'StreamApiNotSupportedError') {
-          this.error = 'ERROR: Stream API is not supported in this browser'
-        }
-      }
-    }
+  },
+  created () {
+    this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
 </script>
@@ -109,6 +82,6 @@ export default {
     text-decoration: none;
   }
   .text-token {
-    color: #444646;
+    color: #636767;
   }
 </style>

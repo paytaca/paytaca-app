@@ -1,6 +1,6 @@
 <template>
   <div>
-
+    <sidebar-mode-toggler />
     <div class="row">
       <div class="col q-pt-lg">
         <p class="q-ml-lg text-light p-label">Your balance</p>
@@ -11,12 +11,12 @@
     </div>
     <div class="row" style="padding-top: 0px !important;">
       <div class="col q-pa-none">
-        <p class="text-number-balance q-ml-lg default-text-color">30.67</p>
+        <p class="text-number-balance q-ml-lg default-text-color">30.67<span style="font-size: 20px">₱</span></p>
       </div>
       <div class="col q-pa-none">
         <div class="col">
         <!-- <p class="text-right q-mr-lg currency">₱</p> -->
-        <img class="float-right q-mr-lg q-mt-sm" src="bitcoin-cash-bch-logo.png" width="54">
+        <img class="float-right q-mr-lg q-mt-md" src="bitcoin-cash-bch-logo.png" width="42">
         </div>
       </div>
     </div>
@@ -54,17 +54,17 @@
     </div>
     <div class="row q-mt-md">
         <div class="col text-center q-gutter-xs">
-          <router-link to="select-asset"><button class="float-center btn-action"><b>SEND</b></button></router-link>
-          <router-link to="receive"><button class="float-center btn-action btn-receive"><b>RECEIVE</b></button></router-link>
+          <router-link to="select-asset"><button class="float-center btn-send"><b><i class="mdi mdi-send-outline"></i> SEND</b></button></router-link>
+          <router-link to="receive"><button class="float-center btn-action btn-receive"><b><i class="mdi mdi-arrow-down-box"></i> RECEIVE</b></button></router-link>
         </div>
     </div>
     <div class="row">
         <div class="col transaction-container">
             <p class="q-ma-lg transaction-wallet"><b>TRANSACTIONS</b></p>
             <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
-                <button class="btn-custom q-mt-none active-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
-                <button class="btn-custom q-mt-none btn-send" @click="switchActiveBtn('btn-send')" id="btn-send"><b>Send</b></button>
-                <button class="btn-custom q-mt-none btn-receive" @click="switchActiveBtn('btn-receive')" id="btn-receive"><b>Receive</b></button>
+                <button class="btn-custom q-mt-none active-transaction-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
+                <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
+                <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
             <div class="row">
                 <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
@@ -147,24 +147,25 @@ export default {
       })
     },
     switchActiveBtn (btn) {
+      var customBtn = document.getElementById(this.activeBtn)
+      customBtn.classList.remove('active-btn')
+
       var element = document.getElementById(btn)
       var name = 'active-btn'
       var arr = element.className.split(' ')
       if (arr.indexOf(name) === -1) {
         element.className += ' ' + name
       }
-      var customBtn = document.getElementById(this.activeBtn)
-      customBtn.classList.remove('active-btn')
       this.activeBtn = btn
     }
+  },
+  created () {
+    this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
 </script>
 
 <style lang="scss">
-  body {
-    background-color: #ECF3F3 !important;
-  }
   .p-label {
     margin-bottom: 0px !important;
   }
@@ -218,14 +219,6 @@ export default {
     font-size: 24px;
     color: #DBE7E7;
   }
-  p {
-  -webkit-touch-callout: none;
-    -webkit-user-select: none;
-     -khtml-user-select: none;
-       -moz-user-select: none;
-        -ms-user-select: none;
-            user-select: none;
-          }
   .text-num-lg {
     font-size: 18px;
     color: #DBE7E7;
@@ -235,22 +228,25 @@ export default {
     font-size: 12px;
     color: #DBE7E7;
   }
-  .btn-action {
+  .btn-send {
     height: 40px;
     width: 32%;
     color: #4C4F4F;
-    border: 1px solid #9F9E9E;
+    border: none;
     border-radius: 20px;
     background-color: #fff;
     outline: 0;
+    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
   }
   .btn-receive {
-    background-color: #E6BC4B;
+    height: 40px;
+    width: 32%;
     color: #fff;
-    border: 1px solid #C7A64C;
-  }
-  .btn-action:focus {
-    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .2);
+    background-color: #E6BC4B;
+    border-radius: 20px;
+    border: none;
+    outline: 0;
+    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .18);
   }
   .transaction-container {
     min-height: 350px;
@@ -282,9 +278,8 @@ export default {
     width: 32%;
     border-radius: 20px;
     border: none;
-    color: #2B7ED1;
+    color: #4C4F4F;
     background-color: transparent;
-    /*background-color: rgba(43, 126, 209, .04);*/
     outline:0;
     cursor: pointer;
     transition: .2s;
@@ -292,8 +287,8 @@ export default {
   .btn-custom:hover {
     background-color: #fff;
   }
-  .btn-custom.active-btn {
-    background-color: rgba(206, 38, 38, .8);
+  .btn-custom.active-transaction-btn {
+    background-color: rgba(206, 38, 38, .8) !important;
     color: #fff;
   }
   .btn-transaction {
