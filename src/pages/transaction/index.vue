@@ -1,55 +1,64 @@
 <template>
   <div>
-    <sidebar-mode-toggler />
-    <div class="row">
-      <div class="col q-pt-lg">
-        <p class="q-ml-lg text-light p-label">Your balance</p>
+    <div class="row q-pt-lg">
+      <div class="col q-pl-lg">
+        <p class="text-light p-label">Your balance</p>
+        <p class="text-number-balance default-text-color">30.67</p>
       </div>
-      <div class="col q-pt-lg">
-        <p class="text-right q-mr-lg text-light p-label">08 January 2021</p>
-      </div>
-    </div>
-    <div class="row" style="padding-top: 0px !important;">
-      <div class="col q-pa-none">
-        <p class="text-number-balance q-ml-lg default-text-color">30.67<span style="font-size: 20px">₱</span></p>
-      </div>
-      <div class="col q-pa-none">
-        <div class="col">
-        <!-- <p class="text-right q-mr-lg currency">₱</p> -->
-        <img class="float-right q-mr-lg q-mt-md" src="bitcoin-cash-bch-logo.png" width="42">
-        </div>
+      <div class="col q-pr-lg">
+        <p class="text-right text-light p-label">08 January 2021</p>
+        <img class="float-right q-mt-sm" src="bitcoin-cash-bch-logo.png" width="54">
       </div>
     </div>
     <div class="row">
         <div class="col">
-            <p class="q-ml-lg q-mb-sm payment-methods default-text-color">Assets</p>
+            <p class="q-ml-lg q-mb-sm payment-methods default-text-color">
+              Assets
+              <q-btn
+                flat
+                padding="none"
+                size="sm"
+                icon="refresh"
+                @click="updateBalance"
+              />
+            </p>
         </div>
     </div>
     <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
         <!-- <button class="btn-add-payment-method q-ml-lg">+</button> -->
-        <div class="method-cards q-pa-md" @click="chooseAsset(0)">
-            <img src="bitcoin-cash-bch-logo.png" width="40">
-            <p class="pay-text q-mb-none float-right ib-text">BCH</p>
-            <div class="row">
-                <p class="col text-num-md"></p>
-                <p class="float-right q-mt-sm text-num-lg">000</p>
-            </div>
+        <div class="method-cards q-pa-md" @click="scrollToView">
+          <div class="row items-start no-wrap justify-between">
+            <img src="bitcoin-cash-bch-logo.png" width="40" class="q-mr-xs">
+            <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
+              BCH
+            </p>
+          </div>
+          <div class="row">
+            <q-space />
+            <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
+              {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH }} BCH
+            </p>
+          </div>
         </div>
-        <div class="method-cards q-pa-md" @click="chooseAsset(130)">
-            <img src="bitcoin-cash-bch-logo.png" width="40">
-            <p class="pay-text q-mb-none float-right ib-tex">Spice</p>
-            <div class="row">
-                <p class="col text-num-md text-right"></p>
-                <p class="float-right q-mt-sm text-num-lg">000</p>
-            </div>
-        </div>
-        <div class="method-cards q-pa-md" @click="chooseAsset(250)">
-            <img src="bitcoin-cash-bch-logo.png" width="40">
-            <p class="pay-text q-mb-none float-right ib-tex">Peso</p>
-            <div class="row">
-                <p class="col text-num-md"></p>
-                <p class="float-right q-mt-sm text-num-lg">000</p>
-            </div>
+        <div
+          v-for="(tokenBalance, index) in balance.tokens"
+          :key="index"
+          class="method-cards q-pa-md"
+          @click="scrollToView"
+        >
+          <div class="row items-start no-wrap justify-between">
+            <img src="bitcoin-cash-bch-logo.png" width="40" class="q-mr-xs">
+            <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
+              {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).name }}
+            </p>
+          </div>
+          <div class="row">
+            <q-space />
+            <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
+              {{ Number(Number(tokenBalance.balanceString).toFixed(4)) }}
+              {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).symbol }}
+            </p>
+          </div>
         </div>
     </div>
     <div class="row q-mt-md">
@@ -129,6 +138,8 @@
 </template>
 
 <script>
+import jsUtils from '../../utils/vanilla.js'
+import walletUtils from '../../utils/common.js'
 
 export default {
   name: 'Transaction-page',
@@ -137,7 +148,32 @@ export default {
       activeBtn: 'btn-all'
     }
   },
+
+  computed: {
+    isPrivateMode () {
+      return this.$store.getters['global/isPrivateMode']
+    },
+    address () {
+      return this.$store.getters['global/address']
+    },
+    balance () {
+      return this.$store.getters['global/balance']
+    }
+  },
+
+  filters: {
+    satoshisToBCH (val) {
+      const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
+
+      return bchjs.BitcoinCash.toBitcoinCash(Number(val))
+    }
+  },
+
   methods: {
+    getTokenStats (tokenId) {
+      return this.$store.getters['tokenStats/getTokenStats'](tokenId)
+    },
+
     chooseAsset (scrollX) {
       var el = document.getElementById('asset-container')
       el.scrollTo({
@@ -157,6 +193,23 @@ export default {
         element.className += ' ' + name
       }
       this.activeBtn = btn
+    },
+
+    scrollToView (evt) {
+      // Scroll by y-axis first then x-axis
+      // jsUtils.getScrollableParent(...) 2nd param is whether resolving the scrollable parent with respect to x-axis(true) or y-axis(false)
+      // jsUtils.scrollIntoView(...) 3rd param is whether to scroll to view with respect to x-axis(true) or y-axis(false)
+
+      const scrollableParentY = jsUtils.getScrollableParent(evt.target, true)
+      if (scrollableParentY) jsUtils.scrollIntoView(scrollableParentY, evt.target, true)
+
+      const scrollableParentX = jsUtils.getScrollableParent(evt.target, false)
+      if (scrollableParentX) jsUtils.scrollIntoView(scrollableParentX, evt.target, false)
+    },
+
+    updateBalance () {
+      this.$store.dispatch('global/updatePrivateBalance')
+      this.$store.dispatch('global/updateEscrowBalance')
     }
   },
   created () {
