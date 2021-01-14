@@ -35,6 +35,8 @@ export default async function (senderAddress, senderWIF, recipientAddress, token
     const bchUtxos = getBCHUtxos(utxos.utxos)
     const bchUtxo = common.findBiggestUtxo(bchUtxos)
 
+    if (!bchUtxo) throw new Error('Address needs bch balance to send tokens')
+
     // Generate the SEND OP_RETURN
     const slpData = bchjs.SLP.TokenType1.generateSendOpReturn(
       tokenUtxos,

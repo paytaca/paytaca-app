@@ -13,3 +13,11 @@ export function updateAddresses (state, addresses) {
 export function updateOnboardingStep (state, status) {
   state.user.onboardingStep = status
 }
+
+export function updatePrivateBalance (state, balance) {
+  state.user.privateBalance = balance
+}
+
+export function updateEscrowBalance (state, balance) {
+  state.user.escrowBalance = balance
+}
