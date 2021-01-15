@@ -4,28 +4,28 @@ const routes = [
     path: '/',
     component: () => import('layouts/Transaction.vue'),
     children: [
-      { path: '', component: () => import('pages/transaction/index.vue') }
-    ]
-  },
-  {
-    path: '/receive',
-    component: () => import('layouts/Transaction.vue'),
-    children: [
-      { path: '', component: () => import('pages/transaction/receive.vue') }
-    ]
-  },
-  {
-    path: '/select-asset',
-    component: () => import('layouts/Transaction.vue'),
-    children: [
-      { path: '', component: () => import('pages/transaction/select-asset.vue') }
-    ]
-  },
-  {
-    path: '/send',
-    component: () => import('layouts/Transaction.vue'),
-    children: [
-      { path: '', component: () => import('pages/transaction/send.vue') }
+      {
+        path: '',
+        name: 'transaction-index',
+        component: () => import('pages/transaction/index.vue')
+      },
+      {
+        path: 'receive',
+        name: 'transaction-receive',
+        component: () => import('pages/transaction/receive.vue')
+      },
+      {
+        path: 'select-asset',
+        name: 'transaction-send-select-asset',
+        component: () => import('pages/transaction/select-asset.vue')
+      },
+      {
+        path: 'send',
+        name: 'transaction-send',
+        // this function handles how to pass props to the component given the route data
+        props: route => route.query,
+        component: () => import('pages/transaction/send.vue')
+      }
     ]
   },
   {
