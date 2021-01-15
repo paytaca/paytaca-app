@@ -44,7 +44,8 @@ export default {
     switchAccount () {
     	this.active_account = !this.active_account
     	this.active_account ? this.$q.dark.set(true) : this.$q.dark.set(false)
-    	this.active_account ? this.$q.localStorage.set('active-account', true) : this.$q.localStorage.set('active-account', false)
+        this.active_account ? this.$q.localStorage.set('active-account', true) : this.$q.localStorage.set('active-account', false)
+        this.$store.dispatch('global/setPrivateMode', { privateMode: this.active_account })
     },
     created () {
     	this.active_account = this.$q.localStorage.getItem('active-account');
