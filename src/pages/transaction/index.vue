@@ -36,7 +36,7 @@
           <div class="row">
             <q-space />
             <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-              {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH }} BCH
+              {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH | formatBalancePrecision }} BCH
             </p>
           </div>
         </div>
@@ -55,7 +55,7 @@
           <div class="row">
             <q-space />
             <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-              {{ Number(Number(tokenBalance.balanceString).toFixed(4)) }}
+              {{ tokenBalance.balanceString | formatBalancePrecision }}
               {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).symbol }}
             </p>
           </div>
@@ -63,8 +63,22 @@
     </div>
     <div class="row q-mt-md">
         <div class="col text-center q-gutter-xs">
-          <router-link to="select-asset"><button class="float-center btn-send"><b><i class="mdi mdi-send-outline"></i> SEND</b></button></router-link>
-          <router-link to="receive"><button class="float-center btn-action btn-receive"><b><i class="mdi mdi-arrow-down-box"></i> RECEIVE</b></button></router-link>
+          <router-link :to="{ name: 'transaction-send-select-asset' }">
+            <button class="float-center btn-send">
+              <b>
+                <i class="mdi mdi-send-outline"></i>
+                SEND
+              </b>
+            </button>
+          </router-link>
+          <router-link :to="{ name: 'transaction-receive' }">
+            <button class="float-center btn-action btn-receive">
+              <b>
+                <i class="mdi mdi-arrow-down-box"></i>
+                RECEIVE
+              </b>
+            </button>
+          </router-link>
         </div>
     </div>
     <div class="row">
@@ -166,6 +180,16 @@ export default {
       const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
 
       return bchjs.BitcoinCash.toBitcoinCash(Number(val))
+    },
+
+    formatBalancePrecision (val) {
+      const precision = 4
+      const number = Number(val)
+      const multiplier = 10**precision
+      if (number*multiplier < multiplier) {
+        return number.toPrecision(precision)
+      }
+      return Number(number.toFixed(precision))
     }
   },
 
