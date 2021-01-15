@@ -13,21 +13,7 @@ const mainnetInstance = new BCHJS({
   restURL: BCHN_MAINNET
 })
 
-export default {
-  NET_TESTNET,
-  NET_MAINNET,
-
-  getBCHJS: function (network = NET_TESTNET) {
-    switch (network) {
-      case (NET_TESTNET):
-        return testnetInstance
-      case (NET_MAINNET):
-        return mainnetInstance
-      default:
-        return null
-    }
-  }
-}
+// NOTE: rate limit is 20 requests per minute
 
 // Returns the utxo with the biggest balance from an array of utxos.
 // NOTE: This ignores token utxo to avoid burning
@@ -63,4 +49,22 @@ export async function findBiggestUtxo (utxos, context) {
   }
 
   return utxos[largestIndex]
+}
+
+export default {
+  NET_TESTNET,
+  NET_MAINNET,
+
+  findBiggestUtxo,
+
+  getBCHJS: function (network = NET_TESTNET) {
+    switch (network) {
+      case (NET_TESTNET):
+        return testnetInstance
+      case (NET_MAINNET):
+        return mainnetInstance
+      default:
+        return null
+    }
+  }
 }

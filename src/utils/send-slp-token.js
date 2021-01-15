@@ -29,19 +29,29 @@ export default async function (senderAddress, senderWIF, recipientAddress, token
     const utxos = await bchjs.Electrumx.utxo(senderCashAddress)
 
     // filter utxos that are of the same token type
-    const tokenUtxos = getTokenUtxos(utxos.utxos, tokenId)
+    let tokenUtxos = await bchjs.SLP.Utils.tokenUtxoDetails(utxos.utxos)
+    tokenUtxos = getTokenUtxos(tokenUtxos, tokenId)
+
+    if (!Array.isArray(tokenUtxos) || tokenUtxos.length === 0) {
+      console.error('No token utxos')
+      console.error(tokenUtxos)
+      throw new Error("No token utxos")
+    }
 
     // get utxo that is a bch type
     const bchUtxos = getBCHUtxos(utxos.utxos)
-    const bchUtxo = common.findBiggestUtxo(bchUtxos)
+    const bchUtxo = await common.findBiggestUtxo(bchUtxos)
 
     if (!bchUtxo) throw new Error('Address needs bch balance to send tokens')
 
     // Generate the SEND OP_RETURN
-    const slpData = bchjs.SLP.TokenType1.generateSendOpReturn(
+    // the example code uses bchjs.SLP.TokenType1.generateSendOpReturn
+    // but for some reason it throws errror: "list" argument must be an Array of Buffers
+    const slpSendObj = await bchjs.SLP.TokenType1.getHexOpReturn(
       tokenUtxos,
       amount // again, amount is quantity in terms of the selected token type
     )
+    const slpData = slpSendObj.script
 
     var transactionBuilder
     if (useTestnet) transactionBuilder = new bchjs.TransactionBuilder('testnet')
@@ -130,6 +140,7 @@ export default async function (senderAddress, senderWIF, recipientAddress, token
     return txidStr
   } catch (err) {
     console.error('Got error when sending slp token')
+    console.log(err)
     throw err
   }
 }
@@ -139,7 +150,7 @@ function getTokenUtxos (utxos, tokenId) {
   return utxos.filter(utxo =>
     utxo && // UTXO is associated with a token.
     utxo.tokenId === tokenId && // UTXO matches the token ID.
-    utxo.tokenType === 'token' // UTXO is not a minting baton.
+    utxo.tokenType === 1 // UTXO is not a minting baton.
   )
 }
 

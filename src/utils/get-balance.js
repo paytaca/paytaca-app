@@ -27,21 +27,22 @@ export default async function (address) {
 
     const isSLPAddress = bchjs.SLP.Address.isSLPAddress(address)
     const cashAddress = isSLPAddress ? bchjs.SLP.Address.toCashAddress(address) : address
+    const slpAddress = isSLPAddress ? address : bchjs.SLP.Address.toSLPAddress(address)
 
     if (bchjs.Address.isTestnetAddress(cashAddress)) {
       bchjs = common.getBCHJS(common.NET_TESTNET)
     }
 
     var balance = await bchjs.Electrumx.balance(cashAddress)
-    console.log(bchjs)
 
     if (balance.success) {
-      console.log(`Got balance of ${address}`)
-      if (isSLPAddress) {
-        console.log('Got SLP address getting token balances')
-        const tokens = await bchjs.SLP.Utils.balancesForAddress(address)
-        balance.balance.tokens = tokens
-      }
+      console.log(`Got balance of ${cashAddress}`)
+      console.log('Getting token balances')
+      const tokens = await bchjs.SLP.Utils.balancesForAddress(slpAddress)
+
+      // we sort it by id since it the order by token type is random
+      if (Array.isArray(tokens)) balance.balance.tokens = tokens.sort((a,b) => a.tokenId > b.tokenId)
+      else balance.balance.tokens = []
       return balance.balance
     } else {
       console.log(`Unsuccessfull getting balance of ${address}`)

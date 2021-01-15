@@ -84,7 +84,7 @@ export default async function (senderAddress, senderWIF, recipientAddress, amoun
 }
 
 // Get the balance in BCH of a BCH address.
-async function getBCHBalance (addr, verbose, context) {
+async function getBCHBalance (addr, context, verbose) {
   try {
     const result = await context.Electrumx.balance(addr)
 
@@ -114,11 +114,9 @@ async function findBiggestUtxo (utxos, context) {
   for (let i = 0; i < utxos.length; i++) {
     const thisUtxo = utxos[i]
     // console.log(`thisUTXO: ${JSON.stringify(thisUtxo, null, 2)}`);
-    console.log(thisUtxo)
 
     // Validate the UTXO data with the full node.
     const txout = await context.Blockchain.getTxOut(thisUtxo.tx_hash, thisUtxo.tx_pos)
-    console.log(txout)
     if (txout === null) {
       // If the UTXO has already been spent, the full node will respond with null.
       console.log(
