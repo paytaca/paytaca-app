@@ -34,6 +34,7 @@
           <router-link to="/"><i class="icon-size-1 material-icons q-mt-sm icon-arrow-left">arrow_back</i></router-link>
           <p class="text-center select q-mt-sm text-token"><b>SELECT AN ASSET</b></p>
         </div>
+      </div>
     </div>
     <template v-if="hasAvailableAssets">
       <router-link :to="{ name: 'transaction-send' }">
@@ -80,7 +81,7 @@
       v-else
       class="q-pa-sm text-grey text-center text-h6"
     >
-      No assets available 
+      No assets available
     </div>
   </div>
 </template>
@@ -92,9 +93,10 @@ export default {
   data () {
     return {
       activeBtn: 'btn-bch',
-      address: '',
+      // address: '',
       result: '',
       error: ''
+    }
   },
   computed: {
     isPrivateMode () {
@@ -114,7 +116,7 @@ export default {
         this.balance.tokens.reduce((total, token) => total + token.balance, 0) > 0
 
       return hasBCH || hasTokenBalance
-    },
+    }
   },
 
   filters: {

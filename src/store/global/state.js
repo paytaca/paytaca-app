@@ -11,9 +11,16 @@ export default function () {
         unconfirmed: 0,
         tokens: [
           {
+            balanceString: '1250',
+            slpAddress: '<slp-address>',
+            tokenId: 'test-token-id-1',
+            balance: 120,
+            decimalCount: 8
+          },
+          {
             balanceString: '120',
             slpAddress: '<slp-address>',
-            tokenId: 'test-token-id',
+            tokenId: 'test-token-id-2',
             balance: 120,
             decimalCount: 8
           }

@@ -3,15 +3,15 @@
     <div class="row q-pt-lg">
       <div class="col q-pl-lg">
         <p class="text-light p-label">
-          Your balance ({{ selectedAssetBalance.symbol }})
+          Your {{ selectedAsset.symbol }} balance
         </p>
         <p class="text-number-balance default-text-color">
-          {{ selectedAssetBalance.balance }}
+          {{ selectedAsset.balance | formatAmountPrecision }}
         </p>
       </div>
       <div class="q-space q-pr-lg">
         <p class="text-right text-light p-label">{{ today }}</p>
-        <img class="float-right q-mt-sm" src="bitcoin-cash-bch-logo.png" width="54">
+        <img class="float-right q-mt-sm" :src="selectedAsset.logo" width="60">
       </div>
     </div>
     <div class="row">
@@ -31,45 +31,24 @@
     <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container" @scroll.self="updateSelectedAssetOnScroll">
         <!-- <button class="btn-add-payment-method q-ml-lg">+</button> -->
         <div
-          class="method-cards q-pa-md"
-          @click="(e) => {
-            scrollToView(e)
-            selectedTokenId=''
-          }"
-        >
-          <div class="row items-start no-wrap justify-between">
-            <img src="bitcoin-cash-bch-logo.png" width="40" class="q-mr-xs">
-            <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-              BCH
-            </p>
-          </div>
-          <div class="row">
-            <q-space />
-            <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-              {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH | formatBalancePrecision }} BCH
-            </p>
-          </div>
-        </div>
-        <div
-          v-for="(tokenBalance, index) in balance.tokens"
+          v-for="(asset, index) in assets"
           :key="index"
           class="method-cards q-pa-md"
           @click="(e) => {
             scrollToView(e)
-            selectedTokenId=tokenBalance.tokenId
+            selectedAsset=asset
           }"
         >
           <div class="row items-start no-wrap justify-between">
-            <img src="bitcoin-cash-bch-logo.png" width="40" class="q-mr-xs">
+            <img :src="asset.logo" height="50" class="q-mr-xs">
             <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-              {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).name }}
+              {{ asset.symbol }}
             </p>
           </div>
           <div class="row">
             <q-space />
             <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-              {{ tokenBalance.balanceString | formatBalancePrecision }}
-              {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).symbol }}
+              {{ asset.balance | formatAmountPrecision }}
             </p>
           </div>
         </div>
@@ -102,57 +81,19 @@
                 <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
                 <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
-            <div class="row">
+            <div class="row" v-for="(transaction, index) in getTransactions()" :key="index">
                 <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                   <div class="row">
                     <div class="q-mr-sm">
-                      <img src="bitcoin-cash-bch-logo.png" width="40">
+                      <img :src="selectedAsset.logo" width="40">
                     </div>
                     <div class="col col-transaction">
                       <div>
-                        <p class="q-mb-none transactions-wallet ib-text"><b>My BCH wallet</b></p>
-                        <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>₱0.00</b></p>
+                        <p class="q-mb-none transactions-wallet ib-text"><b>{{ transaction.type | titleCase }}</b></p>
+                        <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ transaction.amount | formatAmountPrecision }} {{ selectedAsset.symbol }}</b></p>
                       </div>
                       <div class="col">
-                          <span class="float-left subtext"><b>0 BCH</b></span>
-                          <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                      </div>
-                    </div>
-                  </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                  <div class="row">
-                    <div class="q-mr-sm">
-                      <img src="bitcoin-cash-bch-logo.png" width="40">
-                    </div>
-                    <div class="col col-transaction">
-                      <div>
-                        <p class="q-mb-none transactions-wallet ib-text"><b>My BCH wallet</b></p>
-                        <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>₱0.00</b></p>
-                      </div>
-                      <div class="col">
-                          <span class="float-left subtext"><b>0 BCH</b></span>
-                          <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                      </div>
-                    </div>
-                  </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                  <div class="row">
-                    <div class="q-mr-sm">
-                      <img src="bitcoin-cash-bch-logo.png" width="40">
-                    </div>
-                    <div class="col col-transaction">
-                      <div>
-                        <p class="q-mb-none transactions-wallet ib-text"><b>My BCH wallet</b></p>
-                        <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>₱0.00</b></p>
-                      </div>
-                      <div class="col">
-                          <span class="float-left subtext"><b>0 BCH</b></span>
+                          <span class="float-left subtext"><b>{{ transaction.txid | truncateTxid }}</b></span>
                           <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                       </div>
                     </div>
@@ -173,11 +114,23 @@ export default {
   data () {
     return {
       today: new Date().toDateString(),
-      selectedTokenId: '',
-      selectedAssetBalance: {
-        balance: 0,
+      selectedAsset: {
         symbol: 'BCH',
+        balance: 100,
+        logo: 'bitcoin-cash-bch-logo.png'
       },
+      assets: [
+        { symbol: 'BCH', balance: 100, logo: 'bitcoin-cash-bch-logo.png' },
+        { symbol: 'PHP', balance: 1250, logo: 'pesos-logo.png' },
+        { symbol: 'SPICE', balance: 1000000, logo: 'spice-logo.png' }
+      ],
+      transactionsFilter: 'all',
+      transactions: [
+        { type: 'sent', amount: 0.0015, txid: '437f0c6664b9bb3e9044f2d4f98e0f105d48b1c34a77a65bb193f4d517a69840' },
+        { type: 'received', amount: 200, txid: '93d84b157cf5902bfe83ca88ccce0fb4c28ad064b4a830373f99856b0c7eb0f5' },
+        { type: 'sent', amount: 1200, txid: '493a369cd688080fb6f60f752d28329b5a3baa900719b87961deaf66ed8f4ad6' },
+        { type: 'received', amount: 546, txid: 'bf0132773a63d96a97dc662a52c934b3571e78b7a7540104aacada4d08347306' }
+      ],
       activeBtn: 'btn-all'
     }
   },
@@ -200,19 +153,20 @@ export default {
 
       return bchjs.BitcoinCash.toBitcoinCash(Number(val))
     },
-
-    formatBalancePrecision (val) {
+    formatAmountPrecision (val) {
       const precision = 4
       const number = Number(val)
-      const multiplier = 10**precision
-      if (number*multiplier < multiplier) {
+      const multiplier = 10 ** precision
+      if (number * multiplier < multiplier) {
         return number.toPrecision(precision)
       }
-      return Number(number.toFixed(precision))
+      return Number(number.toFixed(precision)).toLocaleString()
     },
-
-    formatSelectedBalance (val) {
-      return Number(val).toFixed(2)
+    titleCase (str) {
+      return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase());
+    },
+    truncateTxid (str) {
+      return str.substring(0, 20)
     }
   },
 
@@ -221,11 +175,25 @@ export default {
       return this.$store.getters['tokenStats/getTokenStats'](tokenId)
     },
 
+    getTransactions () {
+      if (this.transactionsFilter === 'all') {
+        return this.transactions
+      } else if (this.transactionsFilter === 'sent') {
+        return this.transactions.filter(function (item) {
+          return item.type === 'sent'
+        })
+      } else if (this.transactionsFilter === 'received') {
+        return this.transactions.filter(function (item) {
+          return item.type === 'received'
+        })
+      }
+    },
+
     updateSelectedAssetOnScroll (evt) {
       let newSelectedTokenId = ''
       if (evt && evt.target) {
         const scroll = Number(evt.target.scrollLeft) / Number(evt.target.scrollLeftMax)
-        if(Array.isArray(this.balance.tokens)) {
+        if (Array.isArray(this.balance.tokens)) {
           const assetsCount = this.balance.tokens.length + 1 // the +1 is for bch
 
           // min is to avoid index out of bounds
@@ -239,33 +207,6 @@ export default {
       this.selectedTokenId = newSelectedTokenId
     },
 
-    updateSelectedAsset () {
-      if (!this.selectedTokenId) {
-        this.selectedAssetBalance.balance = this.$options.filters.satoshisToBCH(this.balance.confirmed + this.balance.unconfirmed)
-        this.selectedAssetBalance.symbol = 'BCH'
-      } else {
-        const tokenStats = this.getTokenStats(this.selectedTokenId)
-        const tokenBalance = this.balance.tokens.find(tknB => tknB.tokenId === this.selectedTokenId)
-
-        this.selectedAssetBalance.balance = (tokenBalance && tokenBalance.tokenId === this.selectedTokenId)
-          ? tokenBalance.balanceString
-          : 0
-        this.selectedAssetBalance.symbol = (tokenStats && tokenStats.id === this.selectedTokenId)
-          ? tokenStats.symbol
-          : ''
-      }
-
-      this.selectedAssetBalance.balance = Number(this.selectedAssetBalance.balance).toFixed(2)
-    },
-
-    chooseAsset (scrollX) {
-      var el = document.getElementById('asset-container')
-      el.scrollTo({
-        top: 0,
-        left: scrollX,
-        behavior: 'smooth'
-      })
-    },
     switchActiveBtn (btn) {
       var customBtn = document.getElementById(this.activeBtn)
       customBtn.classList.remove('active-transaction-btn')
@@ -277,6 +218,9 @@ export default {
         element.className += ' ' + name
       }
       this.activeBtn = btn
+
+      // change transactions filter
+      this.transactionsFilter = btn.split('-')[1]
     },
 
     scrollToView (evt) {
@@ -291,20 +235,17 @@ export default {
       if (scrollableParentX) jsUtils.scrollIntoView(scrollableParentX, evt.target, false)
     },
 
+    updateTransactionsList () {
+      console.log(this.selectedAsset)
+    },
+
     updateBalance () {
       this.$store.dispatch('global/updatePrivateBalance')
       this.$store.dispatch('global/updateEscrowBalance')
     }
   },
 
-  watch: {
-    selectedTokenId () {
-      this.updateSelectedAsset()
-    }
-  },
-
   created () {
-    console.log(this)
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
@@ -321,7 +262,7 @@ export default {
     color: #BAC2C2;
   }
   .text-number-balance {
-    font-size: 52px;
+    font-size: 50px;
   }
   .btn-add-cash {
     border: none;
