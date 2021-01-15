@@ -6,6 +6,7 @@ export default function () {
       escrowAddress: '',
 
       escrowBalance: {
+        lastUpdate: 0,
         confirmed: 0,
         unconfirmed: 0,
         tokens: [
@@ -22,6 +23,7 @@ export default function () {
 
       privateAddress: '',
       privateBalance: {
+        lastUpdate: 0,
         confirmed: 0,
         unconfirmed: 0,
         tokens: [
@@ -38,7 +40,9 @@ export default function () {
     },
     vault: {
       mnemonic: '',
-      privateKeys: {}
+      privateKeys: {
+        '': ''
+      }
     }
   }
 }

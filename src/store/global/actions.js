@@ -1,5 +1,7 @@
 import getBalance from '../../utils/get-balance.js'
 
+const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
+
 export function updateOnboardingStep (context, status) {
   context.commit('updateOnboardingStep', status)
 }
@@ -8,9 +10,18 @@ export function updateAddresses (context, addresses) {
   context.commit('updateAddresses', addresses)
 }
 
-export function updatePrivateBalance (context) {
-  console.log(context)
+export function updatePrivateBalance (context, options={ maxAge: DEFAULT_BALANCE_MAX_AGE }) {
   if (!context.state.user.privateAddress) return Promise.reject()
+
+  const maxAge = Number.isSafeInteger(options && options.maxAge) ? Number(options && options.maxAge) : DEFAULT_BALANCE_MAX_AGE
+  if (
+    context.state.user &&
+    context.state.user.privateBalance &&
+    Number.isSafeInteger(context.state.user.privateBalance.lastUpdate) &&
+    context.state.user.privateBalance.lastUpdate > Date.now() - Math.abs(maxAge)
+  ) {
+    return Promise.resolve(context.state.user.privateBalance)
+  }
 
   return getBalance(context.state.user.privateAddress)
     .then(balance => {
@@ -25,8 +36,18 @@ export function updatePrivateBalance (context) {
     })
 }
 
-export function updateEscrowBalance (context) {
+export function updateEscrowBalance (context, options={ maxAge: DEFAULT_BALANCE_MAX_AGE }) {
   if (!context.state.user.escrowAddress) return Promise.reject()
+
+  const maxAge = Number.isSafeInteger(options && options.maxAge) ? Number(options && options.maxAge) : DEFAULT_BALANCE_MAX_AGE
+  if (
+    context.state.user &&
+    context.state.user.escrowBalance &&
+    Number.isSafeInteger(context.state.user.escrowBalance.lastUpdate) &&
+    context.state.user.escrowBalance.lastUpdate > Date.now() - Math.abs(maxAge)
+  ) {
+    return Promise.resolve(context.state.user.escrowBalance)
+  }
 
   return getBalance(context.state.user.escrowAddress)
     .then(balance => {
