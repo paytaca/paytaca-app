@@ -17,3 +17,7 @@ export function balance (state) {
 export function isPrivateMode (state) {
   return state.user.privateMode
 }
+
+export const getWIF = (state) => (address) => {
+  return state.vault.privateKeys[address]
+}
