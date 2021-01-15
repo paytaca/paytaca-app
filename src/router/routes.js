@@ -22,13 +22,6 @@ const routes = [
     ]
   },
   {
-    path: '/send',
-    component: () => import('layouts/Transaction.vue'),
-    children: [
-      { path: '', component: () => import('pages/transaction/send.vue') }
-    ]
-  },
-  {
     path: '/get-started',
     component: () => import('layouts/Getstarted.vue'),
     children: [
