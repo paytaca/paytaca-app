@@ -213,6 +213,7 @@ export default {
     }
   },
   created () {
+    console.log(this)
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
