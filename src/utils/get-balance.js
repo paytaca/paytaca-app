@@ -52,5 +52,6 @@ export default async function (address) {
   } catch (err) {
     console.log(`Encountered error for getting balance of ${address}`)
     console.log(err)
+    throw err
   }
 }

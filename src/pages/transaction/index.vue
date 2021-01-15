@@ -2,11 +2,15 @@
   <div>
     <div class="row q-pt-lg">
       <div class="col q-pl-lg">
-        <p class="text-light p-label">Your balance</p>
-        <p class="text-number-balance default-text-color">30.67</p>
+        <p class="text-light p-label">
+          Your balance ({{ selectedAssetBalance.symbol }})
+        </p>
+        <p class="text-number-balance default-text-color">
+          {{ selectedAssetBalance.balance }}
+        </p>
       </div>
-      <div class="col q-pr-lg">
-        <p class="text-right text-light p-label">08 January 2021</p>
+      <div class="q-space q-pr-lg">
+        <p class="text-right text-light p-label">{{ today }}</p>
         <img class="float-right q-mt-sm" src="bitcoin-cash-bch-logo.png" width="54">
       </div>
     </div>
@@ -24,9 +28,15 @@
             </p>
         </div>
     </div>
-    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
+    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container" @scroll.self="updateSelectedAssetOnScroll">
         <!-- <button class="btn-add-payment-method q-ml-lg">+</button> -->
-        <div class="method-cards q-pa-md" @click="scrollToView">
+        <div
+          class="method-cards q-pa-md"
+          @click="(e) => {
+            scrollToView(e)
+            selectedTokenId=''
+          }"
+        >
           <div class="row items-start no-wrap justify-between">
             <img src="bitcoin-cash-bch-logo.png" width="40" class="q-mr-xs">
             <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
@@ -44,7 +54,10 @@
           v-for="(tokenBalance, index) in balance.tokens"
           :key="index"
           class="method-cards q-pa-md"
-          @click="scrollToView"
+          @click="(e) => {
+            scrollToView(e)
+            selectedTokenId=tokenBalance.tokenId
+          }"
         >
           <div class="row items-start no-wrap justify-between">
             <img src="bitcoin-cash-bch-logo.png" width="40" class="q-mr-xs">
@@ -159,6 +172,12 @@ export default {
   name: 'Transaction-page',
   data () {
     return {
+      today: new Date().toDateString(),
+      selectedTokenId: '',
+      selectedAssetBalance: {
+        balance: 0,
+        symbol: 'BCH',
+      },
       activeBtn: 'btn-all'
     }
   },
@@ -190,12 +209,53 @@ export default {
         return number.toPrecision(precision)
       }
       return Number(number.toFixed(precision))
+    },
+
+    formatSelectedBalance (val) {
+      return Number(val).toFixed(2)
     }
   },
 
   methods: {
     getTokenStats (tokenId) {
       return this.$store.getters['tokenStats/getTokenStats'](tokenId)
+    },
+
+    updateSelectedAssetOnScroll (evt) {
+      let newSelectedTokenId = ''
+      if (evt && evt.target) {
+        const scroll = Number(evt.target.scrollLeft) / Number(evt.target.scrollLeftMax)
+        if(Array.isArray(this.balance.tokens)) {
+          const assetsCount = this.balance.tokens.length + 1 // the +1 is for bch
+
+          // min is to avoid index out of bounds
+          const index = Math.min(Math.floor(scroll * assetsCount), this.balance.tokens.length)
+          if (index > 0) {
+            newSelectedTokenId = this.balance.tokens[index-1].tokenId
+          }
+        }
+      }
+
+      this.selectedTokenId = newSelectedTokenId
+    },
+
+    updateSelectedAsset () {
+      if (!this.selectedTokenId) {
+        this.selectedAssetBalance.balance = this.$options.filters.satoshisToBCH(this.balance.confirmed + this.balance.unconfirmed)
+        this.selectedAssetBalance.symbol = 'BCH'
+      } else {
+        const tokenStats = this.getTokenStats(this.selectedTokenId)
+        const tokenBalance = this.balance.tokens.find(tknB => tknB.tokenId === this.selectedTokenId)
+
+        this.selectedAssetBalance.balance = (tokenBalance && tokenBalance.tokenId === this.selectedTokenId)
+          ? tokenBalance.balanceString
+          : 0
+        this.selectedAssetBalance.symbol = (tokenStats && tokenStats.id === this.selectedTokenId)
+          ? tokenStats.symbol
+          : ''
+      }
+
+      this.selectedAssetBalance.balance = Number(this.selectedAssetBalance.balance).toFixed(2)
     },
 
     chooseAsset (scrollX) {
@@ -236,6 +296,13 @@ export default {
       this.$store.dispatch('global/updateEscrowBalance')
     }
   },
+
+  watch: {
+    selectedTokenId () {
+      this.updateSelectedAsset()
+    }
+  },
+
   created () {
     console.log(this)
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)

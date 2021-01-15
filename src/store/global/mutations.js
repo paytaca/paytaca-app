@@ -25,3 +25,7 @@ export function updateEscrowBalance (state, balance) {
   // We store the last update, this is related to rate limiting for bch-js
   state.user.escrowBalance.lastUpdate = Date.now()
 }
+
+export function setPrivateMode(state, privateMode) {
+  state.privateMode = Boolean(privateMode)
+}

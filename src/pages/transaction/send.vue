@@ -29,6 +29,8 @@
           }"
         >
           <q-btn
+            rounded
+            padding="xs"
             :icon="scanner.frontCamera ? 'camera_rear': 'camera_front'"
             @click="scanner.frontCamera = !scanner.frontCamera"
           />

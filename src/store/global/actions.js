@@ -61,3 +61,9 @@ export function updateEscrowBalance (context, options={ maxAge: DEFAULT_BALANCE_
       return Promise.resolve(balance)
     })
 }
+
+export function setPrivateMode(context, { privateMode }) {
+  const val = Boolean(privateMode)
+  context.commit('setPrivateMode', val)
+  return Promise.resolve(val)
+}
