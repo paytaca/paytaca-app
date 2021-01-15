@@ -5,7 +5,7 @@ export function updateTokenStats (state, data) {
     state.tokenTypes = [data]
   }
 
-  const index = state.tokenTypes.map(t => t.id).indexOf(data.tokenId)
+  const index = state.tokenTypes.map(t => t.id).indexOf(data.id)
   if (index < 0) state.tokenTypes.push(data)
   else state.tokenTypes[index] = data
 }
