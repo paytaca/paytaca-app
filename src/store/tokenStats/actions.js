@@ -2,7 +2,7 @@ import getTokenStatsAPI from '../../utils/get-token-stats.js'
 
 export function getTokenStats ({ getters, commit }, { tokenId }) {
   const existingTokenStats = getters.getTokenStats(tokenId)
-  if (existingTokenStats && existingTokenStats.tokenId) return Promise.resolve(existingTokenStats)
+  if (existingTokenStats && existingTokenStats.id) return Promise.resolve(existingTokenStats)
 
   return getTokenStatsAPI(tokenId)
     .then(tokenStats => {
