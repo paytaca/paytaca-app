@@ -133,7 +133,7 @@ export default {
         transition: .4s;
     }
     input:checked + .slider {
-        background-color: #3992EA;
+        background-color: #012121;
     }
     input:focus + .slider {
         box-shadow: 0 0 1px #2196F3;

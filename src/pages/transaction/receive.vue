@@ -10,14 +10,14 @@
         <div class="col qr-code-container">
             <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
-                <div class="col q-pt-md">
-                  <Vue-qr-code class="qr-code" value="sadasdasdasdadasdewrfd" />
-                  <span class="qr-code-text">{{sadasdasdasdadasdewrfd}}</span>
+                <div class="col row justify-center q-pt-md">
+                  <qr-code :text="address" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
+                  <span class="qr-code-text"><b>{{ address }}</b></span>
                 </div>
               </div>
               <div class="row">
                 <div class="col q-ma-sm q-mb-md">
-                  <i class="eva eva-copy-outline color-light-gray icon-copy float-right q-mr-md" @click="copyAddress"></i>
+                  <i class="eva eva-copy-outline icon-copy float-right q-mr-md" @click="copyAddress"></i>
                 </div>
               </div>
             </div>
@@ -30,12 +30,6 @@
                 <a to="/send"><button class="btn-custom q-mt-none btn-spice" @click="swtichActiveBtn('btn-spice')" id="btn-spice"><b>SPICE</b></button></a>
                 <a to="/receive"><button class="btn-custom q-mt-none btn-spice" @click="swtichActiveBtn('btn-peso')" id="btn-peso"><b>PESO</b></button></a>
             </div>
-            <div class="row">
-                <div class="col q-ml-lg q-mt-md">
-                    <p class="receive__to q-mb-sm"><b>Receive to</b></p>
-                    <p class="q-mt-none receive-wallet">MY BCH wallet</p>
-                </div>
-            </div>
         </div>
     </div>
   </div>
@@ -43,7 +37,6 @@
 
 <script>
 // import { fasClone } from '@quasar/extras/fontawesome-v5'
-import VueQrCode from 'vue-weblineindia-qrcode'
 
 export default {
   name: 'Receive-page',
@@ -52,9 +45,6 @@ export default {
       activeBtn: 'btn-bch',
       address: ''
     }
-  },
-  components: {
-    VueQrCode,
   },
   methods: {
     swtichActiveBtn (btn) {
@@ -73,17 +63,16 @@ export default {
         message: 'Copied address',
         timeout: 800
       })
+    },
+    // generateQRcode method is for testing only
+    generateQRcode (length, chars) {
+      var result = '';
+      for (var i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
+      this.address = result
     }
   },
   created () {
-      var result           = '';
-      var characters       = 'abcdefghijklmnopqrstuvwxyz0123456789';
-      var charactersLength = characters.length;
-      for ( var i = 0; i < length; i++ ) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
-      }
-
-      this.address = result
+    this.generateQRcode(40, '0123456789abcdefghijklmnopqrstuvwxyz')
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
@@ -91,23 +80,23 @@ export default {
 
 <style lang="scss">
   .receive {
-    color: #3992EA;
+    color: #636767;
   }
   .qr-code-container {
-    margin-top: 70px;
+    margin-top: 66px;
     padding-left: 28px;
     padding-right: 28px;
   }
   /* iPhone 5/SE */
   @media (min-width: 280px) and (max-width: 320px) {
-    .col-qr-code-container {
-      margin-top: 10px;
+    .qr-code-container {
+      margin-top: 30px;
     }
   }
   /* Galaxy Fold */
   @media (min-width: 200px) and (max-width: 280px) {
-    .col-qr-code-container {
-      margin-top: 70px;
+    .qr-code-container {
+      margin-top: 66px;
     }
   }
   .col-qr-code {
@@ -131,7 +120,7 @@ export default {
   }
   .currencies {
     position: fixed;
-    height: 160px;
+    height: 100px;
     width: 100%;
     bottom: 0pt;
     border-top-left-radius: 22px;

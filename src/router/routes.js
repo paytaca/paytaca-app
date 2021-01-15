@@ -4,6 +4,21 @@ const routes = [
     path: '/',
     component: () => import('layouts/Transaction.vue'),
     children: [
+      { path: '', component: () => import('pages/transaction/index.vue') }
+    ]
+  },
+  {
+    path: '/receive',
+    component: () => import('layouts/Transaction.vue'),
+    children: [
+      { path: '', component: () => import('pages/transaction/receive.vue') }
+    ]
+  },
+  {
+    path: '/select-asset',
+    component: () => import('layouts/Transaction.vue'),
+    children: [
+      { path: '', component: () => import('pages/transaction/select-asset.vue') },
       {
         path: '',
         name: 'transaction-index',

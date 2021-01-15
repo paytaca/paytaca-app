@@ -268,10 +268,10 @@ export default {
     },
     switchActiveBtn (btn) {
       var customBtn = document.getElementById(this.activeBtn)
-      customBtn.classList.remove('active-btn')
+      customBtn.classList.remove('active-transaction-btn')
 
       var element = document.getElementById(btn)
-      var name = 'active-btn'
+      var name = 'active-transaction-btn'
       var arr = element.className.split(' ')
       if (arr.indexOf(name) === -1) {
         element.className += ' ' + name

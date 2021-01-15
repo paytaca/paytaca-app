@@ -20,6 +20,7 @@
     "core-js": "^3.6.5",
     "quasar": "^1.0.0",
     "vue-i18n": "^8.0.0",
+    "vue-qrcode-component": "^2.1.1",
     "vue-qrcode-reader": "^2.3.16",
     "vue-weblineindia-qrcode": "^1.0.0",
     "vuex-persist": "^3.1.3",
