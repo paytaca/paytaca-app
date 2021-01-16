@@ -3,7 +3,7 @@
     <div class="fixed-container">
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
-          <p class="text-light p-label">
+          <p class="text-light p-label" style="color: #ABA9BB;">
             Your {{ selectedAsset.symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
@@ -11,7 +11,7 @@
           </p>
         </div>
         <div class="q-space q-pr-lg">
-          <p class="text-right text-light p-label">{{ today }}</p>
+          <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
           <img class="float-right q-mt-sm" :src="selectedAsset.logo" width="60">
         </div>
       </div>
@@ -56,37 +56,17 @@
           </div>
           <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
       </div>
-      <div class="row q-mt-md">
-          <div class="col text-center q-gutter-xs">
-            <router-link :to="{ name: 'transaction-send-select-asset' }">
-              <button class="float-center btn-send">
-                <b>
-                  <i class="mdi mdi-send-outline"></i>
-                  SEND
-                </b>
-              </button>
-            </router-link>
-            <router-link :to="{ name: 'transaction-receive' }">
-              <button class="float-center btn-action btn-receive">
-                <b>
-                  <i class="mdi mdi-arrow-down-box"></i>
-                  RECEIVE
-                </b>
-              </button>
-            </router-link>
-          </div>
-      </div>
     </div>
     <div class="row transaction-row">
         <div class="col transaction-container">
-            <p class="q-ma-lg transaction-wallet"><b>TRANSACTIONS</b></p>
+            <p class="q-ma-lg transaction-wallet">Transactions</p>
             <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
                 <button class="btn-custom q-mt-none active-transaction-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
                 <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
                 <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
             <div class="transaction-list">
-              <div class="row" v-for="(transaction, index) in getTransactions()" :key="index">
+              <div class="row" v-for="(transaction, index) in getTransactions()" :key="'tx-' + index">
                   <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                     <div class="row">
                       <div class="q-mr-sm">
@@ -94,11 +74,11 @@
                       </div>
                       <div class="col col-transaction">
                         <div>
-                          <p class="q-mb-none transactions-wallet ib-text"><b>{{ transaction.type | titleCase }}</b></p>
+                          <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ transaction.type | titleCase }}</b></p>
                           <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ transaction.amount | formatAmountPrecision }} {{ selectedAsset.symbol }}</b></p>
                         </div>
                         <div class="col">
-                            <span class="float-left subtext"><b>{{ transaction.txid | truncateTxid }}</b></span>
+                            <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.txid | truncateTxid }}</b></span>
                             <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                         </div>
                       </div>
@@ -315,7 +295,7 @@ export default {
     position: fixed;
     height: 60px;
     width: 100%;
-    background-color: #fff;
+    background-color: #F9F7FF;
     border-top-right-radius: 20px;
     border-top-left-radius: 20px;
     box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
@@ -368,7 +348,7 @@ export default {
   }
   .transaction-row {
     position: relative;
-    margin-top: 350px;
+    margin-top: 290px;
     z-index: 5;
   }
   .transaction-list {
@@ -386,7 +366,7 @@ export default {
     margin-bottom: 0px !important;
   }
   .default-text-color {
-    color: #3992EA;
+    color: rgb(60, 100, 246);
   }
   .text-light {
     color: #BAC2C2;
@@ -425,7 +405,7 @@ export default {
     height: 110px;
     min-width: 180px;
     border-radius: 16px;
-    background-color: #3992EA;
+    background-color: #008BF1;
     box-shadow: 1px 2px 2px 2px rgba(99, 103, 103, .2);
   }
   .ib-text {
@@ -444,31 +424,11 @@ export default {
     font-size: 12px;
     color: #DBE7E7;
   }
-  .btn-send {
-    height: 40px;
-    width: 32%;
-    color: #4C4F4F;
-    border: none;
-    border-radius: 20px;
-    background-color: #fff;
-    outline: 0;
-    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
-  }
-  .btn-receive {
-    height: 40px;
-    width: 32%;
-    color: #fff;
-    background-color: #E6BC4B;
-    border-radius: 20px;
-    border: none;
-    outline: 0;
-    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .18);
-  }
   .transaction-container {
     min-height: 350px;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
-    background-color: #FBFBFC;
+    background-color: #F9F8FF;
     margin-top: 24px;
   }
   .col-transaction {
@@ -504,11 +464,12 @@ export default {
     background-color: #fff;
   }
   .btn-custom.active-transaction-btn {
-    background-color: rgba(206, 38, 38, .8) !important;
+    background-color: rgb(60, 100, 246) !important;
     color: #fff;
   }
   .btn-transaction {
-    background-color: rgba(43, 126, 209, .04);
+    font-size: 16px;
+    background-color: #ff8b6e38;
     border-radius: 24px;
     padding: 4px;
     padding-left: 2px;

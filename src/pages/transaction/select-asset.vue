@@ -2,7 +2,9 @@
   <div>
     <div class="row">
         <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link :to="{ path: '/'}"><i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px;">arrow_back</i></router-link>
+          <router-link :to="{ path: '/'}">
+            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px;">arrow_back</i>
+          </router-link>
           <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
             SEND
           </p>

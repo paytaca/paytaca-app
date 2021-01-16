@@ -2,13 +2,22 @@
   <div class="row justify-center fixed-footer">
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn">
-        <i class="footer-icon mdi mdi-home"></i>
-      </button> 
+        <router-link :to="{ path: '/' }">
+          <i class="footer-icon mdi mdi-home"></i>
+        </router-link>
+      </button>
       <button class="footer-icon-btn">
-        <i class="footer-icon mdi mdi-apps"></i>
+        <router-link :to="{ name: 'transaction-send-select-asset' }">
+          <i class="footer-icon mdi mdi-send"></i>
+        </router-link>
+      </button>
+      <button class="footer-icon-btn">
+        <router-link :to="{ name: 'transaction-receive' }">
+          <i class="footer-icon mdi mdi-inbox"></i>
+        </router-link>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse">
-        <i class="footer-icon mdi mdi-dots-horizontal"></i>
+        <i class="footer-icon mdi mdi-nintendo-switch"></i>
         <div class="account-options">
           <a class="active-account" ref="escrow" @click="switchAccount('escrow')">ESCROW</a>
           <a ref="private" @click="switchAccount('private')">PRIVATE</a>
@@ -52,8 +61,8 @@ export default {
     bottom: 0pt;
     z-index: 6;
     .footer-icon {
-      font-size: 24px;
-      color: #3992EA;
+      font-size: 30px !important;
+      color: rgb(60, 100, 246) !important;
     }
     .footer-icon-btn {
       border-radius: 20px;
