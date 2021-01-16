@@ -66,7 +66,7 @@
                 </b>
               </button>
             </router-link>
-            <router-link :to="{ name: 'transaction-receive' }">
+            <router-link :to="{ name: 'transaction-receive-select-asset' }">
               <button class="float-center btn-action btn-receive">
                 <b>
                   <i class="mdi mdi-arrow-down-box"></i>
@@ -86,25 +86,6 @@
                 <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
             <div class="transaction-list">
-              <div class="row" v-for="(transaction, index) in getTransactions()" :key="index">
-                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                    <div class="row">
-                      <div class="q-mr-sm">
-                        <img :src="selectedAsset.logo" width="40">
-                      </div>
-                      <div class="col col-transaction">
-                        <div>
-                          <p class="q-mb-none transactions-wallet ib-text"><b>{{ transaction.type | titleCase }}</b></p>
-                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ transaction.amount | formatAmountPrecision }} {{ selectedAsset.symbol }}</b></p>
-                        </div>
-                        <div class="col">
-                            <span class="float-left subtext"><b>{{ transaction.txid | truncateTxid }}</b></span>
-                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-              </div>
               <div class="row" v-for="(transaction, index) in getTransactions()" :key="index">
                   <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                     <div class="row">
