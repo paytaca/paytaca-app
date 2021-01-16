@@ -11,8 +11,17 @@
             <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <qr-code :text="address" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
-                  <span class="qr-code-text"><b>{{ address }}</b></span>
+                  <qr-code :text="receiveAddress" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
+                  <span class="qr-code-text text-weight-medium">
+                      <div class="text-nowrap">
+                        <span v-if="receiveAddress.length > 25">
+                          {{ receiveAddress.substr(0, 20) }}....{{ receiveAddress.substr(-4) }}
+                        </span>
+                        <span v-else>
+                          {{ receiveAddress }}
+                        </span>
+                      </div>
+                  </span>
                 </div>
               </div>
               <div class="row">
@@ -36,17 +45,51 @@
 </template>
 
 <script>
+import walletUtils from '../../utils/common.js'
 // import { fasClone } from '@quasar/extras/fontawesome-v5'
 
 export default {
   name: 'Receive-page',
+  props: {
+    tokenId: {
+      // tokenId will determine whether to send an slp token or bch
+      // no tokenId means that bch is intended to be sent
+      type: String,
+      required: false
+    }
+  },
   data () {
     return {
+      tokenStats: null,
+      receiveData: {
+        tokenId: '',
+        isReceivingBCH: true,
+      },
       activeBtn: 'btn-bch',
-      address: ''
+      // address: ''
+    }
+  },
+  computed: {
+    address () {
+      return this.$store.getters['global/address']
+    },
+    receiveAddress () {
+      return walletUtils.parseAddress(
+        this.address,
+        this.receiveData.isReceivingBCH ? walletUtils.ADDR_CASH : walletUtils.ADDR_SLP
+      )
     }
   },
   methods: {
+    fetchTokenStats () {
+      if (!this.tokenId) return Promise.reject()
+
+      return this.$store.dispatch('tokenStats/getTokenStats', {tokenId: this.tokenId})
+        .then(tokenStats => {
+          this.tokenStats = tokenStats
+          return Promise.resolve()
+        })
+    },
     swtichActiveBtn (btn) {
       var element = document.getElementById(btn)
       var name = 'active-btn'
@@ -71,8 +114,19 @@ export default {
       this.address = result
     }
   },
+  mounted () {
+    if (this.tokenId) {
+      console.log('got token id')
+      this.fetchTokenStats()
+        .then(() => {
+          console.log('token stats fetch success')
+          this.receiveData.isReceivingBCH = false
+          this.receiveData.tokenId = this.tokenStats.id
+        })
+    }
+  },
   created () {
-    this.generateQRcode(40, '0123456789abcdefghijklmnopqrstuvwxyz')
+    // this.generateQRcode(40, '0123456789abcdefghijklmnopqrstuvwxyz')
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
