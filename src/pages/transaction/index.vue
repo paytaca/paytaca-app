@@ -28,7 +28,8 @@
             </p>
         </div>
     </div>
-    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container" @scroll.self="updateSelectedAssetOnScroll">
+    <!-- <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container" @scroll.self="updateSelectedAssetOnScroll"> -->
+    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
         <!-- <button class="btn-add-payment-method q-ml-lg">+</button> -->
         <div
           v-for="(asset, index) in assets"
@@ -119,11 +120,6 @@ export default {
         balance: 100,
         logo: 'bitcoin-cash-bch-logo.png'
       },
-      assets: [
-        { symbol: 'BCH', balance: 100, logo: 'bitcoin-cash-bch-logo.png' },
-        { symbol: 'PHP', balance: 1250, logo: 'pesos-logo.png' },
-        { symbol: 'SPICE', balance: 1000000, logo: 'spice-logo.png' }
-      ],
       transactionsFilter: 'all',
       transactions: [
         { type: 'sent', amount: 0.0015, txid: '437f0c6664b9bb3e9044f2d4f98e0f105d48b1c34a77a65bb193f4d517a69840' },
@@ -144,6 +140,31 @@ export default {
     },
     balance () {
       return this.$store.getters['global/balance']
+    },
+    assets () {
+      const tokenAssets = (Array.isArray(this.balance.tokens) ? this.balance.tokens : []).map(
+        tokenBalance => {
+          const tokenStats = this.getTokenStats(tokenBalance.tokenId)
+          if (tokenStats) {
+            tokenBalance.symbol = tokenStats.symbol
+            tokenBalance.name = tokenStats.name
+          }
+          return tokenBalance
+        }
+      )
+
+      return [
+        {
+          tokenId: '',
+          balance: this.$options.filters.satoshisToBCH(this.balance.confirmed + this.balance.unconfirmed),
+          symbol: 'BCH',
+          name: 'Bitcoin Cash'
+        },
+        ...tokenAssets
+      ].map(asset => {
+        asset.logo = this.$store.getters['tokenStats/getTokenLogo'](asset.tokenId)
+        return asset
+      })
     }
   },
 
@@ -197,14 +218,10 @@ export default {
           const assetsCount = this.balance.tokens.length + 1 // the +1 is for bch
 
           // min is to avoid index out of bounds
-          const index = Math.min(Math.floor(scroll * assetsCount), this.balance.tokens.length)
-          if (index > 0) {
-            newSelectedTokenId = this.balance.tokens[index-1].tokenId
-          }
+          const index = Math.min(Math.floor(scroll * assetsCount), this.assets.length-1)
+          this.selectedAsset = this.assets[index]
         }
       }
-
-      this.selectedTokenId = newSelectedTokenId
     },
 
     switchActiveBtn (btn) {
@@ -245,7 +262,14 @@ export default {
     }
   },
 
+  mounted () {
+    if(Array.isArray(this.assets) && this.assets.length > 0) {
+      this.selectedAsset = this.assets[0]
+    }
+  },
+
   created () {
+    console.log(this)
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }

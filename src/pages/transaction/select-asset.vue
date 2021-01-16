@@ -6,50 +6,22 @@
         <p class="text-center send"><b>SEND</b></p>
       </div>
     </div>
-    <qrcode-stream class="qrcode-scanner" :class="[address != '' ? 'display-none' : '']" @decode="onDecode" @init="onInit" ></qrcode-stream>
-    <div class="row justify-center receipient-address" :class="[address == '' ? 'display-none' : '']">
-      <div class="row justify-center">
-        <div class="col ">
-          <h5 class="q-mb-xs text-center recep-address"><b>Address</b></h5>
-          <p class="text-center q-ma-none q-pa-none q-mb-lg recep-address"><b>{{ address }}</b></p>
-          <q-input input-class="text-right"
-            input-style="padding-right: 10px;"
-            type="number"
-            fill-mask="0"
-            reverse-fill-mask
-            rounded
-            outlined>
-          </q-input>
-        </div>
-      </div>
-    </div>
-    <div class="row" :class="[address != '' ? 'display-none' : '']">
-      <div class="currencies">
-        <div class="col q-gutter-xs q-ml-lg q-mr-lg q-pa-none q-pl-none text-center btn-transaction">
-          <button class="btn-custom q-mt-none active-btn btn-bch" @click="swtichActiveBtn('btn-bch')" id="btn-bch"><b>BCH</b></button>
-          <a to="/send"><button class="btn-custom q-mt-none btn-spice" @click="swtichActiveBtn('btn-spice')" id="btn-spice"><b>SPICE</b></button></a>
-          <a to="/receive"><button class="btn-custom q-mt-none btn-spice" @click="swtichActiveBtn('btn-peso')" id="btn-peso"><b>PESO</b></button></a>
-        </div>
-        <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link to="/"><i class="icon-size-1 material-icons q-mt-sm icon-arrow-left">arrow_back</i></router-link>
-          <p class="text-center select q-mt-sm text-token"><b>SELECT AN ASSET</b></p>
-        </div>
-      </div>
-    </div>
     <template v-if="hasAvailableAssets">
-      <router-link :to="{ name: 'transaction-send' }">
-        <div class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link">
-          <div><img src="bitcoin-cash-bch-logo.png" width="40"></div>
-          <div class="col q-pl-sm q-pr-sm">
-            <p class="q-ma-none text-token text-weight-medium">
-              BCH
-            </p>
-            <p class="q-ma-none asset">
-              {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH }} BCH
-            </p>
-          </div>
+      <div
+        role="button"
+        class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
+        @click="$router.push({ name: 'transaction-send' })"
+      >
+        <div><img src="bitcoin-cash-bch-logo.png" width="40"></div>
+        <div class="col q-pl-sm q-pr-sm">
+          <p class="q-ma-none text-token text-weight-medium">
+            BCH
+          </p>
+          <p class="q-ma-none asset">
+            {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH }} BCH
+          </p>
         </div>
-      </router-link>
+      </div>
 
       <div v-if="Array.isArray(balance.tokens) && balance.tokens.length">
         <div class="row">
@@ -57,24 +29,24 @@
             <p class="slp_tokens q-mb-sm"><b>SLP TOKENS</b></p>
           </div>
         </div>
-        <router-link
+        <div
           v-for="(tokenBalance, index) in balance.tokens"
           :key="index"
-          :to="{ name: 'transaction-send', query: { tokenId: tokenBalance.tokenId } }"
+          @click="$router.push({ name: 'transaction-send', query: { tokenId: tokenBalance.tokenId } })"
+          role="button"
+          class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
         >
-          <div class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link">
-            <div><img src="bitcoin-cash-bch-logo.png" width="40"></div>
-            <div class="col q-pl-sm q-pr-sm">
-              <p class="q-ma-none text-token text-weight-medium">
-                {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).name }}
-              </p>
-              <p class="q-ma-none asset">
-                {{ tokenBalance.balanceString | formatBalancePrecision }}
-                {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).symbol }}
-              </p>
-            </div>
+          <div><img :src="getTokenLogo(tokenBalance.tokenId)" width="40"></div>
+          <div class="col q-pl-sm q-pr-sm">
+            <p class="q-ma-none text-token text-weight-medium">
+              {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).name }}
+            </p>
+            <p class="q-ma-none asset">
+              {{ tokenBalance.balanceString | formatBalancePrecision }}
+              {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).symbol }}
+            </p>
           </div>
-        </router-link>
+        </div>
       </div>
     </template>
     <div
@@ -148,30 +120,11 @@ export default {
       customBtn.classList.remove('active-btn')
       this.activeBtn = btn
     },
-    onDecode (result) {
-      this.address = result
-    },
-    async onInit (promise) {
-      try {
-        await promise
-      } catch (error) {
-        if (error.name === 'NotAllowedError') {
-          this.error = "ERROR: you need to grant camera access permisson"
-        } else if (error.name === 'NotFoundError') {
-          this.error = "ERROR: no camera on this device"
-        } else if (error.name === 'NotSupportedError') {
-          this.error = "ERROR: secure context required (HTTPS, localhost)"
-        } else if (error.name === 'NotReadableError') {
-          this.error = "ERROR: is the camera already in use?"
-        } else if (error.name === 'OverconstrainedError') {
-          this.error = "ERROR: installed cameras are not suitable"
-        } else if (error.name === 'StreamApiNotSupportedError') {
-          this.error = "ERROR: Stream API is not supported in this browser"
-        }
-      }
-    },
     getTokenStats (tokenId) {
       return this.$store.getters['tokenStats/getTokenStats'](tokenId)
+    },
+    getTokenLogo (tokenId) {
+      return this.$store.getters['tokenStats/getTokenLogo'](tokenId) || 'bitcoin-cash-bch-logo.png'
     }
   },
 

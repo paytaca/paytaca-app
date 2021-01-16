@@ -37,8 +37,15 @@ export default function () {
           {
             balanceString: '120',
             slpAddress: '<slp-address>',
-            tokenId: 'test-token-id',
-            balance: 120,
+            tokenId: 'test-token-id-1',
+            balance: 130,
+            decimalCount: 8
+          },
+          {
+            balanceString: '120',
+            slpAddress: '<slp-address>',
+            tokenId: 'test-token-id-2',
+            balance: 120000,
             decimalCount: 8
           }
           // ...
