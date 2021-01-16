@@ -299,7 +299,7 @@ export default {
       sendToken(
         walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP),
         this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
-        walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
+        walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_SLP),
         this.sendData.tokenId,
         this.sendData.amount
       )

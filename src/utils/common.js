@@ -31,6 +31,46 @@ export function getBCHJS (network = NET_TESTNET) {
   }
 }
 
+// NOTE: This ignores token utxo to avoid burning
+export async function getUtxosForAmount (utxos, amount, satoshisPerByte, outputCount, context) {
+  // we will sort the utxos by value (biggest first) to get utxos that will satisfy the amount target
+  let utxosToReturn = []
+  const sortedUtxos = utxos.sort((a, b) => a.value < b.value)
+  for (var i = 0; i < sortedUtxos.length; i++) {
+    /*
+      1. if total amount plus fees is met we stop
+      2. validate utxo if it is spent already
+      3. validate utxo if it is an slp token
+    */
+
+    // 1.
+    const totalAmount = utxosToReturn.reduce((subTotal, utxo) => subTotal + utxo.value, 0)
+    const byteCount = context.BitcoinCash.getByteCount(
+      { P2PKH: utxosToReturn.length },
+      { P2PKH: outputCount }
+    )
+    if (totalAmount >= (amount+ satoshisPerByte*byteCount)) break
+
+    const thisUtxo = sortedUtxos[i]
+    // 2.
+    const txout = await context.Blockchain.getTxOut(thisUtxo.tx_hash, thisUtxo.tx_pos)
+    if (txout === null) {
+      // If the UTXO has already been spent, the full node will respond with null.
+      console.log('Stale UTXO found. You may need to wait for the indexer to catch up.')
+      continue
+    }
+
+    // 3.
+    if (thisUtxo.utxoType === 'token' || thisUtxo.tokenId) {
+      console.log('Token utxo found. This utxo is a token it cannot be used for sending bch')
+    }
+
+    utxosToReturn.push(thisUtxo)
+  }
+
+  return utxosToReturn
+}
+
 // Returns the utxo with the biggest balance from an array of utxos.
 // NOTE: This ignores token utxo to avoid burning
 export async function findBiggestUtxo (utxos, context) {
@@ -128,6 +168,7 @@ export default {
   parseAddress,
 
   findBiggestUtxo,
+  getUtxosForAmount,
 
   getBCHJS, 
 }
