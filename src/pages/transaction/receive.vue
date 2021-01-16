@@ -36,7 +36,6 @@
 </template>
 
 <script>
-// import { fasClone } from '@quasar/extras/fontawesome-v5'
 
 export default {
   name: 'Receive-page',

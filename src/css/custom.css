@@ -22,7 +22,7 @@
     z-index: 1;
   }
 
-  p {
+  p, a {
   -webkit-touch-callout: none;
     -webkit-user-select: none;
      -khtml-user-select: none;

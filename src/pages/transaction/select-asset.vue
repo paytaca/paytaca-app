@@ -1,6 +1,5 @@
 <template>
   <div>
-    <sidebar-mode-toggler />
     <div class="row">
       <div class="col q-mt-md">
         <p class="text-center send"><b>SEND</b></p>
@@ -55,6 +54,8 @@
     >
       No assets available
     </div>
+
+    <footer-menu />
   </div>
 </template>
 <script>

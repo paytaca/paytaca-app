@@ -25,7 +25,8 @@ module.exports = function (/* ctx */) {
       'aes256',
       'sidebarmode',
       'qrcodecomponent',
-      'qrcodereader'
+      'qrcodereader',
+      'footer'
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
@@ -81,7 +82,7 @@ module.exports = function (/* ctx */) {
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer
     devServer: {
-      https: true,
+      https: false,
       port: 9000,
       open: true // opens browser window automatically
     },

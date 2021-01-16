@@ -1,0 +1,99 @@
+<template>
+  <div class="row justify-center fixed-footer">
+    <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
+      <button class="footer-icon-btn">
+        <i class="footer-icon mdi mdi-home"></i>
+      </button> 
+      <button class="footer-icon-btn">
+        <i class="footer-icon mdi mdi-apps"></i>
+      </button>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse">
+        <i class="footer-icon mdi mdi-dots-horizontal"></i>
+        <div class="account-options">
+          <a class="active-account" ref="escrow" @click="switchAccount('escrow')">ESCROW</a>
+          <a ref="private" @click="switchAccount('private')">PRIVATE</a>
+        </div>
+      </button>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'footer',
+  data () {
+    return {}
+  },
+  methods: {
+    switchAccount (account) {
+      account == 'private' ? this.$q.dark.set(true) : this.$q.dark.set(false)
+      account == 'private' ? this.$q.localStorage.set('active-account', true) : this.$q.localStorage.set('active-account', false)
+      this.$store.dispatch('global/setPrivateMode', { privateMode: this.active_account })
+      this.$refs[account].classList.add('active-account')
+      var removeClass = account == 'escrow' ? 'private' : 'escrow'
+      this.$refs[removeClass].classList.remove('active-account')
+    },
+  }
+}
+</script>
+
+<style lang="scss">
+  .active-account {
+    background-color: #EDF1F3;
+  }
+  .fixed-footer {
+    position: fixed;
+    height: 60px;
+    width: 100%;
+    background-color: #fff;
+    border-top-right-radius: 20px;
+    border-top-left-radius: 20px;
+    box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
+    bottom: 0pt;
+    z-index: 6;
+    .footer-icon {
+      font-size: 24px;
+      color: #3992EA;
+    }
+    .footer-icon-btn {
+      border-radius: 20px;
+      border: none;
+      width: 50px;
+      height: 50px;
+      outline: none;
+      background-color: transparent;
+    }
+    .footer-btn-container {
+      margin-top: 1px !important;
+    }
+    .active-switch {
+      color: #69CB51;
+    }
+    .account-options {
+      position: absolute;
+      display: none !important;
+      line-height: 40px;
+      top: -100px;
+      right: 30px;
+      width: 80px;
+      text-align: center;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 1px 1px 2px 1px rgba(99, 103, 103, .2);
+      border-radius: 10px;
+      vertical-align: middle;
+      padding: 8px 0px 8px 0px;
+      transition: .3s;
+      a {
+        display: block;
+        text-decoration: none;
+        width: 100%;
+        padding: 4px 0px 4px 0px;
+        color: #000;
+      }
+    }
+    .btn-ellipse:focus .account-options {
+      display: block !important;
+    }
+  }
+</style>

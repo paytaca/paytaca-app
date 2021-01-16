@@ -1,80 +1,83 @@
 <template>
   <div>
-    <div class="row q-pt-lg">
-      <div class="col q-pl-lg">
-        <p class="text-light p-label">
-          Your {{ selectedAsset.symbol }} balance
-        </p>
-        <p class="text-number-balance default-text-color">
-          {{ selectedAsset.balance | formatAmountPrecision }}
-        </p>
+    <div class="fixed-container">
+      <div class="row q-pt-lg">
+        <div class="col q-pl-lg">
+          <p class="text-light p-label">
+            Your {{ selectedAsset.symbol }} balance
+          </p>
+          <p class="text-number-balance default-text-color">
+            {{ selectedAsset.balance | formatAmountPrecision }}
+          </p>
+        </div>
+        <div class="q-space q-pr-lg">
+          <p class="text-right text-light p-label">{{ today }}</p>
+          <img class="float-right q-mt-sm" :src="selectedAsset.logo" width="60">
+        </div>
       </div>
-      <div class="q-space q-pr-lg">
-        <p class="text-right text-light p-label">{{ today }}</p>
-        <img class="float-right q-mt-sm" :src="selectedAsset.logo" width="60">
+      <div class="row">
+          <div class="col">
+              <p class="q-ml-lg q-mb-sm payment-methods default-text-color">
+                Assets
+                <q-btn
+                  flat
+                  padding="none"
+                  size="sm"
+                  icon="refresh"
+                  @click="updateBalance"
+                />
+              </p>
+          </div>
+      </div>
+      <!-- <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container" @scroll.self="updateSelectedAssetOnScroll"> -->
+      <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
+          <!-- <button class="btn-add-payment-method q-ml-lg" style="margin-right: 10px !important">+</button> -->
+          <div
+            v-for="(asset, index) in assets"
+            :key="index"
+            class="method-cards q-pa-md q-mr-none"
+            @click="(e) => {
+              scrollToView(e)
+              selectedAsset=asset
+            }"
+          >
+            <div class="row items-start no-wrap justify-between">
+              <img :src="asset.logo" height="50" class="q-mr-xs">
+              <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
+                {{ asset.symbol }}
+              </p>
+            </div>
+            <div class="row">
+              <q-space />
+              <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
+                {{ asset.balance | formatAmountPrecision }}
+              </p>
+            </div>
+          </div>
+          <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
+      </div>
+      <div class="row q-mt-md">
+          <div class="col text-center q-gutter-xs">
+            <router-link :to="{ name: 'transaction-send-select-asset' }">
+              <button class="float-center btn-send">
+                <b>
+                  <i class="mdi mdi-send-outline"></i>
+                  SEND
+                </b>
+              </button>
+            </router-link>
+            <router-link :to="{ name: 'transaction-receive' }">
+              <button class="float-center btn-action btn-receive">
+                <b>
+                  <i class="mdi mdi-arrow-down-box"></i>
+                  RECEIVE
+                </b>
+              </button>
+            </router-link>
+          </div>
       </div>
     </div>
-    <div class="row">
-        <div class="col">
-            <p class="q-ml-lg q-mb-sm payment-methods default-text-color">
-              Assets
-              <q-btn
-                flat
-                padding="none"
-                size="sm"
-                icon="refresh"
-                @click="updateBalance"
-              />
-            </p>
-        </div>
-    </div>
-    <!-- <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container" @scroll.self="updateSelectedAssetOnScroll"> -->
-    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
-        <!-- <button class="btn-add-payment-method q-ml-lg">+</button> -->
-        <div
-          v-for="(asset, index) in assets"
-          :key="index"
-          class="method-cards q-pa-md"
-          @click="(e) => {
-            scrollToView(e)
-            selectedAsset=asset
-          }"
-        >
-          <div class="row items-start no-wrap justify-between">
-            <img :src="asset.logo" height="50" class="q-mr-xs">
-            <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-              {{ asset.symbol }}
-            </p>
-          </div>
-          <div class="row">
-            <q-space />
-            <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-              {{ asset.balance | formatAmountPrecision }}
-            </p>
-          </div>
-        </div>
-    </div>
-    <div class="row q-mt-md">
-        <div class="col text-center q-gutter-xs">
-          <router-link :to="{ name: 'transaction-send-select-asset' }">
-            <button class="float-center btn-send">
-              <b>
-                <i class="mdi mdi-send-outline"></i>
-                SEND
-              </b>
-            </button>
-          </router-link>
-          <router-link :to="{ name: 'transaction-receive' }">
-            <button class="float-center btn-action btn-receive">
-              <b>
-                <i class="mdi mdi-arrow-down-box"></i>
-                RECEIVE
-              </b>
-            </button>
-          </router-link>
-        </div>
-    </div>
-    <div class="row">
+    <div class="row transaction-row">
         <div class="col transaction-container">
             <p class="q-ma-lg transaction-wallet"><b>TRANSACTIONS</b></p>
             <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
@@ -82,27 +85,49 @@
                 <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
                 <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
-            <div class="row" v-for="(transaction, index) in getTransactions()" :key="index">
-                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                  <div class="row">
-                    <div class="q-mr-sm">
-                      <img :src="selectedAsset.logo" width="40">
-                    </div>
-                    <div class="col col-transaction">
-                      <div>
-                        <p class="q-mb-none transactions-wallet ib-text"><b>{{ transaction.type | titleCase }}</b></p>
-                        <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ transaction.amount | formatAmountPrecision }} {{ selectedAsset.symbol }}</b></p>
+            <div class="transaction-list">
+              <div class="row" v-for="(transaction, index) in getTransactions()" :key="index">
+                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                    <div class="row">
+                      <div class="q-mr-sm">
+                        <img :src="selectedAsset.logo" width="40">
                       </div>
-                      <div class="col">
-                          <span class="float-left subtext"><b>{{ transaction.txid | truncateTxid }}</b></span>
-                          <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+                      <div class="col col-transaction">
+                        <div>
+                          <p class="q-mb-none transactions-wallet ib-text"><b>{{ transaction.type | titleCase }}</b></p>
+                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ transaction.amount | formatAmountPrecision }} {{ selectedAsset.symbol }}</b></p>
+                        </div>
+                        <div class="col">
+                            <span class="float-left subtext"><b>{{ transaction.txid | truncateTxid }}</b></span>
+                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+              </div>
+              <div class="row" v-for="(transaction, index) in getTransactions()" :key="index">
+                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                    <div class="row">
+                      <div class="q-mr-sm">
+                        <img :src="selectedAsset.logo" width="40">
+                      </div>
+                      <div class="col col-transaction">
+                        <div>
+                          <p class="q-mb-none transactions-wallet ib-text"><b>{{ transaction.type | titleCase }}</b></p>
+                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ transaction.amount | formatAmountPrecision }} {{ selectedAsset.symbol }}</b></p>
+                        </div>
+                        <div class="col">
+                            <span class="float-left subtext"><b>{{ transaction.txid | truncateTxid }}</b></span>
+                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              </div>
             </div>
         </div>
     </div>
+    <footer-menu />
   </div>
 </template>
 
@@ -271,11 +296,92 @@ export default {
   created () {
     console.log(this)
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
+
+    // window.onscroll = function(){
+    //   document.documentElement.scrollTop >= 250 ? window.scrollTo({ top: 250, left: 0, behavior: 'auto' }) : ''
+    // };
   }
 }
 </script>
 
 <style lang="scss">
+  .fixed-container {
+    position: fixed;
+    top: 0pt !important;
+    right: 0pt;
+    left: 0pt;
+  }
+  .fixed-footer {
+    position: fixed;
+    height: 60px;
+    width: 100%;
+    background-color: #fff;
+    border-top-right-radius: 20px;
+    border-top-left-radius: 20px;
+    box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
+    bottom: 0pt;
+    z-index: 6;
+    .footer-icon {
+      font-size: 24px;
+      color: #3992EA;
+    }
+    .footer-icon-btn {
+      border-radius: 20px;
+      border: none;
+      width: 50px;
+      height: 50px;
+      outline: none;
+      background-color: transparent;
+    }
+    .footer-btn-container {
+      margin-top: 1px !important;
+    }
+    .active-switch {
+      color: #69CB51;
+    }
+    .account-options {
+      position: absolute;
+      display: none !important;
+      line-height: 40px;
+      top: -100px;
+      right: 30px;
+      width: 80px;
+      text-align: center;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 1px 1px 2px 1px rgba(99, 103, 103, .2);
+      border-radius: 10px;
+      vertical-align: middle;
+      padding: 8px 0px 8px 0px;
+      transition: .3s;
+      a {
+        display: block;
+        text-decoration: none;
+        width: 100%;
+        padding: 4px 0px 4px 0px;
+        color: #000;
+      }
+    }
+    .btn-ellipse:focus .account-options {
+      display: block !important;
+    }
+  }
+  .transaction-row {
+    position: relative;
+    margin-top: 350px;
+    z-index: 5;
+  }
+  .transaction-list {
+    height: 440px;
+    overflow: auto;
+    padding-bottom: 110px;
+  }
+  /* iPhone 5/SE */
+  @media (min-width: 280px) and (max-width: 320px) {
+    .transaction-list {
+      height: 430px;
+    }
+  }
   .p-label {
     margin-bottom: 0px !important;
   }
@@ -362,7 +468,7 @@ export default {
     min-height: 350px;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
-    background-color: #fff;
+    background-color: #FBFBFC;
     margin-top: 24px;
   }
   .col-transaction {
