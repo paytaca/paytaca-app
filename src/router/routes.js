@@ -15,22 +15,28 @@ const routes = [
     ]
   },
   {
-    path: '/select-asset',
+    path: '/',
     component: () => import('layouts/Transaction.vue'),
     children: [
-      { path: '', component: () => import('pages/transaction/select-asset.vue') },
       {
         path: '',
         name: 'transaction-index',
         component: () => import('pages/transaction/index.vue')
       },
       {
+        path: 'receive/select-asset',
+        name: 'transaction-receive-select-asset',
+        component: () => import('pages/transaction/select-asset-receive.vue')
+      },
+      {
         path: 'receive',
         name: 'transaction-receive',
+        // this function handles how to pass props to the component given the route data
+        props: route => route.query,
         component: () => import('pages/transaction/receive.vue')
       },
       {
-        path: 'select-asset',
+        path: 'send/select-asset',
         name: 'transaction-send-select-asset',
         component: () => import('pages/transaction/select-asset.vue')
       },

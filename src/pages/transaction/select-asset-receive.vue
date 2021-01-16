@@ -1,49 +1,47 @@
 <template>
   <div>
+    <sidebar-mode-toggler />
     <div class="row">
-        <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link :to="{ path: '/'}"><i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px;">arrow_back</i></router-link>
-          <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
-            SEND
-          </p>
-        </div>
+      <div class="col q-mt-md">
+        <p class="text-center send"><b>RECEIVE</b></p>
+      </div>
     </div>
     <template v-if="hasAvailableAssets">
-      <div class="row">
-        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px;">
-          <p class="slp_tokens q-mb-sm"><b>SELECT ASSET</b></p>
-        </div>
-      </div>
       <div
         role="button"
         class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
-        @click="$router.push({ name: 'transaction-send' })"
+        @click="$router.push({ name: 'transaction-receive' })"
       >
-        <div><img src="bitcoin-cash-bch-logo.png" width="60"></div>
+        <div><img src="bitcoin-cash-bch-logo.png" width="40"></div>
         <div class="col q-pl-sm q-pr-sm">
-          <p class="q-ma-none text-token text-weight-medium" style="font-size: 20px;">
-            Bitcoin Cash
+          <p class="q-ma-none text-token text-weight-medium">
+            BCH
           </p>
-          <p class="q-ma-none asset" style="font-size: 20px;">
+          <p class="q-ma-none asset">
             {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH }} BCH
           </p>
         </div>
       </div>
 
       <div v-if="Array.isArray(balance.tokens) && balance.tokens.length">
+        <div class="row">
+          <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
+            <p class="slp_tokens q-mb-sm"><b>SLP TOKENS</b></p>
+          </div>
+        </div>
         <div
           v-for="(tokenBalance, index) in balance.tokens"
           :key="index"
-          @click="$router.push({ name: 'transaction-send', query: { tokenId: tokenBalance.tokenId } })"
+          @click="$router.push({ name: 'transaction-receive', query: { tokenId: tokenBalance.tokenId } })"
           role="button"
           class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
         >
-          <div><img :src="getTokenLogo(tokenBalance.tokenId)" width="60"></div>
+          <div><img :src="getTokenLogo(tokenBalance.tokenId)" width="40"></div>
           <div class="col q-pl-sm q-pr-sm">
-            <p class="q-ma-none text-token text-weight-medium" style="font-size: 20px;">
+            <p class="q-ma-none text-token text-weight-medium">
               {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).name }}
             </p>
-            <p class="q-ma-none asset" style="font-size: 20px;">
+            <p class="q-ma-none asset">
               {{ tokenBalance.balanceString | formatBalancePrecision }}
               {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).symbol }}
             </p>
@@ -57,8 +55,6 @@
     >
       No assets available
     </div>
-
-    <footer-menu />
   </div>
 </template>
 <script>

@@ -3,6 +3,11 @@ const BCHJS = require('@psf/bch-js')
 const NET_TESTNET = 'testnet'
 const NET_MAINNET = 'mainnet'
 
+const ADDR_CASH = 'cashaddress'
+const ADDR_SLP = 'simpleledger'
+const ADDR_LEGACY = ''
+
+
 const TESTNET3 = 'https://testnet3.fullstack.cash/v3/'
 const BCHN_MAINNET = 'https://bchn.fullstack.cash/v3/'
 const testnetInstance = new BCHJS({
@@ -14,6 +19,17 @@ const mainnetInstance = new BCHJS({
 })
 
 // NOTE: rate limit is 20 requests per minute
+
+export function getBCHJS (network = NET_TESTNET) {
+  switch (network) {
+    case (NET_TESTNET):
+      return testnetInstance
+    case (NET_MAINNET):
+      return mainnetInstance
+    default:
+      return null
+  }
+}
 
 // Returns the utxo with the biggest balance from an array of utxos.
 // NOTE: This ignores token utxo to avoid burning
@@ -51,20 +67,67 @@ export async function findBiggestUtxo (utxos, context) {
   return utxos[largestIndex]
 }
 
+
+// Either cash or slp address
+export function parseAddress (address, toAddress = ADDR_CASH) {
+  const bchjs = getBCHJS(NET_MAINNET)
+  let isLegacyAddress = false
+  let isCashAddress = false
+  let isSLPAddress = false
+  try {
+    isLegacyAddress = bchjs.Address.isLegacyAddress(address)
+  } catch (err) {}
+
+  try {
+    isSLPAddress = bchjs.SLP.Address.isSLPAddress(address)
+  } catch (err) {}
+
+  try {
+    isCashAddress = bchjs.Address.isCashAddress(address) && !isSLPAddress
+  } catch (err) {}
+
+  if (isCashAddress) {
+    switch (toAddress) {
+      case (ADDR_CASH):
+        return address
+      case (ADDR_SLP):
+        return bchjs.SLP.Address.toSLPAddress(address)
+      case (ADDR_LEGACY):
+        return bchjs.Address.toLegacyAddress(address)
+    }
+  } else if (isSLPAddress) {
+    switch (toAddress) {
+      case (ADDR_CASH):
+        return bchjs.SLP.Address.toCashAddress(address)
+      case (ADDR_SLP):
+        return address
+      case (ADDR_LEGACY):
+        return bchjs.SLP.Address.toLegacyAddress(address)
+    }
+  } else if (isLegacyAddress) {
+    switch (toAddress) {
+      case (ADDR_CASH):
+        return bchjs.Address.toCashAddress(address)
+      case (ADDR_SLP):
+        return bchjs.SLP.Address.toSLPAddress(address)
+      case (ADDR_LEGACY):
+        return address
+    }
+  }
+
+  return address
+}
+
 export default {
   NET_TESTNET,
   NET_MAINNET,
 
+  ADDR_CASH,
+  ADDR_SLP,
+  ADDR_LEGACY,
+  parseAddress,
+
   findBiggestUtxo,
 
-  getBCHJS: function (network = NET_TESTNET) {
-    switch (network) {
-      case (NET_TESTNET):
-        return testnetInstance
-      case (NET_MAINNET):
-        return mainnetInstance
-      default:
-        return null
-    }
-  }
+  getBCHJS, 
 }
