@@ -1,14 +1,16 @@
 <template>
   <div>
-    <sidebar-mode-toggler />
     <div class="row">
-      <div class="col q-mt-md">
-        <p class="text-center send"><b>SEND</b></p>
-      </div>
+        <div class="col q-mt-md q-pl-md text-center q-pr-md">
+          <router-link :to="{ path: '/'}"><i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px;">arrow_back</i></router-link>
+          <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
+            SEND
+          </p>
+        </div>
     </div>
     <template v-if="hasAvailableAssets">
       <div class="row">
-        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
+        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px;">
           <p class="slp_tokens q-mb-sm"><b>SELECT ASSET</b></p>
         </div>
       </div>
@@ -17,12 +19,12 @@
         class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
         @click="$router.push({ name: 'transaction-send' })"
       >
-        <div><img src="bitcoin-cash-bch-logo.png" width="40"></div>
+        <div><img src="bitcoin-cash-bch-logo.png" width="60"></div>
         <div class="col q-pl-sm q-pr-sm">
-          <p class="q-ma-none text-token text-weight-medium">
-            BCH
+          <p class="q-ma-none text-token text-weight-medium" style="font-size: 20px;">
+            Bitcoin Cash
           </p>
-          <p class="q-ma-none asset">
+          <p class="q-ma-none asset" style="font-size: 20px;">
             {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH }} BCH
           </p>
         </div>
@@ -36,12 +38,12 @@
           role="button"
           class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
         >
-          <div><img :src="getTokenLogo(tokenBalance.tokenId)" width="40"></div>
+          <div><img :src="getTokenLogo(tokenBalance.tokenId)" width="60"></div>
           <div class="col q-pl-sm q-pr-sm">
-            <p class="q-ma-none text-token text-weight-medium">
+            <p class="q-ma-none text-token text-weight-medium" style="font-size: 20px;">
               {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).name }}
             </p>
-            <p class="q-ma-none asset">
+            <p class="q-ma-none asset" style="font-size: 20px;">
               {{ tokenBalance.balanceString | formatBalancePrecision }}
               {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).symbol }}
             </p>
