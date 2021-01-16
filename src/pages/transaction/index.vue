@@ -29,8 +29,7 @@
         </div>
     </div>
     <!-- <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container" @scroll.self="updateSelectedAssetOnScroll"> -->
-    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
-        <!-- <button class="btn-add-payment-method q-ml-lg">+</button> -->
+    <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll; padding-right: 10px;" id="asset-container">
         <div
           v-for="(asset, index) in assets"
           :key="index"
@@ -53,6 +52,7 @@
             </p>
           </div>
         </div>
+        <button class="btn-add-payment-method q-ml-lg" style="margin-left: 15px;">+</button>
     </div>
     <div class="row q-mt-md">
         <div class="col text-center q-gutter-xs">

@@ -7,6 +7,11 @@
       </div>
     </div>
     <template v-if="hasAvailableAssets">
+      <div class="row">
+        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
+          <p class="slp_tokens q-mb-sm"><b>SELECT ASSET</b></p>
+        </div>
+      </div>
       <div
         role="button"
         class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
@@ -24,11 +29,6 @@
       </div>
 
       <div v-if="Array.isArray(balance.tokens) && balance.tokens.length">
-        <div class="row">
-          <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
-            <p class="slp_tokens q-mb-sm"><b>SLP TOKENS</b></p>
-          </div>
-        </div>
         <div
           v-for="(tokenBalance, index) in balance.tokens"
           :key="index"
