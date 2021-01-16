@@ -64,7 +64,7 @@
               </b>
             </button>
           </router-link>
-          <router-link :to="{ name: 'transaction-receive' }">
+          <router-link :to="{ name: 'transaction-receive-select-asset' }">
             <button class="float-center btn-action btn-receive">
               <b>
                 <i class="mdi mdi-arrow-down-box"></i>
