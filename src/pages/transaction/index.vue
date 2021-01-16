@@ -85,25 +85,6 @@
                     </div>
                   </div>
               </div>
-              <div class="row" v-for="(transaction, index) in getTransactions()" :key="index">
-                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                    <div class="row">
-                      <div class="q-mr-sm">
-                        <img :src="selectedAsset.logo" width="40">
-                      </div>
-                      <div class="col col-transaction">
-                        <div>
-                          <p class="q-mb-none transactions-wallet ib-text"><b>{{ transaction.type | titleCase }}</b></p>
-                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ transaction.amount | formatAmountPrecision }} {{ selectedAsset.symbol }}</b></p>
-                        </div>
-                        <div class="col">
-                            <span class="float-left subtext"><b>{{ transaction.txid | truncateTxid }}</b></span>
-                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-              </div>
             </div>
         </div>
     </div>
