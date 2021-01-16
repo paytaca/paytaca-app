@@ -2,7 +2,7 @@
   <div>
     <div class="row">
         <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link to="/select-token"><i class="icon-size-1 material-icons q-mt-sm icon-arrow-left">arrow_back</i></router-link>
+          <router-link :to="{ name: 'transaction-send-select-asset' }"><i class="icon-size-1 material-icons q-mt-sm icon-arrow-left">arrow_back</i></router-link>
           <p class="text-center select q-mt-sm text-token">
             SEND
             {{ sendData.isSendingBCH ? '(BCH)' : `(${tokenStats.name})`}}
@@ -52,7 +52,9 @@
     <div class="q-px-lg">
       <q-form class="q-pa-sm" @submit="() => sendData.isSendingBCH ? submitBCHSend() : submitSendToken()">
         <q-input
-          :label="'Amount in ' + (sendData.isSendingBCH ? 'BCH': tokenStats.symbol)"
+          label="Amount"
+          stack-label
+          :suffix="sendData.isSendingBCH ? 'BCH': tokenStats.symbol"
           :readonly="sendData.sent"
           v-model="sendData.amount"
           :rules="[
@@ -60,12 +62,13 @@
           ]"
         />
         <q-field
-          :label="sendData.isSendingBCH ? 'Recipient cash address': 'Recipient slp address'"
+          label="Send to"
+          stack-label
           :readonly="sendData.sent"
           v-model="sendData.recipientAddress"
           reactive-rules
           :rules="[
-            sendData.isSendingBCH ? validators.isValidCashAddress : validators.isValidSLPAddress
+            validators.isValidAddress
           ]"
         >
           <template v-slot:control="{value}">
@@ -193,6 +196,14 @@ export default {
 
     validators () {
       return {
+        isValidAddress: (val) => {
+          try {
+            return bchjs.Address.isCashAddress(val) || ''
+          } catch (err) {
+            return 'Invalid address'
+          }
+        },
+
         isValidCashAddress: (val) => {
           try {
             // need to check if slp address or not because .isCashAddress() seems to validate slp addresses
@@ -251,7 +262,7 @@ export default {
             // this.scanner.error = 'Couldn\'t access your camera. Is it already in use?'
           } else if (error.name === 'OverconstrainedError') {
             this.scanner.frontCamera = false
-            this.scanner.error = 'Constraints don\'t match any installed camera. Did you asked for the front camera although there is none?'
+            this.scanner.error = 'Constraints don\'t match any installed camera. Did you ask for the front camera although there is none?'
           } else {
             this.scanner.error = 'Unknown error: ' + error.message
           }
@@ -262,9 +273,9 @@ export default {
       this.sendData.sending = true
       this.sendData.sent = true
       sendBCH(
-        this.address,
+        walletUtils.parseAddress(this.address, walletUtils.ADDR_CASH),
         this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
-        this.sendData.recipientAddress,
+        walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
         this.sendData.amount,
       )
         .finally(() => {
@@ -286,9 +297,9 @@ export default {
       this.sendData.sent = true
 
       sendToken(
-        bchjs.SLP.Address.toSLPAddress(this.address),
+        walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP),
         this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
-        this.sendData.recipientAddress,
+        walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
         this.sendData.tokenId,
         this.sendData.amount
       )

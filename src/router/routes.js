@@ -15,10 +15,9 @@ const routes = [
     ]
   },
   {
-    path: '/select-asset',
+    path: '/',
     component: () => import('layouts/Transaction.vue'),
     children: [
-      { path: '', component: () => import('pages/transaction/select-asset.vue') },
       {
         path: '',
         name: 'transaction-index',
