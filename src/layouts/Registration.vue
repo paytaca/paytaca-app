@@ -7,7 +7,7 @@
 <script>
 
 export default {
-  name: 'get-started-page',
+  name: 'registration-layout',
   data () {
     return {
     }

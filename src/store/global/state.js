@@ -22,7 +22,12 @@ export default function () {
           spice: 310000
         },
         transactions: {
-          bch: [],
+          bch: [
+            { type: 'sent', amount: 0.003, txid: '437f0c6664b9bb3e9044f2d4f98e0f105d48b1c34a77a65bb193f4d517a69840' },
+            { type: 'received', amount: 0.01, txid: '93d84b157cf5902bfe83ca88ccce0fb4c28ad064b4a830373f99856b0c7eb0f5' },
+            { type: 'sent', amount: 1.056, txid: '493a369cd688080fb6f60f752d28329b5a3baa900719b87961deaf66ed8f4ad6' },
+            { type: 'received', amount: 0.982, txid: 'bf0132773a63d96a97dc662a52c934b3571e78b7a7540104aacada4d08347306' }
+          ],
           php: [],
           spice: []
         }

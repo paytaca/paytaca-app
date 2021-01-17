@@ -1,18 +1,19 @@
 <template>
-  <div>
+  <div id="registration-container">
     <div class="row">
-        <div class="col q-mt-md">
-          <h3 class="text-center brandname q-mt-xl">Paytaca</h3>
-             <!-- <p class="text-center receive"><b>Let's get started</b></p> -->
-        </div>
+      <div class="col" style="text-align: center; padding: 20px 0px 0px 0px;">
+        <img src="~/assets/paytaca_logo.png" height="60">
+        <p style="color: #EAEEFF; font-size: 28px;">Paytaca</p>
+        <!-- <h3 class="text-center brandname q-mt-xl">Paytaca</h3> -->
+      </div>
     </div>
     <div class="row">
-      <div class="get-started q-mt-lg q-pa-lg">
+      <div class="get-started q-mt-sm q-pa-lg">
         <h5 class="q-ma-none get-started-text">Get Started</h5>
-        <p class="dim-text">Let's create your account.</p>
+        <p class="dim-text">We'll just need a few basic details</p>
 
         <div class="row">
-          <div class="col q-mt-md">
+          <div class="col q-mt-sm">
             <label class="get-started-text">Firstname</label>
             <input type="text" class="form-input q-mt-xs">
           </div>
@@ -20,12 +21,6 @@
         <div class="row">
           <div class="col q-mt-md">
             <label class="get-started-text">Lastname</label>
-            <input type="text" class="form-input q-mt-xs">
-          </div>
-        </div>
-        <div class="row">
-          <div class="col q-mt-md">
-            <label class="get-started-text">Name</label>
             <input type="text" class="form-input q-mt-xs">
           </div>
         </div>
@@ -42,7 +37,7 @@
           </div>
         </div>
         <div class="row">
-          <button class="submit-btn q-mt-md">Submit</button>
+          <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;">Submit</button>
         </div>
       </div>
     </div>
@@ -52,7 +47,7 @@
 <script>
 
 export default {
-  name: 'Receive-page',
+  name: 'registration-index',
   data () {
     return {
     }
@@ -64,8 +59,8 @@ export default {
 </script>
 
 <style lang="scss">
-  body.body--light {
-    background-color: #2E73D2 !important;
+  #registration-container {
+    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
   }
   .brandname {
     color: #fff;
@@ -74,7 +69,7 @@ export default {
     width: 100%;
     border-top-left-radius: 22px;
     border-top-right-radius: 22px;
-    background-color: #fff;
+    background-color: #F9F8FF;
     padding-top: 28px;
   }
   .icon-container {
@@ -84,7 +79,7 @@ export default {
     width: 100%;
     height: 38px;
     border-radius: 18px;
-    border: 1px solid gray;
+    border: 1px solid #008BF1;
     outline: 0;
     padding-left: 14px;
   }
@@ -96,7 +91,7 @@ export default {
     color: #4C4F4F;
   }
   .dim-text {
-    color: #BAC2C2;
+    color: #8F8CB8;
   }
   .submit-btn {
     background-color: #2E73D2;

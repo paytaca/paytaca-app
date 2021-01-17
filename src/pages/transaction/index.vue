@@ -42,13 +42,13 @@
           >
             <div class="row items-start no-wrap justify-between">
               <img :src="asset.logo" height="50" class="q-mr-xs">
-              <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
+              <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF;">
                 {{ asset.symbol }}
               </p>
             </div>
             <div class="row">
               <q-space />
-              <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
+              <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF;">
                 {{ balances[asset.symbol.toLowerCase()] | formatAmountPrecision }}
               </p>
             </div>
@@ -106,28 +106,19 @@ export default {
         logo: 'bitcoin-cash-bch-logo.png'
       },
       transactionsFilter: 'all',
-      transactions: [
-        { type: 'sent', amount: 0.0015, txid: '437f0c6664b9bb3e9044f2d4f98e0f105d48b1c34a77a65bb193f4d517a69840' },
-        { type: 'received', amount: 200, txid: '93d84b157cf5902bfe83ca88ccce0fb4c28ad064b4a830373f99856b0c7eb0f5' },
-        { type: 'sent', amount: 1200, txid: '493a369cd688080fb6f60f752d28329b5a3baa900719b87961deaf66ed8f4ad6' },
-        { type: 'received', amount: 546, txid: 'bf0132773a63d96a97dc662a52c934b3571e78b7a7540104aacada4d08347306' }
-      ],
       activeBtn: 'btn-all'
     }
   },
 
   computed: {
-    isPrivateMode () {
-      return this.$store.getters['global/isPrivateMode']
-    },
-    address () {
-      return this.$store.getters['global/address']
+    assets () {
+      return this.$store.getters['global/assets']
     },
     balances () {
       return this.$store.getters['global/balances']
     },
-    assets () {
-      return this.$store.getters['global/assets']
+    transactions () {
+      return this.$store.getters['global/transactions']
     }
   },
 
@@ -150,14 +141,15 @@ export default {
 
   methods: {
     getTransactions () {
+      const asset = this.selectedAsset.symbol.toLowerCase()
       if (this.transactionsFilter === 'all') {
-        return this.transactions
+        return this.transactions[asset]
       } else if (this.transactionsFilter === 'sent') {
-        return this.transactions.filter(function (item) {
+        return this.transactions[asset].filter(function (item) {
           return item.type === 'sent'
         })
       } else if (this.transactionsFilter === 'received') {
-        return this.transactions.filter(function (item) {
+        return this.transactions[asset].filter(function (item) {
           return item.type === 'received'
         })
       }
@@ -335,7 +327,7 @@ export default {
     height: 110px;
     min-width: 180px;
     border-radius: 16px;
-    background-color: #008BF1;
+    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
     box-shadow: 1px 2px 2px 2px rgba(99, 103, 103, .2);
   }
   .ib-text {
@@ -399,7 +391,7 @@ export default {
   }
   .btn-transaction {
     font-size: 16px;
-    background-color: #F0EDFF;
+    background-color: rgb(242, 243, 252);
     border-radius: 24px;
     padding: 4px;
     padding-left: 2px;

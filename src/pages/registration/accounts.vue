@@ -1,6 +1,5 @@
 <template>
   <q-page>
-    <h2>Register</h2>
     <div>
       <q-btn @click="createAccount">Create Account</q-btn>
     </div>
@@ -17,7 +16,7 @@ const bchjs = new BCHJS({
   restURL: 'https://bchn.fullstack.cash/v3/'
 })
 export default {
-  name: 'Register',
+  name: 'registration-accounts',
   data () {
     return {
       mnemonic: ''

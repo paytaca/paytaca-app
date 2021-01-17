@@ -4,20 +4,6 @@ const routes = [
     path: '/',
     component: () => import('layouts/Transaction.vue'),
     children: [
-      { path: '', component: () => import('pages/transaction/index.vue') }
-    ]
-  },
-  {
-    path: '/receive',
-    component: () => import('layouts/Transaction.vue'),
-    children: [
-      { path: '', component: () => import('pages/transaction/receive.vue') }
-    ]
-  },
-  {
-    path: '/',
-    component: () => import('layouts/Transaction.vue'),
-    children: [
       {
         path: '',
         name: 'transaction-index',
@@ -50,24 +36,11 @@ const routes = [
     ]
   },
   {
-    path: '/get-started',
-    component: () => import('layouts/Getstarted.vue'),
+    path: '/registration',
+    component: () => import('layouts/Registration.vue'),
     children: [
-      { path: '', component: () => import('pages/registration/index.vue') }
-    ]
-  },
-  {
-    path: '/mainlayout',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      { path: '', component: () => import('pages/Index.vue') }
-    ]
-  },
-  {
-    path: '/onboarding',
-    component: () => import('layouts/Onboarding.vue'),
-    children: [
-      { path: 'register', component: () => import('pages/onboarding/Register.vue') }
+      { path: '', component: () => import('pages/registration/index.vue') },
+      { path: 'accounts', component: () => import('pages/registration/accounts.vue') }
     ]
   },
 
