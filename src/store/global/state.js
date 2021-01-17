@@ -15,7 +15,7 @@ export default function () {
     },
     accounts: {
       escrow: {
-        address: '',
+        address: 'bitcoincash:qrkf6p4f9wwagxjfhdzj2p0p8v5f90pvuylefkna04',
         balances: {
           bch: 0.561,
           php: 1250,

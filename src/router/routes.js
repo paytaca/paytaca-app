@@ -24,7 +24,7 @@ const routes = [
       {
         path: 'send/select-asset',
         name: 'transaction-send-select-asset',
-        component: () => import('pages/transaction/select-asset.vue')
+        component: () => import('pages/transaction/select-asset-send.vue')
       },
       {
         path: 'send',

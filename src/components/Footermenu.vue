@@ -12,7 +12,7 @@
         </router-link>
       </button>
       <button class="footer-icon-btn">
-        <router-link :to="{ name: 'transaction-receive' }">
+        <router-link :to="{ name: 'transaction-receive-select-asset' }">
           <i class="footer-icon mdi mdi-inbox"></i>
         </router-link>
       </button>

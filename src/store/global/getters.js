@@ -12,6 +12,11 @@ export function transactions (state) {
   return state.accounts[account].transactions
 }
 
+export function address (state) {
+  const account = state.isPrivateMode ? 'private' : 'escrow'
+  return state.accounts[account].address
+}
+
 export function isPrivateMode (state) {
   return state.user.privateMode
 }

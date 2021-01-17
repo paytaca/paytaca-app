@@ -1,45 +1,40 @@
 <template>
   <div>
-    <sidebar-mode-toggler />
     <div class="row">
-        <div class="col q-mt-md">
-             <p class="text-center receive"><b>RECEIVE</b></p>
+        <div class="col q-mt-md q-pl-md text-center q-pr-md">
+          <router-link :to="{ name: 'transaction-receive-select-asset' }">
+            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
+          </router-link>
+          <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
+            RECEIVE {{ asset.symbol }}
+          </p>
         </div>
     </div>
     <div class="row">
-        <div class="col qr-code-container">
-            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
-              <div class="row text-center">
-                <div class="col row justify-center q-pt-md">
-                  <qr-code :text="receiveAddress" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
-                  <span class="qr-code-text text-weight-medium">
-                      <div class="text-nowrap">
-                        <span v-if="receiveAddress.length > 25">
-                          {{ receiveAddress.substr(0, 20) }}....{{ receiveAddress.substr(-4) }}
-                        </span>
-                        <span v-else>
-                          {{ receiveAddress }}
-                        </span>
-                      </div>
-                  </span>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col q-ma-sm q-mb-md">
-                  <i class="eva eva-copy-outline icon-copy float-right q-mr-md" @click="copyAddress"></i>
-                </div>
+      <div class="col qr-code-container">
+          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+            <div class="row text-center">
+              <div class="col row justify-center q-pt-md">
+                <img :src="asset.logo" height="60" style="position: absolute; margin-top: 80px; background: #fff;">
+                <qr-code :text="getAddress()" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
               </div>
             </div>
-        </div>
+          </div>
+      </div>
     </div>
     <div class="row">
-        <div class="currencies">
-            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-pa-none q-pl-none text-center btn-transaction">
-                <button class="btn-custom q-mt-none active-btn btn-bch" @click="swtichActiveBtn('btn-bch')" id="btn-bch"><b>BCH</b></button>
-                <a to="/send"><button class="btn-custom q-mt-none btn-spice" @click="swtichActiveBtn('btn-spice')" id="btn-spice"><b>SPICE</b></button></a>
-                <a to="/receive"><button class="btn-custom q-mt-none btn-spice" @click="swtichActiveBtn('btn-peso')" id="btn-peso"><b>PESO</b></button></a>
+      <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
+        <span class="qr-code-text text-weight-medium">
+          <div class="text-nowrap">
+            {{ getAddress() }}
+            <div class="row" style="margin-top: -20px;">
+              <div class="col q-ma-sm q-mb-md">
+                <i class="eva eva-copy-outline icon-copy float-right q-mr-md" @click="copyAddress"></i>
+              </div>
             </div>
-        </div>
+          </div>
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -48,85 +43,37 @@
 import walletUtils from '../../utils/common.js'
 
 export default {
-  name: 'Receive-page',
-  props: {
-    tokenId: {
-      // tokenId will determine whether to send an slp token or bch
-      // no tokenId means that bch is intended to be sent
-      type: String,
-      required: false
-    }
-  },
+  name: 'receive-page',
   data () {
     return {
-      tokenStats: null,
-      receiveData: {
-        tokenId: '',
-        isReceivingBCH: true,
-      },
-      activeBtn: 'btn-bch',
-      // address: ''
+      activeBtn: 'btn-bch'
     }
   },
   computed: {
     address () {
       return this.$store.getters['global/address']
     },
-    receiveAddress () {
-      return walletUtils.parseAddress(
-        this.address,
-        this.receiveData.isReceivingBCH ? walletUtils.ADDR_CASH : walletUtils.ADDR_SLP
-      )
+    assets () {
+      return this.$store.getters['global/assets']
+    },
+    asset () {
+      return this.assets[this.$route.query.asset]
     }
   },
   methods: {
-    fetchTokenStats () {
-      if (!this.tokenId) return Promise.reject()
-
-      return this.$store.dispatch('tokenStats/getTokenStats', {tokenId: this.tokenId})
-        .then(tokenStats => {
-          this.tokenStats = tokenStats
-          return Promise.resolve()
-        })
-    },
-    swtichActiveBtn (btn) {
-      var element = document.getElementById(btn)
-      var name = 'active-btn'
-      var arr = element.className.split(' ')
-      if (arr.indexOf(name) === -1) {
-        element.className += ' ' + name
+    getAddress () {
+      if (this.asset.symbol === 'BCH') {
+        return this.address
+      } else {
+        return walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP)
       }
-      var customBtn = document.getElementById(this.activeBtn)
-      customBtn.classList.remove('active-btn')
-      this.activeBtn = btn
     },
     copyAddress () {
       this.$q.notify({
         message: 'Copied address',
         timeout: 800
       })
-    },
-    // generateQRcode method is for testing only
-    generateQRcode (length, chars) {
-      var result = '';
-      for (var i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
-      this.address = result
     }
-  },
-  mounted () {
-    if (this.tokenId) {
-      console.log('got token id')
-      this.fetchTokenStats()
-        .then(() => {
-          console.log('token stats fetch success')
-          this.receiveData.isReceivingBCH = false
-          this.receiveData.tokenId = this.tokenStats.id
-        })
-    }
-  },
-  created () {
-    // this.generateQRcode(40, '0123456789abcdefghijklmnopqrstuvwxyz')
-    this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
 </script>
@@ -154,8 +101,9 @@ export default {
   }
   .col-qr-code {
     width: 100%;
-    background-color: #fff;
+    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
     border-radius: 16px;
+    padding: 25px 10px 32px 10px;
     box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
   }
   .receive-add-amount {
@@ -168,7 +116,8 @@ export default {
     margin: auto;
   }
   .qr-code-text {
-    font-size: 12px;
+    font-size: 18px;
+    font-family: monospace;
     color: #000;
   }
   .currencies {

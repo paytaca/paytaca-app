@@ -2,10 +2,11 @@
   <div>
     <div class="row">
         <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link :to="{ name: 'transaction-send-select-asset'}"><i class="icon-size-1 material-icons q-mt-sm icon-arrow-left">arrow_back</i></router-link>
-          <p class="text-center select q-mt-sm text-token">
+          <router-link :to="{ path: '/'}">
+            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
+          </router-link>
+          <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
             SEND
-            {{ sendData.isSendingBCH ? '(BCH)' : `(${tokenStats.name})`}}
           </p>
         </div>
     </div>
