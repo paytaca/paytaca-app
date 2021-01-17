@@ -4,43 +4,44 @@
       <div class="col" style="text-align: center; padding: 20px 0px 0px 0px;">
         <img src="~/assets/paytaca_logo.png" height="60">
         <p style="color: #EAEEFF; font-size: 28px;">Paytaca</p>
-        <!-- <h3 class="text-center brandname q-mt-xl">Paytaca</h3> -->
       </div>
     </div>
-    <div class="row">
-      <div class="get-started q-mt-sm q-pa-lg">
-        <h5 class="q-ma-none get-started-text">Get Started</h5>
-        <p class="dim-text">We'll just need a few basic details</p>
+    <form @submit="submitForm">
+      <div class="row">
+        <div class="get-started q-mt-sm q-pa-lg">
+          <h5 class="q-ma-none get-started-text">Get Started</h5>
+          <p class="dim-text">We'll just need a few basic details</p>
 
-        <div class="row">
-          <div class="col q-mt-sm">
-            <label class="get-started-text">Firstname</label>
-            <input type="text" class="form-input q-mt-xs">
+          <div class="row">
+            <div class="col q-mt-sm">
+              <label class="get-started-text">Firstname</label>
+              <input type="text" class="form-input q-mt-xs">
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col q-mt-md">
-            <label class="get-started-text">Lastname</label>
-            <input type="text" class="form-input q-mt-xs">
+          <div class="row">
+            <div class="col q-mt-md">
+              <label class="get-started-text">Lastname</label>
+              <input type="text" class="form-input q-mt-xs">
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col q-mt-md">
-            <label class="get-started-text">Email</label>
-            <input type="text" class="form-input q-mt-xs">
+          <div class="row">
+            <div class="col q-mt-md">
+              <label class="get-started-text">Email</label>
+              <input type="text" class="form-input q-mt-xs">
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col q-mt-md">
-            <label class="get-started-text">Mobile Number</label>
-            <input type="text" class="form-input q-mt-xs">
+          <div class="row">
+            <div class="col q-mt-md">
+              <label class="get-started-text">Mobile Number</label>
+              <input type="text" class="form-input q-mt-xs">
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;">Submit</button>
+          <div class="row">
+            <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;">Submit</button>
+          </div>
         </div>
       </div>
-    </div>
+    </form>
   </div>
 </template>
 
@@ -50,6 +51,12 @@ export default {
   name: 'registration-index',
   data () {
     return {
+    }
+  },
+  methods: {
+    submitForm (event) {
+      event.preventDefault()
+      this.$router.push('/registration/accounts')
     }
   },
   created () {

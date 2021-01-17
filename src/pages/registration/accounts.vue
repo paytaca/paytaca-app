@@ -1,9 +1,31 @@
 <template>
-  <q-page>
-    <div>
-      <q-btn @click="createAccount">Create Account</q-btn>
+  <div id="registration-container">
+    <div class="row">
+      <div class="col" style="text-align: center; padding: 20px 0px 0px 0px;">
+        <img src="~/assets/paytaca_logo.png" height="60">
+        <p style="color: #EAEEFF; font-size: 28px;">Paytaca</p>
+      </div>
     </div>
-  </q-page>
+    <div class="row">
+      <div class="get-started q-mt-sm q-pa-lg">
+        <h5 class="q-ma-none get-started-text">Mnemonic Backup Phrase</h5>
+        <p class="dim-text">Write on paper and keep it somewhere safe</p>
+
+        <div class="row" id="mnemonic">
+          <div class="col q-mt-sm">
+            <ul>
+              <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
+                <pre>{{ index + 1 }}</pre><span>{{ word }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="row">
+          <button class="submit-btn q-mt-md" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px;">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -23,6 +45,9 @@ export default {
     }
   },
   methods: {
+    continueToDashboard () {
+      this.$router.push('/')
+    },
     generateMnemonic () {
       this.mnemonic = bchjs.Mnemonic.generate(128)
       const encryptedMnemonic = this.$aes256.encrypt(this.mnemonic)
@@ -55,9 +80,9 @@ export default {
       const vm = this
       vm.generateMnemonic()
       vm.generateAddresses()
-      vm.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
-        vm.$router.push('/')
-      })
+      // vm.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+      //   vm.$router.push('/')
+      // })
     }
   },
   mounted () {
@@ -65,6 +90,32 @@ export default {
       const secretKey = crypto.randomBytes(16).toString('hex')
       LocalStorage.set('secretkey', secretKey)
     }
+    this.createAccount()
   }
 }
 </script>
+
+<style>
+ul {
+  list-style: none;
+  display: block;
+  margin-left: -40px;
+  text-align: justify;
+}
+ul li {
+  display: inline-block;
+  font-size: 18px;
+  padding: 10px;
+}
+li span {
+  background:#AAB2E9;
+  padding: 5px 15px;
+  border-radius: 20px;
+  color: #fff;
+}
+li pre {
+  display: inline;
+  color: #D36EE1;
+  padding-right: 5px;
+}
+</style>
