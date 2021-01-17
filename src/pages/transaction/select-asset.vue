@@ -3,53 +3,34 @@
     <div class="row">
         <div class="col q-mt-md q-pl-md text-center q-pr-md">
           <router-link :to="{ path: '/'}">
-            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px;">arrow_back</i>
+            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3c64f6;">arrow_back</i>
           </router-link>
           <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
             SEND
           </p>
         </div>
     </div>
-    <template v-if="hasAvailableAssets">
+    <template v-if="assets">
       <div class="row">
-        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px;">
+        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 14px;">
           <p class="slp_tokens q-mb-sm"><b>SELECT ASSET</b></p>
         </div>
       </div>
       <div
+        v-for="(asset, index) in assets"
+        :key="index"
+        @click="$router.push({ name: 'transaction-send', query: { asset: asset.symbol.toLowerCase() } })"
         role="button"
         class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
-        @click="$router.push({ name: 'transaction-send' })"
       >
-        <div><img src="bitcoin-cash-bch-logo.png" width="60"></div>
+        <div><img :src="asset.logo" width="50"></div>
         <div class="col q-pl-sm q-pr-sm">
-          <p class="q-ma-none text-token text-weight-medium" style="font-size: 20px;">
-            Bitcoin Cash
+          <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px;">
+            {{ asset.name }}
           </p>
-          <p class="q-ma-none asset" style="font-size: 20px;">
-            {{ (balance.confirmed + balance.unconfirmed) | satoshisToBCH }} BCH
+          <p class="q-ma-none asset" style="font-size: 18px;">
+            {{ balances[asset.symbol.toLowerCase()] | formatAmountPrecision }} {{ asset.symbol }}
           </p>
-        </div>
-      </div>
-
-      <div v-if="Array.isArray(balance.tokens) && balance.tokens.length">
-        <div
-          v-for="(tokenBalance, index) in balance.tokens"
-          :key="index"
-          @click="$router.push({ name: 'transaction-send', query: { tokenId: tokenBalance.tokenId } })"
-          role="button"
-          class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
-        >
-          <div><img :src="getTokenLogo(tokenBalance.tokenId)" width="60"></div>
-          <div class="col q-pl-sm q-pr-sm">
-            <p class="q-ma-none text-token text-weight-medium" style="font-size: 20px;">
-              {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).name }}
-            </p>
-            <p class="q-ma-none asset" style="font-size: 20px;">
-              {{ tokenBalance.balanceString | formatBalancePrecision }}
-              {{ getTokenStats(tokenBalance.tokenId) && getTokenStats(tokenBalance.tokenId).symbol }}
-            </p>
-          </div>
         </div>
       </div>
     </template>
@@ -71,29 +52,16 @@ export default {
   data () {
     return {
       activeBtn: 'btn-bch',
-      // address: '',
       result: '',
       error: ''
     }
   },
   computed: {
-    isPrivateMode () {
-      return this.$store.getters['global/isPrivateMode']
+    balances () {
+      return this.$store.getters['global/balances']
     },
-    address () {
-      return this.$store.getters['global/address']
-    },
-    balance () {
-      return this.$store.getters['global/balance']
-    },
-    hasAvailableAssets () {
-      if(!this.balance) return false
-
-      const hasBCH = (this.balance.confirmed + this.balance.unconfirmed) > 0
-      const hasTokenBalance = Array.isArray(this.balance.tokens) &&
-        this.balance.tokens.reduce((total, token) => total + token.balance, 0) > 0
-
-      return hasBCH || hasTokenBalance
+    assets () {
+      return this.$store.getters['global/assets']
     }
   },
 
@@ -103,14 +71,9 @@ export default {
       return bchjs.BitcoinCash.toBitcoinCash(Number(val))
     },
 
-    formatBalancePrecision (val) {
-      const precision = 4
+    formatAmountPrecision (val) {
       const number = Number(val)
-      const multiplier = 10**precision
-      if (number*multiplier < multiplier) {
-        return number.toPrecision(precision)
-      }
-      return Number(number.toFixed(precision))
+      return Number(number.toFixed(4)).toLocaleString(undefined, { minimumFractionDigits: 2 })
     }
   },
 

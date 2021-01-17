@@ -7,12 +7,12 @@
             Your {{ selectedAsset.symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
-            {{ selectedAsset.balance | formatAmountPrecision }}
+            {{ balances[selectedAsset.symbol.toLowerCase()] | formatAmountPrecision }}
           </p>
         </div>
         <div class="q-space q-pr-lg">
           <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
-          <img class="float-right q-mt-sm" :src="selectedAsset.logo" width="60">
+          <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
         </div>
       </div>
       <div class="row">
@@ -29,7 +29,6 @@
               </p>
           </div>
       </div>
-      <!-- <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container" @scroll.self="updateSelectedAssetOnScroll"> -->
       <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
           <!-- <button class="btn-add-payment-method q-ml-lg" style="margin-right: 10px !important">+</button> -->
           <div
@@ -50,7 +49,7 @@
             <div class="row">
               <q-space />
               <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow:hidden;text-overflow:ellipsis">
-                {{ asset.balance | formatAmountPrecision }}
+                {{ balances[asset.symbol.toLowerCase()] | formatAmountPrecision }}
               </p>
             </div>
           </div>
@@ -103,7 +102,7 @@ export default {
       today: new Date().toDateString(),
       selectedAsset: {
         symbol: 'BCH',
-        balance: 100,
+        balace: 0,
         logo: 'bitcoin-cash-bch-logo.png'
       },
       transactionsFilter: 'all',
@@ -124,50 +123,22 @@ export default {
     address () {
       return this.$store.getters['global/address']
     },
-    balance () {
-      return this.$store.getters['global/balance']
+    balances () {
+      return this.$store.getters['global/balances']
     },
     assets () {
-      const tokenAssets = (Array.isArray(this.balance.tokens) ? this.balance.tokens : []).map(
-        tokenBalance => {
-          const tokenStats = this.getTokenStats(tokenBalance.tokenId)
-          if (tokenStats) {
-            tokenBalance.symbol = tokenStats.symbol
-            tokenBalance.name = tokenStats.name
-          }
-          return tokenBalance
-        }
-      )
-
-      return [
-        {
-          tokenId: '',
-          balance: this.$options.filters.satoshisToBCH(this.balance.confirmed + this.balance.unconfirmed),
-          symbol: 'BCH',
-          name: 'Bitcoin Cash'
-        },
-        ...tokenAssets
-      ].map(asset => {
-        asset.logo = this.$store.getters['tokenStats/getTokenLogo'](asset.tokenId)
-        return asset
-      })
+      return this.$store.getters['global/assets']
     }
   },
 
   filters: {
     satoshisToBCH (val) {
       const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
-
       return bchjs.BitcoinCash.toBitcoinCash(Number(val))
     },
     formatAmountPrecision (val) {
-      const precision = 4
       const number = Number(val)
-      const multiplier = 10 ** precision
-      if (number * multiplier < multiplier) {
-        return number.toPrecision(precision)
-      }
-      return Number(number.toFixed(precision)).toLocaleString()
+      return Number(number.toFixed(4)).toLocaleString(undefined, { minimumFractionDigits: 2 })
     },
     titleCase (str) {
       return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase());
@@ -178,10 +149,6 @@ export default {
   },
 
   methods: {
-    getTokenStats (tokenId) {
-      return this.$store.getters['tokenStats/getTokenStats'](tokenId)
-    },
-
     getTransactions () {
       if (this.transactionsFilter === 'all') {
         return this.transactions
@@ -193,20 +160,6 @@ export default {
         return this.transactions.filter(function (item) {
           return item.type === 'received'
         })
-      }
-    },
-
-    updateSelectedAssetOnScroll (evt) {
-      let newSelectedTokenId = ''
-      if (evt && evt.target) {
-        const scroll = Number(evt.target.scrollLeft) / Number(evt.target.scrollLeftMax)
-        if (Array.isArray(this.balance.tokens)) {
-          const assetsCount = this.balance.tokens.length + 1 // the +1 is for bch
-
-          // min is to avoid index out of bounds
-          const index = Math.min(Math.floor(scroll * assetsCount), this.assets.length-1)
-          this.selectedAsset = this.assets[index]
-        }
       }
     },
 
@@ -238,10 +191,6 @@ export default {
       if (scrollableParentX) jsUtils.scrollIntoView(scrollableParentX, evt.target, false)
     },
 
-    updateTransactionsList () {
-      console.log(this.selectedAsset)
-    },
-
     updateBalance () {
       this.$store.dispatch('global/updatePrivateBalance')
       this.$store.dispatch('global/updateEscrowBalance')
@@ -249,7 +198,7 @@ export default {
   },
 
   mounted () {
-    if(Array.isArray(this.assets) && this.assets.length > 0) {
+    if (Array.isArray(this.assets) && this.assets.length > 0) {
       this.selectedAsset = this.assets[0]
     }
   },
@@ -329,7 +278,7 @@ export default {
   }
   .transaction-row {
     position: relative;
-    margin-top: 290px;
+    margin-top: 280px;
     z-index: 5;
   }
   .transaction-list {
@@ -353,7 +302,7 @@ export default {
     color: #BAC2C2;
   }
   .text-number-balance {
-    font-size: 50px;
+    font-size: 45px;
   }
   .btn-add-cash {
     border: none;
@@ -450,7 +399,7 @@ export default {
   }
   .btn-transaction {
     font-size: 16px;
-    background-color: #ff8b6e38;
+    background-color: #F0EDFF;
     border-radius: 24px;
     padding: 4px;
     padding-left: 2px;

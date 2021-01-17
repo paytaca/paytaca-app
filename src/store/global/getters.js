@@ -6,12 +6,13 @@ export function address (state) {
   }
 }
 
-export function balance (state) {
-  if (state.privateMode) {
-    return state.user.privateBalance
-  } else {
-    return state.user.escrowBalance
-  }
+export function assets (state) {
+  return state.assets
+}
+
+export function balances (state) {
+  const account = state.isPrivateMode ? 'private' : 'escrow'
+  return state.accounts[account].balances
 }
 
 export function isPrivateMode (state) {

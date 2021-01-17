@@ -1,61 +1,61 @@
 export default function () {
   return {
-    privateMode: true,
-    user: {
-      onboardingStep: 0,
-      escrowAddress: '',
-
-      escrowBalance: {
-        lastUpdate: 0,
-        confirmed: 0,
-        unconfirmed: 0,
-        tokens: [
-          {
-            balanceString: '1250',
-            slpAddress: '<slp-address>',
-            tokenId: 'test-token-id-1',
-            balance: 120,
-            decimalCount: 8
-          },
-          {
-            balanceString: '120',
-            slpAddress: '<slp-address>',
-            tokenId: 'test-token-id-2',
-            balance: 120,
-            decimalCount: 8
-          }
-          // ...
-        ]
-      },
-
-      privateAddress: '',
-      privateBalance: {
-        lastUpdate: 0,
-        confirmed: 0,
-        unconfirmed: 0,
-        tokens: [
-          {
-            balanceString: '120',
-            slpAddress: '<slp-address>',
-            tokenId: 'test-token-id-1',
-            balance: 130,
-            decimalCount: 8
-          },
-          {
-            balanceString: '120',
-            slpAddress: '<slp-address>',
-            tokenId: 'test-token-id-2',
-            balance: 120000,
-            decimalCount: 8
-          }
-          // ...
-        ]
-      }
-    },
+    privateMode: false,
     vault: {
       mnemonic: '',
       privateKeys: {
         '': ''
+      }
+    },
+    user: {
+      onboardingStep: 0,
+      firstName: '',
+      lastName: '',
+      mobileNumber: ''
+    },
+    accounts: {
+      escrow: {
+        address: '',
+        balances: {
+          bch: 0.561,
+          php: 1250,
+          spice: 310000
+        },
+        transactions: {
+          bch: [],
+          php: [],
+          spice: []
+        }
+      },
+      private: {
+        address: '',
+        balances: {
+          bch: 1.34,
+          php: 178000,
+          spice: 10000000
+        },
+        transactions: {
+          bch: [],
+          php: [],
+          spice: []
+        }
+      }
+    },
+    assets: {
+      bch: {
+        name: 'Bitcoin Cash',
+        symbol: 'BCH',
+        logo: 'bitcoin-cash-bch-logo.png'
+      },
+      php: {
+        name: 'Philippine Pesos',
+        symbol: 'PHP',
+        logo: 'pesos-logo.png'
+      },
+      spice: {
+        name: 'Spice',
+        symbol: 'SPICE',
+        logo: 'spice-logo.png'
       }
     }
   }
