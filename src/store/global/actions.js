@@ -56,7 +56,7 @@ export function updateEscrowBalance (context, options={ maxAge: DEFAULT_BALANCE_
       context.commit('updateEscrowBalance', balance)
       if (Array.isArray(balance.tokens)) {
         balance.tokens.forEach(tknBalance => {
-          context.dispatch('assets/getTokenStats', tknBalance, { root: true })
+          context.dispatch('assets/getSLPTokenStats', tknBalance, { root: true })
         })
       }
 
