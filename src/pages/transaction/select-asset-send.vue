@@ -5,15 +5,15 @@
           <router-link :to="{ path: '/'}">
             <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
           </router-link>
-          <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
+          <p class="text-center select q-mt-sm text-token" style="font-size: 22px; color: #3B7BF6;">
             SEND
           </p>
         </div>
     </div>
     <template v-if="assets">
       <div class="row">
-        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 14px;">
-          <p class="slp_tokens q-mb-sm"><b>SELECT ASSET</b></p>
+        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
+          <p class="slp_tokens q-mb-sm">SELECT ASSET TO SEND</p>
         </div>
       </div>
       <div
@@ -27,10 +27,10 @@
           <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
             <div><img :src="getAssetLogo(asset.id)" width="50"></div>
             <div class="col q-pl-sm q-pr-sm">
-              <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px;">
+              <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px; color: #444655;">
                 {{ getAssetStats(asset.id).name }}
               </p>
-              <p class="q-ma-none asset" style="font-size: 18px;">
+              <p class="q-ma-none asset" style="font-size: 18px; color: #444655;">
                 {{ getBalance(asset.id) | formatAmountPrecision }}
                 {{ getAssetStats(asset.id).symbol }}
               </p>
@@ -88,7 +88,7 @@ export default {
 
   methods: {
     getBalance (id) {
-      let balance = this.balances.find(bln => bln.id === id)
+      const balance = this.balances.find(bln => bln.id === id)
       return balance ? balance.balance : 0
     }
   },
@@ -105,21 +105,12 @@ export default {
 </script>
 
 <style lang="scss">
-  .group-currency-main {
-    width: 100%;
-    border-top: 2px solid #3b7bf6;
-    border-bottom: 2px solid #3b7bf6;
-    border-left: 2px solid #3b7bf6;
-    border-top-left-radius: 14px;
-    border-bottom-left-radius: 14px;
-  }
   .group-currency {
-    border-right: 8px solid;
-    border-image-source: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-    border-image-slice: 1;
-    border-left-width: 0px;
-    border-top-width: 0px;
-    border-bottom-width: 0px;
+    width: 100%;
+    border: 2px solid #ed5f59;
+    border-radius: 14px;
+    margin-top: 5px;
+    margin-bottom: 5px;
   }
   .display-none {
     display: none;
@@ -176,16 +167,6 @@ export default {
   .qr-code-text {
     font-size: 12px;
     color: #000;
-  }
-  .currencies {
-    position: fixed;
-    height: 100px;
-    width: 100%;
-    bottom: 0pt;
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: #fff;
-    padding-top: 28px;
   }
   .btn-bch {
     margin-left: 0px;

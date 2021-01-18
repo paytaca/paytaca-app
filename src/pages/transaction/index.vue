@@ -42,13 +42,13 @@
           >
             <div class="row items-start no-wrap justify-between">
               <img :src="getAssetLogo(asset.id)" height="40" class="q-mr-xs">
-              <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF;">
+              <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
                 {{ getAssetStats(asset.id).symbol }}
               </p>
             </div>
             <div class="row">
               <q-space />
-              <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF;">
+              <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
                 {{ getBalance(asset.id) | formatAmountPrecision }}
               </p>
             </div>
@@ -339,7 +339,7 @@ export default {
     height: 100px;
     min-width: 160px;
     border-radius: 16px;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
     box-shadow: 1px 2px 2px 2px rgba(99, 103, 103, .2);
   }
   .ib-text {

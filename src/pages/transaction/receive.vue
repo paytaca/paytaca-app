@@ -107,10 +107,11 @@ export default {
     }
   }
   .col-qr-code {
-    width: 100%;  
+    width: 100%;
     border-radius: 16px;
     padding: 25px 10px 32px 10px;
     box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
+    border: 4px solid #ed5f59;
   }
   .receive-add-amount {
     color: #3992EA;
