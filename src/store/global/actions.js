@@ -11,24 +11,25 @@ export function updateAddresses (context, addresses) {
 }
 
 export function updatePrivateBalance (context, options={ maxAge: DEFAULT_BALANCE_MAX_AGE }) {
-  if (!context.state.user.privateAddress) return Promise.reject()
+  if (!context.state.accounts.private.address) return Promise.reject()
 
   const maxAge = Number.isSafeInteger(options && options.maxAge) ? Number(options && options.maxAge) : DEFAULT_BALANCE_MAX_AGE
   if (
-    context.state.user &&
-    context.state.user.privateBalance &&
-    Number.isSafeInteger(context.state.user.privateBalance.lastUpdate) &&
-    context.state.user.privateBalance.lastUpdate > Date.now() - Math.abs(maxAge)
+    context.state.accounts &&
+    context.state.accounts.private &&
+    context.state.accounts.private.lastBalanceUpdate &&
+    Number.isSafeInteger(context.state.accounts.private.lastBalanceUpdate) &&
+    context.state.accounts.private.lastBalanceUpdate > Date.now() - Math.abs(maxAge)
   ) {
-    return Promise.resolve(context.state.user.privateBalance)
+    return Promise.resolve(context.state.accounts.private.balances)
   }
 
-  return getBalance(context.state.user.privateAddress)
+  return getBalance(context.state.accounts.private.address)
     .then(balance => {
       context.commit('updatePrivateBalance', balance)
       if (Array.isArray(balance.tokens)) {
         balance.tokens.forEach(tknBalance => {
-          context.dispatch('tokenStats/getTokenStats', tknBalance, { root: true })
+          context.dispatch('assets/getTokenStats', tknBalance, { root: true })
         })
       }
 
@@ -37,24 +38,25 @@ export function updatePrivateBalance (context, options={ maxAge: DEFAULT_BALANCE
 }
 
 export function updateEscrowBalance (context, options={ maxAge: DEFAULT_BALANCE_MAX_AGE }) {
-  if (!context.state.user.escrowAddress) return Promise.reject()
+  if (!context.state.accounts.escrow.address) return Promise.reject()
 
   const maxAge = Number.isSafeInteger(options && options.maxAge) ? Number(options && options.maxAge) : DEFAULT_BALANCE_MAX_AGE
   if (
-    context.state.user &&
-    context.state.user.escrowBalance &&
-    Number.isSafeInteger(context.state.user.escrowBalance.lastUpdate) &&
-    context.state.user.escrowBalance.lastUpdate > Date.now() - Math.abs(maxAge)
+    context.state.accounts &&
+    context.state.accounts.escrow &&
+    context.state.accounts.escrow.lastBalanceUpdate &&
+    Number.isSafeInteger(context.state.accounts.private.lastBalanceUpdate) &&
+    context.state.accounts.escrow.lastBalanceUpdate > Date.now() - Math.abs(maxAge)
   ) {
-    return Promise.resolve(context.state.user.escrowBalance)
+    return Promise.resolve(context.state.accounts.escrow.balances)
   }
 
-  return getBalance(context.state.user.escrowAddress)
+  return getBalance(context.state.accounts.escrow.address)
     .then(balance => {
       context.commit('updateEscrowBalance', balance)
       if (Array.isArray(balance.tokens)) {
         balance.tokens.forEach(tknBalance => {
-          context.dispatch('tokenStats/getTokenStats', tknBalance, { root: true })
+          context.dispatch('assets/getTokenStats', tknBalance, { root: true })
         })
       }
 

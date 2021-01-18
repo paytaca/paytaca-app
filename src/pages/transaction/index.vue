@@ -4,15 +4,15 @@
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
           <p class="text-light p-label" style="color: #ABA9BB;">
-            Your {{ selectedAsset.symbol }} balance
+            Your {{ getAssetStats(selectedAsset.id).symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
-            {{ balances[selectedAsset.symbol.toLowerCase()] | formatAmountPrecision }}
+            {{ getBalance(selectedAsset.id) | formatAmountPrecision }}
           </p>
         </div>
         <div class="q-space q-pr-lg">
           <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
-          <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
+          <img class="float-right q-mt-sm" :src="getAssetLogo(selectedAsset.id)" height="50">
         </div>
       </div>
       <div class="row">
@@ -41,15 +41,15 @@
             }"
           >
             <div class="row items-start no-wrap justify-between">
-              <img :src="asset.logo" height="40" class="q-mr-xs">
+              <img :src="getAssetLogo(asset.id)" height="40" class="q-mr-xs">
               <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF;">
-                {{ asset.symbol }}
+                {{ getAssetStats(asset.id).symbol }}
               </p>
             </div>
             <div class="row">
               <q-space />
               <p class="float-right q-mt-sm text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF;">
-                {{ balances[asset.symbol.toLowerCase()] | formatAmountPrecision }}
+                {{ getBalance(asset.id) | formatAmountPrecision }}
               </p>
             </div>
           </div>
@@ -95,15 +95,20 @@
 import jsUtils from '../../utils/vanilla.js'
 import walletUtils from '../../utils/common.js'
 
+import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+
 export default {
   name: 'Transaction-page',
+  mixins: [
+    walletAssetsMixin,
+  ],
+
   data () {
     return {
       today: new Date().toDateString(),
       selectedAsset: {
-        symbol: 'BCH',
-        balace: 0,
-        logo: 'bitcoin-cash-bch-logo.png'
+        blockchain: 'BCH',
+        id: ''
       },
       transactionsFilter: 'all',
       activeBtn: 'btn-all'
@@ -140,18 +145,25 @@ export default {
   },
 
   methods: {
+    getBalance (id) {
+      const balance = this.balances.find(bln => bln.id === id)
+      return balance ? balance.balance : 0
+    },
+
     getTransactions () {
-      const asset = this.selectedAsset.symbol.toLowerCase()
-      if (this.transactionsFilter === 'all') {
-        return this.transactions[asset]
-      } else if (this.transactionsFilter === 'sent') {
-        return this.transactions[asset].filter(function (item) {
-          return item.type === 'sent'
-        })
-      } else if (this.transactionsFilter === 'received') {
-        return this.transactions[asset].filter(function (item) {
-          return item.type === 'received'
-        })
+      let buffer = this.transactions
+      if(!buffer) return []
+
+      buffer = buffer[this.selectedAsset.id]
+      if(!Array.isArray(buffer)) return []
+
+      switch(this.transactionsFilter) {
+        case('sent'):
+          return buffer.filter(t => t.type == 'sent')
+        case('received'):
+          return buffer.filter(t => t.type == 'received')
+        default:
+          return buffer
       }
     },
 

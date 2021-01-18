@@ -153,9 +153,9 @@ export default {
   },
 
   props: {
-    tokenId: {
-      // tokenId will determine whether to send an slp token or bch
-      // no tokenId means that bch is intended to be sent
+    assetId: {
+      // assetId will determine whether to send an slp token or bch
+      // no assetId means that bch is intended to be sent
       type: String,
       required: false
     }
@@ -228,9 +228,9 @@ export default {
 
   methods: {
     fetchTokenStats () {
-      if (!this.tokenId) return Promise.reject()
+      if (!this.assetId) return Promise.reject()
 
-      return this.$store.dispatch('tokenStats/getTokenStats', {tokenId: this.tokenId})
+      return this.$store.dispatch('assets/getSLPTokenStats', {tokenId: this.assetId})
         .then(tokenStats => {
           this.tokenStats = tokenStats
           return Promise.resolve()
@@ -320,7 +320,7 @@ export default {
   },
 
   mounted () {
-    if (this.tokenId) {
+    if (this.assetId) {
       console.log('got token id')
       this.fetchTokenStats()
         .then(() => {

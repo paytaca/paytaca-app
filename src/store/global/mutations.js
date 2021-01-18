@@ -3,20 +3,21 @@ export function updateMnemonic (state, encryptedMnemonic) {
 }
 
 export function updateAddresses (state, addresses) {
-  state.user.escrowAddress = addresses.escrow.address
+  state.accounts.escrow.address = addresses.escrow.address
+
   state.vault.privateKeys[addresses.escrow.address] = addresses.escrow.privateKey
 
-  state.user.privateAddress = addresses.private.address
+  state.accounts.private.address = addresses.private.address
   state.vault.privateKeys[addresses.private.address] = addresses.private.privateKey
 }
 
 export function updatePrivateAddress (state, privateAddress) {
-  state.user.privateAddress = privateAddress.address
+  state.accounts.private.address = privateAddress.address
   state.vault.privateKeys[privateAddress.address] = privateAddress.privateKey
 }
 
 export function updatePublicAddress (state, escrow) {
-  state.user.escrowAddress = escrow.address
+  state.accounts.escrow.address = escrow.address
   state.vault.privateKeys[escrow.address] = escrow.privateKey
 }
 
