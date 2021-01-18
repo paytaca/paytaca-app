@@ -43,6 +43,10 @@ const routes = [
       { path: 'accounts', component: () => import('pages/registration/accounts.vue') }
     ]
   },
+  {
+    path: '/seed',
+    component: () => import ('pages/seeder.vue'),
+  },
 
   // Always leave this as last one,
   // but you can also remove it

@@ -3,22 +3,22 @@ export function assets (state) {
 }
 
 export function balances (state) {
-  const account = state.isPrivateMode ? 'private' : 'escrow'
+  const account = state.privateMode ? 'private' : 'escrow'
   return state.accounts[account].balances
 }
 
 export function transactions (state) {
-  const account = state.isPrivateMode ? 'private' : 'escrow'
+  const account = state.privateMode ? 'private' : 'escrow'
   return state.accounts[account].transactions
 }
 
 export function address (state) {
-  const account = state.isPrivateMode ? 'private' : 'escrow'
+  const account = state.privateMode ? 'private' : 'escrow'
   return state.accounts[account].address
 }
 
 export function isPrivateMode (state) {
-  return state.user.privateMode
+  return state.privateMode
 }
 
 export const getWIF = (state) => (address) => {

@@ -19,21 +19,19 @@
       <div
         v-for="(asset, index) in assets"
         :key="index"
-        @click="$router.push({ name: 'transaction-receive', query: { asset: asset.symbol.toLowerCase() } })"
+        @click="$router.push({ name: 'transaction-receive', query: { assetId: asset.id } })"
         role="button"
-        class="row q-pl-lg q-pr-lg token-link">
-        <div class="col row group-currency q-mb-sm">
-          <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
-            <div><img :src="asset.logo" width="50"></div>
-            <div class="col q-pl-sm q-pr-sm">
-              <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px;">
-                {{ asset.name }}
-              </p>
-              <p class="q-ma-none asset" style="font-size: 18px;">
-                {{ balances[asset.symbol.toLowerCase()] | formatAmountPrecision }} {{ asset.symbol }}
-              </p>
-            </div>
-          </div>
+        class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
+      >
+        <div><img :src="getAssetLogo(asset.id)" width="50"></div>
+        <div class="col q-pl-sm q-pr-sm">
+          <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px;">
+            {{ getAssetStats(asset.id).name }}
+          </p>
+          <p class="q-ma-none asset" style="font-size: 18px;">
+            {{ getBalance(asset.id) | formatAmountPrecision }}
+            {{ getAssetStats(asset.id).symbol }}
+          </p>
         </div>
       </div>
     </template>
@@ -48,10 +46,14 @@
   </div>
 </template>
 <script>
+import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import walletUtils from '../../utils/common.js'
 
 export default {
   name: 'Receive-page',
+  mixins: [
+    walletAssetsMixin
+  ],
   data () {
     return {
       activeBtn: 'btn-bch',
@@ -81,22 +83,9 @@ export default {
   },
 
   methods: {
-    swtichActiveBtn (btn) {
-      var element = document.getElementById(btn)
-      var name = 'active-btn'
-      var arr = element.className.split(' ')
-      if (arr.indexOf(name) === -1) {
-        element.className += ' ' + name
-      }
-      var customBtn = document.getElementById(this.activeBtn)
-      customBtn.classList.remove('active-btn')
-      this.activeBtn = btn
-    },
-    getTokenStats (tokenId) {
-      return this.$store.getters['tokenStats/getTokenStats'](tokenId)
-    },
-    getTokenLogo (tokenId) {
-      return this.$store.getters['tokenStats/getTokenLogo'](tokenId) || 'bitcoin-cash-bch-logo.png'
+    getBalance (id) {
+      let balance = this.balances.find(bln => bln.id === id)
+      return balance ? balance.balance : 0
     }
   },
 

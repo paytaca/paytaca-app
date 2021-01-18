@@ -3,7 +3,7 @@ import Vuex from 'vuex'
 import createPersistedState from 'vuex-persistedstate'
 
 import global from './global'
-import tokenStats from './tokenStats'
+import assets from './assets'
 
 Vue.use(Vuex)
 
@@ -21,7 +21,7 @@ export default function (/* { ssrContext } */) {
     plugins: [createPersistedState()],
     modules: {
       global,
-      tokenStats
+      assets
     },
 
     // enable strict mode (adds overhead!)

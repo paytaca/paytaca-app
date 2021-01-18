@@ -6,7 +6,7 @@
             <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
           </router-link>
           <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
-            RECEIVE {{ asset.symbol }}
+            RECEIVE {{ getAssetStats(assetId).symbol }}
           </p>
         </div>
     </div>
@@ -15,7 +15,7 @@
           <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
             <div class="row text-center">
               <div class="col row justify-center q-pt-md">
-                <img :src="asset.logo" height="60" style="position: absolute; margin-top: 80px; background: #fff; border-radius: 26px">
+                <img :src="getAssetLogo(assetId)" height="60" style="position: absolute; margin-top: 80px; background: #fff;">
                 <qr-code :text="getAddress()" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
               </div>
             </div>
@@ -40,29 +40,36 @@
 </template>
 
 <script>
+import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import walletUtils from '../../utils/common.js'
 
 export default {
   name: 'receive-page',
+  mixins: [
+    walletAssetsMixin,
+  ],
   data () {
     return {
       activeBtn: 'btn-bch'
     }
   },
+
+  props: {
+    assetId: {
+      type: String,
+      required: false,
+      default: '',
+    }
+  },
+
   computed: {
     address () {
       return this.$store.getters['global/address']
-    },
-    assets () {
-      return this.$store.getters['global/assets']
-    },
-    asset () {
-      return this.assets[this.$route.query.asset]
     }
   },
   methods: {
     getAddress () {
-      if (this.asset.symbol === 'BCH') {
+      if (!this.assetId) {
         return this.address
       } else {
         return walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP)
