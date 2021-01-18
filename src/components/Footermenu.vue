@@ -19,8 +19,24 @@
       <button class="footer-icon-btn q-mr-xs btn-ellipse">
         <i class="footer-icon mdi mdi-nintendo-switch"></i>
         <div class="account-options">
-          <a class="active-account" ref="escrow" @click="switchAccount('escrow')">ESCROW</a>
-          <a ref="private" @click="switchAccount('private')">PRIVATE</a>
+          <a
+            :class="[
+              !isPrivateMode ? 'active-account' : '',
+            ]"
+            ref="escrow"
+            @click="switchAccount('escrow')"
+          >
+            ESCROW
+          </a>
+          <a
+            :class="[
+              isPrivateMode ? 'active-account' : '',
+            ]"
+            ref="private"
+            @click="switchAccount('private')"
+          >
+            PRIVATE
+          </a>
         </div>
       </button>
     </div>
@@ -33,14 +49,23 @@ export default {
   data () {
     return {}
   },
+
+  computed: {
+    isPrivateMode: {
+      set (val) {
+        this.$store.dispatch('global/setPrivateMode', { privateMode: val })
+      },
+      get () {
+        return this.$store.getters['global/isPrivateMode']
+      }
+    }
+  },
+
   methods: {
     switchAccount (account) {
-      account == 'private' ? this.$q.dark.set(true) : this.$q.dark.set(false)
-      account == 'private' ? this.$q.localStorage.set('active-account', true) : this.$q.localStorage.set('active-account', false)
-      this.$store.dispatch('global/setPrivateMode', { privateMode: this.active_account })
-      this.$refs[account].classList.add('active-account')
-      var removeClass = account == 'escrow' ? 'private' : 'escrow'
-      this.$refs[removeClass].classList.remove('active-account')
+      const toPrivate = account == 'private'
+      toPrivate ? this.$q.dark.set(true) : this.$q.dark.set(false)
+      this.isPrivateMode = toPrivate
     },
   }
 }

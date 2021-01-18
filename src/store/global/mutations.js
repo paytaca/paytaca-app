@@ -10,6 +10,16 @@ export function updateAddresses (state, addresses) {
   state.vault.privateKeys[addresses.private.address] = addresses.private.privateKey
 }
 
+export function updatePrivateAddress (state, privateAddress) {
+  state.user.privateAddress = privateAddress.address
+  state.vault.privateKeys[privateAddress.address] = privateAddress.privateKey
+}
+
+export function updatePublicAddress (state, escrow) {
+  state.user.escrowAddress = escrow.address
+  state.vault.privateKeys[escrow.address] = escrow.privateKey
+}
+
 export function updateOnboardingStep (state, status) {
   state.user.onboardingStep = status
 }
