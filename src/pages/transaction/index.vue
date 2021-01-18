@@ -41,7 +41,7 @@
             }"
           >
             <div class="row items-start no-wrap justify-between">
-              <img :src="asset.logo" height="50" class="q-mr-xs">
+              <img :src="asset.logo" height="40" class="q-mr-xs">
               <p class="pay-text q-mb-none float-right ib-tex text-right text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF;">
                 {{ asset.symbol }}
               </p>
@@ -270,7 +270,7 @@ export default {
   }
   .transaction-row {
     position: relative;
-    margin-top: 280px;
+    margin-top: 270px;
     z-index: 5;
   }
   .transaction-list {
@@ -324,8 +324,8 @@ export default {
     height: 110px;
   }
   .method-cards {
-    height: 110px;
-    min-width: 180px;
+    height: 100px;
+    min-width: 160px;
     border-radius: 16px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
     box-shadow: 1px 2px 2px 2px rgba(99, 103, 103, .2);
