@@ -15,7 +15,7 @@
           <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
             <div class="row text-center">
               <div class="col row justify-center q-pt-md">
-                <img :src="asset.logo" height="60" style="position: absolute; margin-top: 80px; background: #fff;">
+                <img :src="asset.logo" height="60" style="position: absolute; margin-top: 80px; background: #fff; border-radius: 26px">
                 <qr-code :text="getAddress()" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
               </div>
             </div>
@@ -100,8 +100,7 @@ export default {
     }
   }
   .col-qr-code {
-    width: 100%;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    width: 100%;  
     border-radius: 16px;
     padding: 25px 10px 32px 10px;
     box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
