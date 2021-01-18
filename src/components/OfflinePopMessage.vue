@@ -6,8 +6,8 @@
     </div>
 
     <div class="row">
-      <div class="col qr-code-container q-mb-md">
-        <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+      <div class="col q-mb-md">
+        <div class="col q-pl-sm q-pr-sm q-pt-md">
           <h5 class="text-center q-ma-sm"><b>Transaction Receipt</b></h5>
           <div class="row">
             <div class="col row justify-center q-pt-md">
