@@ -21,16 +21,20 @@
         :key="index"
         @click="$router.push({ name: 'transaction-send', query: { asset: asset.symbol.toLowerCase() } })"
         role="button"
-        class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link"
+        class="row q-pl-lg q-pr-lg token-link"
       >
-        <div><img :src="asset.logo" width="50"></div>
-        <div class="col q-pl-sm q-pr-sm">
-          <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px;">
-            {{ asset.name }}
-          </p>
-          <p class="q-ma-none asset" style="font-size: 18px;">
-            {{ balances[asset.symbol.toLowerCase()] | formatAmountPrecision }} {{ asset.symbol }}
-          </p>
+        <div class="col row group-currency q-mb-sm">
+          <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
+            <div><img :src="asset.logo" width="50"></div>
+            <div class="col q-pl-sm q-pr-sm">
+              <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px;">
+                {{ asset.name }}
+              </p>
+              <p class="q-ma-none asset" style="font-size: 18px;">
+                {{ balances[asset.symbol.toLowerCase()] | formatAmountPrecision }} {{ asset.symbol }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -109,6 +113,22 @@ export default {
 </script>
 
 <style lang="scss">
+  .group-currency-main {
+    width: 100%;
+    border-top: 2px solid #3b7bf6;
+    border-bottom: 2px solid #3b7bf6;
+    border-left: 2px solid #3b7bf6;
+    border-top-left-radius: 14px;
+    border-bottom-left-radius: 14px;
+  }
+  .group-currency {
+    border-right: 8px solid;
+    border-image-source: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    border-image-slice: 1;
+    border-left-width: 0px;
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+  }
   .display-none {
     display: none;
   }
