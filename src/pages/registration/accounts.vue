@@ -86,10 +86,6 @@ export default {
     }
   },
   mounted () {
-    if (!this.$aes256.getSecretKey()) {
-      const secretKey = crypto.randomBytes(16).toString('hex')
-      LocalStorage.set('secretkey', secretKey)
-    }
     this.createAccount()
   }
 }
