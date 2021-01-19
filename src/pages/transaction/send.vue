@@ -56,7 +56,7 @@
     </div>
     <!-- <div class="send-input-fields"> -->
       <div class="q-px-lg" v-if="sendData.recipientAddress !== ''">
-        <form class="q-pa-sm" @submit="() => sendData.isSendingBCH ? submitBCHSend() : submitSendToken()">
+        <form class="q-pa-sm" @submit="handleSubmit">
           <div class="row">
             <div class="col q-mt-sm">
               <label class="get-started-text"><b>Amount</b></label>
@@ -125,7 +125,28 @@
         </q-form> -->
       </div>
     <!-- </div> -->
-    <q-dialog v-model="showSendSuccessDialog">
+    <q-dialog persistent :value="sendData.sending">
+      <q-card style="width:300px" class="text-center">
+        <q-card-section class="column">
+          <template v-if="sendData.isMultiSig && !online">
+            <div>
+              Generating receipt
+            </div>
+            <div class="text-caption text-weight-light">
+              Device is not connected to internet, payment will be finalized when the device is connected again
+            </div>
+          </template>
+          <template v-else>
+            Sending
+          </template>
+          <div>
+            <q-spinner-dots class="q-mt-md"/>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog :value="showSendSuccessDialog">
       <q-card>
         <q-card-section>
           <div class="row justify-center items-center">
@@ -151,21 +172,8 @@
       </q-card>
     </q-dialog>
 
-    <offline-pop-message v-if="offlineMessage"/>
-    <online-pop-message v-if="onlineMessage"/>
-
-    <!-- <router-link to="send" class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link">
-      <div style="background-color: gray; padding: 3px 5px 4px 5px; border-radius: 4px"><q-icon class="color-light-gray icon-size" :name="fasQrcode" /></div>
-      <div class="col q-pl-sm q-pr-sm token-name-container">
-        <p class="q-ma-none text-token"><b>BCH</b></p>
-      </div>
-    </router-link>
-    <router-link to="send" class="row q-pl-lg q-pr-lg q-pt-sm q-pb-sm token-link">
-      <div style="background-color: gray; padding: 3px 5px 4px 5px; border-radius: 4px"><q-icon class="color-light-gray icon-size" :name="fasWallet" /></div>
-      <div class="col q-pl-sm q-pr-sm token-name-container">
-        <p class="q-ma-none text-token"><b>SPICE</b></p>
-      </div>
-    </router-link> -->
+    <online-pop-message :value="online && sendData.success"/>
+    <offline-pop-message :value="!online && sendData.success && sendData.isMultiSig" :qr-code-payload="sendData.proofOfPayment"/>
 
     <!-- <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null">
       <div id="status">
@@ -180,6 +188,8 @@
 </template>
 
 <script>
+import schnorrUtils from '../../utils/schnorr/common.js'
+import sendBCHMultiSig from '../../utils/schnorr/send-bch.js'
 import walletUtils from '../../utils/common.js'
 import sendBCH from '../../utils/send-bch.js'
 import sendToken from '../../utils/send-slp-token.js'
@@ -229,14 +239,19 @@ export default {
         error: '',
         txid: '',
 
+        // set to false  && online = true if running on non multisig transaction
+        isMultiSig: true,
+        creatingProofOfPayment: false,
+        proofOfPayment: '',
+
         isSendingBCH: true,
         tokenId: '',
         amount: null, // this will be in terms of bch or the token specified
         recipientAddress: '',
+        // recipientAddress: 'bchtest:qqg6wl4wy748lgc72xfrxjq88fh5kyyy2gwj67sszt',
       },
 
-      offlineMessage: false,
-      onlineMessage: false
+      online: false
     }
   },
 
@@ -321,6 +336,14 @@ export default {
         })
     },
 
+    handleSubmit () {
+      if (this.sendData.isMultiSig) {
+        return this.submitBCHSendMultiSig()
+      } else {
+        return this.sendData.isSendingBCH ? this.submitBCHSend() : this.submitSendToken()
+      }
+    },
+
     submitBCHSend () {
       this.sendData.sending = true
       this.sendData.sent = true
@@ -368,6 +391,44 @@ export default {
           this.sendData.error = err
         })
     },
+
+    submitBCHSendMultiSig () {
+      this.sendData.sending = true
+      this.sendData.sent = true
+      const wif = this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address))
+      const myPrivKey = bchjs.ECPair.fromWIF(wif).d.toBuffer().toString('hex')
+      sendBCHMultiSig(
+        walletUtils.parseAddress(this.address, walletUtils.ADDR_CASH),
+        wif,
+        walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
+        this.sendData.amount,
+      )
+        .then(res => {
+          this.sendData.creatingProofOfPayment = true
+          schnorrUtils.constructPromisePayload(
+            res.hex,
+            myPrivKey,
+            res.session, 
+            0
+          )
+            .finally(() => {
+              this.sendData.success = true
+              this.sendData.sending = false
+              this.sendData.creatingProofOfPayment = false
+            })
+            .then(promise => {
+              // somehow qr code error is caused by error explained here
+              // https://stackoverflow.com/questions/30796584/qrcode-js-error-code-length-overflow-17161056
+              this.sendData.proofOfPayment = promise + '======'
+              schnorrUtils.verifyPromise(this.sendData.proofOfPayment)
+            })
+        })
+        .catch(err => {
+          this.sendData.success = false
+          this.sendData.error = err
+        })
+    },
+
     swipeConfirm (event) {
       this.$refs['confirmation-slider'].style.display = this.sendData.amount !== null ? 'block' : 'none';
       this.$refs['confirmation-slider'].style.display = this.sendData.amount !== '' ? 'block' : 'none';
@@ -375,7 +436,7 @@ export default {
     tiggerRange () {
       // alert(this.$refs['swipe-submit'].value)
       if(this.$refs['swipe-submit'].value > 99) {
-        this.sendData.isSendingBCH ? this.submitBCHSend() : this.submitSendToken()
+        this.handleSubmit()
       }
     }
   },
@@ -393,6 +454,7 @@ export default {
   },
 
   created () {
+    console.log(this)
     this.fasQrcode = fasQrcode
     this.fasWallet = fasWallet
   }

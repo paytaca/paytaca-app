@@ -1,13 +1,13 @@
 <template>
-  <div class="row justify-center fixed-online-message">
+  <div v-show="val" class="row justify-center fixed-online-message">
 
     <div class="row col">
-      <router-link :to="{ path: '/'}" class="q-mt-sm q-ml-md" style="font-size: 34px; color: rgb(60, 100, 246);"><i class="mdi mdi-close-circle"></i></router-link>
+      <span @click="val=false" class="q-mt-sm q-ml-md" style="font-size: 34px; color: rgb(60, 100, 246);"><i class="mdi mdi-close-circle"></i></span>
     </div>
 
     <div class="row">
       <div class="col row q-mt-md justify-center">
-        <h5 class="q-ma-sm"><b>Sent successfully</b></h5></p>
+        <h5 class="q-ma-sm"><b>Sent successfully</b></h5>
       </div>
     </div>
 
@@ -28,13 +28,25 @@
 
 <script>
 export default {
-  name: 'footer',
-  data () {
-    return {}
+  name: 'online-popup-message',
+  props: {
+    value: {
+      type: Boolean,
+      required: true,
+    }
   },
-  methods: {
-    switchAccount () {
+  data () {
+    return {
+      val: this.value
+    }
+  },
+  watch: {
+    value () {
+      this.val = this.value
     },
+    val () {
+      this.$emit('input', this.val)
+    }
   }
 }
 </script>
