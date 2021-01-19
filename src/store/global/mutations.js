@@ -74,7 +74,7 @@ export function updateEscrowBalance (state, balance) {
 
       const tokenBalance = {
         id: thisToken.tokenId,
-        balance: thisToken.balance,
+        balance: thisToken.balance
       }
 
       if (index < 0) state.accounts.escrow.balances.push(tokenBalance)
@@ -83,6 +83,11 @@ export function updateEscrowBalance (state, balance) {
   }
 }
 
-export function setPrivateMode(state, privateMode) {
+export function setPrivateMode (state, privateMode) {
   state.privateMode = Boolean(privateMode)
+}
+
+export function updateTransactions (state, data) {
+  state.accounts[data.accountType].transactions[''] = data.transactions
+  state.accounts[data.accountType].balances[0].balance = data.balance
 }

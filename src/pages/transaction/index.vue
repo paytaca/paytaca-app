@@ -68,9 +68,9 @@
               <div class="row" v-for="(transaction, index) in getTransactions()" :key="'tx-' + index">
                   <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                     <div class="row">
-                      <div class="q-mr-sm">
+                      <!-- <div class="q-mr-sm">
                         <img :src="selectedAsset.logo" width="40">
-                      </div>
+                      </div> -->
                       <div class="col col-transaction">
                         <div>
                           <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ transaction.type | titleCase }}</b></p>
@@ -108,6 +108,7 @@ export default {
       today: new Date().toDateString(),
       selectedAsset: {
         blockchain: 'BCH',
+        logo: 'bitcoin-cash-bch-logo.png',
         id: ''
       },
       transactionsFilter: 'all',
@@ -116,6 +117,9 @@ export default {
   },
 
   computed: {
+    address () {
+      return this.$store.getters['global/address']
+    },
     assets () {
       return this.$store.getters['global/assets']
     },
@@ -134,7 +138,7 @@ export default {
     },
     formatAmountPrecision (val) {
       const number = Number(val)
-      return Number(number.toFixed(4)).toLocaleString(undefined, { minimumFractionDigits: 2 })
+      return Number(number.toFixed(4)).toLocaleString(undefined, { minimumFractionDigits: 4 })
     },
     titleCase (str) {
       return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase());
@@ -208,8 +212,17 @@ export default {
   },
 
   created () {
-    console.log(this)
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
+
+    const vm = this
+    this.$axios.post('/account/transactions', { address: this.address, asset: 'BCH' }).then(function (resp) {
+      const data = {
+        accountType: 'escrow',
+        transactions: resp.data.transactions,
+        balance: resp.data.balance
+      }
+      vm.$store.dispatch('global/updateTransactions', data)
+    })
 
     // window.onscroll = function(){
     //   document.documentElement.scrollTop >= 250 ? window.scrollTo({ top: 250, left: 0, behavior: 'auto' }) : ''

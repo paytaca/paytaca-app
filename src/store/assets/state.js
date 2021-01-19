@@ -17,22 +17,22 @@ export default function () {
         blockchain: blockchains.BCH,
         id: '',
         symbol: 'BCH',
-        name: 'Bitcoin Cash',
+        name: 'Bitcoin Cash'
       },
       {
         blockchain: blockchains.BCH,
         id: 'php',
         documentUri: '',
         symbol: 'PHP',
-        name: 'Pesos',
+        name: 'Pesos'
       },
       {
         blockchain: blockchains.BCH,
         id: '4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf', // spice's token type id
         documentUri: '',
         symbol: 'SPICE',
-        name: 'Spice',
-      },
+        name: 'Spice'
+      }
     ]
   }
 }

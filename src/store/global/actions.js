@@ -69,3 +69,7 @@ export function setPrivateMode (context, { privateMode }) {
   context.commit('setPrivateMode', val)
   return Promise.resolve(val)
 }
+
+export function updateTransactions (context, data) {
+  context.commit('updateTransactions', data)
+}

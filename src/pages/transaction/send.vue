@@ -60,13 +60,18 @@
           <div class="row">
             <div class="col q-mt-sm">
               <label class="get-started-text"><b>Amount</b></label>
-              <input type="number" class="form-input form-input-amount q-mt-xs text-right" @keyup="swipeConfirm" v-model="sendData.amount" :readonly="sendData.sent">
+              <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" @keyup="swipeConfirm" v-model="sendData.amount" :readonly="sendData.sent">
             </div>
           </div>
           <div class="row">
             <div class="col q-mt-sm se">
               <label class="get-started-text"><b>Send to</b></label>
               <input type="text" class="form-input q-mt-xs text-right q-pl-md q-pr-md" v-model="sendData.recipientAddress" :readonly="sendData.sent">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col q-mt-sm se">
+              <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;" @click="()=>{offlineMessage=true}">Send</button>
             </div>
           </div>
           <!-- <div class="row" v-if="sendData.amount !== null">
@@ -162,7 +167,7 @@
       </div>
     </router-link> -->
 
-    <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null">
+    <!-- <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null">
       <div id="status">
         <label class="swipe-confrim-label">Swipe to confirm</label>
 
@@ -170,7 +175,7 @@
         <span class="mdi mdi-arrow-right-circle" style="position: absolute; z-index: 1000; bottom: 20px; right: 20px: "></span>
   
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 

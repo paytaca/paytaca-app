@@ -105,6 +105,13 @@ export default {
 </script>
 
 <style lang="scss">
+  .group-currency {
+    width: 100%;
+    border: 2px solid #ed5f59;
+    border-radius: 14px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+  }
   .display-none {
     display: none;
   }

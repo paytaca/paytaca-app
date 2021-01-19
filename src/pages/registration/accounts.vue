@@ -74,7 +74,19 @@ export default {
         privateKey: this.$aes256.encrypt(account2Pk)
       }
 
-      this.$store.dispatch('global/updateAddresses', addresses)
+      const vm = this
+      const payload = {
+        mnemonic_hash: vm.$aes256.encrypt(vm.mnemonic),
+        first_name: 'Juan',
+        last_name: 'Dela Cruz',
+        mobile_number: '09281234567',
+        user_public_key: bchjs.ECPair.toPublicKey(account1.keyPair).toString('hex'),
+        hd_wallet_index: 0
+      }
+      vm.$axios.post('/escrow-account/create', payload).then(function (resp) {
+        addresses.escrow.address = resp.data.aggregate_address
+        vm.$store.dispatch('global/updateAddresses', addresses)
+      })
     },
     createAccount () {
       const vm = this
