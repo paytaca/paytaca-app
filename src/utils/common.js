@@ -8,10 +8,10 @@ const ADDR_SLP = 'simpleledger'
 const ADDR_LEGACY = ''
 
 
-const TESTNET3 = 'https://testnet3.fullstack.cash/v3/'
-const BCHN_MAINNET = 'https://bchn.fullstack.cash/v3/'
+const TESTNET = 'https://testnet3.fullstack.cash/v4/'
+const BCHN_MAINNET = 'https://bchn.fullstack.cash/v4/'
 const testnetInstance = new BCHJS({
-  restURL: TESTNET3
+  restURL: TESTNET
 })
 
 const mainnetInstance = new BCHJS({

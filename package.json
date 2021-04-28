@@ -13,7 +13,7 @@
     "@capacitor/cli": "^2.4.5",
     "@capacitor/core": "^2.4.5",
     "@ionic/pwa-elements": "^3.0.2",
-    "@psf/bch-js": "^4.5.3",
+    "@psf/bch-js": "^4.15.9",
     "@quasar/extras": "^1.0.0",
     "aes256": "^1.0.4",
     "axios": "^0.21.1",
