@@ -45,7 +45,7 @@ const routes = [
   },
   {
     path: '/seed',
-    component: () => import ('pages/seeder.vue'),
+    component: () => import('pages/seeder.vue')
   },
 
   // Always leave this as last one,

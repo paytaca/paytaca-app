@@ -17,7 +17,7 @@
         </router-link>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse">
-        <i class="footer-icon mdi mdi-nintendo-switch"></i>
+        <i class="footer-icon mdi mdi-apps"></i>
         <div class="account-options">
           <a
             :class="[
@@ -63,10 +63,10 @@ export default {
 
   methods: {
     switchAccount (account) {
-      const toPrivate = account == 'private'
+      const toPrivate = account === 'private'
       toPrivate ? this.$q.dark.set(true) : this.$q.dark.set(false)
       this.isPrivateMode = toPrivate
-    },
+    }
   }
 }
 </script>
