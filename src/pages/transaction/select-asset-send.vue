@@ -31,7 +31,7 @@
                 {{ getAssetStats(asset.id).name }}
               </p>
               <p class="q-ma-none asset" style="font-size: 18px; color: #444655;">
-                {{ getBalance(asset.id) | formatAmountPrecision }}
+                {{ +(getBalance(asset.id).toFixed(4)) }}
                 {{ getAssetStats(asset.id).symbol }}
               </p>
             </div>
@@ -78,11 +78,6 @@ export default {
     satoshisToBCH (val) {
       const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
       return bchjs.BitcoinCash.toBitcoinCash(Number(val))
-    },
-
-    formatAmountPrecision (val) {
-      const number = Number(val)
-      return Number(number.toFixed(4)).toLocaleString(undefined, { minimumFractionDigits: 2 })
     }
   },
 

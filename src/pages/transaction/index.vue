@@ -7,7 +7,7 @@
             Your {{ getAssetStats(selectedAsset.id).symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
-            {{ getBalance(selectedAsset.id) | formatAmountPrecision }}
+            {{ +(getBalance(selectedAsset.id).toFixed(4)) }}
           </p>
         </div>
         <div class="q-space q-pr-lg">
@@ -49,7 +49,7 @@
             <div class="row">
               <q-space />
               <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
-                {{ getBalance(asset.id) | formatAmountPrecision }}
+                {{ +(getBalance(asset.id)).toFixed(4)  }}
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@
                       <div class="col col-transaction">
                         <div>
                           <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ transaction.type | titleCase }}</b></p>
-                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ transaction.amount | formatAmountPrecision }} {{ selectedAsset.symbol }}</b></p>
+                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount.toFixed(4)) }} {{ selectedAsset.symbol }}</b></p>
                         </div>
                         <div class="col">
                             <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.txid | truncateTxid }}</b></span>
@@ -100,7 +100,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 export default {
   name: 'Transaction-page',
   mixins: [
-    walletAssetsMixin,
+    walletAssetsMixin
   ],
 
   data () {
@@ -136,12 +136,8 @@ export default {
       const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
       return bchjs.BitcoinCash.toBitcoinCash(Number(val))
     },
-    formatAmountPrecision (val) {
-      const number = Number(val)
-      return Number(number.toFixed(4)).toLocaleString(undefined, { minimumFractionDigits: 4 })
-    },
     titleCase (str) {
-      return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase());
+      return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase())
     },
     truncateTxid (str) {
       return str.substring(0, 20)
@@ -156,16 +152,16 @@ export default {
 
     getTransactions () {
       let buffer = this.transactions
-      if(!buffer) return []
+      if (!buffer) return []
 
       buffer = buffer[this.selectedAsset.id]
-      if(!Array.isArray(buffer)) return []
+      if (!Array.isArray(buffer)) return []
 
-      switch(this.transactionsFilter) {
-        case('sent'):
-          return buffer.filter(t => t.type == 'sent')
-        case('received'):
-          return buffer.filter(t => t.type == 'received')
+      switch (this.transactionsFilter) {
+        case ('sent'):
+          return buffer.filter(t => t.type === 'sent')
+        case ('received'):
+          return buffer.filter(t => t.type === 'received')
         default:
           return buffer
       }
