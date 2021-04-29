@@ -4,6 +4,8 @@
   </div>
 </template>
 <script>
+var randomBytes = require('randombytes')
+import { LocalStorage } from 'quasar'
 
 export default {
   name: 'App',
@@ -23,7 +25,7 @@ export default {
     isPrivateMode () {
       this.$q.dark.set(this.isPrivateMode)
     },
-    "$route": {
+    $route: {
       handler () {
         this.$nextTick(() => {
           this.$q.dark.set(this.isPrivateMode)
@@ -34,7 +36,7 @@ export default {
 
   created () {
     if (!this.$aes256.getSecretKey()) {
-      const secretKey = crypto.randomBytes(16).toString('hex')
+      const secretKey = randomBytes(16).toString('hex')
       LocalStorage.set('secretkey', secretKey)
     }
     this.$q.dark.set(this.isPrivateMode)
