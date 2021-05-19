@@ -33,7 +33,12 @@ export default {
       }
     }
   },
-
+  mounted () {
+    if (this.$q.platform.is.bex) {
+      document.body.style.width = '380px'
+      document.body.style.minHeight = '655px'
+    }
+  },
   created () {
     if (!this.$aes256.getSecretKey()) {
       const secretKey = randomBytes(16).toString('hex')
