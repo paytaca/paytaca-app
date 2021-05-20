@@ -1,5 +1,6 @@
 <template>
   <div id="q-app">
+    Found: {{ found }} | Send Data: {{ sendMessage }}
     <router-view />
   </div>
 </template>
@@ -10,6 +11,18 @@ import { LocalStorage } from 'quasar'
 export default {
   name: 'App',
 
+  data () {
+    return {
+      found: false,
+      sendMessage: {}
+    }
+  },
+  methods: {
+    receiveSend (event) {
+      console.log('Send event data received!')
+      this.sendMessage = event.data
+    }
+  },
   computed: {
     isPrivateMode: {
       set (val) {
@@ -20,7 +33,6 @@ export default {
       }
     }
   },
-
   watch: {
     isPrivateMode () {
       this.$q.dark.set(this.isPrivateMode)
@@ -38,6 +50,10 @@ export default {
       document.body.style.width = '380px'
       document.body.style.minHeight = '655px'
     }
+
+    // Listen to bex bridge events
+    const vm = this
+    vm.$q.bex.on('bex.paytaca.send', vm.receiveSend)
   },
   created () {
     if (!this.$aes256.getSecretKey()) {
