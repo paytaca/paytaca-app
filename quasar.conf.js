@@ -127,9 +127,9 @@ module.exports = function (/* ctx */) {
       workboxPluginMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
       workboxOptions: {}, // only for GenerateSW
       manifest: {
-        name: 'Paytaca app',
-        short_name: 'Paytaca app',
-        description: 'Secure and convenient payment wallet app',
+        name: 'Paytaca',
+        short_name: 'Paytaca',
+        description: 'Secure and convenient Bitcoin Cash wallet app',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#ffffff',

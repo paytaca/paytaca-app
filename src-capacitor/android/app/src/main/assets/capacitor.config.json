@@ -1,6 +1,6 @@
 {
   "appId": "com.paytaca.app",
-  "appName": "Paytaca app",
+  "appName": "Paytaca",
   "bundledWebRuntime": false,
   "npmClient": "npm",
   "webDir": "www",
