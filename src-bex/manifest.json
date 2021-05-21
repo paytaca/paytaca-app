@@ -1,6 +1,6 @@
 {
-  "name": "quasar-browser-extension",
-  "description": "A Quasar web extension",
+  "name": "paytaca-browser-extension",
+  "description": "Secure and convenient Bitcoin Cash wallet app",
   "version": "1.0.0",
   "manifest_version": 2,
   "icons": {
@@ -9,8 +9,7 @@
     "128": "icons/icon-128x128.png"
   },
   "browser_action": {
-    "default_title": "quasar-browser-extension",
-    "default_popup": "www/index.html"
+    "default_title": "Paytaca"
   },
   "background": {
     "scripts": [

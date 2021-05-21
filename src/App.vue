@@ -46,14 +46,13 @@ export default {
     }
   },
   mounted () {
-    if (this.$q.platform.is.bex) {
+    const vm = this
+    if (vm.$q.platform.is.bex) {
       document.body.style.width = '380px'
       document.body.style.minHeight = '655px'
-    }
 
-    // Listen to bex bridge events
-    const vm = this
-    vm.$q.bex.on('bex.paytaca.send', vm.receiveSend)
+      vm.$q.bex.on('bex.paytaca.send', vm.receiveSend)
+    }
   },
   created () {
     if (!this.$aes256.getSecretKey()) {

@@ -3,7 +3,6 @@
 
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/background-hooks
 
-let Bridge
 export default function attachBackgroundHooks (bridge, allActiveConnections) {
   bridge.on('storage.get', event => {
     const payload = event.data
@@ -38,15 +37,9 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     })
   })
 
-  console.log(allActiveConnections)
-
-  // bridge.send('bex.paytaca.send', { sample: 'data' }) // --> this is sent
-  Bridge = bridge
-
   bridge.on('background.paytaca.send', event => {
-    console.log(event)
-    console.log(allActiveConnections)
-    Bridge.send('bex.paytaca.send', event.data) // --> this is NOT sent
+    chrome.tabs.create({ url: 'www/index.html' })
+    bridge.send('bex.paytaca.send', event.data)
   })
 
   // chrome.browserAction.onClicked.addListener(() => {
