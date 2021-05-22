@@ -6,7 +6,7 @@
             <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
           </router-link>
           <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
-            SEND
+            SEND <span v-if="sendData.isSendingBCH">BCH</span>
           </p>
         </div>
     </div>
@@ -60,13 +60,13 @@
           <div class="row">
             <div class="col q-mt-sm">
               <label class="get-started-text"><b>Amount</b></label>
-              <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" @keyup="swipeConfirm" v-model="sendData.amount" :readonly="sendData.sent">
+              <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" @keyup="swipeConfirm" v-model="sendData.amount" :readonly="sendData.sent || sendData.fixedAmount" :disabled="sendData.sent || sendData.fixedAmount">
             </div>
           </div>
           <div class="row">
             <div class="col q-mt-sm se">
               <label class="get-started-text"><b>Send to</b></label>
-              <input type="text" class="form-input q-mt-xs text-right q-pl-md q-pr-md" v-model="sendData.recipientAddress" :readonly="sendData.sent">
+              <input type="text" class="form-input q-mt-xs text-right q-pl-md q-pr-md" v-model="sendData.recipientAddress" :readonly="sendData.sent || sendData.fixedRecipientAddress" :disabled="sendData.sent || sendData.fixedRecipientAddress">
             </div>
           </div>
           <div class="row">
@@ -181,7 +181,7 @@
 
         <input id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
         <span class="mdi mdi-arrow-right-circle" style="position: absolute; z-index: 1000; bottom: 20px; right: 20px: "></span>
-  
+
       </div>
     </div> -->
   </div>
@@ -213,6 +213,14 @@ export default {
     assetId: {
       // assetId will determine whether to send an slp token or bch
       // no assetId means that bch is intended to be sent
+      type: String,
+      required: false
+    },
+    amount: {
+      type: Number,
+      required: false
+    },
+    recipient: {
       type: String,
       required: false
     }
@@ -247,7 +255,9 @@ export default {
         isSendingBCH: true,
         tokenId: '',
         amount: null, // this will be in terms of bch or the token specified
+        fixedAmount: false,
         recipientAddress: '',
+        fixedRecipientAddress: false
         // recipientAddress: 'bchtest:qqg6wl4wy748lgc72xfrxjq88fh5kyyy2gwj67sszt',
       },
 
@@ -301,13 +311,11 @@ export default {
           return Promise.resolve()
         })
     },
-
-    onDecode(content) {
+    onDecode (content) {
       this.sendData.recipientAddress = content
       this.scanner.show = !this.scanner.show
     },
-
-    onInit(promise) {
+    onInit (promise) {
       promise
         .then(() => {
           console.log('Successfully initilized! Ready for scanning now!')
@@ -435,7 +443,7 @@ export default {
     },
     tiggerRange () {
       // alert(this.$refs['swipe-submit'].value)
-      if(this.$refs['swipe-submit'].value > 99) {
+      if (this.$refs['swipe-submit'].value > 99) {
         this.handleSubmit()
       }
     }
@@ -450,6 +458,14 @@ export default {
           this.sendData.isSendingBCH = false
           this.sendData.tokenId = this.tokenStats.id
         })
+    }
+
+    if (this.amount && this.recipient) {
+      this.sendData.amount = this.amount
+      this.sendData.fixedAmount = true
+      this.sendData.recipientAddress = this.recipient
+      this.sendData.fixedRecipientAddress = true
+      this.scanner.show = false
     }
   },
 

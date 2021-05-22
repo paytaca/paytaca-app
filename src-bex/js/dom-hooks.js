@@ -7,7 +7,6 @@ class Paytaca {
   }
 
   send (amount, recipient) {
-    console.log('Send event triggered!')
     this.bridge.send('window.paytaca.send', {
       amount: amount,
       recipient: recipient

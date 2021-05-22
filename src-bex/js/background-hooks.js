@@ -38,32 +38,30 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
   })
 
   bridge.on('background.paytaca.send', event => {
-    chrome.tabs.create({ url: 'www/index.html' })
-    bridge.send('bex.paytaca.send', event.data)
-  })
-
-  // chrome.browserAction.onClicked.addListener(() => {
-  //   console.log('Clicked!')
-  //   bridge.send('bex.paytaca.send', ['elohim'])
-  // })
-
-  /*
-  // EXAMPLES
-  // Listen to a message from the client
-  bridge.on('test', d => {
-    console.log(d)
-  })
-
-  // Send a message to the client based on something happening.
-  chrome.tabs.onCreated.addListener(tab => {
-    bridge.send('browserTabCreated', { tab })
-  })
-
-  // Send a message to the client based on something happening.
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url) {
-      bridge.send('browserTabUpdated', { tab, changeInfo })
+    const params = {
+      url: chrome.runtime.getURL('www/index.html'),
+      type: 'popup',
+      width: 380,
+      height: 655,
+      left: 0
     }
+    chrome.windows.create(params, function (window) {
+      let counter = 0
+      const check = setInterval(function () {
+        for (const connId in allActiveConnections) {
+          if (connId.toString() === window.tabs[0].id.toString()) {
+            const connection = allActiveConnections[connId]
+            if (connection.app.connected) {
+              clearInterval(check)
+              bridge.send('bex.paytaca.send', event.data)
+            }
+          }
+        }
+        if (counter >= 100) {
+          clearInterval(check)
+        }
+        counter += 1
+      }, 500)
+    })
   })
-   */
 }
