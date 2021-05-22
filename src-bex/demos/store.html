@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test Shop</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Load required Bootstrap and BootstrapVue CSS -->
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap-vue@2.21.2/dist/bootstrap-vue.min.css" />
+
+    <!-- Load Vue followed by BootstrapVue -->
+    <script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-vue@2.21.2/dist/bootstrap-vue.min.js"></script>
+
+  </head>
+  <body>
+    <b-container id="app" style="padding: 20px;">
+      <b-row>
+        <b-col>
+          <b-card
+            title="LITE RACER SLIP-ON SHOES"
+            img-src="https://www.gannett-cdn.com/presto/2020/04/25/USAT/79f362a7-c01c-403b-90c8-eed6e41860bc-adidas_1.jpg?crop=897,673,x180,y0&quality=50&width=640"
+            img-alt="Image"
+            img-top
+            tag="article"
+            style="max-width: 20rem;"
+            class="mb-2"
+          >
+            <b-card-text>
+              Whether it's walking to the gym or recovering at home, these adidas shoes have a running-inspired lightweight and comfortable design with a slip-on fit.
+            </b-card-text>
+            <h3 style="color: gray;">0.150 BCH</h3>
+            <b-button variant="primary" @click="requestPayment">Buy Now</b-button>
+          </b-card>
+        </b-col>
+      </b-row>
+    </b-container>
+    <script>
+      new Vue({
+        el: '#app',
+        data () {
+          return {
+            amount: 0.150,
+            recipient: 'bitcoincash:qpj6d5d6rk4da08pad8lx4swrxlejerfy5v68hz3dj'
+          }
+        },
+        methods: {
+          requestPayment (event) {
+            event.preventDefault()
+            window.paytaca.send(this.amount, this.recipient)
+          }
+        }
+      })
+    </script>
+  </body>
+</html>

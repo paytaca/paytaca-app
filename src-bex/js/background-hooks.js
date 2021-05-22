@@ -38,30 +38,34 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
   })
 
   bridge.on('background.paytaca.send', event => {
-    const params = {
-      url: chrome.runtime.getURL('www/index.html'),
-      type: 'popup',
-      width: 380,
-      height: 655,
-      left: 0
-    }
-    chrome.windows.create(params, function (window) {
-      let counter = 0
-      const check = setInterval(function () {
-        for (const connId in allActiveConnections) {
-          if (connId.toString() === window.tabs[0].id.toString()) {
-            const connection = allActiveConnections[connId]
-            if (connection.app.connected) {
-              clearInterval(check)
-              bridge.send('bex.paytaca.send', event.data)
+    chrome.windows.getCurrent(function (parentWindow) {
+      const windowWidth = 380
+      const params = {
+        url: chrome.runtime.getURL('www/index.html'),
+        type: 'popup',
+        width: windowWidth,
+        height: 655,
+        top: parentWindow.top,
+        left: parentWindow.width - windowWidth
+      }
+      chrome.windows.create(params, function (window) {
+        let counter = 0
+        const check = setInterval(function () {
+          for (const connId in allActiveConnections) {
+            if (connId.toString() === window.tabs[0].id.toString()) {
+              const connection = allActiveConnections[connId]
+              if (connection.app.connected) {
+                clearInterval(check)
+                bridge.send('bex.paytaca.send', event.data)
+              }
             }
           }
-        }
-        if (counter >= 100) {
-          clearInterval(check)
-        }
-        counter += 1
-      }, 500)
+          if (counter >= 100) {
+            clearInterval(check)
+          }
+          counter += 1
+        }, 500)
+      })
     })
   })
 }
