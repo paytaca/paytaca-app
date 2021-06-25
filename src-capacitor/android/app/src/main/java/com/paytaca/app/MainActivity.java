@@ -18,6 +18,12 @@ public class MainActivity extends BridgeActivity {
       // Ex: add(TotallyAwesomePlugin.class);
     }});
 
+    if (BuildConfig.DEBUG) {
+      EnableHttpsSelfSigned.enable(this.bridge);
+    }
+      
+              
+
               
   }
 }

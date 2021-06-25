@@ -6,5 +6,5 @@ export default {
     getAssetLogo (id) {
       return this.$store.getters['assets/getAssetLogo'](id)
     }
-	}
+  }
 }

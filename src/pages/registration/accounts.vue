@@ -29,14 +29,9 @@
 </template>
 
 <script>
-import crypto from 'crypto'
-import { LocalStorage } from 'quasar'
-
 const BCHJS = require('@psf/bch-js')
 
-const bchjs = new BCHJS({
-  restURL: 'https://bchn.fullstack.cash/v3/'
-})
+const bchjs = new BCHJS()
 export default {
   name: 'registration-accounts',
   data () {
@@ -48,7 +43,8 @@ export default {
     continueToDashboard () {
       this.$router.push('/')
     },
-    generateMnemonic () {
+    createWallets () {
+      // Create mnemonic seed, encrypt, and store
       this.mnemonic = bchjs.Mnemonic.generate(128)
       const encryptedMnemonic = this.$aes256.encrypt(this.mnemonic)
       this.$store.commit('global/updateMnemonic', encryptedMnemonic)

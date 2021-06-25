@@ -39,7 +39,7 @@
         />
 
         <div class="q-mt-md">
-          <q-btn  
+          <q-btn
             no-caps
             type="submit"
             label="Update"
@@ -81,16 +81,16 @@ export default {
       return this.$store.getters['global/address']
     },
     privateKey () {
-      this.$store.getters['global/getWIF'](this.address)
+      return this.$store.getters['global/getWIF'](this.address)
     }
   },
 
   methods: {
-    async setAddress() {
+    async setAddress () {
       const address = this.formData.address
 
-      const seed = await bchjs.Mnemonic.toSeed(this.formData.mnemonic)
-      const hdnode = bchjs.HDNode.fromSeed(seed)
+      const seedBuffer = await bchjs.Mnemonic.toSeed(this.formData.mnemonic)
+      const hdnode = bchjs.HDNode.fromSeed(seedBuffer)
       let privateKey = this.$aes256.encrypt(hdnode.keyPair.toWIF())
       if (this.formData.wif) {
         privateKey = this.$aes256.encrypt(this.formData.wif)
