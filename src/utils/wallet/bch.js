@@ -1,6 +1,7 @@
-const Watchtower = require('watchtower-cash-js')
-const BCHJS = require('@psf/bch-js')
-const sha256 = require('js-sha256')
+import Watchtower from 'watchtower-cash-js'
+import BCHJS from '@psf/bch-js'
+import sha256 from 'js-sha256'
+
 const bchjs = new BCHJS()
 
 class BchWallet {
