@@ -15,11 +15,11 @@ export async function mockNonceRequest (txHexHash, otherPubKeys) {
   // we need to return hex string since that's how the data will be (ideally) when sent by the server
   return Promise.resolve({
     nonce: session.nonce.toString('hex'),
-    commitment: session.commitment.toString('hex'),
+    commitment: session.commitment.toString('hex')
   })
 }
 
 export default {
   mockNonceRequest,
-  myPubKey: utils.privToPub(myPrivKey),
+  myPubKey: utils.privToPub(myPrivKey)
 }

@@ -29,9 +29,8 @@
 </template>
 
 <script>
-const BCHJS = require('@psf/bch-js')
+import { generateMnemonic, Wallet } from '../../utils/wallet'
 
-const bchjs = new BCHJS()
 export default {
   name: 'registration-accounts',
   data () {
@@ -45,56 +44,61 @@ export default {
     },
     createWallets () {
       // Create mnemonic seed, encrypt, and store
-      this.mnemonic = bchjs.Mnemonic.generate(128)
+      this.mnemonic = generateMnemonic()
       const encryptedMnemonic = this.$aes256.encrypt(this.mnemonic)
+      console.log(encryptedMnemonic)
       this.$store.commit('global/updateMnemonic', encryptedMnemonic)
-    },
-    async generateAddresses () {
-      const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-      const hdNode = bchjs.HDNode.fromSeed(seedBuffer)
 
-      var addresses = {}
+      const wallet = new Wallet(this.mnemonic)
 
-      const account1 = bchjs.HDNode.derive(hdNode, 0)
-      const account1Pk = account1.keyPair.toWIF()
-      addresses.escrow = {
-        address: bchjs.Address.toCashAddress(account1.keyPair.getAddress()),
-        privateKey: this.$aes256.encrypt(account1Pk)
-      }
+      wallet.BCH1.getAddress(0).then(function (address) {
+        console.log(wallet.BCH1.getWalletHash())
+        console.log(address)
+      })
 
-      const account2 = bchjs.HDNode.derive(hdNode, 1)
-      const account2Pk = account2.keyPair.toWIF()
-      // const account2Addr = account2.keyPair.address
-      addresses.private = {
-        address: bchjs.Address.toCashAddress(account2.keyPair.getAddress()),
-        privateKey: this.$aes256.encrypt(account2Pk)
-      }
-
-      const vm = this
-      const payload = {
-        mnemonic_hash: vm.$aes256.encrypt(vm.mnemonic),
-        first_name: 'Juan',
-        last_name: 'Dela Cruz',
-        mobile_number: '09281234567',
-        user_public_key: bchjs.ECPair.toPublicKey(account1.keyPair).toString('hex'),
-        hd_wallet_index: 0
-      }
-      vm.$axios.post('/escrow-account/create', payload).then(function (resp) {
-        addresses.escrow.address = resp.data.aggregate_address
-        vm.$store.dispatch('global/updateAddresses', addresses)
+      wallet.SLP.getAddress(0).then(function (address) {
+        console.log(wallet.SLP.getWalletHash())
+        console.log(address)
       })
     },
-    createAccount () {
-      const vm = this
-      vm.generateMnemonic()
-      vm.generateAddresses()
-      // vm.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
-      //   vm.$router.push('/')
+    async generateAddresses () {
+      // const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
+      // const hdNode = bchjs.HDNode.fromSeed(seedBuffer)
+
+      // var addresses = {}
+
+      // const account1 = bchjs.HDNode.derive(hdNode, 0)
+      // const account1Pk = account1.keyPair.toWIF()
+      // addresses.escrow = {
+      //   address: bchjs.Address.toCashAddress(account1.keyPair.getAddress()),
+      //   privateKey: this.$aes256.encrypt(account1Pk)
+      // }
+
+      // const account2 = bchjs.HDNode.derive(hdNode, 1)
+      // const account2Pk = account2.keyPair.toWIF()
+      // // const account2Addr = account2.keyPair.address
+      // addresses.private = {
+      //   address: bchjs.Address.toCashAddress(account2.keyPair.getAddress()),
+      //   privateKey: this.$aes256.encrypt(account2Pk)
+      // }
+
+      // const vm = this
+      // const payload = {
+      //   mnemonic_hash: vm.$aes256.encrypt(vm.mnemonic),
+      //   first_name: 'Juan',
+      //   last_name: 'Dela Cruz',
+      //   mobile_number: '09281234567',
+      //   user_public_key: bchjs.ECPair.toPublicKey(account1.keyPair).toString('hex'),
+      //   hd_wallet_index: 0
+      // }
+      // vm.$axios.post('/escrow-account/create', payload).then(function (resp) {
+      //   addresses.escrow.address = resp.data.aggregate_address
+      //   vm.$store.dispatch('global/updateAddresses', addresses)
       // })
     }
   },
   mounted () {
-    this.createAccount()
+    this.createWallets()
   }
 }
 </script>

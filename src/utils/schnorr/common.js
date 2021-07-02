@@ -1,7 +1,7 @@
 import common from '../common.js'
 import utils from './utils.js'
-const BigInteger = require('bigi');
-const Buffer = require('safe-buffer').Buffer;
+const BigInteger = require('bigi')
+const Buffer = require('safe-buffer').Buffer
 
 const PROMISE_PREFIX = ''
 

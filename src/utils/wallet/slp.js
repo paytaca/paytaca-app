@@ -3,12 +3,13 @@ const BCHJS = require('@psf/bch-js')
 const sha256 = require('js-sha256')
 const bchjs = new BCHJS()
 
-class SlpWallet {
+export class SlpWallet {
   constructor (projectId, mnemonic, path) {
     this.mnemonic = mnemonic
     this.derivationPath = path
     this.watchtower = new Watchtower()
     this.projectId = projectId
+    this.walletHash = this.getWalletHash()
   }
 
   getWalletHash () {
@@ -34,7 +35,12 @@ class SlpWallet {
       walletHash: this.walletHash,
       walletIndex: index
     }
-    return this.watchtower.subscribe(data)
+    const result = await this.watchtower.subscribe(data)
+    if (result.success) {
+      return address
+    } else {
+      return null
+    }
   }
 
   async getPrivateKey (index) {
@@ -57,4 +63,4 @@ class SlpWallet {
   async sendSlp () {}
 }
 
-module.exports = SlpWallet
+export default SlpWallet

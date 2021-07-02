@@ -4,12 +4,13 @@ import sha256 from 'js-sha256'
 
 const bchjs = new BCHJS()
 
-class BchWallet {
+export class BchWallet {
   constructor (projectId, mnemonic, path) {
     this.mnemonic = mnemonic
     this.derivationPath = path
     this.watchtower = new Watchtower()
     this.projectId = projectId
+    this.walletHash = this.getWalletHash()
   }
 
   getWalletHash () {
@@ -35,7 +36,12 @@ class BchWallet {
       walletHash: this.walletHash,
       walletIndex: index
     }
-    return this.watchtower.subscribe(data)
+    const result = await this.watchtower.subscribe(data)
+    if (result.success) {
+      return address
+    } else {
+      return null
+    }
   }
 
   async getPrivateKey (index) {
@@ -58,4 +64,4 @@ class BchWallet {
   async sendBch () {}
 }
 
-module.exports = BchWallet
+export default BchWallet

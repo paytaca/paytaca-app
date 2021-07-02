@@ -3,8 +3,9 @@ export default function () {
     privateMode: false,
     vault: {
       mnemonic: '',
-      privateKeys: {
-        '': ''
+      walletHash: {
+        slp: '',
+        bch: ''
       }
     },
     user: {
