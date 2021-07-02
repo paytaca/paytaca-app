@@ -93,8 +93,6 @@
 
 <script>
 import jsUtils from '../../utils/vanilla.js'
-import walletUtils from '../../utils/common.js'
-
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 export default {
@@ -133,8 +131,8 @@ export default {
 
   filters: {
     satoshisToBCH (val) {
-      const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
-      return bchjs.BitcoinCash.toBitcoinCash(Number(val))
+      // const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
+      // return bchjs.BitcoinCash.toBitcoinCash(Number(val))
     },
     titleCase (str) {
       return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase())

@@ -58,10 +58,6 @@
   </div>
 </template>
 <script>
-import walletUtils from '../utils/common.js'
-
-const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
-
 export default {
   name: 'WalletSetter',
 
@@ -87,22 +83,22 @@ export default {
 
   methods: {
     async setAddress () {
-      const address = this.formData.address
+      // const address = this.formData.address
 
-      const seedBuffer = await bchjs.Mnemonic.toSeed(this.formData.mnemonic)
-      const hdnode = bchjs.HDNode.fromSeed(seedBuffer)
-      let privateKey = this.$aes256.encrypt(hdnode.keyPair.toWIF())
-      if (this.formData.wif) {
-        privateKey = this.$aes256.encrypt(this.formData.wif)
-      }
+      // const seedBuffer = await bchjs.Mnemonic.toSeed(this.formData.mnemonic)
+      // const hdnode = bchjs.HDNode.fromSeed(seedBuffer)
+      // let privateKey = this.$aes256.encrypt(hdnode.keyPair.toWIF())
+      // if (this.formData.wif) {
+      //   privateKey = this.$aes256.encrypt(this.formData.wif)
+      // }
 
-      console.log(address)
-      console.log(privateKey)
+      // console.log(address)
+      // console.log(privateKey)
 
-      this.$store.commit('global/updatePrivateAddress', {
-        address,
-        privateKey
-      })
+      // this.$store.commit('global/updatePrivateAddress', {
+      //   address,
+      //   privateKey
+      // })
       this.showSuccessDialog = true
     }
   }

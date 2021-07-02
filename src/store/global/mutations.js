@@ -1,5 +1,3 @@
-import walletUtils from '../../utils/common.js'
-
 export function updateMnemonic (state, encryptedMnemonic) {
   state.vault.mnemonic = encryptedMnemonic
 }
@@ -29,58 +27,58 @@ export function updateOnboardingStep (state, status) {
 
 export function updatePrivateBalance (state, balance) {
   console.log(balance.tokens)
-  const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
+  // const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
 
-  const bchBalance = {
-    id: '',
-    balance: bchjs.BitcoinCash.toBitcoinCash(balance.confirmed + balance.unconfirmed),
-  }
-  const index = state.accounts.private.balances.map(i => i.id).indexOf('')
-  if (index < 0) state.accounts.private.balances.push(bchBalance)
-  else state.accounts.private.balances[index] = bchBalance
+  // const bchBalance = {
+  //   id: '',
+  //   balance: bchjs.BitcoinCash.toBitcoinCash(balance.confirmed + balance.unconfirmed),
+  // }
+  // const index = state.accounts.private.balances.map(i => i.id).indexOf('')
+  // if (index < 0) state.accounts.private.balances.push(bchBalance)
+  // else state.accounts.private.balances[index] = bchBalance
 
-  if (Array.isArray(balance.tokens)) {
-    for (var i = 0; i < balance.tokens.length; i++) {
-      const thisToken = balance.tokens[i]
-      const index = state.accounts.private.balances.map(i => i.id).indexOf(thisToken.tokenId)
+  // if (Array.isArray(balance.tokens)) {
+  //   for (var i = 0; i < balance.tokens.length; i++) {
+  //     const thisToken = balance.tokens[i]
+  //     const index = state.accounts.private.balances.map(i => i.id).indexOf(thisToken.tokenId)
 
-      const tokenBalance = {
-        id: thisToken.tokenId,
-        balance: tknBalance.balance,
-      }
+  //     const tokenBalance = {
+  //       id: thisToken.tokenId,
+  //       balance: tknBalance.balance,
+  //     }
 
-      if (index < 0) state.accounts.private.balances.push(tokenBalance)
-      else state.accounts.private.balances[index] = tokenBalance
-    }
-  }
+  //     if (index < 0) state.accounts.private.balances.push(tokenBalance)
+  //     else state.accounts.private.balances[index] = tokenBalance
+  //   }
+  // }
 }
 
 export function updateEscrowBalance (state, balance) {
-  console.log(balance.tokens)
-  const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
+  // console.log(balance.tokens)
+  // const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
 
-  const bchBalance = {
-    id: '',
-    balance: bchjs.BitcoinCash.toBitcoinCash(balance.confirmed + balance.unconfirmed),
-  }
-  const index = state.accounts.escrow.balances.map(i => i.id).indexOf('')
-  if (index < 0) state.accounts.escrow.balances.push(bchBalance)
-  else state.accounts.escrow.balances[index] = bchBalance
+  // const bchBalance = {
+  //   id: '',
+  //   balance: bchjs.BitcoinCash.toBitcoinCash(balance.confirmed + balance.unconfirmed),
+  // }
+  // const index = state.accounts.escrow.balances.map(i => i.id).indexOf('')
+  // if (index < 0) state.accounts.escrow.balances.push(bchBalance)
+  // else state.accounts.escrow.balances[index] = bchBalance
 
-  if (Array.isArray(balance.tokens)) {
-    for (var i = 0; i < balance.tokens.length; i++) {
-      const thisToken = balance.tokens[i]
-      const index = state.accounts.escrow.balances.map(i => i.id).indexOf(thisToken.tokenId)
+  // if (Array.isArray(balance.tokens)) {
+  //   for (var i = 0; i < balance.tokens.length; i++) {
+  //     const thisToken = balance.tokens[i]
+  //     const index = state.accounts.escrow.balances.map(i => i.id).indexOf(thisToken.tokenId)
 
-      const tokenBalance = {
-        id: thisToken.tokenId,
-        balance: thisToken.balance
-      }
+  //     const tokenBalance = {
+  //       id: thisToken.tokenId,
+  //       balance: thisToken.balance
+  //     }
 
-      if (index < 0) state.accounts.escrow.balances.push(tokenBalance)
-      else state.accounts.escrow.balances[index] = tokenBalance
-    }
-  }
+  //     if (index < 0) state.accounts.escrow.balances.push(tokenBalance)
+  //     else state.accounts.escrow.balances[index] = tokenBalance
+  //   }
+  // }
 }
 
 export function setPrivateMode (state, privateMode) {

@@ -188,17 +188,10 @@
 </template>
 
 <script>
-import schnorrUtils from '../../utils/schnorr/common.js'
-import sendBCHMultiSig from '../../utils/schnorr/send-bch.js'
-import walletUtils from '../../utils/common.js'
-import sendBCH from '../../utils/send-bch.js'
-import sendToken from '../../utils/send-slp-token.js'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import OnlinePopMessage from '../../components/OnlinePopMessage.vue'
 import OfflinePopMessage from '../../components/OfflinePopMessage.vue'
-
-const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
 
 export default {
   name: 'Send-page',
@@ -273,17 +266,17 @@ export default {
     validators () {
       return {
         isValidAddress: (val) => {
-          try {
-            return bchjs.Address.isCashAddress(val) || ''
-          } catch (err) {
-            return 'Invalid address'
-          }
+          // try {
+          //   return bchjs.Address.isCashAddress(val) || ''
+          // } catch (err) {
+          //   return 'Invalid address'
+          // }
         },
 
         isValidCashAddress: (val) => {
           try {
             // need to check if slp address or not because .isCashAddress() seems to validate slp addresses
-            return (bchjs.Address.isCashAddress(val) && !bchjs.SLP.Address.isSLPAddress(val)) || 'Not a valid cash address'
+            // return (bchjs.Address.isCashAddress(val) && !bchjs.SLP.Address.isSLPAddress(val)) || 'Not a valid cash address'
           } catch (err) {
             return 'Invalid address'
           }
@@ -292,7 +285,7 @@ export default {
         isValidSLPAddress (val) {
           try {
             console.log('validating slp address')
-            return bchjs.SLP.Address.isSLPAddress(val) || 'Not a valid SLP address'
+            // return bchjs.SLP.Address.isSLPAddress(val) || 'Not a valid SLP address'
           } catch (err) {
             return 'Invalid address'
           }
@@ -355,86 +348,86 @@ export default {
     submitBCHSend () {
       this.sendData.sending = true
       this.sendData.sent = true
-      sendBCH(
-        walletUtils.parseAddress(this.address, walletUtils.ADDR_CASH),
-        this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
-        walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
-        this.sendData.amount,
-      )
-        .finally(() => {
-          this.sendData.sending = false
-        })
-        .then(res => {
-          this.showSendSuccessDialog = true
-          this.sendData.success = true
-          this.sendData.txid = res
-        })
-        .catch(err => {
-          this.sendData.success = false
-          this.sendData.error = err
-        })
+      // sendBCH(
+      //   // walletUtils.parseAddress(this.address, walletUtils.ADDR_CASH),
+      //   // this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
+      //   // walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
+      //   // this.sendData.amount,
+      // )
+      //   .finally(() => {
+      //     this.sendData.sending = false
+      //   })
+      //   .then(res => {
+      //     this.showSendSuccessDialog = true
+      //     this.sendData.success = true
+      //     this.sendData.txid = res
+      //   })
+      //   .catch(err => {
+      //     this.sendData.success = false
+      //     this.sendData.error = err
+      //   })
     },
 
     submitSendToken () {
       this.sendData.sending = true
       this.sendData.sent = true
 
-      sendToken(
-        walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP),
-        this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
-        walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_SLP),
-        this.sendData.tokenId,
-        this.sendData.amount
-      )
-        .finally(() => {
-          this.sendData.sending = false
-        })
-        .then(res => {
-          this.showSendSuccessDialog = true
-          this.sendData.success = true
-          this.sendData.txid = res
-        })
-        .catch(err => {
-          this.sendData.success = false
-          this.sendData.error = err
-        })
+      // sendToken(
+      //   // walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP),
+      //   // this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
+      //   // walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_SLP),
+      //   // this.sendData.tokenId,
+      //   // this.sendData.amount
+      // )
+      //   .finally(() => {
+      //     this.sendData.sending = false
+      //   })
+      //   .then(res => {
+      //     this.showSendSuccessDialog = true
+      //     this.sendData.success = true
+      //     this.sendData.txid = res
+      //   })
+      //   .catch(err => {
+      //     this.sendData.success = false
+      //     this.sendData.error = err
+      //   })
     },
 
     submitBCHSendMultiSig () {
-      this.sendData.sending = true
-      this.sendData.sent = true
-      const wif = this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address))
-      const myPrivKey = bchjs.ECPair.fromWIF(wif).d.toBuffer().toString('hex')
-      sendBCHMultiSig(
-        walletUtils.parseAddress(this.address, walletUtils.ADDR_CASH),
-        wif,
-        walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
-        this.sendData.amount,
-      )
-        .then(res => {
-          this.sendData.creatingProofOfPayment = true
-          schnorrUtils.constructPromisePayload(
-            res.hex,
-            myPrivKey,
-            res.session, 
-            0
-          )
-            .finally(() => {
-              this.sendData.success = true
-              this.sendData.sending = false
-              this.sendData.creatingProofOfPayment = false
-            })
-            .then(promise => {
-              // somehow qr code error is caused by error explained here
-              // https://stackoverflow.com/questions/30796584/qrcode-js-error-code-length-overflow-17161056
-              this.sendData.proofOfPayment = promise + '======'
-              schnorrUtils.verifyPromise(this.sendData.proofOfPayment)
-            })
-        })
-        .catch(err => {
-          this.sendData.success = false
-          this.sendData.error = err
-        })
+      // this.sendData.sending = true
+      // this.sendData.sent = true
+      // const wif = this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address))
+      // const myPrivKey = bchjs.ECPair.fromWIF(wif).d.toBuffer().toString('hex')
+      // sendBCHMultiSig(
+      //   walletUtils.parseAddress(this.address, walletUtils.ADDR_CASH),
+      //   wif,
+      //   walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
+      //   this.sendData.amount,
+      // )
+      //   .then(res => {
+      //     this.sendData.creatingProofOfPayment = true
+      //     schnorrUtils.constructPromisePayload(
+      //       res.hex,
+      //       myPrivKey,
+      //       res.session, 
+      //       0
+      //     )
+      //       .finally(() => {
+      //         this.sendData.success = true
+      //         this.sendData.sending = false
+      //         this.sendData.creatingProofOfPayment = false
+      //       })
+      //       .then(promise => {
+      //         // somehow qr code error is caused by error explained here
+      //         // https://stackoverflow.com/questions/30796584/qrcode-js-error-code-length-overflow-17161056
+      //         this.sendData.proofOfPayment = promise + '======'
+      //         schnorrUtils.verifyPromise(this.sendData.proofOfPayment)
+      //       })
+      //   })
+      //   .catch(err => {
+      //     this.sendData.success = false
+      //     this.sendData.error = err
+      //   })
     },
 
     swipeConfirm (event) {

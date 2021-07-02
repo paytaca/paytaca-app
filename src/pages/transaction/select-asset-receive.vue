@@ -51,7 +51,6 @@
 </template>
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
-import walletUtils from '../../utils/common.js'
 
 export default {
   name: 'Receive-page',
@@ -76,8 +75,8 @@ export default {
 
   filters: {
     satoshisToBCH (val) {
-      const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
-      return bchjs.BitcoinCash.toBitcoinCash(Number(val))
+      // const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
+      // return bchjs.BitcoinCash.toBitcoinCash(Number(val))
     }
   },
 

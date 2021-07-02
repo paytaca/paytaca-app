@@ -1,5 +1,3 @@
-import getBalance from '../../utils/get-balance.js'
-
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 
 export function updateOnboardingStep (context, status) {
@@ -24,17 +22,17 @@ export function updatePrivateBalance (context, options={ maxAge: DEFAULT_BALANCE
     return Promise.resolve(context.state.accounts.private.balances)
   }
 
-  return getBalance(context.state.accounts.private.address)
-    .then(balance => {
-      context.commit('updatePrivateBalance', balance)
-      if (Array.isArray(balance.tokens)) {
-        balance.tokens.forEach(tknBalance => {
-          context.dispatch('assets/getTokenStats', tknBalance, { root: true })
-        })
-      }
+  // return getBalance(context.state.accounts.private.address)
+  //   .then(balance => {
+  //     context.commit('updatePrivateBalance', balance)
+  //     if (Array.isArray(balance.tokens)) {
+  //       balance.tokens.forEach(tknBalance => {
+  //         context.dispatch('assets/getTokenStats', tknBalance, { root: true })
+  //       })
+  //     }
 
-      return Promise.resolve(balance)
-    })
+  //     return Promise.resolve(balance)
+  //   })
 }
 
 export function updateEscrowBalance (context, options={ maxAge: DEFAULT_BALANCE_MAX_AGE }) {

@@ -22,7 +22,7 @@ class BchWallet {
   async _getChildNode (index) {
     const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
     const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-    const childNode = masterHDNode.derivePath(this.derivationPath + index)
+    const childNode = masterHDNode.derivePath(this.derivationPath + '/' + index)
     return childNode
   }
 

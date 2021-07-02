@@ -41,12 +41,11 @@
 
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
-import walletUtils from '../../utils/common.js'
 
 export default {
   name: 'receive-page',
   mixins: [
-    walletAssetsMixin,
+    walletAssetsMixin
   ],
   data () {
     return {
@@ -72,7 +71,7 @@ export default {
       if (!this.assetId) {
         return this.address
       } else {
-        return walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP)
+        // return walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP)
       }
     },
     copyAddress () {
