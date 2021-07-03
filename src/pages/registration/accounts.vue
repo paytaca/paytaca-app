@@ -12,15 +12,18 @@
         <p class="dim-text">Write on paper and keep it somewhere safe</p>
 
         <div class="row" id="mnemonic">
-          <div class="col q-mt-sm">
+          <div class="col q-mt-sm" v-if="steps === 3">
             <ul>
               <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
                 <pre>{{ index + 1 }}</pre><span>{{ word }}</span>
               </li>
             </ul>
           </div>
+          <div class="col q-mt-sm" v-if="steps < 3" style="text-align: center;">
+            <loader></loader>
+          </div>
         </div>
-        <div class="row">
+        <div class="row" v-if="steps === 3">
           <button class="submit-btn q-mt-md" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px;">Continue</button>
         </div>
       </div>
@@ -30,12 +33,15 @@
 
 <script>
 import { generateMnemonic, Wallet } from '../../utils/wallet'
+import Loader from '../../components/Loader.vue'
 
 export default {
   name: 'registration-accounts',
+  components: { Loader },
   data () {
     return {
-      mnemonic: ''
+      mnemonic: '',
+      steps: 0
     }
   },
   methods: {
@@ -43,22 +49,39 @@ export default {
       this.$router.push('/')
     },
     createWallets () {
+      const vm = this
+
       // Create mnemonic seed, encrypt, and store
       this.mnemonic = generateMnemonic()
       const encryptedMnemonic = this.$aes256.encrypt(this.mnemonic)
       console.log(encryptedMnemonic)
       this.$store.commit('global/updateMnemonic', encryptedMnemonic)
+      vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
 
       wallet.BCH1.getAddress(0).then(function (address) {
         console.log(wallet.BCH1.getWalletHash())
         console.log(address)
+        vm.$store.commit('global/updateWallet', {
+          type: 'bch',
+          walletHash: wallet.BCH1.walletHash,
+          lastAddress: address,
+          lastWalletIndex: 0
+        })
+        vm.steps += 1
       })
 
       wallet.SLP.getAddress(0).then(function (address) {
         console.log(wallet.SLP.getWalletHash())
         console.log(address)
+        vm.$store.commit('global/updateWallet', {
+          type: 'slp',
+          walletHash: wallet.BCH1.walletHash,
+          lastAddress: address,
+          lastWalletIndex: 0
+        })
+        vm.steps += 1
       })
     },
     async generateAddresses () {

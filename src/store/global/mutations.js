@@ -2,6 +2,14 @@ export function updateMnemonic (state, encryptedMnemonic) {
   state.vault.mnemonic = encryptedMnemonic
 }
 
+export function updateWallet (state, details) {
+  state.vault.wallets[details.type] = {
+    walletHash: details.walletHash,
+    lastAddress: details.lastAddress,
+    lastWalletIndex: details.lastWalletIndex
+  }
+}
+
 export function updateAddresses (state, addresses) {
   state.accounts.escrow.address = addresses.escrow.address
 
