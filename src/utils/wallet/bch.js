@@ -57,7 +57,7 @@ export class BchWallet {
 
   async getTransactions () {
     const walletHash = this.getWalletHash()
-    const request = await this.watchtower.Wallet.getTransactions({ walletHash })
+    const request = await this.watchtower.Wallet.getHistory({ walletHash })
     return request
   }
 

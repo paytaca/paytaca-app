@@ -7,7 +7,7 @@
             Your {{ getAssetStats(selectedAsset.id).symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
-            {{ +(getBalance(selectedAsset.id).toFixed(4)) }}
+            {{ balance }}
           </p>
         </div>
         <div class="q-space q-pr-lg">
@@ -65,7 +65,7 @@
                 <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
             <div class="transaction-list">
-              <div class="row" v-for="(transaction, index) in getTransactions()" :key="'tx-' + index">
+              <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
                   <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                     <div class="row">
                       <!-- <div class="q-mr-sm">
@@ -73,8 +73,8 @@
                       </div> -->
                       <div class="col col-transaction">
                         <div>
-                          <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ transaction.type | titleCase }}</b></p>
-                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount.toFixed(4)) }} {{ selectedAsset.symbol }}</b></p>
+                          <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
+                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount.toFixed(8)) }} {{ selectedAsset.symbol }}</b></p>
                         </div>
                         <div class="col">
                             <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.txid | truncateTxid }}</b></span>
@@ -93,6 +93,7 @@
 
 <script>
 import jsUtils from '../../utils/vanilla.js'
+import { Wallet } from '../../utils/wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 export default {
@@ -106,26 +107,26 @@ export default {
       today: new Date().toDateString(),
       selectedAsset: {
         blockchain: 'BCH',
+        symbol: 'BCH',
         logo: 'bitcoin-cash-bch-logo.png',
         id: ''
       },
+      recordTypeMap: {
+        incoming: 'RECEIVED',
+        outgoing: 'SENT'
+      },
       transactionsFilter: 'all',
-      activeBtn: 'btn-all'
+      activeBtn: 'btn-all',
+      balance: 0,
+      transactions: [],
+      transactionsLoaded: false,
+      wallet: null
     }
   },
 
   computed: {
-    address () {
-      return this.$store.getters['global/address']
-    },
     assets () {
       return this.$store.getters['global/assets']
-    },
-    balances () {
-      return this.$store.getters['global/balances']
-    },
-    transactions () {
-      return this.$store.getters['global/transactions']
     }
   },
 
@@ -138,31 +139,24 @@ export default {
       return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase())
     },
     truncateTxid (str) {
-      return str.substring(0, 20)
+      return str.substring(0, 30)
     }
   },
 
   methods: {
     getBalance (id) {
-      const balance = this.balances.find(bln => bln.id === id)
-      return balance ? balance.balance : 0
+      const vm = this
+      vm.wallet.BCH.getBalance().then(function (balance) {
+        vm.balance = balance.balance || 0
+      })
     },
 
     getTransactions () {
-      let buffer = this.transactions
-      if (!buffer) return []
-
-      buffer = buffer[this.selectedAsset.id]
-      if (!Array.isArray(buffer)) return []
-
-      switch (this.transactionsFilter) {
-        case ('sent'):
-          return buffer.filter(t => t.type === 'sent')
-        case ('received'):
-          return buffer.filter(t => t.type === 'received')
-        default:
-          return buffer
-      }
+      const vm = this
+      vm.wallet.BCH.getTransactions().then(function (transactions) {
+        vm.transactions = transactions
+        vm.transactionsLoaded = true
+      })
     },
 
     switchActiveBtn (btn) {
@@ -203,24 +197,39 @@ export default {
     if (Array.isArray(this.assets) && this.assets.length > 0) {
       this.selectedAsset = this.assets[0]
     }
+
+    // Load wallets
+    const getMnemonic = this.$store.getters['global/getMnemonic']
+    const mnemonic = this.$aes256.decrypt(getMnemonic())
+    this.wallet = new Wallet(mnemonic)
+    console.log('Wallet:', this.wallet)
   },
 
   created () {
-    this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
+    // this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
 
-    const vm = this
-    this.$axios.post('/account/transactions', { address: this.address, asset: 'BCH' }).then(function (resp) {
-      const data = {
-        accountType: 'escrow',
-        transactions: resp.data.transactions,
-        balance: resp.data.balance
-      }
-      vm.$store.dispatch('global/updateTransactions', data)
-    })
+    // const vm = this
+    // this.$axios.post('/account/transactions', { address: this.address, asset: 'BCH' }).then(function (resp) {
+    //   const data = {
+    //     accountType: 'escrow',
+    //     transactions: resp.data.transactions,
+    //     balance: resp.data.balance
+    //   }
+    //   vm.$store.dispatch('global/updateTransactions', data)
+    // })
 
     // window.onscroll = function(){
     //   document.documentElement.scrollTop >= 250 ? window.scrollTo({ top: 250, left: 0, behavior: 'auto' }) : ''
     // };
+    const vm = this
+    const txnCheck = setInterval(function () {
+      if (vm.wallet && vm.transactionsLoaded) {
+        clearInterval(txnCheck)
+      } else {
+        vm.getBalance()
+        vm.getTransactions()
+      }
+    }, 1000)
   }
 }
 </script>

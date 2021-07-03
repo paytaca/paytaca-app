@@ -60,12 +60,12 @@ export default {
 
       const wallet = new Wallet(this.mnemonic)
 
-      wallet.BCH1.getAddress(0).then(function (address) {
-        console.log(wallet.BCH1.getWalletHash())
+      wallet.BCH.getAddress(0).then(function (address) {
+        console.log(wallet.BCH.getWalletHash())
         console.log(address)
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
-          walletHash: wallet.BCH1.walletHash,
+          walletHash: wallet.BCH.walletHash,
           lastAddress: address,
           lastWalletIndex: 0
         })
@@ -77,7 +77,7 @@ export default {
         console.log(address)
         vm.$store.commit('global/updateWallet', {
           type: 'slp',
-          walletHash: wallet.BCH1.walletHash,
+          walletHash: wallet.BCH.walletHash,
           lastAddress: address,
           lastWalletIndex: 0
         })
