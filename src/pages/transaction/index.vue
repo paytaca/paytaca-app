@@ -4,15 +4,15 @@
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
           <p class="text-light p-label" style="color: #ABA9BB;">
-            Your {{ getAssetStats(selectedAsset.id).symbol }} balance
+            Your {{ selectedAsset.symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
-            {{ balance }}
+            {{ displayBalance(selectedAsset.balance) }}
           </p>
         </div>
         <div class="q-space q-pr-lg">
           <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
-          <img class="float-right q-mt-sm" :src="getAssetLogo(selectedAsset.id)" height="50">
+          <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
         </div>
       </div>
       <div class="row">
@@ -41,15 +41,15 @@
             }"
           >
             <div class="row items-start no-wrap justify-between">
-              <img :src="getAssetLogo(asset.id)" height="40" class="q-mr-xs">
+              <img :src="asset.logo" height="40" class="q-mr-xs">
               <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
-                {{ getAssetStats(asset.id).symbol }}
+                {{ asset.symbol }}
               </p>
             </div>
             <div class="row">
               <q-space />
               <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
-                {{ +(getBalance(asset.id)).toFixed(4)  }}
+                {{ displayBalance(asset.balance)  }}
               </p>
             </div>
           </div>
@@ -65,24 +65,29 @@
                 <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
             <div class="transaction-list">
-              <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
-                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                    <div class="row">
-                      <!-- <div class="q-mr-sm">
-                        <img :src="selectedAsset.logo" width="40">
-                      </div> -->
-                      <div class="col col-transaction">
-                        <div>
-                          <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
-                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount.toFixed(8)) }} {{ selectedAsset.symbol }}</b></p>
-                        </div>
-                        <div class="col">
-                            <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.txid | truncateTxid }}</b></span>
-                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+              <template v-if="transactionsLoaded && balanceLoaded">
+                <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
+                    <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                      <div class="row">
+                        <!-- <div class="q-mr-sm">
+                          <img :src="selectedAsset.logo" width="40">
+                        </div> -->
+                        <div class="col col-transaction">
+                          <div>
+                            <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
+                            <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
+                          </div>
+                          <div class="col">
+                              <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.txid | truncateTxid }}</b></span>
+                              <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                </div>
+              </template>
+              <div style="text-align: center;" v-else>
+                <loader></loader>
               </div>
             </div>
         </div>
@@ -95,21 +100,23 @@
 import jsUtils from '../../utils/vanilla.js'
 import { Wallet } from '../../utils/wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+import Loader from '../../components/Loader.vue'
 
 export default {
   name: 'Transaction-page',
   mixins: [
     walletAssetsMixin
   ],
-
+  components: { Loader },
   data () {
     return {
       today: new Date().toDateString(),
       selectedAsset: {
-        blockchain: 'BCH',
+        id: 'bch',
         symbol: 'BCH',
+        name: 'Bitcoin Cash',
         logo: 'bitcoin-cash-bch-logo.png',
-        id: ''
+        balance: 0
       },
       recordTypeMap: {
         incoming: 'RECEIVED',
@@ -117,24 +124,20 @@ export default {
       },
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
-      balance: 0,
       transactions: [],
       transactionsLoaded: false,
+      balanceLoaded: false,
       wallet: null
     }
   },
 
   computed: {
     assets () {
-      return this.$store.getters['global/assets']
+      return this.$store.getters['assets/getAssets']
     }
   },
 
   filters: {
-    satoshisToBCH (val) {
-      // const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
-      // return bchjs.BitcoinCash.toBitcoinCash(Number(val))
-    },
     titleCase (str) {
       return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase())
     },
@@ -144,11 +147,38 @@ export default {
   },
 
   methods: {
+    displayBalance (balance) {
+      if (this.balanceLoaded) {
+        return balance
+      } else {
+        return '--'
+      }
+    },
     getBalance (id) {
       const vm = this
-      vm.wallet.BCH.getBalance().then(function (balance) {
-        vm.balance = balance.balance || 0
-      })
+      vm.balanceLoaded = false
+      let counter = 0
+      const balanceCheck = setInterval(function () {
+        if (vm.wallet) {
+          if (id.indexOf('slp/') > -1) {
+            const tokenId = id.split('/')[1]
+            vm.wallet.SLP.getBalance(tokenId).then(function (response) {
+              vm.balanceLoaded = true
+              clearInterval(balanceCheck)
+            })
+          } else {
+            vm.wallet.BCH.getBalance().then(function (response) {
+              vm.balanceLoaded = true
+              clearInterval(balanceCheck)
+              vm.selectedAsset.balance = response.balance
+            })
+          }
+        }
+        if (counter > 5) {
+          clearInterval(balanceCheck)
+        }
+        counter++
+      }, 1000)
     },
 
     getTransactions () {
@@ -202,32 +232,20 @@ export default {
     const getMnemonic = this.$store.getters['global/getMnemonic']
     const mnemonic = this.$aes256.decrypt(getMnemonic())
     this.wallet = new Wallet(mnemonic)
-    console.log('Wallet:', this.wallet)
   },
 
   created () {
-    // this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
-
-    // const vm = this
-    // this.$axios.post('/account/transactions', { address: this.address, asset: 'BCH' }).then(function (resp) {
-    //   const data = {
-    //     accountType: 'escrow',
-    //     transactions: resp.data.transactions,
-    //     balance: resp.data.balance
-    //   }
-    //   vm.$store.dispatch('global/updateTransactions', data)
-    // })
-
-    // window.onscroll = function(){
-    //   document.documentElement.scrollTop >= 250 ? window.scrollTo({ top: 250, left: 0, behavior: 'auto' }) : ''
-    // };
     const vm = this
     const txnCheck = setInterval(function () {
       if (vm.wallet && vm.transactionsLoaded) {
         clearInterval(txnCheck)
       } else {
-        vm.getBalance()
+        vm.getBalance(vm.selectedAsset.id)
         vm.getTransactions()
+        const watchtower = vm.wallet.SLP.watchtower
+        watchtower.Wallet.getTokens(vm.wallet.SLP.walletHash).then(function (tokens) {
+          console.log(tokens)
+        })
       }
     }, 1000)
   }

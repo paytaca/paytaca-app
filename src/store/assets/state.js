@@ -2,21 +2,25 @@ export default function () {
   return {
     assets: [
       {
-        id: '',
+        id: 'bch',
         symbol: 'BCH',
-        name: 'Bitcoin Cash'
+        name: 'Bitcoin Cash',
+        logo: 'bitcoin-cash-bch-logo.png',
+        balance: 0
       },
       {
-        id: 'php',
-        documentUri: '',
-        symbol: 'PHP',
-        name: 'Pesos'
-      },
-      {
-        id: '4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf', // spice's token type id
-        documentUri: '',
+        id: 'slp/4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf',
         symbol: 'SPICE',
-        name: 'Spice'
+        name: 'SPICE',
+        logo: 'spice-logo.png',
+        balance: 0
+      },
+      {
+        id: 'slp/7f8889682d57369ed0e32336f8b7e0ffec625a35cca183f4e81fde4e71a538a1',
+        symbol: 'HONK',
+        name: 'HONK',
+        logo: 'honk-logo.png',
+        balance: 0
       }
     ]
   }
