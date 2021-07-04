@@ -1,20 +1,7 @@
-export function assets (state) {
-  return state.assets
-}
-
-export function balances (state) {
-  const account = state.privateMode ? 'private' : 'escrow'
-  return state.accounts[account].balances
-}
-
-export function transactions (state) {
-  const account = state.privateMode ? 'private' : 'escrow'
-  return state.accounts[account].transactions
-}
-
-export function address (state) {
-  const account = state.privateMode ? 'private' : 'escrow'
-  return state.accounts[account].address
+export function getAddress (state) {
+  return function (walletType) {
+    return state.vault.wallets[walletType].lastAddress
+  }
 }
 
 export function isPrivateMode (state) {

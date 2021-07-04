@@ -25,14 +25,14 @@
       >
         <div class="col row group-currency q-mb-sm">
           <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
-            <div><img :src="getAssetLogo(asset.id)" width="50"></div>
+            <div><img :src="asset.logo" width="50"></div>
             <div class="col q-pl-sm q-pr-sm">
               <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px; color: #444655;">
-                {{ getAssetStats(asset.id).name }}
+                {{ asset.name }}
               </p>
               <p class="q-ma-none asset" style="font-size: 18px; color: #444655;">
-                {{ +(getBalance(asset.id).toFixed(4)) }}
-                {{ getAssetStats(asset.id).symbol }}
+                {{ asset.balance }}
+                {{ asset.symbol }}
               </p>
             </div>
           </div>
@@ -65,18 +65,8 @@ export default {
     }
   },
   computed: {
-    balances () {
-      return this.$store.getters['global/balances']
-    },
     assets () {
-      return this.$store.getters['global/assets']
-    }
-  },
-
-  filters: {
-    satoshisToBCH (val) {
-      // const bchjs = walletUtils.getBCHJS(walletUtils.NET_MAINNET)
-      // return bchjs.BitcoinCash.toBitcoinCash(Number(val))
+      return this.$store.getters['assets/getAssets']
     }
   },
 
@@ -85,11 +75,6 @@ export default {
       const balance = this.balances.find(bln => bln.id === id)
       return balance ? balance.balance : 0
     }
-  },
-
-  mounted () {
-    this.$store.dispatch('global/updatePrivateBalance')
-    this.$store.dispatch('global/updateEscrowBalance')
   },
 
   created () {

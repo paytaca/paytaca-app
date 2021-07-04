@@ -6,7 +6,7 @@
             <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
           </router-link>
           <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
-            RECEIVE {{ getAssetStats(assetId).symbol }}
+            RECEIVE {{ asset.symbol }}
           </p>
         </div>
     </div>
@@ -15,8 +15,8 @@
           <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
             <div class="row text-center">
               <div class="col row justify-center q-pt-md">
-                <img :src="getAssetLogo(assetId)" height="60" style="position: absolute; margin-top: 80px; background: #fff;">
-                <qr-code :text="getAddress()" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
+                <img :src="asset.logo" height="60" style="position: absolute; margin-top: 80px; background: #fff;">
+                <qr-code :text="asset.address" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
               </div>
             </div>
           </div>
@@ -26,7 +26,7 @@
       <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
         <span class="qr-code-text text-weight-medium">
           <div class="text-nowrap">
-            {{ getAddress() }}
+            {{ asset.address }}
             <div class="row" style="margin-top: -20px;">
               <div class="col q-ma-sm q-mb-md">
                 <i class="eva eva-copy-outline icon-copy float-right q-mr-md" @click="copyAddress"></i>
@@ -41,6 +41,7 @@
 
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+import { Wallet } from '../../utils/wallet'
 
 export default {
   name: 'receive-page',
@@ -49,7 +50,9 @@ export default {
   ],
   data () {
     return {
-      activeBtn: 'btn-bch'
+      activeBtn: 'btn-bch',
+      asset: {},
+      assetLoaded: false
     }
   },
 
@@ -57,29 +60,38 @@ export default {
     assetId: {
       type: String,
       required: false,
-      default: '',
+      default: ''
     }
   },
 
-  computed: {
-    address () {
-      return this.$store.getters['global/address']
-    }
-  },
   methods: {
     getAddress () {
-      if (!this.assetId) {
-        return this.address
+      let walletType
+      if (this.assetId.indexOf('slp/') > -1) {
+        walletType = 'slp'
       } else {
-        // return walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP)
+        walletType = 'bch'
       }
+      return this.$store.getters['global/getAddress'](walletType)
     },
     copyAddress () {
       this.$q.notify({
         message: 'Copied address',
         timeout: 800
       })
+    },
+    getAsset (id) {
+      const assets = this.$store.getters['assets/getAsset'](id)
+      if (assets.length > 0) {
+        return assets[0]
+      }
     }
+  },
+
+  created () {
+    const vm = this
+    vm.asset = vm.getAsset(vm.assetId)
+    vm.asset.address = vm.getAddress()
   }
 }
 </script>
