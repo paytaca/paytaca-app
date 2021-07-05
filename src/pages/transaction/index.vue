@@ -245,14 +245,17 @@ export default {
 
     // Load wallets
     const getMnemonic = this.$store.getters['global/getMnemonic']
-    const mnemonic = this.$aes256.decrypt(getMnemonic())
-    vm.wallet = new Wallet(mnemonic)
-
-    vm.assets.map(function (asset) {
-      Vue.set(vm.balances, asset.id, vm.getBalance(asset.id))
-    })
-
-    vm.getTransactions()
+    const encryptedMnemonic = getMnemonic()
+    if (encryptedMnemonic.length > 0) {
+      const mnemonic = this.$aes256.decrypt(encryptedMnemonic)
+      vm.wallet = new Wallet(mnemonic)
+      vm.assets.map(function (asset) {
+        Vue.set(vm.balances, asset.id, vm.getBalance(asset.id))
+      })
+      vm.getTransactions()
+    } else {
+      this.$router.push('/registration')
+    }
   }
 }
 </script>

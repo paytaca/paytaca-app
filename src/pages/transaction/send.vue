@@ -6,7 +6,7 @@
             <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
           </router-link>
           <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
-            SEND <span v-if="sendData.isSendingBCH">BCH</span>
+            SEND {{ asset.symbol }}
           </p>
         </div>
     </div>
@@ -17,7 +17,7 @@
       </div>
       <div class="qrcode-stream-container q-pa-lg" v-if="scanner.show">
         <qrcode-stream class="qrocode-stream"
-          v-if="scanner.show" 
+          v-if="scanner.show"
           :camera="scanner.frontCamera ? 'front': 'auto'"
           @decode="onDecode"
           @init="onInit"
@@ -43,12 +43,6 @@
           <b>{{ scanner.show ? 'Cancel': 'Scan QR code' }}</b>
           <i class="q-ml-sm mdi" :class="[scanner.show ? 'mdi-close-circle': 'mdi-data-matrix-scan']"></i>
         </button>
-        <!-- <q-btn
-          no-caps
-          icon="qr_code_scanner"
-          :label="scanner.show ? 'Cancel': 'Scan QR code'"
-          @click="scanner.show = !scanner.show"
-        /> -->
       </div>
       <div class="q-pa-md text-center text-weight-medium">
         {{ scanner.decodedContent }}
@@ -207,7 +201,7 @@ export default {
       // assetId will determine whether to send an slp token or bch
       // no assetId means that bch is intended to be sent
       type: String,
-      required: false
+      required: true
     },
     amount: {
       type: Number,
@@ -221,6 +215,7 @@ export default {
 
   data () {
     return {
+      asset: {},
       showSendSuccessDialog: false,
 
       fetchingTokenStats: false,
@@ -295,6 +290,13 @@ export default {
   },
 
   methods: {
+    getAsset (id) {
+      const assets = this.$store.getters['assets/getAsset'](id)
+      if (assets.length > 0) {
+        return assets[0]
+      }
+    },
+
     fetchTokenStats () {
       if (!this.assetId) return Promise.reject()
 
@@ -338,11 +340,7 @@ export default {
     },
 
     handleSubmit () {
-      if (this.sendData.isMultiSig) {
-        return this.submitBCHSendMultiSig()
-      } else {
-        return this.sendData.isSendingBCH ? this.submitBCHSend() : this.submitSendToken()
-      }
+      console.log(`Send ${this.sendData.amount} to ${this.sendData.recipientAddress}`)
     },
 
     submitBCHSend () {
@@ -409,7 +407,7 @@ export default {
       //     schnorrUtils.constructPromisePayload(
       //       res.hex,
       //       myPrivKey,
-      //       res.session, 
+      //       res.session,
       //       0
       //     )
       //       .finally(() => {
@@ -443,15 +441,16 @@ export default {
   },
 
   mounted () {
-    if (this.assetId) {
-      console.log('got token id')
-      this.fetchTokenStats()
-        .then(() => {
-          console.log('token stats fetch success')
-          this.sendData.isSendingBCH = false
-          this.sendData.tokenId = this.tokenStats.id
-        })
-    }
+    this.asset = this.getAsset(this.assetId)
+    console.log(this.assetId, this.asset)
+    // if (this.assetId) {
+    //   this.fetchTokenStats()
+    //     .then(() => {
+    //       console.log('token stats fetch success')
+    //       this.sendData.isSendingBCH = false
+    //       this.sendData.tokenId = this.tokenStats.id
+    //     })
+    // }
 
     if (this.amount && this.recipient) {
       this.sendData.amount = this.amount
@@ -463,7 +462,6 @@ export default {
   },
 
   created () {
-    console.log(this)
     this.fasQrcode = fasQrcode
     this.fasWallet = fasWallet
   }

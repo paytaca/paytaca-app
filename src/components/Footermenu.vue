@@ -18,26 +18,6 @@
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse">
         <i class="footer-icon mdi mdi-apps"></i>
-        <div class="account-options">
-          <a
-            :class="[
-              !isPrivateMode ? 'active-account' : '',
-            ]"
-            ref="escrow"
-            @click="switchAccount('escrow')"
-          >
-            ESCROW
-          </a>
-          <a
-            :class="[
-              isPrivateMode ? 'active-account' : '',
-            ]"
-            ref="private"
-            @click="switchAccount('private')"
-          >
-            PRIVATE
-          </a>
-        </div>
       </button>
     </div>
   </div>

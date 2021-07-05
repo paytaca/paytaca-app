@@ -14,26 +14,20 @@
 
           <div class="row">
             <div class="col q-mt-sm">
-              <label class="get-started-text">Firstname</label>
-              <input type="text" class="form-input q-mt-xs">
-            </div>
-          </div>
-          <div class="row">
-            <div class="col q-mt-md">
-              <label class="get-started-text">Lastname</label>
+              <label class="get-started-text">Name</label>
               <input type="text" class="form-input q-mt-xs">
             </div>
           </div>
           <div class="row">
             <div class="col q-mt-md">
               <label class="get-started-text">Email</label>
-              <input type="text" class="form-input q-mt-xs">
+              <input type="text" class="form-input q-mt-xs" placeholder="Optional">
             </div>
           </div>
           <div class="row">
             <div class="col q-mt-md">
               <label class="get-started-text">Mobile Number</label>
-              <input type="text" class="form-input q-mt-xs">
+              <input type="text" class="form-input q-mt-xs" placeholder="Optional">
             </div>
           </div>
           <div class="row">

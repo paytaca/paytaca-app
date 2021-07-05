@@ -29,7 +29,7 @@ const routes = [
       {
         path: 'send',
         name: 'transaction-send',
-        props: true,
+        props: route => route.query,
         component: () => import('pages/transaction/send.vue')
       }
     ]
