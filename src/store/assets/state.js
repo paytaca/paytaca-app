@@ -21,6 +21,13 @@ export default function () {
         name: 'HONK',
         logo: 'honk-logo.png',
         balance: 0
+      },
+      {
+        id: 'slp/a013d636dcadc71f7e11d7880e9e8b62295e772cf1a24180f74d0eca62604136',
+        symbol: 'ORB',
+        name: 'ORB',
+        logo: 'orb-logo.png',
+        balance: 0
       }
     ]
   }

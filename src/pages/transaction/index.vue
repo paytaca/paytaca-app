@@ -151,7 +151,7 @@ export default {
       if (this.balanceLoaded) {
         return balance
       } else {
-        return '--'
+        return ''
       }
     },
     getBalance (id) {

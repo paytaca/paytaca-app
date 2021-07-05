@@ -41,7 +41,6 @@
 
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
-import { Wallet } from '../../utils/wallet'
 
 export default {
   name: 'receive-page',
