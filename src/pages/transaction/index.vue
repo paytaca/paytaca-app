@@ -66,7 +66,7 @@
             </div>
             <div class="transaction-list">
               <template v-if="transactionsLoaded && balanceLoaded">
-                <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
+                <div class="row" v-for="(transaction, index) in filterTransactions()" :key="'tx-' + index">
                     <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                       <div class="row">
                         <!-- <div class="q-mr-sm">
@@ -186,6 +186,25 @@ export default {
       vm.wallet.BCH.getTransactions().then(function (transactions) {
         vm.transactions = transactions
         vm.transactionsLoaded = true
+      })
+    },
+
+    filterTransactions () {
+      const vm = this
+      return vm.transactions.filter(function (transaction) {
+        if (vm.transactionsFilter === 'all') {
+          return transaction
+        }
+        if (vm.transactionsFilter === 'sent') {
+          if (transaction.record_type === 'outgoing') {
+            return transaction
+          }
+        }
+        if (vm.transactionsFilter === 'received') {
+          if (transaction.record_type === 'incoming') {
+            return transaction
+          }
+        }
       })
     },
 
