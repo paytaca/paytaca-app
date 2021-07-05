@@ -7,7 +7,7 @@
             Your {{ selectedAsset.symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
-            {{ displayBalance(selectedAsset.balance) }}
+            {{ balances[selectedAsset.id] || 0 }}
           </p>
         </div>
         <div class="q-space q-pr-lg">
@@ -24,7 +24,7 @@
                   padding="none"
                   size="sm"
                   icon="refresh"
-                  @click="updateBalance"
+                  @click="getBalance()"
                 />
               </p>
           </div>
@@ -35,9 +35,8 @@
             v-for="(asset, index) in assets"
             :key="index"
             class="method-cards q-pa-md q-mr-none"
-            @click="(e) => {
-              scrollToView(e)
-              selectedAsset=asset
+            @click="(event) => {
+              selectAsset(event, asset)
             }"
           >
             <div class="row items-start no-wrap justify-between">
@@ -49,7 +48,7 @@
             <div class="row">
               <q-space />
               <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
-                {{ displayBalance(asset.balance)  }}
+                {{ balances[asset.id] || 0 }}
               </p>
             </div>
           </div>
@@ -101,6 +100,7 @@ import jsUtils from '../../utils/vanilla.js'
 import { Wallet } from '../../utils/wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import Loader from '../../components/Loader.vue'
+import Vue from 'vue'
 
 export default {
   name: 'Transaction-page',
@@ -115,9 +115,9 @@ export default {
         id: 'bch',
         symbol: 'BCH',
         name: 'Bitcoin Cash',
-        logo: 'bitcoin-cash-bch-logo.png',
-        balance: 0
+        logo: 'bitcoin-cash-bch-logo.png'
       },
+      balances: {},
       recordTypeMap: {
         incoming: 'RECEIVED',
         outgoing: 'SENT'
@@ -147,46 +147,43 @@ export default {
   },
 
   methods: {
-    displayBalance (balance) {
-      if (this.balanceLoaded) {
-        return balance
-      } else {
-        return ''
-      }
-    },
     getBalance (id) {
       const vm = this
+      if (!id) {
+        id = vm.selectedAsset.id
+      }
       vm.balanceLoaded = false
-      let counter = 0
-      const balanceCheck = setInterval(function () {
-        if (vm.wallet) {
-          if (id.indexOf('slp/') > -1) {
-            const tokenId = id.split('/')[1]
-            vm.wallet.SLP.getBalance(tokenId).then(function (response) {
-              vm.balanceLoaded = true
-              clearInterval(balanceCheck)
-            })
-          } else {
-            vm.wallet.BCH.getBalance().then(function (response) {
-              vm.balanceLoaded = true
-              clearInterval(balanceCheck)
-              vm.selectedAsset.balance = response.balance
-            })
-          }
-        }
-        if (counter > 5) {
-          clearInterval(balanceCheck)
-        }
-        counter++
-      }, 1000)
+      if (id.indexOf('slp/') > -1) {
+        const tokenId = id.split('/')[1]
+        vm.wallet.SLP.getBalance(tokenId).then(function (response) {
+          vm.balanceLoaded = true
+          vm.balances[id] = response.balance
+        })
+      } else {
+        vm.wallet.BCH.getBalance().then(function (response) {
+          vm.balanceLoaded = true
+          vm.balances[id] = response.balance
+        })
+      }
     },
 
     getTransactions () {
       const vm = this
-      vm.wallet.BCH.getTransactions().then(function (transactions) {
-        vm.transactions = transactions
-        vm.transactionsLoaded = true
-      })
+      const id = vm.selectedAsset.id
+      vm.transactions = []
+      vm.transactionsLoaded = false
+      if (id.indexOf('slp/') > -1) {
+        const tokenId = id.split('/')[1]
+        vm.wallet.SLP.getTransactions(tokenId).then(function (transactions) {
+          vm.transactions = transactions
+          vm.transactionsLoaded = true
+        })
+      } else {
+        vm.wallet.BCH.getTransactions().then(function (transactions) {
+          vm.transactions = transactions
+          vm.transactionsLoaded = true
+        })
+      }
     },
 
     filterTransactions () {
@@ -224,49 +221,38 @@ export default {
       this.transactionsFilter = btn.split('-')[1]
     },
 
-    scrollToView (evt) {
+    selectAsset (event, asset) {
+      this.selectedAsset = asset
+      this.getTransactions()
+
       // Scroll by y-axis first then x-axis
       // jsUtils.getScrollableParent(...) 2nd param is whether resolving the scrollable parent with respect to x-axis(true) or y-axis(false)
       // jsUtils.scrollIntoView(...) 3rd param is whether to scroll to view with respect to x-axis(true) or y-axis(false)
 
-      const scrollableParentY = jsUtils.getScrollableParent(evt.target, true)
-      if (scrollableParentY) jsUtils.scrollIntoView(scrollableParentY, evt.target, true)
+      const scrollableParentY = jsUtils.getScrollableParent(event.target, true)
+      if (scrollableParentY) jsUtils.scrollIntoView(scrollableParentY, event.target, true)
 
-      const scrollableParentX = jsUtils.getScrollableParent(evt.target, false)
-      if (scrollableParentX) jsUtils.scrollIntoView(scrollableParentX, evt.target, false)
-    },
-
-    updateBalance () {
-      this.$store.dispatch('global/updatePrivateBalance')
-      this.$store.dispatch('global/updateEscrowBalance')
+      const scrollableParentX = jsUtils.getScrollableParent(event.target, false)
+      if (scrollableParentX) jsUtils.scrollIntoView(scrollableParentX, event.target, false)
     }
   },
 
   mounted () {
-    if (Array.isArray(this.assets) && this.assets.length > 0) {
-      this.selectedAsset = this.assets[0]
+    const vm = this
+    if (Array.isArray(vm.assets) && this.assets.length > 0) {
+      vm.selectedAsset = vm.assets[0]
     }
 
     // Load wallets
     const getMnemonic = this.$store.getters['global/getMnemonic']
     const mnemonic = this.$aes256.decrypt(getMnemonic())
-    this.wallet = new Wallet(mnemonic)
-  },
+    vm.wallet = new Wallet(mnemonic)
 
-  created () {
-    const vm = this
-    const txnCheck = setInterval(function () {
-      if (vm.wallet && vm.transactionsLoaded) {
-        clearInterval(txnCheck)
-      } else {
-        vm.getBalance(vm.selectedAsset.id)
-        vm.getTransactions()
-        const watchtower = vm.wallet.SLP.watchtower
-        watchtower.Wallet.getTokens(vm.wallet.SLP.walletHash).then(function (tokens) {
-          console.log(tokens)
-        })
-      }
-    }, 1000)
+    vm.assets.map(function (asset) {
+      Vue.set(vm.balances, asset.id, vm.getBalance(asset.id))
+    })
+
+    vm.getTransactions()
   }
 }
 </script>
