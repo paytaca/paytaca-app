@@ -5,7 +5,7 @@ export default function () {
         id: 'bch',
         symbol: 'BCH',
         name: 'Bitcoin Cash',
-        logo: 'bitcoin-cash-bch-logo.png',
+        logo: 'bch-logo.png',
         balance: 0
       },
       {

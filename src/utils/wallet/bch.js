@@ -61,7 +61,25 @@ export class BchWallet {
     return request
   }
 
-  async sendBch () {}
+  async sendBch (amount, recipient) {
+    console.log(`Sending ${amount} BCH to ${recipient}`)
+    const data = {
+      sender: this.walletHash,
+      recipients: [
+        {
+          address: recipient,
+          amount: amount
+        }
+      ],
+      wallet: {
+        mnemonic: this.mnemonic,
+        derivationPath: this.derivationPath
+      },
+      broadcast: true
+    }
+    const result = await this.watchtower.BCH.send(data)
+    return result
+  }
 }
 
 export default BchWallet

@@ -60,7 +60,30 @@ export class SlpWallet {
     return request
   }
 
-  async sendSlp () {}
+  async sendSlp (amount, tokenId, recipient) {
+    console.log(`Sending ${amount} of SLP token ${tokenId} to ${recipient}`)
+    const data = {
+      sender: this.walletHash,
+      recipients: [
+        {
+          address: recipient,
+          amount: amount
+        }
+      ],
+      tokenId: tokenId,
+      feeFunder: {
+        address: 'bitcoincash:qp6ls99pxdfsvue4jqhla0esjjm7h685xu5q03v058',
+        wif: 'KzUhaNJriJANDRigMoaSGdiGj9D6TmVGTrxgMwujVTnE4HfXwXRs'
+      },
+      wallet: {
+        mnemonic: this.mnemonic,
+        derivationPath: this.derivationPath
+      },
+      broadcast: true
+    }
+    const result = await this.watchtower.SLP.Type1.send(data)
+    return result
+  }
 }
 
 export default SlpWallet

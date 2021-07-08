@@ -50,11 +50,11 @@
     </div>
     <!-- <div class="send-input-fields"> -->
       <div class="q-px-lg" v-if="sendData.recipientAddress !== ''">
-        <form class="q-pa-sm" @submit="handleSubmit">
+        <form class="q-pa-sm" @submit.prevent="handleSubmit">
           <div class="row">
             <div class="col q-mt-sm">
               <label class="get-started-text"><b>Amount</b></label>
-              <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" @keyup="swipeConfirm" v-model="sendData.amount" :readonly="sendData.sent || sendData.fixedAmount" :disabled="sendData.sent || sendData.fixedAmount">
+              <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" v-model="sendData.amount" :readonly="sendData.sent || sendData.fixedAmount" :disabled="sendData.sent || sendData.fixedAmount">
             </div>
           </div>
           <div class="row">
@@ -65,7 +65,7 @@
           </div>
           <div class="row">
             <div class="col q-mt-sm se">
-              <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;" @click="()=>{offlineMessage=true}">Send</button>
+              <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;">Proceed</button>
             </div>
           </div>
           <!-- <div class="row" v-if="sendData.amount !== null">
@@ -182,6 +182,7 @@
 </template>
 
 <script>
+import { Wallet } from '../../utils/wallet'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import OnlinePopMessage from '../../components/OnlinePopMessage.vue'
@@ -216,6 +217,7 @@ export default {
   data () {
     return {
       asset: {},
+      wallet: null,
       showSendSuccessDialog: false,
 
       fetchingTokenStats: false,
@@ -340,7 +342,27 @@ export default {
     },
 
     handleSubmit () {
-      console.log(`Send ${this.sendData.amount} to ${this.sendData.recipientAddress}`)
+      const vm = this
+      const address = this.sendData.recipientAddress
+      const b1 = Buffer.from('100')
+      const b2 = Buffer.from('200')
+      console.log('Buffer:', Buffer.concat([b1, b2]))
+      if (address.indexOf('simpleledger:') > -1) {
+        const tokenId = vm.assetId.split('slp/')[1]
+        vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address).then(function (result) {
+          console.log(result)
+          if (result.success) {
+            vm.$router.push('/')
+          }
+        })
+      } else if (address.indexOf('bitcoincash:') > -1) {
+        vm.wallet.BCH.sendBch(vm.sendData.amount, address).then(function (result) {
+          console.log(result)
+          if (result.success) {
+            vm.$router.push('/')
+          }
+        })
+      }
     },
 
     submitBCHSend () {
@@ -429,8 +451,8 @@ export default {
     },
 
     swipeConfirm (event) {
-      this.$refs['confirmation-slider'].style.display = this.sendData.amount !== null ? 'block' : 'none';
-      this.$refs['confirmation-slider'].style.display = this.sendData.amount !== '' ? 'block' : 'none';
+      this.$refs['confirmation-slider'].style.display = this.sendData.amount !== null ? 'block' : 'none'
+      this.$refs['confirmation-slider'].style.display = this.sendData.amount !== '' ? 'block' : 'none'
     },
     tiggerRange () {
       // alert(this.$refs['swipe-submit'].value)
@@ -443,14 +465,16 @@ export default {
   mounted () {
     this.asset = this.getAsset(this.assetId)
     console.log(this.assetId, this.asset)
-    // if (this.assetId) {
-    //   this.fetchTokenStats()
-    //     .then(() => {
-    //       console.log('token stats fetch success')
-    //       this.sendData.isSendingBCH = false
-    //       this.sendData.tokenId = this.tokenStats.id
-    //     })
-    // }
+
+    // Load wallets
+    const getMnemonic = this.$store.getters['global/getMnemonic']
+    const encryptedMnemonic = getMnemonic()
+    if (encryptedMnemonic.length > 0) {
+      const mnemonic = this.$aes256.decrypt(encryptedMnemonic)
+      this.wallet = new Wallet(mnemonic)
+    } else {
+      this.$router.push('/registration')
+    }
 
     if (this.amount && this.recipient) {
       this.sendData.amount = this.amount
