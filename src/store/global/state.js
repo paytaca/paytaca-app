@@ -5,11 +5,13 @@ export default function () {
       wallets: {
         bch: {
           walletHash: '',
+          xPubKey: '',
           lastAddress: '',
           lastWalletIndex: 0
         },
         slp: {
           walletHash: '',
+          xPubKey: '',
           lastAddress: '',
           lastWalletIndex: 0
         }

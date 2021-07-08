@@ -27,6 +27,13 @@ export class BchWallet {
     return childNode
   }
 
+  async getXPubKey () {
+    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
+    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    const childNode = bchjs.HDNode.derivePath(masterHDNode, this.derivationPath)
+    return bchjs.HDNode.toXPub(childNode)
+  }
+
   async getAddress (index) {
     const childNode = await this._getChildNode(index)
     const address = bchjs.HDNode.toCashAddress(childNode)

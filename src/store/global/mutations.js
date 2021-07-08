@@ -3,11 +3,13 @@ export function updateMnemonic (state, encryptedMnemonic) {
 }
 
 export function updateWallet (state, details) {
-  state.vault.wallets[details.type] = {
-    walletHash: details.walletHash,
-    lastAddress: details.lastAddress,
-    lastWalletIndex: details.lastWalletIndex
-  }
+  state.vault.wallets[details.type].walletHash = details.walletHash
+  state.vault.wallets[details.type].lastAddress = details.lastAddress
+  state.vault.wallets[details.type].lastWalletIndex = details.lastWalletIndex
+}
+
+export function updateXPubKey (state, details) {
+  state.vault.wallets[details.type].xPubKey = details.xPubKey
 }
 
 export function updateAddresses (state, addresses) {

@@ -12,18 +12,18 @@
         <p class="dim-text">Write on paper and keep it somewhere safe</p>
 
         <div class="row" id="mnemonic">
-          <div class="col q-mt-sm" v-if="steps === 3">
+          <div class="col q-mt-sm" v-if="steps === 5">
             <ul>
               <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
                 <pre>{{ index + 1 }}</pre><span>{{ word }}</span>
               </li>
             </ul>
           </div>
-          <div class="col q-mt-sm" v-if="steps < 3" style="text-align: center;">
+          <div class="col q-mt-sm" v-if="steps < 5" style="text-align: center;">
             <loader></loader>
           </div>
         </div>
-        <div class="row" v-if="steps === 3">
+        <div class="row" v-if="steps === 5">
           <button class="submit-btn q-mt-md" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px;">Continue</button>
         </div>
       </div>
@@ -53,16 +53,17 @@ export default {
 
       // Create mnemonic seed, encrypt, and store
       this.mnemonic = generateMnemonic()
+      console.log('Mnemonic:', this.mnemonic)
       const encryptedMnemonic = this.$aes256.encrypt(this.mnemonic)
-      console.log(encryptedMnemonic)
+      console.log('Encypted Mnemonic:', encryptedMnemonic)
       this.$store.commit('global/updateMnemonic', encryptedMnemonic)
       vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
 
       wallet.BCH.getAddress(0).then(function (address) {
-        console.log(wallet.BCH.getWalletHash())
-        console.log(address)
+        console.log('BCH wallet hash:', wallet.BCH.getWalletHash())
+        console.log('BCH wallet address at index 0:', address)
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
           walletHash: wallet.BCH.walletHash,
@@ -72,14 +73,32 @@ export default {
         vm.steps += 1
       })
 
+      wallet.BCH.getXPubKey().then(function (xpub) {
+        console.log('BCH wallet xpub key:', xpub)
+        vm.$store.commit('global/updateXPubKey', {
+          type: 'bch',
+          xPubKey: xpub
+        })
+        vm.steps += 1
+      })
+
       wallet.SLP.getAddress(0).then(function (address) {
-        console.log(wallet.SLP.getWalletHash())
-        console.log(address)
+        console.log('SLP wallet hash:', wallet.SLP.getWalletHash())
+        console.log('SLP wallet address at index 0:', address)
         vm.$store.commit('global/updateWallet', {
           type: 'slp',
           walletHash: wallet.BCH.walletHash,
           lastAddress: address,
           lastWalletIndex: 0
+        })
+        vm.steps += 1
+      })
+
+      wallet.SLP.getXPubKey().then(function (xpub) {
+        console.log('SLP wallet xpub key:', xpub)
+        vm.$store.commit('global/updateXPubKey', {
+          type: 'slp',
+          xPubKey: xpub
         })
         vm.steps += 1
       })
