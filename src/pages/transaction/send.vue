@@ -48,98 +48,25 @@
         {{ scanner.decodedContent }}
       </div>
     </div>
-    <!-- <div class="send-input-fields"> -->
-      <div class="q-px-lg" v-if="sendData.recipientAddress !== ''">
-        <form class="q-pa-sm" @submit.prevent="handleSubmit">
-          <div class="row">
-            <div class="col q-mt-sm">
-              <label class="get-started-text"><b>Amount</b></label>
-              <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" v-model="sendData.amount" :readonly="sendData.sent || sendData.fixedAmount" :disabled="sendData.sent || sendData.fixedAmount">
-            </div>
+    <div class="q-px-lg" v-if="sendData.recipientAddress !== ''">
+      <form class="q-pa-sm" @submit.prevent="handleSubmit">
+        <div class="row">
+          <div class="col q-mt-sm">
+            <label class="get-started-text"><b>Amount</b></label>
+            <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" v-model="sendData.amount" :readonly="sendData.sent || sendData.fixedAmount" :disabled="sendData.sending || sendData.sent || sendData.fixedAmount">
           </div>
-          <div class="row">
-            <div class="col q-mt-sm se">
-              <label class="get-started-text"><b>Send to</b></label>
-              <input type="text" class="form-input q-mt-xs text-right q-pl-md q-pr-md" v-model="sendData.recipientAddress" :readonly="sendData.sent || sendData.fixedRecipientAddress" :disabled="sendData.sent || sendData.fixedRecipientAddress">
-            </div>
+        </div>
+        <div class="row">
+          <div class="col q-mt-sm se">
+            <label class="get-started-text"><b>Send to</b></label>
+            <input type="text" class="form-input q-mt-xs text-right q-pl-md q-pr-md" v-model="sendData.recipientAddress" :readonly="sendData.sent || sendData.fixedRecipientAddress" :disabled="sendData.sending || sendData.sent || sendData.fixedRecipientAddress">
           </div>
-          <div class="row">
-            <div class="col q-mt-sm se">
-              <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;">Proceed</button>
-            </div>
-          </div>
-          <!-- <div class="row" v-if="sendData.amount !== null">
-            <div class="col q-pt-md">
-              <button type="submit" class="btn-send-submit"><b>Send</b>&nbsp;<i class="mdi mdi-send"></i></button>
-            </div>
-          </div> -->
-        </form>
-        <!-- <q-form class="q-pa-sm" @submit="() => sendData.isSendingBCH ? submitBCHSend() : submitSendToken()">
-          <q-input
-            label="Amount"
-            stack-label
-            :suffix="sendData.isSendingBCH ? 'BCH': tokenStats.symbol"
-            :readonly="sendData.sent"
-            v-model="sendData.amount"
-            :rules="[
-              val => (val && val > 0) || 'Invalid amount'
-            ]"
-          />
-          <q-field
-            label="Send to"
-            stack-label
-            :readonly="sendData.sent"
-            v-model="sendData.recipientAddress"
-            reactive-rules
-            :rules="[
-              validators.isValidAddress
-            ]"
-          >
-            <template v-slot:control="{value}">
-              <div class="text-nowrap">
-                <span v-if="value.length > 25">
-                  {{ value.substr(0, 20) }}....{{ value.substr(-4) }}
-                </span>
-                <span v-else>
-                  {{ value }}
-                </span>
-              </div>
-            </template>
-          </q-field>
-          <div class="row justify-center q-px-md q-py-sm">
-            <q-btn
-              no-caps
-              :loading="sendData.sending"
-              :disable="sendData.sent"
-              color="teal"
-              type="submit"
-              label="Send"
-            />
-          </div>
-        </q-form> -->
-      </div>
-    <!-- </div> -->
-    <q-dialog persistent :value="sendData.sending">
-      <q-card style="width:300px" class="text-center">
-        <q-card-section class="column">
-          <template v-if="sendData.isMultiSig && !online">
-            <div>
-              Generating receipt
-            </div>
-            <div class="text-caption text-weight-light">
-              Device is not connected to internet, payment will be finalized when the device is connected again
-            </div>
-          </template>
-          <template v-else>
-            Sending
-          </template>
-          <div>
-            <q-spinner-dots class="q-mt-md"/>
-          </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
+        </div>
+        <div class="row" v-if="sendData.sending">
+          <loader></loader>
+        </div>
+      </form>
+    </div>
     <q-dialog :value="showSendSuccessDialog">
       <q-card>
         <q-card-section>
@@ -169,15 +96,15 @@
     <online-pop-message :value="online && sendData.success"/>
     <offline-pop-message :value="!online && sendData.success && sendData.isMultiSig" :qr-code-payload="sendData.proofOfPayment"/>
 
-    <!-- <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null">
-      <div id="status">
-        <label class="swipe-confrim-label">Swipe to confirm</label>
+    <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null">
+      <div id="status" style="text-align: center;">
+        <label class="swipe-confrim-label">Swipe to Send</label>
 
         <input id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
         <span class="mdi mdi-arrow-right-circle" style="position: absolute; z-index: 1000; bottom: 20px; right: 20px: "></span>
 
       </div>
-    </div> -->
+    </div>
   </div>
 </template>
 
@@ -187,6 +114,7 @@ import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import OnlinePopMessage from '../../components/OnlinePopMessage.vue'
 import OfflinePopMessage from '../../components/OfflinePopMessage.vue'
+import Loader from '../../components/Loader.vue'
 
 export default {
   name: 'Send-page',
@@ -194,7 +122,8 @@ export default {
   components: {
     QrcodeStream,
     OnlinePopMessage,
-    OfflinePopMessage
+    OfflinePopMessage,
+    Loader
   },
 
   props: {
@@ -238,7 +167,7 @@ export default {
         txid: '',
 
         // set to false  && online = true if running on non multisig transaction
-        isMultiSig: true,
+        isMultiSig: false,
         creatingProofOfPayment: false,
         proofOfPayment: '',
 
@@ -251,7 +180,7 @@ export default {
         // recipientAddress: 'bchtest:qqg6wl4wy748lgc72xfrxjq88fh5kyyy2gwj67sszt',
       },
 
-      online: false
+      online: true
     }
   },
 
@@ -344,118 +273,29 @@ export default {
     handleSubmit () {
       const vm = this
       const address = this.sendData.recipientAddress
-      const b1 = Buffer.from('100')
-      const b2 = Buffer.from('200')
-      console.log('Buffer:', Buffer.concat([b1, b2]))
+      vm.sendData.sending = true
       if (address.indexOf('simpleledger:') > -1) {
         const tokenId = vm.assetId.split('slp/')[1]
         vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address).then(function (result) {
           console.log(result)
+          vm.sendData.sending = false
           if (result.success) {
+            vm.sendData.txid = result.txid
             vm.$router.push('/')
           }
         })
       } else if (address.indexOf('bitcoincash:') > -1) {
         vm.wallet.BCH.sendBch(vm.sendData.amount, address).then(function (result) {
           console.log(result)
+          vm.sendData.sending = false
           if (result.success) {
+            vm.sendData.txid = result.txid
             vm.$router.push('/')
           }
         })
       }
     },
-
-    submitBCHSend () {
-      this.sendData.sending = true
-      this.sendData.sent = true
-      // sendBCH(
-      //   // walletUtils.parseAddress(this.address, walletUtils.ADDR_CASH),
-      //   // this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
-      //   // walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
-      //   // this.sendData.amount,
-      // )
-      //   .finally(() => {
-      //     this.sendData.sending = false
-      //   })
-      //   .then(res => {
-      //     this.showSendSuccessDialog = true
-      //     this.sendData.success = true
-      //     this.sendData.txid = res
-      //   })
-      //   .catch(err => {
-      //     this.sendData.success = false
-      //     this.sendData.error = err
-      //   })
-    },
-
-    submitSendToken () {
-      this.sendData.sending = true
-      this.sendData.sent = true
-
-      // sendToken(
-      //   // walletUtils.parseAddress(this.address, walletUtils.ADDR_SLP),
-      //   // this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address)),
-      //   // walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_SLP),
-      //   // this.sendData.tokenId,
-      //   // this.sendData.amount
-      // )
-      //   .finally(() => {
-      //     this.sendData.sending = false
-      //   })
-      //   .then(res => {
-      //     this.showSendSuccessDialog = true
-      //     this.sendData.success = true
-      //     this.sendData.txid = res
-      //   })
-      //   .catch(err => {
-      //     this.sendData.success = false
-      //     this.sendData.error = err
-      //   })
-    },
-
-    submitBCHSendMultiSig () {
-      // this.sendData.sending = true
-      // this.sendData.sent = true
-      // const wif = this.$aes256.decrypt(this.$store.getters['global/getWIF'](this.address))
-      // const myPrivKey = bchjs.ECPair.fromWIF(wif).d.toBuffer().toString('hex')
-      // sendBCHMultiSig(
-      //   walletUtils.parseAddress(this.address, walletUtils.ADDR_CASH),
-      //   wif,
-      //   walletUtils.parseAddress(this.sendData.recipientAddress, walletUtils.ADDR_CASH),
-      //   this.sendData.amount,
-      // )
-      //   .then(res => {
-      //     this.sendData.creatingProofOfPayment = true
-      //     schnorrUtils.constructPromisePayload(
-      //       res.hex,
-      //       myPrivKey,
-      //       res.session,
-      //       0
-      //     )
-      //       .finally(() => {
-      //         this.sendData.success = true
-      //         this.sendData.sending = false
-      //         this.sendData.creatingProofOfPayment = false
-      //       })
-      //       .then(promise => {
-      //         // somehow qr code error is caused by error explained here
-      //         // https://stackoverflow.com/questions/30796584/qrcode-js-error-code-length-overflow-17161056
-      //         this.sendData.proofOfPayment = promise + '======'
-      //         schnorrUtils.verifyPromise(this.sendData.proofOfPayment)
-      //       })
-      //   })
-      //   .catch(err => {
-      //     this.sendData.success = false
-      //     this.sendData.error = err
-      //   })
-    },
-
-    swipeConfirm (event) {
-      this.$refs['confirmation-slider'].style.display = this.sendData.amount !== null ? 'block' : 'none'
-      this.$refs['confirmation-slider'].style.display = this.sendData.amount !== '' ? 'block' : 'none'
-    },
     tiggerRange () {
-      // alert(this.$refs['swipe-submit'].value)
       if (this.$refs['swipe-submit'].value > 99) {
         this.handleSubmit()
       }
@@ -514,7 +354,7 @@ export default {
     position: fixed;
     bottom: 0px;
     width: 100%;
-    border: 1px solid #fff;
+    border: 0;
     text-align:center;
   }
   #status {
