@@ -74,6 +74,7 @@ export default {
       return this.$store.getters['global/getAddress'](walletType)
     },
     copyAddress () {
+      this.$copyText(this.asset.address)
       this.$q.notify({
         message: 'Copied address',
         timeout: 800

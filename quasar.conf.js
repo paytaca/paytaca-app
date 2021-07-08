@@ -26,6 +26,7 @@ module.exports = function (/* ctx */) {
       'sidebarmode',
       'qrcodecomponent',
       'qrcodereader',
+      'clipboard',
       'footer'
     ],
 
