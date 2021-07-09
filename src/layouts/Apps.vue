@@ -7,7 +7,7 @@
 <script>
 
 export default {
-  name: 'transaction-layout',
+  name: 'apps-layout',
   data () {
     return {
     }

@@ -17,7 +17,9 @@
         </router-link>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse">
-        <i class="footer-icon mdi mdi-apps"></i>
+        <router-link :to="{ name: 'apps-dashboard' }">
+          <i class="footer-icon mdi mdi-apps"></i>
+        </router-link>
       </button>
     </div>
   </div>

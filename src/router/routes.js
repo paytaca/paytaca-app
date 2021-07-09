@@ -46,7 +46,13 @@ const routes = [
     path: '/seed',
     component: () => import('pages/seeder.vue')
   },
-
+  {
+    path: '/apps',
+    component: () => import('layouts/Apps.vue'),
+    children: [
+      { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' }
+    ]
+  },
   // Always leave this as last one,
   // but you can also remove it
   {
