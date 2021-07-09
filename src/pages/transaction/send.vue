@@ -21,11 +21,11 @@
         </div>
       </div>
       <div class="row justify-center q-pt-lg" v-if="scanner.show">
-        <div class="q-pa-none qrcode-scanner">
+        <div ref="scanner" class="q-pa-none qrcode-scanner">
           <span class="material-icons close-scanner" @click="scanner.show = !scanner.show">
           close
           </span>
-          <div :class="{'scanner-box' : scanner.show}">
+          <div :class="{'scanner-box' : scanner.show}" ref="box">
             <div class="scan-layout-design" v-if="scanner.show">
               <div class="scan-design1">
                 <div class="line-design1"></div>
@@ -184,6 +184,11 @@ export default {
       this.scannedRecipientAddress = true
     },
     onInit (promise) {
+      const screenHeight = screen.height
+      this.$refs.scanner.setAttribute('style', 'height: ' + screenHeight + 'px !important; width: 100% !important;')
+      const screenWidth = screen.width
+      const boxRightMargin = screenWidth - (screenWidth / 2) - 110 // 110 is half the scanner box width
+      this.$refs.box.setAttribute('style', 'margin-left: ' + boxRightMargin + 'px;')
       promise
         .then(() => {
           console.log('Successfully initilized! Ready for scanning now!')
@@ -250,7 +255,6 @@ export default {
 
   mounted () {
     this.asset = this.getAsset(this.assetId)
-    console.log(this.assetId, this.asset)
 
     // Load wallets
     const getMnemonic = this.$store.getters['global/getMnemonic']
@@ -284,14 +288,18 @@ export default {
     color: white;
   }
   .qrcode-scanner {
-    position: absolute;
+    position: fixed;
+    margin-top: 0;
+    border: 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: lightcoral;
     display: flex;
-    align-items: center;
+    flex-flow: column nowrap;
     justify-content: center;
-    top: 0px;
-    bottom: 0px;
-    left: 0px;
-    z-index: 2000;
   }
   .close-scanner {
     position: absolute;
@@ -311,8 +319,8 @@ export default {
     position: absolute !important;
     display: flex !important;
     margin-bottom: 10%;
-    height: 200px !important;
-    width: 200px !important;
+    height: 220px !important;
+    width: 220px !important;
     border-radius: 16% !important;
     box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
     vertical-align: middle;
