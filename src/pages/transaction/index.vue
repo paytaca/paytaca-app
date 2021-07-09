@@ -100,7 +100,6 @@ import jsUtils from '../../utils/vanilla.js'
 import { Wallet } from '../../utils/wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import Loader from '../../components/Loader.vue'
-import Vue from 'vue'
 
 export default {
   name: 'Transaction-page',
@@ -158,11 +157,19 @@ export default {
         vm.wallet.SLP.getBalance(tokenId).then(function (response) {
           vm.balanceLoaded = true
           vm.balances[id] = response.balance
+          vm.$store.commit('assets/updateAssetBalance', {
+            id: id,
+            balance: response.balance
+          })
         })
       } else {
         vm.wallet.BCH.getBalance().then(function (response) {
           vm.balanceLoaded = true
           vm.balances[id] = response.balance
+          vm.$store.commit('assets/updateAssetBalance', {
+            id: id,
+            balance: response.balance
+          })
         })
       }
     },
@@ -250,7 +257,7 @@ export default {
       const mnemonic = this.$aes256.decrypt(encryptedMnemonic)
       vm.wallet = new Wallet(mnemonic)
       vm.assets.map(function (asset) {
-        Vue.set(vm.balances, asset.id, vm.getBalance(asset.id))
+        vm.getBalance(asset.id)
       })
       vm.getTransactions()
     } else {

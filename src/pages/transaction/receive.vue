@@ -11,7 +11,7 @@
         </div>
     </div>
     <div class="row">
-      <div class="col qr-code-container">
+      <div class="col qr-code-container" @click="copyAddress">
           <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
             <div class="row text-center">
               <div class="col row justify-center q-pt-md">
@@ -25,11 +25,11 @@
     <div class="row">
       <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
         <span class="qr-code-text text-weight-medium">
-          <div class="text-nowrap">
+          <div class="text-nowrap" @click="copyAddress">
             {{ asset.address }}
             <div class="row" style="margin-top: -20px;">
               <div class="col q-ma-sm q-mb-md">
-                <i class="eva eva-copy-outline icon-copy float-right q-mr-md" @click="copyAddress"></i>
+                <i class="eva eva-copy-outline icon-copy float-right q-mr-md"></i>
               </div>
             </div>
           </div>

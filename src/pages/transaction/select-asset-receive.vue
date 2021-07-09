@@ -69,14 +69,6 @@ export default {
       return this.$store.getters['assets/getAssets']
     }
   },
-
-  methods: {
-    getBalance (id) {
-      const balance = this.balances.find(bln => bln.id === id)
-      return balance ? balance.balance : 0
-    }
-  },
-
   created () {
     this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
