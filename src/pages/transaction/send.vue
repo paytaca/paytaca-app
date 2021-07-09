@@ -15,34 +15,35 @@
         <q-icon name="error" left/>
         {{ scanner.error }}
       </div>
-      <div class="qrcode-stream-container q-pa-lg" v-if="scanner.show">
-        <qrcode-stream class="qrocode-stream"
-          v-if="scanner.show"
-          :camera="scanner.frontCamera ? 'front': 'auto'"
-          @decode="onDecode"
-          @init="onInit"
-        >
-          <div
-            :style="{
-              position: 'absolute',
-              bottom: '1rem',
-              right: '1rem'
-            }"
-          >
-            <q-btn color="#fff"
-              rounded
-              padding="xs"
-              :icon="scanner.frontCamera ? 'camera_rear': 'camera_front'"
-              @click="scanner.frontCamera = !scanner.frontCamera"
-            />
-          </div>
-        </qrcode-stream>
+      <div class="row justify-center" v-if="!scanner.show && sendData.recipientAddress === ''">
+        <div class="col-12 q-mt-lg">
+          <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
+        </div>
       </div>
-      <div class="row justify-around q-my-lg" v-if="sendData.recipientAddress === ''">
-        <button class="btn-scanner" @click="scanner.show = !scanner.show">
-          <b>{{ scanner.show ? 'Cancel': 'Scan QR code' }}</b>
-          <i class="q-ml-sm mdi" :class="[scanner.show ? 'mdi-close-circle': 'mdi-data-matrix-scan']"></i>
-        </button>
+      <div class="row justify-center q-pt-lg" v-if="scanner.show">
+        <div class="q-pa-none qrcode-scanner">
+          <span class="material-icons close-scanner" @click="scanner.show = !scanner.show">
+          close
+          </span>
+          <div :class="{'scanner-box' : scanner.show}">
+            <div class="scan-layout-design" v-if="scanner.show">
+              <div class="scan-design1">
+                <div class="line-design1"></div>
+              </div>
+              <div class="scan-design2">
+                <div class="line-design2"></div>
+              </div>
+              <div class="scan-design3">
+                <div class="line-design3"></div>
+              </div>
+              <div class="scan-design4">
+                <div class="line-design4"></div>
+              </div>
+            </div>
+            <span class="scanner-text text-center full-width">Scan QR code</span>
+          </div>
+          <qrcode-stream v-if="scanner.show" :camera="scanner.frontCamera ? 'front': 'auto'" @decode="onDecode" @init="onInit"></qrcode-stream>
+        </div>
       </div>
       <div class="q-pa-md text-center text-weight-medium">
         {{ scanner.decodedContent }}
@@ -51,47 +52,27 @@
     <div class="q-px-lg" v-if="sendData.recipientAddress !== ''">
       <form class="q-pa-sm" @submit.prevent="handleSubmit">
         <div class="row">
+          <div class="col q-mt-sm se">
+            <label class="get-started-text"><b>Send to</b></label>
+            <input type="text" class="form-input q-mt-xs text-right q-pl-md q-pr-md" v-model="sendData.recipientAddress" :disabled="disableRecipientInput">
+          </div>
+        </div>
+        <div class="row">
           <div class="col q-mt-sm">
             <label class="get-started-text"><b>Amount</b></label>
             <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" v-model="sendData.amount" :readonly="sendData.sent || sendData.fixedAmount" :disabled="sendData.sending || sendData.sent || sendData.fixedAmount">
           </div>
         </div>
-        <div class="row">
-          <div class="col q-mt-sm se">
-            <label class="get-started-text"><b>Send to</b></label>
-            <input type="text" class="form-input q-mt-xs text-right q-pl-md q-pr-md" v-model="sendData.recipientAddress" :readonly="sendData.sent || sendData.fixedRecipientAddress" :disabled="sendData.sending || sendData.sent || sendData.fixedRecipientAddress">
+        <div class="row" v-if="sendError">
+          <div class="col q-mt-md" style="color: #da53b2;">
+            {{ sendError }}
           </div>
         </div>
-        <div class="row" v-if="sendData.sending">
+        <div class="row" style="text-align: center;" v-if="sendData.sending">
           <loader></loader>
         </div>
       </form>
     </div>
-    <q-dialog :value="showSendSuccessDialog">
-      <q-card>
-        <q-card-section>
-          <div class="row justify-center items-center">
-            <q-icon
-              name="done"
-              size="2rem"
-              color="teal"
-              class="font-weight-medium"
-            />
-            Success!
-          </div>
-          <q-item>
-            <q-item-section>
-              <q-item-label>
-                {{ (Array.isArray(sendData.txid) ? sendData.txid[0] :sendData.txid) || '######################' }}
-              </q-item-label>
-              <q-item-label caption>
-                Transaction ID
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
 
     <online-pop-message :value="online && sendData.success"/>
     <offline-pop-message :value="!online && sendData.success && sendData.isMultiSig" :qr-code-payload="sendData.proofOfPayment"/>
@@ -147,11 +128,11 @@ export default {
     return {
       asset: {},
       wallet: null,
-      showSendSuccessDialog: false,
 
       fetchingTokenStats: false,
       tokenStats: null,
 
+      scannedRecipientAddress: false,
       scanner: {
         show: false,
         frontCamera: false,
@@ -179,44 +160,14 @@ export default {
         fixedRecipientAddress: false
         // recipientAddress: 'bchtest:qqg6wl4wy748lgc72xfrxjq88fh5kyyy2gwj67sszt',
       },
-
+      sendError: null,
       online: true
     }
   },
 
   computed: {
-    address () {
-      return this.$store.getters['global/address']
-    },
-
-    validators () {
-      return {
-        isValidAddress: (val) => {
-          // try {
-          //   return bchjs.Address.isCashAddress(val) || ''
-          // } catch (err) {
-          //   return 'Invalid address'
-          // }
-        },
-
-        isValidCashAddress: (val) => {
-          try {
-            // need to check if slp address or not because .isCashAddress() seems to validate slp addresses
-            // return (bchjs.Address.isCashAddress(val) && !bchjs.SLP.Address.isSLPAddress(val)) || 'Not a valid cash address'
-          } catch (err) {
-            return 'Invalid address'
-          }
-        },
-
-        isValidSLPAddress (val) {
-          try {
-            console.log('validating slp address')
-            // return bchjs.SLP.Address.isSLPAddress(val) || 'Not a valid SLP address'
-          } catch (err) {
-            return 'Invalid address'
-          }
-        }
-      }
+    disableRecipientInput () {
+      return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     }
   },
 
@@ -227,19 +178,10 @@ export default {
         return assets[0]
       }
     },
-
-    fetchTokenStats () {
-      if (!this.assetId) return Promise.reject()
-
-      return this.$store.dispatch('assets/getSLPTokenStats', {tokenId: this.assetId})
-        .then(tokenStats => {
-          this.tokenStats = tokenStats
-          return Promise.resolve()
-        })
-    },
     onDecode (content) {
       this.sendData.recipientAddress = content
       this.scanner.show = !this.scanner.show
+      this.scannedRecipientAddress = true
     },
     onInit (promise) {
       promise
@@ -282,6 +224,8 @@ export default {
           if (result.success) {
             vm.sendData.txid = result.txid
             vm.$router.push('/')
+          } else {
+            vm.sendError = result.error
           }
         })
       } else if (address.indexOf('bitcoincash:') > -1) {
@@ -291,6 +235,8 @@ export default {
           if (result.success) {
             vm.sendData.txid = result.txid
             vm.$router.push('/')
+          } else {
+            vm.sendError = result.error
           }
         })
       }
@@ -333,14 +279,119 @@ export default {
 </script>
 
 <style lang="scss">
-  .qrcode-stream-container {
+  .btn-scan {
     background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-    border-radius: 20px;
+    color: white;
   }
-  .qrocode-stream {
-    height: 300px !important;
-    border-radius: 20px !important;
+  .qrcode-scanner {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    z-index: 2000;
   }
+  .close-scanner {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    font-size: 38px;
+    color: #ef4f84;
+    z-index: 2500;
+  }
+  .scanner-text {
+    position: absolute;
+    bottom: -30px;
+    color: white;
+    z-index: 1000;
+  }
+  .scanner-box {
+    position: absolute !important;
+    display: flex !important;
+    margin-bottom: 10%;
+    height: 200px !important;
+    width: 200px !important;
+    border-radius: 16% !important;
+    box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
+    vertical-align: middle;
+    z-index: 2000 !important
+  }
+  .scan-design1 {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    left: 10px;
+    top: 10px;
+    overflow: hidden;
+  }
+  .line-design1 {
+    height: 150px;
+    width: 150px;
+    border: 3px solid #3b7bf6;
+    border-radius: 15%;
+    animation-name: example;
+  }
+  .scan-design2 {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    right: 10px;
+    top: 10px;
+    overflow: hidden;
+  }
+  .line-design2 {
+    position: absolute;
+    height: 150px;
+    width: 150px;
+    right: 0px;
+    top: 0px;
+    border: 3px solid #3b7bf6;
+    border-radius: 15%;
+  }
+  .scan-design3 {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    right: 10px;
+    bottom: 10px;
+    overflow: hidden;
+  }
+  .line-design3 {
+    position: absolute;
+    height: 150px;
+    width: 150px;
+    right: 0px;
+    bottom: 0px;
+    border: 3px solid #3b7bf6;
+    border-radius: 15%;
+  }
+  .scan-design4 {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    left: 10px;
+    bottom: 10px;
+    overflow: hidden;
+  }
+  .line-design4 {
+    position: absolute;
+    height: 150px;
+    width: 150px;
+    left: 0px;
+    bottom: 0px;
+    border: 3px solid #3b7bf6;
+    border-radius: 15%;
+  }
+  // .qrcode-stream-container {
+  //   background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  //   border-radius: 20px;
+  // }
+  // .qrocode-stream {
+  //   height: 300px !important;
+  //   border-radius: 20px !important;
+  // }
   .swipe-confrim-label {
     position: absolute;
     color: #fff !important;
@@ -411,26 +462,6 @@ export default {
     border-top-right-radius: 22px;
     background-color: #fff;
     /*display: none;*/
-  }
-  .btn-scanner {
-    border-radius: 20px;
-    outline: none;
-    border: none;
-    height: 40px;
-    padding-left: 20px;
-    padding-right: 20px;
-    color: #fff;
-    background-color: rgb(60, 100, 246) !important;
-  }
-  .btn-send-submit {
-    border-radius: 20px;
-    outline: none;
-    border: none;
-    height: 40px;
-    width: 100%;
-    color: #fff;
-    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .2);
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
   }
   .color-light-gray {
     color: #444646;

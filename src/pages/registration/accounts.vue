@@ -46,7 +46,10 @@ export default {
   },
   methods: {
     continueToDashboard () {
-      this.$router.push('/')
+      const vm = this
+      this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+        vm.$router.push('/')
+      })
     },
     createWallets () {
       const vm = this
@@ -102,41 +105,6 @@ export default {
         })
         vm.steps += 1
       })
-    },
-    async generateAddresses () {
-      // const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-      // const hdNode = bchjs.HDNode.fromSeed(seedBuffer)
-
-      // var addresses = {}
-
-      // const account1 = bchjs.HDNode.derive(hdNode, 0)
-      // const account1Pk = account1.keyPair.toWIF()
-      // addresses.escrow = {
-      //   address: bchjs.Address.toCashAddress(account1.keyPair.getAddress()),
-      //   privateKey: this.$aes256.encrypt(account1Pk)
-      // }
-
-      // const account2 = bchjs.HDNode.derive(hdNode, 1)
-      // const account2Pk = account2.keyPair.toWIF()
-      // // const account2Addr = account2.keyPair.address
-      // addresses.private = {
-      //   address: bchjs.Address.toCashAddress(account2.keyPair.getAddress()),
-      //   privateKey: this.$aes256.encrypt(account2Pk)
-      // }
-
-      // const vm = this
-      // const payload = {
-      //   mnemonic_hash: vm.$aes256.encrypt(vm.mnemonic),
-      //   first_name: 'Juan',
-      //   last_name: 'Dela Cruz',
-      //   mobile_number: '09281234567',
-      //   user_public_key: bchjs.ECPair.toPublicKey(account1.keyPair).toString('hex'),
-      //   hd_wallet_index: 0
-      // }
-      // vm.$axios.post('/escrow-account/create', payload).then(function (resp) {
-      //   addresses.escrow.address = resp.data.aggregate_address
-      //   vm.$store.dispatch('global/updateAddresses', addresses)
-      // })
     }
   },
   mounted () {
