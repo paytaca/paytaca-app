@@ -90,12 +90,13 @@
 </template>
 
 <script>
-import { Wallet } from '../../utils/wallet'
+import { getMnemonic, Wallet } from '../../utils/wallet'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import OnlinePopMessage from '../../components/OnlinePopMessage.vue'
 import OfflinePopMessage from '../../components/OfflinePopMessage.vue'
 import Loader from '../../components/Loader.vue'
+import { validateMnemonic } from 'app/src-capacitor/ios/App/public/js/vendor'
 
 export default {
   name: 'Send-page',
@@ -254,24 +255,20 @@ export default {
   },
 
   mounted () {
-    this.asset = this.getAsset(this.assetId)
+    const vm = this
+    validateMnemonic.asset = this.getAsset(this.assetId)
 
     // Load wallets
-    const getMnemonic = this.$store.getters['global/getMnemonic']
-    const encryptedMnemonic = getMnemonic()
-    if (encryptedMnemonic.length > 0) {
-      const mnemonic = this.$aes256.decrypt(encryptedMnemonic)
-      this.wallet = new Wallet(mnemonic)
-    } else {
-      this.$router.push('/registration')
-    }
+    getMnemonic().then(function (mnemonic) {
+      vm.wallet = new Wallet(mnemonic)
+    })
 
-    if (this.amount && this.recipient) {
-      this.sendData.amount = this.amount
-      this.sendData.fixedAmount = true
-      this.sendData.recipientAddress = this.recipient
-      this.sendData.fixedRecipientAddress = true
-      this.scanner.show = false
+    if (vm.amount && vm.recipient) {
+      vm.sendData.amount = vm.amount
+      vm.sendData.fixedAmount = true
+      vm.sendData.recipientAddress = vm.recipient
+      vm.sendData.fixedRecipientAddress = true
+      vm.scanner.show = false
     }
   },
 

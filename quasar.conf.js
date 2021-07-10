@@ -22,8 +22,6 @@ module.exports = function (/* ctx */) {
       'capacitor',
       'i18n',
       'axios',
-      'aes256',
-      'sidebarmode',
       'qrcodecomponent',
       'qrcodereader',
       'clipboard',

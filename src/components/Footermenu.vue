@@ -30,25 +30,6 @@ export default {
   name: 'footer-menu',
   data () {
     return {}
-  },
-
-  computed: {
-    isPrivateMode: {
-      set (val) {
-        this.$store.dispatch('global/setPrivateMode', { privateMode: val })
-      },
-      get () {
-        return this.$store.getters['global/isPrivateMode']
-      }
-    }
-  },
-
-  methods: {
-    switchAccount (account) {
-      const toPrivate = account === 'private'
-      toPrivate ? this.$q.dark.set(true) : this.$q.dark.set(false)
-      this.isPrivateMode = toPrivate
-    }
   }
 }
 </script>

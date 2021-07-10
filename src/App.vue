@@ -3,34 +3,10 @@
     <router-view />
   </div>
 </template>
-<script>
-var randomBytes = require('randombytes')
-import { LocalStorage } from 'quasar'
 
+<script>
 export default {
   name: 'App',
-  computed: {
-    isPrivateMode: {
-      set (val) {
-        this.$store.dispatch('global/setPrivateMode', { privateMode: val })
-      },
-      get () {
-        return this.$store.getters['global/isPrivateMode']
-      }
-    }
-  },
-  watch: {
-    isPrivateMode () {
-      this.$q.dark.set(this.isPrivateMode)
-    },
-    $route: {
-      handler () {
-        this.$nextTick(() => {
-          this.$q.dark.set(this.isPrivateMode)
-        })
-      }
-    }
-  },
   mounted () {
     const vm = this
     if (vm.$q.platform.is.bex) {
@@ -50,12 +26,6 @@ export default {
     }
   },
   created () {
-    if (!this.$aes256.getSecretKey()) {
-      const secretKey = randomBytes(16).toString('hex')
-      LocalStorage.set('secretkey', secretKey)
-    }
-    this.$q.dark.set(this.isPrivateMode)
-
     const vm = this
     setTimeout(function () {
       vm.$refs.container.style.display = 'block'

@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-
+import { getMnemonic } from '../utils/wallet'
 import routes from './routes'
 
 Vue.use(VueRouter)
@@ -26,9 +26,15 @@ export default function ({ store }) {
     base: process.env.VUE_ROUTER_BASE
   })
 
-  Router.beforeEach((to, from, next) => {
-    if (to.path === '/' && store.state.global.user.onboardingStep === 0) {
-      next('/registration')
+  Router.beforeEach(async (to, from, next) => {
+    if (to.path === '/') {
+      try {
+        await getMnemonic()
+        next()
+      } catch (err) {
+        console.log(err)
+        next('/registration')
+      }
     } else {
       next()
     }

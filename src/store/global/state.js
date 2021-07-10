@@ -1,20 +1,17 @@
 export default function () {
   return {
-    vault: {
-      mnemonic: '',
-      wallets: {
-        bch: {
-          walletHash: '',
-          xPubKey: '',
-          lastAddress: '',
-          lastWalletIndex: 0
-        },
-        slp: {
-          walletHash: '',
-          xPubKey: '',
-          lastAddress: '',
-          lastWalletIndex: 0
-        }
+    wallets: {
+      bch: {
+        walletHash: '',
+        xPubKey: '',
+        lastAddress: '',
+        lastWalletIndex: 0
+      },
+      slp: {
+        walletHash: '',
+        xPubKey: '',
+        lastAddress: '',
+        lastWalletIndex: 0
       }
     },
     user: {

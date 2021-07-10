@@ -97,7 +97,7 @@
 
 <script>
 import jsUtils from '../../utils/vanilla.js'
-import { Wallet } from '../../utils/wallet'
+import { getMnemonic, Wallet } from '../../utils/wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import Loader from '../../components/Loader.vue'
 
@@ -251,18 +251,13 @@ export default {
     }
 
     // Load wallets
-    const getMnemonic = this.$store.getters['global/getMnemonic']
-    const encryptedMnemonic = getMnemonic()
-    if (encryptedMnemonic.length > 0) {
-      const mnemonic = this.$aes256.decrypt(encryptedMnemonic)
+    getMnemonic().then(function (mnemonic) {
       vm.wallet = new Wallet(mnemonic)
       vm.assets.map(function (asset) {
         vm.getBalance(asset.id)
       })
       vm.getTransactions()
-    } else {
-      this.$router.push('/registration')
-    }
+    })
   }
 }
 </script>
