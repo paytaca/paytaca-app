@@ -94,16 +94,12 @@ import { validateMnemonic } from 'app/src-capacitor/ios/App/public/js/vendor'
 
 export default {
   name: 'Send-page',
-
   components: {
     QrcodeStream,
     Loader
   },
-
   props: {
     assetId: {
-      // assetId will determine whether to send an slp token or bch
-      // no assetId means that bch is intended to be sent
       type: String,
       required: true
     },
@@ -116,7 +112,6 @@ export default {
       required: false
     }
   },
-
   data () {
     return {
       asset: {},
@@ -254,19 +249,20 @@ export default {
     getMnemonic().then(function (mnemonic) {
       vm.wallet = new Wallet(mnemonic)
     })
+  },
 
-    if (vm.amount && vm.recipient) {
+  created () {
+    this.fasQrcode = fasQrcode
+    this.fasWallet = fasWallet
+
+    const vm = this
+    if (vm.assetId && vm.amount && vm.recipient) {
       vm.sendData.amount = vm.amount
       vm.sendData.fixedAmount = true
       vm.sendData.recipientAddress = vm.recipient
       vm.sendData.fixedRecipientAddress = true
       vm.scanner.show = false
     }
-  },
-
-  created () {
-    this.fasQrcode = fasQrcode
-    this.fasWallet = fasWallet
   }
 }
 </script>

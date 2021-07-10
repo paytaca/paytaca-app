@@ -1,15 +1,5 @@
 <template>
   <div>
-    <!-- <div class="row">
-        <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link :to="{ path: '/'}">
-            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
-          </router-link>
-          <p class="text-center select q-mt-sm text-token" style="font-size: 22px; color: #3B7BF6;">
-            SEND
-          </p>
-        </div>
-    </div> -->
     <header-nav title="SEND" backnavpath="/"></header-nav>
     <template v-if="assets">
       <div class="row">
@@ -20,7 +10,7 @@
       <div
         v-for="(asset, index) in assets"
         :key="index"
-        @click="$router.push({ name: 'transaction-send', query: { assetId: asset.id } })"
+        @click="$router.push({ name: 'transaction-send', params: { assetId: asset.id } })"
         role="button"
         class="row q-pl-lg q-pr-lg token-link"
       >

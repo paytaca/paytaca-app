@@ -6,8 +6,9 @@ class Paytaca {
     this.bridge = bridge
   }
 
-  send (amount, recipient) {
+  send (assetId, amount, recipient) {
     this.bridge.send('window.paytaca.send', {
+      assetId: assetId,
       amount: amount,
       recipient: recipient
     })

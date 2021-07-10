@@ -18,6 +18,7 @@ export default {
         vm.$router.push({
           name: 'transaction-send',
           params: {
+            assetId: event.data.assetId,
             amount: event.data.amount,
             recipient: event.data.recipient
           }

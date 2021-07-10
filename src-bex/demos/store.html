@@ -47,7 +47,7 @@
         methods: {
           requestPayment (event) {
             event.preventDefault()
-            window.paytaca.send(this.amount, this.recipient)
+            window.paytaca.send('bch', this.amount, this.recipient)
           }
         }
       })
