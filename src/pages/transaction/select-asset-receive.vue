@@ -61,9 +61,6 @@ export default {
     assets () {
       return this.$store.getters['assets/getAssets']
     }
-  },
-  created () {
-    this.$q.localStorage.getItem('active-account') ? this.$q.dark.set(false) : this.$q.dark.set(false)
   }
 }
 </script>
@@ -72,112 +69,8 @@ export default {
   .group-currency {
     width: 100%;
     border: 2px solid #ed5f59;
-    border-radius: 14px;
+    border-radius: 7px;
     margin-top: 5px;
     margin-bottom: 5px;
-  }
-  .display-none {
-    display: none;
-  }
-  .send {
-    color: #636767;
-  }
-  .receipient-address {
-    margin-top: 80px;
-    padding-bottom: 50px;
-    background-color: #fff;
-  }
-  .recep-address {
-    color: #000;
-  }
-  .qr-code-container {
-    margin-top: 40px;
-    padding-left: 28px;
-    padding-right: 28px;
-    height: 300px;
-  }
-  .qrcode-scanner {
-    margin-top: 70px;
-    height: 220px !important;
-    width: 100% !important;
-  }
-  /* iPhone 5/SE */
-  @media (min-width: 280px) and (max-width: 320px) {
-    .qr-code-container {
-      margin-top: 30px
-    }
-  }
-  /* Galaxy Fold */
-  @media (min-width: 200px) and (max-width: 280px) {
-    .qr-code-container {
-      margin-top: 40px
-    }
-  }
-  .col-qr-code-recevie {
-    width: 100%;
-    background-color: #fff;
-    border-radius: 16px;
-    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
-  }
-  .receive-add-amount {
-    color: #3992EA;
-  }
-  .qr-code {
-    height: 205px;
-    width: 205px;
-    background-color: #464747;
-    margin: auto;
-  }
-  .qr-code-text {
-    font-size: 12px;
-    color: #000;
-  }
-  .currencies {
-    position: fixed;
-    height: 100px;
-    width: 100%;
-    bottom: 0pt;
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: #fff;
-    padding-top: 28px;
-  }
-  .btn-bch {
-    margin-left: 0px;
-  }
-  .btn-custom {
-    height: 40px;
-    width: 32%;
-    border-radius: 20px;
-    border: none;
-    color: #444646;
-    background-color: transparent;
-    outline:0;
-    cursor: pointer;
-    transition: .2s;
-  }
-  .btn-custom:hover {
-    background-color: #fff;
-  }
-  .btn-custom.active-btn {
-    background-color: #fff !important;
-    color: #3992EA;
-  }
-  .btn-transaction {
-    background-color: rgba(43, 126, 209, .04);
-    border-radius: 24px;
-    padding: 4px;
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-  .receive__to {
-    color: #636767;
-  }
-  .receive-wallet {
-    color: #373939;
-  }
-  .icon-copy {
-    color: #3992EA;
-    font-size: 26px;
   }
 </style>

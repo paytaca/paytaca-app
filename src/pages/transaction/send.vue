@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="row">
+    <!-- <div class="row">
         <div class="col q-mt-md q-pl-md text-center q-pr-md">
           <router-link :to="{ path: '/'}">
             <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
@@ -9,7 +9,8 @@
             SEND {{ asset.symbol }}
           </p>
         </div>
-    </div>
+    </div> -->
+    <header-nav :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"></header-nav>
     <div class="q-pa-md">
       <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
         <q-icon name="error" left/>
@@ -18,6 +19,16 @@
       <div class="row justify-center" v-if="!scanner.show && sendData.recipientAddress === ''">
         <div class="col-12 q-mt-lg">
           <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
+        </div>
+        <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px;">
+          OR
+        </div>
+        <div class="col-12 q-mt-lg" style="text-align: center;">
+          <q-input outlined bottom-slots v-model="manualAddress" label="Paste address here">
+            <template v-slot:append>
+              <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="sendData.recipientAddress = manualAddress" />
+            </template>
+          </q-input>
         </div>
       </div>
       <div class="row justify-center q-pt-lg" v-if="scanner.show">
@@ -53,14 +64,12 @@
       <form class="q-pa-sm" @submit.prevent="handleSubmit">
         <div class="row">
           <div class="col q-mt-sm se">
-            <label class="get-started-text"><b>Send to</b></label>
-            <input type="text" class="form-input q-mt-xs text-right q-pl-md q-pr-md" v-model="sendData.recipientAddress" :disabled="disableRecipientInput">
+            <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput"></q-input>
           </div>
         </div>
         <div class="row">
-          <div class="col q-mt-sm">
-            <label class="get-started-text"><b>Amount</b></label>
-            <input type="number" step="0.0001" class="form-input form-input-amount q-mt-xs text-right" v-model="sendData.amount" :readonly="sendData.sent || sendData.fixedAmount" :disabled="sendData.sending || sendData.sent || sendData.fixedAmount">
+          <div class="col q-mt-md">
+            <q-input type="number" step="0.0001" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput"></q-input>
           </div>
         </div>
         <div class="row" v-if="sendError">
@@ -76,10 +85,8 @@
     <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null">
       <div id="status" style="text-align: center;">
         <label class="swipe-confrim-label">Swipe to Send</label>
-
         <input id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
-        <span class="mdi mdi-arrow-right-circle" style="position: absolute; z-index: 1000; bottom: 20px; right: 20px: "></span>
-
+        <span class="mdi mdi-arrow-right-circle" style="color: #fff; position: absolute; z-index: 10000; bottom: 20px; right: 20px: "></span>
       </div>
     </div>
   </div>
@@ -90,12 +97,14 @@ import { getMnemonic, Wallet } from '../../utils/wallet'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
+import HeaderNav from '../../components/header-nav'
 
 export default {
   name: 'Send-page',
   components: {
     QrcodeStream,
-    Loader
+    Loader,
+    HeaderNav
   },
   props: {
     assetId: {
@@ -119,6 +128,7 @@ export default {
       fetchingTokenStats: false,
       tokenStats: null,
 
+      manualAddress: '',
       scannedRecipientAddress: false,
       scanner: {
         show: false,
@@ -133,19 +143,10 @@ export default {
         success: false,
         error: '',
         txid: '',
-
-        // set to false  && online = true if running on non multisig transaction
-        isMultiSig: false,
-        creatingProofOfPayment: false,
-        proofOfPayment: '',
-
-        isSendingBCH: true,
-        tokenId: '',
-        amount: null, // this will be in terms of bch or the token specified
+        amount: null,
         fixedAmount: false,
         recipientAddress: '',
         fixedRecipientAddress: false
-        // recipientAddress: 'bchtest:qqg6wl4wy748lgc72xfrxjq88fh5kyyy2gwj67sszt',
       },
       sendError: null,
       online: true
@@ -155,6 +156,9 @@ export default {
   computed: {
     disableRecipientInput () {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
+    },
+    disableAmountInput () {
+      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount
     }
   },
 
@@ -267,6 +271,9 @@ export default {
 </script>
 
 <style lang="scss">
+  .q-field--outlined .q-field__control:before {
+    border: 2px solid #3b7bf6;
+  }
   .btn-scan {
     background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
     color: white;
@@ -376,14 +383,6 @@ export default {
     border: 3px solid #3b7bf6;
     border-radius: 15%;
   }
-  // .qrcode-stream-container {
-  //   background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-  //   border-radius: 20px;
-  // }
-  // .qrocode-stream {
-  //   height: 300px !important;
-  //   border-radius: 20px !important;
-  // }
   .swipe-confrim-label {
     position: absolute;
     color: #fff !important;
@@ -398,7 +397,7 @@ export default {
     bottom: 0px;
     width: 100%;
     border: 0;
-    text-align:center;
+    text-align: center;
   }
   #status {
     height:62px;
@@ -413,11 +412,11 @@ export default {
   .delete-notice { display:none; user-select:none; font-size:20px; line-height:50px; color:#ED4545; animation:fadein 4s ease; }
 
   #confirm {
-    appearance:none!important;
-    background:transparent;
-    height:62px;
-    padding:0 5px;
-    width:100%;
+    appearance: none !important;
+    background: transparent;
+    height: 62px;
+    padding: 0 5px;
+    width: 100%;
   }
 
   #confirm::-webkit-slider-thumb {
@@ -425,8 +424,8 @@ export default {
     height:48px;
     width:160px;
     border:3px solid rgba(60, 100, 246, .6);
-    border-radius:24px;
-    cursor:e-resize;
+    border-radius: 18px;
+    cursor: e-resize;
     background: no-repeat no-repeat;
     background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
    }

@@ -35,9 +35,6 @@ export default {
 </script>
 
 <style lang="scss">
-  .active-account {
-    background-color: #EDF1F3;
-  }
   .fixed-footer {
     position: fixed;
     height: 60px;

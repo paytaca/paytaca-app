@@ -1,15 +1,6 @@
 <template>
   <div>
-    <div class="row">
-        <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link :to="{ name: 'transaction-receive-select-asset' }">
-            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
-          </router-link>
-          <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
-            RECEIVE {{ asset.symbol }}
-          </p>
-        </div>
-    </div>
+    <header-nav :title="'RECEIVE ' + asset.symbol" backnavpath="/receive/select-asset"></header-nav>
     <div class="row">
       <div class="col qr-code-container" @click="copyAddress">
           <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
@@ -41,12 +32,14 @@
 
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+import HeaderNav from '../../components/header-nav'
 
 export default {
   name: 'receive-page',
   mixins: [
     walletAssetsMixin
   ],
+  components: { HeaderNav },
   data () {
     return {
       activeBtn: 'btn-bch',
@@ -101,7 +94,7 @@ export default {
     color: #636767;
   }
   .qr-code-container {
-    margin-top: 66px;
+    margin-top: 40px;
     padding-left: 28px;
     padding-right: 28px;
   }
