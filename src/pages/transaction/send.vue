@@ -90,7 +90,6 @@ import { getMnemonic, Wallet } from '../../utils/wallet'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
-import { validateMnemonic } from 'app/src-capacitor/ios/App/public/js/vendor'
 
 export default {
   name: 'Send-page',
@@ -243,7 +242,7 @@ export default {
 
   mounted () {
     const vm = this
-    validateMnemonic.asset = this.getAsset(this.assetId)
+    vm.asset = vm.getAsset(vm.assetId)
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {

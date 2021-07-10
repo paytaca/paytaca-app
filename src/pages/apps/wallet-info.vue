@@ -1,19 +1,31 @@
 <template>
   <div>
     <div>
-      <header-nav title="Wallet Info" backnavpath="/apps"></header-nav>
-      <div id="app">
+      <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0; z-index: 10 !important; background: #ECF3F3;"></header-nav>
+      <div id="app" ref="app">
         <div class="row">
           <div class="col">
-            <p style="font-size: 20px;">BCH Wallet</p>
-            <q-list bordered separator>
+            <p class="section-title">Mnemonic Backup Phrase</p>
+            <q-list bordered separator class="list">
+              <q-item clickable v-ripple @click="copyToClipboard(mnemonic)">
+                <q-item-section>
+                  <q-item-label class="blurry-text">{{ mnemonic }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+        </div>
+        <div class="row" style="margin-top: 20px;">
+          <div class="col">
+            <p class="section-title">BCH Addresses</p>
+            <q-list bordered separator class="list">
               <q-item clickable v-ripple>
                 <q-item-section>
                   <q-item-label caption>Derivation Path</q-item-label>
                   <q-item-label>m/44'/145'/0'</q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item clickable v-ripple @click="copyXpubKey(getWallet('bch').xPubKey)">
+              <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
                 <q-item-section>
                   <q-item-label caption>xPub Key</q-item-label>
                   <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
@@ -22,17 +34,17 @@
             </q-list>
           </div>
         </div>
-        <div class="row" style="margin-top: 40px;">
+        <div class="row" style="margin-top: 20px; margin-bottom: 30px;">
           <div class="col">
-            <p style="font-size: 20px;">SLP Wallet</p>
-            <q-list bordered separator>
+            <p class="section-title">SLP Addresses</p>
+            <q-list bordered separator class="list">
               <q-item clickable v-ripple>
                 <q-item-section>
                   <q-item-label caption>Derivation Path</q-item-label>
                   <q-item-label>m/44'/245'/0'</q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item clickable v-ripple @click="copyXpubKey(getWallet('slp').xPubKey)">
+              <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
                 <q-item-section>
                   <q-item-label caption>xPub Key</q-item-label>
                   <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
@@ -49,31 +61,59 @@
 
 <script>
 import HeaderNav from '../../components/header-nav'
+import { getMnemonic } from '../../utils/wallet'
 
 export default {
   name: 'app-wallet-info',
   components: { HeaderNav },
+  data () {
+    return {
+      mnemonic: ''
+    }
+  },
   methods: {
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
-    copyXpubKey (xpub) {
+    copyToClipboard (xpub) {
       this.$copyText(xpub)
       this.$q.notify({
-        message: 'Copied xPub Key',
-        timeout: 800
+        message: 'Copied to clipboard',
+        timeout: 200
       })
     }
+  },
+  mounted () {
+    const divHeight = screen.availHeight - 70
+    this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
+  },
+  created () {
+    const vm = this
+    getMnemonic().then(function (mnemonic) {
+      vm.mnemonic = mnemonic
+    })
   }
 }
 </script>
 
 <style scoped>
   #app {
-    padding: 20px;
+    padding: 25px;
+    margin-top: 60px;
+    overflow-y: auto;
+    z-index: -10 !important;
   }
   .section-title {
-    font-size: 22px;
-    margin-left: 14px;
+    font-size: 18px;
+    margin-left: 2px;
+    color: #ed5f59;
+  }
+  .list {
+    background-color: #fff;
+    border-radius: 12px;
+  }
+  .blurry-text {
+    color: transparent;
+    text-shadow: 0 0 5px rgba(0,0,0,0.5);
   }
 </style>
