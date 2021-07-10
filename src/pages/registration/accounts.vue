@@ -34,7 +34,7 @@
 
 <script>
 import { Wallet, generateMnemonic } from '../../utils/wallet'
-import Loader from '../../components/Loader.vue'
+import Loader from '../../components/loader'
 
 export default {
   name: 'registration-accounts',

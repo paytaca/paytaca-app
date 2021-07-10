@@ -73,10 +73,6 @@
         </div>
       </form>
     </div>
-
-    <online-pop-message :value="online && sendData.success"/>
-    <offline-pop-message :value="!online && sendData.success && sendData.isMultiSig" :qr-code-payload="sendData.proofOfPayment"/>
-
     <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null">
       <div id="status" style="text-align: center;">
         <label class="swipe-confrim-label">Swipe to Send</label>
@@ -93,9 +89,7 @@
 import { getMnemonic, Wallet } from '../../utils/wallet'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
-import OnlinePopMessage from '../../components/OnlinePopMessage.vue'
-import OfflinePopMessage from '../../components/OfflinePopMessage.vue'
-import Loader from '../../components/Loader.vue'
+import Loader from '../../components/loader'
 import { validateMnemonic } from 'app/src-capacitor/ios/App/public/js/vendor'
 
 export default {
@@ -103,8 +97,6 @@ export default {
 
   components: {
     QrcodeStream,
-    OnlinePopMessage,
-    OfflinePopMessage,
     Loader
   },
 

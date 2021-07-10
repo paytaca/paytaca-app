@@ -1,15 +1,6 @@
 <template>
   <div>
-    <div class="row">
-        <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link :to="{ path: '/'}">
-            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
-          </router-link>
-          <p class="text-center select q-mt-sm text-token" style="font-size: 22px; color: #3B7BF6;">
-            RECEIVE
-          </p>
-        </div>
-    </div>
+    <header-nav title="RECEIVE" backnavpath="/"></header-nav>
     <template v-if="assets">
       <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
@@ -51,12 +42,14 @@
 </template>
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+import HeaderNav from '../../components/header-nav'
 
 export default {
   name: 'Receive-page',
   mixins: [
     walletAssetsMixin
   ],
+  components: { HeaderNav },
   data () {
     return {
       activeBtn: 'btn-bch',

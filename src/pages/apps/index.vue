@@ -2,8 +2,8 @@
   <div>
     <div id="apps">
       <p class="section-title">Applications</p>
-      <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app.name)">
-        <q-icon class="app-icon" size="50px" style="color: #fff" :name="app.iconName" />
+      <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app)">
+        <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : '#d3d3d3'}" :name="app.iconName" />
         <p>{{ app.name }}</p>
       </div>
     </div>
@@ -12,8 +12,6 @@
 </template>
 
 <script>
-import { Notify } from 'quasar'
-
 export default {
   name: 'apps',
   data () {
@@ -22,34 +20,41 @@ export default {
         {
           name: 'Collectibles',
           iconName: 'collections_bookmark',
-          path: ''
+          path: '',
+          active: false
         },
         {
           name: 'Asset Swap',
           iconName: 'swap_horiz',
-          path: ''
+          path: '',
+          active: false
         },
         {
           name: 'Bills Payment',
           iconName: 'receipt_long',
-          path: ''
+          path: '',
+          active: false
         },
-
         {
           name: 'Top Up',
           iconName: 'system_security_update_good',
-          path: ''
+          path: '',
+          active: false
+        },
+        {
+          name: 'Wallet Info',
+          iconName: 'info',
+          path: '/apps/wallet-info',
+          active: true
         }
       ]
     }
   },
   methods: {
-    openApp (name) {
-      Notify.create({
-        message: `${name} app is coming soon!`,
-        position: 'center',
-        color: 'info'
-      })
+    openApp (app) {
+      if (app.active) {
+        this.$router.push(app.path)
+      }
     }
   }
 }
@@ -58,6 +63,7 @@ export default {
 <style scoped>
   #apps {
     padding: 20px;
+    color: #3B7BF6;
   }
   .section-title {
     font-size: 22px;
@@ -84,5 +90,6 @@ export default {
     text-align: center;
     margin-top: 5px;
     width: 75px;
+    color: #000 !important;
   }
 </style>

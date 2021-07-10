@@ -17,13 +17,14 @@
       </div>
       <div class="row">
           <div class="col">
-              <p class="q-ml-lg q-mb-sm payment-methods default-text-color">
+              <p class="q-ml-lg q-mb-sm payment-methods">
                 Assets
                 <q-btn
                   flat
                   padding="none"
                   size="sm"
                   icon="refresh"
+                  style="color: #3B7BF6;"
                   @click="getBalance()"
                 />
               </p>
@@ -99,7 +100,7 @@
 import jsUtils from '../../utils/vanilla.js'
 import { getMnemonic, Wallet } from '../../utils/wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
-import Loader from '../../components/Loader.vue'
+import Loader from '../../components/loader'
 
 export default {
   name: 'Transaction-page',

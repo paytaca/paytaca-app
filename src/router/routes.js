@@ -50,7 +50,8 @@ const routes = [
     path: '/apps',
     component: () => import('layouts/Apps.vue'),
     children: [
-      { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' }
+      { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
+      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' }
     ]
   },
   // Always leave this as last one,
