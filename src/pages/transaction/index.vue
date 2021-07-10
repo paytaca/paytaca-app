@@ -7,7 +7,7 @@
             Your {{ selectedAsset.symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
-            {{ balances[selectedAsset.id] || 0 }}
+            {{ selectedAsset.balance }}
           </p>
         </div>
         <div class="q-space q-pr-lg">
@@ -49,7 +49,7 @@
             <div class="row">
               <q-space />
               <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
-                {{ balances[asset.id] || 0 }}
+                {{ asset.balance }}
               </p>
             </div>
           </div>
@@ -115,9 +115,9 @@ export default {
         id: 'bch',
         symbol: 'BCH',
         name: 'Bitcoin Cash',
-        logo: 'bitcoin-cash-bch-logo.png'
+        logo: 'bitcoin-cash-bch-logo.png',
+        balance: 0
       },
-      balances: {},
       recordTypeMap: {
         incoming: 'RECEIVED',
         outgoing: 'SENT'
@@ -157,7 +157,6 @@ export default {
         const tokenId = id.split('/')[1]
         vm.wallet.SLP.getBalance(tokenId).then(function (response) {
           vm.balanceLoaded = true
-          vm.balances[id] = response.balance
           vm.$store.commit('assets/updateAssetBalance', {
             id: id,
             balance: response.balance
@@ -166,7 +165,6 @@ export default {
       } else {
         vm.wallet.BCH.getBalance().then(function (response) {
           vm.balanceLoaded = true
-          vm.balances[id] = response.balance
           vm.$store.commit('assets/updateAssetBalance', {
             id: id,
             balance: response.balance
