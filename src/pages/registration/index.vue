@@ -6,45 +6,63 @@
         <p style="color: #EAEEFF; font-size: 28px;">Paytaca</p>
       </div>
     </div>
-    <form @submit="submitForm">
-      <div class="row">
-        <div class="get-started q-mt-sm q-pa-lg">
-          <h5 class="q-ma-none get-started-text">Get Started</h5>
-          <p class="dim-text">We'll just need a few basic details</p>
+    <div>
+      <form @submit="submitForm" v-if="show" v-cloak>
+        <div class="row">
+          <div class="get-started q-mt-sm q-pa-lg">
+            <h5 class="q-ma-none get-started-text">Get Started</h5>
+            <p class="dim-text">We'll just need a few basic details</p>
 
-          <div class="row">
-            <div class="col q-mt-sm">
-              <label class="get-started-text">Name</label>
-              <input type="text" class="form-input q-mt-xs">
+            <div class="row">
+              <div class="col q-mt-sm">
+                <label class="get-started-text">Name</label>
+                <input type="text" class="form-input q-mt-xs">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col q-mt-md">
+                <label class="get-started-text">Email</label>
+                <input type="text" class="form-input q-mt-xs" placeholder="Optional">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col q-mt-md">
+                <label class="get-started-text">Mobile Number</label>
+                <input type="text" class="form-input q-mt-xs" placeholder="Optional">
+              </div>
+            </div>
+            <div class="row">
+              <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;">Submit</button>
             </div>
           </div>
-          <div class="row">
-            <div class="col q-mt-md">
-              <label class="get-started-text">Email</label>
-              <input type="text" class="form-input q-mt-xs" placeholder="Optional">
-            </div>
+        </div>
+      </form>
+      <div class="row" v-else style="background: #fff; margin-top: 60px;">
+        <div class="col" v-if="error">
+          <div class="col q-mt-sm" style="text-align: center; font-size: 24px; padding: 30px; color: gray;">
+            Internet connection is required to proceed. &#128533;
           </div>
-          <div class="row">
-            <div class="col q-mt-md">
-              <label class="get-started-text">Mobile Number</label>
-              <input type="text" class="form-input q-mt-xs" placeholder="Optional">
-            </div>
-          </div>
-          <div class="row">
-            <button class="submit-btn q-mt-md" style="background: #3b7bf6; font-size: 18px;">Submit</button>
+        </div>
+        <div class="col" v-else>
+          <div class="col q-mt-sm" style="text-align: center;">
+            <loader></loader>
           </div>
         </div>
       </div>
-    </form>
+    </div>
   </div>
 </template>
 
 <script>
+import Loader from '../../components/loader'
 
 export default {
   name: 'registration-index',
+  components: { Loader },
   data () {
     return {
+      show: false,
+      error: false
     }
   },
   methods: {
@@ -55,11 +73,22 @@ export default {
   },
   created () {
     this.$q.dark.set(false)
+    const vm = this
+    vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {
+      if (response.status === 200) {
+        vm.show = true
+      }
+    }).catch(function () {
+      vm.error = true
+    })
   }
 }
 </script>
 
 <style lang="scss">
+  [v-cloak] {
+      display: none;
+  }
   #registration-container {
     background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
   }
