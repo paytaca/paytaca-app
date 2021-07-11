@@ -34,7 +34,7 @@
             </q-list>
           </div>
         </div>
-        <div class="row" style="margin-top: 20px; margin-bottom: 30px;">
+        <div class="row" style="margin-top: 20px; margin-bottom: 20px;">
           <div class="col">
             <p class="section-title">SLP Addresses</p>
             <q-list bordered separator class="list">
@@ -84,7 +84,7 @@ export default {
     }
   },
   mounted () {
-    const divHeight = screen.availHeight - 70
+    const divHeight = screen.availHeight - 120
     this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
   },
   created () {

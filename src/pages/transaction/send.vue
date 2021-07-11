@@ -1,15 +1,5 @@
 <template>
   <div>
-    <!-- <div class="row">
-        <div class="col q-mt-md q-pl-md text-center q-pr-md">
-          <router-link :to="{ path: '/'}">
-            <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
-          </router-link>
-          <p class="text-center select q-mt-sm text-token" style="font-size: 22px;">
-            SEND {{ asset.symbol }}
-          </p>
-        </div>
-    </div> -->
     <header-nav :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"></header-nav>
     <div class="q-pa-md">
       <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -72,9 +62,13 @@
             <q-input type="number" step="0.0001" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput"></q-input>
           </div>
         </div>
-        <div class="row" v-if="sendError">
+        <div class="row" v-if="sendErrors.length > 0">
           <div class="col q-mt-md" style="color: #da53b2;">
-            {{ sendError }}
+            <ul style="margin-left: -20px;">
+              <li v-for="(error, index) in sendErrors" :key="index">
+                {{ error }}
+              </li>
+            </ul>
           </div>
         </div>
         <div class="row" style="text-align: center;" v-if="sendData.sending">
@@ -82,7 +76,7 @@
         </div>
       </form>
     </div>
-    <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null">
+    <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null && sendErrors.length === 0">
       <div id="status" style="text-align: center;">
         <label class="swipe-confrim-label">Swipe to Send</label>
         <input id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
@@ -148,7 +142,7 @@ export default {
         recipientAddress: '',
         fixedRecipientAddress: false
       },
-      sendError: null,
+      sendErrors: [],
       online: true
     }
   },
@@ -212,39 +206,77 @@ export default {
       return this.$store.getters['global/getWallet'](type)
     },
 
+    validateAddress (address) {
+      let addressIsValid = false
+      let addressType = ''
+      if (this.assetId.indexOf('bch') > -1) {
+        addressType = 'BCH'
+        if (address.indexOf('bitcoincash:') > -1 && address.length === 54) {
+          addressIsValid = true
+        }
+      }
+      if (this.assetId.indexOf('slp/') > -1) {
+        addressType = 'SLP'
+        if (address.indexOf('simpleledger:') > -1 && address.length === 55) {
+          addressIsValid = true
+        }
+      }
+      return { addressType, addressIsValid }
+    },
+
+    validateAmount (amount) {
+      let valid = false
+      if (amount > 0) {
+        valid = true
+      }
+      return valid
+    },
+
     handleSubmit () {
       const vm = this
       const address = this.sendData.recipientAddress
-      vm.sendData.sending = true
-      if (address.indexOf('simpleledger:') > -1) {
-        const tokenId = vm.assetId.split('slp/')[1]
-        const bchWallet = vm.getWallet('bch')
-        const feeFunder = {
-          walletHash: bchWallet.walletHash,
-          mnemonic: vm.wallet.mnemonic,
-          derivationPath: bchWallet.derivationPath
+      const { addressType, addressIsValid } = this.validateAddress(address)
+      const amountIsValid = this.validateAmount(this.sendData.amount)
+      if (addressIsValid || amountIsValid) {
+        vm.sendData.sending = true
+        if (addressType === 'SLP') {
+          const tokenId = vm.assetId.split('slp/')[1]
+          const bchWallet = vm.getWallet('bch')
+          const feeFunder = {
+            walletHash: bchWallet.walletHash,
+            mnemonic: vm.wallet.mnemonic,
+            derivationPath: bchWallet.derivationPath
+          }
+          vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address, feeFunder).then(function (result) {
+            console.log(result)
+            vm.sendData.sending = false
+            if (result.success) {
+              vm.sendData.txid = result.txid
+              vm.$router.push('/')
+            } else {
+              vm.sendErrors.push(result.error)
+            }
+          })
+        } else if (addressType === 'BCH') {
+          vm.wallet.BCH.sendBch(vm.sendData.amount, address).then(function (result) {
+            console.log(result)
+            vm.sendData.sending = false
+            if (result.success) {
+              vm.sendData.txid = result.txid
+              vm.$router.push('/')
+            } else {
+              vm.sendErrors.push(result.error)
+            }
+          })
         }
-        vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address, feeFunder).then(function (result) {
-          console.log(result)
-          vm.sendData.sending = false
-          if (result.success) {
-            vm.sendData.txid = result.txid
-            vm.$router.push('/')
-          } else {
-            vm.sendError = result.error
-          }
-        })
-      } else if (address.indexOf('bitcoincash:') > -1) {
-        vm.wallet.BCH.sendBch(vm.sendData.amount, address).then(function (result) {
-          console.log(result)
-          vm.sendData.sending = false
-          if (result.success) {
-            vm.sendData.txid = result.txid
-            vm.$router.push('/')
-          } else {
-            vm.sendError = result.error
-          }
-        })
+      } else {
+        vm.sendData.sending = false
+        if (!addressIsValid) {
+          vm.sendErrors.push(`Recipient should be a valid ${addressType} address`)
+        }
+        if (!amountIsValid) {
+          vm.sendErrors.push('Send amount should be greater than zero')
+        }
       }
     },
     tiggerRange () {
