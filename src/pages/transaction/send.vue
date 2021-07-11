@@ -208,13 +208,23 @@ export default {
         })
     },
 
+    getWallet (type) {
+      return this.$store.getters['global/getWallet'](type)
+    },
+
     handleSubmit () {
       const vm = this
       const address = this.sendData.recipientAddress
       vm.sendData.sending = true
       if (address.indexOf('simpleledger:') > -1) {
         const tokenId = vm.assetId.split('slp/')[1]
-        vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address).then(function (result) {
+        const bchWallet = vm.getWallet('bch')
+        const feeFunder = {
+          walletHash: bchWallet.walletHash,
+          mnemonic: vm.wallet.mnemonic,
+          derivationPath: bchWallet.derivationPath
+        }
+        vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address, feeFunder).then(function (result) {
           console.log(result)
           vm.sendData.sending = false
           if (result.success) {

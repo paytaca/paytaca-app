@@ -65,6 +65,7 @@ export default {
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
           walletHash: wallet.BCH.walletHash,
+          derivationPath: wallet.BCH.derivationPath,
           lastAddress: address,
           lastWalletIndex: 0
         })
@@ -82,7 +83,8 @@ export default {
       wallet.SLP.getAddress(0).then(function (address) {
         vm.$store.commit('global/updateWallet', {
           type: 'slp',
-          walletHash: wallet.BCH.walletHash,
+          walletHash: wallet.SLP.walletHash,
+          derivationPath: wallet.SLP.derivationPath,
           lastAddress: address,
           lastWalletIndex: 0
         })

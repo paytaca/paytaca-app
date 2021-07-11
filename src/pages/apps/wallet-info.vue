@@ -22,7 +22,7 @@
               <q-item clickable v-ripple>
                 <q-item-section>
                   <q-item-label caption>Derivation Path</q-item-label>
-                  <q-item-label>m/44'/145'/0'</q-item-label>
+                  <q-item-label>{{ getWallet('bch').derivationPath }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
@@ -41,7 +41,7 @@
               <q-item clickable v-ripple>
                 <q-item-section>
                   <q-item-label caption>Derivation Path</q-item-label>
-                  <q-item-label>m/44'/245'/0'</q-item-label>
+                  <q-item-label>{{ getWallet('slp').derivationPath }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
