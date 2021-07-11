@@ -254,7 +254,13 @@ export default {
               vm.sendData.txid = result.txid
               vm.$router.push('/')
             } else {
-              vm.sendErrors.push(result.error)
+              if (result.error.indexOf('not enough balance in sender') > -1) {
+                vm.sendErrors.push('Not enough balance to cover the send amount')
+              } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
+                vm.sendErrors.append('Not enough BCH to cover for transaction fee')
+              } else {
+                vm.sendErrors.push(result.error)
+              }
             }
           })
         } else if (addressType === 'BCH') {
@@ -265,7 +271,11 @@ export default {
               vm.sendData.txid = result.txid
               vm.$router.push('/')
             } else {
-              vm.sendErrors.push(result.error)
+              if (result.error.indexOf('not enough balance in sender') > -1) {
+                vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
+              } else {
+                vm.sendErrors.push(result.error)
+              }
             }
           })
         }
