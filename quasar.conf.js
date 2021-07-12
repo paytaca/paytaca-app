@@ -25,7 +25,8 @@ module.exports = function (/* ctx */) {
       'qrcodecomponent',
       'qrcodereader',
       'clipboard',
-      'footer'
+      'footer',
+      'websocket'
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css

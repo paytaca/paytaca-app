@@ -85,6 +85,34 @@ export default {
     const vm = this
     vm.asset = vm.getAsset(vm.assetId)
     vm.asset.address = vm.getAddress()
+
+    let url
+    let assetType
+    if (vm.assetId.indexOf('slp/') > -1) {
+      assetType = 'slp'
+      url = `wss://watchtower.cash/ws/watch/slp/${vm.asset.address}/`
+    } else {
+      assetType = 'bch'
+      url = `wss://watchtower.cash/ws/watch/bch/${vm.asset.address}/`
+    }
+    vm.$connect(url)
+    vm.$options.sockets.onmessage = function (message) {
+      const data = JSON.parse(message.data)
+      if (assetType === 'slp') {
+        const tokenId = vm.assetId.split('/')[1]
+        if (data.token === tokenId) {
+          vm.$q.notify({
+            message: `${data.amount} ${vm.asset.symbol} received!`,
+            avatar: vm.asset.logo
+          })
+        }
+      } else {
+        vm.$q.notify({
+          message: `${data.amount} ${vm.asset.symbol} received!`,
+          avatar: vm.asset.logo
+        })
+      }
+    }
   }
 }
 </script>

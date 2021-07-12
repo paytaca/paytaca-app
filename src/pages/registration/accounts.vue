@@ -10,7 +10,7 @@
       <div class="get-started q-mt-sm q-pa-lg">
         <h5 class="q-ma-none get-started-text">Mnemonic Backup Phrase</h5>
         <p class="dim-text" v-if="steps === totalSteps">Write on paper and keep it somewhere safe</p>
-        <p class="dim-text" v-else>Generating...[{{ steps }}/{{ totalSteps }}]</p>
+        <p class="dim-text" v-else>Generating...</p>
 
         <div class="row" id="mnemonic">
           <div class="col q-mt-sm" v-if="steps === totalSteps">

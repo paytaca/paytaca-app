@@ -1,4 +1,4 @@
-import Vue from "vue";
-import VueQrcodeReader from "vue-qrcode-reader";
+import Vue from 'vue'
+import VueQrcodeReader from 'vue-qrcode-reader'
 
-Vue.use(VueQrcodeReader);
+Vue.use(VueQrcodeReader)
