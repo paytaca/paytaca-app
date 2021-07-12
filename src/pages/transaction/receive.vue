@@ -78,6 +78,14 @@ export default {
       if (assets.length > 0) {
         return assets[0]
       }
+    },
+    notifyOnReceive (amount, symbol, logo) {
+      const vm = this
+      vm.$q.notify({
+        message: `${amount} ${symbol} received!`,
+        avatar: logo,
+        timeout: 3000
+      })
     }
   },
 
@@ -101,16 +109,18 @@ export default {
       if (assetType === 'slp') {
         const tokenId = vm.assetId.split('/')[1]
         if (data.token === tokenId) {
-          vm.$q.notify({
-            message: `${data.amount} ${vm.asset.symbol} received!`,
-            avatar: vm.asset.logo
-          })
+          vm.notifyOnReceive(
+            data.amount,
+            vm.asset.symbol,
+            vm.asset.logo
+          )
         }
       } else {
-        vm.$q.notify({
-          message: `${data.amount} ${vm.asset.symbol} received!`,
-          avatar: vm.asset.logo
-        })
+        vm.notifyOnReceive(
+          data.amount,
+          vm.asset.symbol,
+          vm.asset.logo
+        )
       }
     }
   }

@@ -53,6 +53,9 @@ module.exports = function (/* ctx */) {
     build: {
       vueRouterMode: 'hash', // available values: 'hash', 'history'
 
+      // Read environment variables from .env file
+      env: require('dotenv').config().parsed,
+
       // transpile: false,
 
       // Add dependencies for transpiling with Babel (Array of string/regex)

@@ -11,7 +11,7 @@ const { SecureStoragePlugin } = Plugins
 const BCHJS = require('@psf/bch-js')
 const bchjs = new BCHJS()
 
-const projectId = 'd9d471d0-9f52-4d5b-8761-e71254f3720f'
+const projectId = process.env.WATCHTOWER_PROJECT_ID
 
 export class Wallet {
   constructor (mnemonic) {
