@@ -2,6 +2,7 @@
 .thumbs.db
 node_modules
 .env
+paytaca.keystore
 
 # Quasar core related directories
 .quasar
