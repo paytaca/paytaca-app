@@ -29,8 +29,12 @@ export default function ({ store }) {
   Router.beforeEach(async (to, from, next) => {
     if (to.path === '/') {
       try {
-        await getMnemonic()
-        next()
+        const mnemonic = await getMnemonic()
+        if (mnemonic) {
+          next()
+        } else {
+          next('/registration')
+        }
       } catch (err) {
         console.log(err)
         next('/registration')

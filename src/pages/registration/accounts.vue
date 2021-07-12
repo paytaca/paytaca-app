@@ -9,22 +9,22 @@
     <div class="row">
       <div class="get-started q-mt-sm q-pa-lg">
         <h5 class="q-ma-none get-started-text">Mnemonic Backup Phrase</h5>
-        <p class="dim-text" v-if="steps === 5">Write on paper and keep it somewhere safe</p>
-        <p class="dim-text" v-else>Generating...</p>
+        <p class="dim-text" v-if="steps === totalSteps">Write on paper and keep it somewhere safe</p>
+        <p class="dim-text" v-else>Generating...[{{ steps }}/{{ totalSteps }}]</p>
 
         <div class="row" id="mnemonic">
-          <div class="col q-mt-sm" v-if="steps === 5">
+          <div class="col q-mt-sm" v-if="steps === totalSteps">
             <ul>
               <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
                 <pre>{{ index + 1 }}</pre><span>{{ word }}</span>
               </li>
             </ul>
           </div>
-          <div class="col q-mt-sm" v-if="steps < 5" style="text-align: center;">
+          <div class="col q-mt-sm" v-if="steps < totalSteps" style="text-align: center;">
             <loader></loader>
           </div>
         </div>
-        <div class="row" v-if="steps === 5">
+        <div class="row" v-if="steps === totalSteps">
           <button class="submit-btn q-mt-md" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px;">Continue</button>
         </div>
       </div>
@@ -42,7 +42,9 @@ export default {
   data () {
     return {
       mnemonic: '',
-      steps: 0
+      steps: 0,
+      totalSteps: 5,
+      bchXpub: ''
     }
   },
   methods: {
@@ -73,6 +75,7 @@ export default {
       })
 
       wallet.BCH.getXPubKey().then(function (xpub) {
+        vm.bchXpub = xpub
         vm.$store.commit('global/updateXPubKey', {
           type: 'bch',
           xPubKey: xpub

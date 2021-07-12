@@ -76,6 +76,17 @@ module.exports = function (/* ctx */) {
         //   loader: 'eslint-loader',
         //   exclude: /node_modules/
         // })
+      },
+
+      chainWebpack (chain) {
+        const nodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin')
+        chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
+        chain.resolve.alias.set('fs', require.resolve('browserfs'))
+      },
+
+      uglifyOptions: {
+        compress: false,
+        mangle: false
       }
     },
 

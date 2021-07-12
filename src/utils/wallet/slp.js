@@ -29,7 +29,7 @@ export class SlpWallet {
   async getXPubKey () {
     const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
     const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-    const childNode = bchjs.HDNode.derivePath(masterHDNode, this.derivationPath)
+    const childNode = masterHDNode.derivePath(this.derivationPath)
     return bchjs.HDNode.toXPub(childNode)
   }
 
