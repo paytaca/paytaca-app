@@ -10,8 +10,9 @@ if [ $# -eq 0 ]
     echo -e "\n${Green}Running Quasar Capacitor build...\n"
     quasar build -m capacitor -T android
     echo -e "\n${Green}Running jarsigner...\n"
-    cd src-capacitor/android/app/build/outputs/apk/release
-    jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore paytaca.keystore app-release-unsigned.apk paytacakey
+    cp paytaca.keystore src-capacitor/android/app/build/outputs/apk/release/
+    cd src-capacitor/android/app/build/outputs/apk/release && \
+      jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore paytaca.keystore app-release-unsigned.apk paytacakey
     echo -e "\n${Green}Running zipalign...\n"
     ~/Library/Android/sdk/build-tools/30.0.2/zipalign -v 4 app-release-unsigned.apk paytaca-$1.apk
     open .

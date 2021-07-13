@@ -10,6 +10,7 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@capacitor/camera": "^1.0.3",
     "@capacitor/cli": "^2.4.5",
     "@capacitor/core": "^2.4.5",
     "@capacitor/storage": "^1.0.3",
