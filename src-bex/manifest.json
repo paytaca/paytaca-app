@@ -1,5 +1,5 @@
 {
-  "name": "paytaca-browser-extension",
+  "name": "Paytaca",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "version": "0.1.0",
   "manifest_version": 2,
@@ -30,9 +30,7 @@
     ]
   }],
   "permissions": [
-    "<all_urls>",
     "storage",
-    "tabs",
     "activeTab"
   ],
   "web_accessible_resources": [
