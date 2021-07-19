@@ -75,8 +75,8 @@ export default {
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
-    copyToClipboard (xpub) {
-      this.$copyText(xpub)
+    copyToClipboard (value) {
+      this.$copyText(value)
       this.$q.notify({
         message: 'Copied to clipboard',
         timeout: 200

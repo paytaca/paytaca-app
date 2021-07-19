@@ -57,40 +57,41 @@
       </div>
     </div>
     <div class="row transaction-row">
-        <div class="col transaction-container">
-            <p class="q-ma-lg transaction-wallet">Transactions</p>
-            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
-                <button class="btn-custom q-mt-none active-transaction-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
-                <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
-                <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
-            </div>
-            <div class="transaction-list">
-              <template v-if="transactionsLoaded && balanceLoaded">
-                <div class="row" v-for="(transaction, index) in filterTransactions()" :key="'tx-' + index">
-                    <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                      <div class="row">
-                        <!-- <div class="q-mr-sm">
-                          <img :src="selectedAsset.logo" width="40">
-                        </div> -->
-                        <div class="col col-transaction">
-                          <div>
-                            <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
-                            <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
-                          </div>
-                          <div class="col">
-                              <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.txid | truncateTxid }}</b></span>
-                              <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                          </div>
+      <transaction ref="transaction"></transaction>
+      <div class="col transaction-container">
+          <p class="q-ma-lg transaction-wallet">Transactions</p>
+          <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
+              <button class="btn-custom q-mt-none active-transaction-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
+              <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
+              <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
+          </div>
+          <div class="transaction-list">
+            <template v-if="transactionsLoaded && balanceLoaded">
+              <div class="row" v-for="(transaction, index) in filterTransactions()" :key="'tx-' + index">
+                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                    <div class="row" @click="showTransactionDetails(transaction)">
+                      <!-- <div class="q-mr-sm">
+                        <img :src="selectedAsset.logo" width="40">
+                      </div> -->
+                      <div class="col col-transaction">
+                        <div>
+                          <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
+                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
+                        </div>
+                        <div class="col">
+                            <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.txid | truncateTxid }}</b></span>
+                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                         </div>
                       </div>
                     </div>
-                </div>
-              </template>
-              <div style="text-align: center;" v-else>
-                <loader></loader>
+                  </div>
               </div>
+            </template>
+            <div style="text-align: center;" v-else>
+              <loader></loader>
             </div>
-        </div>
+          </div>
+      </div>
     </div>
     <footer-menu />
   </div>
@@ -101,13 +102,14 @@ import jsUtils from '../../utils/vanilla.js'
 import { getMnemonic, Wallet } from '../../utils/wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import Loader from '../../components/loader'
+import Transaction from '../../components/transaction'
 
 export default {
   name: 'Transaction-page',
+  components: { Loader, Transaction },
   mixins: [
     walletAssetsMixin
   ],
-  components: { Loader },
   data () {
     return {
       today: new Date().toDateString(),
@@ -147,6 +149,16 @@ export default {
   },
 
   methods: {
+    showTransactionDetails (transaction) {
+      const vm = this
+      const txCheck = setInterval(function () {
+        if (transaction) {
+          transaction.asset = vm.selectedAsset
+          vm.$refs.transaction.show(transaction)
+          clearInterval(txCheck)
+        }
+      }, 100)
+    },
     getBalance (id) {
       const vm = this
       if (!id) {
