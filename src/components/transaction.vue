@@ -2,6 +2,10 @@
   <div id="transaction">
     <q-dialog ref="dialog" full-width>
       <q-card ref="card" v-if="transaction && transaction.asset" style="padding: 20px 10px 5px 0;">
+        <div class="text-h6" style="text-align: center !important; margin-bottom: 10px;">
+          <q-icon v-if="transaction.record_type === 'incoming'" name="arrow_downward" class="record-type-icon"></q-icon>
+          <q-icon v-if="transaction.record_type === 'outgoing'" name="arrow_upward" class="record-type-icon"></q-icon>
+        </div>
         <div class="text-h6" style="text-align: center !important;">
           {{ actionMap[transaction.record_type] }}
         </div>
@@ -19,10 +23,34 @@
                 <q-item-label>{{ formatDate(transaction.date_created) }}</q-item-label>
               </q-item-section>
             </q-item>
-            <q-item clickable v-ripple @click="copyToClipboard(transaction.txid)">
+            <q-item clickable v-ripple @click="copyToClipboard(transaction.txid)" style="overflow-wrap: anywhere;">
               <q-item-section>
-                <q-item-label caption>Transction ID (first 30 characters)</q-item-label>
-                <q-item-label>{{ transaction.txid | truncateTxid }}</q-item-label>
+                <q-item-label caption>Transction ID</q-item-label>
+                <q-item-label>{{ transaction.txid }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
+              <q-item-section>
+                <q-item-label caption>
+                  <span v-if="transaction.senders.length === 1">Sender</span>
+                  <span v-if="transaction.senders.length > 1">Senders</span>
+                </q-item-label>
+                <q-item-label>{{ transaction.senders | concatenate }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
+              <q-item-section>
+                <q-item-label caption>
+                  <span v-if="transaction.recipients.length === 1">Recipient</span>
+                  <span v-if="transaction.recipients.length > 1">Recipients</span>
+                </q-item-label>
+                <q-item-label>{{ transaction.recipients | concatenate }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Transction fee</q-item-label>
+                <q-item-label>{{ transaction.tx_fee / (10**8) }} BCH</q-item-label>
               </q-item-section>
             </q-item>
             <q-item clickable v-ripple @click="copyToClipboard('https://explorer.bitcoin.com/bch/tx/' + transaction.txid)">
@@ -57,6 +85,16 @@ export default {
   filters: {
     truncateTxid (str) {
       return str.substring(0, 30)
+    },
+    concatenate (array) {
+      const addresses = array.map(function (item) {
+        return item[0]
+      })
+      if (addresses.lenght === 1) {
+        return addresses[0]
+      } else {
+        return addresses.join(', ')
+      }
     }
   },
   methods: {
@@ -100,5 +138,12 @@ export default {
   }
   .q-dialog__backdrop {
     background: black;
+  }
+  .record-type-icon {
+    /* color: #3b7bf6; */
+    color: #fff;
+    font-size: 30px;
+    background: #3b7bf6;
+    border-radius: 20px;
   }
 </style>
