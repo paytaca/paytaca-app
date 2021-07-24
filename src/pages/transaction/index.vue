@@ -7,7 +7,10 @@
             Your {{ selectedAsset.symbol }} balance
           </p>
           <p class="text-number-balance default-text-color">
-            {{ selectedAsset.balance }}
+            <span v-if="hideBalances" style="color: transparent;">
+              {{ selectedAsset.balance }}
+            </span>
+            <span v-else>{{ selectedAsset.balance }}</span>
           </p>
         </div>
         <div class="q-space q-pr-lg">
@@ -88,7 +91,7 @@
               </div>
             </template>
             <div style="text-align: center;" v-else>
-              <loader></loader>
+              <loader :hideCallback="toggleHideBalances"></loader>
             </div>
           </div>
       </div>
@@ -113,6 +116,7 @@ export default {
   data () {
     return {
       today: new Date().toDateString(),
+      hideBalances: false,
       selectedAsset: {
         id: 'bch',
         symbol: 'BCH',
@@ -149,12 +153,16 @@ export default {
   },
 
   methods: {
+    toggleHideBalances () {
+      this.hideBalances = !this.hideBalances
+    },
     showTransactionDetails (transaction) {
       const vm = this
       const txCheck = setInterval(function () {
         if (transaction) {
           transaction.asset = vm.selectedAsset
           vm.$refs.transaction.show(transaction)
+          vm.hideBalances = true
           clearInterval(txCheck)
         }
       }, 100)
