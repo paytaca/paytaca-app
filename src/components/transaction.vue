@@ -12,7 +12,12 @@
         <q-card-section class="amount">
           <img :src="transaction.asset.logo" height="30" /> &nbsp;
           <div class="amount-label">
-            {{ transaction.amount }} {{ transaction.asset.symbol }}
+            <template v-if="transaction.record_type === 'outgoing'">
+              {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
+            </template>
+            <template v-else>
+              {{ transaction.amount }} {{ transaction.asset.symbol }}
+            </template>
           </div>
         </q-card-section>
         <q-card-section>
