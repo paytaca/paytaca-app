@@ -87,7 +87,7 @@
 </template>
 
 <script>
-import { getMnemonic, Wallet } from '../../utils/wallet'
+import { getMnemonic, Wallet, Address } from '../../utils/wallet'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
@@ -118,6 +118,7 @@ export default {
     return {
       asset: {},
       wallet: null,
+      walletType: '',
 
       fetchingTokenStats: false,
       tokenStats: null,
@@ -207,21 +208,45 @@ export default {
     },
 
     validateAddress (address) {
+      const vm = this
+      const addressObj = new Address(address)
       let addressIsValid = false
-      let addressType = ''
-      if (this.assetId.indexOf('bch') > -1) {
-        addressType = 'BCH'
-        if (address.indexOf('bitcoincash:') > -1 && address.length === 54) {
-          addressIsValid = true
+      try {
+        if (vm.walletType === 'bch') {
+          if (addressObj.isLegacyAddress()) {
+            addressIsValid = true
+          }
+          if (addressObj.isCashAddress()) {
+            addressIsValid = true
+          }
+          if (addressObj.isMainnetCashAddress()) {
+            addressIsValid = true
+          } else {
+            addressIsValid = false
+          }
         }
-      }
-      if (this.assetId.indexOf('slp/') > -1) {
-        addressType = 'SLP'
-        if (address.indexOf('simpleledger:') > -1 && address.length === 55) {
-          addressIsValid = true
+        if (vm.walletType === 'slp') {
+          if (addressObj.isLegacyAddress()) {
+            // If legacy address is given, reject it as invalid SLP address
+            addressIsValid = false
+          } else {
+            if (addressObj.isSLPAddress()) {
+              addressIsValid = true
+            } else {
+              addressIsValid = false
+            }
+            if (addressObj.isMainnetSLPAddress()) {
+              addressIsValid = true
+            } else {
+              addressIsValid = false
+            }
+          }
         }
+      } catch (err) {
+        addressIsValid = false
+        console.log(err)
       }
-      return { addressType, addressIsValid }
+      return addressIsValid
     },
 
     validateAmount (amount) {
@@ -234,12 +259,13 @@ export default {
 
     handleSubmit () {
       const vm = this
-      const address = this.sendData.recipientAddress
-      const { addressType, addressIsValid } = this.validateAddress(address)
+      let address = this.sendData.recipientAddress
+      const addressObj = new Address(address)
+      const addressIsValid = this.validateAddress(address)
       const amountIsValid = this.validateAmount(this.sendData.amount)
-      if (addressIsValid || amountIsValid) {
+      if (addressIsValid && amountIsValid) {
         vm.sendData.sending = true
-        if (addressType === 'SLP') {
+        if (vm.walletType === 'slp') {
           const tokenId = vm.assetId.split('slp/')[1]
           const bchWallet = vm.getWallet('bch')
           const feeFunder = {
@@ -247,6 +273,7 @@ export default {
             mnemonic: vm.wallet.mnemonic,
             derivationPath: bchWallet.derivationPath
           }
+          address = addressObj.toSLPAddress()
           vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address, feeFunder).then(function (result) {
             console.log(result)
             vm.sendData.sending = false
@@ -263,7 +290,8 @@ export default {
               }
             }
           })
-        } else if (addressType === 'BCH') {
+        } else if (vm.walletType === 'bch') {
+          address = addressObj.toCashAddress()
           vm.wallet.BCH.sendBch(vm.sendData.amount, address).then(function (result) {
             console.log(result)
             vm.sendData.sending = false
@@ -282,7 +310,7 @@ export default {
       } else {
         vm.sendData.sending = false
         if (!addressIsValid) {
-          vm.sendErrors.push(`Recipient should be a valid ${addressType} address`)
+          vm.sendErrors.push(`Recipient should be a valid ${vm.walletType.toUpperCase()} address`)
         }
         if (!amountIsValid) {
           vm.sendErrors.push('Send amount should be greater than zero')
@@ -299,6 +327,12 @@ export default {
   mounted () {
     const vm = this
     vm.asset = vm.getAsset(vm.assetId)
+
+    if (vm.assetId.indexOf('slp/') > -1) {
+      vm.walletType = 'slp'
+    } else {
+      vm.walletType = 'bch'
+    }
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {

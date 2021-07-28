@@ -37,12 +37,40 @@ export async function getMnemonic () {
   return mnemonic
 }
 
-export function toLegacyAddress (cashAddress) {
-  return bchjs.Address.toLegacyAddress(cashAddress)
-}
+export class Address {
+  constructor (address) {
+    this.address = address
+  }
 
-export default {
-  Wallet,
-  generateMnemonic,
-  getMnemonic
+  isLegacyAddress () {
+    return bchjs.Address.isLegacyAddress(this.address)
+  }
+
+  toLegacyAddress () {
+    return bchjs.Address.toLegacyAddress(this.address)
+  }
+
+  toCashAddress () {
+    return bchjs.Address.toCashAddress(this.address)
+  }
+
+  isCashAddress () {
+    return bchjs.Address.isCashAddress(this.address)
+  }
+
+  isMainnetCashAddress () {
+    return bchjs.Address.isMainnetAddress(this.address)
+  }
+
+  isSLPAddress () {
+    return bchjs.SLP.Address.isSLPAddress(this.address)
+  }
+
+  toSLPAddress () {
+    return bchjs.SLP.Address.toSLPAddress(this.address)
+  }
+
+  isMainnetSLPAddress () {
+    return bchjs.SLP.Address.isMainnetAddress(this.address)
+  }
 }

@@ -201,7 +201,6 @@ export default {
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
         vm.wallet.SLP.getTransactions(tokenId).then(function (transactions) {
-          console.log(transactions)
           vm.transactions = transactions
           vm.transactionsLoaded = true
         })

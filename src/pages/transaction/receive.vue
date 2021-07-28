@@ -43,7 +43,7 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import { toLegacyAddress } from '../../utils/wallet'
+import { Address } from '../../utils/wallet'
 
 export default {
   name: 'receive-page',
@@ -109,7 +109,8 @@ export default {
       })
     },
     convertToLegacyAddress (address) {
-      return toLegacyAddress(address)
+      const addressObj = new Address(address)
+      return addressObj.toLegacyAddress()
     }
   },
 
