@@ -2,12 +2,15 @@
   <div id="transaction">
     <q-dialog ref="dialog" full-width @hide="hide">
       <q-card ref="card" v-if="transaction && transaction.asset" style="padding: 20px 10px 5px 0;">
-        <div class="text-h6" style="text-align: center !important; margin-bottom: 10px;">
-          <q-icon v-if="transaction.record_type === 'incoming'" name="arrow_downward" class="record-type-icon"></q-icon>
-          <q-icon v-if="transaction.record_type === 'outgoing'" name="arrow_upward" class="record-type-icon"></q-icon>
+        <div style="right: 10px; top: 10px; position: absolute; background: lightgray; border-radius: 20px;">
+          <q-btn icon="close" flat round dense v-close-popup />
         </div>
         <div class="text-h6" style="text-align: center !important;">
           {{ actionMap[transaction.record_type] }}
+        </div>
+        <div class="text-h6" style="text-align: center !important; margin: 10px 0;">
+          <q-icon v-if="transaction.record_type === 'incoming'" name="arrow_downward" class="record-type-icon"></q-icon>
+          <q-icon v-if="transaction.record_type === 'outgoing'" name="arrow_upward" class="record-type-icon"></q-icon>
         </div>
         <q-card-section class="amount">
           <img :src="transaction.asset.logo" height="30" /> &nbsp;
