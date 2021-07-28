@@ -37,6 +37,10 @@ export async function getMnemonic () {
   return mnemonic
 }
 
+export function toLegacyAddress (cashAddress) {
+  return bchjs.Address.toLegacyAddress(cashAddress)
+}
+
 export default {
   Wallet,
   generateMnemonic,

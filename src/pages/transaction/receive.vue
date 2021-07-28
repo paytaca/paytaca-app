@@ -2,22 +2,32 @@
   <div>
     <header-nav :title="'RECEIVE ' + asset.symbol" backnavpath="/receive/select-asset"></header-nav>
     <div class="row">
-      <div class="col qr-code-container" @click="copyAddress">
+      <div class="col qr-code-container">
           <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
-            <div class="row text-center">
+            <div class="row text-center" @click="copyAddress">
               <div class="col row justify-center q-pt-md">
                 <img :src="asset.logo" height="60" style="position: absolute; margin-top: 80px; background: #fff;">
-                <qr-code :text="asset.address" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
+                <qr-code :text="address" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
               </div>
             </div>
           </div>
+          <div style="text-align: center;" @click="showOptions = !showOptions">
+            <q-btn :icon="showOptions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" flat round dense />
+          </div>
       </div>
+    </div>
+    <div class="row" v-if="showOptions">
+      <q-toggle
+        style="margin: auto;"
+        v-model="legacy"
+        label="Legacy Address"
+      />
     </div>
     <div class="row">
       <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
         <span class="qr-code-text text-weight-medium">
           <div class="text-nowrap" @click="copyAddress">
-            {{ asset.address }}
+            {{ address }}
             <div class="row" style="margin-top: -20px;">
               <div class="col q-ma-sm q-mb-md">
                 <i class="eva eva-copy-outline icon-copy float-right q-mr-md"></i>
@@ -33,6 +43,7 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
+import { toLegacyAddress } from '../../utils/wallet'
 
 export default {
   name: 'receive-page',
@@ -44,10 +55,11 @@ export default {
     return {
       activeBtn: 'btn-bch',
       asset: {},
-      assetLoaded: false
+      assetLoaded: false,
+      showOptions: false,
+      legacy: false
     }
   },
-
   props: {
     assetId: {
       type: String,
@@ -55,7 +67,16 @@ export default {
       default: ''
     }
   },
-
+  computed: {
+    address () {
+      const address = this.getAddress()
+      if (this.legacy) {
+        return this.convertToLegacyAddress(address)
+      } else {
+        return address
+      }
+    }
+  },
   methods: {
     getAddress () {
       let walletType
@@ -67,7 +88,7 @@ export default {
       return this.$store.getters['global/getAddress'](walletType)
     },
     copyAddress () {
-      this.$copyText(this.asset.address)
+      this.$copyText(this.address)
       this.$q.notify({
         message: 'Copied address',
         timeout: 800
@@ -86,13 +107,16 @@ export default {
         avatar: logo,
         timeout: 3000
       })
+    },
+    convertToLegacyAddress (address) {
+      return toLegacyAddress(address)
     }
   },
 
   created () {
     const vm = this
     vm.asset = vm.getAsset(vm.assetId)
-    vm.asset.address = vm.getAddress()
+    // vm.asset.address = vm.getAddress()
 
     let url
     let assetType
