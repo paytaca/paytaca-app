@@ -11,7 +11,7 @@
               </div>
             </div>
           </div>
-          <div style="text-align: center;" @click="showOptions = !showOptions">
+          <div style="text-align: center;" v-if="walletType === 'bch'" @click="showOptions = !showOptions">
             <q-btn :icon="showOptions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" flat round dense />
           </div>
       </div>
@@ -54,6 +54,7 @@ export default {
   data () {
     return {
       activeBtn: 'btn-bch',
+      walletType: '',
       asset: {},
       assetLoaded: false,
       showOptions: false,
@@ -79,13 +80,12 @@ export default {
   },
   methods: {
     getAddress () {
-      let walletType
       if (this.assetId.indexOf('slp/') > -1) {
-        walletType = 'slp'
+        this.walletType = 'slp'
       } else {
-        walletType = 'bch'
+        this.walletType = 'bch'
       }
-      return this.$store.getters['global/getAddress'](walletType)
+      return this.$store.getters['global/getAddress'](this.walletType)
     },
     copyAddress () {
       this.$copyText(this.address)
