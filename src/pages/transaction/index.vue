@@ -33,7 +33,7 @@
               </p>
           </div>
       </div>
-      <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" style="overflow: scroll;" id="asset-container">
+      <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container">
           <!-- <button class="btn-add-payment-method q-ml-lg" style="margin-right: 10px !important">+</button> -->
           <div
             v-for="(asset, index) in assets"
@@ -287,6 +287,14 @@ export default {
     top: 0pt !important;
     right: 0pt;
     left: 0pt;
+  }
+  #asset-container {
+    overflow: scroll;
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  #asset-container::-webkit-scrollbar {
+      display: none;  /* Safari and Chrome */
   }
   .fixed-footer {
     position: fixed;
