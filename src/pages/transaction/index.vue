@@ -34,7 +34,6 @@
           </div>
       </div>
       <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container">
-          <!-- <button class="btn-add-payment-method q-ml-lg" style="margin-right: 10px !important">+</button> -->
           <div
             v-for="(asset, index) in assets"
             :key="index"
@@ -56,6 +55,7 @@
               </p>
             </div>
           </div>
+          <button class="btn-add-payment-method q-ml-lg">+</button>
           <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
       </div>
     </div>
@@ -404,7 +404,8 @@ export default {
     padding: 34px 20px 34px 20px;
     border-radius: 16px;
     font-size: 20px;
-    height: 110px;
+    height: 100px;
+    margin-left: 15px;
   }
   .method-cards {
     height: 100px;
