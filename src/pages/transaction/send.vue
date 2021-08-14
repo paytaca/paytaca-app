@@ -51,15 +51,15 @@
       </div>
     </div>
     <div class="q-px-lg" v-if="sendData.recipientAddress !== ''">
-      <form class="q-pa-sm" @submit.prevent="handleSubmit">
+      <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
         <div class="row">
           <div class="col q-mt-sm se">
-            <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput"></q-input>
+            <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput" :readonly="disableRecipientInput"></q-input>
           </div>
         </div>
         <div class="row">
           <div class="col q-mt-md">
-            <q-input type="number" step="0.0001" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput"></q-input>
+            <q-input type="number" step="0.0001" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableRecipientInput"></q-input>
           </div>
         </div>
         <div class="row" v-if="sendErrors.length > 0">
@@ -154,6 +154,22 @@ export default {
     },
     disableAmountInput () {
       return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount
+    }
+  },
+
+  watch: {
+    'sendData.recipientAddress': function (address) {
+      let amount
+      const addressParse = new URLSearchParams(address.split('?')[1])
+      if (addressParse.has('amount')) {
+        amount = parseFloat(addressParse.get('amount'))
+      }
+      if (amount) {
+        this.sendData.amount = amount
+        this.sendData.fixedAmount = true
+        this.sendData.recipientAddress = address.split('?')[0]
+        this.sendData.fixedRecipientAddress = true
+      }
     }
   },
 
