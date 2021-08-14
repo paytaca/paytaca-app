@@ -28,6 +28,7 @@
     "randombytes": "^2.1.0",
     "slp-mdm": "0.0.7",
     "vue-clipboard2": "^0.3.1",
+    "vue-gravatar": "^1.4.1",
     "vue-i18n": "^8.0.0",
     "vue-native-websocket": "^2.0.14",
     "vue-qrcode-component": "^2.1.1",
