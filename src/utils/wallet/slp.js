@@ -67,6 +67,12 @@ export class SlpWallet {
     return request
   }
 
+  async getCollectibles () {
+    const walletHash = this.getWalletHash()
+    const request = await this.watchtower.Wallet.getTokens({ walletHash, tokenType: 65 })
+    return request
+  }
+
   async sendSlp (amount, tokenId, recipient, feeFunder) {
     console.log(`Sending ${amount} of SLP token ${tokenId} to ${recipient}`)
     const data = {

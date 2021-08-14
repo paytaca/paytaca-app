@@ -51,7 +51,8 @@ const routes = [
     component: () => import('layouts/Apps.vue'),
     children: [
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
-      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' }
+      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
+      { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' }
     ]
   },
   // Always leave this as last one,

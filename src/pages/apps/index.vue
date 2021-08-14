@@ -3,7 +3,7 @@
     <div id="apps">
       <p class="section-title">Applications</p>
       <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app)">
-        <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : '#d3d3d3'}" :name="app.iconName" />
+        <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : 'gray'}" :name="app.iconName" />
         <p>{{ app.name }}</p>
       </div>
     </div>
@@ -18,10 +18,16 @@ export default {
     return {
       apps: [
         {
+          name: 'Wallet Info',
+          iconName: 'info',
+          path: '/apps/wallet-info',
+          active: true
+        },
+        {
           name: 'Collectibles',
           iconName: 'collections_bookmark',
-          path: '',
-          active: false
+          path: '/apps/collectibles',
+          active: true
         },
         {
           name: 'Asset Swap',
@@ -40,12 +46,6 @@ export default {
           iconName: 'system_security_update_good',
           path: '',
           active: false
-        },
-        {
-          name: 'Wallet Info',
-          iconName: 'info',
-          path: '/apps/wallet-info',
-          active: true
         }
       ]
     }
