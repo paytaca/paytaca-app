@@ -2,6 +2,9 @@
   <div>
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; z-index: 10 !important; background: #ECF3F3;"></header-nav>
     <div style="margin-top:70px; padding: 10px 50px;">
+      <div style="text-align: center; margin-top: 40px;" v-if="!collectiblesLoaded">
+        <loader />
+      </div>
       <template v-if="collectibles.length > 0">
         <q-card
           v-for="(collectible, index) in collectibles"
@@ -29,12 +32,9 @@
           </q-card-section>
         </q-card>
       </template>
-      <template v-else>
+      <template v-if="collectibles.length === 0 && collectiblesLoaded">
         <p style="font-size: 24px; color: gray; text-align: center; margin-top: 30px;">
-          You don't own any collectibles yet. You can buy some from
-          <a href="https://juungle.net" target="_blank" style="text-decoration: none;">
-            Juungle
-          </a>.
+          You don't own any collectibles yet.
         </p>
       </template>
     </div>
@@ -44,11 +44,12 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../utils/wallet'
+import Loader from '../../components/loader'
 import Gravatar from 'vue-gravatar'
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav, Gravatar },
+  components: { HeaderNav, Gravatar, Loader },
   data () {
     return {
       collectibles: [],
@@ -69,7 +70,7 @@ export default {
     const vm = this
     getMnemonic().then(function (mnemonic) {
       vm.wallet = new Wallet(mnemonic)
-      // vm.getCollectibles()
+      vm.getCollectibles()
     })
   }
 }
