@@ -1,14 +1,14 @@
 <template>
   <div>
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; z-index: 10 !important; background: #ECF3F3;"></header-nav>
-    <div style="margin-top:100px;">
+    <div style="margin-top:70px; padding: 30px;">
       <q-card
         v-for="(collectible, index) in collectibles"
         :key="index"
         class="collectible-card"
       >
         <img :src="collectible.image_url">
-        <q-card-section>
+        <q-card-section style="text-align: center;">
           <div class="text-h6">{{ collectible.name }}</div>
         </q-card-section>
       </q-card>
