@@ -304,6 +304,7 @@ export default {
 
     selectAsset (event, asset) {
       this.selectedAsset = asset
+      this.getBalance()
       this.getTransactions()
 
       // Scroll by y-axis first then x-axis
