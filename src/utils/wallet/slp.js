@@ -2,6 +2,7 @@ const Watchtower = require('watchtower-cash-js')
 const BCHJS = require('@psf/bch-js')
 const sha256 = require('js-sha256')
 const bchjs = new BCHJS()
+import axios from 'axios'
 
 export class SlpWallet {
   constructor (projectId, mnemonic, path) {
@@ -71,6 +72,12 @@ export class SlpWallet {
     const walletHash = this.getWalletHash()
     const request = await this.watchtower.Wallet.getTokens({ walletHash, tokenType: 65 })
     return request
+  }
+
+  async getSlpTokenDetails (tokenId) {
+    const url = `https://watchtower.cash/api/tokens/${tokenId}/`
+    const request = await axios.get(url)
+    return request.data
   }
 
   async sendSlp (amount, tokenId, recipient, feeFunder) {

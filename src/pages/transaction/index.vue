@@ -150,7 +150,11 @@ export default {
 
   computed: {
     assets () {
-      return this.$store.getters['assets/getAssets']
+      return this.$store.getters['assets/getAssets'].filter(function (item) {
+        if (item) {
+          return item
+        }
+      })
     }
   },
 
@@ -190,17 +194,19 @@ export default {
       }).onCancel(() => {
       })
     },
-    addAsset (asset) {
+    addAsset (tokenId) {
       const vm = this
-      const newAsset = {
-        id: `slp/${asset}`,
-        symbol: 'BDO',
-        name: 'Banko de Oro',
-        logo: 'bdo.png',
-        balance: 0,
-        method_status: true
-      }
-      vm.assets.push(newAsset)
+      this.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
+        console.log(details)
+        const asset = {
+          id: details.id,
+          symbol: details.symbol,
+          name: details.name,
+          logo: details.image_url,
+          balance: 0
+        }
+        vm.$store.commit('assets/addNewAsset', asset)
+      })
     },
     toggleHideBalances () {
       this.hideBalances = !this.hideBalances

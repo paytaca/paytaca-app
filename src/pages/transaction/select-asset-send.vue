@@ -59,7 +59,11 @@ export default {
   },
   computed: {
     assets () {
-      return this.$store.getters['assets/getAssets']
+      return this.$store.getters['assets/getAssets'].filter(function (item) {
+        if (item) {
+          return item
+        }
+      })
     }
   }
 }
