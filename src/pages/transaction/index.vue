@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div @click="() => { if (manageAssets === true) { manageAssets = false } }">
     <div class="fixed-container">
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
@@ -40,7 +40,15 @@
             class="method-cards q-pa-md q-mr-none"
             @click="(event) => {
               selectAsset(event, asset)
-            }" v-touch-hold.5000mouse="event => removeAsset(asset, event)">
+            }"
+            v-touch-hold.5000mouse="toggleManageAssets"
+          >
+            <div
+              v-if="manageAssets && asset.symbol !== 'BCH'"
+              @click="event => removeAsset(asset, event)"
+              style="float: right; width: 20px; margin-top: -10px;">
+              <q-btn icon="close" flat round dense v-close-popup />
+            </div>
             <div class="row items-start no-wrap justify-between">
               <img :src="asset.logo" height="40" class="q-mr-xs">
               <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
@@ -54,7 +62,7 @@
               </p>
             </div>
           </div>
-          <button class="btn-add-payment-method q-ml-lg shadow-4" @click="addPaymentMethod">+</button>
+          <button v-if="manageAssets" class="btn-add-payment-method q-ml-lg shadow-4" @click="addNewAsset">+</button>
           <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
       </div>
     </div>
@@ -105,7 +113,7 @@ import { getMnemonic, Wallet } from '../../utils/wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import Loader from '../../components/loader'
 import Transaction from '../../components/transaction'
-import AddPaymetMethod from '../../pages/transaction/dialog/AddPaymentMethod'
+import AddNewAsset from '../../pages/transaction/dialog/AddNewAsset'
 import RemovePaymetMethod from '../../pages/transaction/dialog/RemovePaymentMethod'
 
 export default {
@@ -136,15 +144,15 @@ export default {
       balanceLoaded: false,
       wallet: null,
       paymentMethods: null,
-      assets: null
+      manageAssets: false
     }
   },
 
-  // computed: {
-  //   assets () {
-  //     return this.$store.getters['assets/getAssets']
-  //   }
-  // },
+  computed: {
+    assets () {
+      return this.$store.getters['assets/getAssets']
+    }
+  },
 
   filters: {
     titleCase (str) {
@@ -156,6 +164,9 @@ export default {
   },
 
   methods: {
+    toggleManageAssets () {
+      this.manageAssets = !this.manageAssets
+    },
     removeAsset (method, { evt, ...newInfo }) {
       const vm = this
       const assetName = method.name
@@ -169,10 +180,10 @@ export default {
       }).onCancel(() => {
       })
     },
-    addPaymentMethod () {
+    addNewAsset () {
       const vm = this
       vm.$q.dialog({
-        component: AddPaymetMethod,
+        component: AddNewAsset,
         parent: vm
       }).onOk((asset) => {
         vm.addAsset(asset)
@@ -181,7 +192,6 @@ export default {
     },
     addAsset (asset) {
       const vm = this
-      /* Sample adding of asset **/
       const newAsset = {
         id: `slp/${asset}`,
         symbol: 'BDO',
@@ -190,10 +200,7 @@ export default {
         balance: 0,
         method_status: true
       }
-      console.log('New asset: ', newAsset)
       vm.assets.push(newAsset)
-
-      console.log('Assets list: ', vm.assets)
     },
     toggleHideBalances () {
       this.hideBalances = !this.hideBalances
@@ -305,38 +312,38 @@ export default {
     }
   },
 
-  created () {
-    this.assets = [
-      {
-        id: 'bch',
-        symbol: 'BCH',
-        name: 'Bitcoin Cash',
-        logo: 'bch-logo.png',
-        balance: 0
-      },
-      {
-        id: 'slp/4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf',
-        symbol: 'SPICE',
-        name: 'SPICE',
-        logo: 'spice-logo.png',
-        balance: 0
-      },
-      {
-        id: 'slp/7f8889682d57369ed0e32336f8b7e0ffec625a35cca183f4e81fde4e71a538a1',
-        symbol: 'HONK',
-        name: 'HONK',
-        logo: 'honk-logo.png',
-        balance: 0
-      },
-      {
-        id: 'slp/a013d636dcadc71f7e11d7880e9e8b62295e772cf1a24180f74d0eca62604136',
-        symbol: 'ORB',
-        name: 'ORB',
-        logo: 'orb-logo.png',
-        balance: 0
-      }
-    ]
-  },
+  // created () {
+  //   this.assets = [
+  //     {
+  //       id: 'bch',
+  //       symbol: 'BCH',
+  //       name: 'Bitcoin Cash',
+  //       logo: 'bch-logo.png',
+  //       balance: 0
+  //     },
+  //     {
+  //       id: 'slp/4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf',
+  //       symbol: 'SPICE',
+  //       name: 'SPICE',
+  //       logo: 'spice-logo.png',
+  //       balance: 0
+  //     },
+  //     {
+  //       id: 'slp/7f8889682d57369ed0e32336f8b7e0ffec625a35cca183f4e81fde4e71a538a1',
+  //       symbol: 'HONK',
+  //       name: 'HONK',
+  //       logo: 'honk-logo.png',
+  //       balance: 0
+  //     },
+  //     {
+  //       id: 'slp/a013d636dcadc71f7e11d7880e9e8b62295e772cf1a24180f74d0eca62604136',
+  //       symbol: 'ORB',
+  //       name: 'ORB',
+  //       logo: 'orb-logo.png',
+  //       balance: 0
+  //     }
+  //   ]
+  // },
 
   mounted () {
     const vm = this

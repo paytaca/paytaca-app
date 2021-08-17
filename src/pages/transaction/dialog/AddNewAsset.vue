@@ -3,7 +3,7 @@
     <q-card class="q-dialog-plugin">
 
         <q-card-section>
-            <strong>Add Payment Method</strong>
+            <strong>Add SLP Token</strong>
         </q-card-section>
 
         <q-separator />

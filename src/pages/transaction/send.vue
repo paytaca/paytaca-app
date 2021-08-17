@@ -59,7 +59,7 @@
         </div>
         <div class="row">
           <div class="col q-mt-md">
-            <q-input type="number" step="0.0001" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableRecipientInput"></q-input>
+            <q-input type="number" step="0.0001" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
           </div>
         </div>
         <div class="row" v-if="sendErrors.length > 0">
@@ -163,12 +163,13 @@ export default {
       const addressParse = new URLSearchParams(address.split('?')[1])
       if (addressParse.has('amount')) {
         amount = parseFloat(addressParse.get('amount'))
-      }
-      if (amount) {
-        this.sendData.amount = amount
-        this.sendData.fixedAmount = true
-        this.sendData.recipientAddress = address.split('?')[0]
-        this.sendData.fixedRecipientAddress = true
+
+        if (amount !== null) {
+          this.sendData.amount = amount
+          this.sendData.fixedAmount = true
+          this.sendData.recipientAddress = address.split('?')[0]
+          this.sendData.fixedRecipientAddress = true
+        }
       }
     }
   },
