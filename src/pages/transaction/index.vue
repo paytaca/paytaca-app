@@ -45,7 +45,7 @@
           >
             <div
               v-if="manageAssets && asset.symbol !== 'BCH'"
-              @click="event => removeAsset(asset, event)"
+              @click="() => removeAsset(asset)"
               style="float: right; width: 20px; margin-top: -10px;">
               <q-btn icon="close" flat round dense v-close-popup />
             </div>
@@ -171,16 +171,15 @@ export default {
     toggleManageAssets () {
       this.manageAssets = !this.manageAssets
     },
-    removeAsset (method, { evt, ...newInfo }) {
+    removeAsset (asset) {
       const vm = this
-      const assetName = method.name
+      const assetName = asset.name
       vm.$q.dialog({
         component: RemovePaymetMethod,
         parent: vm,
         assetName
       }).onOk(() => {
-        const assetIndex = vm.assets.findIndex(asset => asset.id === method.id)
-        vm.assets.splice(assetIndex, 1)
+        vm.$store.commit('assets/removeAsset', asset.id)
       }).onCancel(() => {
       })
     },
@@ -197,7 +196,6 @@ export default {
     addAsset (tokenId) {
       const vm = this
       this.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
-        console.log(details)
         const asset = {
           id: details.id,
           symbol: details.symbol,
@@ -205,7 +203,9 @@ export default {
           logo: details.image_url,
           balance: 0
         }
-        vm.$store.commit('assets/addNewAsset', asset)
+        if (details.symbol.length > 0 && details.token_type === 1) {
+          vm.$store.commit('assets/addNewAsset', asset)
+        }
       })
     },
     toggleHideBalances () {

@@ -11,3 +11,15 @@ export function updateAssetBalance (state, data) {
 export function addNewAsset (state, asset) {
   state.assets.push(asset)
 }
+
+export function removeAsset (state, assetId) {
+  let assetIndex
+  state.assets.map(function (asset, index) {
+    if (asset && asset.id === assetId) {
+      assetIndex = index
+    }
+  })
+  if (assetIndex) {
+    state.assets.splice(assetIndex, 1)
+  }
+}
