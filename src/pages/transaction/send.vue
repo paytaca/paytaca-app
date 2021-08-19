@@ -274,6 +274,23 @@ export default {
       return valid
     },
 
+    playSound (success) {
+      if (success) {
+        const audio = new Audio('/audio/send-success.wav')
+        audio.play()
+      }
+    },
+
+    notifyOnSend (amount, symbol, logo) {
+      const vm = this
+      vm.playSound(true)
+      vm.$q.notify({
+        message: `${amount} ${symbol} sent!`,
+        avatar: logo,
+        timeout: 3000
+      })
+    },
+
     handleSubmit () {
       const vm = this
       let address = this.sendData.recipientAddress
@@ -296,6 +313,11 @@ export default {
             vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid
+              vm.notifyOnSend(
+                vm.sendData.amount,
+                vm.asset.symbol,
+                vm.asset.logo
+              )
               vm.$router.push('/')
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {

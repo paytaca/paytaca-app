@@ -8,9 +8,9 @@
           </p>
           <p class="text-number-balance default-text-color">
             <span v-if="hideBalances" style="color: transparent;">
-              {{ selectedAsset.balance }}
+              {{ String(selectedAsset.balance).substring(0, 10) }}
             </span>
-            <span v-else>{{ selectedAsset.balance }}</span>
+            <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
           </p>
         </div>
         <div class="q-space q-pr-lg">

@@ -100,8 +100,15 @@ export default {
         return assets[0]
       }
     },
+    playSound (success) {
+      if (success) {
+        const audio = new Audio('/audio/send-success.wav')
+        audio.play()
+      }
+    },
     notifyOnReceive (amount, symbol, logo) {
       const vm = this
+      vm.playSound(true)
       vm.$q.notify({
         message: `${amount} ${symbol} received!`,
         avatar: logo,
