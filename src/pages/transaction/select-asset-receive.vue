@@ -7,24 +7,26 @@
           <p class="slp_tokens q-mb-sm">SELECT ASSET TO BE RECEIVED</p>
         </div>
       </div>
-      <div
-        v-for="(asset, index) in assets"
-        :key="index"
-        @click="$router.push({ name: 'transaction-receive', query: { assetId: asset.id } })"
-        role="button"
-        class="row q-pl-lg q-pr-lg token-link"
-      >
-        <div class="col row group-currency q-mb-sm">
-          <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
-            <div><img :src="asset.logo" width="50"></div>
-            <div class="col q-pl-sm q-pr-sm">
-              <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px; color: #444655;">
-                {{ asset.name }}
-              </p>
-              <p class="q-ma-none asset" style="font-size: 18px; color: #444655;">
-                {{ asset.balance }}
-                {{ asset.symbol }}
-              </p>
+      <div ref="assetsList" style="overflow-y: scroll; padding-bottom: 20px;">
+        <div
+          v-for="(asset, index) in assets"
+          :key="index"
+          @click="$router.push({ name: 'transaction-receive', query: { assetId: asset.id } })"
+          role="button"
+          class="row q-pl-lg q-pr-lg token-link"
+        >
+          <div class="col row group-currency q-mb-sm">
+            <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
+              <div><img :src="asset.logo" width="50"></div>
+              <div class="col q-pl-sm q-pr-sm">
+                <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px; color: #444655;">
+                  {{ asset.name }}
+                </p>
+                <p class="q-ma-none asset" style="font-size: 18px; color: #444655;">
+                  {{ asset.balance }}
+                  {{ asset.symbol }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -65,6 +67,9 @@ export default {
         }
       })
     }
+  },
+  mounted () {
+    this.$refs.assetsList.style.height = (screen.height * 0.7) + 'px'
   }
 }
 </script>

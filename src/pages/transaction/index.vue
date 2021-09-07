@@ -50,7 +50,7 @@
               <q-btn icon="close" flat round dense v-close-popup />
             </div>
             <div class="row items-start no-wrap justify-between">
-              <img :src="asset.logo" height="40" class="q-mr-xs">
+              <img :src="asset.logo" height="30" class="q-mr-xs">
               <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
                 {{ asset.symbol }}
               </p>
