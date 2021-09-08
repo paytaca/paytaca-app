@@ -31,6 +31,12 @@
                   <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
+                <q-item-section>
+                  <q-item-label caption>Wallet Hash</q-item-label>
+                  <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
+                </q-item-section>
+              </q-item>
             </q-list>
           </div>
         </div>
@@ -48,6 +54,12 @@
                 <q-item-section>
                   <q-item-label caption>xPub Key</q-item-label>
                   <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
+                <q-item-section>
+                  <q-item-label caption>Wallet Hash</q-item-label>
+                  <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>

@@ -58,7 +58,7 @@
             <div class="row">
               <q-space />
               <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
-                {{ asset.balance }}
+                {{ String(asset.balance).substring(0, 10) }}
               </p>
             </div>
           </div>
@@ -89,7 +89,7 @@
                           <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
                         </div>
                         <div class="col">
-                            <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.txid | truncateTxid }}</b></span>
+                            <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.date_created | formatDate }}</b></span>
                             <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                         </div>
                       </div>
@@ -115,6 +115,8 @@ import Loader from '../../components/loader'
 import Transaction from '../../components/transaction'
 import AddNewAsset from '../../pages/transaction/dialog/AddNewAsset'
 import RemovePaymetMethod from '../../pages/transaction/dialog/RemovePaymentMethod'
+
+const ago = require('s-ago')
 
 export default {
   name: 'Transaction-page',
@@ -164,6 +166,9 @@ export default {
     },
     truncateTxid (str) {
       return str.substring(0, 30)
+    },
+    formatDate (date) {
+      return ago(new Date(date))
     }
   },
 

@@ -61,11 +61,11 @@
                 <q-item-label>{{ transaction.tx_fee / (10**8) }} BCH</q-item-label>
               </q-item-section>
             </q-item>
-            <q-item clickable v-ripple @click="copyToClipboard('https://explorer.bitcoin.com/bch/tx/' + transaction.txid)">
+            <q-item clickable v-ripple @click="copyToClipboard('https://blockchair.com/bitcoin-cash/transaction/' + transaction.txid)">
               <q-item-section>
                 <q-item-label caption>Explorer Link</q-item-label>
                 <q-item-label>
-                  <a :href="'https://explorer.bitcoin.com/bch/tx/' + transaction.txid" style="color: #3b7bf6; text-decoration: none;">
+                  <a :href="'https://blockchair.com/bitcoin-cash/transaction/' + transaction.txid" style="color: #3b7bf6; text-decoration: none;">
                     View in block explorer
                   </a>
                 </q-item-label>
@@ -100,10 +100,11 @@ export default {
       return str.substring(0, 30)
     },
     concatenate (array) {
-      const addresses = array.map(function (item) {
+      let addresses = array.map(function (item) {
         return item[0]
       })
-      if (addresses.lenght === 1) {
+      addresses = [...new Set(addresses)]
+      if (addresses.length === 1) {
         return addresses[0]
       } else {
         return addresses.join(', ')

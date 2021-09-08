@@ -26,6 +26,7 @@
     "js-sha256": "^0.9.0",
     "quasar": "^1.15.15",
     "randombytes": "^2.1.0",
+    "s-ago": "^2.2.0",
     "slp-mdm": "0.0.7",
     "vue-clipboard2": "^0.3.1",
     "vue-gravatar": "^1.4.1",

@@ -16,7 +16,7 @@
 
         <q-card-actions align="right">
             <q-btn rounded class="btn-add-payment text-white" padding="0.5em 1.5em 0.5em 1.5em" label="Continue" @click="onOKClick" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" label="close" @click="onCancelClick" />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" label="cancel" @click="onCancelClick" />
         </q-card-actions>
     </q-card>
   </q-dialog>
