@@ -120,6 +120,10 @@ export default {
       type: Number,
       required: false
     },
+    fixed: {
+      type: Boolean,
+      required: false
+    },
     recipient: {
       type: String,
       required: false
@@ -384,7 +388,7 @@ export default {
     const vm = this
     if (vm.assetId && vm.amount && vm.recipient) {
       vm.sendData.amount = vm.amount
-      vm.sendData.fixedAmount = true
+      vm.sendData.fixedAmount = vm.fixed
       vm.sendData.recipientAddress = vm.recipient
       vm.sendData.fixedRecipientAddress = true
       vm.scanner.show = false

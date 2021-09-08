@@ -40,7 +40,7 @@
             </q-list>
           </div>
         </div>
-        <div class="row" style="margin-top: 20px; margin-bottom: 30px;">
+        <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
           <div class="col">
             <p class="section-title">SLP Addresses</p>
             <q-list bordered separator class="list">

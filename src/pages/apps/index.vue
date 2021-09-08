@@ -2,9 +2,16 @@
   <div>
     <div id="apps">
       <p class="section-title">Applications</p>
-      <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app)">
-        <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : 'gray'}" :name="app.iconName" />
-        <p>{{ app.name }}</p>
+      <div ref="apps" style="margin-left: auto; margin-right: auto;">
+        <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app)">
+          <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : 'gray'}" :name="app.iconName" />
+          <p>{{ app.name }}</p>
+        </div>
+
+        <div style="margin-top: 40px; font-size: 16px; text-align: center;">
+          <p>We would like to keep improving this product, you can help thru a donation.</p>
+          <q-btn @click="donate">Donate Now</q-btn>
+        </div>
       </div>
     </div>
     <footer-menu />
@@ -24,7 +31,13 @@ export default {
           active: true
         },
         {
-          name: 'SLP Suite',
+          name: 'Wallet Info',
+          iconName: 'info',
+          path: '/apps/wallet-info',
+          active: true
+        },
+        {
+          name: 'Creative Suite',
           iconName: 'palette',
           path: '',
           active: false
@@ -48,10 +61,10 @@ export default {
           active: false
         },
         {
-          name: 'Wallet Info',
-          iconName: 'info',
-          path: '/apps/wallet-info',
-          active: true
+          name: 'Settings',
+          iconName: 'settings',
+          path: '',
+          active: false
         }
       ]
     }
@@ -61,7 +74,21 @@ export default {
       if (app.active) {
         this.$router.push(app.path)
       }
+    },
+    donate () {
+      this.$router.push({
+        name: 'transaction-send',
+        params: {
+          assetId: 'bch',
+          amount: 0.01,
+          fixed: false,
+          recipient: 'bitcoincash:qr628de9s6a5tjrd4lz9dpnrf46urc63a5nlrzlj7t'
+        }
+      })
     }
+  },
+  mounted () {
+    this.$refs.apps.style.width = (screen.width * 0.8) + 'px'
   }
 }
 </script>
