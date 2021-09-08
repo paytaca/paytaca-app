@@ -1,6 +1,9 @@
 <template>
   <div>
-    <header-nav :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"></header-nav>
+    <header-nav
+      :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"
+      v-if="!sendData.sent"
+    ></header-nav>
     <div class="q-pa-md">
       <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
         <q-icon name="error" left/>
@@ -50,7 +53,7 @@
         {{ scanner.decodedContent }}
       </div>
     </div>
-    <div class="q-px-lg" v-if="sendData.recipientAddress !== ''">
+    <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
       <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
         <div class="row">
           <div class="col q-mt-sm se">
@@ -76,13 +79,21 @@
         </div>
       </form>
     </div>
-    <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.amount !== null && sendErrors.length === 0">
+    <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
+      <q-icon size="120px" name="check_circle" style="color: green;"></q-icon>
+      <div style="margin-top: 20px;">
+        <p style="font-size: 30px;">Successfully sent</p>
+        <p style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+      </div>
+    </div>
+    <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.sent !== true && sendData.amount !== null && sendErrors.length === 0">
       <div id="status" style="text-align: center;">
         <label class="swipe-confrim-label">Swipe to Send</label>
         <input id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
         <span class="mdi mdi-arrow-right-circle" style="color: #fff; position: absolute; z-index: 10000; bottom: 20px; right: 20px: "></span>
       </div>
     </div>
+    <footer-menu v-if="sendData.sent" />
   </div>
 </template>
 
@@ -281,16 +292,6 @@ export default {
       }
     },
 
-    notifyOnSend (amount, symbol, logo) {
-      const vm = this
-      vm.playSound(true)
-      vm.$q.notify({
-        message: `${amount} ${symbol} sent!`,
-        avatar: logo,
-        timeout: 3000
-      })
-    },
-
     handleSubmit () {
       const vm = this
       let address = this.sendData.recipientAddress
@@ -313,12 +314,9 @@ export default {
             vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid
-              vm.notifyOnSend(
-                vm.sendData.amount,
-                vm.asset.symbol,
-                vm.asset.logo
-              )
-              vm.$router.push('/')
+              vm.playSound(true)
+              vm.sendData.sending = false
+              vm.sendData.sent = true
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
                 vm.sendErrors.push('Not enough balance to cover the send amount')
