@@ -8,8 +8,8 @@
           <p>{{ app.name }}</p>
         </div>
 
-        <div style="margin-top: 40px; font-size: 16px; text-align: center;">
-          <p>We would like to keep improving this product, you can help thru a donation.</p>
+        <div style="margin-top: 45px; font-size: 14px; text-align: center;">
+          <p>Paytaca aims to bring Bitcoin Cash to everyone everywhere. You can help us bootstrap our products through a small donation.</p>
           <q-btn @click="donate">Donate Now</q-btn>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default {
         name: 'transaction-send',
         params: {
           assetId: 'bch',
-          amount: 0.01,
+          amount: 0.1,
           fixed: false,
           recipient: 'bitcoincash:qr628de9s6a5tjrd4lz9dpnrf46urc63a5nlrzlj7t'
         }

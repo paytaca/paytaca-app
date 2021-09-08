@@ -1,12 +1,41 @@
 <template>
   <div>
     <header-nav title="Collectibles" backnavpath="/apps"></header-nav>
+    <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6;">
+      <q-menu>
+        <q-list style="min-width: 100px">
+          <q-item clickable v-close-popup>
+            <q-item-section @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup>
+            <q-item-section @click="getCollectibles()">Refresh List</q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-icon>
+    <div v-if="showAddress" style="margin-top: 20px;">
+      <qr-code
+        :text="getAddress()"
+        style="width: 160px; margin-left: auto; margin-right: auto;"
+        color="#253933"
+        :size="160"
+        error-level="H"
+        class="q-mb-sm"
+      ></qr-code>
+    </div>
+    <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
+      <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
+    </div>
     <div id="app" ref="app">
       <div style="text-align: center; margin-top: 40px;" v-if="!collectiblesLoaded">
         <loader />
       </div>
-      <template v-if="collectibles.length > 0">
-        <div class="q-pa-md row items-start q-gutter-md">
+      <template v-if="collectiblesLoaded && collectibles.length > 0">
+        <div
+          ref="collectibles"
+          style="margin-left: auto; margin-right: auto; margin-bottom: 50px;"
+          class="q-pa-md row items-start q-gutter-md"
+        >
           <q-card
             v-for="(collectible, index) in collectibles"
             :key="index"
@@ -49,19 +78,34 @@ export default {
     return {
       collectibles: [],
       collectiblesLoaded: false,
+      showAddress: false,
       wallet: null
     }
   },
   methods: {
     getCollectibles () {
       const vm = this
+      vm.collectiblesLoaded = false
       vm.wallet.SLP.getCollectibles().then(function (collectibles) {
         vm.collectibles = collectibles
         vm.collectiblesLoaded = true
+        if (collectibles.length > 0 && vm.$refs.collectibles) {
+          vm.$refs.collectibles.style.width = screen.width + 'px'
+        }
       })
     },
     showDetails (collectible) {
       this.$refs.collectible.show(collectible)
+    },
+    getAddress () {
+      return this.$store.getters['global/getAddress']('slp')
+    },
+    copyAddress () {
+      this.$copyText(this.address)
+      this.$q.notify({
+        message: 'Copied address',
+        timeout: 800
+      })
     }
   },
   mounted () {
@@ -87,5 +131,11 @@ export default {
 .collectible-card {
   width: 100%;
   max-width: 130px;
+}
+
+#context-menu {
+  position: fixed;
+  top: 20px;
+  right: 20px;
 }
 </style>
