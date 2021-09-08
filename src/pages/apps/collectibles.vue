@@ -13,9 +13,10 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <div v-if="showAddress" style="margin-top: 20px;">
+    <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="margin-top: 20px; text-align: center;">
+      <div style="margin-bottom: 5px;">click to copy</div>
       <qr-code
-        :text="getAddress()"
+        :text="receivingAddress"
         style="width: 160px; margin-left: auto; margin-right: auto;"
         color="#253933"
         :size="160"
@@ -82,6 +83,11 @@ export default {
       wallet: null
     }
   },
+  computed: {
+    receivingAddress () {
+      return this.$store.getters['global/getAddress']('slp')
+    }
+  },
   methods: {
     getCollectibles () {
       const vm = this
@@ -97,11 +103,8 @@ export default {
     showDetails (collectible) {
       this.$refs.collectible.show(collectible)
     },
-    getAddress () {
-      return this.$store.getters['global/getAddress']('slp')
-    },
-    copyAddress () {
-      this.$copyText(this.address)
+    copyAddress (address) {
+      this.$copyText(address)
       this.$q.notify({
         message: 'Copied address',
         timeout: 800
