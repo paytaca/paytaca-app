@@ -1,7 +1,7 @@
 <template>
   <div>
     <div>
-      <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0; z-index: 10 !important; background: #ECF3F3;"></header-nav>
+      <header-nav title="Wallet Info" backnavpath="/apps"></header-nav>
       <div id="app" ref="app">
         <div class="row">
           <div class="col">
@@ -40,7 +40,7 @@
             </q-list>
           </div>
         </div>
-        <div class="row" style="margin-top: 20px; margin-bottom: 20px;">
+        <div class="row" style="margin-top: 20px; margin-bottom: 30px;">
           <div class="col">
             <p class="section-title">SLP Addresses</p>
             <q-list bordered separator class="list">
@@ -111,7 +111,6 @@ export default {
 <style scoped>
   #app {
     padding: 25px;
-    margin-top: 60px;
     overflow-y: auto;
     z-index: -10 !important;
   }
