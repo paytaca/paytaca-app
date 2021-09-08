@@ -11,26 +11,16 @@
             v-for="(collectible, index) in collectibles"
             :key="index"
             class="collectible-card"
+            @click="showDetails(collectible)"
           >
             <template v-if="collectible.image_url.length > 0">
-              <img :src="collectible.image_url">
+              <q-img :src="collectible.image_url" fit="fill"></q-img>
             </template>
             <template v-else>
               <gravatar
                 :hash="collectible.token_id"
               />
             </template>
-            <!-- <q-card-section style="text-align: center;">
-              <div class="text-h6">{{ collectible.name }}</div>
-              <a
-                :href="'https://simpleledger.info/#token/' + collectible.token_id"
-                style="text-decoration: none; color: gray;"
-                target="_blank"
-              >
-                {{ collectible.token_id.slice(0, 15) }}
-                <q-icon name="exit_to_app" />
-              </a>
-            </q-card-section> -->
           </q-card>
         </div>
       </template>
@@ -39,6 +29,7 @@
           You don't own any collectibles yet.
         </p>
       </template>
+      <collectible ref="collectible"></collectible>
     </div>
     <footer-menu />
   </div>
@@ -49,10 +40,11 @@ import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../utils/wallet'
 import Loader from '../../components/loader'
 import Gravatar from 'vue-gravatar'
+import Collectible from 'src/components/collectible.vue'
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav, Gravatar, Loader },
+  components: { HeaderNav, Gravatar, Loader, Collectible },
   data () {
     return {
       collectibles: [],
@@ -67,6 +59,9 @@ export default {
         vm.collectibles = collectibles
         vm.collectiblesLoaded = true
       })
+    },
+    showDetails (collectible) {
+      this.$refs.collectible.show(collectible)
     }
   },
   mounted () {
@@ -91,6 +86,6 @@ export default {
 
 .collectible-card {
   width: 100%;
-  max-width: 150px;
+  max-width: 130px;
 }
 </style>

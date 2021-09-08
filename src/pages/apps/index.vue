@@ -18,16 +18,16 @@ export default {
     return {
       apps: [
         {
-          name: 'Wallet Info',
-          iconName: 'info',
-          path: '/apps/wallet-info',
-          active: true
-        },
-        {
           name: 'Collectibles',
           iconName: 'collections_bookmark',
           path: '/apps/collectibles',
           active: true
+        },
+        {
+          name: 'SLP Suite',
+          iconName: 'palette',
+          path: '',
+          active: false
         },
         {
           name: 'Asset Swap',
@@ -46,6 +46,12 @@ export default {
           iconName: 'system_security_update_good',
           path: '',
           active: false
+        },
+        {
+          name: 'Wallet Info',
+          iconName: 'info',
+          path: '/apps/wallet-info',
+          active: true
         }
       ]
     }

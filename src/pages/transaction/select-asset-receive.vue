@@ -22,7 +22,7 @@
                 <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px; color: #444655;">
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none asset" style="font-size: 18px; color: #444655;">
+                <p class="q-ma-none" style="font-size: 18px; color: #444655;">
                   {{ asset.balance }}
                   {{ asset.symbol }}
                 </p>
