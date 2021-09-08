@@ -338,7 +338,9 @@ export default {
             vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid
-              vm.$router.push('/')
+              vm.playSound(true)
+              vm.sendData.sending = false
+              vm.sendData.sent = true
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
                 vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
