@@ -35,8 +35,9 @@ export class BchWallet {
 
   async getNewAddressSet (index) {
     const masterHDNode = await this._getMasterHDNode()
-    const receivingAddressNode = masterHDNode.derivePath('0/' + index)
-    const changeAddressNode = masterHDNode.derivePath('1/' + index)
+    const childNode = masterHDNode.derivePath(this.derivationPath)
+    const receivingAddressNode = childNode.derivePath('0/' + index)
+    const changeAddressNode = childNode.derivePath('1/' + index)
     const addresses = {
       receiving: bchjs.HDNode.toCashAddress(receivingAddressNode),
       change: bchjs.HDNode.toCashAddress(changeAddressNode)
@@ -47,6 +48,7 @@ export class BchWallet {
       walletHash: this.walletHash,
       addressIndex: index
     }
+    console.log('BCH addresses: ', data)
     const result = await this.watchtower.subscribe(data)
     if (result.success) {
       return addresses
