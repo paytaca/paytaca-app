@@ -3,13 +3,14 @@
     <header-nav :title="'RECEIVE ' + asset.symbol" backnavpath="/receive/select-asset"></header-nav>
     <div class="row">
       <div class="col qr-code-container">
-          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
-            <div class="row text-center" @click="copyAddress">
+          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="copyAddress">
+            <div class="row text-center">
               <div class="col row justify-center q-pt-md">
                 <img :src="asset.logo" height="60" style="position: absolute; margin-top: 80px; background: #fff;">
-                <qr-code :text="address" color="#253933" :size="220" error-level="H" class="q-mb-sm"></qr-code>
+                <qr-code :text="address" color="#253933" :size="190" error-level="H" class="q-mb-sm"></qr-code>
               </div>
             </div>
+            <div>click to copy</div>
           </div>
           <div style="text-align: center;" v-if="walletType === 'bch'" @click="showOptions = !showOptions">
             <q-btn :icon="showOptions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" flat round dense />
@@ -28,11 +29,6 @@
         <span class="qr-code-text text-weight-medium">
           <div class="text-nowrap" @click="copyAddress">
             {{ address }}
-            <div class="row" style="margin-top: -20px;">
-              <div class="col q-ma-sm q-mb-md">
-                <i class="eva eva-copy-outline icon-copy float-right q-mr-md"></i>
-              </div>
-            </div>
           </div>
         </span>
       </div>
@@ -182,7 +178,10 @@ export default {
     }
   }
   .col-qr-code {
-    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    width: 300px;
     border-radius: 16px;
     padding: 25px 10px 32px 10px;
     box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
