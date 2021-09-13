@@ -2,7 +2,7 @@ export function updateWallet (state, details) {
   state.wallets[details.type].walletHash = details.walletHash
   state.wallets[details.type].derivationPath = details.derivationPath
   state.wallets[details.type].lastAddress = details.lastAddress
-  state.wallets[details.type].lastWalletIndex = details.lastWalletIndex
+  state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
 }
 
 export function updateXPubKey (state, details) {

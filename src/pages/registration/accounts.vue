@@ -63,13 +63,13 @@ export default {
 
       const wallet = new Wallet(this.mnemonic)
 
-      wallet.BCH.getAddress(0).then(function (address) {
+      wallet.BCH.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
           walletHash: wallet.BCH.walletHash,
           derivationPath: wallet.BCH.derivationPath,
-          lastAddress: address,
-          lastWalletIndex: 0
+          lastAddress: addresses.receiving,
+          lastAddressIndex: 0
         })
         vm.steps += 1
       })
@@ -83,13 +83,13 @@ export default {
         vm.steps += 1
       })
 
-      wallet.SLP.getAddress(0).then(function (address) {
+      wallet.SLP.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {
           type: 'slp',
           walletHash: wallet.SLP.walletHash,
           derivationPath: wallet.SLP.derivationPath,
-          lastAddress: address,
-          lastWalletIndex: 0
+          lastAddress: addresses.receiving,
+          lastAddressIndex: 0
         })
         vm.steps += 1
       })

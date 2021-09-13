@@ -20,11 +20,10 @@ export class SlpWallet {
     return walletHash
   }
 
-  async _getChildNode (index) {
+  async _getMasterHDNode () {
     const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
     const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-    const childNode = masterHDNode.derivePath(this.derivationPath + '/' + index)
-    return childNode
+    return masterHDNode
   }
 
   async getXPubKey () {
@@ -34,25 +33,33 @@ export class SlpWallet {
     return bchjs.HDNode.toXPub(childNode)
   }
 
-  async getAddress (index) {
-    const childNode = await this._getChildNode(index)
-    const address = bchjs.HDNode.toSLPAddress(childNode)
+  async getNewAddressSet (index) {
+    const masterHDNode = await this._getMasterHDNode()
+    const childNode = masterHDNode.derivePath(this.derivationPath)
+    const receivingAddressNode = childNode.derivePath('0/' + index)
+    const changeAddressNode = childNode.derivePath('1/' + index)
+    const addresses = {
+      receiving: bchjs.HDNode.toSLPAddress(receivingAddressNode),
+      change: bchjs.HDNode.toSLPAddress(changeAddressNode)
+    }
     const data = {
-      address: address,
+      addresses,
       projectId: this.projectId,
       walletHash: this.walletHash,
-      walletIndex: index
+      addressIndex: index
     }
+    console.log('SLP addresses: ', data)
     const result = await this.watchtower.subscribe(data)
     if (result.success) {
-      return address
+      return addresses
     } else {
       return null
     }
   }
 
-  async getPrivateKey (index) {
-    const childNode = await this._getChildNode(index)
+  async getPrivateKey (path) {
+    const masterHDNode = await this._getMasterHDNode()
+    const childNode = masterHDNode.derivePath(path)
     return bchjs.HDNode.toWIF(childNode)
   }
 

@@ -6,14 +6,14 @@ export default function () {
         derivationPath: '',
         xPubKey: '',
         lastAddress: '',
-        lastWalletIndex: 0
+        lastAddressIndex: 0
       },
       slp: {
         walletHash: '',
         derivationPath: '',
         xPubKey: '',
         lastAddress: '',
-        lastWalletIndex: 0
+        lastAddressIndex: 0
       }
     },
     user: {
