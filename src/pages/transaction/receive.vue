@@ -128,12 +128,13 @@ export default {
 
     let url
     let assetType
+    const address = vm.getAddress()
     if (vm.assetId.indexOf('slp/') > -1) {
       assetType = 'slp'
-      url = `wss://watchtower.cash/ws/watch/slp/${vm.asset.address}/`
+      url = `wss://watchtower.cash/ws/watch/slp/${address}/`
     } else {
       assetType = 'bch'
-      url = `wss://watchtower.cash/ws/watch/bch/${vm.asset.address}/`
+      url = `wss://watchtower.cash/ws/watch/bch/${address}/`
     }
     vm.$connect(url)
     vm.$options.sockets.onmessage = function (message) {
