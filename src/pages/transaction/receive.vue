@@ -6,7 +6,7 @@
           <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="copyAddress">
             <div class="row text-center">
               <div class="col row justify-center q-pt-md">
-                <img :src="asset.logo" height="60" style="position: absolute; margin-top: 80px; background: #fff;">
+                <img :src="asset.logo" height="50" style="position: absolute; margin-top: 73px; background: #fff;">
                 <qr-code :text="address" color="#253933" :size="190" error-level="H" class="q-mb-sm"></qr-code>
               </div>
             </div>
