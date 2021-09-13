@@ -65,6 +65,11 @@
             <q-input type="number" step="0.0001" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
           </div>
         </div>
+        <div class="row">
+          <div class="col q-mt-md" style="font-size: 18px; color: gray;">
+            Balance: {{ asset.balance }} {{ asset.symbol }}
+          </div>
+        </div>
         <div class="row" v-if="sendErrors.length > 0">
           <div class="col q-mt-md" style="color: #da53b2;">
             <ul style="margin-left: -20px;">
