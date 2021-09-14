@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import { getMnemonic } from '../utils/wallet'
+import { getMnemonic } from '../wallet'
 import routes from './routes'
 
 Vue.use(VueRouter)

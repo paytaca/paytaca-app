@@ -103,7 +103,7 @@
 </template>
 
 <script>
-import { getMnemonic, Wallet, Address } from '../../utils/wallet'
+import { getMnemonic, Wallet, Address } from '../../wallet'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'

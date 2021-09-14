@@ -109,7 +109,7 @@
 
 <script>
 import jsUtils from '../../utils/vanilla.js'
-import { getMnemonic, Wallet } from '../../utils/wallet'
+import { getMnemonic, Wallet } from '../../wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import Loader from '../../components/loader'
 import Transaction from '../../components/transaction'

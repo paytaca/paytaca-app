@@ -33,7 +33,7 @@
 </template>
 
 <script>
-import { Wallet, generateMnemonic } from '../../utils/wallet'
+import { Wallet, generateMnemonic } from '../../wallet'
 import Loader from '../../components/loader'
 
 export default {

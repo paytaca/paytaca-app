@@ -39,7 +39,7 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import { Address } from '../../utils/wallet'
+import { Address } from '../../wallet'
 
 export default {
   name: 'receive-page',

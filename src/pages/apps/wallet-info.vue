@@ -73,7 +73,7 @@
 
 <script>
 import HeaderNav from '../../components/header-nav'
-import { getMnemonic } from '../../utils/wallet'
+import { getMnemonic } from '../../wallet'
 
 export default {
   name: 'app-wallet-info',

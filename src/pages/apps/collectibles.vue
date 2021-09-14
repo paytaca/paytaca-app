@@ -67,7 +67,7 @@
 
 <script>
 import HeaderNav from '../../components/header-nav'
-import { getMnemonic, Wallet } from '../../utils/wallet'
+import { getMnemonic, Wallet } from '../../wallet'
 import Loader from '../../components/loader'
 import Gravatar from 'vue-gravatar'
 import Collectible from 'src/components/collectible.vue'
