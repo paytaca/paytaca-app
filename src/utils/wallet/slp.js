@@ -48,7 +48,6 @@ export class SlpWallet {
       walletHash: this.walletHash,
       addressIndex: index
     }
-    console.log('SLP addresses: ', data)
     const result = await this.watchtower.subscribe(data)
     if (result.success) {
       return addresses

@@ -323,7 +323,6 @@ export default {
           }
           address = addressObj.toSLPAddress()
           vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address, feeFunder).then(function (result) {
-            console.log(result)
             vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid
@@ -344,7 +343,6 @@ export default {
           address = addressObj.toCashAddress()
           const changeAddress = vm.getChangeAddress('bch')
           vm.wallet.BCH.sendBch(vm.sendData.amount, address, changeAddress).then(function (result) {
-            console.log(result)
             vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid

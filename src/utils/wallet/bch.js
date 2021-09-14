@@ -48,7 +48,6 @@ export class BchWallet {
       walletHash: this.walletHash,
       addressIndex: index
     }
-    console.log('BCH addresses: ', data)
     const result = await this.watchtower.subscribe(data)
     if (result.success) {
       return addresses

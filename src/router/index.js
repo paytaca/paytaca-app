@@ -36,7 +36,6 @@ export default function ({ store }) {
           next('/registration')
         }
       } catch (err) {
-        console.log(err)
         next('/registration')
       }
     } else {
