@@ -75,7 +75,7 @@ export class BchWallet {
     return request
   }
 
-  async sendBch (amount, recipient) {
+  async sendBch (amount, recipient, changeAddress) {
     console.log(`Sending ${amount} BCH to ${recipient}`)
     const data = {
       sender: {
@@ -89,6 +89,7 @@ export class BchWallet {
           amount: amount
         }
       ],
+      changeAddress: changeAddress,
       wallet: {
         mnemonic: this.mnemonic,
         derivationPath: this.derivationPath

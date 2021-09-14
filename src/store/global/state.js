@@ -6,6 +6,7 @@ export default function () {
         derivationPath: '',
         xPubKey: '',
         lastAddress: '',
+        lastChangeAddress: '',
         lastAddressIndex: 0
       },
       slp: {
@@ -13,6 +14,7 @@ export default function () {
         derivationPath: '',
         xPubKey: '',
         lastAddress: '',
+        lastChangeAddress: '',
         lastAddressIndex: 0
       }
     },

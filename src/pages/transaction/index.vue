@@ -321,41 +321,12 @@ export default {
 
       const scrollableParentX = jsUtils.getScrollableParent(event.target, false)
       if (scrollableParentX) jsUtils.scrollIntoView(scrollableParentX, event.target, false)
+    },
+
+    getChangeAddress (walletType) {
+      return this.$store.getters['global/getChangeAddress'](walletType)
     }
   },
-
-  // created () {
-  //   this.assets = [
-  //     {
-  //       id: 'bch',
-  //       symbol: 'BCH',
-  //       name: 'Bitcoin Cash',
-  //       logo: 'bch-logo.png',
-  //       balance: 0
-  //     },
-  //     {
-  //       id: 'slp/4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf',
-  //       symbol: 'SPICE',
-  //       name: 'SPICE',
-  //       logo: 'spice-logo.png',
-  //       balance: 0
-  //     },
-  //     {
-  //       id: 'slp/7f8889682d57369ed0e32336f8b7e0ffec625a35cca183f4e81fde4e71a538a1',
-  //       symbol: 'HONK',
-  //       name: 'HONK',
-  //       logo: 'honk-logo.png',
-  //       balance: 0
-  //     },
-  //     {
-  //       id: 'slp/a013d636dcadc71f7e11d7880e9e8b62295e772cf1a24180f74d0eca62604136',
-  //       symbol: 'ORB',
-  //       name: 'ORB',
-  //       logo: 'orb-logo.png',
-  //       balance: 0
-  //     }
-  //   ]
-  // },
 
   mounted () {
     const vm = this
@@ -370,6 +341,35 @@ export default {
         vm.getBalance(asset.id)
       })
       vm.getTransactions()
+
+      // Create change addresses if nothing is set yet
+      // This is to make sure that v1 wallets auto-upgrades to v2 wallets
+      const bchChangeAddress = vm.getChangeAddress('bch')
+      if (bchChangeAddress.length === 0) {
+        vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+          vm.$store.commit('global/updateWallet', {
+            type: 'bch',
+            walletHash: vm.wallet.BCH.walletHash,
+            derivationPath: vm.wallet.BCH.derivationPath,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: 0
+          })
+        })
+      }
+      const slpChangeAddress = vm.getChangeAddress('slp')
+      if (slpChangeAddress.length === 0) {
+        vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
+          vm.$store.commit('global/updateWallet', {
+            type: 'slp',
+            walletHash: vm.wallet.SLP.walletHash,
+            derivationPath: vm.wallet.SLP.derivationPath,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: 0
+          })
+        })
+      }
     })
   }
 }

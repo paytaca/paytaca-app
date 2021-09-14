@@ -69,6 +69,7 @@ export default {
           walletHash: wallet.BCH.walletHash,
           derivationPath: wallet.BCH.derivationPath,
           lastAddress: addresses.receiving,
+          lastChangeAddress: addresses.change,
           lastAddressIndex: 0
         })
         vm.steps += 1
@@ -89,6 +90,7 @@ export default {
           walletHash: wallet.SLP.walletHash,
           derivationPath: wallet.SLP.derivationPath,
           lastAddress: addresses.receiving,
+          lastChangeAddress: addresses.change,
           lastAddressIndex: 0
         })
         vm.steps += 1

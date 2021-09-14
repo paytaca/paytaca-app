@@ -2,6 +2,7 @@ export function updateWallet (state, details) {
   state.wallets[details.type].walletHash = details.walletHash
   state.wallets[details.type].derivationPath = details.derivationPath
   state.wallets[details.type].lastAddress = details.lastAddress
+  state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
   state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
 }
 

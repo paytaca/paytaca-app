@@ -301,6 +301,10 @@ export default {
       }
     },
 
+    getChangeAddress (walletType) {
+      return this.$store.getters['global/getChangeAddress'](walletType)
+    },
+
     handleSubmit () {
       const vm = this
       let address = this.sendData.recipientAddress
@@ -338,7 +342,8 @@ export default {
           })
         } else if (vm.walletType === 'bch') {
           address = addressObj.toCashAddress()
-          vm.wallet.BCH.sendBch(vm.sendData.amount, address).then(function (result) {
+          const changeAddress = vm.getChangeAddress('bch')
+          vm.wallet.BCH.sendBch(vm.sendData.amount, address, changeAddress).then(function (result) {
             console.log(result)
             vm.sendData.sending = false
             if (result.success) {
