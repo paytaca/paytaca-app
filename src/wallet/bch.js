@@ -49,6 +49,7 @@ export class BchWallet {
       addressIndex: index
     }
     const result = await this.watchtower.subscribe(data)
+    
     if (result.success) {
       return addresses
     } else {

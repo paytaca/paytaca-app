@@ -8,9 +8,11 @@
     </div>
     <div class="row">
       <div class="get-started q-mt-sm q-pa-lg">
-        <h5 class="q-ma-none get-started-text">Mnemonic Backup Phrase</h5>
-        <p class="dim-text" v-if="steps === totalSteps">Write on paper and keep it somewhere safe</p>
-        <p class="dim-text" v-else>Generating...</p>
+        <h5 class="q-ma-none get-started-text" v-if="steps === totalSteps">Mnemonic Backup Phrase</h5>
+        <p class="dim-text" v-if="steps === totalSteps" style="margin-top: 10px;">
+          Write on paper or take a screenshot and keep it somewhere safe.
+        </p>
+        <p class="dim-text" style="text-align: center;" v-else>Creating your wallet...</p>
 
         <div class="row" id="mnemonic">
           <div class="col q-mt-sm" v-if="steps === totalSteps">
@@ -25,7 +27,7 @@
           </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <button class="submit-btn q-mt-md" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px;">Continue</button>
+          <button class="submit-btn q-mt-md" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px; margin-top: 25px;">Continue</button>
         </div>
       </div>
     </div>

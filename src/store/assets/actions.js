@@ -1,6 +1,5 @@
 export async function getSLPTokenStats ({ getters, commit }, { tokenId }) {
   const existingTokenStats = getters.getAssetStats(tokenId)
-  console.log(existingTokenStats)
   if (existingTokenStats && existingTokenStats.id) return existingTokenStats
 
   const tokenStats = null // await getTokenStatsAPI(tokenId)

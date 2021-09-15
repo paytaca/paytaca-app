@@ -105,7 +105,6 @@ export class SlpWallet {
       changeAddresses: changeAddresses,
       broadcast: true
     }
-    console.log(data)
     const result = await this.watchtower.SLP.Type1.send(data)
     return result
   }
