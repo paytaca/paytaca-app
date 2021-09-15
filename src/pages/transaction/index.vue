@@ -76,7 +76,7 @@
               <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
           </div>
           <div class="transaction-list">
-            <template v-if="transactionsLoaded && balanceLoaded">
+            <template v-if="balanceLoaded">
               <div class="row" v-for="(transaction, index) in filterTransactions()" :key="'tx-' + index">
                   <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                     <div class="row" @click="showTransactionDetails(transaction)">
@@ -95,6 +95,9 @@
                       </div>
                     </div>
                   </div>
+              </div>
+              <div v-if="transactionsPageHasNext" style="margin-top: 20px; width: 200px; margin-left: 22px;">
+                <q-btn @click="() => { transactionsPage += 1; getTransactions() }">Show More</q-btn>
               </div>
             </template>
             <div style="text-align: center;" v-else>
@@ -142,6 +145,8 @@ export default {
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       transactions: [],
+      transactionsPage: 1,
+      transactionsPageHasNext: false,
       transactionsLoaded: false,
       balanceLoaded: false,
       wallet: null,
@@ -256,17 +261,22 @@ export default {
     getTransactions () {
       const vm = this
       const id = vm.selectedAsset.id
-      vm.transactions = []
       vm.transactionsLoaded = false
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getTransactions(tokenId).then(function (transactions) {
-          vm.transactions = transactions
+        vm.wallet.SLP.getTransactions(tokenId, vm.transactionsPage).then(function (transactions) {
+          transactions.history.map(function (item) {
+            vm.transactions.push(item)
+          })
+          vm.transactionsPageHasNext = transactions.has_next
           vm.transactionsLoaded = true
         })
       } else {
-        vm.wallet.BCH.getTransactions().then(function (transactions) {
-          vm.transactions = transactions
+        vm.wallet.BCH.getTransactions(vm.transactionsPage).then(function (transactions) {
+          transactions.history.map(function (item) {
+            vm.transactions.push(item)
+          })
+          vm.transactionsPageHasNext = transactions.has_next
           vm.transactionsLoaded = true
         })
       }
@@ -309,6 +319,8 @@ export default {
 
     selectAsset (event, asset) {
       this.selectedAsset = asset
+      this.transactions = []
+      this.transactionsPage = 1
       this.getBalance()
       this.getTransactions()
 
