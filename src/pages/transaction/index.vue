@@ -96,8 +96,8 @@
                     </div>
                   </div>
               </div>
-              <div v-if="transactionsPageHasNext" style="margin-top: 20px; width: 200px; margin-left: 22px;">
-                <q-btn @click="() => { transactionsPage += 1; getTransactions() }">Show More</q-btn>
+              <div v-if="transactionsPageHasNext" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+                <p @click="() => { transactionsPage += 1; getTransactions() }">Show More</p>
               </div>
             </template>
             <div style="text-align: center;" v-else>
@@ -238,6 +238,7 @@ export default {
         id = vm.selectedAsset.id
       }
       vm.balanceLoaded = false
+      vm.transactionsPageHasNext = false
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
         vm.wallet.SLP.getBalance(tokenId).then(function (response) {
@@ -268,16 +269,20 @@ export default {
           transactions.history.map(function (item) {
             vm.transactions.push(item)
           })
-          vm.transactionsPageHasNext = transactions.has_next
           vm.transactionsLoaded = true
+          setTimeout(() => {
+            vm.transactionsPageHasNext = transactions.has_next
+          }, 1000)
         })
       } else {
         vm.wallet.BCH.getTransactions(vm.transactionsPage).then(function (transactions) {
           transactions.history.map(function (item) {
             vm.transactions.push(item)
           })
-          vm.transactionsPageHasNext = transactions.has_next
           vm.transactionsLoaded = true
+          setTimeout(() => {
+            vm.transactionsPageHasNext = transactions.has_next
+          }, 1000)
         })
       }
     },
@@ -321,6 +326,7 @@ export default {
       this.selectedAsset = asset
       this.transactions = []
       this.transactionsPage = 1
+      this.transactionsPageHasNext = false
       this.getBalance()
       this.getTransactions()
 
@@ -465,7 +471,7 @@ export default {
   .transaction-list {
     height: 440px;
     overflow: auto;
-    padding-bottom: 110px;
+    padding-bottom: 80px;
   }
   /* iPhone 5/SE */
   @media (min-width: 280px) and (max-width: 320px) {
