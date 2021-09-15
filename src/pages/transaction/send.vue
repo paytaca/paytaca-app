@@ -322,7 +322,11 @@ export default {
             derivationPath: bchWallet.derivationPath
           }
           address = addressObj.toSLPAddress()
-          vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address, feeFunder).then(function (result) {
+          const changeAddresses = {
+            bch: vm.getChangeAddress('bch'),
+            slp: vm.getChangeAddress('slp')
+          }
+          vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address, feeFunder, changeAddresses).then(function (result) {
             vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid

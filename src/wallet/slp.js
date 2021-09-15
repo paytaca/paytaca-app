@@ -86,7 +86,7 @@ export class SlpWallet {
     return request.data
   }
 
-  async sendSlp (amount, tokenId, recipient, feeFunder) {
+  async sendSlp (amount, tokenId, recipient, feeFunder, changeAddresses) {
     console.log(`Sending ${amount} of SLP token ${tokenId} to ${recipient}`)
     const data = {
       sender: {
@@ -102,8 +102,10 @@ export class SlpWallet {
       ],
       tokenId: tokenId,
       feeFunder: feeFunder,
+      changeAddresses: changeAddresses,
       broadcast: true
     }
+    console.log(data)
     const result = await this.watchtower.SLP.Type1.send(data)
     return result
   }
