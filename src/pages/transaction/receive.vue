@@ -24,7 +24,7 @@
         label="Legacy Address"
       />
     </div>
-    <div class="row">
+    <div class="row" style="margin-bottom: 50px;">
       <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
         <span class="qr-code-text text-weight-medium">
           <div class="text-nowrap" @click="copyAddress">

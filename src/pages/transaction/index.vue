@@ -1,5 +1,5 @@
 <template>
-  <div @click="() => { if (manageAssets === true) { manageAssets = false } }">
+  <div>
     <div class="fixed-container">
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
@@ -22,13 +22,21 @@
           <div class="col">
               <p class="q-ml-lg q-mb-sm payment-methods">
                 Assets
-                <q-btn
+                <!-- <q-btn
                   flat
                   padding="none"
                   size="sm"
                   icon="refresh"
                   style="color: #3B7BF6;"
                   @click="getBalance()"
+                /> -->
+                <q-btn
+                  flat
+                  padding="none"
+                  size="sm"
+                  icon="app_registration"
+                  style="color: #3B7BF6;"
+                  @click="toggleManageAssets"
                 />
               </p>
           </div>

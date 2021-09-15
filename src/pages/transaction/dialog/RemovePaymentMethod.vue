@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true">
+  <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
     <q-card class="q-dialog-plugin">
 
         <q-card-section>

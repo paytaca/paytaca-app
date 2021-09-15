@@ -12,7 +12,7 @@ export default {
     if (vm.$q.platform.is.bex) {
       vm.$refs.container.style.display = 'none'
       document.body.style.width = '380px'
-      document.body.style.minHeight = '655px'
+      document.body.style.minHeight = screen.minHeight
 
       vm.$q.bex.on('bex.paytaca.send', event => {
         vm.$router.push({
