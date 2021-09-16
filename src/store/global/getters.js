@@ -4,6 +4,12 @@ export function getAddress (state) {
   }
 }
 
+export function getLastAddressIndex (state) {
+  return function (walletType) {
+    return state.wallets[walletType].lastAddressIndex
+  }
+}
+
 export function getChangeAddress (state) {
   return function (walletType) {
     return state.wallets[walletType].lastChangeAddress

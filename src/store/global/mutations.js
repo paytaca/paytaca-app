@@ -41,3 +41,9 @@ export function updateTransactions (state, data) {
   state.accounts[data.accountType].transactions[''] = data.transactions
   state.accounts[data.accountType].balances[0].balance = data.balance
 }
+
+export function generateNewAddressSet (state, details) {
+  state.wallets[details.type].lastAddress = details.lastAddress
+  state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
+  state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
+}

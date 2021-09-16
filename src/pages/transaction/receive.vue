@@ -1,52 +1,67 @@
 <template>
   <div>
     <header-nav :title="'RECEIVE ' + asset.symbol" backnavpath="/receive/select-asset"></header-nav>
-    <div class="row">
-      <div class="col qr-code-container">
-          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="copyAddress">
-            <div class="row text-center">
-              <div class="col row justify-center q-pt-md">
-                <img :src="asset.logo" height="50" style="position: absolute; margin-top: 73px; background: #fff;">
-                <qr-code :text="address" color="#253933" :size="190" error-level="H" class="q-mb-sm"></qr-code>
+    <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6;">
+      <q-menu>
+        <q-list style="min-width: 100px">
+          <q-item clickable v-close-popup>
+            <q-item-section @click="generateNewAddress">Generate new address</q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-icon>
+    <div style="text-align: center; margin-top: 40px;" v-if="generatingAddress">
+      <loader></loader>
+    </div>
+    <template v-else>
+      <div class="row">
+        <div class="col qr-code-container">
+            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="copyAddress">
+              <div class="row text-center">
+                <div class="col row justify-center q-pt-md">
+                  <img :src="asset.logo" height="50" style="position: absolute; margin-top: 73px; background: #fff;">
+                  <qr-code :text="address" color="#253933" :size="190" error-level="H" class="q-mb-sm"></qr-code>
+                </div>
               </div>
+              <div>click to copy</div>
             </div>
-            <div>click to copy</div>
-          </div>
-          <div style="text-align: center;" v-if="walletType === 'bch'" @click="showOptions = !showOptions">
-            <q-btn :icon="showOptions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" flat round dense />
-          </div>
+            <div style="text-align: center;" v-if="walletType === 'bch'" @click="showOptions = !showOptions">
+              <q-btn :icon="showOptions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" flat round dense />
+            </div>
+        </div>
       </div>
-    </div>
-    <div class="row" v-if="showOptions">
-      <q-toggle
-        style="margin: auto;"
-        v-model="legacy"
-        label="Legacy Address"
-      />
-    </div>
-    <div class="row" style="margin-bottom: 50px;">
-      <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
-        <span class="qr-code-text text-weight-medium">
-          <div class="text-nowrap" @click="copyAddress">
-            {{ address }}
-          </div>
-        </span>
+      <div class="row" v-if="showOptions">
+        <q-toggle
+          style="margin: auto;"
+          v-model="legacy"
+          label="Legacy Address"
+        />
       </div>
-    </div>
+      <div class="row" style="margin-bottom: 50px;">
+        <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
+          <span class="qr-code-text text-weight-medium">
+            <div class="text-nowrap" @click="copyAddress">
+              {{ address }}
+            </div>
+          </span>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import { Address } from '../../wallet'
+import Loader from '../../components/loader'
+import { getMnemonic, Wallet, Address } from '../../wallet'
 
 export default {
   name: 'receive-page',
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav },
+  components: { HeaderNav, Loader },
   data () {
     return {
       activeBtn: 'btn-bch',
@@ -54,7 +69,9 @@ export default {
       asset: {},
       assetLoaded: false,
       showOptions: false,
-      legacy: false
+      legacy: false,
+      wallet: null,
+      generatingAddress: false
     }
   },
   props: {
@@ -75,6 +92,35 @@ export default {
     }
   },
   methods: {
+    generateNewAddress () {
+      const vm = this
+      vm.generatingAddress = true
+      const lastAddressIndex = vm.getLastAddressIndex()
+      if (vm.walletType === 'bch') {
+        vm.wallet.BCH.getNewAddressSet(lastAddressIndex).then(function (addresses) {
+          vm.$store.commit('global/generateNewAddressSet', {
+            type: 'bch',
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: lastAddressIndex + 1
+          })
+          vm.generatingAddress = false
+          vm.setupListener()
+        })
+      }
+      if (vm.walletType === 'slp') {
+        vm.wallet.SLP.getNewAddressSet(lastAddressIndex).then(function (addresses) {
+          vm.$store.commit('global/generateNewAddressSet', {
+            type: 'slp',
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: lastAddressIndex + 1
+          })
+          vm.generatingAddress = false
+          vm.setupListener()
+        })
+      }
+    },
     getAddress () {
       if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
@@ -82,6 +128,14 @@ export default {
         this.walletType = 'bch'
       }
       return this.$store.getters['global/getAddress'](this.walletType)
+    },
+    getLastAddressIndex () {
+      if (this.assetId.indexOf('slp/') > -1) {
+        this.walletType = 'slp'
+      } else {
+        this.walletType = 'bch'
+      }
+      return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
     copyAddress () {
       this.$copyText(this.address)
@@ -114,49 +168,63 @@ export default {
     convertToLegacyAddress (address) {
       const addressObj = new Address(address)
       return addressObj.toLegacyAddress()
-    }
-  },
-
-  created () {
-    const vm = this
-    vm.asset = vm.getAsset(vm.assetId)
-    // vm.asset.address = vm.getAddress()
-
-    let url
-    let assetType
-    const address = vm.getAddress()
-    if (vm.assetId.indexOf('slp/') > -1) {
-      assetType = 'slp'
-      url = `wss://watchtower.cash/ws/watch/slp/${address}/`
-    } else {
-      assetType = 'bch'
-      url = `wss://watchtower.cash/ws/watch/bch/${address}/`
-    }
-    vm.$connect(url)
-    vm.$options.sockets.onmessage = function (message) {
-      const data = JSON.parse(message.data)
-      if (assetType === 'slp') {
-        const tokenId = vm.assetId.split('/')[1]
-        if (data.token === tokenId) {
+    },
+    setupListener () {
+      const vm = this
+      let url
+      let assetType
+      const address = vm.getAddress()
+      if (vm.assetId.indexOf('slp/') > -1) {
+        assetType = 'slp'
+        url = `wss://watchtower.cash/ws/watch/slp/${address}/`
+      } else {
+        assetType = 'bch'
+        url = `wss://watchtower.cash/ws/watch/bch/${address}/`
+      }
+      vm.$connect(url)
+      vm.$options.sockets.onmessage = function (message) {
+        const data = JSON.parse(message.data)
+        if (assetType === 'slp') {
+          const tokenId = vm.assetId.split('/')[1]
+          if (data.token === tokenId) {
+            vm.notifyOnReceive(
+              data.amount,
+              vm.asset.symbol,
+              vm.asset.logo
+            )
+          }
+        } else {
           vm.notifyOnReceive(
             data.amount,
             vm.asset.symbol,
             vm.asset.logo
           )
         }
-      } else {
-        vm.notifyOnReceive(
-          data.amount,
-          vm.asset.symbol,
-          vm.asset.logo
-        )
       }
     }
+  },
+
+  mounted () {
+    const vm = this
+    getMnemonic().then(function (mnemonic) {
+      vm.wallet = new Wallet(mnemonic)
+    })
+  },
+
+  created () {
+    const vm = this
+    vm.asset = vm.getAsset(vm.assetId)
+    vm.setupListener()
   }
 }
 </script>
 
 <style lang="scss">
+  #context-menu {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+  }
   .receive {
     color: #636767;
   }
