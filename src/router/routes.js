@@ -17,8 +17,7 @@ const routes = [
       {
         path: 'receive',
         name: 'transaction-receive',
-        // this function handles how to pass props to the component given the route data
-        props: route => route.query,
+        props: true,
         component: () => import('pages/transaction/receive.vue')
       },
       {

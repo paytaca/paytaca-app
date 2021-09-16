@@ -61,7 +61,7 @@
                 <q-item-label>{{ transaction.tx_fee / (10**8) }} BCH</q-item-label>
               </q-item-section>
             </q-item>
-            <q-item clickable v-ripple @click="copyToClipboard('https://blockchair.com/bitcoin-cash/transaction/' + transaction.txid)">
+            <q-item clickable>
               <q-item-section>
                 <q-item-label caption>Explorer Link</q-item-label>
                 <q-item-label>

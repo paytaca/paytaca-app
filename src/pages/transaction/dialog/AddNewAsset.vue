@@ -59,7 +59,4 @@ export default {
 .btn-add-payment {
   background: radial-gradient(circle, #3C64F6 10%, #2648C3 100%) !important;
 }
-.text-purelypeer {
-  color: rgb(60, 100, 246) !important;
-}
 </style>

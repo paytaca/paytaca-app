@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="fixed-container">
+    <div class="fixed-container" @click="hideAssetInfo">
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
           <p class="text-light p-label" style="color: #ABA9BB;">
@@ -22,14 +22,6 @@
           <div class="col">
               <p class="q-ml-lg q-mb-sm payment-methods">
                 Assets
-                <!-- <q-btn
-                  flat
-                  padding="none"
-                  size="sm"
-                  icon="refresh"
-                  style="color: #3B7BF6;"
-                  @click="getBalance()"
-                /> -->
                 <q-btn
                   flat
                   padding="none"
@@ -41,15 +33,16 @@
               </p>
           </div>
       </div>
+      <asset-info ref="asset-info"></asset-info>
       <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container">
           <div
             v-for="(asset, index) in assets"
             :key="index"
             class="method-cards q-pa-md q-mr-none"
-            @click="(event) => {
+            :class="{ selected: asset.id === selectedAsset.id }"
+            @click.stop="(event) => {
               selectAsset(event, asset)
             }"
-            v-touch-hold.5000mouse="toggleManageAssets"
           >
             <div
               v-if="manageAssets && asset.symbol !== 'BCH'"
@@ -126,12 +119,13 @@ import Loader from '../../components/loader'
 import Transaction from '../../components/transaction'
 import AddNewAsset from '../../pages/transaction/dialog/AddNewAsset'
 import RemovePaymetMethod from '../../pages/transaction/dialog/RemovePaymentMethod'
+import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 
 const ago = require('s-ago')
 
 export default {
   name: 'Transaction-page',
-  components: { Loader, Transaction },
+  components: { Loader, Transaction, AssetInfo },
   mixins: [
     walletAssetsMixin
   ],
@@ -159,7 +153,8 @@ export default {
       balanceLoaded: false,
       wallet: null,
       paymentMethods: null,
-      manageAssets: false
+      manageAssets: false,
+      assetInfoShown: false
     }
   },
 
@@ -211,6 +206,20 @@ export default {
       }).onCancel(() => {
       })
     },
+    showAssetInfo (asset) {
+      const vm = this
+      vm.assetInfoShown = true
+      const assetCheck = setInterval(function () {
+        if (asset) {
+          vm.$refs['asset-info'].show(asset)
+          clearInterval(assetCheck)
+        }
+      }, 100)
+    },
+    hideAssetInfo () {
+      this.$refs['asset-info'].hide()
+      this.assetInfoShown = false
+    },
     addAsset (tokenId) {
       const vm = this
       this.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
@@ -231,6 +240,7 @@ export default {
     },
     showTransactionDetails (transaction) {
       const vm = this
+      vm.hideAssetInfo()
       const txCheck = setInterval(function () {
         if (transaction) {
           transaction.asset = vm.selectedAsset
@@ -331,12 +341,21 @@ export default {
     },
 
     selectAsset (event, asset) {
-      this.selectedAsset = asset
-      this.transactions = []
-      this.transactionsPage = 1
-      this.transactionsPageHasNext = false
-      this.getBalance()
-      this.getTransactions()
+      if (this.selectedAsset.id === asset.id) {
+        if (this.assetInfoShown) {
+          this.hideAssetInfo()
+        } else {
+          this.showAssetInfo(asset)
+        }
+      } else {
+        this.$refs['asset-info'].hide()
+        this.selectedAsset = asset
+        this.transactions = []
+        this.transactionsPage = 1
+        this.transactionsPageHasNext = false
+        this.getBalance()
+        this.getTransactions()
+      }
 
       // Scroll by y-axis first then x-axis
       // jsUtils.getScrollableParent(...) 2nd param is whether resolving the scrollable parent with respect to x-axis(true) or y-axis(false)
@@ -532,7 +551,10 @@ export default {
     min-width: 160px;
     border-radius: 16px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-    box-shadow: 1px 2px 2px 2px rgba(99, 103, 103, .2);
+    box-shadow: 2px 2px 2px 2px #f2f2fc;
+  }
+  .selected {
+    box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;
   }
   .ib-text {
     display: inline-block;
