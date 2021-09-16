@@ -1,19 +1,18 @@
 <template>
   <div>
-    <div id="apps">
+    <div id="apps" ref="apps">
       <p class="section-title">Applications</p>
-      <div ref="apps" style="margin-left: auto; margin-right: auto;">
+      <div ref="apps-icons" style="margin-left: auto; margin-right: auto;">
         <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app)">
           <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : 'gray'}" :name="app.iconName" />
           <p>{{ app.name }}</p>
         </div>
-
-        <div style="margin-top: 45px; margin-bottom: 50px; font-size: 14px; text-align: center;">
-          <p>Paytaca aims to bring Bitcoin Cash to everyone everywhere. You can help us bootstrap our products through a small donation.</p>
-          <q-btn @click="donate">Donate Now</q-btn>
-          <br><br>
-          <a href="https://www.paytaca.com" target="_blank">www.paytaca.com</a>
-        </div>
+      </div>
+      <div style="margin-top: 45px; margin-bottom: 50px; font-size: 14px; text-align: center;">
+        <p>Paytaca aims to bring Bitcoin Cash to everyone everywhere. You can help us bootstrap our products through a small donation.</p>
+        <q-btn @click="donate">Donate Now</q-btn>
+        <br><br>
+        <a href="https://www.paytaca.com" target="_blank">www.paytaca.com</a>
       </div>
     </div>
     <footer-menu />
@@ -90,7 +89,9 @@ export default {
     }
   },
   mounted () {
-    this.$refs.apps.style.width = (screen.width * 0.8) + 'px'
+    const bodyBounds = document.body.getBoundingClientRect()
+    this.$refs.apps.style.width = (bodyBounds.width - 40) + 'px'
+    this.$refs['apps-icons'].style.width = (bodyBounds.width - 40) + 'px'
   }
 }
 </script>
