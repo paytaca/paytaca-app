@@ -13,7 +13,6 @@
             <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
           </p>
         </div>
-        {{ assetClickCounter }} | {{ assetClickTimer }}
         <div class="q-space q-pr-lg">
           <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
           <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
