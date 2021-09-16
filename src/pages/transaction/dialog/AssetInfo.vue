@@ -1,11 +1,17 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" seamless>
-    <q-card class="q-dialog-plugin">
+    <q-card
+      class="q-dialog-plugin"
+      style="padding: 15px 0;"
+    >
       <q-card-section v-if="asset">
-        <div style="text-align: center;">
-          <strong>{{ asset.name }}</strong>
+        <div style="text-align: center; font-size: 20px;">
+          <p>{{ asset.symbol }}</p>
         </div>
-        <div style="margin-top: 10px; text-align: center;">
+        <div style="text-align: center;">
+          <img :src="asset.logo" height="50" class="q-mr-xs">
+        </div>
+        <div style="margin-top: 20px; text-align: center;">
           <q-btn @click="send">Send</q-btn>&nbsp;
           <q-btn @click="receive">Receive</q-btn>
         </div>

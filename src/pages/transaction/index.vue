@@ -154,7 +154,9 @@ export default {
       wallet: null,
       paymentMethods: null,
       manageAssets: false,
-      assetInfoShown: false
+      assetInfoShown: false,
+      assetClickCounter: 0,
+      assetClickTimer: null
     }
   },
 
@@ -341,20 +343,35 @@ export default {
     },
 
     selectAsset (event, asset) {
-      if (this.selectedAsset.id === asset.id) {
-        if (this.assetInfoShown) {
-          this.hideAssetInfo()
+      const vm = this
+      vm.assetClickCounter += 1
+      if (vm.selectedAsset.id === asset.id) {
+        if (vm.assetClickCounter === 1) {
+          vm.assetClickTimer = setTimeout(() => {
+            console.log(vm.assetInfoShown)
+            if (vm.assetInfoShown) {
+              vm.hideAssetInfo()
+            } else {
+              vm.showAssetInfo(asset)
+            }
+            vm.assetClickCounter = 0
+            clearTimeout(vm.assetClickTimer)
+          }, 600)
         } else {
-          this.showAssetInfo(asset)
+          vm.assetClickTimer = setTimeout(() => {
+            vm.showAssetInfo(asset)
+            clearTimeout(vm.assetClickTimer)
+          }, 600)
         }
       } else {
-        this.$refs['asset-info'].hide()
-        this.selectedAsset = asset
-        this.transactions = []
-        this.transactionsPage = 1
-        this.transactionsPageHasNext = false
-        this.getBalance()
-        this.getTransactions()
+        vm.assetClickCounter = 0
+        vm.$refs['asset-info'].hide()
+        vm.selectedAsset = asset
+        vm.transactions = []
+        vm.transactionsPage = 1
+        vm.transactionsPageHasNext = false
+        vm.getBalance()
+        vm.getTransactions()
       }
 
       // Scroll by y-axis first then x-axis
