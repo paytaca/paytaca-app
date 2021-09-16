@@ -13,6 +13,7 @@
             <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
           </p>
         </div>
+        {{ assetClickCounter }} | {{ assetClickTimer }}
         <div class="q-space q-pr-lg">
           <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
           <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
@@ -67,7 +68,7 @@
           <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
       </div>
     </div>
-    <div class="row transaction-row">
+    <div class="row transaction-row" @click="hideAssetInfo">
       <transaction ref="transaction"></transaction>
       <div class="col transaction-container">
           <p class="q-ma-lg transaction-wallet">Transactions</p>
@@ -346,25 +347,28 @@ export default {
       const vm = this
       vm.assetClickCounter += 1
       if (vm.selectedAsset.id === asset.id) {
-        if (vm.assetClickCounter === 1) {
+        if (vm.assetClickCounter === 2) {
+          console.log('hello')
+          vm.showAssetInfo(asset)
           vm.assetClickTimer = setTimeout(() => {
-            console.log(vm.assetInfoShown)
-            if (vm.assetInfoShown) {
-              vm.hideAssetInfo()
-            } else {
-              vm.showAssetInfo(asset)
-            }
-            vm.assetClickCounter = 0
             clearTimeout(vm.assetClickTimer)
+            vm.assetClickTimer = null
+            vm.assetClickCounter = 0
           }, 600)
         } else {
+          vm.hideAssetInfo()
           vm.assetClickTimer = setTimeout(() => {
-            vm.showAssetInfo(asset)
             clearTimeout(vm.assetClickTimer)
+            vm.assetClickTimer = null
+            vm.assetClickCounter = 0
           }, 600)
         }
       } else {
-        vm.assetClickCounter = 0
+        vm.assetClickTimer = setTimeout(() => {
+          clearTimeout(vm.assetClickTimer)
+          vm.assetClickTimer = null
+          vm.assetClickCounter = 0
+        }, 600)
         vm.$refs['asset-info'].hide()
         vm.selectedAsset = asset
         vm.transactions = []
