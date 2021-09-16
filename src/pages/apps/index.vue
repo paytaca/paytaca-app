@@ -8,7 +8,7 @@
           <p>{{ app.name }}</p>
         </div>
       </div>
-      <div style="margin-top: 45px; margin-bottom: 50px; font-size: 14px; text-align: center;">
+      <div style="margin-top: 45px; margin-bottom: 60px; font-size: 14px; text-align: center;">
         <p>Paytaca aims to bring Bitcoin Cash to everyone everywhere. You can help us bootstrap our products through a small donation.</p>
         <q-btn @click="donate">Donate Now</q-btn>
         <br><br>

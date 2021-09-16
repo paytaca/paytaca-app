@@ -26,7 +26,7 @@
       </div>
       <div class="row justify-center q-pt-lg" v-if="scanner.show">
         <div ref="scanner" class="q-pa-none qrcode-scanner">
-          <span class="material-icons close-scanner" @click="scanner.show = !scanner.show">
+          <span class="material-icons close-scanner" @click="closeQrScanner">
           close
           </span>
           <div :class="{'scanner-box' : scanner.show}" ref="box">
@@ -207,11 +207,14 @@ export default {
       this.scannedRecipientAddress = true
     },
     onInit (promise) {
+      const bodyBounds = document.body.getBoundingClientRect()
+      const screenWidth = bodyBounds.width
       const screenHeight = screen.height
       this.$refs.scanner.setAttribute('style', 'height: ' + screenHeight + 'px !important; width: 100% !important;')
-      const screenWidth = screen.width
-      const boxRightMargin = screenWidth - (screenWidth / 2) - 110 // 110 is half the scanner box width
-      this.$refs.box.setAttribute('style', 'margin-left: ' + boxRightMargin + 'px;')
+
+      const leftLoc = (screenWidth - (screenWidth / 2) - 110) // 110 is half the scanner box width
+      const topLoc = screenHeight * 0.3
+      this.$refs.box.setAttribute('style', 'top: ' + topLoc + 'px; ' + 'left: ' + leftLoc + 'px;')
       promise
         .then(() => {
           console.log('Successfully initilized! Ready for scanning now!')
@@ -238,6 +241,12 @@ export default {
             this.scanner.error = 'Unknown error: ' + error.message
           }
         })
+    },
+
+    closeQrScanner () {
+      this.$router.push({
+        path: '/'
+      })
     },
 
     getWallet (type) {
@@ -450,7 +459,6 @@ export default {
   .scanner-box {
     position: absolute !important;
     display: flex !important;
-    margin-bottom: 10%;
     height: 220px !important;
     width: 220px !important;
     border-radius: 16% !important;
