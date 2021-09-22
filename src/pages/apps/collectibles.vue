@@ -44,8 +44,8 @@
               class="collectible-card"
               @click="showDetails(collectible)"
             >
-              <template v-if="collectible.image_url.length > 0">
-                <q-img :src="collectible.image_url" fit="fill"></q-img>
+              <template v-if="getImageUrl(collectible).length > 0">
+                <q-img :src="getImageUrl(collectible)" fit="fill"></q-img>
               </template>
               <template v-else>
                 <gravatar
@@ -101,6 +101,13 @@ export default {
           vm.$refs.collectibles.style.width = screen.width + 'px'
         }
       })
+    },
+    getImageUrl (collectible) {
+      if (collectible.thumbnail_image_url.length > 0) {
+        return collectible.thumbnail_image_url
+      } else {
+        return collectible.original_image_url
+      }
     },
     showDetails (collectible) {
       this.$refs.collectible.show(collectible)

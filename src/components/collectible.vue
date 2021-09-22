@@ -2,8 +2,8 @@
   <div id="transaction">
     <q-dialog ref="dialog" full-width @hide="hide">
       <q-card v-if="collectible">
-        <template v-if="collectible.thumbnail_image_url.length > 0">
-          <q-img :src="collectible.thumbnail_image_url" fit="fill"></q-img>
+        <template v-if="getImageUrl(collectible).length > 0">
+          <q-img :src="getImageUrl(collectible)" fit="fill"></q-img>
         </template>
         <template v-else>
           <gravatar
@@ -39,10 +39,10 @@ export default {
   },
   methods: {
     getImageUrl (collectible) {
-      if (collectible.thumbnail_image_url.length > 0) {
-        return collectible.thumbnail_image_url
+      if (collectible.medium_image_url.length > 0) {
+        return collectible.medium_image_url
       } else {
-        return ''
+        return collectible.original_image_url
       }
     },
     show (collectible) {
