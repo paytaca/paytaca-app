@@ -24,7 +24,7 @@
           </q-input>
         </div>
       </div>
-      <div class="row justify-center q-pt-lg" v-if="scanner.show">
+      <div class="row justify-center q-pt-lg" v-show="scanner.show">
         <div ref="scanner" class="q-pa-none qrcode-scanner">
           <span class="material-icons close-scanner" @click="closeQrScanner">
           close
@@ -217,9 +217,9 @@ export default {
       const valid = this.checkAddress(content)
       if (valid) {
         this.sendData.recipientAddress = content
+        this.scannedRecipientAddress = true
       }
       this.scanner.show = !this.scanner.show
-      this.scannedRecipientAddress = true
     },
     onInit (promise) {
       const bodyBounds = document.body.getBoundingClientRect()
