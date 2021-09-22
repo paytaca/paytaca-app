@@ -16,17 +16,17 @@ export default function () {
         balance: 0
       },
       {
-        id: 'slp/7f8889682d57369ed0e32336f8b7e0ffec625a35cca183f4e81fde4e71a538a1',
-        symbol: 'HONK',
-        name: 'HONK',
-        logo: 'honk-logo.png',
-        balance: 0
-      },
-      {
         id: 'slp/a013d636dcadc71f7e11d7880e9e8b62295e772cf1a24180f74d0eca62604136',
         symbol: 'ORB',
         name: 'ORB',
         logo: 'orb-logo.png',
+        balance: 0
+      },
+      {
+        id: 'slp/dd21be4532d93661e8ffe16db6535af0fb8ee1344d1fef81a193e2b4cfa9fbc9',
+        symbol: 'flexUSD',
+        name: 'flexUSD',
+        logo: 'flexusd-logo.png',
         balance: 0
       }
     ]
