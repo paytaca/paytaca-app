@@ -1,6 +1,6 @@
 <template>
   <div>
-    <header-nav title="Collectibles" backnavpath="/apps"></header-nav>
+    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0;"></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6;">
       <q-menu>
         <q-list style="min-width: 100px">
@@ -13,53 +13,55 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="margin-top: 20px; text-align: center;">
-      <div style="margin-bottom: 5px;">click to copy</div>
-      <qr-code
-        :text="receivingAddress"
-        style="width: 160px; margin-left: auto; margin-right: auto;"
-        color="#253933"
-        :size="160"
-        error-level="H"
-        class="q-mb-sm"
-      ></qr-code>
-    </div>
-    <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
-      <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
-    </div>
-    <div id="app" ref="app">
-      <div style="text-align: center; margin-top: 40px;" v-if="!collectiblesLoaded">
-        <loader />
+    <div style="margin-top: 60px;">
+      <div v-if="showAddress" @click="copyAddress(receivingAddress)">
+        <div style="margin-bottom: 5px;">click to copy</div>
+        <qr-code
+          :text="receivingAddress"
+          style="width: 160px; margin-left: auto; margin-right: auto;"
+          color="#253933"
+          :size="160"
+          error-level="H"
+          class="q-mb-sm"
+        ></qr-code>
       </div>
-      <template v-if="collectiblesLoaded && collectibles.length > 0">
-        <div
-          ref="collectibles"
-          style="margin-left: auto; margin-right: auto; margin-bottom: 50px;"
-          class="q-pa-md row items-start q-gutter-md"
-        >
-          <q-card
-            v-for="(collectible, index) in collectibles"
-            :key="index"
-            class="collectible-card"
-            @click="showDetails(collectible)"
-          >
-            <template v-if="collectible.image_url.length > 0">
-              <q-img :src="collectible.image_url" fit="fill"></q-img>
-            </template>
-            <template v-else>
-              <gravatar
-                :hash="collectible.token_id"
-              />
-            </template>
-          </q-card>
+      <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
+        <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
+      </div>
+      <div id="app" ref="app">
+        <div style="text-align: center; margin-top: 40px;" v-if="!collectiblesLoaded">
+          <loader />
         </div>
-      </template>
-      <template v-if="collectibles.length === 0 && collectiblesLoaded">
-        <p style="font-size: 24px; color: gray; text-align: center; margin-top: 30px;">
-          You don't own any collectibles yet.
-        </p>
-      </template>
-      <collectible ref="collectible"></collectible>
+        <template v-if="collectiblesLoaded && collectibles.length > 0">
+          <div
+            ref="collectibles"
+            style="margin-left: auto; margin-right: auto; margin-bottom: 50px;"
+            class="q-pa-md row items-start q-gutter-md"
+          >
+            <q-card
+              v-for="(collectible, index) in collectibles"
+              :key="index"
+              class="collectible-card"
+              @click="showDetails(collectible)"
+            >
+              <template v-if="collectible.image_url.length > 0">
+                <q-img :src="collectible.image_url" fit="fill"></q-img>
+              </template>
+              <template v-else>
+                <gravatar
+                  :hash="collectible.token_id"
+                />
+              </template>
+            </q-card>
+          </div>
+        </template>
+        <template v-if="collectibles.length === 0 && collectiblesLoaded">
+          <p style="font-size: 24px; color: gray; text-align: center; margin-top: 30px;">
+            You don't own any collectibles yet.
+          </p>
+        </template>
+        <collectible ref="collectible"></collectible>
+      </div>
     </div>
     <footer-menu />
   </div>

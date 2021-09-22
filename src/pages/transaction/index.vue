@@ -40,7 +40,7 @@
             :key="index"
             class="method-cards q-pa-md q-mr-none"
             :class="{ selected: asset.id === selectedAsset.id }"
-            @click.stop="(event) => {
+            @click="(event) => {
               selectAsset(event, asset)
             }"
           >
@@ -355,8 +355,10 @@ export default {
           }, 600)
         } else {
           vm.hideAssetInfo()
-          vm.getBalance(asset.id)
           vm.assetClickTimer = setTimeout(() => {
+            if (vm.assetClickCounter === 1) {
+              vm.getBalance(asset.id)
+            }
             clearTimeout(vm.assetClickTimer)
             vm.assetClickTimer = null
             vm.assetClickCounter = 0

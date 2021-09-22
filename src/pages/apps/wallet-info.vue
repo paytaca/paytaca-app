@@ -1,68 +1,70 @@
 <template>
   <div>
     <div>
-      <header-nav title="Wallet Info" backnavpath="/apps"></header-nav>
-      <div id="app" ref="app">
-        <div class="row">
-          <div class="col">
-            <p class="section-title">Mnemonic Backup Phrase</p>
-            <q-list bordered separator class="list">
-              <q-item clickable v-ripple @click="copyToClipboard(mnemonic)">
-                <q-item-section>
-                  <q-item-label class="blurry-text">{{ mnemonic }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
+      <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0;"></header-nav>
+      <div style="margin-top: 60px;">
+        <div id="app" ref="app">
+          <div class="row">
+            <div class="col">
+              <p class="section-title">Mnemonic Backup Phrase</p>
+              <q-list bordered separator class="list">
+                <q-item clickable v-ripple @click="copyToClipboard(mnemonic)">
+                  <q-item-section>
+                    <q-item-label class="blurry-text">{{ mnemonic }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
           </div>
-        </div>
-        <div class="row" style="margin-top: 20px;">
-          <div class="col">
-            <p class="section-title">BCH Addresses</p>
-            <q-list bordered separator class="list">
-              <q-item clickable v-ripple>
-                <q-item-section>
-                  <q-item-label caption>Derivation Path</q-item-label>
-                  <q-item-label>{{ getWallet('bch').derivationPath }}</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
-                <q-item-section>
-                  <q-item-label caption>xPub Key</q-item-label>
-                  <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
-                <q-item-section>
-                  <q-item-label caption>Wallet Hash</q-item-label>
-                  <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
+          <div class="row" style="margin-top: 20px;">
+            <div class="col">
+              <p class="section-title">BCH Addresses</p>
+              <q-list bordered separator class="list">
+                <q-item clickable v-ripple>
+                  <q-item-section>
+                    <q-item-label caption>Derivation Path</q-item-label>
+                    <q-item-label>{{ getWallet('bch').derivationPath }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
+                  <q-item-section>
+                    <q-item-label caption>xPub Key</q-item-label>
+                    <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
+                  <q-item-section>
+                    <q-item-label caption>Wallet Hash</q-item-label>
+                    <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
           </div>
-        </div>
-        <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
-          <div class="col">
-            <p class="section-title">SLP Addresses</p>
-            <q-list bordered separator class="list">
-              <q-item clickable v-ripple>
-                <q-item-section>
-                  <q-item-label caption>Derivation Path</q-item-label>
-                  <q-item-label>{{ getWallet('slp').derivationPath }}</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
-                <q-item-section>
-                  <q-item-label caption>xPub Key</q-item-label>
-                  <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
-                <q-item-section>
-                  <q-item-label caption>Wallet Hash</q-item-label>
-                  <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
+          <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
+            <div class="col">
+              <p class="section-title">SLP Addresses</p>
+              <q-list bordered separator class="list">
+                <q-item clickable v-ripple>
+                  <q-item-section>
+                    <q-item-label caption>Derivation Path</q-item-label>
+                    <q-item-label>{{ getWallet('slp').derivationPath }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
+                  <q-item-section>
+                    <q-item-label caption>xPub Key</q-item-label>
+                    <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
+                  <q-item-section>
+                    <q-item-label caption>Wallet Hash</q-item-label>
+                    <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
           </div>
         </div>
       </div>
