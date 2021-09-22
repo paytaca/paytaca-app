@@ -347,7 +347,6 @@ export default {
       vm.assetClickCounter += 1
       if (vm.selectedAsset.id === asset.id) {
         if (vm.assetClickCounter === 2) {
-          console.log('hello')
           vm.showAssetInfo(asset)
           vm.assetClickTimer = setTimeout(() => {
             clearTimeout(vm.assetClickTimer)
@@ -356,6 +355,7 @@ export default {
           }, 600)
         } else {
           vm.hideAssetInfo()
+          vm.getBalance(asset.id)
           vm.assetClickTimer = setTimeout(() => {
             clearTimeout(vm.assetClickTimer)
             vm.assetClickTimer = null
