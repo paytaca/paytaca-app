@@ -19,7 +19,7 @@
         <div class="col-12 q-mt-lg" style="text-align: center;">
           <q-input outlined bottom-slots v-model="manualAddress" label="Paste address here">
             <template v-slot:append>
-              <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="sendData.recipientAddress = manualAddress" />
+              <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="checkAddress" />
             </template>
           </q-input>
         </div>
@@ -70,19 +70,20 @@
             Balance: {{ asset.balance }} {{ asset.symbol }}
           </div>
         </div>
-        <div class="row" v-if="sendErrors.length > 0">
-          <div class="col q-mt-md" style="color: #da53b2;">
-            <ul style="margin-left: -20px;">
-              <li v-for="(error, index) in sendErrors" :key="index">
-                {{ error }}
-              </li>
-            </ul>
-          </div>
-        </div>
         <div class="row" style="text-align: center;" v-if="sendData.sending">
           <loader></loader>
         </div>
       </form>
+    </div>
+    <div class="row" v-if="sendErrors.length > 0">
+      <div class="col">
+        <ul style="margin-left: -40px; list-style: none;">
+          <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg">
+            <q-icon name="error" left/>
+            {{ error }}
+          </li>
+        </ul>
+      </div>
     </div>
     <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
       <q-icon size="120px" name="check_circle" style="color: green;"></q-icon>
@@ -201,8 +202,22 @@ export default {
         return assets[0]
       }
     },
+    checkAddress () {
+      const addressValidation = this.validateAddress(this.manualAddress)
+      if (addressValidation.valid) {
+        this.sendData.recipientAddress = addressValidation.address
+        this.sendErrors = []
+        return true
+      } else {
+        this.sendErrors.push('Invalid address')
+        return false
+      }
+    },
     onDecode (content) {
-      this.sendData.recipientAddress = content
+      const valid = this.checkAddress(content)
+      if (valid) {
+        this.sendData.recipientAddress = content
+      }
       this.scanner.show = !this.scanner.show
       this.scannedRecipientAddress = true
     },
@@ -257,6 +272,7 @@ export default {
       const vm = this
       const addressObj = new Address(address)
       let addressIsValid = false
+      let formattedAddress
       try {
         if (vm.walletType === 'bch') {
           if (addressObj.isLegacyAddress()) {
@@ -269,6 +285,9 @@ export default {
             addressIsValid = true
           } else {
             addressIsValid = false
+          }
+          if (addressIsValid) {
+            formattedAddress = addressObj.toCashAddress(address)
           }
         }
         if (vm.walletType === 'slp') {
@@ -287,12 +306,18 @@ export default {
               addressIsValid = false
             }
           }
+          if (addressIsValid) {
+            formattedAddress = addressObj.toSLPAddress(address)
+          }
         }
       } catch (err) {
         addressIsValid = false
         console.log(err)
       }
-      return addressIsValid
+      return {
+        valid: addressIsValid,
+        address: formattedAddress
+      }
     },
 
     validateAmount (amount) {
@@ -318,7 +343,8 @@ export default {
       const vm = this
       let address = this.sendData.recipientAddress
       const addressObj = new Address(address)
-      const addressIsValid = this.validateAddress(address)
+      const addressValidation = this.validateAddress(address)
+      const addressIsValid = addressValidation.valid
       const amountIsValid = this.validateAmount(this.sendData.amount)
       if (addressIsValid && amountIsValid) {
         vm.sendData.sending = true
