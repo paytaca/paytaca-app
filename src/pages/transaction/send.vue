@@ -19,7 +19,7 @@
         <div class="col-12 q-mt-lg" style="text-align: center;">
           <q-input outlined bottom-slots v-model="manualAddress" label="Paste address here">
             <template v-slot:append>
-              <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="checkAddress" />
+              <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="checkAddress(manualAddress)" />
             </template>
           </q-input>
         </div>
@@ -202,8 +202,8 @@ export default {
         return assets[0]
       }
     },
-    checkAddress () {
-      const addressValidation = this.validateAddress(this.manualAddress)
+    checkAddress (address) {
+      const addressValidation = this.validateAddress(address)
       if (addressValidation.valid) {
         this.sendData.recipientAddress = addressValidation.address
         this.sendErrors = []
