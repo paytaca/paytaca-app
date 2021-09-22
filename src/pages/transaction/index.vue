@@ -34,7 +34,7 @@
           </div>
       </div>
       <asset-info ref="asset-info"></asset-info>
-      <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container">
+      <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-dragscroll="true">
           <div
             v-for="(asset, index) in assets"
             :key="index"
@@ -120,12 +120,16 @@ import Transaction from '../../components/transaction'
 import AddNewAsset from '../../pages/transaction/dialog/AddNewAsset'
 import RemovePaymetMethod from '../../pages/transaction/dialog/RemovePaymentMethod'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
+import { dragscroll } from 'vue-dragscroll'
 
 const ago = require('s-ago')
 
 export default {
   name: 'Transaction-page',
   components: { Loader, Transaction, AssetInfo },
+  directives: {
+    dragscroll
+  },
   mixins: [
     walletAssetsMixin
   ],
