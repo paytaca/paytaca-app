@@ -203,6 +203,9 @@ export default {
       }
     },
     checkAddress (address) {
+      if (address.indexOf('?') > -1) {
+        address = address.split('?')[0]
+      }
       const addressValidation = this.validateAddress(address)
       if (addressValidation.valid) {
         this.sendData.recipientAddress = addressValidation.address
