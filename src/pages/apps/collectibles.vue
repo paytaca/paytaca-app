@@ -96,6 +96,8 @@ export default {
       vm.collectiblesLoaded = false
       vm.wallet.SLP.getCollectibles().then(function (collectibles) {
         vm.collectibles = collectibles
+        // Sort by date_created
+        vm.collectibles = vm.collectibles.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
         vm.collectiblesLoaded = true
         if (collectibles.length > 0 && vm.$refs.collectibles) {
           vm.$refs.collectibles.style.width = screen.width + 'px'
