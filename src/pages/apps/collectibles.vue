@@ -13,8 +13,8 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <div style="margin-top: 60px;">
-      <div v-if="showAddress" @click="copyAddress(receivingAddress)">
+    <div style="margin-top: 70px;">
+      <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center;">
         <div style="margin-bottom: 5px;">click to copy</div>
         <qr-code
           :text="receivingAddress"
@@ -56,7 +56,7 @@
           </div>
         </template>
         <template v-if="collectibles.length === 0 && collectiblesLoaded">
-          <p style="font-size: 24px; color: gray; text-align: center; margin-top: 30px;">
+          <p style="font-size: 20px; color: gray; text-align: center; margin-top: 50px;">
             You don't own any collectibles yet.
           </p>
         </template>
