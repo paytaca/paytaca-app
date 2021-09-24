@@ -11,7 +11,8 @@
   "options_page": "www/index.html",
   "browser_action": {
     "default_title": "Paytaca",
-    "default_popup": "www/index.html"
+    "default_popup": "www/index.html",
+    "default": "www/index.html"
   },
   "background": {
     "scripts": [

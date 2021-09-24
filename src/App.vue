@@ -12,8 +12,7 @@ export default {
     if (vm.$q.platform.is.bex) {
       vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'
-      const bodyBounds = document.body.getBoundingClientRect()
-      document.body.style.minHeight = bodyBounds.height
+      document.body.style.height = '600px'
 
       vm.$q.bex.on('bex.paytaca.send', event => {
         vm.$router.push({

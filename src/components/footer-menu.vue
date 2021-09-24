@@ -21,6 +21,9 @@
           <i class="footer-icon mdi mdi-apps"></i>
         </router-link>
       </button>
+      <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
+        <i class="footer-icon mdi mdi-launch"></i>
+      </button>
     </div>
   </div>
 </template>
@@ -30,6 +33,11 @@ export default {
   name: 'footer-menu',
   data () {
     return {}
+  },
+  methods: {
+    expandBex () {
+      window.location.href = 'https://www.google.com'
+    }
   }
 }
 </script>
