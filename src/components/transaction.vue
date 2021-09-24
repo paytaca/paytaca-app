@@ -57,7 +57,7 @@
             </q-item>
             <q-item>
               <q-item-section>
-                <q-item-label caption>Transction fee</q-item-label>
+                <q-item-label caption>Miner fee</q-item-label>
                 <q-item-label>{{ transaction.tx_fee / (10**8) }} BCH</q-item-label>
               </q-item-section>
             </q-item>
