@@ -2,18 +2,19 @@
   <div style="background-color: #ECF3F3; min-height: 100vh;">
     <div id="apps" ref="apps">
       <p class="section-title">Applications</p>
-      <div ref="apps-icons" style="margin-left: auto; margin-right: auto; padding-left: 10px;">
+      <div ref="apps-icons" style="margin-left: auto; margin-right: auto;">
         <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app)">
           <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : 'gray'}" :name="app.iconName" />
           <p>{{ app.name }}</p>
         </div>
       </div>
-      <div id="doante" :style="{ width: $q.platform.is.bex ? '350px' : '100%', padding: '20px', 'margin': '35px auto', 'text-align': 'center', 'overflow.y': 'scroll'}">
+      <div id="doante" :style="{ width: $q.platform.is.bex ? '350px' : '100%', padding: '10px', 'margin': '35px auto', 'text-align': 'center', 'overflow.y': 'scroll'}">
         <p>Paytaca aims to bring Bitcoin Cash to everyone everywhere. You can help us bootstrap our products through a small donation.</p>
         <q-btn @click="donate">Donate Now</q-btn>
         <br><br>
         <a href="https://www.paytaca.com" target="_blank">www.paytaca.com</a>
       </div>
+      <div style="padding-top: 20px;"></div>
     </div>
     <footer-menu />
   </div>
@@ -90,9 +91,9 @@ export default {
   },
   mounted () {
     const bodyBounds = document.body.getBoundingClientRect()
-    console.log(bodyBounds)
-    this.$refs.apps.style.width = (bodyBounds.width * 0.9) + 'px'
-    this.$refs['apps-icons'].style.width = (bodyBounds.width * 0.9) + 'px'
+    this.$refs.apps.style.width = bodyBounds.width + 'px'
+    const appIconsWidth = Math.ceil((bodyBounds.width * 0.90) / 70) * 70
+    this.$refs['apps-icons'].style.width = appIconsWidth + 'px'
   }
 }
 </script>
@@ -119,7 +120,7 @@ export default {
   .app-icon {
     vertical-align: middle;
     align-content: center;
-    width: 100%;
+    width: 75px;
     height: 100%;
   }
   .app p {
