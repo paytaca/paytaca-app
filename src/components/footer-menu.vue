@@ -36,7 +36,7 @@ export default {
   },
   methods: {
     expandBex () {
-      window.location.href = 'https://www.google.com'
+      this.$q.bex.send('ui.expand')
     }
   }
 }

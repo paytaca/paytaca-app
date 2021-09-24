@@ -34,3 +34,9 @@ export default {
   }
 }
 </script>
+
+<style>
+body {
+  width: 375px;
+}
+</style>

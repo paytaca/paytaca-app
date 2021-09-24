@@ -23,6 +23,11 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     }
   })
 
+  bridge.on('ui.expand', event => {
+    const url = '/www/index.html'
+    chrome.tabs.create({ url })
+  })
+
   bridge.on('storage.set', event => {
     const payload = event.data
     chrome.storage.local.set({ [payload.key]: payload.data }, () => {
@@ -39,7 +44,7 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
 
   bridge.on('background.paytaca.send', event => {
     chrome.windows.getCurrent(function (parentWindow) {
-      const windowWidth = 380
+      const windowWidth = 375
       const params = {
         url: chrome.runtime.getURL('www/index.html'),
         type: 'popup',
