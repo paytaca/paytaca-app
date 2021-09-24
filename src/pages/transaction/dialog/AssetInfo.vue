@@ -11,6 +11,16 @@
         <div style="text-align: center;">
           <img :src="asset.logo" height="50" class="q-mr-xs">
         </div>
+        <div style="text-align: center; margin-top: 10px;">
+          <a
+            :href="'https://simpleledger.info/#token/' + asset.id.split('/')[1]"
+            style="text-decoration: none; color: gray;"
+            target="_blank"
+          >
+            {{ asset.id.split('/')[1].slice(0, 7) }}
+            <q-icon name="exit_to_app" />
+          </a>
+        </div>
         <div style="margin-top: 20px; text-align: center;">
           <q-btn @click="send">Send</q-btn>&nbsp;
           <q-btn @click="receive">Receive</q-btn>
