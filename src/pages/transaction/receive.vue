@@ -1,7 +1,7 @@
 <template>
   <div>
     <header-nav :title="'RECEIVE ' + asset.symbol" backnavpath="/receive/select-asset"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6;">
+    <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6; z-index: 150;">
       <q-menu>
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -10,7 +10,7 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <div style="text-align: center; margin-top: 40px;" v-if="generatingAddress">
+    <div style="text-align: center; margin-top: 80px;" v-if="generatingAddress">
       <loader></loader>
     </div>
     <template v-else>
@@ -37,7 +37,7 @@
           label="Legacy Address"
         />
       </div>
-      <div class="row" style="margin-bottom: 50px;">
+      <div class="row">
         <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
           <span class="qr-code-text text-weight-medium">
             <div class="text-nowrap" @click="copyAddress">
@@ -220,7 +220,10 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
+  body {
+    overflow: hidden;
+  }
   #context-menu {
     position: fixed;
     top: 20px;
@@ -230,7 +233,7 @@ export default {
     color: #636767;
   }
   .qr-code-container {
-    margin-top: 40px;
+    margin-top: 100px;
     padding-left: 28px;
     padding-right: 28px;
   }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="fixed-container">
+    <div class="fixed-container" style="width: 375px; margin: 0 auto;">
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
           <p class="text-light p-label" style="color: #ABA9BB;">

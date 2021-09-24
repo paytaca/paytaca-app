@@ -49,7 +49,7 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         url: chrome.runtime.getURL('www/index.html'),
         type: 'popup',
         width: windowWidth,
-        height: 600,
+        height: 650,
         top: parentWindow.top,
         left: parentWindow.width - windowWidth
       }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0;"></header-nav>
+    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%;"></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6;">
       <q-menu>
         <q-list style="min-width: 100px">

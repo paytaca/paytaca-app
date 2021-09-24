@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="row">
-      <div class="col q-mt-md q-pl-md text-center q-pr-md">
+      <div id="header" class="col q-mt-md q-pl-md text-center q-pr-md">
         <router-link :to="{ path: backnavpath }">
           <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
         </router-link>
@@ -21,3 +21,18 @@ export default {
   props: ['title', 'backnavpath']
 }
 </script>
+
+<style scoped>
+#header {
+  width: 375px !important;
+  margin-top: 0;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 10px;
+  position: fixed;
+  top: 0;
+  background: #ECF3F3;
+  width: 100%;
+  z-index: 100;
+}
+</style>

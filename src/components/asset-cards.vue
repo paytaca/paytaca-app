@@ -133,7 +133,7 @@ export default {
         vm.$store.commit('assets/removeAsset', asset.id)
       }).onCancel(() => {
       })
-    },
+    }
   }
 }
 </script>
@@ -145,7 +145,7 @@ export default {
     scrollbar-width: none;  /* Firefox */
   }
   #asset-container::-webkit-scrollbar {
-      display: none;  /* Safari and Chrome */
+    display: none;  /* Safari and Chrome */
   }
   .btn-add-payment-method {
     border: 1px solid #2B7ED1;

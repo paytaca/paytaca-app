@@ -2,7 +2,7 @@
   <div>
     <header-nav title="RECEIVE" backnavpath="/"></header-nav>
     <template v-if="assets">
-      <div class="row">
+      <div class="row" style="margin-top: 70px;">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm">SELECT ASSET TO BE RECEIVED</p>
         </div>

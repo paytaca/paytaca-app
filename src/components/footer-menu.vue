@@ -1,5 +1,5 @@
 <template>
-  <div class="row justify-center fixed-footer">
+  <div class="row justify-center fixed-footer" style="width: 375px; margin: 0 auto;">
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn">
         <router-link :to="{ path: '/' }">

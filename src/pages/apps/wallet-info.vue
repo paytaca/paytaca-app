@@ -1,7 +1,7 @@
 <template>
   <div>
     <div>
-      <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0;"></header-nav>
+      <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%;"></header-nav>
       <div style="margin-top: 60px;">
         <div id="app" ref="app">
           <div class="row">

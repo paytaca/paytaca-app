@@ -12,7 +12,8 @@ export default {
     if (vm.$q.platform.is.bex) {
       vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'
-      document.body.style.height = '600px'
+      document.body.style.minHeight = '650px'
+      document.body.style.margin = '0 auto'
 
       vm.$q.bex.on('bex.paytaca.send', event => {
         vm.$router.push({
@@ -36,7 +37,7 @@ export default {
 </script>
 
 <style>
-body {
-  width: 375px;
+#q-app {
+  overflow: auto;
 }
 </style>
