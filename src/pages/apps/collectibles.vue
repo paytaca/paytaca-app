@@ -1,7 +1,7 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;">
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%;"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6;">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
       <q-menu>
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -91,6 +91,10 @@ export default {
     }
   },
   methods: {
+    getScreenWidth () {
+      const divBounds = document.body.getBoundingClientRect()
+      return divBounds.width
+    },
     getCollectibles () {
       const vm = this
       vm.collectiblesLoaded = false
@@ -150,6 +154,7 @@ export default {
 #context-menu {
   position: fixed;
   top: 16px;
-  margin-left: 315px;
+  z-index: 150;
+  color: #3b7bf6;
 }
 </style>

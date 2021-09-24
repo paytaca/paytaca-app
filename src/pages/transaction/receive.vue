@@ -1,7 +1,7 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;">
     <header-nav :title="'RECEIVE ' + asset.symbol" backnavpath="/receive/select-asset"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6; z-index: 150;">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
       <q-menu anchor="bottom right" self="top end">
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -93,6 +93,10 @@ export default {
     }
   },
   methods: {
+    getScreenWidth () {
+      const divBounds = document.body.getBoundingClientRect()
+      return divBounds.width
+    },
     generateNewAddress () {
       const vm = this
       vm.generatingAddress = true
@@ -228,7 +232,8 @@ export default {
   #context-menu {
     position: fixed;
     top: 16px;
-    margin-left: 315px;
+    color: #3b7bf6;
+    z-index: 150;
   }
   .receive {
     color: #636767;
