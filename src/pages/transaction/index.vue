@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="fixed-container" @click="hideAssetInfo">
+    <div class="fixed-container">
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
           <p class="text-light p-label" style="color: #ABA9BB;">
@@ -64,7 +64,7 @@
         </asset-cards>
       </template>
     </div>
-    <div class="row transaction-row" @click="hideAssetInfo">
+    <div class="row transaction-row">
       <transaction ref="transaction"></transaction>
       <div class="col transaction-container">
           <p class="q-ma-lg transaction-wallet">Transactions</p>
@@ -194,6 +194,7 @@ export default {
       }, 100)
     },
     hideAssetInfo () {
+      console.log('xxx')
       this.$refs['asset-info'].hide()
       this.assetInfoShown = false
     },

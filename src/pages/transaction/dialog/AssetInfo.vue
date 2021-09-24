@@ -1,9 +1,12 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" seamless>
+  <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
     <q-card
       class="q-dialog-plugin"
       style="padding: 15px 0;"
     >
+      <div style="right: 10px; top: 10px; position: absolute; background: lightgray; border-radius: 20px; z-index: 100;">
+        <q-btn icon="close" flat round dense v-close-popup />
+      </div>
       <q-card-section v-if="asset">
         <div style="text-align: center; font-size: 20px;">
           <p>{{ asset.symbol }}</p>
@@ -11,7 +14,7 @@
         <div style="text-align: center;">
           <img :src="asset.logo" height="50" class="q-mr-xs">
         </div>
-        <div style="text-align: center; margin-top: 10px;">
+        <div style="text-align: center; margin-top: 10px;" v-if="asset.id !== 'bch'">
           <a
             :href="'https://simpleledger.info/#token/' + asset.id.split('/')[1]"
             style="text-decoration: none; color: gray;"
