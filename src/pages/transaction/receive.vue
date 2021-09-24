@@ -1,8 +1,8 @@
 <template>
-  <div>
+  <div style="background-color: #ECF3F3; min-height: 100vh;">
     <header-nav :title="'RECEIVE ' + asset.symbol" backnavpath="/receive/select-asset"></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6; z-index: 150;">
-      <q-menu>
+      <q-menu anchor="bottom right" self="top end">
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
             <q-item-section @click="generateNewAddress">Generate new address</q-item-section>
@@ -10,7 +10,7 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <div style="text-align: center; margin-top: 80px;" v-if="generatingAddress">
+    <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
       <loader></loader>
     </div>
     <template v-else>
@@ -47,6 +47,7 @@
         </div>
       </div>
     </template>
+    <footer-menu />
   </div>
 </template>
 
@@ -226,8 +227,8 @@ export default {
   }
   #context-menu {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 16px;
+    margin-left: 315px;
   }
   .receive {
     color: #636767;

@@ -1,6 +1,7 @@
 
   body.body--light {
-    background-color: #ECF3F3 !important;
+    /* background-color: #ECF3F3 !important; */
+    background-color: #012121;
     transition: .1s;
   }
 

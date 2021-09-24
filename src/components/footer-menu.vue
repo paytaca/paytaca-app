@@ -1,5 +1,5 @@
 <template>
-  <div class="row justify-center fixed-footer" style="width: 375px; margin: 0 auto;">
+  <div class="row justify-center fixed-footer" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn">
         <router-link :to="{ path: '/' }">
@@ -31,9 +31,6 @@
 <script>
 export default {
   name: 'footer-menu',
-  data () {
-    return {}
-  },
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')

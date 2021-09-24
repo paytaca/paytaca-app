@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="background-color: #ECF3F3; min-height: 100vh;">
     <div>
       <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%;"></header-nav>
       <div style="margin-top: 60px;">
@@ -115,6 +115,7 @@ export default {
     padding: 25px;
     overflow-y: auto;
     z-index: -10 !important;
+    min-height: 100vh;
   }
   .section-title {
     font-size: 18px;

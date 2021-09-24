@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%;"></header-nav>
+  <div style="background-color: #ECF3F3; min-height: 100vh;">
+    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%;"></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert" style="color: #3b7bf6;">
       <q-menu>
         <q-list style="min-width: 100px">
@@ -13,8 +13,8 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <div style="margin-top: 70px;">
-      <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center;">
+    <div style="padding-top: 60px;">
+      <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
         <div style="margin-bottom: 5px;">click to copy</div>
         <qr-code
           :text="receivingAddress"
@@ -149,7 +149,7 @@ export default {
 
 #context-menu {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 16px;
+  margin-left: 315px;
 }
 </style>

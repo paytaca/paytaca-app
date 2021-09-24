@@ -1,5 +1,5 @@
 <template>
-  <div id="registration-container">
+  <div id="registration-container" style="background-color: #ECF3F3; min-height: 100vh;">
     <div class="row">
       <div class="col" style="text-align: center; padding: 20px 0px 0px 0px;">
         <img src="~/assets/paytaca_logo.png" height="60">

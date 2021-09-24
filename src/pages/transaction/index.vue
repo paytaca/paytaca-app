@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <div class="fixed-container" style="width: 375px; margin: 0 auto;">
+  <div style="background-color: #ECF3F3;">
+    <div class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
           <p class="text-light p-label" style="color: #ABA9BB;">
@@ -342,9 +342,10 @@ export default {
 <style>
   .fixed-container {
     position: fixed;
-    top: 0pt !important;
-    right: 0pt;
-    left: 0pt;
+    top: 0 !important;
+    background-color: #ECF3F3;
+    right: 0;
+    left: 0;
   }
   .transaction-row {
     position: relative;
@@ -397,7 +398,7 @@ export default {
     color: #DBE7E7;
   }
   .transaction-container {
-    min-height: 350px;
+    min-height: 100vh;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
     background-color: #F9F8FF;

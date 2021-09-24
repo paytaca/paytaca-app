@@ -1,10 +1,10 @@
 <template>
-  <div>
+  <div style="background-color: #ECF3F3; min-height: 100vh;">
     <header-nav
       :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"
       v-if="!sendData.sent"
     ></header-nav>
-    <div class="q-pa-md">
+    <div class="q-pa-md" style="padding-top: 70px;">
       <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
         <q-icon name="error" left/>
         {{ scanner.error }}
@@ -92,14 +92,14 @@
         <p style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
       </div>
     </div>
-    <div class="confirmation-slider" ref="confirmation-slider" v-if="sendData.sent !== true && sendData.amount !== null && sendErrors.length === 0">
+    <div class="confirmation-slider" ref="confirmation-slider" v-if="showSlider">
       <div id="status" style="text-align: center;">
         <label class="swipe-confrim-label">Swipe to Send</label>
         <input id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
         <span class="mdi mdi-arrow-right-circle" style="color: #fff; position: absolute; z-index: 10000; bottom: 20px; right: 20px: "></span>
       </div>
     </div>
-    <footer-menu v-if="sendData.sent" />
+    <footer-menu v-else />
   </div>
 </template>
 
@@ -175,6 +175,9 @@ export default {
     },
     disableAmountInput () {
       return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount
+    },
+    showSlider () {
+      return this.sendData.sent !== true && this.sendData.amount !== null && this.sendErrors.length === 0
     }
   },
 
@@ -573,7 +576,7 @@ export default {
   .confirmation-slider {
     position: fixed;
     bottom: 0px;
-    width: 100%;
+    width: 375px;
     border: 0;
     text-align: center;
   }

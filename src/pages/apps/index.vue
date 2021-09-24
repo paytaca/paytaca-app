@@ -1,14 +1,14 @@
 <template>
-  <div>
+  <div style="background-color: #ECF3F3; min-height: 100vh;">
     <div id="apps" ref="apps">
       <p class="section-title">Applications</p>
-      <div ref="apps-icons" style="margin-left: auto; margin-right: auto;">
+      <div ref="apps-icons" style="margin-left: auto; margin-right: auto; padding-left: 10px;">
         <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app)">
           <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : 'gray'}" :name="app.iconName" />
           <p>{{ app.name }}</p>
         </div>
       </div>
-      <div style="margin-top: 45px; margin-bottom: 60px; font-size: 14px; text-align: center;">
+      <div id="doante" :style="{ width: $q.platform.is.bex ? '350px' : '100%', padding: '20px', 'margin': '35px auto', 'text-align': 'center', 'overflow.y': 'scroll'}">
         <p>Paytaca aims to bring Bitcoin Cash to everyone everywhere. You can help us bootstrap our products through a small donation.</p>
         <q-btn @click="donate">Donate Now</q-btn>
         <br><br>
@@ -90,8 +90,9 @@ export default {
   },
   mounted () {
     const bodyBounds = document.body.getBoundingClientRect()
-    this.$refs.apps.style.width = (bodyBounds.width - 40) + 'px'
-    this.$refs['apps-icons'].style.width = (bodyBounds.width - 40) + 'px'
+    console.log(bodyBounds)
+    this.$refs.apps.style.width = (bodyBounds.width * 0.9) + 'px'
+    this.$refs['apps-icons'].style.width = (bodyBounds.width * 0.9) + 'px'
   }
 }
 </script>
