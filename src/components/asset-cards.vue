@@ -10,7 +10,7 @@
       }"
     >
       <div
-        v-if="manageAssets && asset.symbol !== 'BCH'"
+        v-if="$parent.manageAssets && asset.symbol !== 'BCH'"
         @click="() => removeAsset(asset)"
         style="float: right; width: 20px; margin-top: -10px;">
         <q-btn icon="close" flat round dense v-close-popup />
@@ -28,7 +28,7 @@
         </p>
       </div>
     </div>
-    <button v-if="manageAssets" class="btn-add-payment-method q-ml-lg shadow-4" @click="addNewAsset">+</button>
+    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-4" @click="addNewAsset">+</button>
     <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
 </div>
 </template>
@@ -41,13 +41,7 @@ import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 export default {
   name: 'asset-cards',
   props: {
-    assets: { type: Array },
-    manageAssets: { type: Boolean },
-    selectedAsset: { type: Object },
-    wallet: { type: Object },
-    getBalance: { type: Function },
-    showAssetInfo: { type: Function },
-    hideAssetInfo: { type: Function }
+    assets: { type: Array }
   },
   data () {
     return {
@@ -59,19 +53,19 @@ export default {
     selectAsset (event, asset) {
       const vm = this
       vm.assetClickCounter += 1
-      if (vm.selectedAsset.id === asset.id) {
+      if (vm.$parent.selectedAsset.id === asset.id) {
         if (vm.assetClickCounter === 2) {
-          vm.showAssetInfo(asset)
+          vm.$parent.showAssetInfo(asset)
           vm.assetClickTimer = setTimeout(() => {
             clearTimeout(vm.assetClickTimer)
             vm.assetClickTimer = null
             vm.assetClickCounter = 0
           }, 600)
         } else {
-          vm.hideAssetInfo()
+          vm.$parent.hideAssetInfo()
           vm.assetClickTimer = setTimeout(() => {
             if (vm.assetClickCounter === 1) {
-              vm.getBalance(asset.id)
+              vm.$parent.getBalance(asset.id)
             }
             clearTimeout(vm.assetClickTimer)
             vm.assetClickTimer = null
@@ -86,10 +80,10 @@ export default {
         }, 600)
         vm.$parent.$refs['asset-info'].hide()
         vm.$parent.selectedAsset = asset
-        vm.transactions = []
-        vm.transactionsPage = 1
-        vm.transactionsPageHasNext = false
-        vm.getBalance()
+        vm.$parent.transactions = []
+        vm.$parent.transactionsPage = 1
+        vm.$parent.transactionsPageHasNext = false
+        vm.$parent.getBalance()
         vm.$parent.getTransactions()
       }
 
@@ -105,7 +99,7 @@ export default {
     },
     addAsset (tokenId) {
       const vm = this
-      this.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
+      this.$parent.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
         const asset = {
           id: details.id,
           symbol: details.symbol,

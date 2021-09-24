@@ -38,13 +38,6 @@
       <template v-if="$q.platform.is.mobile">
         <asset-cards
           :assets="assets"
-          :manageAssets="manageAssets"
-          :selectedAsset="selectedAsset"
-          :wallet="wallet"
-          :getBalance="getBalance"
-          :getTransactions="getTransactions"
-          :showAssetInfo="showAssetInfo"
-          :hideAssetInfo="hideAssetInfo"
         >
         </asset-cards>
       </template>
@@ -52,13 +45,6 @@
       <template v-else>
         <asset-cards
           :assets="assets"
-          :manageAssets="manageAssets"
-          :selectedAsset="selectedAsset"
-          :wallet="wallet"
-          :getBalance="getBalance"
-          :getTransactions="getTransactions"
-          :showAssetInfo="showAssetInfo"
-          :hideAssetInfo="hideAssetInfo"
           v-dragscroll.x="true"
         >
         </asset-cards>
@@ -194,7 +180,6 @@ export default {
       }, 100)
     },
     hideAssetInfo () {
-      console.log('xxx')
       this.$refs['asset-info'].hide()
       this.assetInfoShown = false
     },
