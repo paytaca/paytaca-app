@@ -62,7 +62,7 @@
         </div>
         <div class="row">
           <div class="col q-mt-md">
-            <q-input type="number" step="0.0001" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
+            <q-input type="text" inputmode="tel" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
           </div>
         </div>
         <div class="row">
@@ -94,7 +94,7 @@
     </div>
     <div class="confirmation-slider" ref="confirmation-slider" v-if="showSlider">
       <div id="status" style="text-align: center;">
-        <label class="swipe-confrim-label">Swipe to Send</label>
+        <label class="swipe-confrim-label" style="padding-right: 10px;">Swipe to Send </label>
         <input id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
         <span class="mdi mdi-arrow-right-circle" style="color: #fff; position: absolute; z-index: 10000; bottom: 20px; right: 20px: "></span>
       </div>
@@ -414,7 +414,7 @@ export default {
       }
     },
     tiggerRange () {
-      if (this.$refs['swipe-submit'].value > 99) {
+      if (this.$refs['swipe-submit'].value > 95) {
         this.handleSubmit()
       }
     }
