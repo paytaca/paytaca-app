@@ -398,7 +398,7 @@ export default {
     color: #DBE7E7;
   }
   .transaction-container {
-    min-height: 100vh;
+    min-height: 80vh;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
     background-color: #F9F8FF;
