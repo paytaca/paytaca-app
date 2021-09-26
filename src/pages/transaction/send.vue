@@ -407,6 +407,8 @@ export default {
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
                 vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
+              } else if (result.error.indexOf('has insufficient priority') > -1) {
+                vm.sendErrors.push('Not enough balance to cover the transaction fee')
               } else {
                 vm.sendErrors.push(result.error)
               }
