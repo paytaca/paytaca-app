@@ -41,7 +41,7 @@
               </q-list>
             </div>
           </div>
-          <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
+          <div class="row" style="margin-top: 20px;">
             <div class="col">
               <p class="section-title">SLP Addresses</p>
               <q-list bordered separator class="list">
@@ -66,6 +66,29 @@
               </q-list>
             </div>
           </div>
+          <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
+            <div class="col">
+            <p class="section-title">About the App</p>
+              <q-list bordered separator class="list">
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Version</q-item-label>
+                    <q-item-label>v{{ appVersion }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Open source code</q-item-label>
+                    <q-item-label>
+                      <a href="https://github.com/paytaca/paytaca-app" target="_blank" style="text-decoration: none;">
+                        https://github.com/paytaca/paytaca-app
+                      </a>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -76,13 +99,15 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic } from '../../wallet'
+import { version } from '../../../package.json'
 
 export default {
   name: 'app-wallet-info',
   components: { HeaderNav },
   data () {
     return {
-      mnemonic: ''
+      mnemonic: '',
+      appVersion: version
     }
   },
   methods: {
