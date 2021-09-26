@@ -68,6 +68,13 @@
         <div class="row">
           <div class="col q-mt-md" style="font-size: 18px; color: gray;">
             Balance: {{ asset.balance }} {{ asset.symbol }}
+            <a
+              href="#"
+              @click.prevent="setMaximumSendAmount"
+              style="float: right; text-decoration: none; color: #3b7bf6;"
+            >
+              MAX
+            </a>
           </div>
         </div>
         <div class="row" style="text-align: center;" v-if="sendData.sending">
@@ -204,6 +211,9 @@ export default {
       if (assets.length > 0) {
         return assets[0]
       }
+    },
+    setMaximumSendAmount () {
+      this.sendData.amount = this.asset.balance
     },
     checkAddress (address) {
       if (address.indexOf('?') > -1) {
