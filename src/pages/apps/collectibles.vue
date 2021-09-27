@@ -62,6 +62,11 @@
         </template>
         <collectible ref="collectible"></collectible>
       </div>
+      <div class="q-pa-md" id="alpha-banner" :style="{width: $q.platform.is.bex ? '375px !important' : '100%'}">
+        <q-banner inline-actions rounded class="bg-red text-white">
+          This app is still alpha: Images of NFTs received may not show up immediately.
+        </q-banner>
+      </div>
     </div>
     <footer-menu />
   </div>
@@ -156,5 +161,11 @@ export default {
   top: 16px;
   z-index: 150;
   color: #3b7bf6;
+}
+
+#alpha-banner {
+  position: fixed;
+  bottom: 50px;
+  text-align: center;
 }
 </style>

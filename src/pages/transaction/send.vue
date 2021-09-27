@@ -110,7 +110,7 @@
         </div>
       </div>
       <template v-else>
-        <footer-menu v-if="sendData.sending" />
+        <footer-menu v-if="!sendData.sending" />
       </template>
     </div>
   </div>

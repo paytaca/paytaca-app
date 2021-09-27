@@ -125,6 +125,9 @@ module.exports = function (/* ctx */) {
         'Notify',
         'Dialog'
       ],
+      components: [
+        'QBanner'
+      ],
       cssAddon: true
     },
 
