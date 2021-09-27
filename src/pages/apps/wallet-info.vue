@@ -1,7 +1,7 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;">
     <div>
-      <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%;"></header-nav>
+      <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
       <div style="margin-top: 60px;">
         <div id="app" ref="app">
           <div class="row">
@@ -139,7 +139,7 @@ export default {
   #app {
     padding: 25px;
     overflow-y: auto;
-    z-index: -10 !important;
+    z-index: 1 !important;
     min-height: 100vh;
   }
   .section-title {
@@ -150,6 +150,7 @@ export default {
   .list {
     background-color: #fff;
     border-radius: 12px;
+    z-index: 1 !important;
   }
   .blurry-text {
     color: transparent;

@@ -4,109 +4,115 @@
       :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"
       v-if="!sendData.sent"
     ></header-nav>
-    <div class="q-pa-md" style="padding-top: 70px;">
-      <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
-        <q-icon name="error" left/>
-        {{ scanner.error }}
-      </div>
-      <div class="row justify-center" v-if="!scanner.show && sendData.recipientAddress === ''">
-        <div class="col-12 q-mt-lg">
-          <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
+    <div>
+      <div class="q-pa-md" style="padding-top: 70px;">
+        <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
+          <q-icon name="error" left/>
+          {{ scanner.error }}
         </div>
-        <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px;">
-          OR
+        <div class="row justify-center" v-if="!scanner.show && sendData.recipientAddress === ''">
+          <div class="col-12 q-mt-lg">
+            <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
+          </div>
+          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px;">
+            OR
+          </div>
+          <div class="col-12 q-mt-lg" style="text-align: center;">
+            <q-input outlined bottom-slots v-model="manualAddress" label="Paste address here">
+              <template v-slot:append>
+                <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="checkAddress(manualAddress)" />
+              </template>
+            </q-input>
+          </div>
         </div>
-        <div class="col-12 q-mt-lg" style="text-align: center;">
-          <q-input outlined bottom-slots v-model="manualAddress" label="Paste address here">
-            <template v-slot:append>
-              <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="checkAddress(manualAddress)" />
-            </template>
-          </q-input>
-        </div>
-      </div>
-      <div class="row justify-center q-pt-lg" v-show="scanner.show">
-        <div ref="scanner" class="q-pa-none qrcode-scanner">
-          <span class="material-icons close-scanner" @click="closeQrScanner">
-          close
-          </span>
-          <div :class="{'scanner-box' : scanner.show}" ref="box">
-            <div class="scan-layout-design" v-if="scanner.show">
-              <div class="scan-design1">
-                <div class="line-design1"></div>
+        <div class="row justify-center q-pt-lg" v-show="scanner.show">
+          <div ref="scanner" class="q-pa-none qrcode-scanner">
+            <span class="material-icons close-scanner" @click="closeQrScanner">
+            close
+            </span>
+            <div :class="{'scanner-box' : scanner.show}" ref="box">
+              <div class="scan-layout-design" v-if="scanner.show">
+                <div class="scan-design1">
+                  <div class="line-design1"></div>
+                </div>
+                <div class="scan-design2">
+                  <div class="line-design2"></div>
+                </div>
+                <div class="scan-design3">
+                  <div class="line-design3"></div>
+                </div>
+                <div class="scan-design4">
+                  <div class="line-design4"></div>
+                </div>
               </div>
-              <div class="scan-design2">
-                <div class="line-design2"></div>
-              </div>
-              <div class="scan-design3">
-                <div class="line-design3"></div>
-              </div>
-              <div class="scan-design4">
-                <div class="line-design4"></div>
-              </div>
+              <span class="scanner-text text-center full-width">Scan QR code</span>
             </div>
-            <span class="scanner-text text-center full-width">Scan QR code</span>
-          </div>
-          <qrcode-stream v-if="scanner.show" :camera="scanner.frontCamera ? 'front': 'auto'" @decode="onDecode" @init="onInit"></qrcode-stream>
-        </div>
-      </div>
-      <div class="q-pa-md text-center text-weight-medium">
-        {{ scanner.decodedContent }}
-      </div>
-    </div>
-    <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
-      <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
-        <div class="row">
-          <div class="col q-mt-sm se">
-            <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput" :readonly="disableRecipientInput"></q-input>
+            <qrcode-stream v-if="scanner.show" :camera="scanner.frontCamera ? 'front': 'auto'" @decode="onDecode" @init="onInit"></qrcode-stream>
           </div>
         </div>
-        <div class="row">
-          <div class="col q-mt-md">
-            <q-input type="text" inputmode="tel" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
+        <div class="q-pa-md text-center text-weight-medium">
+          {{ scanner.decodedContent }}
+        </div>
+      </div>
+      <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
+        <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
+          <div class="row">
+            <div class="col q-mt-sm se">
+              <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput" :readonly="disableRecipientInput"></q-input>
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-            Balance: {{ asset.balance }} {{ asset.symbol }}
-            <a
-              href="#"
-              @click.prevent="setMaximumSendAmount"
-              style="float: right; text-decoration: none; color: #3b7bf6;"
-            >
-              MAX
-            </a>
+          <div class="row">
+            <div class="col q-mt-md">
+              <q-input type="text" inputmode="tel" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
+            </div>
           </div>
+          <div class="row">
+            <div class="col q-mt-md" style="font-size: 18px; color: gray;">
+              Balance: {{ asset.balance }} {{ asset.symbol }}
+              <a
+                href="#"
+                @click.prevent="setMaximumSendAmount"
+                style="float: right; text-decoration: none; color: #3b7bf6;"
+              >
+                MAX
+              </a>
+            </div>
+          </div>
+          <div class="row" style="text-align: center;" v-if="sendData.sending">
+            <loader></loader>
+          </div>
+        </form>
+      </div>
+      <div class="row" v-if="sendErrors.length > 0">
+        <div class="col">
+          <ul style="margin-left: -40px; list-style: none;">
+            <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg">
+              <q-icon name="error" left/>
+              {{ error }}
+            </li>
+          </ul>
         </div>
-        <div class="row" style="text-align: center;" v-if="sendData.sending">
-          <loader></loader>
+      </div>
+      <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
+        <q-icon size="120px" name="check_circle" style="color: green;"></q-icon>
+        <div style="margin-top: 20px;">
+          <p style="font-size: 30px;">Successfully sent</p>
+          <p style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
         </div>
-      </form>
-    </div>
-    <div class="row" v-if="sendErrors.length > 0">
-      <div class="col">
-        <ul style="margin-left: -40px; list-style: none;">
-          <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg">
-            <q-icon name="error" left/>
-            {{ error }}
-          </li>
-        </ul>
       </div>
-    </div>
-    <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
-      <q-icon size="120px" name="check_circle" style="color: green;"></q-icon>
-      <div style="margin-top: 20px;">
-        <p style="font-size: 30px;">Successfully sent</p>
-        <p style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+      <div class="confirmation-slider" ref="confirmation-slider" v-if="showSlider" :style="{width: $q.platform.is.bex ? '375px !important' : '100%'}">
+        <div id="status" style="text-align: center;">
+          <label class="swipe-confrim-label" style="padding-right: 10px;">Swipe to Send </label>
+          <input style="z-index: 2001 !important;" id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
+        </div>
+        <div id="slider-arrow" v-if="!$q.platform.is.bex">
+          <span style="z-index: 2000 !important; color: white; font-size: 22px;" class="mdi mdi-arrow-right"></span>
+        </div>
       </div>
+      <template v-else>
+        <footer-menu v-if="sendData.sending" />
+      </template>
     </div>
-    <div class="confirmation-slider" ref="confirmation-slider" v-if="showSlider">
-      <div id="status" style="text-align: center;">
-        <label class="swipe-confrim-label" style="padding-right: 10px;">Swipe to Send </label>
-        <input id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
-        <span class="mdi mdi-arrow-right-circle" style="color: #fff; position: absolute; z-index: 10000; bottom: 20px; right: 20px: "></span>
-      </div>
-    </div>
-    <footer-menu v-else />
   </div>
 </template>
 
@@ -184,7 +190,7 @@ export default {
       return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount
     },
     showSlider () {
-      return this.sendData.sent !== true && this.sendData.amount !== null && this.sendErrors.length === 0
+      return this.sendData.sending !== true && this.sendData.sent !== true && this.sendData.amount !== null && this.sendErrors.length === 0
     }
   },
 
@@ -588,7 +594,6 @@ export default {
   .confirmation-slider {
     position: fixed;
     bottom: 0px;
-    width: 375px;
     border: 0;
     text-align: center;
   }
@@ -625,6 +630,13 @@ export default {
 
   #confirm:hover::-webkit-slider-thumb {
     border:3px solid rgba(60, 100, 246, .5);
+  }
+  #slider-arrow {
+    z-index: 2000 !important;
+    position: fixed;
+    width: 40px;
+    bottom: 13px;
+    left: 175px;
   }
   .form-input {
     width: 100%;
