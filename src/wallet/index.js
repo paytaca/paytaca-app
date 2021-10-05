@@ -30,6 +30,14 @@ export async function generateMnemonic () {
   return mnemonic
 }
 
+export async function storeMnemonic (mnemonic) {
+  const secretKey = randomBytes(128).toString('hex')
+  const encryptedMnemonic = aes256.encrypt(secretKey, mnemonic)
+  await SecureStoragePlugin.set({ key: 'mn', value: encryptedMnemonic })
+  await SecureStoragePlugin.set({ key: 'sk', value: secretKey })
+  return mnemonic
+}
+
 export async function getMnemonic () {
   const encryptedMnemonic = await SecureStoragePlugin.get({ key: 'mn' })
   const secretKey = await SecureStoragePlugin.get({ key: 'sk' })

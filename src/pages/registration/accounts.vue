@@ -6,12 +6,36 @@
         <p style="color: #EAEEFF; font-size: 28px;">Paytaca</p>
       </div>
     </div>
-    <div class="row">
+    <div class="row get-started" v-if="mnemonic.length === 0 && importSeedPhrase === false">
+      <div style="height: 100px;">
+        <q-btn @click="createWallets">Create New Wallet</q-btn>
+      </div>
+      <p>OR</p>
+      <div style="height: 100px;">
+        <q-btn @click="() => {importSeedPhrase = true }">Restore from Seed Phrase</q-btn>
+      </div>
+    </div>
+    <div class="row get-started" v-if="importSeedPhrase && mnemonic.length === 0">
+      <q-input
+        v-model="seedPhraseBackup"
+        filled
+        autogrow
+        style="width: 100%;"
+      />
+      <div style="width: 100%;">
+        <q-btn @click="createWallets">Restore Wallet</q-btn>
+      </div>
+    </div>
+
+    <div class="row" v-if="mnemonic.length > 0">
       <div class="get-started q-mt-sm q-pa-lg">
-        <h5 class="q-ma-none get-started-text" v-if="steps === totalSteps">Mnemonic Backup Phrase</h5>
-        <p class="dim-text" v-if="steps === totalSteps" style="margin-top: 10px;">
-          Write on paper or take a screenshot and keep it somewhere safe.
-        </p>
+
+        <template v-if="steps === totalSteps">
+          <h5 class="q-ma-none get-started-text">Mnemonic Backup Phrase</h5>
+          <p class="dim-text" style="margin-top: 10px;">
+            Write on paper or take a screenshot and keep it somewhere safe.
+          </p>
+        </template>
         <p class="dim-text" style="text-align: center;" v-else>Creating your wallet...</p>
 
         <div class="row" id="mnemonic">
@@ -35,7 +59,7 @@
 </template>
 
 <script>
-import { Wallet, generateMnemonic } from '../../wallet'
+import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 import Loader from '../../components/loader'
 
 export default {
@@ -43,10 +67,11 @@ export default {
   components: { Loader },
   data () {
     return {
+      importSeedPhrase: false,
+      seedPhraseBackup: null,
       mnemonic: '',
       steps: 0,
-      totalSteps: 5,
-      bchXpub: ''
+      totalSteps: 5
     }
   },
   methods: {
@@ -60,7 +85,11 @@ export default {
       const vm = this
 
       // Create mnemonic seed, encrypt, and store
-      this.mnemonic = await generateMnemonic()
+      if (vm.importSeedPhrase) {
+        this.mnemonic = await storeMnemonic(this.seedPhraseBackup)
+      } else {
+        this.mnemonic = await generateMnemonic()
+      }
       vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
@@ -78,7 +107,6 @@ export default {
       })
 
       wallet.BCH.getXPubKey().then(function (xpub) {
-        vm.bchXpub = xpub
         vm.$store.commit('global/updateXPubKey', {
           type: 'bch',
           xPubKey: xpub
@@ -106,9 +134,6 @@ export default {
         vm.steps += 1
       })
     }
-  },
-  mounted () {
-    this.createWallets()
   }
 }
 </script>

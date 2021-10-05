@@ -30,6 +30,7 @@ export default function ({ store }) {
     if (to.path === '/') {
       try {
         const mnemonic = await getMnemonic()
+        console.log('Get mnemonic: ', mnemonic)
         if (mnemonic) {
           next()
         } else {
