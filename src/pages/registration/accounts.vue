@@ -24,7 +24,7 @@
     <div class="row pt-wallet q-mt-sm" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg q-py-none">
         <textarea v-if="seedInput" class="form-textarea q-mt-xs pt-input" rows="4">{{ seedPhraseBackup }}</textarea>
-        <input v-else type="password" class="form-input q-mt-xs font-lg" v-model="seedPhraseBackup">
+        <input v-else type="password" class="pt-form-input q-mt-xs font-lg" v-model="seedPhraseBackup">
         <div class="q-my-sm">
           <q-checkbox v-model="seedInput" class="pt-label" label="Show seed phrase" />
         </div>
