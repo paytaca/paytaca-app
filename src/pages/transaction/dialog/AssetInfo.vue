@@ -25,8 +25,8 @@
           </a>
         </div>
         <div style="margin-top: 20px; text-align: center;">
-          <q-btn @click="send">Send</q-btn>&nbsp;
-          <q-btn @click="receive">Receive</q-btn>
+          <q-btn @click="send" class="pt-btn-asset">Send</q-btn>&nbsp;
+          <q-btn @click="receive" class="pt-btn-asset">Receive</q-btn>
         </div>
       </q-card-section>
     </q-card>
@@ -81,3 +81,9 @@ export default {
   }
 }
 </script>
+
+<style>
+.pt-btn-asset {
+  font-family: NunitoSans-Regular !important;
+}
+</style>
