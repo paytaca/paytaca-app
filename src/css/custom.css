@@ -1,10 +1,3 @@
-
-
-@font-face {
-  font-family: NunitoSans-Regular;
-  src: url(../assets/fonts/NunitoSans-Regular.ttf) format('truetype');
-}
-
 body.body--light {
   /* background-color: #ECF3F3 !important; */
   background-color: #012121;
@@ -39,7 +32,7 @@ p, a {
         }
 
 h5, p, label, a {
-  font-family: NunitoSans-Regular;
+  font-family: Arial, Helvetica, sans-serif;
 }
       
 #registration-container {
