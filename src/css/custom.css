@@ -1,33 +1,80 @@
+body.body--light {
+  /* background-color: #ECF3F3 !important; */
+  background-color: #012121;
+  transition: .1s;
+}
 
-  body.body--light {
-    /* background-color: #ECF3F3 !important; */
-    background-color: #012121;
-    transition: .1s;
-  }
+body.body--dark {
+  background-color: #012121 !important;
+  transition: .1s;
+}
 
-  body.body--dark {
-    background-color: #012121 !important;
-    transition: .1s;
-  }
+.overlay {
+  position: fixed;
+  display: none;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  transition: all 0.5s ease-in-out;
+  z-index: 1;
+}
 
-  .overlay {
-    position: fixed;
-    display: none;
-    width: 100vw;
-    height: 100vh;
-    top: 0;
-    left: 0;
-    background: rgba(0, 0, 0, 0.7);
-    opacity: 0;
-    transition: all 0.5s ease-in-out;
-    z-index: 1;
-  }
+p, a {
+-webkit-touch-callout: none;
+  -webkit-user-select: none;
+    -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+        }
 
-  p, a {
-  -webkit-touch-callout: none;
-    -webkit-user-select: none;
-     -khtml-user-select: none;
-       -moz-user-select: none;
-        -ms-user-select: none;
-            user-select: none;
-          }
+h5, p, label, a {
+  font-family: Arial, Helvetica, sans-serif;
+}
+      
+#registration-container {
+  min-height: 100vh;
+  background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  position: relative !important;
+}
+.pt-brand {
+  text-align: center;
+  padding: 20px 0px 0px 0px;
+  font-family: NunitoSans-Regular;
+}
+.pt-brandname {
+  color: #EAEEFF;
+  font-size: 28px;
+}
+.pt-get-started {
+  width: 100%;
+  min-height: calc(100vh - 152px);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  background-color: #F9F8FF;
+  padding-top: 28px;
+}
+.pt-form-input {
+  width: 100%;
+  height: 38px;
+  border-radius: 18px;
+  border: 1px solid #008BF1;
+  outline: 0;
+  padding-left: 14px;
+}
+.pt-form-input:focus {
+  border-color: #89BFF4;
+  box-shadow: 0px 0px 2px 2px rgba(137, 191, 244, .5);
+}
+.pt-input::-webkit-input-placeholder { /* Edge */
+  font-family: NunitoSans-Regular;
+}
+.pt-input:-ms-input-placeholder { /* Internet Explorer 10-11 */
+  font-family: NunitoSans-Regular;
+}
+.pt-input::placeholder {
+  font-family: NunitoSans-Regular;
+}

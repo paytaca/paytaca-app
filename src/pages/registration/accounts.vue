@@ -1,34 +1,39 @@
 <template>
-  <div id="registration-container" style="background-color: #ECF3F3; min-height: 100vh;">
+  <div id="registration-container">
     <div class="row">
-      <div class="col" style="text-align: center; padding: 20px 0px 0px 0px;">
+      <div class="col pt-brand">
         <img src="~/assets/paytaca_logo.png" height="60">
-        <p style="color: #EAEEFF; font-size: 28px;">Paytaca</p>
+        <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row get-started" v-if="mnemonic.length === 0 && importSeedPhrase === false">
-      <div style="height: 100px;">
-        <q-btn @click="createWallets">Create New Wallet</q-btn>
-      </div>
-      <p>OR</p>
-      <div style="height: 100px;">
-        <q-btn @click="() => {importSeedPhrase = true }">Restore from Seed Phrase</q-btn>
+    <div class="row pt-wallet q-mt-sm" v-if="mnemonic.length === 0 && importSeedPhrase === false">
+      <div class="col-12 q-mt-md q-px-lg q-py-none">
+        <div class="row">
+          <div class="col-12 q-py-sm">
+            <button class="pt-btn-wallet" @click="createWallets">Create New Wallet</button>
+          </div>
+          <div class="col-12 text-center q-py-sm">
+            <p class="q-my-none q-py-none" style="font-size: 14px">OR</p>
+          </div>
+          <div class="col-12 q-py-sm">
+            <button class="pt-btn-wallet" @click="() => { importSeedPhrase = true }">Restore from Seed Phrase</button>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="row get-started" v-if="importSeedPhrase && mnemonic.length === 0">
-      <q-input
-        v-model="seedPhraseBackup"
-        filled
-        autogrow
-        style="width: 100%;"
-      />
-      <div style="width: 100%;">
-        <q-btn @click="createWallets">Restore Wallet</q-btn>
+    <div class="row pt-wallet q-mt-sm" v-if="importSeedPhrase && mnemonic.length === 0">
+      <div class="col-12 q-px-lg q-py-none">
+        <textarea v-if="seedInput" class="form-textarea q-mt-xs pt-input" rows="4">{{ seedPhraseBackup }}</textarea>
+        <input v-else type="password" class="pt-form-input q-mt-xs font-lg" v-model="seedPhraseBackup">
+        <div class="q-my-sm">
+          <q-checkbox v-model="seedInput" class="pt-label" label="Show seed phrase" />
+        </div>
+        <button class="pt-btn-wallet" @click="createWallets">Restore Wallet</button>
       </div>
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
-      <div class="get-started q-mt-sm q-pa-lg">
+      <div class="pt-get-started q-mt-sm q-pa-lg">
 
         <template v-if="steps === totalSteps">
           <h5 class="q-ma-none get-started-text">Mnemonic Backup Phrase</h5>
@@ -71,7 +76,8 @@ export default {
       seedPhraseBackup: null,
       mnemonic: '',
       steps: 0,
-      totalSteps: 5
+      totalSteps: 5,
+      seedInput: false
     }
   },
   methods: {
@@ -93,6 +99,8 @@ export default {
       vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
+
+      console.log('Wallet: ', wallet)
 
       wallet.BCH.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {
@@ -139,6 +147,14 @@ export default {
 </script>
 
 <style>
+.pt-wallet {
+  width: 100%;
+  min-height: calc(100vh - 152px);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  background-color: #F9F8FF;
+  padding-top: 28px !important;
+}
 ul {
   list-style: none;
   display: block;
@@ -160,5 +176,34 @@ li pre {
   display: inline;
   color: #D36EE1;
   padding-right: 5px;
+}
+.font-lg {
+  font-size: 20px;
+}
+.form-textarea {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid #008BF1;
+  outline: 0;
+  padding-left: 14px;
+  padding-top: 10px;
+}
+.form-textarea:focus {
+  border-color: #89BFF4;
+  box-shadow: 0px 0px 2px 2px rgba(137, 191, 244, .5);
+}
+.pt-btn-wallet {
+  background-color: #2E73D2;
+  border: 1px solid #15568E;
+  width: 100%;
+  height: 40px;
+  font-size: 15px;
+  font-family: NunitoSans-Regular;
+  border-radius: 20px;
+  color: #fff;
+  outline: 0;
+}
+.pt-btn-wallet:focus {
+  box-shadow: 0px 0px 2px 2px rgba(93, 173, 226, .8);
 }
 </style>

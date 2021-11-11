@@ -39,12 +39,6 @@ export default {
           active: true
         },
         {
-          name: 'Creative Suite',
-          iconName: 'palette',
-          path: '',
-          active: false
-        },
-        {
           name: 'Asset Swap',
           iconName: 'swap_horiz',
           path: '',
