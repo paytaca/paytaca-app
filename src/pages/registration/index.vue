@@ -100,7 +100,7 @@ export default {
   font-size: 24px;
   padding: 30px;
   color: gray;
-  font-family: NunitoSans-Regular;
+  font-family: Arial, Helvetica, sans-serif;
 }
 .get-started-text {
   color: #4C4F4F;
@@ -114,7 +114,7 @@ export default {
   width: 100%;
   height: 40px;
   font-size: 15px;
-  font-family: NunitoSans-Regular;
+  font-family: Arial, Helvetica, sans-serif;
   border-radius: 20px;
   color: #fff;
   outline: 0;

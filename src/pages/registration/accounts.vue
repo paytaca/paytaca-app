@@ -22,12 +22,9 @@
       </div>
     </div>
     <div class="row pt-wallet q-mt-sm" v-if="importSeedPhrase && mnemonic.length === 0">
-      <div class="col-12 q-px-lg q-py-none">
-        <textarea v-if="seedInput" class="form-textarea q-mt-xs pt-input" rows="4">{{ seedPhraseBackup }}</textarea>
-        <input v-else type="password" class="pt-form-input q-mt-xs font-lg" v-model="seedPhraseBackup">
-        <div class="q-my-sm">
-          <q-checkbox v-model="seedInput" class="pt-label" label="Show seed phrase" />
-        </div>
+      <div class="col-12 q-px-lg">
+        <p style="text-align: center; font-size: 16px;">Restore your Paytaca wallet from its mnemonic backup phrase.</p>
+        <textarea class="form-textarea q-mt-xs pt-input" rows="4" v-model="seedPhraseBackup"></textarea>
         <button class="pt-btn-wallet" @click="createWallets">Restore Wallet</button>
       </div>
     </div>
@@ -37,11 +34,14 @@
 
         <template v-if="steps === totalSteps">
           <h5 class="q-ma-none get-started-text">Mnemonic Backup Phrase</h5>
-          <p class="dim-text" style="margin-top: 10px;">
+          <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+            Double check if this matches your mnemonic backup phrase.
+          </p>
+          <p v-else class="dim-text" style="margin-top: 10px;">
             Write on paper or take a screenshot and keep it somewhere safe.
           </p>
         </template>
-        <p class="dim-text" style="text-align: center;" v-else>Creating your wallet...</p>
+        <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? 'Restoring' : 'Creating' }} your wallet...</p>
 
         <div class="row" id="mnemonic">
           <div class="col q-mt-sm" v-if="steps === totalSteps">
@@ -77,7 +77,7 @@ export default {
       mnemonic: '',
       steps: 0,
       totalSteps: 5,
-      seedInput: false
+      seedInput: true
     }
   },
   methods: {
@@ -99,8 +99,6 @@ export default {
       vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
-
-      console.log('Wallet: ', wallet)
 
       wallet.BCH.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {
@@ -197,8 +195,9 @@ li pre {
   border: 1px solid #15568E;
   width: 100%;
   height: 40px;
+  margin-top: 10px;
   font-size: 15px;
-  font-family: NunitoSans-Regular;
+  font-family: Arial, Helvetica, sans-serif;
   border-radius: 20px;
   color: #fff;
   outline: 0;
