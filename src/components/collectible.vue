@@ -58,7 +58,15 @@ export default {
       openURL(url)
     },
     send () {
-      this.$router.push('/send')
+      this.$router.push({
+        name: 'transaction-send',
+        params: {
+          assetId: this.collectible.token_id,
+          amount: 1,
+          symbol: this.collectible.symbol,
+          image: this.getImageUrl(this.collectible)
+        }
+      })
     }
   }
 }

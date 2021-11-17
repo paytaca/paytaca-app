@@ -15,8 +15,8 @@
         <q-separator />
 
         <q-card-actions align="right">
-            <q-btn rounded class="btn-add-payment text-white pt-btn-asset" padding="0.5em 1.5em 0.5em 1.5em" label="Continue" @click="onOKClick" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" class="pt-btn-asset" label="cancel" @click="onCancelClick" />
+            <q-btn rounded class="btn-add-payment text-white" padding="0.5em 1.5em 0.5em 1.5em" label="Continue" @click="onOKClick" />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" label="cancel" @click="onCancelClick" />
         </q-card-actions>
     </q-card>
   </q-dialog>
@@ -54,8 +54,5 @@ export default {
 <style>
 .btn-add-payment {
   background: radial-gradient(circle, #3C64F6 10%, #2648C3 100%) !important;
-}
-.pt-btn-asset {
-  font-family: NunitoSans-Regular !important;
 }
 </style>

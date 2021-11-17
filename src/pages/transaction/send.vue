@@ -6,6 +6,9 @@
     ></header-nav>
     <div>
       <div class="q-pa-md" style="padding-top: 70px;">
+        <div v-if="image" style="width: 150px; margin: 0 auto;">
+          <img :src="image" width="150" />
+        </div>
         <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
           <q-icon name="error" left/>
           {{ scanner.error }}
@@ -135,6 +138,10 @@ export default {
       type: String,
       required: true
     },
+    symbol: {
+      type: String,
+      required: false
+    },
     amount: {
       type: Number,
       required: false
@@ -144,6 +151,10 @@ export default {
       required: false
     },
     recipient: {
+      type: String,
+      required: false
+    },
+    image: {
       type: String,
       required: false
     }
@@ -216,6 +227,11 @@ export default {
       const assets = this.$store.getters['assets/getAsset'](id)
       if (assets.length > 0) {
         return assets[0]
+      } else {
+        return {
+          id: this.assetId,
+          symbol: this.symbol
+        }
       }
     },
     setMaximumSendAmount () {
