@@ -86,9 +86,9 @@ export class SlpWallet {
     return request.data
   }
 
-  async sendSlp (amount, tokenId, recipient, feeFunder, changeAddresses) {
+  async sendSlp (amount, tokenId, tokenType, recipient, feeFunder, changeAddresses) {
     console.log(`Sending ${amount} of SLP token ${tokenId} to ${recipient}`)
-    const data = {
+    let data = {
       sender: {
         walletHash: this.walletHash,
         mnemonic: this.mnemonic,
@@ -105,7 +105,21 @@ export class SlpWallet {
       changeAddresses: changeAddresses,
       broadcast: true
     }
-    const result = await this.watchtower.SLP.Type1.send(data)
+    let result
+    if (tokenType === 1) {
+      result = await this.watchtower.SLP.Type1.send(data)
+    } else if (tokenType === 65) {
+      delete data.tokenId
+      delete data.recipients
+      data = Object.assign(
+        {
+          childTokenId: tokenId,
+          recipient: recipient
+        },
+        data
+      )
+      result = await this.watchtower.SLP.NFT1.Child.send(data)
+    }
     return result
   }
 }

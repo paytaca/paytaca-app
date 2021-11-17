@@ -6,7 +6,7 @@
     ></header-nav>
     <div>
       <div class="q-pa-md" style="padding-top: 70px;">
-        <div v-if="image" style="width: 150px; margin: 0 auto;">
+        <div v-if="tokenType === 65 && image" style="width: 150px; margin: 0 auto;">
           <img :src="image" width="150" />
         </div>
         <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -137,6 +137,11 @@ export default {
     assetId: {
       type: String,
       required: true
+    },
+    tokenType: {
+      type: Number,
+      required: true,
+      default: 1
     },
     symbol: {
       type: String,
@@ -399,7 +404,7 @@ export default {
             bch: vm.getChangeAddress('bch'),
             slp: vm.getChangeAddress('slp')
           }
-          vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, address, feeFunder, changeAddresses).then(function (result) {
+          vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, this.tokenType, address, feeFunder, changeAddresses).then(function (result) {
             vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid

@@ -61,7 +61,8 @@ export default {
       this.$router.push({
         name: 'transaction-send',
         params: {
-          assetId: this.collectible.token_id,
+          assetId: 'slp/' + this.collectible.token_id,
+          tokenType: 65,
           amount: 1,
           symbol: this.collectible.symbol,
           image: this.getImageUrl(this.collectible)
