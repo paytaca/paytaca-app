@@ -232,9 +232,15 @@ export default {
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
         vm.wallet.SLP.getTransactions(tokenId, vm.transactionsPage).then(function (transactions) {
-          transactions.history.map(function (item) {
-            vm.transactions.push(item)
-          })
+          if (transactions.history) {
+            transactions.history.map(function (item) {
+              vm.transactions.push(item)
+            })
+          } else {
+            transactions.map(function (item) {
+              vm.transactions.push(item)
+            })
+          }
           vm.transactionsLoaded = true
           setTimeout(() => {
             vm.transactionsPageHasNext = transactions.has_next
@@ -242,9 +248,15 @@ export default {
         })
       } else {
         vm.wallet.BCH.getTransactions(vm.transactionsPage).then(function (transactions) {
-          transactions.history.map(function (item) {
-            vm.transactions.push(item)
-          })
+          if (transactions.history) {
+            transactions.history.map(function (item) {
+              vm.transactions.push(item)
+            })
+          } else {
+            transactions.map(function (item) {
+              vm.transactions.push(item)
+            })
+          }
           vm.transactionsLoaded = true
           setTimeout(() => {
             vm.transactionsPageHasNext = transactions.has_next
