@@ -2,18 +2,18 @@
   <div id="transaction">
     <q-dialog ref="dialog" full-width @hide="hide">
       <q-card v-if="collectible">
-        <q-card-section style="text-align: center; margin-bottom: -30px;">
+        <q-card-section style="text-align: center; margin-bottom: -5px;">
           <div class="text-h6">{{ collectible.name }}</div>
         </q-card-section>
         <template v-if="getImageUrl(collectible).length > 0">
-          <q-img :src="getImageUrl(collectible)" fit="fill" width="100"></q-img>
+          <q-img :src="getImageUrl(collectible)" fit="fill" width="90"></q-img>
         </template>
         <template v-else>
           <gravatar
             :hash="collectible.token_id"
           />
         </template>
-        <q-card-section style="text-align: center; margin-top: -25px; margin-bottom: 10px;">
+        <q-card-section style="text-align: center; margin-bottom: 10px;">
           <q-btn-group push style="color: rgb(60, 100, 246) !important;">
             <q-btn @click="verify" push label="Verify" icon="visibility" />
             <q-btn @click="send" push label="Send" icon="send" />
