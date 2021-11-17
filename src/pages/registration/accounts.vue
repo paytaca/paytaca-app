@@ -56,10 +56,49 @@
           </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <button class="submit-btn q-mt-md" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px; margin-top: 25px;">Continue</button>
+          <button class="submit-btn q-mt-md pt-btn-wallet" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px; margin-top: 25px;">Continue</button>
         </div>
       </div>
     </div>
+
+    <q-dialog
+      v-model="dialog"
+      persistent
+      :maximized="true"
+      transition-show="slide-up"
+      transition-hide="slide-down"
+    >
+      <q-card class="pt-bg-card">
+
+        <q-card-section class="q-mt-lg">
+          <div class="text-h6 text-center pt-set-pin"><strong>Set Up Pin</strong></div>
+        </q-card-section>
+
+        <q-card-section>
+          <input type="text" class="pt-input-box-shadow" v-model="pin" readonly>
+          <div style="position: relative;">
+            <span v-if="validationMsg.length > 8" class="q-ml-sm" style="position: absolute; color: #ef4f84;">{{ validationMsg }}</span>
+            <span class="q-mr-md" style="position: absolute; right: 0px; color: #bdbdbd;">Minimum: {{ pinLimit }} </span>
+          </div>
+          <span class="pt-pin-error"></span>
+        </q-card-section>
+
+        <q-card-section class="q-px-sm">
+          <div class="row">
+            <div v-for="(count, index) in 12" :key="index" class="col-4 q-pa-sm">
+              <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'close')" :icon="count === 10 ? 'delete' : 'close'" rounded />
+              <q-btn v-else push class="full-width pt-btn-key" :label="count === 11 ? 0 : count" @click="processKey(count === 11 ? 0 : count)" rounded />
+            </div>
+          </div>
+          <div class="row q-mt-md q-px-sm">
+            <div class="col-12">
+              <q-btn push class="full-width pt-btn-set-pin" label="Set" rounded />
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
   </div>
 </template>
 
@@ -77,15 +116,22 @@ export default {
       mnemonic: '',
       steps: 0,
       totalSteps: 5,
-      seedInput: true
+      seedInput: true,
+      dialog: false,
+      counter: 0,
+      pin: '',
+      validationMsg: '',
+      pinLimit: 8
     }
   },
   methods: {
     continueToDashboard () {
       const vm = this
-      this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
-        vm.$router.push('/')
-      })
+
+      vm.dialog = true
+      // this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+      //   vm.$router.push('/')
+      // })
     },
     async createWallets () {
       const vm = this
@@ -99,14 +145,16 @@ export default {
       vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
+      console.log('New address: ', wallet.BCH.getNewAddressSet)
 
       wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+        console.log('Addresses: ', addresses)
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
           walletHash: wallet.BCH.walletHash,
           derivationPath: wallet.BCH.derivationPath,
-          lastAddress: addresses.receiving,
-          lastChangeAddress: addresses.change,
+          lastAddress: addresses !== null ? addresses.receiving : '',
+          lastChangeAddress: addresses !== null ? addresses.change : '',
           lastAddressIndex: 0
         })
         vm.steps += 1
@@ -125,8 +173,8 @@ export default {
           type: 'slp',
           walletHash: wallet.SLP.walletHash,
           derivationPath: wallet.SLP.derivationPath,
-          lastAddress: addresses.receiving,
-          lastChangeAddress: addresses.change,
+          lastAddress: addresses !== null ? addresses.receiving : '',
+          lastChangeAddress: addresses !== null ? addresses.change : '',
           lastAddressIndex: 0
         })
         vm.steps += 1
@@ -139,6 +187,25 @@ export default {
         })
         vm.steps += 1
       })
+    },
+    removeKey (action) {
+      if (action === 'delete') {
+        this.pin = ''
+        this.pinLimit = 8
+      } else {
+        this.pin = this.pin.slice(0, this.pin.length - 1)
+        this.validationMsg = ''
+        this.pinLimit++
+      }
+    },
+    processKey (num) {
+      this.pin += num.toString()
+      this.pinLimit--
+      if (this.pin.length > 8) {
+        this.pinLimit++
+        this.validationMsg = 'Must be 4-8 digits'
+        this.pin = this.pin.slice(0, this.pin.length - 1)
+      }
     }
   }
 }
@@ -204,5 +271,38 @@ li pre {
 }
 .pt-btn-wallet:focus {
   box-shadow: 0px 0px 2px 2px rgba(93, 173, 226, .8);
+}
+.pt-set-pin {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #008BF1;
+}
+.pt-bg-card {
+  background: #fff;
+}
+.pt-keypad-btn {
+  width: 90%;
+  height: 50px;
+}
+.pt-btn-key {
+  height: 40px;
+  border-radius: 20px;
+  vertical-align: middle;
+  border: none;
+  color: white;
+  background-image: linear-gradient(to right bottom, #3b7bf6, #da53b2);
+}
+.pt-btn-set-pin {
+  color: #fff;
+  height: 40px;
+  background-color: #2E73D2;
+}
+.pt-input-box-shadow {
+  width: 100%;
+  height: 38px;
+  border-radius: 18px;
+  border: 1px solid #008BF1;
+  outline: 0;
+  padding-left: 14px;
+  box-shadow: 0px 0px 4px 1px rgba(93, 173, 226, .8);
 }
 </style>
