@@ -32,7 +32,7 @@
               </div>
             </div>
             <div class="row">
-              <button class="submit-btn q-mt-md">Submit</button>
+              <q-btn push class="full-width pt-submit-btn q-mt-md" type="submit" label="Submit" rounded />
             </div>
           </div>
         </div>
@@ -108,16 +108,10 @@ export default {
 .dim-text {
   color: #8F8CB8;
 }
-.submit-btn {
-  background-color: #2E73D2;
-  border: 1px solid #15568E;
-  width: 100%;
-  height: 40px;
-  font-size: 15px;
-  font-family: Arial, Helvetica, sans-serif;
-  border-radius: 20px;
+.pt-submit-btn {
   color: #fff;
-  outline: 0;
+  height: 40px;
+  background-color: #2E73D2;
 }
 .submit-btn:focus {
   box-shadow: 0px 0px 2px 2px rgba(93, 173, 226, .8);

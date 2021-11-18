@@ -10,13 +10,13 @@
       <div class="col-12 q-mt-md q-px-lg q-py-none">
         <div class="row">
           <div class="col-12 q-py-sm">
-            <button class="pt-btn-wallet" @click="createWallets">Create New Wallet</button>
+            <q-btn push class="full-width pt-btn-wallet" @click="createWallets" label="Create New Wallet" rounded />
           </div>
           <div class="col-12 text-center q-py-sm">
             <p class="q-my-none q-py-none" style="font-size: 14px">OR</p>
           </div>
           <div class="col-12 q-py-sm">
-            <button class="pt-btn-wallet" @click="() => { importSeedPhrase = true }">Restore from Seed Phrase</button>
+            <q-btn push class="full-width pt-btn-wallet" @click="() => { importSeedPhrase = true }" label="Restore from Seed Phrase" rounded />
           </div>
         </div>
       </div>
@@ -25,7 +25,7 @@
       <div class="col-12 q-px-lg">
         <p style="text-align: center; font-size: 16px;">Restore your Paytaca wallet from its mnemonic backup phrase.</p>
         <textarea class="form-textarea q-mt-xs pt-input" rows="4" v-model="seedPhraseBackup"></textarea>
-        <button class="pt-btn-wallet" @click="createWallets">Restore Wallet</button>
+        <q-btn push class="full-width pt-btn-wallet q-mt-sm" @click="createWallets" label="Restore Wallet" rounded />
       </div>
     </div>
 
@@ -56,7 +56,7 @@
           </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <button class="submit-btn q-mt-md pt-btn-wallet" @click="continueToDashboard" style="background: #3b7bf6; font-size: 18px; margin-top: 25px;">Continue</button>
+          <q-btn push class="full-width pt-btn-wallet" @click="enableSetUpDialog" label="Continue" rounded />
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@
           <input type="text" class="pt-input-box-shadow" v-model="pin" readonly>
           <div style="position: relative;">
             <span v-if="validationMsg.length > 8" class="q-ml-sm" style="position: absolute; color: #ef4f84;">{{ validationMsg }}</span>
-            <span class="q-mr-md" style="position: absolute; right: 0px; color: #bdbdbd;">Minimum: {{ pinLimit }} </span>
+            <span class="q-mr-md" style="position: absolute; right: 0px; color: #bdbdbd;">Remaining: {{ pinLimit }} </span>
           </div>
           <span class="pt-pin-error"></span>
         </q-card-section>
@@ -92,7 +92,7 @@
           </div>
           <div class="row q-mt-md q-px-sm">
             <div class="col-12">
-              <q-btn push class="full-width pt-btn-set-pin" label="Set" rounded />
+              <q-btn push class="full-width pt-btn-set-pin" label="Set" rounded @click="setPin" />
             </div>
           </div>
         </q-card-section>
@@ -105,6 +105,10 @@
 <script>
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 import Loader from '../../components/loader'
+import 'capacitor-secure-storage-plugin'
+import { Plugins } from '@capacitor/core'
+
+const { SecureStoragePlugin } = Plugins
 
 export default {
   name: 'registration-accounts',
@@ -128,10 +132,9 @@ export default {
     continueToDashboard () {
       const vm = this
 
-      vm.dialog = true
-      // this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
-      //   vm.$router.push('/')
-      // })
+      this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+        vm.$router.push('/')
+      })
     },
     async createWallets () {
       const vm = this
@@ -188,6 +191,9 @@ export default {
         vm.steps += 1
       })
     },
+    enableSetUpDialog () {
+      this.dialog = true
+    },
     removeKey (action) {
       if (action === 'delete') {
         this.pin = ''
@@ -195,16 +201,29 @@ export default {
       } else {
         this.pin = this.pin.slice(0, this.pin.length - 1)
         this.validationMsg = ''
-        this.pinLimit++
+        if (this.pinLimit < 8) {
+          this.pinLimit++
+        }
       }
     },
     processKey (num) {
-      this.pin += num.toString()
       this.pinLimit--
+      this.validationMsg = ''
+      this.pin += num.toString()
       if (this.pin.length > 8) {
         this.pinLimit++
         this.validationMsg = 'Must be 4-8 digits'
         this.pin = this.pin.slice(0, this.pin.length - 1)
+      }
+    },
+    setPin () {
+      if (this.pin.length >= 4) {
+        SecureStoragePlugin.set({ key: 'pin', value: this.pin })
+          .then(() => {
+            this.continueToDashboard()
+          })
+      } else {
+        this.validationMsg = 'Must be 4-8 digits'
       }
     }
   }
@@ -257,7 +276,7 @@ li pre {
   border-color: #89BFF4;
   box-shadow: 0px 0px 2px 2px rgba(137, 191, 244, .5);
 }
-.pt-btn-wallet {
+/* .pt-btn-wallet {
   background-color: #2E73D2;
   border: 1px solid #15568E;
   width: 100%;
@@ -271,7 +290,7 @@ li pre {
 }
 .pt-btn-wallet:focus {
   box-shadow: 0px 0px 2px 2px rgba(93, 173, 226, .8);
-}
+} */
 .pt-set-pin {
   font-family: Arial, Helvetica, sans-serif;
   color: #008BF1;
@@ -291,7 +310,7 @@ li pre {
   color: white;
   background-image: linear-gradient(to right bottom, #3b7bf6, #da53b2);
 }
-.pt-btn-set-pin {
+.pt-btn-set-pin, .pt-btn-wallet {
   color: #fff;
   height: 40px;
   background-color: #2E73D2;
