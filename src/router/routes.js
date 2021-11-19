@@ -54,6 +54,10 @@ const routes = [
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' }
     ]
   },
+  {
+    path: '/settings',
+    component: () => import('pages/settings')
+  },
   // Always leave this as last one,
   // but you can also remove it
   {

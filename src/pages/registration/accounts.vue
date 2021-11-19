@@ -13,7 +13,7 @@
             <q-btn push class="full-width pt-btn-wallet" @click="createWallets" label="Create New Wallet" rounded />
           </div>
           <div class="col-12 text-center q-py-sm">
-            <p class="q-my-none q-py-none" style="font-size: 14px">OR</p>
+            <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">OR</p>
           </div>
           <div class="col-12 q-py-sm">
             <q-btn push class="full-width pt-btn-wallet" @click="() => { importSeedPhrase = true }" label="Restore from Seed Phrase" rounded />
@@ -61,43 +61,7 @@
       </div>
     </div>
 
-    <q-dialog
-      v-model="dialog"
-      persistent
-      :maximized="true"
-      transition-show="slide-up"
-      transition-hide="slide-down"
-    >
-      <q-card class="pt-bg-card">
-
-        <q-card-section class="q-mt-lg">
-          <div class="text-h6 text-center pt-set-pin"><strong>Set Up Pin</strong></div>
-        </q-card-section>
-
-        <q-card-section>
-          <input type="text" class="pt-input-box-shadow" v-model="pin" readonly>
-          <div style="position: relative;">
-            <span v-if="validationMsg.length > 8" class="q-ml-sm" style="position: absolute; color: #ef4f84;">{{ validationMsg }}</span>
-            <span class="q-mr-md" style="position: absolute; right: 0px; color: #bdbdbd;">Remaining: {{ pinLimit }} </span>
-          </div>
-          <span class="pt-pin-error"></span>
-        </q-card-section>
-
-        <q-card-section class="q-px-sm">
-          <div class="row">
-            <div v-for="(count, index) in 12" :key="index" class="col-4 q-pa-sm">
-              <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'close')" :icon="count === 10 ? 'delete' : 'close'" rounded />
-              <q-btn v-else push class="full-width pt-btn-key" :label="count === 11 ? 0 : count" @click="processKey(count === 11 ? 0 : count)" rounded />
-            </div>
-          </div>
-          <div class="row q-mt-md q-px-sm">
-            <div class="col-12">
-              <q-btn push class="full-width pt-btn-set-pin" label="Set" rounded @click="setPin" />
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
+    <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="continueToDashboard" />
 
   </div>
 </template>
@@ -105,14 +69,11 @@
 <script>
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 import Loader from '../../components/loader'
-import 'capacitor-secure-storage-plugin'
-import { Plugins } from '@capacitor/core'
-
-const { SecureStoragePlugin } = Plugins
+import pinDialogComponent from '../../pages/pin'
 
 export default {
   name: 'registration-accounts',
-  components: { Loader },
+  components: { Loader, pinDialogComponent },
   data () {
     return {
       importSeedPhrase: false,
@@ -121,11 +82,12 @@ export default {
       steps: 0,
       totalSteps: 5,
       seedInput: true,
-      dialog: false,
-      counter: 0,
+      pinDialogAction: '',
       pin: '',
+      counter: 0,
       validationMsg: '',
-      pinLimit: 8
+      pinKeys: [{ key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }],
+      countKeys: 0
     }
   },
   methods: {
@@ -192,39 +154,7 @@ export default {
       })
     },
     enableSetUpDialog () {
-      this.dialog = true
-    },
-    removeKey (action) {
-      if (action === 'delete') {
-        this.pin = ''
-        this.pinLimit = 8
-      } else {
-        this.pin = this.pin.slice(0, this.pin.length - 1)
-        this.validationMsg = ''
-        if (this.pinLimit < 8) {
-          this.pinLimit++
-        }
-      }
-    },
-    processKey (num) {
-      this.pinLimit--
-      this.validationMsg = ''
-      this.pin += num.toString()
-      if (this.pin.length > 8) {
-        this.pinLimit++
-        this.validationMsg = 'Must be 4-8 digits'
-        this.pin = this.pin.slice(0, this.pin.length - 1)
-      }
-    },
-    setPin () {
-      if (this.pin.length >= 4) {
-        SecureStoragePlugin.set({ key: 'pin', value: this.pin })
-          .then(() => {
-            this.continueToDashboard()
-          })
-      } else {
-        this.validationMsg = 'Must be 4-8 digits'
-      }
+      this.pinDialogAction = 'SET UP'
     }
   }
 }
@@ -276,52 +206,12 @@ li pre {
   border-color: #89BFF4;
   box-shadow: 0px 0px 2px 2px rgba(137, 191, 244, .5);
 }
-/* .pt-btn-wallet {
-  background-color: #2E73D2;
-  border: 1px solid #15568E;
-  width: 100%;
-  height: 40px;
-  margin-top: 10px;
-  font-size: 15px;
-  font-family: Arial, Helvetica, sans-serif;
-  border-radius: 20px;
-  color: #fff;
-  outline: 0;
+.dim-text {
+  color: #8F8CB8;
 }
-.pt-btn-wallet:focus {
-  box-shadow: 0px 0px 2px 2px rgba(93, 173, 226, .8);
-} */
-.pt-set-pin {
-  font-family: Arial, Helvetica, sans-serif;
-  color: #008BF1;
-}
-.pt-bg-card {
-  background: #fff;
-}
-.pt-keypad-btn {
-  width: 90%;
-  height: 50px;
-}
-.pt-btn-key {
-  height: 40px;
-  border-radius: 20px;
-  vertical-align: middle;
-  border: none;
-  color: white;
-  background-image: linear-gradient(to right bottom, #3b7bf6, #da53b2);
-}
-.pt-btn-set-pin, .pt-btn-wallet {
+.pt-btn-wallet {
   color: #fff;
   height: 40px;
   background-color: #2E73D2;
-}
-.pt-input-box-shadow {
-  width: 100%;
-  height: 38px;
-  border-radius: 18px;
-  border: 1px solid #008BF1;
-  outline: 0;
-  padding-left: 14px;
-  box-shadow: 0px 0px 4px 1px rgba(93, 173, 226, .8);
 }
 </style>

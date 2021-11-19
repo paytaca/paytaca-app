@@ -113,6 +113,45 @@
         <footer-menu v-if="!sendData.sending" />
       </template>
     </div>
+
+    <div>
+      <q-dialog
+        v-model="dialog"
+        persistent
+        :maximized="true"
+        transition-show="slide-up"
+        transition-hide="slide-down"
+      >
+        <q-card class="pt-bg-card">
+
+          <q-card-section class="q-mt-lg">
+            <div class="text-h6 text-center pt-set-pin"><strong>Verify Pin</strong></div>
+          </q-card-section>
+
+          <q-card-section>
+            <input type="text" class="pt-input-box-shadow" v-model="pin" placeholder="********" readonly>
+            <div style="position: relative;">
+              <span v-if="validationMsg.length > 8" class="q-ml-sm" style="position: absolute; color: #ef4f84; margin-top: 5px;">{{ validationMsg }}</span>
+            </div>
+          </q-card-section>
+
+          <q-card-section class="q-px-sm">
+            <div class="row">
+              <div v-for="(count, index) in 12" :key="index" class="col-4 q-pa-sm">
+                <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'close')" :icon="count === 10 ? 'delete' : 'close'" rounded />
+                <q-btn v-else push class="full-width pt-btn-key" :label="count === 11 ? 0 : count" @click="processKey(count === 11 ? 0 : count)" rounded />
+              </div>
+            </div>
+            <div class="row q-mt-md q-px-sm">
+              <div class="col-12">
+                <q-btn push class="full-width pt-btn-set-pin" label="Verify" rounded @click="checkPin" />
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+    </div>
+
   </div>
 </template>
 
@@ -122,6 +161,10 @@ import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
+import 'capacitor-secure-storage-plugin'
+import { Plugins } from '@capacitor/core'
+
+const { SecureStoragePlugin } = Plugins
 
 export default {
   name: 'Send-page',
@@ -178,7 +221,12 @@ export default {
         fixedRecipientAddress: false
       },
       sendErrors: [],
-      online: true
+      online: true,
+      dialog: false,
+      counter: 0,
+      pin: '',
+      validationMsg: '',
+      pinLimit: 8
     }
   },
 
@@ -431,9 +479,45 @@ export default {
         }
       }
     },
-    tiggerRange () {
+    async tiggerRange () {
       if (this.$refs['swipe-submit'].value > 95) {
-        this.handleSubmit()
+        this.dialog = true
+        // this.handleSubmit()
+      }
+    },
+
+    enableSetUpDialog () {
+      this.dialog = true
+    },
+    removeKey (action) {
+      if (action === 'delete') {
+        this.pin = ''
+        this.pinLimit = 8
+      } else {
+        this.pin = this.pin.slice(0, this.pin.length - 1)
+        this.validationMsg = ''
+        if (this.pinLimit < 8) {
+          this.pinLimit++
+        }
+      }
+    },
+    processKey (num) {
+      this.pinLimit--
+      this.validationMsg = ''
+      this.pin += num.toString()
+      if (this.pin.length > 8) {
+        this.pinLimit++
+        this.pin = this.pin.slice(0, this.pin.length - 1)
+      }
+    },
+    async checkPin () {
+      if (this.pin.length >= 4) {
+        const pin = await SecureStoragePlugin.get({ key: 'pin' })
+        if (this.pin === pin.value) {
+          this.handleSubmit()
+        } else {
+          this.validationMsg = 'Pin mismatched. Please try again.'
+        }
       }
     }
   },
@@ -689,5 +773,40 @@ export default {
   }
   .text-token {
     color: #444646;
+  }
+
+  // PIN dialog
+  .pt-set-pin {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #008BF1;
+  }
+  .pt-bg-card {
+    background: #fff;
+  }
+  .pt-keypad-btn {
+    width: 90%;
+    height: 50px;
+  }
+  .pt-btn-key {
+    height: 40px;
+    border-radius: 20px;
+    vertical-align: middle;
+    border: none;
+    color: white;
+    background-image: linear-gradient(to right bottom, #3b7bf6, #da53b2);
+  }
+  .pt-btn-set-pin, .pt-btn-wallet {
+    color: #fff;
+    height: 40px;
+    background-color: #2E73D2;
+  }
+  .pt-input-box-shadow {
+    width: 100%;
+    height: 38px;
+    border-radius: 18px;
+    border: 1px solid #008BF1;
+    outline: 0;
+    padding-left: 14px;
+    box-shadow: 0px 0px 4px 1px rgba(93, 173, 226, .8);
   }
 </style>
