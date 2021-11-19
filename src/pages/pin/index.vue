@@ -70,9 +70,9 @@
                                 <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
                             </div>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
+                        <div v-else class="col-12">
+                            <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
+                        </div>
                     </div>
                 </div>
                 </q-card-section>
