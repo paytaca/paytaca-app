@@ -83,6 +83,11 @@
           </div>
         </form>
       </div>
+
+      <!-- <div class="pt-submit-container q-pa-sm">
+        <div class="pt-animate-submit" v-touch-pan.horizontal.prevent.mouse="slideToSubmit"></div>
+      </div> -->
+
       <div class="row" v-if="sendErrors.length > 0">
         <div class="col">
           <ul style="margin-left: -40px; list-style: none;">
@@ -114,43 +119,7 @@
       </template>
     </div>
 
-    <div>
-      <q-dialog
-        v-model="dialog"
-        persistent
-        :maximized="true"
-        transition-show="slide-up"
-        transition-hide="slide-down"
-      >
-        <q-card class="pt-bg-card">
-
-          <q-card-section class="q-mt-lg">
-            <div class="text-h6 text-center pt-set-pin"><strong>Verify Pin</strong></div>
-          </q-card-section>
-
-          <q-card-section>
-            <input type="text" class="pt-input-box-shadow" v-model="pin" placeholder="********" readonly>
-            <div style="position: relative;">
-              <span v-if="validationMsg.length > 8" class="q-ml-sm" style="position: absolute; color: #ef4f84; margin-top: 5px;">{{ validationMsg }}</span>
-            </div>
-          </q-card-section>
-
-          <q-card-section class="q-px-sm">
-            <div class="row">
-              <div v-for="(count, index) in 12" :key="index" class="col-4 q-pa-sm">
-                <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'close')" :icon="count === 10 ? 'delete' : 'close'" rounded />
-                <q-btn v-else push class="full-width pt-btn-key" :label="count === 11 ? 0 : count" @click="processKey(count === 11 ? 0 : count)" rounded />
-              </div>
-            </div>
-            <div class="row q-mt-md q-px-sm">
-              <div class="col-12">
-                <q-btn push class="full-width pt-btn-set-pin" label="Verify" rounded @click="checkPin" />
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </q-dialog>
-    </div>
+    <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
 
   </div>
 </template>
@@ -161,6 +130,7 @@ import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
+import pinDialogComponent from '../../pages/pin'
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 
@@ -171,7 +141,8 @@ export default {
   components: {
     QrcodeStream,
     Loader,
-    HeaderNav
+    HeaderNav,
+    pinDialogComponent
   },
   props: {
     assetId: {
@@ -222,11 +193,10 @@ export default {
       },
       sendErrors: [],
       online: true,
-      dialog: false,
-      counter: 0,
-      pin: '',
-      validationMsg: '',
-      pinLimit: 8
+      pinDialogAction: '',
+      leftX: 0,
+      slider: 0,
+      counter: 0
     }
   },
 
@@ -260,6 +230,43 @@ export default {
   },
 
   methods: {
+    // slideToSubmit ({ evt, ...newInfo }) {
+    //   const htmlTag = document.querySelector('.pt-animate-submit')
+
+    //   if (this.counter === 0) {
+    //     this.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
+    //     this.leftX = Math.round(evt.changedTouches[0].screenX)
+    //   }
+
+    //   if (!newInfo.isFinal) {
+    //     this.counter++
+    //     if (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) < 11) {
+    //       console.log('Stop sliding...')
+    //     } else {
+    //       this.adjustLeft(event)
+    //     }
+    //     console.log('Right: ', parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10))
+    //     console.log('Running')
+    //   } else {
+    //     console.log('Ended')
+    //     this.counter = 0
+    //     if (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) > 20) {
+    //       htmlTag.classList.add('animate-left')
+    //       setTimeout(() => {
+    //         htmlTag.style.left = '10px'
+    //         htmlTag.classList.remove('animate-left')
+    //       }, 1000)
+    //     }
+    //   }
+    // },
+    // adjustLeft (e) {
+    //   const htmlTag = document.querySelector('.pt-animate-submit')
+    //   const newHeight = this.slider + e.changedTouches[0].screenX - this.leftX
+
+    //   if (newHeight >= 0) {
+    //     htmlTag.style.left = newHeight + 'px'
+    //   }
+    // },
     getAsset (id) {
       const assets = this.$store.getters['assets/getAsset'](id)
       if (assets.length > 0) {
@@ -481,13 +488,14 @@ export default {
     },
     async tiggerRange () {
       if (this.$refs['swipe-submit'].value > 95) {
-        this.dialog = true
-        // this.handleSubmit()
+        this.pinDialogAction = 'VERIFY'
       }
     },
 
-    enableSetUpDialog () {
-      this.dialog = true
+    sendTransaction (action) {
+      if (action === 'send') {
+        this.handleSubmit()
+      }
     },
     removeKey (action) {
       if (action === 'delete') {
@@ -774,39 +782,28 @@ export default {
   .text-token {
     color: #444646;
   }
-
-  // PIN dialog
-  .pt-set-pin {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #008BF1;
-  }
-  .pt-bg-card {
-    background: #fff;
-  }
-  .pt-keypad-btn {
-    width: 90%;
-    height: 50px;
-  }
-  .pt-btn-key {
-    height: 40px;
-    border-radius: 20px;
-    vertical-align: middle;
-    border: none;
-    color: white;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #da53b2);
-  }
-  .pt-btn-set-pin, .pt-btn-wallet {
-    color: #fff;
-    height: 40px;
-    background-color: #2E73D2;
-  }
-  .pt-input-box-shadow {
-    width: 100%;
-    height: 38px;
-    border-radius: 18px;
-    border: 1px solid #008BF1;
-    outline: 0;
-    padding-left: 14px;
-    box-shadow: 0px 0px 4px 1px rgba(93, 173, 226, .8);
-  }
+  // .pt-submit-container {
+  //   position: relative;
+  //   display: flex;
+  //   align-items: center;
+  //   height: 60px;
+  //   width: 100%;
+  //   // bottom: 0px;
+  //   background: #da53b2;
+  //   // z-index: 10000px;
+  //   // background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  // }
+  // .pt-animate-submit {
+  //   position: absolute;
+  //   height: 50px;
+  //   width: 150px;
+  //   left: 10px;
+  //   border-radius: 26px;
+  //   background: #a866db;
+  //   border: 3px solid rgba(60, 100, 246, .5);
+  //   transition: all 0.5s ease;
+  // }
+  // .animate-left {
+  //   left: 10px !important;
+  // }
 </style>

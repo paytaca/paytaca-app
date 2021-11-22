@@ -55,25 +55,28 @@
                 <q-card-section class="q-px-sm q-mt-sm">
                 <div class="row">
                     <div v-for="(count, index) in 12" :key="index" class="col-4 q-pa-sm">
-                    <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'close')" :icon="count === 10 ? 'delete' : 'close'" rounded />
+                    <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'keyboard_backspace')" :icon="count === 10 ? 'delete' : 'keyboard_backspace'" rounded />
                     <q-btn v-else push class="full-width pt-btn-key" :label="count === 11 ? 0 : count" @click="processKey(count === 11 ? 0 : count)" rounded />
                     </div>
                 </div>
                 <div class="row q-mt-md q-px-sm">
-                    <div class="col-12">
-                        <q-btn push class="full-width pt-btn-set-pin" :label="btnLabel" :disable="saveBtn" rounded @click="setPin" />
-                        <div class="row" v-if="pinDialogAction !== 'SET UP'">
-                            <div class="col-6 q-pr-sm">
-                                <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
-                            </div>
-                            <div class="col-6 q-pl-sm">
-                                <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
-                            </div>
-                        </div>
-                        <div v-else class="col-12">
-                            <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
-                        </div>
+                  <div class="col-12">
+                    <q-btn push class="full-width pt-btn-set-pin" :label="btnLabel" :disable="saveBtn" rounded @click="setPin" />
+                    <div v-if="pinDialogAction === 'VERIFY'" class="col-12">
+                      <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
                     </div>
+                    <div class="row" v-else-if="pinDialogAction !== 'SET UP'">
+                      <div class="col-6 q-pr-sm">
+                        <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
+                      </div>
+                      <div class="col-6 q-pl-sm">
+                        <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
+                      </div>
+                    </div>
+                    <div v-else class="col-12">
+                      <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
+                    </div>
+                  </div>
                 </div>
                 </q-card-section>
             </q-card>
@@ -85,7 +88,6 @@
 import 'capacitor-secure-storage-plugin'
 import Loader from '../../components/loader'
 import { Plugins } from '@capacitor/core'
-import { fasSortNumericDownAlt } from '@quasar/extras/fontawesome-v5'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -112,11 +114,12 @@ export default {
   watch: {
     pinDialogAction () {
       const vm = this
-      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET NEW') {
+      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
         vm.pin = ''
         vm.removeKey('delete')
         vm.dialog = true
         vm.actionCaption = vm.pinDialogAction
+        vm.btnLabel = vm.pinDialogAction === 'VERIFY' ? 'VERIFY' : 'ENTER'
       }
     }
   },
@@ -149,7 +152,7 @@ export default {
         if (vm.pin2.length === 6) {
           if (vm.pin2 !== vm.pin) {
             vm.saveBtn = true
-            vm.validationMsg = 'PIN mismatched. Please try again.'
+            vm.validationMsg = 'PIN mismatched'
           }
         }
       }
@@ -183,10 +186,17 @@ export default {
         if (vm.countKeys !== 0) { vm.pinKeys[vm.countKeys - 1].key = '' }
       }
     },
-    setPin () {
+    async setPin () {
       const vm = this
 
-      if (vm.pinStep === 1) {
+      if (vm.pinDialogAction === 'VERIFY') {
+        const secretKey = await SecureStoragePlugin.get({ key: 'pin' })
+        if (secretKey.value === vm.pin) {
+          resetAll()
+        } else {
+          vm.validationMsg = 'Incorrect PIN'
+        }
+      } else if (vm.pinStep === 1) {
         vm.pinStep = 2
         vm.removeKey('delete')
         vm.pinLabel = 'Confirm PIN'
@@ -200,13 +210,17 @@ export default {
               if (this.pinDialogAction === 'SET UP') {
                 vm.$emit('nextAction')
               } else {
-                vm.dialog = false
-                vm.loader = false
-                vm.removeKey('reset')
-                vm.$emit('nextAction')
+                resetAll()
               }
             }, 1000)
           })
+      }
+
+      function resetAll () {
+        vm.dialog = false
+        vm.loader = false
+        vm.removeKey('reset')
+        vm.$emit('nextAction')
       }
     },
     cancelPin () {
