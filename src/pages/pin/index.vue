@@ -61,7 +61,7 @@
                 </div>
                 <div class="row q-mt-md q-px-sm">
                     <div class="col-12">
-                        <q-btn push class="full-width pt-btn-set-pin" :label="btnLabel" rounded @click="setPin" />
+                        <q-btn push class="full-width pt-btn-set-pin" :label="btnLabel" :disable="saveBtn" rounded @click="setPin" />
                         <div class="row" v-if="pinDialogAction !== 'SET UP'">
                             <div class="col-6 q-pr-sm">
                                 <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
@@ -85,6 +85,7 @@
 import 'capacitor-secure-storage-plugin'
 import Loader from '../../components/loader'
 import { Plugins } from '@capacitor/core'
+import { fasSortNumericDownAlt } from '@quasar/extras/fontawesome-v5'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -102,24 +103,27 @@ export default {
       countKeys: 0,
       pinStep: 1,
       loader: false,
-      resetStatus: true
+      resetStatus: true,
+      saveBtn: true
     }
   },
   components: { Loader },
   props: ['pinDialogAction'],
   watch: {
     pinDialogAction () {
-      if (this.pinDialogAction === 'SET UP' || this.pinDialogAction === 'SET NEW') {
-        this.pin = ''
-        this.removeKey('delete')
-        this.dialog = true
-        this.actionCaption = this.pinDialogAction
+      const vm = this
+      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET NEW') {
+        vm.pin = ''
+        vm.removeKey('delete')
+        vm.dialog = true
+        vm.actionCaption = vm.pinDialogAction
       }
     }
   },
   methods: {
     processKey (num) {
       const vm = this
+
       vm.validationMsg = ''
       const keyLength = vm.pinKeys.length
       for (let i = 0; keyLength > i; i++) {
@@ -128,11 +132,33 @@ export default {
           break
         }
       }
+
+      let keys = ''
+      for (let i = 0; vm.pinKeys.length > i; i++) {
+        keys += vm.pinKeys[i].key
+      }
+
+      if (keys.length === 6) {
+        vm.saveBtn = false
+      }
+
+      if (vm.pinStep === 1) {
+        vm.pin = keys
+      } else if (vm.pinStep === 2) {
+        vm.pin2 = keys
+        if (vm.pin2.length === 6) {
+          if (vm.pin2 !== vm.pin) {
+            vm.saveBtn = true
+            vm.validationMsg = 'PIN mismatched. Please try again.'
+          }
+        }
+      }
     },
     removeKey (action) {
       const vm = this
       vm.countKeys = 0
       vm.validationMsg = ''
+      vm.saveBtn = true
       const keyLength = vm.pinKeys.length
       if (action === 'delete') {
         for (let i = 0; keyLength > i; i++) {
@@ -144,7 +170,7 @@ export default {
         vm.pinStep = 1
         vm.pinLabel = 'Enter PIN'
         vm.btnLabel = 'ENTER'
-        vm.resetStatus = false
+        vm.resetStatus = true
         for (let i = 0; keyLength > i; i++) {
           vm.pinKeys[i].key = ''
         }
@@ -161,46 +187,26 @@ export default {
       const vm = this
 
       if (vm.pinStep === 1) {
-        vm.pin = ''
-        for (let i = 0; vm.pinKeys.length > i; i++) {
-          vm.pin += vm.pinKeys[i].key
-        }
-        if (vm.pin.length === 6) {
-          vm.pinStep = 2
-          vm.removeKey('delete')
-          vm.pinLabel = 'Confirm PIN'
-          vm.btnLabel = 'Confirm'
-          vm.resetStatus = false
-        } else {
-          vm.validationMsg = 'PIN must be 6 digits'
-        }
+        vm.pinStep = 2
+        vm.removeKey('delete')
+        vm.pinLabel = 'Confirm PIN'
+        vm.btnLabel = 'Save'
+        vm.resetStatus = false
       } else if (vm.pinStep === 2) {
-        vm.pin2 = ''
-        for (let i = 0; vm.pinKeys.length > i; i++) {
-          vm.pin2 += vm.pinKeys[i].key
-        }
-        if (vm.pin2.length === 6) {
-          if (vm.pin2 === vm.pin) {
-            vm.loader = true
-            SecureStoragePlugin.set({ key: 'pin', value: vm.pin })
-              .then(() => {
-                setTimeout(() => {
-                  if (this.pinDialogAction === 'SET UP') {
-                    vm.$emit('nextAction')
-                  } else {
-                    vm.dialog = false
-                    vm.loader = false
-                    vm.removeKey('reset')
-                    vm.$emit('nextAction')
-                  }
-                }, 1000)
-              })
-          } else {
-            vm.validationMsg = 'PIN mismatched. Please try again.'
-          }
-        } else {
-          vm.validationMsg = 'PIN must be 6 digits'
-        }
+        vm.loader = true
+        SecureStoragePlugin.set({ key: 'pin', value: vm.pin })
+          .then(() => {
+            setTimeout(() => {
+              if (this.pinDialogAction === 'SET UP') {
+                vm.$emit('nextAction')
+              } else {
+                vm.dialog = false
+                vm.loader = false
+                vm.removeKey('reset')
+                vm.$emit('nextAction')
+              }
+            }, 1000)
+          })
       }
     },
     cancelPin () {
