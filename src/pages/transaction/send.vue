@@ -84,9 +84,27 @@
         </form>
       </div>
 
-      <!-- <div class="pt-submit-container q-pa-sm">
-        <div class="pt-animate-submit" v-touch-pan.horizontal.prevent.mouse="slideToSubmit"></div>
-      </div> -->
+      <div class="pt-submit-container" :class="[!showSlider ? 'pt-invisible' : '']">
+        <p class="text-h6 q-my-none q-py-none text-white pt-send-text">
+          Swipe to send
+        </p> <!-- v-touch-pan.horizontal.prevent.mouse="slideToSubmit" -->
+        <div class="text-center pt-on-process" :class="[!swiped ? 'animate-process' : '']">
+          <p class="text-h6 text-white q-my-none q-py-none pt-process-text">
+            <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">Processing</span>
+            <span class="material-icons pt-check-icon">
+            task_alt
+            </span>
+          </p>
+        </div>
+        <div class="pt-animate-submit text-white text-center" v-touch-pan.horizontal.prevent.mouse="slideToSubmit">
+          <span v-if="swiped" class="material-icons pt-arrow-right-icon">
+          arrow_forward
+          </span>
+        </div>
+      </div>
+      <template v-if="!showSlider">
+        <footer-menu v-if="!sendData.sending" />
+      </template>
 
       <div class="row" v-if="sendErrors.length > 0">
         <div class="col">
@@ -105,7 +123,7 @@
           <p style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
         </div>
       </div>
-      <div class="confirmation-slider" ref="confirmation-slider" v-if="showSlider" :style="{width: $q.platform.is.bex ? '375px !important' : '100%'}">
+      <!-- <div class="confirmation-slider" ref="confirmation-slider" v-if="showSlider" :style="{width: $q.platform.is.bex ? '375px !important' : '100%'}">
         <div id="status" style="text-align: center;">
           <label class="swipe-confrim-label" style="padding-right: 10px;">Swipe to Send </label>
           <input style="z-index: 2001 !important;" id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
@@ -116,7 +134,7 @@
       </div>
       <template v-else>
         <footer-menu v-if="!sendData.sending" />
-      </template>
+      </template> -->
     </div>
 
     <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
@@ -196,7 +214,11 @@ export default {
       pinDialogAction: '',
       leftX: 0,
       slider: 0,
-      counter: 0
+      counter: 0,
+      xDown: null,
+      yDown: null,
+      rightOffset: null,
+      swiped: true
     }
   },
 
@@ -230,43 +252,71 @@ export default {
   },
 
   methods: {
-    // slideToSubmit ({ evt, ...newInfo }) {
-    //   const htmlTag = document.querySelector('.pt-animate-submit')
+    slideToSubmit ({ evt, ...newInfo }) {
+      const vm = this
+      const htmlTag = document.querySelector('.pt-animate-submit')
+      const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
 
-    //   if (this.counter === 0) {
-    //     this.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
-    //     this.leftX = Math.round(evt.changedTouches[0].screenX)
-    //   }
+      console.log('Screen x1: ', evt.changedTouches[0].screenX)
+      if (vm.counter === 0) {
+        vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
+        vm.leftX = Math.round(evt.changedTouches[0].screenX)
+      }
 
-    //   if (!newInfo.isFinal) {
-    //     this.counter++
-    //     if (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) < 11) {
-    //       console.log('Stop sliding...')
-    //     } else {
-    //       this.adjustLeft(event)
-    //     }
-    //     console.log('Right: ', parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10))
-    //     console.log('Running')
-    //   } else {
-    //     console.log('Ended')
-    //     this.counter = 0
-    //     if (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) > 20) {
-    //       htmlTag.classList.add('animate-left')
-    //       setTimeout(() => {
-    //         htmlTag.style.left = '10px'
-    //         htmlTag.classList.remove('animate-left')
-    //       }, 1000)
-    //     }
-    //   }
-    // },
-    // adjustLeft (e) {
-    //   const htmlTag = document.querySelector('.pt-animate-submit')
-    //   const newHeight = this.slider + e.changedTouches[0].screenX - this.leftX
+      if (!newInfo.isFinal) {
+        vm.counter++
+        if (window.innerWidth <= (evt.changedTouches[0].screenX + 100) && right <= 80) {
+          vm.swiped = false
+          htmlTag.classList.add('animate-full-width')
+          document.querySelector('.pt-send-text').style.opacity = 0
+          setTimeout(() => {
+            vm.pinDialogAction = 'VERIFY'
+          }, 1000)
+        } else {
+          const htmlTag = document.querySelector('.pt-animate-submit')
+          const newPadding = vm.slider + evt.changedTouches[0].screenX - vm.leftX
 
-    //   if (newHeight >= 0) {
-    //     htmlTag.style.left = newHeight + 'px'
-    //   }
-    // },
+          if (newPadding >= 0) {
+            htmlTag.style.left = newPadding + 'px'
+            document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - 0.3
+          }
+        }
+      } else {
+        vm.counter = 0
+        const htmlTag = document.querySelector('.pt-animate-submit')
+        const htmlTag2 = document.querySelector('.pt-send-text')
+        if (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) > 80) {
+          htmlTag.classList.add('animate-left')
+          htmlTag2.classList.add('animate-opacity')
+          setTimeout(() => {
+            htmlTag.style.left = '30px'
+            htmlTag2.style.opacity = '10'
+            htmlTag.classList.remove('animate-left')
+            htmlTag2.classList.remove('animate-opacity')
+          }, 500)
+        }
+      }
+    },
+
+    sendTransaction (action) {
+      if (action === 'send') {
+        this.handleSubmit()
+      } else {
+        this.resetSubmit()
+      }
+    },
+
+    resetSubmit () {
+      const htmlTag = document.querySelector('.animate-full-width')
+      const htmlTag2 = document.querySelector('.pt-animate-submit')
+      htmlTag.classList.add('pt-animate-submit')
+      htmlTag2.classList.remove('animate-full-width')
+      htmlTag2.style.left = '20px'
+      this.swiped = true
+      document.querySelector('.pt-send-text').style.opacity = 10
+      this.pinDialogAction = ''
+    },
+
     getAsset (id) {
       const assets = this.$store.getters['assets/getAsset'](id)
       if (assets.length > 0) {
@@ -485,49 +535,12 @@ export default {
           vm.sendErrors.push('Send amount should be greater than zero')
         }
       }
-    },
-    async tiggerRange () {
-      if (this.$refs['swipe-submit'].value > 95) {
-        this.pinDialogAction = 'VERIFY'
-      }
-    },
-
-    sendTransaction (action) {
-      if (action === 'send') {
-        this.handleSubmit()
-      }
-    },
-    removeKey (action) {
-      if (action === 'delete') {
-        this.pin = ''
-        this.pinLimit = 8
-      } else {
-        this.pin = this.pin.slice(0, this.pin.length - 1)
-        this.validationMsg = ''
-        if (this.pinLimit < 8) {
-          this.pinLimit++
-        }
-      }
-    },
-    processKey (num) {
-      this.pinLimit--
-      this.validationMsg = ''
-      this.pin += num.toString()
-      if (this.pin.length > 8) {
-        this.pinLimit++
-        this.pin = this.pin.slice(0, this.pin.length - 1)
-      }
-    },
-    async checkPin () {
-      if (this.pin.length >= 4) {
-        const pin = await SecureStoragePlugin.get({ key: 'pin' })
-        if (this.pin === pin.value) {
-          this.handleSubmit()
-        } else {
-          this.validationMsg = 'Pin mismatched. Please try again.'
-        }
-      }
     }
+    // async tiggerRange () {
+    //   if (this.$refs['swipe-submit'].value > 95) {
+    //     this.pinDialogAction = 'VERIFY'
+    //   }
+    // },
   },
 
   mounted () {
@@ -539,6 +552,12 @@ export default {
     } else {
       vm.walletType = 'bch'
     }
+
+    const sendTag = document.querySelector('.pt-animate-submit')
+    // sendTag.addEventListener('touchstart', vm.handleTouchStart, false)
+    // sendTag.addEventListener('touchmove', vm.handleTouchMove, false)
+    // sendTag.addEventListener('touchend', vm.handleTouchEnd, false)
+    vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {
@@ -782,28 +801,84 @@ export default {
   .text-token {
     color: #444646;
   }
-  // .pt-submit-container {
-  //   position: relative;
-  //   display: flex;
-  //   align-items: center;
-  //   height: 60px;
-  //   width: 100%;
-  //   // bottom: 0px;
-  //   background: #da53b2;
-  //   // z-index: 10000px;
-  //   // background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-  // }
-  // .pt-animate-submit {
-  //   position: absolute;
-  //   height: 50px;
-  //   width: 150px;
-  //   left: 10px;
-  //   border-radius: 26px;
-  //   background: #a866db;
-  //   border: 3px solid rgba(60, 100, 246, .5);
-  //   transition: all 0.5s ease;
-  // }
-  // .animate-left {
-  //   left: 10px !important;
-  // }
+  .pt-submit-container {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    height: 80px;
+    width: 100%;
+    bottom: 0pt;
+    // background: #da53b2;
+    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84);
+  }
+  .pt-animate-submit {
+    position: absolute;
+    width: 150px;
+    height: 65px;
+    width: 65px;
+    left: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #3b7bf6;
+    border: 2px solid #346ddc;
+    overflow: hidden;
+    // border: 3px solid rgba(60, 100, 246, .5);
+    -webkit-transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
+    -moz-transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
+    -o-transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
+    transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
+  }
+  .pt-animate-submit .pt-arrow-right-icon {
+    font-size: 38px;
+  }
+  .pt-check-icon {
+    font-size: 28px;
+  }
+  .animate-left {
+    left: 30px !important;
+  }
+  .animate-full-width {
+    width: 100%;
+    left: 0px !important;
+    height: 100% !important;
+    border: none;
+    border-radius: 0px !important;
+    // background: #3b7bf6;
+    background: transparent;
+  }
+  .pt-send-text {
+    position: absolute;
+    right: 40px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pt-on-process {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    left: 0;
+    width: 100%;
+    opacity: 0;
+  }
+  .pt-process-text {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+  .animate-opacity {
+    opacity: 10 !important;
+  }
+  .animate-process {
+    opacity: 10 !important;
+    -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+    transition: all 1s ease;
+  }
+  .pt-invisible {
+    opacity: 0;
+  }
 </style>
