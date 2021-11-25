@@ -218,7 +218,8 @@ export default {
       xDown: null,
       yDown: null,
       rightOffset: null,
-      swiped: true
+      swiped: true,
+      opacity: 0.1
     }
   },
 
@@ -278,11 +279,13 @@ export default {
 
           if (newPadding >= 0) {
             htmlTag.style.left = newPadding + 'px'
-            document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - 0.3
+            document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
+            vm.opacity += 0.005
           }
         }
       } else {
         vm.counter = 0
+        vm.opacity = 0.1
         const htmlTag = document.querySelector('.pt-animate-submit')
         const htmlTag2 = document.querySelector('.pt-send-text')
         if (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) > 80) {
@@ -311,7 +314,7 @@ export default {
       const htmlTag2 = document.querySelector('.pt-animate-submit')
       htmlTag.classList.add('pt-animate-submit')
       htmlTag2.classList.remove('animate-full-width')
-      htmlTag2.style.left = '20px'
+      htmlTag2.style.left = '30px'
       this.swiped = true
       document.querySelector('.pt-send-text').style.opacity = 10
       this.pinDialogAction = ''
