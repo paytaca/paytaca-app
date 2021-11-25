@@ -306,7 +306,7 @@ export default {
       vm.selectedAsset = vm.assets[0]
     }
 
-    SecureStoragePlugin.get({ key: 'pol' })
+    SecureStoragePlugin.get({ key: 'pin' })
       .then(pin => {
         console.log('PIN is set')
       })
