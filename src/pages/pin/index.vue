@@ -65,7 +65,7 @@
                     <div v-if="pinDialogAction === 'VERIFY'" class="col-12">
                       <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
                     </div>
-                    <div class="row" v-else-if="pinDialogAction !== 'SET UP'">
+                    <div class="row" v-else-if="isPinInSettings">
                       <div class="col-6 q-pr-sm">
                         <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
                       </div>
@@ -106,7 +106,8 @@ export default {
       pinStep: 1,
       loader: false,
       resetStatus: true,
-      saveBtn: true
+      saveBtn: true,
+      isPinInSettings: false
     }
   },
   components: { Loader },
@@ -114,12 +115,17 @@ export default {
   watch: {
     pinDialogAction () {
       const vm = this
-      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
+      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET UP PIN' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
         vm.pin = ''
         vm.removeKey('delete')
         vm.dialog = true
-        vm.actionCaption = vm.pinDialogAction
+        vm.actionCaption = vm.pinDialogAction === 'SET UP PIN' ? 'SET UP' : vm.pinDialogAction
         vm.btnLabel = vm.pinDialogAction === 'VERIFY' ? 'VERIFY' : 'ENTER'
+        if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET UP PIN') {
+          vm.isPinInSettings = false
+        } else {
+          vm.isPinInSettings = true
+        }
       }
     }
   },

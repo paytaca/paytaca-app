@@ -91,6 +91,9 @@
       </div>
     </div>
     <footer-menu />
+
+    <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogAction = ''" />
+
   </div>
 </template>
 
@@ -101,13 +104,17 @@ import Loader from '../../components/loader'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
+import pinDialogComponent from '../../pages/pin'
 import { dragscroll } from 'vue-dragscroll'
+import { Plugins } from '@capacitor/core'
+
+const { SecureStoragePlugin } = Plugins
 
 const ago = require('s-ago')
 
 export default {
   name: 'Transaction-page',
-  components: { Loader, Transaction, AssetInfo, AssetCards },
+  components: { Loader, Transaction, AssetInfo, AssetCards, pinDialogComponent },
   directives: {
     dragscroll
   },
@@ -139,7 +146,8 @@ export default {
       wallet: null,
       paymentMethods: null,
       manageAssets: false,
-      assetInfoShown: false
+      assetInfoShown: false,
+      pinDialogAction: ''
     }
   },
 
@@ -292,11 +300,19 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
     const vm = this
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
       vm.selectedAsset = vm.assets[0]
     }
+
+    SecureStoragePlugin.get({ key: 'pol' })
+      .then(pin => {
+        console.log('PIN is set')
+      })
+      .catch(_err => {
+        this.pinDialogAction = 'SET UP PIN'
+      })
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {

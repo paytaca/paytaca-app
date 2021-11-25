@@ -149,10 +149,6 @@ import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
 import pinDialogComponent from '../../pages/pin'
-import 'capacitor-secure-storage-plugin'
-import { Plugins } from '@capacitor/core'
-
-const { SecureStoragePlugin } = Plugins
 
 export default {
   name: 'Send-page',
@@ -267,9 +263,6 @@ export default {
 
       if (!newInfo.isFinal) {
         vm.counter++
-        console.log('Dynamic touch screen', evt.changedTouches[0].clientX)
-        console.log('Dynamic right', right)
-        console.log('Inner width', window.innerWidth)
         if (window.innerWidth <= (evt.changedTouches[0].clientX + 100) && right <= 90) {
           vm.swiped = false
           htmlTag.classList.add('animate-full-width')
