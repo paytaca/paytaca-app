@@ -219,7 +219,8 @@ export default {
       yDown: null,
       rightOffset: null,
       swiped: true,
-      opacity: 0.1
+      opacity: 0.1,
+      submitStatus: false
     }
   },
 
@@ -266,10 +267,14 @@ export default {
 
       if (!newInfo.isFinal) {
         vm.counter++
-        if (window.innerWidth <= (evt.changedTouches[0].screenX + 100) && right <= 80) {
+        console.log('Dynamic touch screen', evt.changedTouches[0].clientX)
+        console.log('Dynamic right', right)
+        console.log('Inner width', window.innerWidth)
+        if (window.innerWidth <= (evt.changedTouches[0].clientX + 100) && right <= 90) {
           vm.swiped = false
           htmlTag.classList.add('animate-full-width')
           document.querySelector('.pt-send-text').style.opacity = 0
+          vm.submitStatus = true
           setTimeout(() => {
             vm.pinDialogAction = 'VERIFY'
           }, 1000)
@@ -288,7 +293,7 @@ export default {
         vm.opacity = 0.1
         const htmlTag = document.querySelector('.pt-animate-submit')
         const htmlTag2 = document.querySelector('.pt-send-text')
-        if (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) > 80) {
+        if (vm.submitStatus !== true) {
           htmlTag.classList.add('animate-left')
           htmlTag2.classList.add('animate-opacity')
           setTimeout(() => {
@@ -305,6 +310,7 @@ export default {
       if (action === 'send') {
         this.handleSubmit()
       } else {
+        this.submitStatus = false
         this.resetSubmit()
       }
     },

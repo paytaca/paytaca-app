@@ -278,4 +278,7 @@ export default {
     right: 14px;
     top: 14px;
 }
+.dim-text {
+  color: #8F8CB8;
+}
 </style>
