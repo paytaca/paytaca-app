@@ -1,11 +1,17 @@
 body.body--light {
   /* background-color: #ECF3F3 !important; */
   background-color: #012121;
+  -webkit-transition: .1s;
+  -moz-transition: .1s;
+  -o-transition: .1s;
   transition: .1s;
 }
 
 body.body--dark {
   background-color: #012121 !important;
+  -webkit-transition: .1s;
+  -moz-transition: .1s;
+  -o-transition: .1s;
   transition: .1s;
 }
 
@@ -18,6 +24,9 @@ body.body--dark {
   left: 0;
   background: rgba(0, 0, 0, 0.7);
   opacity: 0;
+  -webkit-transition: all 0.5s 0s ease-in-out;
+  -moz-transition: all 0.5s 0s ease-in-out;
+  -o-transition: all 0.5s 0s ease-in-out;
   transition: all 0.5s ease-in-out;
   z-index: 1;
 }
