@@ -140,7 +140,7 @@
       </template> -->
     </div>
 
-    <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
+    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
 
   </div>
 </template>
@@ -151,7 +151,7 @@ import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
-import pinDialogComponent from '../../pages/pin'
+import pinDialog from '../../components/pin'
 
 export default {
   name: 'Send-page',
@@ -159,7 +159,7 @@ export default {
     QrcodeStream,
     Loader,
     HeaderNav,
-    pinDialogComponent
+    pinDialog
   },
   props: {
     assetId: {

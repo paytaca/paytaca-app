@@ -104,7 +104,7 @@ import Loader from '../../components/loader'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
-import pinDialogComponent from '../../pages/pin'
+import pinDialogComponent from '../../components/pin'
 import { dragscroll } from 'vue-dragscroll'
 import { Plugins } from '@capacitor/core'
 

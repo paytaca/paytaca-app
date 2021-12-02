@@ -55,7 +55,6 @@
 
 <script>
 import Loader from '../../components/loader'
-import { NativeBiometric } from 'capacitor-native-biometric'
 
 export default {
   name: 'registration-index',
@@ -70,27 +69,9 @@ export default {
     submitForm (event) {
       event.preventDefault()
       this.$router.push('/registration/accounts')
-    },
-    fingerPrintAuth () {
-      NativeBiometric.isAvailable()
-        .then(result => {
-          console.log('Biometric type: ', result.biometryType)
-        })
-        .catch(_err => {
-          console.log('Error: ', _err)
-        })
     }
   },
   async created () {
-    NativeBiometric.isAvailable()
-      .then(res => {
-        console.log('Is available: ', res.isAvailable)
-        this.fingerPrintAuth()
-      })
-      .catch(_err => {
-        console.log('Error: ', _err)
-      })
-
     this.$q.dark.set(false)
     const vm = this
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {

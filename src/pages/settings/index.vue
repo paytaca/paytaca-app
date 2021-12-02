@@ -35,13 +35,13 @@
           </div>
       </div>
 
-      <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
+      <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
 
   </div>
 </template>
 
 <script>
-import pinDialogComponent from '../../pages/pin'
+import pinDialog from '../../components/pin'
 
 export default {
   data () {
@@ -49,7 +49,7 @@ export default {
       pinDialogAction: ''
     }
   },
-  components: { pinDialogComponent },
+  components: { pinDialog },
   methods: {
     popUpPinDialog () {
       this.pinDialogAction = 'SET NEW'

@@ -56,12 +56,13 @@
           </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <q-btn push class="full-width pt-btn-wallet" @click="enableSetUpDialog" label="Continue" rounded />
+          <q-btn push class="full-width pt-btn-wallet" @click="choosePreferedAuthentication" label="Continue" rounded />
         </div>
       </div>
     </div>
 
-    <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="continueToDashboard" />
+    <authOptionDialog :auth-option-dialog-status="authOptionDialogStatus" v-on:preferredAuth="setPreferredAuth" />
+    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="continueToDashboard" />
 
   </div>
 </template>
@@ -69,11 +70,14 @@
 <script>
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 import Loader from '../../components/loader'
-import pinDialogComponent from '../../pages/pin'
+import pinDialog from '../../components/pin'
+import authOptionDialog from '../../components/authOption'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { NativeSettings } from 'capacitor-native-settings'
 
 export default {
   name: 'registration-accounts',
-  components: { Loader, pinDialogComponent },
+  components: { Loader, pinDialog, authOptionDialog },
   data () {
     return {
       importSeedPhrase: false,
@@ -87,7 +91,8 @@ export default {
       counter: 0,
       validationMsg: '',
       pinKeys: [{ key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }],
-      countKeys: 0
+      countKeys: 0,
+      authOptionDialogStatus: 'dismiss'
     }
   },
   methods: {
@@ -153,7 +158,61 @@ export default {
         vm.steps += 1
       })
     },
-    enableSetUpDialog () {
+    choosePreferedAuthentication () {
+      if (this.checkFingerprintAuthEnabled()) {
+        this.authOptionDialogStatus = 'show'
+      } else {
+        this.enablePINSetUpDialog()
+      }
+    },
+    checkFingerprintAuthEnabled () {
+      return NativeBiometric.isAvailable()
+        .then(result => {
+          if (result.isAvailable !== false) {
+            console.log('Is available: ', result.isAvailable)
+            return result.isAvailable
+          } else {
+            console.log('Not available: ', result.isAvailable)
+            return result.isAvailable
+          }
+        },
+        (error) => {
+          console.log('Availability error: ', error)
+        })
+    },
+    opentSecuritySettings () {
+      NativeSettings.openAndroid({
+        option: 'settings'
+      })
+    },
+    verifyBiometric () {
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For easy log in',
+        title: 'Authenticate',
+        subtitle: '',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          console.log('Successful fingerprint credential')
+        },
+        (error) => {
+          // Failed to authenticate
+          console.log('Verification error: ', error)
+          this.verifyBiometric()
+        }
+        )
+    },
+    setPreferredAuth (auth) {
+      this.$q.localStorage.set('preferredAuth', auth)
+      if (auth === 'pin') {
+        this.enablePINSetUpDialog()
+      } else {
+        this.verifyBiometric()
+      }
+    },
+    enablePINSetUpDialog () {
       this.pinDialogAction = 'SET UP'
     }
   }
