@@ -159,25 +159,19 @@ export default {
       })
     },
     choosePreferedAuthentication () {
-      if (this.checkFingerprintAuthEnabled()) {
-        this.authOptionDialogStatus = 'show'
-      } else {
-        this.enablePINSetUpDialog()
-      }
+      this.checkFingerprintAuthEnabled()
     },
     checkFingerprintAuthEnabled () {
       return NativeBiometric.isAvailable()
         .then(result => {
           if (result.isAvailable !== false) {
-            console.log('Is available: ', result.isAvailable)
-            return result.isAvailable
+            this.authOptionDialogStatus = 'show'
           } else {
-            console.log('Not available: ', result.isAvailable)
-            return result.isAvailable
+            this.pinDialogAction = 'SET UP'
           }
         },
         (error) => {
-          console.log('Availability error: ', error)
+          console.log('Implementation error: ', error)
         })
     },
     opentSecuritySettings () {
@@ -196,25 +190,33 @@ export default {
         .then(() => {
           // Authentication successful
           console.log('Successful fingerprint credential')
+          this.continueToDashboard()
         },
         (error) => {
           // Failed to authenticate
           console.log('Verification error: ', error)
-          this.verifyBiometric()
+          if (error.message.includes('Verification error: Cancel') || error.message.includes('Verification error: Authentication cancelled')) {
+            console.log('Ignore')
+          } else {
+            this.verifyBiometric()
+          }
         }
         )
     },
     setPreferredAuth (auth) {
       this.$q.localStorage.set('preferredAuth', auth)
       if (auth === 'pin') {
-        this.enablePINSetUpDialog()
+        this.authOptionDialogStatus = 'dismiss'
+        this.pinDialogAction = 'SET UP'
       } else {
         this.verifyBiometric()
       }
-    },
-    enablePINSetUpDialog () {
-      this.pinDialogAction = 'SET UP'
     }
+  },
+
+  beforeRouteEnter (to, from, next) {
+    console.log('Path: ', from.path)
+    next()
   }
 }
 </script>

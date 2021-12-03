@@ -93,7 +93,7 @@
         </p> <!-- v-touch-pan.horizontal.prevent.mouse="slideToSubmit" -->
         <div class="text-center pt-on-process" :class="[!swiped ? 'animate-process' : '']">
           <p class="text-h6 text-white q-my-none q-py-none pt-process-text">
-            <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">Processing</span>
+            <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">{{ submitLabel }}</span>
             <span class="material-icons pt-check-icon">
             task_alt
             </span>
@@ -152,6 +152,10 @@ import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { Plugins } from '@capacitor/core'
+
+const { SecureStoragePlugin } = Plugins
 
 export default {
   name: 'Send-page',
@@ -232,7 +236,8 @@ export default {
       rightOffset: null,
       swiped: true,
       opacity: 0.1,
-      submitStatus: false
+      submitStatus: false,
+      submitLabel: 'Processing'
     }
   },
 
@@ -284,9 +289,15 @@ export default {
           htmlTag.classList.add('animate-full-width')
           document.querySelector('.pt-send-text').style.opacity = 0
           vm.submitStatus = true
+          vm.submitLabel = 'Security check'
+          const auth = SecureStoragePlugin.get({ key: 'pin' })
           setTimeout(() => {
-            vm.pinDialogAction = 'VERIFY'
-          }, 1000)
+            if (auth.value === 'pin') {
+              vm.pinDialogAction = 'VERIFY'
+            } else {
+              vm.verifyBiometric()
+            }
+          }, 1500)
         } else {
           const htmlTag = document.querySelector('.pt-animate-submit')
           const newPadding = vm.slider + evt.changedTouches[0].screenX - vm.leftX
@@ -315,6 +326,34 @@ export default {
       }
     },
 
+    verifyBiometric () {
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For easy log in',
+        title: 'Authenticate',
+        subtitle: '',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          console.log('Successful fingerprint credential')
+          setTimeout(() => {
+            this.sendTransaction('send')
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          console.log('Verification error: ', error)
+          if (error.message.includes('Verification error: Cancel') || error.message.includes('Verification error: Authentication cancelled') || error.message.includes('Verification error: Fingerprint operation cancelled')) {
+            console.log('Reset')
+            this.resetSubmit()
+          } else {
+            this.verifyBiometric()
+          }
+        }
+        )
+    },
+
     sendTransaction (action) {
       if (action === 'send') {
         this.handleSubmit()
@@ -331,6 +370,7 @@ export default {
       htmlTag2.classList.remove('animate-full-width')
       htmlTag2.style.left = '30px'
       this.swiped = true
+      this.vm.submitLabel = 'Processing'
       document.querySelector('.pt-send-text').style.opacity = 10
       this.pinDialogAction = ''
     },

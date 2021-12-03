@@ -2,11 +2,11 @@ package com.paytaca.app;
 
 import android.os.Bundle;
 
-import com.getcapacitor.BridgeActivity;
-import com.getcapacitor.Plugin;
-
 import com.epicshaggy.biometric.NativeBiometric;
 import nl.raphael.settings.NativeSettingsPlugin;
+
+import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
 
 import java.util.ArrayList;
 

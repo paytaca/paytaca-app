@@ -1,5 +1,8 @@
 <template>
   <div style="background-color: #ECF3F3;">
+
+    <startPage :start-page-status="startPageStatus" v-on:logIn="logIn" v-on:setStartPageStatus="startPageStatus = 'show'" />
+
     <div class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
       <div class="row q-pt-lg">
         <div class="col q-pl-lg">
@@ -92,7 +95,8 @@
     </div>
     <footer-menu />
 
-    <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogAction = ''" />
+    <authOptionDialog :auth-option-dialog-status="authOptionDialogStatus" v-on:preferredAuth="setPreferredAuth" />
+    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogAction = ''" />
 
   </div>
 </template>
@@ -104,8 +108,11 @@ import Loader from '../../components/loader'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
-import pinDialogComponent from '../../components/pin'
+import startPage from '../../pages/transaction/dialog/StartPage.vue'
+import authOptionDialog from '../../components/authOption'
+import pinDialog from '../../components/pin'
 import { dragscroll } from 'vue-dragscroll'
+import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 
 const { SecureStoragePlugin } = Plugins
@@ -114,7 +121,7 @@ const ago = require('s-ago')
 
 export default {
   name: 'Transaction-page',
-  components: { Loader, Transaction, AssetInfo, AssetCards, pinDialogComponent },
+  components: { Loader, Transaction, AssetInfo, AssetCards, pinDialog, authOptionDialog, startPage },
   directives: {
     dragscroll
   },
@@ -147,7 +154,10 @@ export default {
       paymentMethods: null,
       manageAssets: false,
       assetInfoShown: false,
-      pinDialogAction: ''
+      pinDialogAction: '',
+      authOptionDialogStatus: 'dismiss',
+      startPageStatus: 'show',
+      prevPath: null
     }
   },
 
@@ -309,7 +319,82 @@ export default {
     },
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)
+    },
+
+    verifyBiometric () {
+      const vm = this
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For easy log in',
+        title: 'Authenticate',
+        subtitle: '',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          console.log('Successful fingerprint credential')
+          setTimeout(() => {
+            vm.startPageStatus = 'hide'
+            vm.authOptionDialogStatus = 'dismiss'
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          console.log('Verification error: ', error)
+          if (error.message.includes('Verification error: Cancel') || error.message.includes('Verification error: Authentication cancelled')) {
+            console.log('Ignore')
+          } else {
+            this.verifyBiometric()
+          }
+        }
+        )
+    },
+
+    checkFingerprintAuthEnabled () {
+      return NativeBiometric.isAvailable()
+        .then(result => {
+          if (result.isAvailable !== false) {
+            console.log('Is available: ', result.isAvailable)
+            this.authOptionDialogStatus = 'show'
+          } else {
+            console.log('Not available: ', result.isAvailable)
+            this.pinDialogAction = 'SET UP'
+          }
+        },
+        (error) => {
+          console.log('Error: ', error)
+          this.pinDialogAction = 'SET UP'
+        })
+    },
+    setPreferredAuth (auth) {
+      this.$q.localStorage.set('preferredAuth', auth)
+      if (auth === 'pin') {
+        this.pinDialogAction = 'SET UP'
+      } else {
+        this.verifyBiometric()
+      }
+    },
+
+    logIn () {
+      const vm = this
+      // Security Authentication
+      if (this.$q.localStorage.getItem('preferredAuth') === 'pin') {
+        SecureStoragePlugin.get({ key: 'pin' }).then()
+          .catch(_err => {
+            this.pinDialogAction = 'SET UP PIN'
+          })
+      } else if (this.$q.localStorage.getItem('preferredAuth') === 'biometric') {
+        vm.verifyBiometric()
+      } else {
+        vm.checkFingerprintAuthEnabled()
+      }
     }
+  },
+
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.prevPath = from.path
+    })
   },
 
   async mounted () {
@@ -317,14 +402,6 @@ export default {
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
       vm.selectedAsset = vm.assets[0]
     }
-
-    SecureStoragePlugin.get({ key: 'pin' })
-      .then(pin => {
-        console.log('PIN is set')
-      })
-      .catch(_err => {
-        this.pinDialogAction = 'SET UP PIN'
-      })
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {
@@ -361,6 +438,11 @@ export default {
             lastAddressIndex: 0
           })
         })
+      }
+      if (vm.prevPath !== '/registration/accounts') {
+        vm.logIn()
+      } else {
+        vm.startPageStatus = 'hide'
       }
     })
   }

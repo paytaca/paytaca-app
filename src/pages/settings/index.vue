@@ -23,6 +23,14 @@
           <div class="col-12 q-px-lg q-mt-md">
               <p class="q-px-sm q-my-sm dim-text">SECURITY</p>
               <q-list bordered separator padding style="border-radius: 14px; background: #fff">
+                <q-item clickable v-ripple v-if="securityAuth" @click="this.authOptionDialogStatus = 'show'">
+                    <q-item-section>
+                        <q-item-label class="pt-setting-menu">Set up App Security Authentication</q-item-label>
+                    </q-item-section>
+                    <q-item-section avatar>
+                        <q-icon name="pin" class="pt-setting-avatar"></q-icon>
+                    </q-item-section>
+                </q-item>
                 <q-item clickable v-ripple @click="popUpPinDialog">
                     <q-item-section>
                         <q-item-label class="pt-setting-menu">PIN</q-item-label>
@@ -35,6 +43,7 @@
           </div>
       </div>
 
+      <authOptionDialog :auth-option-dialog-status="authOptionDialogStatus" v-on:preferredAuth="setPreferredAuth" />
       <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
 
   </div>
@@ -42,11 +51,17 @@
 
 <script>
 import pinDialog from '../../components/pin'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { Plugins } from '@capacitor/core'
+
+const { SecureStoragePlugin } = Plugins
 
 export default {
   data () {
     return {
-      pinDialogAction: ''
+      pinDialogAction: '',
+      authOptionDialogStatus: 'dismiss',
+      securityAuth: false
     }
   },
   components: { pinDialog },
@@ -56,7 +71,31 @@ export default {
     },
     removePinCaption () {
       this.pinDialogAction = ''
+    },
+    setPreferredAuth (auth) {
+      this.$q.localStorage.set('preferredAuth', auth)
+      if (auth === 'pin') {
+        SecureStoragePlugin.get({ key: 'pin' }).then()
+          .catch(_err => {
+            this.pinDialogAction = 'SET UP PIN'
+          })
+      } else {
+        this.authOptionDialogStatus = 'dismiss'
+      }
     }
+  },
+  created () {
+    NativeBiometric.isAvailable()
+      .then(result => {
+        if (result.isAvailable !== false) {
+          this.securityAuth = true
+        } else {
+          this.securityAuth = false
+        }
+      },
+      (error) => {
+        console.log('Implementation error: ', error)
+      })
   }
 }
 </script>

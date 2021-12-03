@@ -9,7 +9,7 @@
       <q-card class="">
           <q-card-section>
             <!-- <p class="q-my-none">Do you agree with using fingerprint authentication for logging in and sending funds on this app? Otherwise, you will be using PIN.</p> -->
-            <p class="q-my-none">Choose the required security authentication do you prefer in opening the app and before sending funds.</p>
+            <p class="q-my-none">Please choose your preferred security authentication.</p>
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row q-mb-sm">
@@ -22,7 +22,7 @@
             </div>
             <q-separator />
             <div class="text-right q-mt-md">
-              <q-btn label="Done" class="pt-btn-closeDialog q-px-md" push rounded @click="donePicking" />
+              <q-btn :label="preferredAuth === 'pin' ? 'Set up' : 'Verify'" class="pt-btn-closeDialog q-px-md" push rounded @click="donePicking" />
             </div>
           </q-card-section>
       </q-card>
@@ -44,12 +44,13 @@ export default {
     authOptionDialogStatus () {
       if (this.authOptionDialogStatus === 'show') {
         this.dialog = true
+      } else {
+        this.dialog = false
       }
     }
   },
   methods: {
     donePicking () {
-      this.dialog = false
       this.$emit('preferredAuth', this.preferredAuth)
     }
   }
