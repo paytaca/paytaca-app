@@ -42,10 +42,6 @@ const routes = [
     ]
   },
   {
-    path: '/seed',
-    component: () => import('pages/seeder.vue')
-  },
-  {
     path: '/apps',
     component: () => import('layouts/Apps.vue'),
     children: [

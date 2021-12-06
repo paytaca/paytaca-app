@@ -34,7 +34,6 @@
 </template>
 
 <script>
-import jsUtils from '../utils/vanilla.js'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 
@@ -86,16 +85,6 @@ export default {
         vm.$parent.getBalance()
         vm.$parent.getTransactions()
       }
-
-      // Scroll by y-axis first then x-axis
-      // jsUtils.getScrollableParent(...) 2nd param is whether resolving the scrollable parent with respect to x-axis(true) or y-axis(false)
-      // jsUtils.scrollIntoView(...) 3rd param is whether to scroll to view with respect to x-axis(true) or y-axis(false)
-
-      const scrollableParentY = jsUtils.getScrollableParent(event.target, true)
-      if (scrollableParentY) jsUtils.scrollIntoView(scrollableParentY, event.target, true)
-
-      const scrollableParentX = jsUtils.getScrollableParent(event.target, false)
-      if (scrollableParentX) jsUtils.scrollIntoView(scrollableParentX, event.target, false)
     },
     addAsset (tokenId) {
       const vm = this

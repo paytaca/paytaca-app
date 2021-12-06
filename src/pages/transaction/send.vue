@@ -270,8 +270,6 @@ export default {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
       const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
-
-      console.log('Screen x1: ', evt.changedTouches[0].screenX)
       if (vm.counter === 0) {
         vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
         vm.leftX = Math.round(evt.changedTouches[0].screenX)
