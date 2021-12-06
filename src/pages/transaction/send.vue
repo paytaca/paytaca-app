@@ -87,10 +87,16 @@
         </form>
       </div>
 
+      <div class="row">
+        <div class="col-12 q-px-md">
+          <q-btn label="biometric" class="btn full-width" push rounded @click="verify">
+        </div>
+      </div>
+
       <div class="pt-submit-container" :class="[!showSlider ? 'pt-invisible' : '']">
         <p class="text-h6 q-my-none q-py-none text-white pt-send-text">
           Swipe to send
-        </p> <!-- v-touch-pan.horizontal.prevent.mouse="slideToSubmit" -->
+        </p>
         <div class="text-center pt-on-process" :class="[!swiped ? 'animate-process' : '']">
           <p class="text-h6 text-white q-my-none q-py-none pt-process-text">
             <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">{{ submitLabel }}</span>
@@ -126,21 +132,10 @@
           <p style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
         </div>
       </div>
-      <!-- <div class="confirmation-slider" ref="confirmation-slider" v-if="showSlider" :style="{width: $q.platform.is.bex ? '375px !important' : '100%'}">
-        <div id="status" style="text-align: center;">
-          <label class="swipe-confrim-label" style="padding-right: 10px;">Swipe to Send </label>
-          <input style="z-index: 2001 !important;" id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
-        </div>
-        <div id="slider-arrow" v-if="!$q.platform.is.bex">
-          <span style="z-index: 2000 !important; color: white; font-size: 22px;" class="mdi mdi-arrow-right"></span>
-        </div>
-      </div>
-      <template v-else>
-        <footer-menu v-if="!sendData.sending" />
-      </template> -->
     </div>
 
     <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
+    <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
 
   </div>
 </template>
@@ -152,6 +147,7 @@ import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
+import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 
@@ -163,7 +159,8 @@ export default {
     QrcodeStream,
     Loader,
     HeaderNav,
-    pinDialog
+    pinDialog,
+    biometricWarningAttmepts
   },
   props: {
     assetId: {
@@ -237,7 +234,8 @@ export default {
       swiped: true,
       opacity: 0.1,
       submitStatus: false,
-      submitLabel: 'Processing'
+      submitLabel: 'Processing',
+      warningAttemptsStatus: 'dismiss'
     }
   },
 
@@ -271,12 +269,33 @@ export default {
   },
 
   methods: {
+    verify () {
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For easy log in',
+        title: 'Authenticate',
+        subtitle: '',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          console.log('Successful fingerprint credential')
+        },
+        (error) => {
+          // Failed to authenticate
+          console.log('Verification error: ', error)
+          if (error.message.includes('Verification error: Cancel') || error.message.includes('Verification error: Authentication cancelled') || error.message.includes('Verification error: Fingerprint operation cancelled')) {
+          } else {
+            this.verify()
+          }
+        }
+        )
+    },
     slideToSubmit ({ evt, ...newInfo }) {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
       const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
 
-      console.log('Screen x1: ', evt.changedTouches[0].screenX)
       if (vm.counter === 0) {
         vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
         vm.leftX = Math.round(evt.changedTouches[0].screenX)
@@ -288,16 +307,8 @@ export default {
           vm.swiped = false
           htmlTag.classList.add('animate-full-width')
           document.querySelector('.pt-send-text').style.opacity = 0
-          vm.submitStatus = true
           vm.submitLabel = 'Security check'
-          const auth = SecureStoragePlugin.get({ key: 'pin' })
-          setTimeout(() => {
-            if (auth.value === 'pin') {
-              vm.pinDialogAction = 'VERIFY'
-            } else {
-              vm.verifyBiometric()
-            }
-          }, 1500)
+          vm.submitStatus = true
         } else {
           const htmlTag = document.querySelector('.pt-animate-submit')
           const newPadding = vm.slider + evt.changedTouches[0].screenX - vm.leftX
@@ -322,16 +333,38 @@ export default {
             htmlTag.classList.remove('animate-left')
             htmlTag2.classList.remove('animate-opacity')
           }, 500)
+        } else {
+          vm.executeSecurityChecking()
         }
       }
+    },
+
+    executeSecurityChecking () {
+      const vm = this
+      SecureStoragePlugin.get({ key: 'pin' })
+        .then(() => {
+          setTimeout(() => {
+            if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+              vm.pinDialogAction = 'VERIFY'
+            } else {
+              vm.verifyBiometric()
+            }
+          }, 500)
+        })
+        .catch(() => {
+          console.log("PIN doesn't exist.")
+          setTimeout(() => {
+            vm.verifyBiometric()
+          }, 500)
+        })
     },
 
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
-        reason: 'For easy log in',
-        title: 'Authenticate',
-        subtitle: '',
+        reason: 'For ownership verification',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
         description: ''
       })
         .then(() => {
@@ -343,10 +376,11 @@ export default {
         },
         (error) => {
           // Failed to authenticate
-          console.log('Verification error: ', error)
-          if (error.message.includes('Verification error: Cancel') || error.message.includes('Verification error: Authentication cancelled') || error.message.includes('Verification error: Fingerprint operation cancelled')) {
-            console.log('Reset')
+          this.warningAttemptsStatus = 'dismiss'
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
             this.resetSubmit()
+          } else if (error.message.includes('Too many attempts. Try again later.')) {
+            this.warningAttemptsStatus = 'show'
           } else {
             this.verifyBiometric()
           }
@@ -354,11 +388,14 @@ export default {
         )
     },
 
+    setwarningAttemptsStatus () {
+      this.verifyBiometric()
+    },
+
     sendTransaction (action) {
       if (action === 'send') {
         this.handleSubmit()
       } else {
-        this.submitStatus = false
         this.resetSubmit()
       }
     },
@@ -370,7 +407,8 @@ export default {
       htmlTag2.classList.remove('animate-full-width')
       htmlTag2.style.left = '30px'
       this.swiped = true
-      this.vm.submitLabel = 'Processing'
+      this.submitStatus = false
+      this.submitLabel = 'Processing'
       document.querySelector('.pt-send-text').style.opacity = 10
       this.pinDialogAction = ''
     },
@@ -599,11 +637,6 @@ export default {
         }
       }
     }
-    // async tiggerRange () {
-    //   if (this.$refs['swipe-submit'].value > 95) {
-    //     this.pinDialogAction = 'VERIFY'
-    //   }
-    // },
   },
 
   mounted () {
@@ -617,9 +650,6 @@ export default {
     }
 
     const sendTag = document.querySelector('.pt-animate-submit')
-    // sendTag.addEventListener('touchstart', vm.handleTouchStart, false)
-    // sendTag.addEventListener('touchmove', vm.handleTouchMove, false)
-    // sendTag.addEventListener('touchend', vm.handleTouchEnd, false)
     vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
 
     // Load wallets

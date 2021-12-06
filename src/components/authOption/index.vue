@@ -3,26 +3,23 @@
     <q-dialog
     v-model="dialog"
     persistent
-    transition-show="slide-up"
-    transition-hide="slide-down"
     >
       <q-card class="">
           <q-card-section>
-            <!-- <p class="q-my-none">Do you agree with using fingerprint authentication for logging in and sending funds on this app? Otherwise, you will be using PIN.</p> -->
             <p class="q-my-none">Please choose your preferred security authentication.</p>
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row q-mb-sm">
               <div class="col-12">
-                <q-radio v-model="preferredAuth" val="pin" label="PIN" color="pt-radio" />
+                <q-radio v-model="preferredSecurity" val="pin" label="PIN" color="pt-radio" />
               </div>
               <div class="col-12">
-                <q-radio v-model="preferredAuth" val="biometric" label="Biometric" color="pt-radio" />
+                <q-radio v-model="preferredSecurity" val="biometric" label="Biometric" color="pt-radio" />
               </div>
             </div>
             <q-separator />
             <div class="text-right q-mt-md">
-              <q-btn :label="preferredAuth === 'pin' ? 'Set up' : 'Verify'" class="pt-btn-closeDialog q-px-md" push rounded @click="donePicking" />
+              <q-btn :label="preferredSecurity === 'pin' ? 'Set up' : 'Verify'" class="pt-btn-closeDialog q-px-md" push rounded @click="donePicking" />
             </div>
           </q-card-section>
       </q-card>
@@ -36,13 +33,13 @@ export default {
   data () {
     return {
       dialog: false,
-      preferredAuth: 'pin'
+      preferredSecurity: 'pin'
     }
   },
-  props: ['authOptionDialogStatus'],
+  props: ['securityOptionDialogStatus'],
   watch: {
-    authOptionDialogStatus () {
-      if (this.authOptionDialogStatus === 'show') {
+    securityOptionDialogStatus () {
+      if (this.securityOptionDialogStatus === 'show') {
         this.dialog = true
       } else {
         this.dialog = false
@@ -51,7 +48,8 @@ export default {
   },
   methods: {
     donePicking () {
-      this.$emit('preferredAuth', this.preferredAuth)
+      this.$emit('preferredSecurity', this.preferredSecurity)
+      this.securityOptionDialogStatus = 'dismiss'
     }
   }
 }

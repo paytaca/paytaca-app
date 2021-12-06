@@ -95,8 +95,8 @@
     </div>
     <footer-menu />
 
-    <authOptionDialog :auth-option-dialog-status="authOptionDialogStatus" v-on:preferredAuth="setPreferredAuth" />
-    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogAction = ''" />
+    <authOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
+    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="checkVerificationResult" />
 
   </div>
 </template>
@@ -155,7 +155,7 @@ export default {
       manageAssets: false,
       assetInfoShown: false,
       pinDialogAction: '',
-      authOptionDialogStatus: 'dismiss',
+      securityOptionDialogStatus: 'dismiss',
       startPageStatus: 'show',
       prevPath: null
     }
@@ -326,8 +326,8 @@ export default {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
         reason: 'For easy log in',
-        title: 'Authenticate',
-        subtitle: '',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
         description: ''
       })
         .then(() => {
@@ -335,13 +335,13 @@ export default {
           console.log('Successful fingerprint credential')
           setTimeout(() => {
             vm.startPageStatus = 'hide'
-            vm.authOptionDialogStatus = 'dismiss'
+            vm.securityOptionDialogStatus = 'dismiss'
           }, 1000)
         },
         (error) => {
           // Failed to authenticate
           console.log('Verification error: ', error)
-          if (error.message.includes('Verification error: Cancel') || error.message.includes('Verification error: Authentication cancelled')) {
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled')) {
             console.log('Ignore')
           } else {
             this.verifyBiometric()
@@ -351,11 +351,11 @@ export default {
     },
 
     checkFingerprintAuthEnabled () {
-      return NativeBiometric.isAvailable()
+      NativeBiometric.isAvailable()
         .then(result => {
           if (result.isAvailable !== false) {
             console.log('Is available: ', result.isAvailable)
-            this.authOptionDialogStatus = 'show'
+            this.securityOptionDialogStatus = 'show'
           } else {
             console.log('Not available: ', result.isAvailable)
             this.pinDialogAction = 'SET UP'
@@ -366,8 +366,8 @@ export default {
           this.pinDialogAction = 'SET UP'
         })
     },
-    setPreferredAuth (auth) {
-      this.$q.localStorage.set('preferredAuth', auth)
+    setPreferredSecurity (auth) {
+      this.$q.localStorage.set('preferredSecurity', auth)
       if (auth === 'pin') {
         this.pinDialogAction = 'SET UP'
       } else {
@@ -377,16 +377,29 @@ export default {
 
     logIn () {
       const vm = this
+      console.log('Security: ', this.$q.localStorage.getItem('preferredSecurity'))
       // Security Authentication
-      if (this.$q.localStorage.getItem('preferredAuth') === 'pin') {
-        SecureStoragePlugin.get({ key: 'pin' }).then()
-          .catch(_err => {
-            this.pinDialogAction = 'SET UP PIN'
+      if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+        SecureStoragePlugin.get({ key: 'pin' })
+          .then(() => {
+            vm.pinDialogAction = 'VERIFY'
           })
-      } else if (this.$q.localStorage.getItem('preferredAuth') === 'biometric') {
+          .catch(_err => {
+            vm.pinDialogAction = 'SET UP'
+          })
+      } else if (vm.$q.localStorage.getItem('preferredSecurity') === 'biometric') {
         vm.verifyBiometric()
       } else {
         vm.checkFingerprintAuthEnabled()
+      }
+    },
+
+    checkVerificationResult (result) {
+      if (result !== 'cancel') {
+        this.startPageStatus = 'hide'
+        this.securityOptionDialogStatus = 'dismiss'
+      } else {
+        this.pinDialogAction = ''
       }
     }
   },
@@ -440,6 +453,7 @@ export default {
         })
       }
       if (vm.prevPath !== '/registration/accounts') {
+        console.log('Login 1')
         vm.logIn()
       } else {
         vm.startPageStatus = 'hide'

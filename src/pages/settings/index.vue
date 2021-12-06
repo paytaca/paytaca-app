@@ -21,14 +21,14 @@
       </div>
       <div class="row">
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text">SECURITY</p>
+              <p class="q-px-sm q-my-sm dim-text text-h6">SECURITY</p>
               <q-list bordered separator padding style="border-radius: 14px; background: #fff">
-                <q-item clickable v-ripple v-if="securityAuth" @click="this.authOptionDialogStatus = 'show'">
+                <q-item clickable v-ripple v-if="securityAuth" @click="popUpSecurityOptionDialog">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu">Set up App Security Authentication</q-item-label>
+                        <q-item-label class="pt-setting-menu">Security Authentication Setup</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="pin" class="pt-setting-avatar"></q-icon>
+                        <q-icon name="security" class="pt-setting-avatar"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="popUpPinDialog">
@@ -43,7 +43,7 @@
           </div>
       </div>
 
-      <authOptionDialog :auth-option-dialog-status="authOptionDialogStatus" v-on:preferredAuth="setPreferredAuth" />
+      <authOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
       <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
 
   </div>
@@ -60,27 +60,30 @@ export default {
   data () {
     return {
       pinDialogAction: '',
-      authOptionDialogStatus: 'dismiss',
+      securityOptionDialogStatus: 'dismiss',
       securityAuth: false
     }
   },
   components: { pinDialog },
   methods: {
+    popUpSecurityOptionDialog () {
+      this.securityOptionDialogStatus = 'show'
+    },
     popUpPinDialog () {
       this.pinDialogAction = 'SET NEW'
     },
     removePinCaption () {
       this.pinDialogAction = ''
     },
-    setPreferredAuth (auth) {
-      this.$q.localStorage.set('preferredAuth', auth)
+    setPreferredSecurity (auth) {
+      this.$q.localStorage.set('preferredSecurity', auth)
       if (auth === 'pin') {
         SecureStoragePlugin.get({ key: 'pin' }).then()
           .catch(_err => {
             this.pinDialogAction = 'SET UP PIN'
           })
       } else {
-        this.authOptionDialogStatus = 'dismiss'
+        this.securityOptionDialogStatus = 'dismiss'
       }
     }
   },

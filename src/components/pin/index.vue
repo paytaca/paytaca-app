@@ -55,7 +55,7 @@
                 <q-card-section class="q-px-sm q-mt-sm">
                 <div class="row">
                     <div v-for="(count, index) in 12" :key="index" class="col-4 q-pa-sm">
-                    <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'keyboard_backspace')" :icon="count === 10 ? 'delete' : 'keyboard_backspace'" rounded />
+                    <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'backspace')" :icon="count === 10 ? 'delete' : 'backspace'" rounded />
                     <q-btn v-else push class="full-width pt-btn-key" :label="count === 11 ? 0 : count" @click="processKey(count === 11 ? 0 : count)" rounded />
                     </div>
                 </div>
@@ -65,16 +65,13 @@
                     <div v-if="pinDialogAction === 'VERIFY'" class="col-12">
                       <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
                     </div>
-                    <div class="row" v-else-if="isPinInSettings">
+                    <div class="row" v-else>
                       <div class="col-6 q-pr-sm">
                         <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
                       </div>
                       <div class="col-6 q-pl-sm">
                         <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
                       </div>
-                    </div>
-                    <div v-else class="col-12">
-                      <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
                     </div>
                   </div>
                 </div>
@@ -106,8 +103,7 @@ export default {
       pinStep: 1,
       loader: false,
       resetStatus: true,
-      saveBtn: true,
-      isPinInSettings: false
+      saveBtn: true
     }
   },
   components: { Loader },
@@ -115,17 +111,12 @@ export default {
   watch: {
     pinDialogAction () {
       const vm = this
-      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET UP PIN' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
+      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
         vm.pin = ''
         vm.removeKey('delete')
         vm.dialog = true
-        vm.actionCaption = vm.pinDialogAction === 'SET UP PIN' ? 'SET UP' : vm.pinDialogAction
+        vm.actionCaption = vm.pinDialogAction
         vm.btnLabel = vm.pinDialogAction === 'VERIFY' ? 'VERIFY' : 'ENTER'
-        if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET UP PIN') {
-          vm.isPinInSettings = false
-        } else {
-          vm.isPinInSettings = true
-        }
       }
     }
   },
@@ -214,7 +205,8 @@ export default {
           .then(() => {
             setTimeout(() => {
               if (this.pinDialogAction === 'SET UP') {
-                vm.$emit('nextAction')
+                vm.$emit('nextAction', 'to dashboard')
+                vm.dialog = false
               } else {
                 resetAll()
               }
@@ -232,7 +224,7 @@ export default {
     cancelPin () {
       this.dialog = false
       this.removeKey('reset')
-      this.$emit('nextAction')
+      this.$emit('nextAction', 'cancel')
     }
   }
 }

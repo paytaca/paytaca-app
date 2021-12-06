@@ -56,13 +56,13 @@
           </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <q-btn push class="full-width pt-btn-wallet" @click="choosePreferedAuthentication" label="Continue" rounded />
+          <q-btn push class="full-width pt-btn-wallet" @click="choosePreferedSecurity" label="Continue" rounded />
         </div>
       </div>
     </div>
 
-    <authOptionDialog :auth-option-dialog-status="authOptionDialogStatus" v-on:preferredAuth="setPreferredAuth" />
-    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="continueToDashboard" />
+    <authOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
+    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
   </div>
 </template>
@@ -73,7 +73,6 @@ import Loader from '../../components/loader'
 import pinDialog from '../../components/pin'
 import authOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { NativeSettings } from 'capacitor-native-settings'
 
 export default {
   name: 'registration-accounts',
@@ -92,7 +91,7 @@ export default {
       validationMsg: '',
       pinKeys: [{ key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }],
       countKeys: 0,
-      authOptionDialogStatus: 'dismiss'
+      securityOptionDialogStatus: 'dismiss'
     }
   },
   methods: {
@@ -158,14 +157,14 @@ export default {
         vm.steps += 1
       })
     },
-    choosePreferedAuthentication () {
+    choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
     },
     checkFingerprintAuthEnabled () {
       return NativeBiometric.isAvailable()
         .then(result => {
           if (result.isAvailable !== false) {
-            this.authOptionDialogStatus = 'show'
+            this.securityOptionDialogStatus = 'show'
           } else {
             this.pinDialogAction = 'SET UP'
           }
@@ -174,17 +173,12 @@ export default {
           console.log('Implementation error: ', error)
         })
     },
-    opentSecuritySettings () {
-      NativeSettings.openAndroid({
-        option: 'settings'
-      })
-    },
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
         reason: 'For easy log in',
-        title: 'Authenticate',
-        subtitle: '',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
         description: ''
       })
         .then(() => {
@@ -195,7 +189,7 @@ export default {
         (error) => {
           // Failed to authenticate
           console.log('Verification error: ', error)
-          if (error.message.includes('Verification error: Cancel') || error.message.includes('Verification error: Authentication cancelled')) {
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled')) {
             console.log('Ignore')
           } else {
             this.verifyBiometric()
@@ -203,20 +197,22 @@ export default {
         }
         )
     },
-    setPreferredAuth (auth) {
-      this.$q.localStorage.set('preferredAuth', auth)
+    setPreferredSecurity (auth) {
+      this.$q.localStorage.set('preferredSecurity', auth)
+      console.log('Security: ', auth)
       if (auth === 'pin') {
-        this.authOptionDialogStatus = 'dismiss'
         this.pinDialogAction = 'SET UP'
       } else {
         this.verifyBiometric()
       }
+    },
+    executeActionTaken (action) {
+      if (action === 'to dashboard') {
+        this.continueToDashboard()
+      } else {
+        this.pinDialogAction = ''
+      }
     }
-  },
-
-  beforeRouteEnter (to, from, next) {
-    console.log('Path: ', from.path)
-    next()
   }
 }
 </script>
