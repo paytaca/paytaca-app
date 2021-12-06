@@ -11,7 +11,7 @@
         <div
           v-for="(asset, index) in assets"
           :key="index"
-          @click="$router.push({ name: 'transaction-send', params: { assetId: asset.id } })"
+          @click="$router.push({ name: 'transaction-send', params: { assetId: asset.id, tokenType: 1 } })"
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >

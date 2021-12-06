@@ -77,6 +77,7 @@ export default {
         params: {
           assetId: 'bch',
           amount: 0.1,
+          tokenType: 0,
           fixed: false,
           recipient: 'bitcoincash:qr628de9s6a5tjrd4lz9dpnrf46urc63a5nlrzlj7t'
         }

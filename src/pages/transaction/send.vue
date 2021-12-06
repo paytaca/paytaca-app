@@ -140,7 +140,7 @@
       </template> -->
     </div>
 
-    <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
+    <pinDialogComponent :pin-dialog-action="pinDialogAction" :next-action="sendTransaction" />
 
   </div>
 </template>
@@ -168,7 +168,7 @@ export default {
     },
     tokenType: {
       type: Number,
-      required: true,
+      required: false,
       default: 1
     },
     symbol: {
