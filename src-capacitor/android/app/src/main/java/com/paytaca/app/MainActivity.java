@@ -2,8 +2,7 @@ package com.paytaca.app;
 
 import android.os.Bundle;
 
-import com.epicshaggy.biometric.NativeBiometric;
-import nl.raphael.settings.NativeSettingsPlugin;
+import com.epicshaggy.biometric.NativeBiometric; // <<<<<< ADD THIS CODE
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -19,8 +18,8 @@ public class MainActivity extends BridgeActivity {
     this.init(savedInstanceState, new ArrayList<Class<? extends Plugin>>() {{
       // Additional plugins you've installed go here
       // Ex: add(TotallyAwesomePlugin.class);
-      add(NativeBiometric.class);
-      add(NativeSettingsPlugin.class);
+
+      add(NativeBiometric.class); // <<<<<< ADD THS CODE
     }});
   }
 }
