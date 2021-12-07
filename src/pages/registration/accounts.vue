@@ -61,7 +61,7 @@
       </div>
     </div>
 
-    <authOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
+    <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
     <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
   </div>
@@ -71,12 +71,12 @@
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 import Loader from '../../components/loader'
 import pinDialog from '../../components/pin'
-import authOptionDialog from '../../components/authOption'
+import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
 
 export default {
   name: 'registration-accounts',
-  components: { Loader, pinDialog, authOptionDialog },
+  components: { Loader, pinDialog, securityOptionDialog },
   data () {
     return {
       importSeedPhrase: false,
@@ -161,7 +161,7 @@ export default {
       this.checkFingerprintAuthEnabled()
     },
     checkFingerprintAuthEnabled () {
-      return NativeBiometric.isAvailable()
+      NativeBiometric.isAvailable()
         .then(result => {
           if (result.isAvailable !== false) {
             this.securityOptionDialogStatus = 'show'
@@ -199,7 +199,6 @@ export default {
     },
     setPreferredSecurity (auth) {
       this.$q.localStorage.set('preferredSecurity', auth)
-      console.log('Security: ', auth)
       if (auth === 'pin') {
         this.pinDialogAction = 'SET UP'
       } else {
@@ -207,10 +206,11 @@ export default {
       }
     },
     executeActionTaken (action) {
-      if (action === 'to dashboard') {
-        this.continueToDashboard()
+      const vm = this
+      if (action === 'proceed') {
+        vm.continueToDashboard()
       } else {
-        this.pinDialogAction = ''
+        vm.pinDialogAction = ''
       }
     }
   }

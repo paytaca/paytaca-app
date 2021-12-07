@@ -11,15 +11,15 @@
           <q-card-section class="q-pt-none">
             <div class="row q-mb-sm">
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="pin" label="PIN" color="pt-radio" />
+                <q-radio v-model="preferredSecurity" val="pin" label="PIN" color="pt-radio" class="full-width" />
               </div>
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="biometric" label="Biometric" color="pt-radio" />
+                <q-radio v-model="preferredSecurity" val="biometric" label="Biometric" color="pt-radio" class="full-width" />
               </div>
             </div>
             <q-separator />
             <div class="text-right q-mt-md">
-              <q-btn :label="preferredSecurity === 'pin' ? 'Set up' : 'Verify'" class="pt-btn-closeDialog q-px-md" push rounded @click="donePicking" />
+              <q-btn :label="btnLabel" class="pt-btn-closeDialog q-px-md" push rounded @click="donePicking" />
             </div>
           </q-card-section>
       </q-card>
@@ -33,24 +33,37 @@ export default {
   data () {
     return {
       dialog: false,
-      preferredSecurity: 'pin'
+      preferredSecurity: 'pin',
+      btnLabel: 'Set Up'
     }
   },
   props: ['securityOptionDialogStatus'],
   watch: {
     securityOptionDialogStatus () {
-      if (this.securityOptionDialogStatus === 'show') {
+      if (this.securityOptionDialogStatus === 'show' || this.securityOptionDialogStatus === 'show in settings') {
         this.dialog = true
+        this.btnLabel = this.securityOptionDialogStatus === 'show in settings' ? 'Done' : 'Set Up'
       } else {
         this.dialog = false
+      }
+    },
+    preferredSecurity () {
+      if (this.securityOptionDialogStatus === 'show in settings') {
+        this.btnLabel = 'Done'
+      } else if (this.preferredSecurity === 'pin') {
+        this.btnLabel = 'Set up'
+      } else {
+        this.btnLabel = 'Verify'
       }
     }
   },
   methods: {
     donePicking () {
       this.$emit('preferredSecurity', this.preferredSecurity)
-      this.securityOptionDialogStatus = 'dismiss'
     }
+  },
+  created () {
+    this.preferredSecurity = this.$q.localStorage.getItem('preferredSecurity') ? this.$q.localStorage.getItem('preferredSecurity') === 'pin' ? 'pin' : 'biometric' : 'pin'
   }
 }
 </script>

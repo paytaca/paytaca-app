@@ -59,8 +59,8 @@ export default {
         {
           name: 'Settings',
           iconName: 'settings',
-          path: '',
-          active: false
+          path: '/apps/settings',
+          active: true
         }
       ]
     }

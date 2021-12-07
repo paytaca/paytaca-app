@@ -1,13 +1,20 @@
 <template>
   <div>
     <div class="row">
-      <div id="header" class="col q-mt-md q-pl-md text-center q-pr-md" :style="{width: $q.platform.is.bex ? '375px' : '100%'}">
-        <router-link :to="{ path: backnavpath }">
-          <i class="material-icons q-mt-sm icon-arrow-left" style="font-size: 35px; float: left; color: #3b7bf6;">arrow_back</i>
-        </router-link>
-        <div style="width: 300px; margin: auto;">
-          <p class="text-center select q-mt-sm section-title" style="font-size: 22px; color: #3B7BF6; text-align: center;">
+      <div class="col 12">
+        <div class="pt-header">
+          <router-link :to="{ path: backnavpath }" class="pt-arrow-left-link" :style="{width: $q.platform.is.bex ? '375px' : '100%'}">
+            <span class="material-icons">
+                arrow_back
+            </span>
+          </router-link>
+          <p class="text-h5 text-center q-my-none">
             {{ title }}
+          </p>
+          <p v-if="title === 'SETTINGS'" class="text-h5 q-my-none pt-settings-icon">
+            <span class="material-icons">
+                settings
+            </span>
           </p>
         </div>
       </div>
@@ -22,16 +29,32 @@ export default {
 }
 </script>
 
-<style scoped>
-#header {
-  margin-top: 0;
-  margin-left: auto;
-  margin-right: auto;
-  padding-top: 10px;
-  position: fixed;
-  top: 0;
-  background: #ECF3F3;
-  width: 100%;
-  z-index: 100;
+<style>
+.pt-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 70px;
+  color: #3B7BF6;
+}
+.pt-arrow-left-link {
+  position: absolute;
+  font-size: 30px;
+  left: 20px;
+  color: #3B7BF6;
+  text-decoration: none;
+  display: flex;
+  justify-items: center;
+  align-items: center;
+}
+.pt-settings-icon {
+  position: absolute;
+  font-size: 28px;
+  right: 20px;
+  color: #3B7BF6;
+  display: flex;
+  justify-items: center;
+  align-items: center;
 }
 </style>

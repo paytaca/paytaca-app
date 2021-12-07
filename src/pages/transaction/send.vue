@@ -87,12 +87,6 @@
         </form>
       </div>
 
-      <div class="row">
-        <div class="col-12 q-px-md">
-          <q-btn label="biometric" class="btn full-width" push rounded @click="verify">
-        </div>
-      </div>
-
       <div class="pt-submit-container" :class="[!showSlider ? 'pt-invisible' : '']">
         <p class="text-h6 q-my-none q-py-none text-white pt-send-text">
           Swipe to send
@@ -228,8 +222,6 @@ export default {
       leftX: 0,
       slider: 0,
       counter: 0,
-      xDown: null,
-      yDown: null,
       rightOffset: null,
       swiped: true,
       opacity: 0.1,
@@ -269,28 +261,6 @@ export default {
   },
 
   methods: {
-    verify () {
-      // Authenticate using biometrics before logging the user in
-      NativeBiometric.verifyIdentity({
-        reason: 'For easy log in',
-        title: 'Authenticate',
-        subtitle: '',
-        description: ''
-      })
-        .then(() => {
-          // Authentication successful
-          console.log('Successful fingerprint credential')
-        },
-        (error) => {
-          // Failed to authenticate
-          console.log('Verification error: ', error)
-          if (error.message.includes('Verification error: Cancel') || error.message.includes('Verification error: Authentication cancelled') || error.message.includes('Verification error: Fingerprint operation cancelled')) {
-          } else {
-            this.verify()
-          }
-        }
-        )
-    },
     slideToSubmit ({ evt, ...newInfo }) {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
@@ -352,7 +322,6 @@ export default {
           }, 500)
         })
         .catch(() => {
-          console.log("PIN doesn't exist.")
           setTimeout(() => {
             vm.verifyBiometric()
           }, 500)
@@ -369,7 +338,7 @@ export default {
       })
         .then(() => {
           // Authentication successful
-          console.log('Successful fingerprint credential')
+          this.submitLabel = 'Processing'
           setTimeout(() => {
             this.sendTransaction('send')
           }, 1000)

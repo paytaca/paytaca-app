@@ -24,7 +24,7 @@
                 <q-card-section class="q-mt-md q-pb-none">
                     <div class="text-center">
                         <p class="text-h6 pt-set-pin"><strong>{{ actionCaption }} PIN</strong></p>
-                        <p class="dim-text q-mt-md">PIN will serve as a verfication of your account in every transaction you make for security purposes.  </p>
+                        <p class="dim-text q-mt-md">{{ subTitle }}</p>
                     </div>
                 </q-card-section>
 
@@ -38,7 +38,7 @@
                             <div class="col-2 pt-pin-key" v-for="(keys, index) in pinKeys" :key="index">
                             <p class="q-py-md text-h5 text-center q-my-none pt-text-key">
                                 <span v-if="keys.key !== ''" class="material-icons">
-                                    circle
+                                  circle
                                 </span>
                                 <!-- <span>{{ keys.key }}</span> -->
                             </p>
@@ -103,7 +103,10 @@ export default {
       pinStep: 1,
       loader: false,
       resetStatus: true,
-      saveBtn: true
+      saveBtn: true,
+      subText1: 'Please Enter your PIN to proceed.',
+      subText2: 'PIN will serve as a verfication of your account in every transaction you make for security purposes.',
+      subTitle: null
     }
   },
   components: { Loader },
@@ -117,6 +120,9 @@ export default {
         vm.dialog = true
         vm.actionCaption = vm.pinDialogAction
         vm.btnLabel = vm.pinDialogAction === 'VERIFY' ? 'VERIFY' : 'ENTER'
+        vm.subTitle = vm.pinDialogAction === 'VERIFY' ? vm.subText1 : vm.subText2
+      } else {
+        vm.dialog = false
       }
     }
   },
@@ -204,9 +210,8 @@ export default {
         SecureStoragePlugin.set({ key: 'pin', value: vm.pin })
           .then(() => {
             setTimeout(() => {
-              if (this.pinDialogAction === 'SET UP') {
-                vm.$emit('nextAction', 'to dashboard')
-                vm.dialog = false
+              if (vm.pinDialogAction === 'SET UP') {
+                vm.$emit('nextAction', 'proceed')
               } else {
                 resetAll()
               }
@@ -215,14 +220,13 @@ export default {
       }
 
       function resetAll () {
-        vm.dialog = false
         vm.loader = false
         vm.removeKey('reset')
         vm.$emit('nextAction')
+        vm.pinDialogAction = ''
       }
     },
     cancelPin () {
-      this.dialog = false
       this.removeKey('reset')
       this.$emit('nextAction', 'cancel')
     }

@@ -24,11 +24,6 @@
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch"></i>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="$router.push('/settings')">
-        <span class="footer-icon material-icons">
-        settings_applications
-        </span>
-      </button>
     </div>
   </div>
 </template>
