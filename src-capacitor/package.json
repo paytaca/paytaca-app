@@ -8,7 +8,6 @@
     "@capacitor/android": "^3.3.2",
     "@capacitor/cli": "^3.0.0",
     "@capacitor/core": "^3.0.0",
-    "capacitor-native-biometric": "^3.0.3",
-    "capacitor-native-settings": "^0.1.0"
+    "capacitor-native-biometric": "^3.0.3"
   }
 }

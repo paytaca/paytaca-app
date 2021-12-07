@@ -1,6 +1,6 @@
 <template>
   <div class="pt-settings">
-      <header-nav title="SETTINGS" backnavpath="/" />
+      <header-nav title="SETTINGS" backnavpath="/apps" />
       <div class="row">
           <div class="col-12 q-px-lg q-mt-md">
               <p class="q-px-sm q-my-sm dim-text text-h6">SECURITY</p>
