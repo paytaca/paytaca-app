@@ -2,7 +2,7 @@
   <div style="background-color: #ECF3F3; min-height: 100vh;">
     <header-nav title="SEND" backnavpath="/"></header-nav>
     <template v-if="assets">
-      <div class="row" style="padding-top: 70px;">
+      <div class="row" style="padding-top: 60px;">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm">SELECT ASSET TO SEND</p>
         </div>
