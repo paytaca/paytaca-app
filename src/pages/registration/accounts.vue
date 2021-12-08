@@ -170,6 +170,7 @@ export default {
           }
         },
         (error) => {
+          this.pinDialogAction = 'SET UP'
           console.log('Implementation error: ', error)
         })
     },

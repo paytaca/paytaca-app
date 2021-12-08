@@ -4,6 +4,3 @@ project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/
 
 include ':capacitor-native-biometric'
 project(':capacitor-native-biometric').projectDir = new File('../node_modules/capacitor-native-biometric/android')
-
-include ':capacitor-native-settings'
-project(':capacitor-native-settings').projectDir = new File('../node_modules/capacitor-native-settings/android')
