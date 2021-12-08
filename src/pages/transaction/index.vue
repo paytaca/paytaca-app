@@ -359,12 +359,12 @@ export default {
             this.securityOptionDialogStatus = 'show'
           } else {
             console.log('Not available: ', result.isAvailable)
-            this.pinDialogAction = 'SET UP'
+            this.pinDialogAction = 'VERIFY'
           }
         },
         (error) => {
           console.log('Error: ', error)
-          this.pinDialogAction = 'SET UP'
+          this.pinDialogAction = 'VERIFY'
         })
     },
     setPreferredSecurity (auth) {

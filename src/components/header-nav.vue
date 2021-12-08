@@ -31,12 +31,6 @@ export default {
 
 <style>
 .pt-header {
-  /* position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 70px;
-  color: #3B7BF6; */
   color: #3B7BF6;
   height: 70px;
   margin-top: 0;
