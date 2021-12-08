@@ -110,7 +110,7 @@ export default {
     }
   },
   components: { Loader },
-  props: ['pinDialogAction'],
+  props: ['pinDialogAction', 'nextAction'],
   watch: {
     pinDialogAction () {
       const vm = this
@@ -196,8 +196,10 @@ export default {
         const secretKey = await SecureStoragePlugin.get({ key: 'pin' })
         if (secretKey.value === vm.pin) {
           resetAll()
+          this.nextAction('send')
         } else {
           vm.validationMsg = 'Incorrect PIN'
+          this.nextAction('cancel')
         }
       } else if (vm.pinStep === 1) {
         vm.pinStep = 2
