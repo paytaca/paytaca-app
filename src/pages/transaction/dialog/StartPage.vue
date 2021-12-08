@@ -31,6 +31,8 @@ export default {
   background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
 }
 .pt-brand-container {
+  padding-top: 20px;
+  padding-bottom: 40px;
   position: relative !important;
   display: flex !important;
   align-items: center !important;
@@ -42,6 +44,6 @@ export default {
   font-family: Arial, Helvetica, sans-serif;
 }
 .pt-brand-name {
-  color: #ef4f84;
+  color: 000;
 }
 </style>
