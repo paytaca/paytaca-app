@@ -1,7 +1,7 @@
 <template>
   <div class="pt-settings">
-      <header-nav title="SETTINGS" backnavpath="/apps" />
-      <div class="row">
+      <header-nav title="Settings" backnavpath="/apps" />
+      <div class="row" style="padding-top: 60px;">
           <div class="col-12 q-px-lg q-mt-md">
               <p class="q-px-sm q-my-sm dim-text text-h6">SECURITY</p>
               <q-list bordered separator padding style="border-radius: 14px; background: #fff">

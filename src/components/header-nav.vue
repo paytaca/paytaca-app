@@ -11,11 +11,6 @@
           <p class="text-h5 text-center q-my-none">
             {{ title }}
           </p>
-          <p v-if="title === 'SETTINGS'" class="text-h5 q-my-none pt-settings-icon">
-            <span class="material-icons">
-                settings
-            </span>
-          </p>
         </div>
       </div>
     </div>
