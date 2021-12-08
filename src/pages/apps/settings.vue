@@ -85,9 +85,11 @@ export default {
           this.securityAuth = true
         } else {
           this.securityAuth = false
+          this.pinStatus = true
         }
       },
       (error) => {
+        this.pinStatus = true
         console.log('Implementation error: ', error)
       })
   },

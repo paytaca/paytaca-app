@@ -18,7 +18,6 @@ export class Wallet {
     this.mnemonic = mnemonic
     this.BCH = new BchWallet(projectId, mnemonic, "m/44'/145'/0'") // Main BCH wallet
     this.SLP = new SlpWallet(projectId, mnemonic, "m/44'/245'/0'") // SLP wallet
-    console.log('BCH:', this.BCH)
   }
 }
 
