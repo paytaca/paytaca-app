@@ -24,7 +24,7 @@
                 <q-card-section class="q-mt-md q-pb-none">
                     <div class="text-center">
                         <p class="text-h6 pt-set-pin"><strong>{{ actionCaption }} PIN</strong></p>
-                        <p class="dim-text q-mt-md">PIN will serve as a verfication of your account in every transaction you make for security purposes.  </p>
+                        <p class="dim-text q-mt-md">{{ subTitle }}</p>
                     </div>
                 </q-card-section>
 
@@ -38,7 +38,7 @@
                             <div class="col-2 pt-pin-key" v-for="(keys, index) in pinKeys" :key="index">
                             <p class="q-py-md text-h5 text-center q-my-none pt-text-key">
                                 <span v-if="keys.key !== ''" class="material-icons">
-                                    circle
+                                  circle
                                 </span>
                                 <!-- <span>{{ keys.key }}</span> -->
                             </p>
@@ -55,7 +55,7 @@
                 <q-card-section class="q-px-sm q-mt-sm">
                 <div class="row">
                     <div v-for="(count, index) in 12" :key="index" class="col-4 q-pa-sm">
-                    <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'keyboard_backspace')" :icon="count === 10 ? 'delete' : 'keyboard_backspace'" rounded />
+                    <q-btn v-if="[10, 12].includes(count)" push class="full-width pt-btn-key" @click="removeKey(count === 10 ? 'delete' : 'backspace')" :icon="count === 10 ? 'delete' : 'backspace'" rounded />
                     <q-btn v-else push class="full-width pt-btn-key" :label="count === 11 ? 0 : count" @click="processKey(count === 11 ? 0 : count)" rounded />
                     </div>
                 </div>
@@ -65,16 +65,13 @@
                     <div v-if="pinDialogAction === 'VERIFY'" class="col-12">
                       <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
                     </div>
-                    <div class="row" v-else-if="isPinInSettings">
+                    <div class="row" v-else>
                       <div class="col-6 q-pr-sm">
                         <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
                       </div>
                       <div class="col-6 q-pl-sm">
                         <q-btn push class="full-width pt-btn-reset-pin q-mt-md" label="Cancel" rounded @click="cancelPin" />
                       </div>
-                    </div>
-                    <div v-else class="col-12">
-                      <q-btn :disable="resetStatus" push class="full-width pt-btn-reset-pin q-mt-md" label="Reset" rounded @click="removeKey('reset')" />
                     </div>
                   </div>
                 </div>
@@ -107,7 +104,9 @@ export default {
       loader: false,
       resetStatus: true,
       saveBtn: true,
-      isPinInSettings: false
+      subText1: 'Please Enter your PIN to proceed.',
+      subText2: 'PIN will serve as a verfication of your account in every transaction you make for security purposes.',
+      subTitle: null
     }
   },
   components: { Loader },
@@ -115,17 +114,15 @@ export default {
   watch: {
     pinDialogAction () {
       const vm = this
-      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET UP PIN' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
+      if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
         vm.pin = ''
         vm.removeKey('delete')
         vm.dialog = true
-        vm.actionCaption = vm.pinDialogAction === 'SET UP PIN' ? 'SET UP' : vm.pinDialogAction
+        vm.actionCaption = vm.pinDialogAction
         vm.btnLabel = vm.pinDialogAction === 'VERIFY' ? 'VERIFY' : 'ENTER'
-        if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET UP PIN') {
-          vm.isPinInSettings = false
-        } else {
-          vm.isPinInSettings = true
-        }
+        vm.subTitle = vm.pinDialogAction === 'VERIFY' ? vm.subText1 : vm.subText2
+      } else {
+        vm.dialog = false
       }
     }
   },
@@ -215,8 +212,8 @@ export default {
         SecureStoragePlugin.set({ key: 'pin', value: vm.pin })
           .then(() => {
             setTimeout(() => {
-              if (this.pinDialogAction === 'SET UP') {
-                vm.$emit('nextAction')
+              if (vm.pinDialogAction === 'SET UP') {
+                vm.$emit('nextAction', 'proceed')
               } else {
                 resetAll()
               }
@@ -225,16 +222,15 @@ export default {
       }
 
       function resetAll () {
-        vm.dialog = false
         vm.loader = false
         vm.removeKey('reset')
         vm.$emit('nextAction')
+        vm.pinDialogAction = ''
       }
     },
     cancelPin () {
-      this.dialog = false
       this.removeKey('reset')
-      this.$emit('nextAction')
+      this.$emit('nextAction', 'cancel')
     }
   }
 }

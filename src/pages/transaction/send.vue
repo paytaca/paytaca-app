@@ -90,10 +90,10 @@
       <div class="pt-submit-container" :class="[!showSlider ? 'pt-invisible' : '']">
         <p class="text-h6 q-my-none q-py-none text-white pt-send-text">
           Swipe to send
-        </p> <!-- v-touch-pan.horizontal.prevent.mouse="slideToSubmit" -->
+        </p>
         <div class="text-center pt-on-process" :class="[!swiped ? 'animate-process' : '']">
           <p class="text-h6 text-white q-my-none q-py-none pt-process-text">
-            <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">Processing</span>
+            <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">{{ submitLabel }}</span>
             <span class="material-icons pt-check-icon">
             task_alt
             </span>
@@ -126,21 +126,14 @@
           <p style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
         </div>
       </div>
-      <!-- <div class="confirmation-slider" ref="confirmation-slider" v-if="showSlider" :style="{width: $q.platform.is.bex ? '375px !important' : '100%'}">
-        <div id="status" style="text-align: center;">
-          <label class="swipe-confrim-label" style="padding-right: 10px;">Swipe to Send </label>
-          <input style="z-index: 2001 !important;" id="confirm" type="range" value="0" min="0" max="100" @change="tiggerRange" ref="swipe-submit">
-        </div>
-        <div id="slider-arrow" v-if="!$q.platform.is.bex">
-          <span style="z-index: 2000 !important; color: white; font-size: 22px;" class="mdi mdi-arrow-right"></span>
-        </div>
-      </div>
-      <template v-else>
-        <footer-menu v-if="!sendData.sending" />
-      </template> -->
     </div>
 
+<<<<<<< HEAD
+    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
+    <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
+=======
     <pinDialogComponent :pin-dialog-action="pinDialogAction" :next-action="sendTransaction" />
+>>>>>>> master
 
   </div>
 </template>
@@ -151,7 +144,12 @@ import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
-import pinDialogComponent from '../../pages/pin'
+import pinDialog from '../../components/pin'
+import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { Plugins } from '@capacitor/core'
+
+const { SecureStoragePlugin } = Plugins
 
 export default {
   name: 'Send-page',
@@ -159,7 +157,8 @@ export default {
     QrcodeStream,
     Loader,
     HeaderNav,
-    pinDialogComponent
+    pinDialog,
+    biometricWarningAttmepts
   },
   props: {
     assetId: {
@@ -227,12 +226,12 @@ export default {
       leftX: 0,
       slider: 0,
       counter: 0,
-      xDown: null,
-      yDown: null,
       rightOffset: null,
       swiped: true,
       opacity: 0.1,
-      submitStatus: false
+      submitStatus: false,
+      submitLabel: 'Processing',
+      warningAttemptsStatus: 'dismiss'
     }
   },
 
@@ -270,6 +269,10 @@ export default {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
       const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
+<<<<<<< HEAD
+
+=======
+>>>>>>> master
       if (vm.counter === 0) {
         vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
         vm.leftX = Math.round(evt.changedTouches[0].screenX)
@@ -281,10 +284,8 @@ export default {
           vm.swiped = false
           htmlTag.classList.add('animate-full-width')
           document.querySelector('.pt-send-text').style.opacity = 0
+          vm.submitLabel = 'Security check'
           vm.submitStatus = true
-          setTimeout(() => {
-            vm.pinDialogAction = 'VERIFY'
-          }, 1000)
         } else {
           const htmlTag = document.querySelector('.pt-animate-submit')
           const newPadding = vm.slider + evt.changedTouches[0].screenX - vm.leftX
@@ -309,15 +310,68 @@ export default {
             htmlTag.classList.remove('animate-left')
             htmlTag2.classList.remove('animate-opacity')
           }, 500)
+        } else {
+          vm.executeSecurityChecking()
         }
       }
+    },
+
+    executeSecurityChecking () {
+      const vm = this
+      SecureStoragePlugin.get({ key: 'pin' })
+        .then(() => {
+          setTimeout(() => {
+            if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+              vm.pinDialogAction = 'VERIFY'
+            } else {
+              vm.verifyBiometric()
+            }
+          }, 500)
+        })
+        .catch(() => {
+          setTimeout(() => {
+            vm.verifyBiometric()
+          }, 500)
+        })
+    },
+
+    verifyBiometric () {
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For ownership verification',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          this.submitLabel = 'Processing'
+          setTimeout(() => {
+            this.sendTransaction('send')
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          this.warningAttemptsStatus = 'dismiss'
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+            this.resetSubmit()
+          } else if (error.message.includes('Too many attempts. Try again later.')) {
+            this.warningAttemptsStatus = 'show'
+          } else {
+            this.verifyBiometric()
+          }
+        }
+        )
+    },
+
+    setwarningAttemptsStatus () {
+      this.verifyBiometric()
     },
 
     sendTransaction (action) {
       if (action === 'send') {
         this.handleSubmit()
       } else {
-        this.submitStatus = false
         this.resetSubmit()
       }
     },
@@ -329,6 +383,8 @@ export default {
       htmlTag2.classList.remove('animate-full-width')
       htmlTag2.style.left = '30px'
       this.swiped = true
+      this.submitStatus = false
+      this.submitLabel = 'Processing'
       document.querySelector('.pt-send-text').style.opacity = 10
       this.pinDialogAction = ''
     },
@@ -557,11 +613,6 @@ export default {
         }
       }
     }
-    // async tiggerRange () {
-    //   if (this.$refs['swipe-submit'].value > 95) {
-    //     this.pinDialogAction = 'VERIFY'
-    //   }
-    // },
   },
 
   mounted () {
@@ -575,9 +626,6 @@ export default {
     }
 
     const sendTag = document.querySelector('.pt-animate-submit')
-    // sendTag.addEventListener('touchstart', vm.handleTouchStart, false)
-    // sendTag.addEventListener('touchmove', vm.handleTouchMove, false)
-    // sendTag.addEventListener('touchend', vm.handleTouchEnd, false)
     vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
 
     // Load wallets

@@ -2,16 +2,12 @@
   "name": "paytaca",
   "version": "0.3.0",
   "description": "Secure and convenient Bitcoin Cash wallet app",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "joemar@paytaca.com",
-  "license": "ISC",
+  "private": true,
   "dependencies": {
-    "@capacitor/android": "^2.4.5",
-    "@capacitor/cli": "^2.4.5",
-    "@capacitor/core": "^2.4.5",
-    "@capacitor/ios": "^2.4.5"
+    "@capacitor/android": "^3.3.2",
+    "@capacitor/cli": "^3.0.0",
+    "@capacitor/core": "^3.0.0",
+    "capacitor-native-biometric": "^3.0.3"
   }
 }

@@ -71,7 +71,7 @@ export default {
       this.$router.push('/registration/accounts')
     }
   },
-  created () {
+  async created () {
     this.$q.dark.set(false)
     const vm = this
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {

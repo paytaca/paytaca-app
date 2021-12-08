@@ -1,98 +1,105 @@
 <template>
   <div style="background-color: #ECF3F3;">
-    <div class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-      <div class="row q-pt-lg">
-        <div class="col q-pl-lg">
-          <p class="text-light p-label" style="color: #ABA9BB;">
-            Your {{ selectedAsset.symbol }} balance
-          </p>
-          <p class="text-number-balance default-text-color">
-            <span v-if="hideBalances" style="color: transparent;">
-              {{ String(selectedAsset.balance).substring(0, 10) }}
-            </span>
-            <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
-          </p>
-        </div>
-        <div class="q-space q-pr-lg">
-          <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
-          <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
-        </div>
-      </div>
-      <div class="row">
-          <div class="col">
-              <p class="q-ml-lg q-mb-sm payment-methods">
-                Assets
-                <q-btn
-                  flat
-                  padding="none"
-                  size="sm"
-                  icon="app_registration"
-                  style="color: #3B7BF6;"
-                  @click="toggleManageAssets"
-                />
-              </p>
+
+    <startPage v-if="startPageStatus" v-on:logIn="logIn" />
+
+    <div v-else>
+
+      <div class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+        <div class="row q-pt-lg">
+          <div class="col q-pl-lg">
+            <p class="text-light p-label" style="color: #ABA9BB;">
+              Your {{ selectedAsset.symbol }} balance
+            </p>
+            <p class="text-number-balance default-text-color">
+              <span v-if="hideBalances" style="color: transparent;">
+                {{ String(selectedAsset.balance).substring(0, 10) }}
+              </span>
+              <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
+            </p>
           </div>
-      </div>
-      <asset-info ref="asset-info"></asset-info>
-      <!-- Cards without drag scroll on mobile -->
-      <template v-if="$q.platform.is.mobile">
-        <asset-cards
-          :assets="assets"
-        >
-        </asset-cards>
-      </template>
-      <!-- Cards with drag scroll on other platforms -->
-      <template v-else>
-        <asset-cards
-          :assets="assets"
-          v-dragscroll.x="true"
-        >
-        </asset-cards>
-      </template>
-    </div>
-    <div class="row transaction-row">
-      <transaction ref="transaction"></transaction>
-      <div class="col transaction-container">
-          <p class="q-ma-lg transaction-wallet">Transactions</p>
-          <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
-              <button class="btn-custom q-mt-none active-transaction-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
-              <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
-              <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
+          <div class="q-space q-pr-lg">
+            <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
+            <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
           </div>
-          <div class="transaction-list">
-            <template v-if="balanceLoaded">
-              <div class="row" v-for="(transaction, index) in filterTransactions()" :key="'tx-' + index">
-                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
-                    <div class="row" @click="showTransactionDetails(transaction)">
-                      <!-- <div class="q-mr-sm">
-                        <img :src="selectedAsset.logo" width="40">
-                      </div> -->
-                      <div class="col col-transaction">
-                        <div>
-                          <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
-                          <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
-                        </div>
-                        <div class="col">
-                            <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.date_created | formatDate }}</b></span>
-                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+        </div>
+        <div class="row">
+            <div class="col">
+                <p class="q-ml-lg q-mb-sm payment-methods">
+                  Assets
+                  <q-btn
+                    flat
+                    padding="none"
+                    size="sm"
+                    icon="app_registration"
+                    style="color: #3B7BF6;"
+                    @click="toggleManageAssets"
+                  />
+                </p>
+            </div>
+        </div>
+        <asset-info ref="asset-info"></asset-info>
+        <!-- Cards without drag scroll on mobile -->
+        <template v-if="$q.platform.is.mobile">
+          <asset-cards
+            :assets="assets"
+          >
+          </asset-cards>
+        </template>
+        <!-- Cards with drag scroll on other platforms -->
+        <template v-else>
+          <asset-cards
+            :assets="assets"
+            v-dragscroll.x="true"
+          >
+          </asset-cards>
+        </template>
+      </div>
+      <div class="row transaction-row">
+        <transaction ref="transaction"></transaction>
+        <div class="col transaction-container">
+            <p class="q-ma-lg transaction-wallet">Transactions</p>
+            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
+                <button class="btn-custom q-mt-none active-transaction-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
+                <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
+                <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
+            </div>
+            <div class="transaction-list">
+              <template v-if="balanceLoaded">
+                <div class="row" v-for="(transaction, index) in filterTransactions()" :key="'tx-' + index">
+                    <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                      <div class="row" @click="showTransactionDetails(transaction)">
+                        <!-- <div class="q-mr-sm">
+                          <img :src="selectedAsset.logo" width="40">
+                        </div> -->
+                        <div class="col col-transaction">
+                          <div>
+                            <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
+                            <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
+                          </div>
+                          <div class="col">
+                              <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.date_created | formatDate }}</b></span>
+                              <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                </div>
+                <div v-if="transactionsPageHasNext" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+                  <p @click="() => { transactionsPage += 1; getTransactions() }">Show More</p>
+                </div>
+              </template>
+              <div style="text-align: center;" v-else>
+                <loader :hideCallback="toggleHideBalances"></loader>
               </div>
-              <div v-if="transactionsPageHasNext" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
-                <p @click="() => { transactionsPage += 1; getTransactions() }">Show More</p>
-              </div>
-            </template>
-            <div style="text-align: center;" v-else>
-              <loader :hideCallback="toggleHideBalances"></loader>
             </div>
-          </div>
+        </div>
       </div>
+      <footer-menu />
     </div>
-    <footer-menu />
 
-    <pinDialogComponent :pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogAction = ''" />
+    <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
+    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
   </div>
 </template>
@@ -104,8 +111,11 @@ import Loader from '../../components/loader'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
-import pinDialogComponent from '../../pages/pin'
+import startPage from '../../pages/transaction/dialog/StartPage.vue'
+import securityOptionDialog from '../../components/authOption'
+import pinDialog from '../../components/pin'
 import { dragscroll } from 'vue-dragscroll'
+import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 
 const { SecureStoragePlugin } = Plugins
@@ -114,7 +124,7 @@ const ago = require('s-ago')
 
 export default {
   name: 'Transaction-page',
-  components: { Loader, Transaction, AssetInfo, AssetCards, pinDialogComponent },
+  components: { Loader, Transaction, AssetInfo, AssetCards, pinDialog, securityOptionDialog, startPage },
   directives: {
     dragscroll
   },
@@ -147,7 +157,10 @@ export default {
       paymentMethods: null,
       manageAssets: false,
       assetInfoShown: false,
-      pinDialogAction: ''
+      pinDialogAction: '',
+      securityOptionDialogStatus: 'dismiss',
+      startPageStatus: true,
+      prevPath: null
     }
   },
 
@@ -309,7 +322,95 @@ export default {
     },
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)
+    },
+
+    verifyBiometric () {
+      const vm = this
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For easy log in',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          console.log('Successful fingerprint credential')
+          setTimeout(() => {
+            vm.startPageStatus = false
+            vm.securityOptionDialogStatus = 'dismiss'
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          console.log('Verification error: ', error)
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled')) {
+          } else {
+            this.verifyBiometric()
+          }
+        }
+        )
+    },
+
+    checkFingerprintAuthEnabled () {
+      NativeBiometric.isAvailable()
+        .then(result => {
+          if (result.isAvailable !== false) {
+            this.securityOptionDialogStatus = 'show'
+          } else {
+            console.log('Not available: ', result.isAvailable)
+            this.pinDialogAction = 'VERIFY'
+          }
+        },
+        (error) => {
+          console.log('Error: ', error)
+          this.pinDialogAction = 'VERIFY'
+        })
+    },
+    setPreferredSecurity (auth) {
+      this.$q.localStorage.set('preferredSecurity', auth)
+      if (auth === 'pin') {
+        this.pinDialogAction = 'SET UP'
+      } else {
+        this.verifyBiometric()
+      }
+    },
+
+    logIn () {
+      const vm = this
+      setTimeout(() => {
+        // Security Authentication
+        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+          SecureStoragePlugin.get({ key: 'pin' })
+            .then(() => {
+              vm.pinDialogAction = 'VERIFY'
+            })
+            .catch(_err => {
+              vm.pinDialogAction = 'SET UP'
+            })
+        } else if (vm.$q.localStorage.getItem('preferredSecurity') === 'biometric') {
+          vm.verifyBiometric()
+        } else {
+          vm.checkFingerprintAuthEnabled()
+        }
+      }, 500)
+    },
+
+    executeActionTaken (action) {
+      if (action !== 'cancel') {
+        this.pinDialogAction = ''
+        this.startPageStatus = false
+        this.securityOptionDialogStatus = 'dismiss'
+      } else {
+        this.pinDialogAction = ''
+      }
     }
+  },
+
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.prevPath = from.path
+    })
   },
 
   async mounted () {
@@ -317,14 +418,6 @@ export default {
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
       vm.selectedAsset = vm.assets[0]
     }
-
-    SecureStoragePlugin.get({ key: 'pin' })
-      .then(pin => {
-        console.log('PIN is set')
-      })
-      .catch(_err => {
-        this.pinDialogAction = 'SET UP PIN'
-      })
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {
@@ -361,6 +454,11 @@ export default {
             lastAddressIndex: 0
           })
         })
+      }
+      if (vm.prevPath === '/') {
+        vm.logIn()
+      } else {
+        vm.startPageStatus = false
       }
     })
   }

@@ -1,1 +1,6 @@
-[]
+[
+	{
+		"pkg": "capacitor-native-biometric",
+		"classpath": "com.epicshaggy.biometric.NativeBiometric"
+	}
+]
