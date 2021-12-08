@@ -3,5 +3,10 @@
 	"appName": "Paytaca",
 	"bundledWebRuntime": false,
 	"npmClient": "npm",
-	"webDir": "www"
+	"webDir": "www",
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 0
+		}
+	}
 }
