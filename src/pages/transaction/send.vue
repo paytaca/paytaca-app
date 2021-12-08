@@ -128,12 +128,8 @@
       </div>
     </div>
 
-<<<<<<< HEAD
     <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
     <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
-=======
-    <pinDialogComponent :pin-dialog-action="pinDialogAction" :next-action="sendTransaction" />
->>>>>>> master
 
   </div>
 </template>
@@ -269,10 +265,6 @@ export default {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
       const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
-<<<<<<< HEAD
-
-=======
->>>>>>> master
       if (vm.counter === 0) {
         vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
         vm.leftX = Math.round(evt.changedTouches[0].screenX)
