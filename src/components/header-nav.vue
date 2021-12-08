@@ -31,12 +31,23 @@ export default {
 
 <style>
 .pt-header {
-  position: relative;
+  /* position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 70px;
+  color: #3B7BF6; */
   color: #3B7BF6;
+  height: 70px;
+  margin-top: 0;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 20px;
+  position: fixed;
+  top: 0;
+  background: #ECF3F3;
+  width: 100%;
+  z-index: 100;
 }
 .pt-arrow-left-link {
   position: absolute;

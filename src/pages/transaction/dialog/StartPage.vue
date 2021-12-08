@@ -2,8 +2,8 @@
   <div class="pt-start-page">
       <div class="row q-pb-sm pt-brand-container">
           <div class="col-12 q-pt-md q-pb-sm pt-brand-body bg-white">
-              <img src="~/assets/paytaca_logo.png" height="130">
-              <p class="pt-brand-name text-h4">Paytaca</p>
+              <img src="~/assets/paytaca_logo.png" height="120">
+              <p class="pt-brand-name text-h4">Paytaca</p><br>
               <q-btn label="Log In" @click="logIn" />
           </div>
       </div>
@@ -31,8 +31,6 @@ export default {
   background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
 }
 .pt-brand-container {
-  padding-top: 20px;
-  padding-bottom: 40px;
   position: relative !important;
   display: flex !important;
   align-items: center !important;
@@ -40,6 +38,8 @@ export default {
   height: 100%;
 }
 .pt-brand-body {
+  padding-top: 20px;
+  padding-bottom: 30px;
   text-align: center;
   font-family: Arial, Helvetica, sans-serif;
 }
