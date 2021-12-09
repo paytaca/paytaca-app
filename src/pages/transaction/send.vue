@@ -487,20 +487,15 @@ export default {
           }
         }
         if (vm.walletType === 'slp') {
-          if (addressObj.isLegacyAddress()) {
-            // If legacy address is given, reject it as invalid SLP address
-            addressIsValid = false
+          if (addressObj.isSLPAddress()) {
+            addressIsValid = true
           } else {
-            if (addressObj.isSLPAddress()) {
-              addressIsValid = true
-            } else {
-              addressIsValid = false
-            }
-            if (addressObj.isMainnetSLPAddress()) {
-              addressIsValid = true
-            } else {
-              addressIsValid = false
-            }
+            addressIsValid = false
+          }
+          if (addressObj.isMainnetSLPAddress()) {
+            addressIsValid = true
+          } else {
+            addressIsValid = false
           }
           if (addressIsValid) {
             formattedAddress = addressObj.toSLPAddress(address)
