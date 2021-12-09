@@ -66,7 +66,7 @@
           </div>
           <div class="row">
             <div class="col q-mt-md">
-              <q-input type="text" inputmode="tel" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
+              <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
             </div>
           </div>
           <div class="row">
@@ -87,7 +87,7 @@
         </form>
       </div>
 
-      <div class="pt-submit-container" :class="[!showSlider ? 'pt-invisible' : '']">
+      <div class="pt-submit-container bg-info" :class="[!showSlider ? 'pt-invisible' : '']">
         <p class="text-h6 q-my-none q-py-none text-white pt-send-text">
           Swipe to send
         </p>
@@ -130,6 +130,7 @@
 
     <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
     <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
+    <customKeyboard :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" />
 
   </div>
 </template>
@@ -142,6 +143,7 @@ import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
+import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 
@@ -154,7 +156,8 @@ export default {
     Loader,
     HeaderNav,
     pinDialog,
-    biometricWarningAttmepts
+    biometricWarningAttmepts,
+    customKeyboard
   },
   props: {
     assetId: {
@@ -227,7 +230,9 @@ export default {
       opacity: 0.1,
       submitStatus: false,
       submitLabel: 'Processing',
-      warningAttemptsStatus: 'dismiss'
+      warningAttemptsStatus: 'dismiss',
+      amountInputState: false,
+      customKeyboardState: 'dismiss'
     }
   },
 
@@ -236,7 +241,7 @@ export default {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     },
     disableAmountInput () {
-      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount
+      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
     },
     showSlider () {
       return this.sendData.sending !== true && this.sendData.sent !== true && this.sendData.amount !== null && this.sendErrors.length === 0
@@ -261,6 +266,17 @@ export default {
   },
 
   methods: {
+    readonlyState (state) {
+      this.amountInputState = state
+      if (this.amountInputState) {
+        this.customKeyboardState = 'show'
+      }
+    },
+    setAmount (key) {
+      console.log('Key: ', key)
+      this.sendData.amount = this.sendData.amount === null ? '' : this.sendData.amount
+      this.sendData.amount += key.toString()
+    },
     slideToSubmit ({ evt, ...newInfo }) {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
