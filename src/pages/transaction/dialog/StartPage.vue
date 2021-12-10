@@ -5,7 +5,7 @@
               <img src="~/assets/paytaca_logo.png" height="120">
               <br>
               <p class="pt-brand-name text-h4">Paytaca</p>
-              <p style="color: gray;">YOUR MONEY, YOUR CONTROL</p>
+              <p style="color: gray;">YOUR MONEY. YOUR CONTROL.</p>
               <br>
               <q-btn label="Log In" @click="logIn" />
           </div>
