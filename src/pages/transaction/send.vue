@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;">
+  <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;">
     <header-nav
       :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"
       v-if="!sendData.sent"
@@ -66,7 +66,7 @@
           </div>
           <div class="row">
             <div class="col q-mt-md">
-              <q-input type="text" inputmode="tel" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
+              <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
             </div>
           </div>
           <div class="row">
@@ -81,11 +81,15 @@
               </a>
             </div>
           </div>
-          <div class="row" style="text-align: center;" v-if="sendData.sending">
-            <loader></loader>
+          <div class="row" v-if="sendData.sending">
+            <div class="col-12 text-center">
+              <loader></loader>
+            </div>
           </div>
         </form>
       </div>
+
+      <customKeyboard :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
 
       <div class="pt-submit-container" :class="[!showSlider ? 'pt-invisible' : '']">
         <p class="text-h6 q-my-none q-py-none text-white pt-send-text">
@@ -142,6 +146,7 @@ import Loader from '../../components/loader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
+import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 
@@ -154,7 +159,8 @@ export default {
     Loader,
     HeaderNav,
     pinDialog,
-    biometricWarningAttmepts
+    biometricWarningAttmepts,
+    customKeyboard
   },
   props: {
     assetId: {
@@ -227,7 +233,10 @@ export default {
       opacity: 0.1,
       submitStatus: false,
       submitLabel: 'Processing',
-      warningAttemptsStatus: 'dismiss'
+      warningAttemptsStatus: 'dismiss',
+      amountInputState: false,
+      customKeyboardState: 'dismiss',
+      sliderStatus: false
     }
   },
 
@@ -236,10 +245,10 @@ export default {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     },
     disableAmountInput () {
-      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount
+      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
     },
     showSlider () {
-      return this.sendData.sending !== true && this.sendData.sent !== true && this.sendData.amount !== null && this.sendErrors.length === 0
+      return this.sendData.sending !== true && this.sendData.sent !== true && this.sendErrors.length === 0 && this.sliderStatus === true
     }
   },
 
@@ -261,6 +270,49 @@ export default {
   },
 
   methods: {
+    readonlyState (state) {
+      this.amountInputState = state
+      if (this.amountInputState) {
+        this.customKeyboardState = 'show'
+      }
+    },
+    setAmount (key) {
+      this.sendData.amount = this.sendData.amount === null ? '' : this.sendData.amount
+      if (key === '.' && this.sendData.amount === '') {
+        this.sendData.amount = 0 + key
+      } else {
+        let amount = this.sendData.amount.toString()
+        const hasPeriod = amount.indexOf('.')
+        if (hasPeriod < 1) {
+          if (Number(amount) === 0 && Number(key) > 0) {
+            amount = key
+          } else {
+            // Check amount if still zero
+            if (Number(amount) === 0 && Number(amount) === Number(key)) {
+              amount = 0
+            } else {
+              amount += key.toString()
+            }
+          }
+        } else {
+          amount += key !== '.' ? key.toString() : ''
+        }
+        // Set the new amount
+        this.sendData.amount = amount
+      }
+    },
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        // Backspace
+        this.sendData.amount = this.sendData.amount.slice(0, -1)
+      } else if (action === 'delete') {
+        // Delete
+        this.sendData.amount = ''
+      } else {
+        // Enabled submit slider
+        this.sliderStatus = true
+      }
+    },
     slideToSubmit ({ evt, ...newInfo }) {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
@@ -338,6 +390,7 @@ export default {
         .then(() => {
           // Authentication successful
           this.submitLabel = 'Processing'
+          this.customKeyboardState = 'dismiss'
           setTimeout(() => {
             this.sendTransaction('send')
           }, 1000)
@@ -362,6 +415,7 @@ export default {
 
     sendTransaction (action) {
       if (action === 'send') {
+        this.customKeyboardState = 'dismiss'
         this.handleSubmit()
       } else {
         this.resetSubmit()
