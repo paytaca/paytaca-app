@@ -27,14 +27,20 @@ export default {
           active: true
         },
         {
-          name: 'Wallet Info',
-          iconName: 'info',
-          path: '/apps/wallet-info',
-          active: true
-        },
-        {
           name: 'Asset Swap',
           iconName: 'swap_horiz',
+          path: '',
+          active: false
+        },
+        {
+          name: 'Rewards',
+          iconName: 'grade',
+          path: '',
+          active: false
+        },
+        {
+          name: 'Connecta',
+          iconName: 'delivery_dining',
           path: '',
           active: false
         },
@@ -54,6 +60,12 @@ export default {
           name: 'Settings',
           iconName: 'settings',
           path: '/apps/settings',
+          active: true
+        },
+        {
+          name: 'Wallet Info',
+          iconName: 'info',
+          path: '/apps/wallet-info',
           active: true
         }
       ]
