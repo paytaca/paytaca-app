@@ -8,12 +8,6 @@
           <p>{{ app.name }}</p>
         </div>
       </div>
-      <div id="doante" :style="{ width: $q.platform.is.bex ? '350px' : '100%', padding: '10px', 'margin': '35px auto', 'text-align': 'center', 'overflow.y': 'scroll'}">
-        <p>Paytaca aims to bring Bitcoin Cash to everyone everywhere. You can help us bootstrap our products through a small donation.</p>
-        <q-btn @click="donate">Donate Now</q-btn>
-        <br><br>
-        <a href="https://www.paytaca.com" target="_blank">www.paytaca.com</a>
-      </div>
       <div style="padding-top: 20px;"></div>
     </div>
     <footer-menu />
@@ -70,18 +64,6 @@ export default {
       if (app.active) {
         this.$router.push(app.path)
       }
-    },
-    donate () {
-      this.$router.push({
-        name: 'transaction-send',
-        params: {
-          assetId: 'bch',
-          amount: 0.1,
-          tokenType: 0,
-          fixed: false,
-          recipient: 'bitcoincash:qr628de9s6a5tjrd4lz9dpnrf46urc63a5nlrzlj7t'
-        }
-      })
     }
   },
   mounted () {
