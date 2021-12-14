@@ -60,7 +60,7 @@
               <q-btn
                 push
                 v-if="[4, 8, 12, 16].includes(key)"
-                :disable="(key === 4 && pinDialogAction === 'VERIFY')"
+                :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4))"
                 @click="removeKey(key === 4 ? 'reset' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'cancel' : '')"
                 class="full-width pt-key-del pt-remove-key"
                 :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'highlight_off' : ''" />
@@ -250,14 +250,6 @@ export default {
   position: relative;
   background: #fff;
 }
-.pt-btn-key {
-  height: 40px;
-  border-radius: 20px;
-  border: none;
-  color: #484848;
-  /* color: #da53b2; */
-  background: #fff;
-}
 .pt-btn-set-pin {
   color: #fff;
   height: 40px;
@@ -274,7 +266,7 @@ export default {
   align-items: center;
 }
 .pt-pin-key .material-icons {
-  color: #848484;
+  color: #6D6D6D;
 }
 .pt-text-key {
   border-bottom: 3px solid #dfe3e9;
@@ -285,7 +277,6 @@ export default {
   width: 70%;
   vertical-align: middle;
   font-size: 20px;
-  color: #4D4D4D;
 }
 .pt-pin-dialog-close {
   position: absolute;

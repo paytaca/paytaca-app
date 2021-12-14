@@ -2,14 +2,17 @@
   <div style="background-color: #ECF3F3; min-height: 100vh;">
     <div id="apps" ref="apps">
       <p class="section-title">Applications</p>
-      <div ref="apps-icons" style="margin-left: auto; margin-right: auto;">
-        <div v-for="(app, index) in apps" :key="index" class="app" @click="openApp(app)">
-          <q-icon class="app-icon" size="50px" :style="{color: app.active ? '#fff' : 'gray'}" :name="app.iconName" />
-          <p>{{ app.name }}</p>
+
+      <div class="row q-px-xs">
+        <div v-for="(app, index) in apps" :key="index" class="col-xs-3 col-sm-2 col-md-1 q-pa-sm text-center">
+          <div class="pt-app" :class="app.active ? 'text-white' : 'pt-grey'" @click="openApp(app)">
+            <q-icon class="app-icon" size="34px" :name="app.iconName" />
+          </div>
+          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none">{{ app.name }}</p>
         </div>
       </div>
-      <div style="padding-top: 20px;"></div>
     </div>
+
     <footer-menu />
   </div>
 </template>
@@ -68,7 +71,8 @@ export default {
           path: '/apps/wallet-info',
           active: true
         }
-      ]
+      ],
+      appHeight: null
     }
   },
   methods: {
@@ -79,10 +83,20 @@ export default {
     }
   },
   mounted () {
-    const bodyBounds = document.body.getBoundingClientRect()
-    this.$refs.apps.style.width = bodyBounds.width + 'px'
-    const appIconsWidth = Math.ceil((bodyBounds.width * 0.90) / 70) * 70
-    this.$refs['apps-icons'].style.width = appIconsWidth + 'px'
+    const htmlTag1 = document.querySelector('.pt-app')
+    const htmlTag = document.getElementsByClassName('pt-app')
+    this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
+    for (var i = 0; i < htmlTag.length; i++) {
+      htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
+    }
+
+    window.addEventListener('resize', function () {
+      this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
+      for (var i = 0; i < htmlTag.length; i++) {
+        htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
+      }
+      htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
+    })
   }
 }
 </script>
@@ -96,27 +110,26 @@ export default {
     font-size: 22px;
     margin-left: 14px;
   }
-  .app {
-    width: 75px;
-    height: 75px;
+
+  /* New */
+  .pt-app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     border-radius: 20px;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-    display: inline-block;
-    margin: 10px;
-    position: relative;
     box-shadow: 1px 2px 2px 2px rgba(99, 103, 103, .2);
+    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
+  }
+  .pt-app-name {
+    color: #000;
+    font-size: 13px
   }
   .app-icon {
     vertical-align: middle;
     align-content: center;
-    width: 75px;
-    height: 100%;
+    width: 100%;
   }
-  .app p {
-    font-size: 12px !important;
-    text-align: center;
-    margin-top: 5px;
-    width: 75px;
-    color: #000 !important;
+  .pt-grey {
+    color: grey !important;
   }
 </style>
