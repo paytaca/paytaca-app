@@ -7,12 +7,12 @@
               push
               v-if="[4, 8, 12].includes(key)"
               @click="makeKeyAction(key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'ready to submit' : '')"
-              class="full-width pt-key-del"
-              :class="[key === 12 ? 'pt-check-key' : 'pt-remove-key']"
+              class="full-width"
+              :class="[key === 12 ? 'pt-check-key' : 'pt-del-key']"
               :icon="key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'done' : ''" />
             <q-btn
               push
-              class="full-width pt-key-num"
+              class="full-width pt-num-key"
               v-else-if="key !== 13" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key"
               @click="enterKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key)" />
           </div>
@@ -70,23 +70,37 @@ export default {
   color: #515151;
   /* background: #ececec; */
 }
-.pt-key-num {
-  height: 45px;
-  font-size: 16px;
-  font-weight: bolder;
-  background: #fff;
+@media (prefers-color-scheme: light) {
+  .pt-num-key {
+    height: 45px;
+    font-size: 16px;
+    font-weight: bolder;
+    color: #333;
+    background: #FFF;
+  }
+  .pt-del-key {
+    height: 45px;
+    font-weight: bolder;
+    background: #D7DBDE;
+  }
 }
-.pt-key-del {
-  height: 45px;
-  font-weight: bolder;
-  background: #fff;
+@media (prefers-color-scheme: dark) {
+  .pt-num-key {
+    height: 45px;
+    font-size: 16px;
+    font-weight: bolder;
+    color: #FFF;
+    background: #D7DBDE;
+  }
+  .pt-del-key {
+    height: 45px;
+    font-weight: bolder;
+    background: #c6d1db;
+  }
 }
 .pt-check-key {
   color: #fff;
   background-color: #3b7bf6;
-}
-.pt-remove-key {
-  background: #D7DBDE;
 }
 .pt-col-key {
   padding: 2px;

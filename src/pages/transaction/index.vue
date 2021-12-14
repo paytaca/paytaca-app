@@ -475,7 +475,7 @@ export default {
   }
   .transaction-row {
     position: relative;
-    margin-top: 270px;
+    margin-top: 264px;
     z-index: 5;
   }
   .transaction-list {

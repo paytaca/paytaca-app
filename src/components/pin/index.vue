@@ -62,11 +62,11 @@
                 v-if="[4, 8, 12, 16].includes(key)"
                 :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4))"
                 @click="removeKey(key === 4 ? 'reset' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'cancel' : '')"
-                class="full-width pt-key-del pt-remove-key"
+                class="full-width pt-del-key"
                 :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'highlight_off' : ''" />
               <q-btn
                 push
-                class="full-width pt-key-num"
+                class="full-width pt-num-key"
                 :disable="(key === 13)"
                 v-else-if="(key !== 15)" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key"
                 @click="processKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key)" />
@@ -76,7 +76,7 @@
                 :icon="btnIcon"
                 :disable="saveBtn"
                 @click="setPin"
-                class="full-width pt-key-enter pt-check-key" />
+                class="full-width pt-check-key" />
             </div>
           </div>
         </q-card-section>
@@ -133,7 +133,6 @@ export default {
   methods: {
     processKey (num) {
       const vm = this
-
       vm.validationMsg = ''
       const keyLength = vm.pinKeys.length
       for (let i = 0; keyLength > i; i++) {
@@ -197,7 +196,6 @@ export default {
     },
     async setPin () {
       const vm = this
-
       if (vm.pinDialogAction === 'VERIFY') {
         const secretKey = await SecureStoragePlugin.get({ key: 'pin' })
         if (secretKey.value === vm.pin) {
@@ -250,14 +248,6 @@ export default {
   position: relative;
   background: #fff;
 }
-.pt-btn-set-pin {
-  color: #fff;
-  height: 40px;
-  background-color: #2E73D2;
-}
-.pt-btn-reset-pin {
-  height: 40px;
-}
 .pt-pin-key {
   position: relative;
   height: 50px !important;
@@ -278,35 +268,44 @@ export default {
   vertical-align: middle;
   font-size: 20px;
 }
-.pt-pin-dialog-close {
-  position: absolute;
-  right: 14px;
-  top: 14px;
-}
 .dim-text {
   color: #8F8CB8;
 }
 
 /* New */
-.pt-key-num {
-  height: 45px;
-  font-size: 16px;
-  font-weight: bolder;
-  background: #fff;
+@media (prefers-color-scheme: light) {
+  .pt-num-key {
+    height: 45px;
+    font-size: 16px;
+    font-weight: bolder;
+    color: #333;
+    background: #FFF;
+  }
+  .pt-del-key {
+    height: 45px;
+    font-weight: bolder;
+    background: #D7DBDE;
+  }
 }
-.pt-key-del {
-  height: 45px;
-  font-weight: bolder;
-  background: #fff;
+@media (prefers-color-scheme: dark) {
+  .pt-num-key {
+    height: 45px;
+    font-size: 16px;
+    font-weight: bolder;
+    color: #FFF;
+    background: #D7DBDE;
+  }
+  .pt-del-key {
+    height: 45px;
+    font-weight: bolder;
+    background: #c6d1db;
+  }
 }
 .pt-check-key {
   color: #fff;
   height: 45px;
   font-weight: bolder;
   background-color: #3b7bf6;
-}
-.pt-remove-key {
-  background: #D7DBDE;
 }
 .pt-col-key {
   padding: 2px;
