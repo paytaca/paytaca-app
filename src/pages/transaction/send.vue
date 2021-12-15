@@ -6,7 +6,7 @@
     ></header-nav>
     <div>
       <div class="q-pa-md" style="padding-top: 70px;">
-        <div v-if="tokenType === 65 && image" style="width: 150px; margin: 0 auto;">
+        <div v-if="tokenType === 65 && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
           <img :src="image" width="150" />
         </div>
         <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -64,12 +64,12 @@
               <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput" :readonly="disableRecipientInput"></q-input>
             </div>
           </div>
-          <div class="row">
+          <div class="row" v-if="tokenType !== 65">
             <div class="col q-mt-md">
               <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
             </div>
           </div>
-          <div class="row">
+          <div class="row" v-if="tokenType !== 65">
             <div class="col q-mt-md" style="font-size: 18px; color: gray;">
               Balance: {{ asset.balance }} {{ asset.symbol }}
               <a
@@ -265,6 +265,10 @@ export default {
           this.sendData.recipientAddress = address.split('?')[0]
           this.sendData.fixedRecipientAddress = true
         }
+      }
+
+      if (address && this.tokenType === 65) {
+        this.sliderStatus = true
       }
     }
   },
@@ -686,6 +690,10 @@ export default {
       vm.sendData.recipientAddress = vm.recipient
       vm.sendData.fixedRecipientAddress = true
       vm.scanner.show = false
+    }
+
+    if (this.tokenType === 65) {
+      vm.sendData.amount = 1
     }
   }
 }
