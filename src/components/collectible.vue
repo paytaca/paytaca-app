@@ -1,6 +1,6 @@
 <template>
   <div id="transaction">
-    <q-dialog ref="dialog" full-width @hide="hide">
+    <q-dialog ref="dialog" full-width @hide="hide" persistent seamless>
       <q-card v-if="collectible">
         <q-card-section style="text-align: center; margin-bottom: -5px;">
           <div class="text-h6">{{ collectible.name }}</div>

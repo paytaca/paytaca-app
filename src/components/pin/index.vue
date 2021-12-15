@@ -6,6 +6,7 @@
     :maximized="true"
     transition-show="slide-up"
     transition-hide="slide-down"
+    seamless
     >
       <q-card v-if="loader">
           <q-card-section>
