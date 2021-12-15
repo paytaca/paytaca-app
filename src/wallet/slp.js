@@ -68,9 +68,9 @@ export class SlpWallet {
     return request
   }
 
-  async getTransactions (tokenId, page) {
+  async getTransactions (tokenId, page, recordType) {
     const walletHash = this.getWalletHash()
-    const request = await this.watchtower.Wallet.getHistory({ walletHash, tokenId, page })
+    const request = await this.watchtower.Wallet.getHistory({ walletHash, tokenId, page, recordType })
     return request
   }
 

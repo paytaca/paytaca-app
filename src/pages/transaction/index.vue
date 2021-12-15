@@ -66,7 +66,7 @@
             </div>
             <div class="transaction-list">
               <template v-if="balanceLoaded">
-                <div class="row" v-for="(transaction, index) in filterTransactions()" :key="'tx-' + index">
+                <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
                     <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                       <div class="row" @click="showTransactionDetails(transaction)">
                         <!-- <div class="q-mr-sm">
@@ -85,7 +85,7 @@
                       </div>
                     </div>
                 </div>
-                <div v-if="transactionsPageHasNext" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+                <div v-if="transactionsLoaded && transactionsPageHasNext" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
                   <p @click="() => { transactionsPage += 1; getTransactions() }">Show More</p>
                 </div>
               </template>
@@ -250,9 +250,15 @@ export default {
       const vm = this
       const id = vm.selectedAsset.id
       vm.transactionsLoaded = false
+      let recordType = 'all'
+      if (vm.transactionsFilter === 'sent') {
+        recordType = 'outgoing'
+      } else if (vm.transactionsFilter === 'received') {
+        recordType = 'incoming'
+      }
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getTransactions(tokenId, vm.transactionsPage).then(function (transactions) {
+        vm.wallet.SLP.getTransactions(tokenId, vm.transactionsPage, recordType).then(function (transactions) {
           if (transactions.history) {
             transactions.history.map(function (item) {
               vm.transactions.push(item)
@@ -268,7 +274,7 @@ export default {
           }, 1000)
         })
       } else {
-        vm.wallet.BCH.getTransactions(vm.transactionsPage).then(function (transactions) {
+        vm.wallet.BCH.getTransactions(vm.transactionsPage, recordType).then(function (transactions) {
           if (transactions.history) {
             transactions.history.map(function (item) {
               vm.transactions.push(item)
@@ -286,24 +292,24 @@ export default {
       }
     },
 
-    filterTransactions () {
-      const vm = this
-      return vm.transactions.filter(function (transaction) {
-        if (vm.transactionsFilter === 'all') {
-          return transaction
-        }
-        if (vm.transactionsFilter === 'sent') {
-          if (transaction.record_type === 'outgoing') {
-            return transaction
-          }
-        }
-        if (vm.transactionsFilter === 'received') {
-          if (transaction.record_type === 'incoming') {
-            return transaction
-          }
-        }
-      })
-    },
+    // filterTransactions () {
+    //   const vm = this
+    //   return vm.transactions.filter(function (transaction) {
+    //     if (vm.transactionsFilter === 'all') {
+    //       return transaction
+    //     }
+    //     if (vm.transactionsFilter === 'sent') {
+    //       if (transaction.record_type === 'outgoing') {
+    //         return transaction
+    //       }
+    //     }
+    //     if (vm.transactionsFilter === 'received') {
+    //       if (transaction.record_type === 'incoming') {
+    //         return transaction
+    //       }
+    //     }
+    //   })
+    // },
 
     switchActiveBtn (btn) {
       var customBtn = document.getElementById(this.activeBtn)
@@ -319,6 +325,9 @@ export default {
 
       // change transactions filter
       this.transactionsFilter = btn.split('-')[1]
+      this.transactions = []
+      this.transactionsLoaded = false
+      this.getTransactions()
     },
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)
