@@ -2,11 +2,14 @@
   <div id="transaction">
     <q-dialog ref="dialog" full-width @hide="hide" persistent seamless>
       <q-card v-if="collectible">
+        <div style="right: 10px; top: 10px; position: absolute; background: lightgray; border-radius: 20px; z-index: 100;">
+          <q-btn icon="close" flat round dense v-close-popup />
+        </div>
         <q-card-section style="text-align: center; margin-bottom: -5px;">
           <div class="text-h6">{{ collectible.name }}</div>
         </q-card-section>
         <template v-if="getImageUrl(collectible).length > 0">
-          <q-img :src="getImageUrl(collectible)" fit="fill" width="90"></q-img>
+          <q-img :src="getImageUrl(collectible)" fit="fill" width="75"></q-img>
         </template>
         <template v-else>
           <gravatar
@@ -38,7 +41,9 @@ export default {
   },
   methods: {
     getImageUrl (collectible) {
-      if (collectible.medium_image_url.length > 0) {
+      if (collectible.thumbnail_image_url.length > 0) {
+        return collectible.thumbnail_image_url
+      } else if (collectible.medium_image_url.length > 0) {
         return collectible.medium_image_url
       } else {
         return collectible.original_image_url

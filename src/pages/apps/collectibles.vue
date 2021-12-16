@@ -1,6 +1,6 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;">
-    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%;"></header-nav>
+    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
       <q-menu>
         <q-list style="min-width: 100px">
@@ -111,6 +111,8 @@ export default {
     getImageUrl (collectible) {
       if (collectible.thumbnail_image_url.length > 0) {
         return collectible.thumbnail_image_url
+      } else if (collectible.medium_image_url.length > 0) {
+        return collectible.medium_image_url
       } else {
         return collectible.original_image_url
       }
@@ -154,7 +156,7 @@ export default {
 #context-menu {
   position: fixed;
   top: 16px;
-  z-index: 150;
+  z-index: 150 !important;
   color: #3b7bf6;
 }
 </style>
