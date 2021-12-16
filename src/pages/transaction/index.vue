@@ -292,25 +292,6 @@ export default {
       }
     },
 
-    // filterTransactions () {
-    //   const vm = this
-    //   return vm.transactions.filter(function (transaction) {
-    //     if (vm.transactionsFilter === 'all') {
-    //       return transaction
-    //     }
-    //     if (vm.transactionsFilter === 'sent') {
-    //       if (transaction.record_type === 'outgoing') {
-    //         return transaction
-    //       }
-    //     }
-    //     if (vm.transactionsFilter === 'received') {
-    //       if (transaction.record_type === 'incoming') {
-    //         return transaction
-    //       }
-    //     }
-    //   })
-    // },
-
     switchActiveBtn (btn) {
       var customBtn = document.getElementById(this.activeBtn)
       customBtn.classList.remove('active-transaction-btn')
@@ -326,6 +307,7 @@ export default {
       // change transactions filter
       this.transactionsFilter = btn.split('-')[1]
       this.transactions = []
+      this.transactionsPage = 1
       this.transactionsLoaded = false
       this.getTransactions()
     },
