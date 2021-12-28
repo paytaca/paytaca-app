@@ -65,7 +65,7 @@
                 <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
             <div class="transaction-list">
-              <template v-if="balanceLoaded">
+              <template v-if="balanceLoaded && transactionsLoaded">
                 <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
                     <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
                       <div class="row" @click="showTransactionDetails(transaction)">
