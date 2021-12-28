@@ -264,6 +264,7 @@ export default {
           this.sendData.fixedAmount = true
           this.sendData.recipientAddress = address.split('?')[0]
           this.sendData.fixedRecipientAddress = true
+          this.sliderStatus = true
         }
       }
 
@@ -452,6 +453,7 @@ export default {
     },
     setMaximumSendAmount () {
       this.sendData.amount = this.asset.balance
+      this.sliderStatus = true
     },
     checkAddress (address) {
       if (address.indexOf('?') > -1) {
@@ -690,6 +692,7 @@ export default {
       vm.sendData.recipientAddress = vm.recipient
       vm.sendData.fixedRecipientAddress = true
       vm.scanner.show = false
+      vm.sliderStatus = true
     }
 
     if (this.tokenType === 65) {
