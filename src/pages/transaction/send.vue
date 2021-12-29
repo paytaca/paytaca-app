@@ -322,14 +322,24 @@ export default {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
       const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
+
+      let screenX, clientX
+      if (evt.changedTouches === undefined) {
+        screenX = evt.screenX
+        clientX = evt.clientX
+      } else {
+        screenX = evt.changedTouches[0].screenX
+        clientX = evt.changedTouches[0].clientX
+      }
+
       if (vm.counter === 0) {
         vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
-        vm.leftX = Math.round(evt.changedTouches[0].screenX)
+        vm.leftX = Math.round(screenX)
       }
 
       if (!newInfo.isFinal) {
         vm.counter++
-        if (window.innerWidth <= (evt.changedTouches[0].clientX + 100) && right <= 90) {
+        if (window.innerWidth <= (clientX + 100) && right <= 90) {
           vm.swiped = false
           htmlTag.classList.add('animate-full-width')
           document.querySelector('.pt-send-text').style.opacity = 0
@@ -337,7 +347,7 @@ export default {
           vm.submitStatus = true
         } else {
           const htmlTag = document.querySelector('.pt-animate-submit')
-          const newPadding = vm.slider + evt.changedTouches[0].screenX - vm.leftX
+          const newPadding = vm.slider + screenX - vm.leftX
 
           if (newPadding >= 0) {
             htmlTag.style.left = newPadding + 'px'

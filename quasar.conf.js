@@ -53,6 +53,8 @@ module.exports = function (/* ctx */) {
     build: {
       vueRouterMode: 'hash', // available values: 'hash', 'history'
 
+      devtool: 'eval-cheap-source-map',
+
       // Read environment variables from .env file
       env: require('dotenv').config().parsed,
 
