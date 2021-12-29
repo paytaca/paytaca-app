@@ -32,8 +32,7 @@
     ]
   }],
   "permissions": [
-    "storage",
-    "videoCapture"
+    "storage"
   ],
   "web_accessible_resources": [
     "www/*",
