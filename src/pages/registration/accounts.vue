@@ -167,10 +167,12 @@ export default {
             this.securityOptionDialogStatus = 'show'
           } else {
             this.pinDialogAction = 'SET UP'
+            this.$q.localStorage.set('preferredSecurity', 'pin')
           }
         },
         (error) => {
           this.pinDialogAction = 'SET UP'
+          this.$q.localStorage.set('preferredSecurity', 'pin')
           console.log('Implementation error: ', error)
         })
     },
