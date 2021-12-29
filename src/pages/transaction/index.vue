@@ -343,6 +343,14 @@ export default {
         )
     },
 
+    verifyOrSetupPIN () {
+      if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+        this.pinDialogAction = 'VERIFY'
+      } else {
+        this.setPreferredSecurity('pin')
+      }
+    },
+
     checkFingerprintAuthEnabled () {
       NativeBiometric.isAvailable()
         .then(result => {
@@ -350,12 +358,12 @@ export default {
             this.securityOptionDialogStatus = 'show'
           } else {
             console.log('Not available: ', result.isAvailable)
-            this.pinDialogAction = 'VERIFY'
+            this.verifyOrSetupPIN()
           }
         },
         (error) => {
           console.log('Error: ', error)
-          this.pinDialogAction = 'VERIFY'
+          this.verifyOrSetupPIN()
         })
     },
     setPreferredSecurity (auth) {

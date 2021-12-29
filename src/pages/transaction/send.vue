@@ -337,12 +337,9 @@ export default {
         vm.leftX = Math.round(screenX)
       }
 
-      console.log('isFinal: ', newInfo.isFinal)
-      console.log('submitStatus: ', vm.submitStatus)
       if (!newInfo.isFinal) {
         vm.counter++
         if (window.innerWidth <= (clientX + 100) && right <= 90) {
-          console.log('I was here')
           vm.swiped = false
           htmlTag.classList.add('animate-full-width')
           document.querySelector('.pt-send-text').style.opacity = 0
@@ -373,7 +370,6 @@ export default {
             htmlTag2.classList.remove('animate-opacity')
           }, 500)
         } else {
-          console.log('Called executeSecurityCheck!')
           vm.executeSecurityChecking()
         }
       }
@@ -384,7 +380,6 @@ export default {
       SecureStoragePlugin.get({ key: 'pin' })
         .then(() => {
           setTimeout(() => {
-            console.log('Check: ', vm.$q.localStorage.getItem('preferredSecurity'))
             if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
               vm.pinDialogAction = 'VERIFY'
             } else {
