@@ -428,6 +428,9 @@ export default {
 
       vm.wallet.sBCH.getNewAddress(0).then((address) => {
         console.log('sBCH address: ', address)
+        vm.wallet.sBCH.getBalance(address.address).then((balance) => {
+          console.log('Balance: ', balance)
+        })
       })
 
       // Create change addresses if nothing is set yet

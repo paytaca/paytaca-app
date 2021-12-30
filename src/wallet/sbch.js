@@ -13,6 +13,8 @@ export class SmartBchWallet {
     this.watchtower = new Watchtower()
     this.projectId = projectId
     this.walletHash = this.getWalletHash()
+    const rpcUrl = 'https://smartbch.fountainhead.cash/mainnet'
+    this.provider = new ethers.providers.JsonRpcProvider(rpcUrl)
   }
 
   getWalletHash () {
@@ -48,6 +50,8 @@ export class SmartBchWallet {
       addressIndex: index
     }
     return data
+
+    // TODO: Subscribe this to Watchtower once it has support for SmartBCH already
     // const result = await this.watchtower.subscribe(data)
 
     // if (result.success) {
@@ -63,10 +67,9 @@ export class SmartBchWallet {
     return bchjs.HDNode.toWIF(childNode)
   }
 
-  async getBalance () {
-    const walletHash = this.getWalletHash()
-    const request = await this.watchtower.Wallet.getBalance({ walletHash })
-    return request
+  async getBalance (address) {
+    const balance = await this.provider.getBalance(address)
+    return ethers.utils.formatEther(balance.toNumber())
   }
 
   async getTransactions (page, recordType) {
@@ -75,29 +78,38 @@ export class SmartBchWallet {
     return request
   }
 
-  async sendBch (amount, recipient, changeAddress) {
-    console.log(`Sending ${amount} BCH to ${recipient}`)
-    const data = {
-      sender: {
-        walletHash: this.walletHash,
-        mnemonic: this.mnemonic,
-        derivationPath: this.derivationPath
-      },
-      recipients: [
-        {
-          address: recipient,
-          amount: amount
-        }
-      ],
-      changeAddress: changeAddress,
-      wallet: {
-        mnemonic: this.mnemonic,
-        derivationPath: this.derivationPath
-      },
-      broadcast: true
-    }
-    const result = await this.watchtower.BCH.send(data)
-    return result
+  async sendBch (amount, recipient) {
+    console.log(`Sending ${amount} sBCH to ${recipient}`)
+    const privateKey = this.getPrivateKey('0')
+    const signer = new ethers.Wallet(privateKey, this.provider)
+    const tx = signer.sendTransaction(
+      {
+        to: recipient,
+        value: ethers.utils.parseEther(amount.toString())
+      }
+    )
+    return tx
+    // const data = {
+    //   sender: {
+    //     walletHash: this.walletHash,
+    //     mnemonic: this.mnemonic,
+    //     derivationPath: this.derivationPath
+    //   },
+    //   recipients: [
+    //     {
+    //       address: recipient,
+    //       amount: amount
+    //     }
+    //   ],
+    //   changeAddress: changeAddress,
+    //   wallet: {
+    //     mnemonic: this.mnemonic,
+    //     derivationPath: this.derivationPath
+    //   },
+    //   broadcast: true
+    // }
+    // const result = await this.watchtower.BCH.send(data)
+    // return result
   }
 }
 
