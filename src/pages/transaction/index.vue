@@ -426,6 +426,10 @@ export default {
       })
       vm.getTransactions()
 
+      vm.wallet.sBCH.getNewAddress(0).then((address) => {
+        console.log('sBCH address: ', address)
+      })
+
       // Create change addresses if nothing is set yet
       // This is to make sure that v1 wallets auto-upgrades to v2 wallets
       const bchChangeAddress = vm.getChangeAddress('bch')
