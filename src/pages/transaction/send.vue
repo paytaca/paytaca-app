@@ -103,7 +103,7 @@
             </span>
           </p>
         </div>
-        <div class="pt-animate-submit text-white text-center" v-touch-pan.horizontal.prevent.mouse="slideToSubmit">
+        <div class="pt-animate-submit text-white text-center" v-touch-pan.horizontal.prevent.mouse="slideToSubmit"> <!--  v-touch-pan.horizontal.prevent.mouse="slideToSubmit" -->
           <span v-if="swiped" class="material-icons pt-arrow-right-icon">
           arrow_forward
           </span>
@@ -236,7 +236,11 @@ export default {
       warningAttemptsStatus: 'dismiss',
       amountInputState: false,
       customKeyboardState: 'dismiss',
-      sliderStatus: false
+      sliderStatus: false,
+      xDown: null,
+      startX: null,
+      scrollLeft: null,
+      sleepTimer: null
     }
   },
 
@@ -313,10 +317,14 @@ export default {
         this.sliderStatus = true
       }
     },
+
+    sleep (s) {
+      return new Promise(resolve => { this.sleepTimer = setTimeout(resolve, s) })
+    },
+
     slideToSubmit ({ evt, ...newInfo }) {
       const vm = this
       const htmlTag = document.querySelector('.pt-animate-submit')
-      const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
       if (vm.counter === 0) {
         vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
         vm.leftX = Math.round(evt.changedTouches[0].screenX)
@@ -324,21 +332,24 @@ export default {
 
       if (!newInfo.isFinal) {
         vm.counter++
-        if (window.innerWidth <= (evt.changedTouches[0].clientX + 100) && right <= 90) {
-          vm.swiped = false
-          htmlTag.classList.add('animate-full-width')
-          document.querySelector('.pt-send-text').style.opacity = 0
-          vm.submitLabel = 'Security check'
-          vm.submitStatus = true
-        } else {
-          const htmlTag = document.querySelector('.pt-animate-submit')
-          const newPadding = vm.slider + evt.changedTouches[0].screenX - vm.leftX
+        if (vm.sleepTimer !== null) { clearTimeout(vm.sleepTimer) }
 
-          if (newPadding >= 0) {
-            htmlTag.style.left = newPadding + 'px'
-            document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
-            vm.opacity += 0.005
+        vm.sleep(250).then(() => {
+          const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
+          if (right <= 70) {
+            vm.swiped = false
+            htmlTag.classList.add('animate-full-width')
+            document.querySelector('.pt-send-text').style.opacity = 0
+            vm.submitLabel = 'Security check'
+            vm.submitStatus = true
           }
+        })
+
+        const newPadding = (vm.slider + evt.changedTouches[0].screenX - vm.leftX) + 20
+        if (newPadding >= 0) {
+          htmlTag.style.left = newPadding + 'px'
+          document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
+          vm.opacity += 0.005
         }
       } else {
         vm.counter = 0
@@ -673,6 +684,9 @@ export default {
     getMnemonic().then(function (mnemonic) {
       vm.wallet = new Wallet(mnemonic)
     })
+
+    sendTag.addEventListener('touchstart', this.handleTouchStart, false)
+    sendTag.addEventListener('touchmove', this.handleTouchMove, false)
   },
 
   created () {
@@ -934,6 +948,9 @@ export default {
     background: #3b7bf6;
     border: 2px solid #346ddc;
     overflow: hidden;
+    will-change: left, right;
+    user-select: none;
+    cursor: grabbing;
     // border: 3px solid rgba(60, 100, 246, .5);
     -webkit-transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
     -moz-transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
