@@ -60,13 +60,13 @@
               <q-btn
                 push
                 v-if="[4, 8, 12, 16].includes(key)"
-                :disable="(key === 4 && pinDialogAction === 'VERIFY')"
+                :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4))"
                 @click="removeKey(key === 4 ? 'reset' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'cancel' : '')"
-                class="full-width pt-key-del pt-remove-key"
+                class="full-width pt-del-key"
                 :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'highlight_off' : ''" />
               <q-btn
                 push
-                class="full-width pt-key-num"
+                class="full-width pt-num-key"
                 :disable="(key === 13)"
                 v-else-if="(key !== 15)" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key"
                 @click="processKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key)" />
@@ -76,7 +76,7 @@
                 :icon="btnIcon"
                 :disable="saveBtn"
                 @click="setPin"
-                class="full-width pt-key-enter pt-check-key" />
+                class="full-width pt-check-key" />
             </div>
           </div>
         </q-card-section>
@@ -133,10 +133,8 @@ export default {
   methods: {
     processKey (num) {
       const vm = this
-
       vm.validationMsg = ''
-      const keyLength = vm.pinKeys.length
-      for (let i = 0; keyLength > i; i++) {
+      for (const i in vm.pinKeys) {
         if (vm.pinKeys[i].key === '') {
           vm.pinKeys[i].key = num
           break
@@ -144,7 +142,7 @@ export default {
       }
 
       let keys = ''
-      for (let i = 0; vm.pinKeys.length > i; i++) {
+      for (const i in vm.pinKeys) {
         keys += vm.pinKeys[i].key
       }
 
@@ -169,9 +167,8 @@ export default {
       vm.countKeys = 0
       vm.validationMsg = ''
       vm.saveBtn = true
-      const keyLength = vm.pinKeys.length
       if (action === 'delete') {
-        for (let i = 0; keyLength > i; i++) {
+        for (const i in vm.pinKeys) {
           vm.pinKeys[i].key = ''
         }
       } else if (action === 'reset') {
@@ -181,13 +178,13 @@ export default {
         vm.pinLabel = 'Enter PIN'
         vm.btnIcon = 'done'
         vm.resetStatus = true
-        for (let i = 0; keyLength > i; i++) {
+        for (const i in vm.pinKeys) {
           vm.pinKeys[i].key = ''
         }
       } else if (action === 'cancel') {
         vm.cancelPin()
       } else {
-        for (let i = 0; keyLength > i; i++) {
+        for (const i in vm.pinKeys) {
           if (vm.pinKeys[i].key !== '') {
             vm.countKeys += 1
           }
@@ -197,7 +194,6 @@ export default {
     },
     async setPin () {
       const vm = this
-
       if (vm.pinDialogAction === 'VERIFY') {
         const secretKey = await SecureStoragePlugin.get({ key: 'pin' })
         if (secretKey.value === vm.pin) {
@@ -250,22 +246,6 @@ export default {
   position: relative;
   background: #fff;
 }
-.pt-btn-key {
-  height: 40px;
-  border-radius: 20px;
-  border: none;
-  color: #484848;
-  /* color: #da53b2; */
-  background: #fff;
-}
-.pt-btn-set-pin {
-  color: #fff;
-  height: 40px;
-  background-color: #2E73D2;
-}
-.pt-btn-reset-pin {
-  height: 40px;
-}
 .pt-pin-key {
   position: relative;
   height: 50px !important;
@@ -274,7 +254,7 @@ export default {
   align-items: center;
 }
 .pt-pin-key .material-icons {
-  color: #848484;
+  color: #6D6D6D;
 }
 .pt-text-key {
   border-bottom: 3px solid #dfe3e9;
@@ -285,37 +265,45 @@ export default {
   width: 70%;
   vertical-align: middle;
   font-size: 20px;
-  color: #4D4D4D;
-}
-.pt-pin-dialog-close {
-  position: absolute;
-  right: 14px;
-  top: 14px;
 }
 .dim-text {
   color: #8F8CB8;
 }
 
 /* New */
-.pt-key-num {
-  height: 45px;
-  font-size: 16px;
-  font-weight: bolder;
-  background: #fff;
+@media (prefers-color-scheme: light) {
+  .pt-num-key {
+    height: 45px;
+    font-size: 16px;
+    font-weight: bolder;
+    color: #333;
+    background: #FFF;
+  }
+  .pt-del-key {
+    height: 45px;
+    font-weight: bolder;
+    background: #D7DBDE;
+  }
 }
-.pt-key-del {
-  height: 45px;
-  font-weight: bolder;
-  background: #fff;
+@media (prefers-color-scheme: dark) {
+  .pt-num-key {
+    height: 45px;
+    font-size: 16px;
+    font-weight: bolder;
+    color: #FFF;
+    background: #D7DBDE;
+  }
+  .pt-del-key {
+    height: 45px;
+    font-weight: bolder;
+    background: #c6d1db;
+  }
 }
 .pt-check-key {
   color: #fff;
   height: 45px;
   font-weight: bolder;
   background-color: #3b7bf6;
-}
-.pt-remove-key {
-  background: #D7DBDE;
 }
 .pt-col-key {
   padding: 2px;

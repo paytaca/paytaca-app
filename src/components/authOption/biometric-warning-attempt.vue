@@ -32,15 +32,10 @@ export default {
   },
   methods: {
     startTimer () {
-      let counter = 0
-      const timer = setInterval(() => {
-        counter++
-        if (counter === 28) {
-          clearInterval(timer)
-          this.$emit('closeBiometricWarningAttempts')
-          this.dialog = false
-        }
-      }, 1000)
+      setTimeout(() => {
+        this.$emit('closeBiometricWarningAttempts')
+        this.dialog = false
+      }, 28000)
     }
   }
 }
