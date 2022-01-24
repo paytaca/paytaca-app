@@ -194,10 +194,27 @@
       </div>
     </div>
 
+    <q-dialog v-model="paymentRequestStatus.showSuccessDialog">
+      <q-card
+        flat
+        bordered
+        class="text-center"
+        style="width:90vw;max-width:300px;"
+      >
+        <q-card-section>
+          <div class="q-my-sm text-subtitle1 row justify-center items-center q-gutter-xs">
+            <q-icon name="done" color="positive" size="sm"/>
+            <span>Transaction Sent!</span>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
     <footer-menu v-if="!showDragSlide"/>
   </div>
 </template>
 <script>
+import createHmac from 'create-hmac'
 import { getMnemonic, Wallet } from '../../../wallet'
 import HeaderNav from 'components/header-nav'
 import DragSlide from 'components/drag-slide'
@@ -237,6 +254,7 @@ export default {
         fetching: false,
         executing: false,
         success: false,
+        showSuccessDialog: false,
 
         errors: [],
       },
@@ -327,6 +345,13 @@ export default {
         .then(result => {
           if (!result.success) return Promise.reject(result)
           this.playSound(true)
+
+          this.paymentRequestStatus.success = true
+          this.paymentRequestStatus.showSuccessDialog = true
+
+          if (result.txid) {
+            this.sendPaymentRequestResponse([result.txid])
+          }
           return Promise.resolve(result)
         })
         .catch(err => {
@@ -346,6 +371,38 @@ export default {
 
           if (!Array.isArray(errors) || !errors.length) this.paymentRequestStatus.errors = ['Unknown error occurred']
           else this.paymentRequestStatus.errors = errors
+        })
+    },
+
+    sendPaymentRequestResponse (txids) {
+      // payload is currently not following BIP70 protocol
+      if (!Array.isArray(txids) || !txids.length) return
+      if (!this.paymentRequest || !this.paymentRequest.paymentDetails) return
+
+      const data = {
+        payment_invoice_id: this.paymentRequest.paymentDetails.merchantData.payment_invoice_id,
+        transaction_ids: txids,
+      }
+
+      const headers = {}
+      // move to env var later
+      const secret = 'Test'
+      if (secret) {
+        const headerName = 'X-Paytaca-Webhook-Hmac-Sha256'
+        const hmac = createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex')
+        headers[headerName] = hmac
+      }
+
+      const url = this.paymentRequest.paymentDetails.paymentUrl ||
+                'http://localhost:8000/api/v1/paytaca/webhooks/tx_update/'
+
+      this.$axios.post(url, data, { headers })
+        .then(() => {
+          this.$q.notify({ message: 'Payment acknowledged', color: 'positive' })
+        })
+        .catch(err => {
+          console.warn('error in sending payment to merchant server')
+          console.warn(err)
         })
     },
 
