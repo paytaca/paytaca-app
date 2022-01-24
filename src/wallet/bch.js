@@ -99,6 +99,28 @@ export class BchWallet {
     const result = await this.watchtower.BCH.send(data)
     return result
   }
+
+  async sendBchMultiple (recipients, changeAddress) {
+    if (!Array.isArray(recipients) || !recipients.length) return Promise.reject({ error: 'Must have atleast one recipient' })
+
+    const data = {
+      sender: {
+        walletHash: this.walletHash,
+        mnemonic: this.mnemonic,
+        derivationPath: this.derivationPath
+      },
+      recipients: recipients,
+      changeAddress: changeAddress,
+      wallet: {
+        mnemonic: this.mnemonic,
+        derivationPath: this.derivationPath
+      },
+      broadcast: true
+    }
+
+    const result = await this.watchtower.BCH.send(data)
+    return result
+  }
 }
 
 export default BchWallet
