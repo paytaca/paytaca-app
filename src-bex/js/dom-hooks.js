@@ -13,6 +13,13 @@ class Paytaca {
       recipient: recipient
     })
   }
+
+  payToConnecta(paymentRequestData, orderId) {
+    this.bridge.send('window.paytaca.connecta', {
+      paymentRequestData,
+      orderId,
+    })
+  }
 }
 
 export default function attachDomHooks (bridge) {

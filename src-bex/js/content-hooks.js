@@ -19,4 +19,8 @@ export default function attachContentHooks (bridge) {
   bridge.on('window.paytaca.send', event => {
     bridge.send('background.paytaca.send', event.data)
   })
+
+  bridge.on('window.paytaca.connecta', event => {
+    bridge.send('background.paytaca.connecta', event.data)
+  })
 }

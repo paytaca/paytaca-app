@@ -25,6 +25,16 @@ export default {
           }
         })
       })
+
+      vm.$q.bex.on('bex.paytaca.connecta', event => {
+        const query = {}
+        if (event.data.paymentRequestData) query.paymentRequestData = event.data.paymentRequestData
+        else if (event.data.orderId) query.orderId = event.data.orderId
+        vm.$router.push({
+          name: 'connecta',
+          query: query,
+        })
+      })
     }
   },
   created () {
