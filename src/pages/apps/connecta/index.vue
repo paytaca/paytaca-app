@@ -385,18 +385,15 @@ export default {
       }
 
       const headers = {}
-      // move to env var later
-      const secret = 'Test'
-      if (secret) {
-        const headerName = 'X-Paytaca-Webhook-Hmac-Sha256'
-        const hmac = createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex')
-        headers[headerName] = hmac
-      }
+      const secret = process.env.CONNECTA_WEBHOOK_SHARED_SECRET || ''
+      const headerName = 'X-Paytaca-Webhook-Hmac-Sha256'
+      const hmac = createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex')
+      headers[headerName] = hmac
 
       const url = this.paymentRequest.paymentDetails.paymentUrl ||
-                'http://localhost:8000/api/v1/paytaca/webhooks/tx_update/'
+                'v1/paytaca/webhooks/tx_update/'
 
-      this.$axios.post(url, data, { headers })
+      this.$connectaAxios.post(url, data, { headers })
         .then(() => {
           this.$q.notify({ message: 'Payment acknowledged', color: 'positive' })
         })
@@ -461,9 +458,9 @@ export default {
       else if(orderName) params.order_name = orderName
 
       this.paymentRequestStatus.fetching = true
-      this.$axios
+      this.$connectaAxios
         .get(
-          'http://localhost:8000/api/v1/paytaca/get_payment_link',
+          'v1/paytaca/get_payment_link',
           { params: params }
         )
         .finally(() => {
@@ -504,6 +501,7 @@ export default {
   },
 
   mounted () {
+    console.log(this)
     this.loadWallet()
     if (this.orderId) this.fetchPaymentRequest({orderId: this.orderId })
   }

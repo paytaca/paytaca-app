@@ -5,6 +5,11 @@ const axiosInstance = axios.create({
   baseURL: 'https://wallet.paytaca.com/api'
 })
 
-Vue.prototype.$axios = axiosInstance
+const connectaAxios = axios.create({
+  baseURL: process.env.CONNECTA_API_BASE_URL || 'http://localhost:8000/api'
+})
 
-export { axiosInstance }
+Vue.prototype.$axios = axiosInstance
+Vue.prototype.$connectaAxios = connectaAxios
+
+export { axiosInstance, connectaAxios }
