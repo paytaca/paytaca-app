@@ -21,6 +21,7 @@
           }"
           @mousedown="mouseDownHandler"
           @mouseup="mouseUpHandler"
+          v-touch-pan.horizontal.prevent="touchPanHandler"
         >
           <q-icon
             class="drag-slide-thumb"
@@ -86,6 +87,8 @@ export default {
     updateValFromMouseEvent (e) {
       const containerEl = this.$refs.container
       const thumb = this.$refs.thumb
+      if (!containerEl || !thumb) return
+
       const thumbHalfWidth = thumb.offsetWidth / 2
       const absPctg = (e.clientX - containerEl.offsetLeft - thumbHalfWidth) / (containerEl.offsetWidth - thumbHalfWidth)
       const pctg = Math.max(Math.min(absPctg, 1), 0)
@@ -99,6 +102,15 @@ export default {
         })
       }
     },
+    touchPanHandler(e) {
+      this.updateValFromMouseEvent({
+        clientX: e.position.left
+      })
+      if (e.isFinal) {
+        this.mouseUpHandler()
+      }
+    },
+
     mouseDownHandler (e) {
       if (e.button !== 0) return
       this.dragging = true
