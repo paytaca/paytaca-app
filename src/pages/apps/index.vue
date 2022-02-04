@@ -44,8 +44,8 @@ export default {
         {
           name: 'Connecta',
           iconName: 'delivery_dining',
-          path: '',
-          active: false
+          path: '/apps/connecta/',
+          active: true
         },
         {
           name: 'Bills Payment',

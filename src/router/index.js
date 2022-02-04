@@ -1,3 +1,4 @@
+import { Plugins } from '@capacitor/core'
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import { getMnemonic } from '../wallet'
@@ -40,6 +41,20 @@ export default function ({ store }) {
       }
     } else {
       next()
+    }
+  })
+  console.log(process.env)
+  console.log(Plugins)
+
+  Plugins.App.addListener('appUrlOpen', function (event) {
+    const url = new URL(event.url)
+    console.log(url)
+    if (/\/payment-request\/?$/.test(url.pathname) || /\/apps\/connecta\/?$/.test(url.pathname)) {
+      const query = {}
+      if (url.searchParams.has('d')) query.paymentRequestData = url.searchParams.get('d')
+      else if (url.searchParams.has('orderId')) query.orderId = url.searchParams.get('orderId')
+
+      Router.push({ name: 'connecta', query: query })
     }
   })
 

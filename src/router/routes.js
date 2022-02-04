@@ -1,3 +1,4 @@
+import { route } from 'quasar/wrappers'
 
 const routes = [
   {
@@ -48,7 +49,8 @@ const routes = [
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
       { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
-      { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' }
+      { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
+      { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
     ]
   },
   // Always leave this as last one,
