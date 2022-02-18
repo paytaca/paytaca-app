@@ -623,7 +623,7 @@ export default {
   }
   .transaction-row {
     position: relative;
-    margin-top: 270px;
+    margin-top: 305px;
     z-index: 5;
   }
   .transaction-list {
