@@ -1,8 +1,18 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;">
+  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top: 75px;">
     <header-nav title="RECEIVE" backnavpath="/"></header-nav>
+    <q-tabs
+      dense
+      active-color="brandblue"
+      class="col-12 q-px-lg"
+      :value="selectedNetwork"
+      @input="changeNetwork"
+    >
+      <q-tab name="BCH" :label="networks.BCH.name"/>
+      <q-tab name="sBCH" :label="networks.sBCH.name"/>
+    </q-tabs>
     <template v-if="assets">
-      <div class="row" style="padding-top: 60px;">
+      <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm">SELECT ASSET TO BE RECEIVED</p>
         </div>
@@ -11,7 +21,7 @@
         <div
           v-for="(asset, index) in assets"
           :key="index"
-          @click="$router.push({ name: 'transaction-receive', params: { assetId: asset.id } })"
+          @click="$router.push({ name: 'transaction-receive', params: { assetId: asset.id, network: selectedNetwork } })"
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
@@ -54,6 +64,11 @@ export default {
   components: { HeaderNav },
   data () {
     return {
+      selectedNetwork: 'BCH',
+      networks: {
+        BCH: { name: 'BCH' },
+        sBCH: { name: 'SEP20' },
+      },
       activeBtn: 'btn-bch',
       result: '',
       error: ''
@@ -61,12 +76,19 @@ export default {
   },
   computed: {
     assets () {
+      if (this.selectedNetwork === 'sBCH') return this.$store.getters['sep20/getAssets'].filter(Boolean)
+
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           return item
         }
       })
     }
+  },
+  methods: {
+    changeNetwork (newNetwork='BCH') {
+      this.selectedNetwork = newNetwork
+    },
   },
   mounted () {
     this.$refs.assetsList.style.height = (screen.height * 0.7) + 'px'
