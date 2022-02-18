@@ -87,3 +87,10 @@ h5, p, label, a {
 .pt-input::placeholder {
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.text-brandblue {
+  color: rgb(60, 100, 246) !important;
+}
+.bg-brandblue {
+  background: rgb(60, 100, 246) !important;
+}

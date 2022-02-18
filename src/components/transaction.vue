@@ -31,14 +31,21 @@
                 <q-item-label>{{ formatDate(transaction.date_created) }}</q-item-label>
               </q-item-section>
             </q-item>
-            <q-item clickable v-ripple @click="copyToClipboard(transaction.txid)" style="overflow-wrap: anywhere;">
+            <q-item clickable v-ripple @click="copyToClipboard(isSep20Tx ? transaction.hash : transaction.txid)" style="overflow-wrap: anywhere;">
               <q-item-section>
                 <q-item-label caption>Transction ID</q-item-label>
-                <q-item-label>{{ transaction.txid }}</q-item-label>
+                <q-item-label v-if="isSep20Tx">{{ transaction.hash }}</q-item-label>
+                <q-item-label v-else>{{ transaction.txid }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
-              <q-item-section>
+              <q-item-section v-if="isSep20Tx">
+                <q-item-label caption>
+                  <span>Sender</span>
+                </q-item-label>
+                <q-item-label>{{ transaction.from }}</q-item-label>
+              </q-item-section>
+              <q-item-section v-else>
                 <q-item-label caption>
                   <span v-if="transaction.senders.length === 1">Sender</span>
                   <span v-if="transaction.senders.length > 1">Senders</span>
@@ -47,7 +54,13 @@
               </q-item-section>
             </q-item>
             <q-item v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
-              <q-item-section>
+              <q-item-section v-if="isSep20Tx">
+                <q-item-label caption>
+                  <span>Sender</span>
+                </q-item-label>
+                <q-item-label>{{ transaction.to }}</q-item-label>
+              </q-item-section>
+              <q-item-section v-else>
                 <q-item-label caption>
                   <span v-if="transaction.recipients.length === 1">Recipient</span>
                   <span v-if="transaction.recipients.length > 1">Recipients</span>
@@ -56,13 +69,25 @@
               </q-item-section>
             </q-item>
             <q-item>
-              <q-item-section>
+              <q-item-section v-if="isSep20Tx">
+                <q-item-label caption>Gas fee</q-item-label>
+                <q-item-label>{{ transaction.gas }} BCH</q-item-label>
+              </q-item-section>
+              <q-item-section v-else>
                 <q-item-label caption>Miner fee</q-item-label>
                 <q-item-label>{{ transaction.tx_fee / (10**8) }} BCH</q-item-label>
               </q-item-section>
             </q-item>
             <q-item clickable>
-              <q-item-section>
+              <q-item-section v-if="isSep20Tx">
+                <q-item-label caption>Explorer Link</q-item-label>
+                <q-item-label>
+                  <a :href="'https://smartscan.cash/transaction/' + transaction.hash" style="color: #3b7bf6; text-decoration: none;">
+                    View in SmartScan
+                  </a>
+                </q-item-label>
+              </q-item-section>
+              <q-item-section v-else>
                 <q-item-label caption>Explorer Link</q-item-label>
                 <q-item-label>
                   <a :href="'https://blockchair.com/bitcoin-cash/transaction/' + transaction.txid" style="color: #3b7bf6; text-decoration: none;">
@@ -93,6 +118,12 @@ export default {
         outgoing: 'SENT'
       },
       transaction: {}
+    }
+  },
+  computed: {
+    isSep20Tx() {
+      const hash = String(this.transaction && this.transaction.hash)
+      return /^0x[0-9a-f]{64}/i.test(hash)
     }
   },
   filters: {

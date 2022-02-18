@@ -7,6 +7,25 @@
 
       <div class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
         <div class="row q-pt-lg">
+
+          <!-- <p class="col-12 q-px-lg q-ma-none text-subtitle1" role="button" @click="promptChangeNetwork()">
+            <span
+              class="text-brandblue"
+              style="text-decoration:underline;"
+            >
+              {{ networks[selectedNetwork] && networks[selectedNetwork].name }}
+            </span>
+          </p> -->
+          <q-tabs
+            dense
+            active-color="brandblue"
+            class="col-12 q-px-lg"
+            :value="selectedNetwork"
+            @input="changeNetwork"
+          >
+            <q-tab name="BCH" :label="networks.BCH.name"/>
+            <q-tab name="sBCH" :label="networks.sBCH.name"/>
+          </q-tabs>
           <div class="col q-pl-lg">
             <p class="text-light p-label" style="color: #ABA9BB;">
               Your {{ selectedAsset.symbol }} balance
@@ -24,19 +43,19 @@
           </div>
         </div>
         <div class="row">
-            <div class="col">
-                <p class="q-ml-lg q-mb-sm payment-methods">
-                  Assets
-                  <q-btn
-                    flat
-                    padding="none"
-                    size="sm"
-                    icon="app_registration"
-                    style="color: #3B7BF6;"
-                    @click="toggleManageAssets"
-                  />
-                </p>
-            </div>
+          <div class="col">
+            <p class="q-ml-lg q-mb-sm payment-methods">
+              Assets
+              <q-btn
+                flat
+                padding="none"
+                size="sm"
+                icon="app_registration"
+                style="color: #3B7BF6;"
+                @click="toggleManageAssets"
+              />
+            </p>
+          </div>
         </div>
         <asset-info ref="asset-info"></asset-info>
         <!-- Cards without drag scroll on mobile -->
@@ -122,6 +141,8 @@ const { SecureStoragePlugin } = Plugins
 
 const ago = require('s-ago')
 
+const sep20IdRegexp = /sep20\/(.*)/
+
 export default {
   name: 'Transaction-page',
   components: { Loader, Transaction, AssetInfo, AssetCards, pinDialog, securityOptionDialog, startPage },
@@ -135,6 +156,11 @@ export default {
     return {
       today: new Date().toDateString(),
       hideBalances: false,
+      selectedNetwork: 'BCH',
+      networks: {
+        BCH: { name: 'BCH' },
+        sBCH: { name: 'SEP20' },
+      },
       selectedAsset: {
         id: 'bch',
         symbol: 'BCH',
@@ -166,11 +192,23 @@ export default {
 
   computed: {
     assets () {
+      if (this.selectedNetwork === 'sBCH') return this.$store.getters['sep20/getAssets'].filter(Boolean)
+
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           return item
         }
       })
+    },
+
+    earliestBlock() {
+      if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
+      return Math.min(
+        ...this.transactions
+          .map(tx => tx && tx.block)
+          .filter(Boolean)
+          .filter(Number.isSafeInteger)
+      )
     }
   },
 
@@ -187,6 +225,35 @@ export default {
   },
 
   methods: {
+    promptChangeNetwork () {
+      this.$q.dialog({
+        title: 'Select network',
+        message: 'Select network',
+        options: {
+          type: 'radio',
+          model: this.selectedNetwork,
+          items: [
+            { value: 'BCH', label: this.networks.BCH.name },
+            { value: 'sBCH', label: this.networks.sBCH.name },
+          ]
+        },
+        cancel: true,
+        persistent: true
+      }).onOk(data => {
+        this.changeNetwork(data)
+      })
+    },
+    changeNetwork (newNetwork='BCH') {
+      const prevNetwork = this.selectedNetwork
+      this.selectedNetwork = newNetwork
+      if (prevNetwork !== this.selectedNetwork) {
+        this.selectedAsset = this.assets[0]
+        this.transactions = []
+        this.transactionsPage = 1
+        this.transactionsLoaded = false
+        this.getTransactions()
+      }
+    },
     toggleManageAssets () {
       this.manageAssets = !this.manageAssets
     },
@@ -220,6 +287,36 @@ export default {
       }, 100)
     },
     getBalance (id) {
+      if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
+      return this.getBchBalance(id)
+    },
+    getSbchBalance(id) {
+      const vm = this
+      if (!id) {
+        id = vm.selectedAsset.id
+      }
+      const parsedId = String(id)
+
+      if (sep20IdRegexp.test(parsedId)) {
+        const contractAddress = parsedId.match(sep20IdRegexp)[1]
+        vm.wallet.sBCH.getSep20TokenBalance(contractAddress)
+          .then(balance => {
+            vm.$store.commit('sep20/updateAssetBalance', {
+              id: parsedId,
+              balance: balance,
+            })
+          })
+      } else {
+        vm.wallet.sBCH.getBalance()
+          .then(balance => {
+            vm.$store.commit('sep20/updateAssetBalance', {
+              id: parsedId,
+              balance: balance,
+            })
+          })
+      }
+    },
+    getBchBalance(id) {
       const vm = this
       if (!id) {
         id = vm.selectedAsset.id
@@ -247,6 +344,58 @@ export default {
     },
 
     getTransactions () {
+      if (this.selectedNetwork === 'sBCH') return this.getSbchTransactions()
+      return this.getBchTransactions()
+    },
+    getSbchTransactions() {
+      const vm = this
+      const id = String(vm.selectedAsset.id)
+      vm.transactionsLoaded = false
+
+      const opts = { limit: 10, includeTimestamp: true }
+      if (vm.transactionsFilter === 'sent') {
+        opts.type = 'outgoing'
+      } else if (vm.transactionsFilter === 'received') {
+        opts.type = 'incoming'
+      }
+
+      let appendResults = false
+      if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
+        opts.before = '0x' + (this.earliestBlock - 1).toString(16)
+        appendResults = true
+      }
+
+      let requestPromise = null
+      if (sep20IdRegexp.test(id)) {
+        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
+        requestPromise = vm.wallet.sBCH.getSep20Transactions(contractAddress, opts)
+      } else {
+        requestPromise = vm.wallet.sBCH.getTransactions(opts)
+      }
+
+      if (!requestPromise) return
+      requestPromise
+        .then(response => {
+          vm.transactionsPageHasNext = false
+          if (Array.isArray(response.transactions)) {
+            vm.transactionsPageHasNext = response.transactions.length > 0
+            if (!appendResults) vm.transactions = []
+ 
+            vm.transactions.push(...response.transactions
+              .map(tx => {
+                tx.senders = [tx.from]
+                tx.recipients = [tx.to]
+                return tx
+              })
+            )
+
+          }
+        })
+        .finally(() => {
+          vm.transactionsLoaded = true
+        })
+    },
+    getBchTransactions () {
       const vm = this
       const id = vm.selectedAsset.id
       vm.transactionsLoaded = false
