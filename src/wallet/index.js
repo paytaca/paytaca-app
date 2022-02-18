@@ -1,4 +1,5 @@
 import { SlpWallet } from './slp'
+import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import randomBytes from 'randombytes'
 import aes256 from 'aes256'
@@ -17,6 +18,7 @@ export class Wallet {
   constructor (mnemonic) {
     this.mnemonic = mnemonic
     this.BCH = new BchWallet(projectId, mnemonic, "m/44'/145'/0'") // Main BCH wallet
+    this.sBCH = new SmartBchWallet(projectId, mnemonic, "m/44'/60'/0'/0/0") // SmartBCH wallet
     this.SLP = new SlpWallet(projectId, mnemonic, "m/44'/245'/0'") // SLP wallet
   }
 }
