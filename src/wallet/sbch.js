@@ -145,8 +145,6 @@ export class SmartBchWallet {
     const parsedTxs = logs.map(log => {
       const parsedLog = tokenContract.interface.parseLog(log)
       const received = String(parsedLog.args._to).toLowerCase() === this._wallet.address.toLowerCase()
-      console.log(log)
-      console.log(parsedLog)
       return {
         record_type: received ? this.TX_INCOMING : this.TX_OUTGOING,
         hash: log.transactionHash,
