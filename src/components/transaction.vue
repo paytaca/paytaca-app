@@ -56,7 +56,7 @@
             <q-item v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
               <q-item-section v-if="isSep20Tx">
                 <q-item-label caption>
-                  <span>Sender</span>
+                  <span>Recipient</span>
                 </q-item-label>
                 <q-item-label>{{ transaction.to }}</q-item-label>
               </q-item-section>
