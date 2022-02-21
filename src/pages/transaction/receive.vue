@@ -1,6 +1,9 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;">
-    <header-nav :title="'RECEIVE ' + asset.symbol" backnavpath="/"></header-nav>
+    <header-nav
+      :title="'RECEIVE ' + asset.symbol + (isSep20 ? '(SEP20)' : '')"
+      backnavpath="/"
+    ></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
       <q-menu anchor="bottom right" self="top end">
         <q-list style="min-width: 100px">
@@ -56,6 +59,10 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import Loader from '../../components/loader'
 import { getMnemonic, Wallet, Address } from '../../wallet'
+import { watchTransactions } from '../../wallet/sbch'
+
+const sep20IdRegexp = /sep20\/(.*)/
+const sBCHWalletType = 'Smart BCH'
 
 export default {
   name: 'receive-page',
@@ -65,6 +72,7 @@ export default {
   components: { HeaderNav, Loader },
   data () {
     return {
+      sBCHListener: null,
       activeBtn: 'btn-bch',
       walletType: '',
       asset: {},
@@ -76,6 +84,10 @@ export default {
     }
   },
   props: {
+    network: {
+      type: String,
+      defualt: 'BCH',
+    },
     assetId: {
       type: String,
       required: false,
@@ -83,9 +95,14 @@ export default {
     }
   },
   computed: {
+    isSep20 () {
+      return this.network === 'sBCH'
+    },
     address () {
       const address = this.getAddress()
-      if (this.legacy) {
+      if (this.walletType === sBCHWalletType) {
+        return address
+      } else if (this.legacy) {
         return this.convertToLegacyAddress(address)
       } else {
         return address
@@ -127,7 +144,11 @@ export default {
       }
     },
     getAddress () {
-      if (this.assetId.indexOf('slp/') > -1) {
+      if (this.isSep20) {
+        this.walletType = sBCHWalletType
+        if (this.wallet) return this.wallet.sBCH._wallet.address
+        else return ''
+      } else if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
       } else {
         this.walletType = 'bch'
@@ -150,7 +171,7 @@ export default {
       })
     },
     getAsset (id) {
-      const assets = this.$store.getters['assets/getAsset'](id)
+      const assets = this.$store.getters[this.isSep20 ? 'sep20/getAsset' : 'assets/getAsset'](id)
       if (assets.length > 0) {
         return assets[0]
       }
@@ -176,6 +197,8 @@ export default {
     },
     setupListener () {
       const vm = this
+      if (vm.isSep20) return vm.setupSbchListener()
+
       let url
       let assetType
       const address = vm.getAddress()
@@ -207,20 +230,66 @@ export default {
           )
         }
       }
+    },
+
+    setupSbchListener () {
+      const vm = this
+      if (!vm.isSep20) return
+
+      const address = vm.getAddress()
+      const opts = { type: 'incoming' }
+      if (sep20IdRegexp.test(vm.asset.id)) {
+        const contractAddress = vm.asset.id.match(sep20IdRegexp)[1]
+        opts.contractAddresses = [contractAddress]
+        opts.tokensOnly = true
+      } else {
+        opts.tokensOnly = false
+      }
+
+      // Stop listener if another listener already exists
+      vm.stopSbchListener()
+      console.log('starting listener')
+      watchTransactions(
+        address,
+        opts,
+        function ({ tx }) {
+          if (!tx || tx.to !== address) return
+
+          vm.notifyOnReceive(
+            tx.amount,
+            vm.asset.symbol,
+            vm.asset.logo
+          )
+        }
+      )
+      .then(listener => {
+        vm.sBCHListener = listener
+      })
+    },
+
+    stopSbchListener () {
+      if (this.sBCHListener && this.sBCHListener.stop && this.sBCHListener.stop.call) {
+        console.log('stopping listener')
+        this.sBCHListener.stop()
+      }
     }
+  },
+
+  beforeDestroy () {
+    this.stopSbchListener()
   },
 
   mounted () {
     const vm = this
     getMnemonic().then(function (mnemonic) {
       vm.wallet = new Wallet(mnemonic)
+      vm.setupListener()
     })
   },
 
   created () {
     const vm = this
     vm.asset = vm.getAsset(vm.assetId)
-    vm.setupListener()
   }
 }
 </script>
