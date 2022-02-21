@@ -57,11 +57,12 @@
             </p>
           </div>
         </div>
-        <asset-info ref="asset-info"></asset-info>
+        <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
         <!-- Cards without drag scroll on mobile -->
         <template v-if="$q.platform.is.mobile">
           <asset-cards
             :assets="assets"
+            :network="selectedNetwork"
           >
           </asset-cards>
         </template>
@@ -70,6 +71,7 @@
           <asset-cards
             :assets="assets"
             v-dragscroll.x="true"
+            :network="selectedNetwork"
           >
           </asset-cards>
         </template>
@@ -252,6 +254,7 @@ export default {
         this.transactionsPage = 1
         this.transactionsLoaded = false
         this.getTransactions()
+        if (this.selectedAsset) this.getBalance(this.selectedAsset.id)
       }
     },
     toggleManageAssets () {

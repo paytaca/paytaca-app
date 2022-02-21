@@ -9,14 +9,17 @@
       </div>
       <q-card-section v-if="asset">
         <div style="text-align: center; font-size: 20px;">
-          <p>{{ asset.symbol }}</p>
+          <p>
+            {{ asset.symbol }}
+            <template v-if="isSep20">(SEP20)</template>
+          </p>
         </div>
         <div style="text-align: center;">
           <img :src="asset.logo" height="50" class="q-mr-xs">
         </div>
         <div style="text-align: center; margin-top: 10px;" v-if="asset.id !== 'bch'">
           <a
-            :href="'https://simpleledger.info/#token/' + asset.id.split('/')[1]"
+            :href="assetLink"
             style="text-decoration: none; color: gray;"
             target="_blank"
           >
@@ -36,9 +39,26 @@
 <script>
 export default {
   name: 'AssetInfo',
+  props: {
+    network: {
+      type: String,
+      default: 'BCH'
+    }
+  },
   data () {
     return {
       asset: null
+    }
+  },
+
+  computed: {
+    isSep20 () {
+      return this.network === 'sBCH'
+    },
+    assetLink () {
+      const tokenId = this.asset && this.asset.id.split('/')[1]
+      if (this.isSep20) return `https://www.smartscan.cash/address/${tokenId}`
+      return `https://simpleledger.info/#token/${tokenId}`
     }
   },
 
@@ -65,6 +85,7 @@ export default {
       this.$router.push({
         name: 'transaction-send',
         params: {
+          network: this.network,
           assetId: this.asset.id,
           fixed: false
         }
@@ -74,6 +95,7 @@ export default {
       this.$router.push({
         name: 'transaction-receive',
         params: {
+          network: this.network,
           assetId: this.asset.id
         }
       })

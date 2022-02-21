@@ -3,14 +3,27 @@
     <q-card class="q-dialog-plugin">
 
         <q-card-section class="pt-label">
-            <strong>Add SLP Token</strong>
+            <strong v-if="isSep20">Add SEP20 Token</strong>
+            <strong v-else>Add SLP Token</strong>
         </q-card-section>
 
         <q-separator />
         <q-form ref="questForm" class="q-gutter-y-sm q-mx-none" method="post" @submit="onOKClick">
           <q-card-section class="q-pb-none">
-            <q-input ref="SLPTokenID" filled color="input-color" class="pt-label" dense :label="$t('Enter SLP token ID')" type="text" lazy-rules v-model="asset"
-              :rules="[val => !!val || 'Enter SLP token id is required']" />
+            <q-input
+              ref="SLPTokenID"
+              dense
+              filled
+              color="input-color"
+              class="pt-label"
+              :label="$t(`Enter ${isSep20 ? 'SEP20 contract adress': 'SLP token ID'}`)"
+              type="text"
+              lazy-rules
+              v-model="asset"
+              :rules="[
+                val => Boolean(val) || `Enter ${isSep20 ? 'SEP20 contract adress': 'SLP token id'} is required`,
+              ]"
+            />
           </q-card-section>
 
           <q-separator />
@@ -26,9 +39,22 @@
 
 <script>
 export default {
+  props: {
+    network: {
+      type: String,
+      default: 'BCH',
+    },
+  },
+
   data () {
     return {
       asset: null
+    }
+  },
+
+  computed: {
+    isSep20 () {
+      return this.network === 'sBCH'
     }
   },
 

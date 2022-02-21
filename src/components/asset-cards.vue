@@ -30,7 +30,7 @@
     </div>
     <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-4" @click="addNewAsset">+</button>
     <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
-</div>
+  </div>
 </template>
 
 <script>
@@ -40,12 +40,21 @@ import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 export default {
   name: 'asset-cards',
   props: {
+    network: {
+      type: String,
+      default: 'BCH',
+    },
     assets: { type: Array }
   },
   data () {
     return {
       assetClickCounter: 0,
       assetClickTimer: null
+    }
+  },
+  computed: {
+    isSep20 () {
+      return this.network === 'sBCH'
     }
   },
   methods: {
@@ -101,12 +110,31 @@ export default {
         }
       })
     },
+    addSep20Asset(contractAddress) {
+      const vm = this
+      this.$parent.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
+        if (response.success && response.token) {
+          vm.$store.commit('sep20/addNewAsset', {
+            id: `sep20/${response.token.address}`,
+            symbol: response.token.symbol,
+            name: response.token.name,
+            logo: '',
+            balance: 0,
+          })
+        }
+      })
+    },
     addNewAsset () {
       const vm = this
       vm.$q.dialog({
+        // need both in passing props for now for backwards compatibility
+        componentProps: { network: this.network },
+        network: this.network,
+
         component: AddNewAsset,
         parent: vm
       }).onOk((asset) => {
+        if (this.isSep20) return this.addSep20Asset(asset)
         vm.addAsset(asset)
       }).onCancel(() => {
       })
@@ -119,6 +147,7 @@ export default {
         parent: vm,
         assetName
       }).onOk(() => {
+        if (this.isSep20) return vm.$store.commit('sep20/removeAsset', asset.id)
         vm.$store.commit('assets/removeAsset', asset.id)
       }).onCancel(() => {
       })

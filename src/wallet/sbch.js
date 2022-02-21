@@ -305,4 +305,24 @@ export class SmartBchWallet {
       [txHash]
     )
   }
+
+  async getSep20ContractDetails(contractAddress) {    
+    if (!utils.isAddress(contractAddress)) return {
+      success: false,
+      error: 'Invalid token address',
+    }
+    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    
+    const tokenName = await tokenContract.name();
+    const tokenSymbol = await tokenContract.symbol();
+
+    return {
+      success: true,
+      token: {
+        address: tokenContract.address,
+        name: tokenName,
+        symbol: tokenSymbol,
+      }
+    }
+  }
 }
