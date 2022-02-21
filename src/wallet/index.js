@@ -3,6 +3,7 @@ import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import randomBytes from 'randombytes'
 import aes256 from 'aes256'
+import { utils } from 'ethers'
 
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
@@ -50,6 +51,10 @@ export async function getMnemonic () {
 export class Address {
   constructor (address) {
     this.address = address
+  }
+
+  isSep20Address () {
+    return utils.isAddress(this.address)
   }
 
   isLegacyAddress () {

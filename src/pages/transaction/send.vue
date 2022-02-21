@@ -1,7 +1,8 @@
 <template>
   <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;">
     <header-nav
-      :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"
+      :title="'SEND ' + asset.symbol + (isSep20 ? '(SEP20)' : '')"
+      backnavpath="/send/select-asset"
       v-if="!sendData.sent"
     ></header-nav>
     <div>
@@ -152,6 +153,9 @@ import { Plugins } from '@capacitor/core'
 
 const { SecureStoragePlugin } = Plugins
 
+const sep20IdRegexp = /sep20\/(.*)/
+const sBCHWalletType = 'Smart BCH'
+
 export default {
   name: 'Send-page',
   components: {
@@ -163,6 +167,10 @@ export default {
     customKeyboard
   },
   props: {
+    network: {
+      type: String,
+      defualt: 'BCH',
+    },
     assetId: {
       type: String,
       required: true
@@ -241,6 +249,9 @@ export default {
   },
 
   computed: {
+    isSep20 () {
+      return this.network === 'sBCH'
+    },
     disableRecipientInput () {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     },
@@ -451,7 +462,7 @@ export default {
     },
 
     getAsset (id) {
-      const assets = this.$store.getters['assets/getAsset'](id)
+      const assets = this.$store.getters[this.isSep20 ? 'sep20/getAsset' : 'assets/getAsset'](id)
       if (assets.length > 0) {
         return assets[0]
       } else {
@@ -540,6 +551,14 @@ export default {
       let addressIsValid = false
       let formattedAddress
       try {
+        if (vm.walletType === sBCHWalletType) {
+          if (addressObj.isSep20Address()) {
+            addressIsValid = true
+          }
+          if (addressIsValid) {
+            formattedAddress = addressObj.address
+          }
+        }
         if (vm.walletType === 'bch') {
           if (addressObj.isLegacyAddress()) {
             addressIsValid = true
@@ -609,7 +628,35 @@ export default {
       const amountIsValid = this.validateAmount(this.sendData.amount)
       if (addressIsValid && amountIsValid) {
         vm.sendData.sending = true
-        if (vm.walletType === 'slp') {
+        if (vm.walletType === sBCHWalletType) {
+          let promise = null
+          if (sep20IdRegexp.test(vm.assetId)) {
+            const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
+            promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
+          } else {
+            promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
+          }
+          if (promise) {
+            promise.then(function (result) {
+              if (result.success) {
+                vm.sendData.txid = result.txid
+                vm.playSound(true)
+                vm.sendData.sending = false
+                vm.sendData.sent = true
+              } else {
+                if (result.error.indexOf('not enough balance in sender') > -1) {
+                  vm.sendErrors.push('Not enough balance to cover the send amount')
+                } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
+                  vm.sendErrors.append('Not enough BCH to cover for transaction fee')
+                } else if (result.error) {
+                  vm.sendErrors.push(result.error)
+                } else {
+                  vm.sendErrors.push('Unknown error')
+                }
+              }
+            })
+          }
+        } else if (vm.walletType === 'slp') {
           const tokenId = vm.assetId.split('slp/')[1]
           const bchWallet = vm.getWallet('bch')
           const feeFunder = {
@@ -676,7 +723,9 @@ export default {
     const vm = this
     vm.asset = vm.getAsset(vm.assetId)
 
-    if (vm.assetId.indexOf('slp/') > -1) {
+    if (vm.isSep20) {
+      vm.walletType = sBCHWalletType
+    } else if (vm.assetId.indexOf('slp/') > -1) {
       vm.walletType = 'slp'
     } else {
       vm.walletType = 'bch'
