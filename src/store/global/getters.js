@@ -1,3 +1,7 @@
+export function network(state) {
+  return state.network
+}
+
 export function getAddress (state) {
   return function (walletType) {
     return state.wallets[walletType].lastAddress

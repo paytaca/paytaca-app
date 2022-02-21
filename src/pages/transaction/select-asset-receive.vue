@@ -64,7 +64,6 @@ export default {
   components: { HeaderNav },
   data () {
     return {
-      selectedNetwork: 'BCH',
       networks: {
         BCH: { name: 'BCH' },
         sBCH: { name: 'SEP20' },
@@ -75,6 +74,14 @@ export default {
     }
   },
   computed: {
+    selectedNetwork: {
+      get () {
+        return this.$store.getters['global/network']
+      },
+      set (value) {
+        return this.$store.commit('global/setNetwork', value)
+      }
+    },
     assets () {
       if (this.selectedNetwork === 'sBCH') return this.$store.getters['sep20/getAssets'].filter(Boolean)
 
