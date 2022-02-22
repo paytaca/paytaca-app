@@ -1,4 +1,20 @@
+import axios from 'axios'
 import { BigNumber, ethers, utils } from 'ethers'
+
+const erc721Abi = [
+  // erc721
+  'function balanceOf(address _owner) external view returns (uint256)',
+
+  // erc721 metadata
+  'function name() external view returns (string)',
+  'function symbol() external view returns (string)',
+  'function tokenURI(uint256 _tokenId) external view returns (string)',
+
+  // erc721 enumerable
+  'function totalSupply() external view returns (uint256)',
+  'function tokenByIndex(uint256 _index) external view returns (uint256)',
+  'function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256)',
+]
 
 const sep20Abi = [
   'function name() external view returns (string)',
@@ -26,6 +42,16 @@ export function getProvider(test=false) {
   return new ethers.providers.JsonRpcBatchProvider(test ? rpcUrls.test : rpcUrls.main);
 }
 
+export function getERC721Contract(contractAddress, test=false) {
+  if (!utils.isAddress(contractAddress)) return
+
+  return new ethers.Contract(
+    contractAddress,
+    erc721Abi,
+    getProvider(test),
+  )
+}
+
 export function getSep20Contract(contractAddress, test=false) {
   if (!utils.isAddress(contractAddress)) return
 
@@ -40,7 +66,7 @@ export class SmartBchWallet {
   static TX_INCOMING = 'incoming'
   static TX_OUTGOING = 'outgoing'
 
-  constructor (projectId, mnemonic, path, test=true) {
+  constructor (projectId, mnemonic, path, test=false) {
     this.TX_INCOMING = 'incoming'
     this.TX_OUTGOING = 'outgoing'
   
@@ -320,6 +346,84 @@ export class SmartBchWallet {
         address: tokenContract.address,
         name: tokenName,
         symbol: tokenSymbol,
+      }
+    }
+  }
+  
+  async getNFTMetadata(contractAddress, tokenID) {
+    if (!utils.isAddress(contractAddress)) return {
+      success: false,
+      error: 'Invalid token address',
+    }
+
+    const contract = getERC721Contract(contractAddress)
+    const uri = await contract.tokenURI(tokenID)
+    const response = await axios.get(uri)
+
+    return {
+      success: true,
+      url: uri,
+      data: response.data,
+    }
+  }
+
+  async getOwnedNFTs(contractAddress, {limit=10, offset=0, includeMetadata=false}) {
+    return this.getNFTs(
+      contractAddress,
+      {
+        limit,
+        offset,
+        includeMetadata,
+        address: this._wallet.address,
+        test: this._testnet,
+      }
+    )
+  }
+
+  async getNFTs(contractAddress, {limit=10, offset=0, includeMetadata=false, address=''}) {
+    if (!utils.isAddress(contractAddress)) return {
+      success: false,
+      error: 'Invalid token address',
+    }
+  
+    const contract = getERC721Contract(contractAddress, this._testnet)
+    var balance
+    if (address) balance = await contract.balanceOf(this._wallet.address)
+    else balance = await contract.totalSupply()
+  
+    const startIndex = Math.min(offset, balance)
+    const endIndex = Math.min(offset+limit, balance)
+  
+    const promises = []
+    for (var i = startIndex; i < endIndex; i++) {
+      if (address) promises.push(contract.tokenOfOwnerByIndex(this._wallet.address, i))
+      else promises.push(contract.tokenByIndex(i))
+    }
+  
+    const tokenIDs = await Promise.all(promises)
+    const parsedTokens = tokenIDs.map(tokenID => {
+      return {
+        id: tokenID.toNumber(),
+        contractAddress: contract.address,
+      }
+    })
+  
+    if (includeMetadata) {
+      await Promise.all(parsedTokens.map(async (token) => {
+        const {url, data} = await this.getNFTMetadata(contract.address, token.id)
+        token.metadata_url = url
+        token.metadata = data
+        return Promise.resolve()
+      }))
+    }
+  
+    return {
+      success: true,
+      tokens: parsedTokens,
+      pagination: {
+        count: balance.toNumber(),
+        limit: limit,
+        offset: offset,
       }
     }
   }
