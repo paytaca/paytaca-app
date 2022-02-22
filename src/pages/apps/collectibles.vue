@@ -39,11 +39,25 @@
     <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
       <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
     </div>
-    <SLPCollectibles
-      ref="slpCollectibles"
-      :wallet="wallet"
-      style="margin:auto;"
-    />
+    <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;">
+      <q-tab-panel name="BCH">
+        <SLPCollectibles
+          ref="slpCollectibles"
+          :wallet="wallet"
+          style="margin:auto;"
+        />
+      </q-tab-panel>
+      <q-tab-panel name="sBCH">
+        <q-expansion-item
+          v-for="(asset, index) in erc721Assets"
+          :key="index"
+          expand-separator
+          :label="asset.name"
+        >
+          <ERC721Collectibles :contract-address="asset.address" :wallet="wallet"/>
+        </q-expansion-item>
+      </q-tab-panel>
+    </q-tab-panels>
     <div style="padding-bottom:60px;"></div>
     <footer-menu />
   </div>
@@ -52,11 +66,12 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
+import ERC721Collectibles from 'src/components/collectibles/ERC721Collectibles.vue'
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav, SLPCollectibles },
+  components: { HeaderNav, ERC721Collectibles, SLPCollectibles },
   data () {
     return {
       collectibleDetail: {
@@ -72,6 +87,9 @@ export default {
   computed: {
     isSep20() {
       return this.selectedNetwork === 'sBCH'
+    },
+    erc721Assets () {
+      return this.$store.getters['sep20/getNftAssets']
     },
     selectedNetwork: {
       get () {
@@ -90,14 +108,7 @@ export default {
   },
   methods: {
     changeNetwork (newNetwork='BCH') {
-      const prevNetwork = this.selectedNetwork
       this.selectedNetwork = newNetwork
-      if (prevNetwork !== this.selectedNetwork) {
-        this.getCollectibles()
-      }
-    },
-    getCollectibles () {
-      this.$refs.slpCollectibles.fetchCollectibles()
     },
     copyAddress (address) {
       this.$copyText(address)
@@ -111,7 +122,6 @@ export default {
     const vm = this
     getMnemonic().then(function (mnemonic) {
       vm.wallet = new Wallet(mnemonic)
-      vm.getCollectibles()
     })
   }
 }
