@@ -1,7 +1,7 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;">
+  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;">
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
+    <q-icon id="context-menu" size="35px" name="more_vert">
       <q-menu>
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -13,7 +13,17 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <div style="padding-top: 60px;">
+    <q-tabs
+      dense
+      active-color="brandblue"
+      class="col-12 q-px-lg"
+      :value="selectedNetwork"
+      @input="changeNetwork"
+    >
+      <q-tab name="BCH" label="BCH"/>
+      <q-tab name="sBCH" label="SEP20"/>
+    </q-tabs>
+    <q-slide-transition>
       <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
         <div style="margin-bottom: 5px;">click to copy</div>
         <qr-code
@@ -23,46 +33,18 @@
           :size="160"
           error-level="H"
           class="q-mb-sm"
-        ></qr-code>
+        />
       </div>
-      <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
-        <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
-      </div>
-      <div id="app" ref="app">
-        <div style="text-align: center; margin-top: 40px;" v-if="!collectiblesLoaded">
-          <loader />
-        </div>
-        <template v-if="collectiblesLoaded && collectibles.length > 0">
-          <div
-            ref="collectibles"
-            style="margin-left: auto; margin-right: auto; margin-bottom: 50px;"
-            class="q-pa-md row items-start q-gutter-md"
-          >
-            <q-card
-              v-for="(collectible, index) in collectibles"
-              :key="index"
-              class="collectible-card"
-              @click="showDetails(collectible)"
-            >
-              <template v-if="getImageUrl(collectible).length > 0">
-                <q-img :src="getImageUrl(collectible)" fit="fill"></q-img>
-              </template>
-              <template v-else>
-                <gravatar
-                  :hash="collectible.token_id"
-                />
-              </template>
-            </q-card>
-          </div>
-        </template>
-        <template v-if="collectibles.length === 0 && collectiblesLoaded">
-          <p style="font-size: 20px; color: gray; text-align: center; margin-top: 50px;">
-            You don't own any collectibles yet.
-          </p>
-        </template>
-        <collectible ref="collectible"></collectible>
-      </div>
+    </q-slide-transition>
+    <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
+      <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
     </div>
+    <SLPCollectibles
+      ref="slpCollectibles"
+      :wallet="wallet"
+      style="margin:auto;"
+    />
+    <div style="padding-bottom:60px;"></div>
     <footer-menu />
   </div>
 </template>
@@ -70,15 +52,17 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
-import Loader from '../../components/loader'
-import Gravatar from 'vue-gravatar'
-import Collectible from 'src/components/collectible.vue'
+import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav, Gravatar, Loader, Collectible },
+  components: { HeaderNav, SLPCollectibles },
   data () {
     return {
+      collectibleDetail: {
+        show: false,
+        collectible: null,
+      },
       collectibles: [],
       collectiblesLoaded: false,
       showAddress: false,
@@ -86,39 +70,34 @@ export default {
     }
   },
   computed: {
+    isSep20() {
+      return this.selectedNetwork === 'sBCH'
+    },
+    selectedNetwork: {
+      get () {
+        return this.$store.getters['global/network']
+      },
+      set (value) {
+        return this.$store.commit('global/setNetwork', value)
+      }
+    },
     receivingAddress () {
+      if (!this.wallet) return ''
+
+      if (this.isSep20) return this.wallet.sBCH._wallet.address
       return this.$store.getters['global/getAddress']('slp')
     }
   },
   methods: {
-    getScreenWidth () {
-      const divBounds = document.body.getBoundingClientRect()
-      return divBounds.width
-    },
-    getCollectibles () {
-      const vm = this
-      vm.collectiblesLoaded = false
-      vm.wallet.SLP.getCollectibles().then(function (collectibles) {
-        vm.collectibles = collectibles
-        // Sort by date_created
-        vm.collectibles = vm.collectibles.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
-        vm.collectiblesLoaded = true
-        if (collectibles.length > 0 && vm.$refs.collectibles) {
-          vm.$refs.collectibles.style.width = screen.width + 'px'
-        }
-      })
-    },
-    getImageUrl (collectible) {
-      if (collectible.thumbnail_image_url.length > 0) {
-        return collectible.thumbnail_image_url
-      } else if (collectible.medium_image_url.length > 0) {
-        return collectible.medium_image_url
-      } else {
-        return collectible.original_image_url
+    changeNetwork (newNetwork='BCH') {
+      const prevNetwork = this.selectedNetwork
+      this.selectedNetwork = newNetwork
+      if (prevNetwork !== this.selectedNetwork) {
+        this.getCollectibles()
       }
     },
-    showDetails (collectible) {
-      this.$refs.collectible.show(collectible)
+    getCollectibles () {
+      this.$refs.slpCollectibles.fetchCollectibles()
     },
     copyAddress (address) {
       this.$copyText(address)
@@ -129,9 +108,6 @@ export default {
     }
   },
   mounted () {
-    const divHeight = screen.availHeight - 120
-    this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
-
     const vm = this
     getMnemonic().then(function (mnemonic) {
       vm.wallet = new Wallet(mnemonic)
@@ -156,6 +132,7 @@ export default {
 #context-menu {
   position: fixed;
   top: 16px;
+  right: 10px;
   z-index: 150 !important;
   color: #3b7bf6;
 }
