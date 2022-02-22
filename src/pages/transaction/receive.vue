@@ -262,7 +262,7 @@ export default {
           vm.notifyOnReceive(
             tx.amount,
             vm.asset.symbol,
-            vm.asset.logo || vm.getFallbackAssetLogo(asset)
+            vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
           )
         }
       )
