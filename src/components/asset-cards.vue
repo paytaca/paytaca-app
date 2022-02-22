@@ -1,5 +1,6 @@
 <template>
   <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-if="assets">
+    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-4" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
       :key="index"
@@ -28,7 +29,6 @@
         </p>
       </div>
     </div>
-    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-4" @click="addNewAsset">+</button>
     <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
 </div>
 </template>
