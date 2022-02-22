@@ -110,6 +110,10 @@ export default {
     }
   },
   methods: {
+    getFallbackAssetLogo(asset) {
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      return logoGenerator(String(asset && asset.id))
+    },
     getScreenWidth () {
       const divBounds = document.body.getBoundingClientRect()
       return divBounds.width
@@ -219,14 +223,14 @@ export default {
             vm.notifyOnReceive(
               data.amount,
               vm.asset.symbol,
-              vm.asset.logo
+              vm.asset.logo || vm.getFallbackAssetLogo(asset)
             )
           }
         } else {
           vm.notifyOnReceive(
             data.amount,
             vm.asset.symbol,
-            vm.asset.logo
+            vm.asset.logo || vm.getFallbackAssetLogo(asset)
           )
         }
       }
@@ -258,7 +262,7 @@ export default {
           vm.notifyOnReceive(
             tx.amount,
             vm.asset.symbol,
-            vm.asset.logo
+            vm.asset.logo || vm.getFallbackAssetLogo(asset)
           )
         }
       )

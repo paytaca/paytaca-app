@@ -15,7 +15,7 @@
           </p>
         </div>
         <div style="text-align: center;">
-          <img :src="asset.logo" height="50" class="q-mr-xs">
+          <img :src="asset.logo || fallbackAssetLogo" height="50" class="q-mr-xs">
         </div>
         <div style="text-align: center; margin-top: 10px;" v-if="asset.id !== 'bch'">
           <a
@@ -59,6 +59,10 @@ export default {
       const tokenId = this.asset && this.asset.id.split('/')[1]
       if (this.isSep20) return `https://www.smartscan.cash/address/${tokenId}`
       return `https://simpleledger.info/#token/${tokenId}`
+    },
+    fallbackAssetLogo() {
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      return logoGenerator(String(this.asset && this.asset.id))
     }
   },
 

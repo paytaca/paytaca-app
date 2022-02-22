@@ -16,7 +16,7 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </div>
       <div class="row items-start no-wrap justify-between">
-        <img :src="asset.logo" height="30" class="q-mr-xs">
+        <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
         <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
           {{ asset.symbol }}
         </p>
@@ -58,6 +58,10 @@ export default {
     }
   },
   methods: {
+    getFallbackAssetLogo(asset) {
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      return logoGenerator(String(asset && asset.id))
+    },
     selectAsset (event, asset) {
       const vm = this
       vm.assetClickCounter += 1

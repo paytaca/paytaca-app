@@ -27,7 +27,7 @@
         >
           <div class="col row group-currency q-mb-sm">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
-              <div><img :src="asset.logo" width="50"></div>
+              <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
                 <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px; color: #444655;">
                   {{ asset.name }}
@@ -93,6 +93,10 @@ export default {
     }
   },
   methods: {
+    getFallbackAssetLogo(asset) {
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      return logoGenerator(String(asset && asset.id))
+    },
     changeNetwork (newNetwork='BCH') {
       this.selectedNetwork = newNetwork
     },

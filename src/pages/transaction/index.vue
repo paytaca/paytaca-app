@@ -39,7 +39,7 @@
           </div>
           <div class="q-space q-pr-lg">
             <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
-            <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
+            <img class="float-right q-mt-sm" :src="selectedAsset.logo || getFallbackAssetLogo(selectedAsset)" height="50">
           </div>
         </div>
         <div class="row">
@@ -234,6 +234,10 @@ export default {
   },
 
   methods: {
+    getFallbackAssetLogo(asset) {
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      return logoGenerator(String(asset && asset.id))
+    },
     promptChangeNetwork () {
       this.$q.dialog({
         title: 'Select network',

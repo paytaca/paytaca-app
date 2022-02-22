@@ -13,7 +13,7 @@
           <q-icon v-if="transaction.record_type === 'outgoing'" name="arrow_upward" class="record-type-icon"></q-icon>
         </div>
         <q-card-section class="amount">
-          <img :src="transaction.asset.logo" height="30" /> &nbsp;
+          <img :src="transaction.asset.logo || fallbackAssetLogo" height="30" /> &nbsp;
           <div class="amount-label">
             <template v-if="transaction.record_type === 'outgoing'">
               {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
@@ -124,6 +124,11 @@ export default {
     isSep20Tx() {
       const hash = String(this.transaction && this.transaction.hash)
       return /^0x[0-9a-f]{64}/i.test(hash)
+    },
+    fallbackAssetLogo() {
+      if (!this.transaction || !this.transaction.asset) return ''
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      return logoGenerator(String(this.transaction.asset.id))
     }
   },
   filters: {
