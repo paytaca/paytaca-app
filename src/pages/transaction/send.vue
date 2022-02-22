@@ -633,7 +633,7 @@ export default {
               if (result.error.indexOf('not enough balance in sender') > -1) {
                 vm.sendErrors.push('Not enough balance to cover the send amount')
               } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
-                vm.sendErrors.append('Not enough BCH to cover for transaction fee')
+                vm.sendErrors.push('Not enough BCH to cover for transaction fee')
               } else {
                 vm.sendErrors.push(result.error)
               }

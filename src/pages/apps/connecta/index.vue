@@ -37,7 +37,7 @@
             placeholder="1234"
             mask="####"
             prefix="#"
-            hint="Input order number from connecta"
+            hint="Input order number from Connecta"
             class="full-width"
             :rules="[
               val => Boolean(val) || 'Required',
@@ -493,7 +493,7 @@ export default {
         })
     },
 
-    loadWallet() {  
+    loadWallet () {
       getMnemonic().then((mnemonic) => {
         this.wallet = new Wallet(mnemonic)
       })
@@ -501,9 +501,8 @@ export default {
   },
 
   mounted () {
-    console.log(this)
     this.loadWallet()
-    if (this.orderId) this.fetchPaymentRequest({orderId: this.orderId })
+    if (this.orderId) this.fetchPaymentRequest({ orderId: this.orderId })
   }
 }
 </script>
