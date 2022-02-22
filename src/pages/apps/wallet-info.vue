@@ -8,9 +8,9 @@
             <div class="col">
               <p class="section-title">Mnemonic Backup Phrase</p>
               <q-list bordered separator class="list">
-                <q-item clickable v-ripple @click="copyToClipboard(mnemonic)">
+                <q-item clickable @click="toggleMnemonicDisplay()">
                   <q-item-section>
-                    <q-item-label class="blurry-text">{{ mnemonic }}</q-item-label>
+                    <q-item-label :class="{'blurry-text': !showMnemonic}">{{ mnemonic }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -107,6 +107,7 @@ export default {
   data () {
     return {
       mnemonic: '',
+      showMnemonic: false,
       appVersion: version
     }
   },
@@ -120,6 +121,9 @@ export default {
         message: 'Copied to clipboard',
         timeout: 200
       })
+    },
+    toggleMnemonicDisplay () {
+      this.showMnemonic = !this.showMnemonic
     }
   },
   mounted () {
