@@ -77,6 +77,12 @@ export default {
     }
   },
 
+  watch: {
+    wallet() {
+      this.fetchCollectibles()
+    }
+  },
+
   mounted () {
     if (this.wallet) this.fetchCollectibles()
   }
