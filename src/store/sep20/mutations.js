@@ -23,3 +23,15 @@ export function removeAsset (state, assetId) {
     state.assets.splice(assetIndex, 1)
   }
 }
+
+
+export function addNewNftAsset (state, asset) {
+  state.nftAssets.push(asset)
+}
+
+export function removeNftAsset (state, nftContractAddress) {
+  state.nftAssets = state.nftAssets
+    .filter(nftAsset => {
+      return nftAsset && nftAsset.address === nftContractAddress
+    })
+}

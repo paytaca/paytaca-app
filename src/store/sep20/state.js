@@ -16,5 +16,18 @@ export default function () {
         balance: 0,
       }
     ],
+
+    nftAssets: [
+      {
+        address: '0xC054A7F7866ba73889511c48967be776008eb408',
+        name: 'Gambling Apes Club',
+        symbol: 'GAC',
+      },
+      {
+        address: '0xE765026Cad648785b080E78700cBF6fa1C050d7C',
+        name: 'CashCats NFT',
+        symbol: '',
+      }
+    ]
   }
 }
