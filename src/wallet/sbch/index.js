@@ -21,6 +21,12 @@ export class SmartBchWallet {
     this._wallet = ethers.Wallet.fromMnemonic(mnemonic, path).connect(this.provider)
   }
 
+  setTestnet(value=true) {
+    this._testnet = Boolean(value)
+    this.provider = getProvider(this._testnet)
+    this._wallet = this._wallet.connect(this.provider)
+  }
+
   async getBalance() {
     const balance = await this._wallet.getBalance()
     return utils.formatEther(balance)
