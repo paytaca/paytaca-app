@@ -465,7 +465,7 @@ export default {
     },
 
     getAsset (id) {
-      let getter = 'assets.getAsset'
+      let getter = 'assets/getAsset'
       if (this.isSep20) {
         if (this.isTestnet) getter = 'sep20/getTestnetAsset'
         else getter = 'sep20/getAsset'
