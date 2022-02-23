@@ -286,7 +286,7 @@ export default {
   mounted () {
     const vm = this
     getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic)
+      vm.wallet = new Wallet(mnemonic, vm.$store.getters['global/isTestnet'])
       vm.setupListener()
     })
   },

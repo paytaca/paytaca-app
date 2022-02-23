@@ -23,6 +23,20 @@
                 </q-item>
               </q-list>
           </div>
+
+          <div class="col-12 q-px-lg q-mt-md">
+              <p class="q-px-sm q-my-sm dim-text text-h6">WALLET</p>
+              <q-list bordered separator padding style="border-radius: 14px; background: #fff">
+                <q-item>
+                  <q-item-section>
+                    <q-item-label class="pt-setting-menu">Testnet</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-toggle v-model="isTestnet" />
+                  </q-item-section>
+                </q-item>
+              </q-list>
+          </div>
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
@@ -50,6 +64,16 @@ export default {
     }
   },
   components: { HeaderNav, pinDialog, securityOptionDialog },
+  computed: {
+    isTestnet: {
+      get() {
+        return this.$store.getters['global/isTestnet']
+      },
+      set(value) {
+        this.$store.commit('global/setTestnet', value)
+      }
+    }
+  },
   methods: {
     popUpPinDialog () {
       this.pinDialogAction = 'SET NEW'

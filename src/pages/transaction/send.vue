@@ -736,7 +736,7 @@ export default {
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic)
+      vm.wallet = new Wallet(mnemonic, vm.$store.getters['global/isTestnet'])
     })
   },
 

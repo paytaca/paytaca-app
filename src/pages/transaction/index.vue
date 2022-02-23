@@ -192,6 +192,9 @@ export default {
   },
 
   computed: {
+    isTestnet() {
+      return this.$store.getters['global/isTestnet']
+    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -566,6 +569,46 @@ export default {
       } else {
         this.pinDialogAction = ''
       }
+    },
+
+    loadWallet() {
+      const vm = this
+      getMnemonic().then(function (mnemonic) {
+        vm.wallet = new Wallet(mnemonic, vm.isTestnet)
+        vm.assets.map(function (asset) {
+          vm.getBalance(asset.id)
+        })
+        vm.getTransactions()
+
+        // Create change addresses if nothing is set yet
+        // This is to make sure that v1 wallets auto-upgrades to v2 wallets
+        const bchChangeAddress = vm.getChangeAddress('bch')
+        if (bchChangeAddress.length === 0) {
+          vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+            vm.$store.commit('global/updateWallet', {
+              type: 'bch',
+              walletHash: vm.wallet.BCH.walletHash,
+              derivationPath: vm.wallet.BCH.derivationPath,
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: 0
+            })
+          })
+        }
+        const slpChangeAddress = vm.getChangeAddress('slp')
+        if (slpChangeAddress.length === 0) {
+          vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
+            vm.$store.commit('global/updateWallet', {
+              type: 'slp',
+              walletHash: vm.wallet.SLP.walletHash,
+              derivationPath: vm.wallet.SLP.derivationPath,
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: 0
+            })
+          })
+        }
+      })
     }
   },
 
@@ -575,54 +618,33 @@ export default {
     })
   },
 
+  watch: {
+    isTestnet() {
+      if (!this.wallet) return this.loadWallet()
+
+      if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {
+        this.wallet.setTestnet(this.isTestnet)
+        this.transactions = []
+        this.getTransactions()
+      }
+    }
+  },
+
   async mounted () {
     const vm = this
+    console.log(this)
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
       vm.selectedAsset = vm.assets[0]
     }
 
     // Load wallets
-    getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic)
-      vm.assets.map(function (asset) {
-        vm.getBalance(asset.id)
-      })
-      vm.getTransactions()
+    this.loadWallet()
 
-      // Create change addresses if nothing is set yet
-      // This is to make sure that v1 wallets auto-upgrades to v2 wallets
-      const bchChangeAddress = vm.getChangeAddress('bch')
-      if (bchChangeAddress.length === 0) {
-        vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            type: 'bch',
-            walletHash: vm.wallet.BCH.walletHash,
-            derivationPath: vm.wallet.BCH.derivationPath,
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: 0
-          })
-        })
-      }
-      const slpChangeAddress = vm.getChangeAddress('slp')
-      if (slpChangeAddress.length === 0) {
-        vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            type: 'slp',
-            walletHash: vm.wallet.SLP.walletHash,
-            derivationPath: vm.wallet.SLP.derivationPath,
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: 0
-          })
-        })
-      }
-      if (vm.prevPath === '/') {
-        vm.logIn()
-      } else {
-        vm.startPageStatus = false
-      }
-    })
+    if (vm.prevPath === '/') {
+      vm.logIn()
+    } else {
+      vm.startPageStatus = false
+    }
   }
 }
 </script>

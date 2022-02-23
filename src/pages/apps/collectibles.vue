@@ -134,13 +134,26 @@ export default {
         message: 'Copied address',
         timeout: 800
       })
+    },
+    loadWallet() {
+      const vm = this
+      getMnemonic().then(function (mnemonic) {
+        vm.wallet = new Wallet(mnemonic, this.isTestnet)
+      })
+    }
+  },
+  watch: {
+    isTestnet() {
+      if (!this.wallet) return this.loadWallet()
+
+      if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {
+        this.wallet.setTestnet(this.isTestnet)
+        this.getCollectibles()
+      }
     }
   },
   mounted () {
-    const vm = this
-    getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic)
-    })
+    this.loadWallet()
   }
 }
 </script>
