@@ -48,14 +48,12 @@
         />
       </q-tab-panel>
       <q-tab-panel name="sBCH">
-        <q-expansion-item
-          v-for="(asset, index) in erc721Assets"
-          :key="index"
-          expand-separator
-          :label="asset.name"
-        >
-          <ERC721Collectibles :contract-address="asset.address" :wallet="wallet"/>
-        </q-expansion-item>
+        <div v-for="(asset, index) in erc721Assets" :key="index">
+          <q-expansion-item :label="asset.name">
+            <ERC721Collectibles :contract-address="asset.address" :wallet="wallet"/>
+          </q-expansion-item>
+          <q-separator/>
+        </div>
       </q-tab-panel>
     </q-tab-panels>
     <div style="padding-bottom:60px;"></div>

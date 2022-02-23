@@ -8,12 +8,11 @@
           class="collectible-card q-ma-sm"
           @click="showDetails(collectible)"
         >
-          <template v-if="getImageUrl(collectible).length > 0">
-            <q-img :src="getImageUrl(collectible)" fit="fill"></q-img>
-          </template>
-          <template v-else>
-            <gravatar :hash="collectible.id"/>
-          </template>
+          <q-img
+            :src="getImageUrl(collectible)"
+            :alt="`#${collectible.id}`"
+            fit="fill"
+          />
         </q-card>
       </div>
       <div class="row q-mt-sm items-center justify-center">
@@ -39,7 +38,7 @@
       </div>
     </template>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
-      <p style="font-size: 20px; color: gray; text-align: center; margin-top: 50px;">
+      <p style="font-size: 20px; color: gray; text-align: center;" class="q-py-md">
         You don't own any collectibles yet.
       </p>
     </template>
@@ -114,10 +113,15 @@ export default {
     fetchCollectibles(opts={}) {
       if (!this.wallet) return
       const _opts = opts || {}
-      if (!Number.isSafeInteger(_opts.limit)) _opts.limit = 2
+      if (!Number.isSafeInteger(_opts.limit)) _opts.limit = 5
       _opts.includeMetadata = true
+      _opts.asyncMetadata = true
+      _opts.metadataCallback = (/* collectible, index */) => {
+        this.$forceUpdate()
+      }
       this.fetchingCollectibles = true
-      this.wallet.sBCH.getOwnedNFTs(this.contractAddress, opts)
+      // this.wallet.sBCH.getNFTs(this.contractAddress, _opts)
+      this.wallet.sBCH.getOwnedNFTs(this.contractAddress, _opts)
         .finally(() => {
           this.fetchingCollectibles = false
         })
