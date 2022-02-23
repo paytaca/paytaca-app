@@ -9,6 +9,30 @@ export default function () {
         balance: 0
       },
       {
+        id: 'sep20/0xe11829a7d5d8806bb36e118461a1012588fafd89',
+        symbol: 'SPICE',
+        name: 'Spice',
+        logo: 'spice-logo.png',
+        balance: 0,
+      },
+      {
+        id: 'sep20/0x7b2B3C5308ab5b2a1d9a94d20D35CCDf61e05b72',
+        symbol: 'FLEXUSD',
+        name: 'flexUSD',
+        logo: 'flexusd-logo.png',
+        balance: 0,
+      }
+    ],
+
+    testnetAssets: [
+      {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        balance: 0
+      },
+      {
         id: 'sep20/0xFa77D1D8AADDd9a263C7d685375EF148E268c558',
         symbol: 'ATK',
         name: 'AnToken',
@@ -28,6 +52,8 @@ export default function () {
         name: 'CashCats NFT',
         symbol: '',
       }
+    ],
+    testnetNftAssets: [
     ]
   }
 }
