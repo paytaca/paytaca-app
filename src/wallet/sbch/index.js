@@ -10,7 +10,7 @@ export class SmartBchWallet {
   static TX_INCOMING = 'incoming'
   static TX_OUTGOING = 'outgoing'
 
-  constructor (projectId, mnemonic, path, test=true) {
+  constructor (projectId, mnemonic, path, test=false) {
     this.TX_INCOMING = 'incoming'
     this.TX_OUTGOING = 'outgoing'
   
@@ -306,6 +306,8 @@ export class SmartBchWallet {
 
     return {
       success: true,
+      id: tokenID,
+      address: contract.address,
       url: uri,
       data: response.data,
     }
@@ -324,7 +326,20 @@ export class SmartBchWallet {
     )
   }
 
-  async getNFTs(contractAddress, {limit=10, offset=0, includeMetadata=false, address=''}) {
+  /**
+   * @dev Get's list of tokens for an erc721 token
+   * @param {string}  contractAddress address of the smart contract
+   * @param {number}  limit number of tokens to receive
+   * @param {number}  offset index of token to start. See ERC721 enumerable
+   * @param {string}  address if not empty, will to list tokens that are owned by the address
+   * @param {bool}    includeMetadata flag to include metadata in response. See ERC721 metadata
+   * @param {bool}    asyncMetadata flag to fetch the metadatta async. Only meaningful with `includeMetadata`
+   * @param {func}    metadataCallback function to call when a token metadata is fetched. Recommended if `asyncMetadata` is set.
+   * 
+   * - Metadata is not fetched by default as it can get costly
+   * - Added fetching metadata asynchronously to allow partial response with less response time
+   */
+  async getNFTs(contractAddress, {limit=10, offset=0, includeMetadata=false, asyncMetadata=false, metadataCallback=()=>{}, address=''}) {
     if (!utils.isAddress(contractAddress)) return {
       success: false,
       error: 'Invalid token address',
@@ -353,12 +368,15 @@ export class SmartBchWallet {
     })
   
     if (includeMetadata) {
-      await Promise.all(parsedTokens.map(async (token) => {
+      const metadataPromises = Promise.all(parsedTokens.map(async (token, index) => {
         const {url, data} = await this.getNFTMetadata(contract.address, token.id)
         token.metadata_url = url
         token.metadata = data
+        if (typeof metadataCallback === 'function') metadataCallback(token, index)
         return Promise.resolve()
       }))
+
+      if (!asyncMetadata) await metadataPromises
     }
   
     return {
