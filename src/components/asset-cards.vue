@@ -53,6 +53,9 @@ export default {
     }
   },
   computed: {
+    isTestnet() {
+      return this.$store.getters['global/isTestnet']
+    },
     isSep20 () {
       return this.network === 'sBCH'
     }
@@ -118,7 +121,8 @@ export default {
       const vm = this
       this.$parent.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
         if (response.success && response.token) {
-          vm.$store.commit('sep20/addNewAsset', {
+          const commitName = vm.isTestnet ? 'sep20/addNewTestnetAsset' : 'sep20/addNewAsset'
+          vm.$store.commit(commitName, {
             id: `sep20/${response.token.address}`,
             symbol: response.token.symbol,
             name: response.token.name,
@@ -151,7 +155,10 @@ export default {
         parent: vm,
         assetName
       }).onOk(() => {
-        if (this.isSep20) return vm.$store.commit('sep20/removeAsset', asset.id)
+        if (this.isSep20) {
+          const commitName = vm.isTestnet ? 'sep20/removeTestnetAsset' : 'sep20/removeAsset'
+          return vm.$store.commit(commitName, asset.id)
+        }
         vm.$store.commit('assets/removeAsset', asset.id)
       }).onCancel(() => {
       })

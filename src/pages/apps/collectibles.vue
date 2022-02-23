@@ -48,6 +48,13 @@
         />
       </q-tab-panel>
       <q-tab-panel name="sBCH">
+        <p
+          v-if="erc721Assets && erc721Assets.length === 0"
+          style="font-size: 20px; color: gray; text-align: center;"
+          class="q-py-md"
+        >
+          Asset list empty
+        </p>
         <div v-for="(asset, index) in erc721Assets" :key="index">
           <q-expansion-item :label="asset.name">
             <ERC721Collectibles
@@ -94,6 +101,7 @@ export default {
       return this.selectedNetwork === 'sBCH'
     },
     erc721Assets () {
+      if (this.isTestnet) return this.$store.getters['sep20/getTestnetNftAssets']
       return this.$store.getters['sep20/getNftAssets']
     },
     selectedNetwork: {
@@ -138,7 +146,7 @@ export default {
     loadWallet() {
       const vm = this
       getMnemonic().then(function (mnemonic) {
-        vm.wallet = new Wallet(mnemonic, this.isTestnet)
+        vm.wallet = new Wallet(mnemonic, vm.isTestnet)
       })
     }
   },
@@ -153,6 +161,7 @@ export default {
     }
   },
   mounted () {
+    console.log(this)
     this.loadWallet()
   }
 }

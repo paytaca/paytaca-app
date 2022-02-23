@@ -204,7 +204,10 @@ export default {
       }
     },
     assets () {
-      if (this.selectedNetwork === 'sBCH') return this.$store.getters['sep20/getAssets'].filter(Boolean)
+      if (this.selectedNetwork === 'sBCH') {
+        if (this.isTestnet) return this.$store.getters['sep20/getTestnetAssets'].filter(Boolean)
+        else return this.$store.getters['sep20/getAssets'].filter(Boolean)
+      }
 
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
@@ -318,7 +321,8 @@ export default {
         const contractAddress = parsedId.match(sep20IdRegexp)[1]
         vm.wallet.sBCH.getSep20TokenBalance(contractAddress)
           .then(balance => {
-            vm.$store.commit('sep20/updateAssetBalance', {
+            const commitName = vm.isTestnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
+            vm.$store.commit(commitName, {
               id: parsedId,
               balance: balance,
             })
@@ -326,7 +330,8 @@ export default {
       } else {
         vm.wallet.sBCH.getBalance()
           .then(balance => {
-            vm.$store.commit('sep20/updateAssetBalance', {
+            const commitName = vm.isTestnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
+            vm.$store.commit(commitName, {
               id: parsedId,
               balance: balance,
             })
@@ -632,7 +637,6 @@ export default {
 
   async mounted () {
     const vm = this
-    console.log(this)
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
       vm.selectedAsset = vm.assets[0]
     }

@@ -8,6 +8,16 @@ export function updateAssetBalance (state, data) {
   }
 }
 
+export function updateTestnetAssetBalance (state, data) {
+  for (let i = 0; i < state.testnetAssets.length; i++) {
+    const asset = state.testnetAssets[i]
+    if (asset && asset.id === data.id) {
+      state.testnetAssets[i].balance = data.balance
+      break
+    }
+  }
+}
+
 export function addNewAsset (state, asset) {
   state.assets.push(asset)
 }
