@@ -273,6 +273,50 @@ export class SmartBchWallet {
     }
   }
 
+  async sendERC721Token(contractAddress, tokenId, recipientAddress) {
+    if (!utils.isAddress(recipientAddress)) return {
+      success: false,
+      error: 'Invalid recipient address',
+    }
+
+    if (!utils.isAddress(contractAddress)) return {
+      success: false,
+      error: 'Invalid token address',
+    }
+
+    const parsedTokenId = Number(tokenId)
+    if (!Number.isSafeInteger(parsedTokenId)) {
+      return {
+        success: false,
+        error: 'Invalid Token ID',
+      }
+    }
+    const tokenContract = getERC721Contract(contractAddress, this._testnet)
+    const address = await tokenContract.ownerOf(tokenId)
+    console.log(address)
+    if (address !== this._wallet.address) {
+      return {
+        success: false,
+        error: 'Token is not owned by wallet address'
+      }
+    }
+
+    const contractWithSigner = tokenContract.connect(this._wallet)
+    try {
+      const tx = await contractWithSigner.safeTransferFrom(this._wallet.address, recipientAddress, parsedTokenId)
+      const minedTx = await tx.wait();
+      return {
+        success: true,
+        transaction: minedTx,
+      }
+    } catch(e) {
+      return {
+        success: false,
+        error: e.reason,
+      }
+    }
+  }
+
   async getTxReceipt (txHash) {
     return await this.provider.send(
       'sbch_getTransactionReceipt',

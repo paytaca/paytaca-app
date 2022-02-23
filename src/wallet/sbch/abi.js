@@ -18,6 +18,8 @@ export const sep20Abi = [
 export const erc721Abi = [
   // erc721
   'function balanceOf(address _owner) external view returns (uint256)',
+  'function ownerOf(uint256 _tokenId) external view returns (address)',
+  'function safeTransferFrom(address _from, address _to, uint256 _tokenId) external payable',
 
   // erc721 metadata
   'function name() external view returns (string)',

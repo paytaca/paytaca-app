@@ -7,7 +7,7 @@
     ></header-nav>
     <div>
       <div class="q-pa-md" style="padding-top: 70px;">
-        <div v-if="tokenType === 65 && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
+        <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
           <img :src="image" width="150" />
         </div>
         <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -65,12 +65,12 @@
               <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput" :readonly="disableRecipientInput"></q-input>
             </div>
           </div>
-          <div class="row" v-if="tokenType !== 65">
+          <div class="row" v-if="!isNFT">
             <div class="col q-mt-md">
               <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
             </div>
           </div>
-          <div class="row" v-if="tokenType !== 65">
+          <div class="row" v-if="!isNFT">
             <div class="col q-mt-md" style="font-size: 18px; color: gray;">
               Balance: {{ asset.balance }} {{ asset.symbol }}
               <a
@@ -154,6 +154,7 @@ import { Plugins } from '@capacitor/core'
 const { SecureStoragePlugin } = Plugins
 
 const sep20IdRegexp = /sep20\/(.*)/
+const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const sBCHWalletType = 'Smart BCH'
 
 export default {
@@ -255,6 +256,14 @@ export default {
     isSep20 () {
       return this.network === 'sBCH'
     },
+    isERC721 () {
+      return this.isSep20 && erc721IdRegexp.test(this.assetId)
+    },
+    isNFT () {
+      if (this.isSep20 && erc721IdRegexp.test(this.assetId)) return true
+
+      return this.tokenType === 65
+    },
     disableRecipientInput () {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     },
@@ -282,7 +291,7 @@ export default {
         }
       }
 
-      if (address && this.tokenType === 65) {
+      if (address && this.isNFT) {
         this.sliderStatus = true
       }
     }
@@ -641,6 +650,11 @@ export default {
           if (sep20IdRegexp.test(vm.assetId)) {
             const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
             promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
+          } else if(this.isNFT && erc721IdRegexp.test(vm.assetId)) {
+            console.log('sending erc721')
+            const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
+            const tokenId = vm.assetId.match(erc721IdRegexp)[2]
+            promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
           } else {
             promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
           }
@@ -652,11 +666,7 @@ export default {
                 vm.sendData.sending = false
                 vm.sendData.sent = true
               } else {
-                if (result.error.indexOf('not enough balance in sender') > -1) {
-                  vm.sendErrors.push('Not enough balance to cover the send amount')
-                } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
-                  vm.sendErrors.append('Not enough BCH to cover for transaction fee')
-                } else if (result.error) {
+                if (result.error) {
                   vm.sendErrors.push(result.error)
                 } else {
                   vm.sendErrors.push('Unknown error')
@@ -762,7 +772,7 @@ export default {
       vm.sliderStatus = true
     }
 
-    if (this.tokenType === 65) {
+    if (this.isNFT) {
       vm.sendData.amount = 1
     }
   }

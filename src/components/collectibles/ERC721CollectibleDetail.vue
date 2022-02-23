@@ -32,8 +32,7 @@
       <q-card-section style="text-align: center;">
         <q-btn-group push style="color: rgb(60, 100, 246) !important;">
           <q-btn @click="verify" push label="Verify" icon="visibility" />
-          <!-- Disable for now -->
-          <q-btn @click="send" push label="Send" icon="send" disable/>
+          <q-btn @click="send" push label="Send" icon="send"/>
         </q-btn-group>
       </q-card-section>
     </q-card>
@@ -82,10 +81,10 @@ export default {
       this.$router.push({
         name: 'transaction-send',
         params: {
-          assetId: 'sep20/' + this.collectible.contractAddress,
-          tokenType: 721,
+          network: 'sBCH',
+          assetId: 'erc721/' + this.collectible.contractAddress + ':' + this.collectible.id,
           amount: 1,
-          symbol: this.collectible.symbol,
+          symbol: this.collectible.name || `#${this.collectible.id}` ,
           image: this.imageUrl
         }
       })
