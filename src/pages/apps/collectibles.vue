@@ -50,7 +50,11 @@
       <q-tab-panel name="sBCH">
         <div v-for="(asset, index) in erc721Assets" :key="index">
           <q-expansion-item :label="asset.name">
-            <ERC721Collectibles :contract-address="asset.address" :wallet="wallet"/>
+            <ERC721Collectibles
+              ref='erc721Collectibles'
+              :contract-address="asset.address"
+              :wallet="wallet"
+            />
           </q-expansion-item>
           <q-separator/>
         </div>
@@ -83,6 +87,9 @@ export default {
     }
   },
   computed: {
+    isTestnet() {
+      return this.$store.getters['global/isTestnet']
+    },
     isSep20() {
       return this.selectedNetwork === 'sBCH'
     },
@@ -107,6 +114,19 @@ export default {
   methods: {
     changeNetwork (newNetwork='BCH') {
       this.selectedNetwork = newNetwork
+    },
+    getCollectibles() {
+      if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
+        this.$refs.slpCollectibles.fetchCollectibles()
+      }
+
+      if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {
+        this.$refs.erc721Collectibles.fetchCollectibles()
+      } else if (Array.isArray(this?.$refs?.erc721Collectibles)) {
+        this.$refs.erc721Collectibles.forEach(component => {
+          if (component?.fetchCollectibles?.call) component.fetchCollectibles()
+        })
+      }
     },
     copyAddress (address) {
       this.$copyText(address)
