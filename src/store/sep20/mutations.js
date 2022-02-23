@@ -57,7 +57,7 @@ export function addNewNftAsset (state, asset) {
 export function removeNftAsset (state, nftContractAddress) {
   state.nftAssets = state.nftAssets
     .filter(nftAsset => {
-      return nftAsset && nftAsset.address === nftContractAddress
+      return nftAsset && nftAsset.address !== nftContractAddress
     })
 }
 
@@ -68,6 +68,6 @@ export function addNewTestnetNftAsset (state, testnetNftAsset) {
 export function removeTestnetNftAsset (state, nftContractAddress) {
   state.testnetNftAssets = state.testnetNftAssets
     .filter(testnetNftAsset => {
-      return testnetNftAsset && testnetNftAsset.address === nftContractAddress
+      return testnetNftAsset && testnetNftAsset.address !== nftContractAddress
     })
 }

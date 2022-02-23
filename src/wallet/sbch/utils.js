@@ -31,6 +31,28 @@ export function getSep20Contract(contractAddress, test=false) {
   )
 }
 
+export async function getERC721ContractDetails (contractAddress, test=false) {
+  if (!utils.isAddress(contractAddress)) return {
+    success: false,
+    error: 'Invalid token address',
+  }
+  console.log('gettin details for:', contractAddress)
+  const tokenContract = getERC721Contract(contractAddress, test)
+
+  const tokenName = await tokenContract.name();
+  console.log('got name:', tokenName)
+  const tokenSymbol = await tokenContract.symbol();
+  console.log('got symbol:', tokenSymbol)
+
+  return {
+    success: true,
+    token: {
+      address: tokenContract.address,
+      name: tokenName,
+      symbol: tokenSymbol,
+    }
+  }
+}
 
 export async function watchTransactions(address, {type=null, tokensOnly=false, contractAddresses=[], test=true}, callback) {
   if (!utils.isAddress(address)) return
