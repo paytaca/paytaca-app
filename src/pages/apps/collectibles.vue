@@ -78,10 +78,30 @@
         >
           Asset list empty
         </p>
-        <div v-for="(asset, index) in erc721Assets" :key="index">
-          <q-expansion-item>
+        <template v-else>
+          <q-expansion-item v-model="selectERC721AssetExpanded" dense dense-toggle>
             <template v-slot:header>
-              <div class="row no-wrap items-center q-space" style="min-height:40px">
+              <div class="row no-wrap items-center q-space q-pl-md" style="min-height:40px">
+                <template v-if="erc721Assets[selectedERC721AssetIndex]">
+                  <div class="text-subtitle1">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
+                </template>
+                <div v-else class="text-grey">
+                  Select asset
+                </div>
+              </div>
+            </template>
+
+            <q-item
+              v-for="(asset, index) in erc721Assets"
+              :key="index"
+              clickable
+              :active="index === selectedERC721AssetIndex"
+              @click="
+                selectedERC721AssetIndex = index
+                selectERC721AssetExpanded = false
+              "
+            >
+              <q-item-section side>
                 <q-btn
                   v-if="enableManageAssets"
                   flat
@@ -91,17 +111,28 @@
                   style="color: #3B7BF6;"
                   @click.stop="confirmRemoveERC721Asset(asset)"
                 />
-                <div class="text-subtitle1">{{ asset.name }}</div>
-              </div>
-            </template>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ asset.name }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-expansion-item>
+          <q-separator spaced inset/>
+        </template>
+        <q-tab-panels v-model="selectedERC721AssetIndex" keep-alive style="background:inherit;">
+          <q-tab-panel
+            v-for="(asset, index) in erc721Assets"
+            :key="index"
+            :name="index"
+            class="q-pa-none"
+          >
             <ERC721Collectibles
               ref='erc721Collectibles'
               :contract-address="asset.address"
               :wallet="wallet"
             />
-          </q-expansion-item>
-          <q-separator/>
-        </div>
+          </q-tab-panel>
+        </q-tab-panels>
       </q-tab-panel>
     </q-tab-panels>
     <div style="padding-bottom:60px;"></div>
@@ -127,6 +158,8 @@ export default {
       },
       enableManageAssets: false,
       showAddERC721Form: false,
+      selectERC721AssetExpanded: false,
+      selectedERC721AssetIndex: -1,
       showAddress: false,
       wallet: null
     }
@@ -163,6 +196,7 @@ export default {
     },
     toggleManageAssets() {
       this.enableManageAssets = !Boolean(this.enableManageAssets)
+      this.selectERC721AssetExpanded = this.enableManageAssets
     },
     confirmRemoveERC721Asset(asset) {
       const title = this.isTestnet ? 'Remove testnet asset' : 'Remove asset'
