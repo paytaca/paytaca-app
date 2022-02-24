@@ -120,8 +120,8 @@ export default {
         this.$forceUpdate()
       }
       this.fetchingCollectibles = true
-      this.wallet.sBCH.getNFTs(this.contractAddress, _opts)
-      // this.wallet.sBCH.getOwnedNFTs(this.contractAddress, _opts)
+      // this.wallet.sBCH.getNFTs(this.contractAddress, _opts)
+      this.wallet.sBCH.getOwnedNFTs(this.contractAddress, _opts)
         .finally(() => {
           this.fetchingCollectibles = false
         })

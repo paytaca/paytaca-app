@@ -49,6 +49,7 @@
       </q-tab-panel>
       <q-tab-panel name="sBCH">
         <AddERC721AssetFormDialog v-model="showAddERC721Form"/>
+        <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :asset="erc721AssetDetailDialog.asset"/>
         <div class="row items-start justify-end q-px-sm">
           <q-btn
             flat
@@ -83,6 +84,14 @@
             <template v-slot:header>
               <div class="row no-wrap items-center q-space q-pl-md" style="min-height:40px">
                 <template v-if="erc721Assets[selectedERC721AssetIndex]">
+                  <q-btn
+                    flat
+                    rounded
+                    padding="sm"
+                    icon="info"
+                    style="color: #3B7BF6;"
+                    @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
+                  />
                   <div class="text-subtitle1">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
                 </template>
                 <div v-else class="text-grey">
@@ -115,6 +124,16 @@
               <q-item-section>
                 <q-item-label>{{ asset.name }}</q-item-label>
               </q-item-section>
+              <q-item-section side>
+                <q-btn
+                  flat
+                  rounded
+                  padding="sm"
+                  icon="info"
+                  style="color: #3B7BF6;"
+                  @click.stop="showERC721Asset(asset)"
+                />
+              </q-item-section>
             </q-item>
           </q-expansion-item>
           <q-separator spaced inset/>
@@ -145,11 +164,12 @@ import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
 import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetFormDialog.vue'
 import ERC721Collectibles from 'src/components/collectibles/ERC721Collectibles.vue'
+import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDialog.vue'
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav, AddERC721AssetFormDialog, ERC721Collectibles, SLPCollectibles },
+  components: { HeaderNav, AddERC721AssetFormDialog, ERC721Collectibles, ERC721AssetDetailDialog, SLPCollectibles },
   data () {
     return {
       collectibleDetail: {
@@ -159,6 +179,10 @@ export default {
       enableManageAssets: false,
       showAddERC721Form: false,
       selectERC721AssetExpanded: false,
+      erc721AssetDetailDialog: {
+        show: false,
+        asset: null,
+      },
       selectedERC721AssetIndex: -1,
       showAddress: false,
       wallet: null
@@ -197,6 +221,10 @@ export default {
     toggleManageAssets() {
       this.enableManageAssets = !Boolean(this.enableManageAssets)
       this.selectERC721AssetExpanded = this.enableManageAssets
+    },
+    showERC721Asset(asset) {
+      this.erc721AssetDetailDialog.asset = asset
+      this.erc721AssetDetailDialog.show = true
     },
     confirmRemoveERC721Asset(asset) {
       const title = this.isTestnet ? 'Remove testnet asset' : 'Remove asset'
