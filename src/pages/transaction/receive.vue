@@ -1,7 +1,7 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;">
     <header-nav
-      :title="'RECEIVE ' + asset.symbol + (isSep20 ? '(SEP20)' : '')"
+      :title="'RECEIVE ' + asset.symbol + (isSep20 ? ' (SEP20)' : '')"
       backnavpath="/"
     ></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">

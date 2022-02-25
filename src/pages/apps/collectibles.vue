@@ -21,7 +21,7 @@
       @input="changeNetwork"
     >
       <q-tab name="BCH" label="BCH"/>
-      <q-tab name="sBCH" label="SEP20"/>
+      <q-tab name="sBCH" label="SmartBCH"/>
     </q-tabs>
     <q-slide-transition>
       <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
@@ -95,7 +95,7 @@
                   <div class="text-subtitle1">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
                 </template>
                 <div v-else class="text-grey">
-                  Select asset
+                  Select Collection
                 </div>
               </div>
             </template>
@@ -174,14 +174,14 @@ export default {
     return {
       collectibleDetail: {
         show: false,
-        collectible: null,
+        collectible: null
       },
       enableManageAssets: false,
       showAddERC721Form: false,
       selectERC721AssetExpanded: false,
       erc721AssetDetailDialog: {
         show: false,
-        asset: null,
+        asset: null
       },
       selectedERC721AssetIndex: -1,
       showAddress: false,
@@ -189,10 +189,10 @@ export default {
     }
   },
   computed: {
-    isTestnet() {
+    isTestnet () {
       return this.$store.getters['global/isTestnet']
     },
-    isSep20() {
+    isSep20 () {
       return this.selectedNetwork === 'sBCH'
     },
     erc721Assets () {
@@ -215,18 +215,18 @@ export default {
     }
   },
   methods: {
-    changeNetwork (newNetwork='BCH') {
+    changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },
-    toggleManageAssets() {
+    toggleManageAssets () {
       this.enableManageAssets = !Boolean(this.enableManageAssets)
       this.selectERC721AssetExpanded = this.enableManageAssets
     },
-    showERC721Asset(asset) {
+    showERC721Asset (asset) {
       this.erc721AssetDetailDialog.asset = asset
       this.erc721AssetDetailDialog.show = true
     },
-    confirmRemoveERC721Asset(asset) {
+    confirmRemoveERC721Asset (asset) {
       const title = this.isTestnet ? 'Remove testnet asset' : 'Remove asset'
       const message = 'Remove asset "' + asset.name + '". Are you sure?'
       this.$q.dialog({
@@ -240,7 +240,7 @@ export default {
         this.$store.commit(commitName, asset.address)
       })
     },
-    getCollectibles() {
+    getCollectibles () {
       if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
         this.$refs.slpCollectibles.fetchCollectibles()
       }
@@ -260,7 +260,7 @@ export default {
         timeout: 800
       })
     },
-    loadWallet() {
+    loadWallet () {
       const vm = this
       getMnemonic().then(function (mnemonic) {
         vm.wallet = new Wallet(mnemonic, vm.isTestnet)
@@ -268,7 +268,7 @@ export default {
     }
   },
   watch: {
-    isTestnet() {
+    isTestnet () {
       if (!this.wallet) return this.loadWallet()
 
       if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {

@@ -19,7 +19,7 @@
           <q-tabs
             dense
             active-color="brandblue"
-            class="col-12 q-px-lg"
+            class="col-12 q-px-sm q-pb-md"
             :value="selectedNetwork"
             @input="changeNetwork"
           >
@@ -160,7 +160,7 @@ export default {
       hideBalances: false,
       networks: {
         BCH: { name: 'BCH' },
-        sBCH: { name: 'SEP20' },
+        sBCH: { name: 'SmartBCH' }
       },
       selectedAsset: {
         id: 'bch',

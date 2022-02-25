@@ -1,7 +1,7 @@
 <template>
   <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;">
     <header-nav
-      :title="'SEND ' + asset.symbol + (isSep20 ? '(SEP20)' : '')"
+      :title="'SEND ' + asset.symbol + (isSep20 ? ' (SEP20)' : '')"
       backnavpath="/send/select-asset"
       v-if="!sendData.sent"
     ></header-nav>
