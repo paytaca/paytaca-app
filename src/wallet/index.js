@@ -1,7 +1,9 @@
 import { SlpWallet } from './slp'
+import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import randomBytes from 'randombytes'
 import aes256 from 'aes256'
+import { utils } from 'ethers'
 
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
@@ -14,10 +16,17 @@ const bchjs = new BCHJS()
 const projectId = process.env.WATCHTOWER_PROJECT_ID
 
 export class Wallet {
-  constructor (mnemonic) {
+  constructor (mnemonic, test=false) {
+    this._testnet = Boolean(test)
     this.mnemonic = mnemonic
     this.BCH = new BchWallet(projectId, mnemonic, "m/44'/145'/0'") // Main BCH wallet
+    this.sBCH = new SmartBchWallet(projectId, mnemonic, "m/44'/60'/0'/0/0", this._testnet) // SmartBCH wallet
     this.SLP = new SlpWallet(projectId, mnemonic, "m/44'/245'/0'") // SLP wallet
+  }
+
+  async setTestnet(value=true) {
+    this._testnet = Boolean(value)
+    this.sBCH.setTestnet(this._testnet)
   }
 }
 
@@ -48,6 +57,10 @@ export async function getMnemonic () {
 export class Address {
   constructor (address) {
     this.address = address
+  }
+
+  isSep20Address () {
+    return utils.isAddress(this.address)
   }
 
   isLegacyAddress () {

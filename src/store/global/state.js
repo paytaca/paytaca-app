@@ -1,5 +1,8 @@
 export default function () {
   return {
+    testnet: false,
+    showTestnetIndicator: false,
+    network: 'BCH', // BCH || sBCH
     wallets: {
       bch: {
         walletHash: '',
@@ -16,6 +19,10 @@ export default function () {
         lastAddress: '',
         lastChangeAddress: '',
         lastAddressIndex: 0
+      },
+      sBch: {
+        walletHash: '',
+        derivationPath: ''
       }
     },
     user: {

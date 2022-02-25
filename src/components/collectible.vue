@@ -1,30 +1,25 @@
 <template>
-  <div id="transaction">
-    <q-dialog ref="dialog" full-width @hide="hide" persistent seamless>
-      <q-card v-if="collectible">
-        <div style="right: 10px; top: 10px; position: absolute; background: lightgray; border-radius: 20px; z-index: 100;">
-          <q-btn icon="close" flat round dense v-close-popup />
-        </div>
-        <q-card-section style="text-align: center; margin-bottom: -5px;">
-          <div class="text-h6">{{ collectible.name }}</div>
-        </q-card-section>
-        <template v-if="getImageUrl(collectible).length > 0">
-          <q-img :src="getImageUrl(collectible)" fit="fill" width="75"></q-img>
-        </template>
-        <template v-else>
-          <gravatar
-            :hash="collectible.token_id"
-          />
-        </template>
-        <q-card-section style="text-align: center; margin-bottom: 10px;">
-          <q-btn-group push style="color: rgb(60, 100, 246) !important;">
-            <q-btn @click="verify" push label="Verify" icon="visibility" />
-            <q-btn @click="send" push label="Send" icon="send" />
-          </q-btn-group>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-  </div>
+  <q-dialog v-model="val" full-width persistent seamless>
+    <q-card v-if="collectible" style="max-width:90vw;">
+      <q-card-section class="row no-wrap items-start">
+        <div class="text-h6">{{ collectible.name }}</div>
+        <q-space/>
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+      <template v-if="imageUrl">
+        <q-img :src="imageUrl" fit="fill" width="75"></q-img>
+      </template>
+      <template v-else>
+        <gravatar :hash="collectible && collectible.token_id"/>
+      </template>
+      <q-card-section style="text-align: center; margin-bottom: 10px;">
+        <q-btn-group push style="color: rgb(60, 100, 246) !important;">
+          <q-btn @click="verify" push label="Verify" icon="visibility" />
+          <q-btn @click="send" push label="Send" icon="send" />
+        </q-btn-group>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -34,30 +29,27 @@ import { openURL } from 'quasar'
 export default {
   name: 'collectible',
   components: { Gravatar },
+  props: {
+    value: {
+      type: Boolean,
+      default: false,
+    },
+    collectible: { }
+  },
   data () {
     return {
-      collectible: null
+      val: this.value
+    }
+  },
+  computed: {
+    imageUrl () {
+      if (!this.collectible) return ''
+      return this.collectible.thumbnail_image_url ||
+            this.collectible.thumbnail_image_url ||
+            this.collectible.original_image_url
     }
   },
   methods: {
-    getImageUrl (collectible) {
-      if (collectible.thumbnail_image_url.length > 0) {
-        return collectible.thumbnail_image_url
-      } else if (collectible.medium_image_url.length > 0) {
-        return collectible.medium_image_url
-      } else {
-        return collectible.original_image_url
-      }
-    },
-    show (collectible) {
-      try {
-        this.collectible = collectible
-        this.$refs.dialog.show()
-      } catch (err) {}
-    },
-    hide () {
-      this.$refs.dialog.hide()
-    },
     verify () {
       const url = 'https://simpleledger.info/#token/' + this.collectible.token_id
       openURL(url)
@@ -73,6 +65,14 @@ export default {
           image: this.getImageUrl(this.collectible)
         }
       })
+    }
+  },
+  watch: {
+    val () {
+      this.$emit('input', this.val)
+    },
+    value () {
+      this.val = this.value
     }
   }
 }

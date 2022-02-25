@@ -1,12 +1,13 @@
 <template>
   <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;">
     <header-nav
-      :title="'SEND ' + asset.symbol" backnavpath="/send/select-asset"
+      :title="'SEND ' + asset.symbol + (isSep20 ? ' (SEP20)' : '')"
+      backnavpath="/send/select-asset"
       v-if="!sendData.sent"
     ></header-nav>
     <div>
       <div class="q-pa-md" style="padding-top: 70px;">
-        <div v-if="tokenType === 65 && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
+        <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
           <img :src="image" width="150" />
         </div>
         <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -64,12 +65,12 @@
               <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput" :readonly="disableRecipientInput"></q-input>
             </div>
           </div>
-          <div class="row" v-if="tokenType !== 65">
+          <div class="row" v-if="!isNFT">
             <div class="col q-mt-md">
               <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
             </div>
           </div>
-          <div class="row" v-if="tokenType !== 65">
+          <div class="row" v-if="!isNFT">
             <div class="col q-mt-md" style="font-size: 18px; color: gray;">
               Balance: {{ asset.balance }} {{ asset.symbol }}
               <a
@@ -152,6 +153,10 @@ import { Plugins } from '@capacitor/core'
 
 const { SecureStoragePlugin } = Plugins
 
+const sep20IdRegexp = /sep20\/(.*)/
+const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
+const sBCHWalletType = 'Smart BCH'
+
 export default {
   name: 'Send-page',
   components: {
@@ -163,6 +168,10 @@ export default {
     customKeyboard
   },
   props: {
+    network: {
+      type: String,
+      defualt: 'BCH',
+    },
     assetId: {
       type: String,
       required: true
@@ -241,6 +250,20 @@ export default {
   },
 
   computed: {
+    isTestnet() {
+      return this.$store.getters['global/isTestnet']
+    },
+    isSep20 () {
+      return this.network === 'sBCH'
+    },
+    isERC721 () {
+      return this.isSep20 && erc721IdRegexp.test(this.assetId)
+    },
+    isNFT () {
+      if (this.isSep20 && erc721IdRegexp.test(this.assetId)) return true
+
+      return this.tokenType === 65
+    },
     disableRecipientInput () {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     },
@@ -268,7 +291,7 @@ export default {
         }
       }
 
-      if (address && this.tokenType === 65) {
+      if (address && this.isNFT) {
         this.sliderStatus = true
       }
     }
@@ -451,7 +474,12 @@ export default {
     },
 
     getAsset (id) {
-      const assets = this.$store.getters['assets/getAsset'](id)
+      let getter = 'assets/getAsset'
+      if (this.isSep20) {
+        if (this.isTestnet) getter = 'sep20/getTestnetAsset'
+        else getter = 'sep20/getAsset'
+      }
+      const assets = this.$store.getters[getter](id)
       if (assets.length > 0) {
         return assets[0]
       } else {
@@ -540,6 +568,14 @@ export default {
       let addressIsValid = false
       let formattedAddress
       try {
+        if (vm.walletType === sBCHWalletType) {
+          if (addressObj.isSep20Address()) {
+            addressIsValid = true
+          }
+          if (addressIsValid) {
+            formattedAddress = addressObj.address
+          }
+        }
         if (vm.walletType === 'bch') {
           if (addressObj.isLegacyAddress()) {
             addressIsValid = true
@@ -609,7 +645,36 @@ export default {
       const amountIsValid = this.validateAmount(this.sendData.amount)
       if (addressIsValid && amountIsValid) {
         vm.sendData.sending = true
-        if (vm.walletType === 'slp') {
+        if (vm.walletType === sBCHWalletType) {
+          let promise = null
+          if (sep20IdRegexp.test(vm.assetId)) {
+            const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
+            promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
+          } else if(this.isNFT && erc721IdRegexp.test(vm.assetId)) {
+            console.log('sending erc721')
+            const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
+            const tokenId = vm.assetId.match(erc721IdRegexp)[2]
+            promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
+          } else {
+            promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
+          }
+          if (promise) {
+            promise.then(function (result) {
+              if (result.success) {
+                vm.sendData.txid = result.txid
+                vm.playSound(true)
+                vm.sendData.sending = false
+                vm.sendData.sent = true
+              } else {
+                if (result.error) {
+                  vm.sendErrors.push(result.error)
+                } else {
+                  vm.sendErrors.push('Unknown error')
+                }
+              }
+            })
+          }
+        } else if (vm.walletType === 'slp') {
           const tokenId = vm.assetId.split('slp/')[1]
           const bchWallet = vm.getWallet('bch')
           const feeFunder = {
@@ -676,7 +741,9 @@ export default {
     const vm = this
     vm.asset = vm.getAsset(vm.assetId)
 
-    if (vm.assetId.indexOf('slp/') > -1) {
+    if (vm.isSep20) {
+      vm.walletType = sBCHWalletType
+    } else if (vm.assetId.indexOf('slp/') > -1) {
       vm.walletType = 'slp'
     } else {
       vm.walletType = 'bch'
@@ -687,7 +754,7 @@ export default {
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic)
+      vm.wallet = new Wallet(mnemonic, vm.isTestnet)
     })
   },
 
@@ -705,7 +772,7 @@ export default {
       vm.sliderStatus = true
     }
 
-    if (this.tokenType === 65) {
+    if (this.isNFT) {
       vm.sendData.amount = 1
     }
   }

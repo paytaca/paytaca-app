@@ -156,6 +156,12 @@ export default {
         })
         vm.steps += 1
       })
+
+      vm.$store.commit('global/updateWallet', {
+        type: 'sBch',
+        walletHash: wallet.sBCH._wallet.address,
+        derivationPath: wallet.sBCH._wallet.mnemonic.path,
+      })
     },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()

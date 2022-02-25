@@ -1,3 +1,23 @@
+export function setTestnet(state, value) {
+  state.testnet = Boolean(value)
+}
+export function setShowTestnetIndicator(state, value) {
+  state.showTestnetIndicator = Boolean(value)
+}
+
+export function setNetwork(state, network) {
+  switch(network) {
+    case 'BCH':
+      state.network = 'BCH'
+      break
+    case 'sBCH':
+      state.network = 'sBCH'
+      break
+    default:
+      state.network = 'BCH'
+  }
+}
+
 export function updateWallet (state, details) {
   state.wallets[details.type].walletHash = details.walletHash
   state.wallets[details.type].derivationPath = details.derivationPath

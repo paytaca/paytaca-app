@@ -1,3 +1,17 @@
+const sha256 = require('js-sha256')
+
+export function isTestnet(state) {
+  return state.testnet
+}
+
+export function showTestnetIndicator(state) {
+  return state.showTestnetIndicator
+}
+
+export function network(state) {
+  return state.network
+}
+
 export function getAddress (state) {
   return function (walletType) {
     return state.wallets[walletType].lastAddress
@@ -19,5 +33,98 @@ export function getChangeAddress (state) {
 export function getWallet (state) {
   return function (walletType) {
     return state.wallets[walletType]
+  }
+}
+
+
+export function getDefaultAssetLogo() {
+  return function(val='') {
+    console.log('making image for: ', val)
+    const string = sha256(String(val))
+
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+
+    const canvasSize = 250
+    const colorPallete = [
+      '#f94144',
+      '#f3722c',
+      '#f8961e',
+      '#f9c74f',
+      '#90be6d',
+      '#43aa8b',
+    ]
+
+    const bgColor = '#577590'
+    
+    function drawTriangle(ctx, p1, p2, p3) {
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.fill();
+    }
+
+    function drawEquilateralTriangle(ctx, x, y, length, angle) {
+      // console.log(x, y, length, angle)
+      // degrees to radians
+      const radian = Math.PI/180
+      angle = Math.abs(angle)
+      if (Number.isNaN(angle)) angle = 0
+
+      const p2 = {
+        x: x + Math.cos((angle + 150)*radian) * length,
+        y: y + Math.sin((angle + 150)*radian) * length,
+      }
+
+      const p3 = {
+        x: x + Math.cos((angle + 210)*radian) * length,
+        y: y + Math.sin((angle + 210)*radian) * length,
+      }
+
+      drawTriangle(ctx, { x, y }, p2, p3)
+    }
+
+    canvas.width = canvasSize
+    canvas.height = canvasSize
+    const halfHeight = canvas.height/2
+    const halfWidth = canvas.width/2
+    const sideLength = halfHeight/2
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let quadrant = 1
+    for (var i = 0; i < Math.min(string.length/8, colorPallete.length); i++) {
+      ctx.fillStyle = colorPallete[i % colorPallete.length];
+      const up = quadrant === 1 || quadrant === 2
+      const left = quadrant === 2 || quadrant === 3
+      const x = parseInt(string.substring(i*8 + 0, i*8 + 2), 16) / 256
+      const y = parseInt(string.substring(i*8 + 6, i*8 + 8), 16) / 256
+
+      const xOffset = x * sideLength * (left ? -1: 1)
+      const yOffset = y * sideLength * (up ? -1: 1)
+      let startAngle = 0
+      if(quadrant === 4) startAngle = 0
+      if(quadrant === 3) startAngle = 90
+      if(quadrant === 2) startAngle = 180
+      if(quadrant === 1) startAngle = 270
+
+      const angle = startAngle + (parseInt(string.substring(i*8, (i+1)*8), 16) % 90)
+      // console.log(x, y)
+      // console.log(quadrant, up, left, startAngle, angle)
+
+      drawEquilateralTriangle(
+        ctx,
+        xOffset + halfWidth,
+        yOffset + halfHeight,
+        halfWidth*2,
+        angle,
+      )
+
+      quadrant = (quadrant % 4) + 1
+    }
+
+    return canvas.toDataURL("image/png")
   }
 }

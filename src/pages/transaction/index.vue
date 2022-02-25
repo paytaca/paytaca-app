@@ -7,6 +7,25 @@
 
       <div class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
         <div class="row q-pt-lg">
+
+          <!-- <p class="col-12 q-px-lg q-ma-none text-subtitle1" role="button" @click="promptChangeNetwork()">
+            <span
+              class="text-brandblue"
+              style="text-decoration:underline;"
+            >
+              {{ networks[selectedNetwork] && networks[selectedNetwork].name }}
+            </span>
+          </p> -->
+          <q-tabs
+            dense
+            active-color="brandblue"
+            class="col-12 q-px-sm q-pb-md"
+            :value="selectedNetwork"
+            @input="changeNetwork"
+          >
+            <q-tab name="BCH" :label="networks.BCH.name"/>
+            <q-tab name="sBCH" :label="networks.sBCH.name"/>
+          </q-tabs>
           <div class="col q-pl-lg">
             <p class="text-light p-label" style="color: #ABA9BB;">
               Your {{ selectedAsset.symbol }} balance
@@ -20,29 +39,30 @@
           </div>
           <div class="q-space q-pr-lg">
             <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
-            <img class="float-right q-mt-sm" :src="selectedAsset.logo" height="50">
+            <img class="float-right q-mt-sm" :src="selectedAsset.logo || getFallbackAssetLogo(selectedAsset)" height="50">
           </div>
         </div>
         <div class="row">
-            <div class="col">
-                <p class="q-ml-lg q-mb-sm payment-methods">
-                  Assets
-                  <q-btn
-                    flat
-                    padding="none"
-                    size="sm"
-                    icon="app_registration"
-                    style="color: #3B7BF6;"
-                    @click="toggleManageAssets"
-                  />
-                </p>
-            </div>
+          <div class="col">
+            <p class="q-ml-lg q-mb-sm payment-methods">
+              Assets
+              <q-btn
+                flat
+                padding="none"
+                size="sm"
+                icon="app_registration"
+                style="color: #3B7BF6;"
+                @click="toggleManageAssets"
+              />
+            </p>
+          </div>
         </div>
-        <asset-info ref="asset-info"></asset-info>
+        <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
         <!-- Cards without drag scroll on mobile -->
         <template v-if="$q.platform.is.mobile">
           <asset-cards
             :assets="assets"
+            :network="selectedNetwork"
           >
           </asset-cards>
         </template>
@@ -51,6 +71,7 @@
           <asset-cards
             :assets="assets"
             v-dragscroll.x="true"
+            :network="selectedNetwork"
           >
           </asset-cards>
         </template>
@@ -122,6 +143,8 @@ const { SecureStoragePlugin } = Plugins
 
 const ago = require('s-ago')
 
+const sep20IdRegexp = /sep20\/(.*)/
+
 export default {
   name: 'Transaction-page',
   components: { Loader, Transaction, AssetInfo, AssetCards, pinDialog, securityOptionDialog, startPage },
@@ -135,6 +158,10 @@ export default {
     return {
       today: new Date().toDateString(),
       hideBalances: false,
+      networks: {
+        BCH: { name: 'BCH' },
+        sBCH: { name: 'SmartBCH' }
+      },
       selectedAsset: {
         id: 'bch',
         symbol: 'BCH',
@@ -165,12 +192,38 @@ export default {
   },
 
   computed: {
+    isTestnet() {
+      return this.$store.getters['global/isTestnet']
+    },
+    selectedNetwork: {
+      get () {
+        return this.$store.getters['global/network']
+      },
+      set (value) {
+        return this.$store.commit('global/setNetwork', value)
+      }
+    },
     assets () {
+      if (this.selectedNetwork === 'sBCH') {
+        if (this.isTestnet) return this.$store.getters['sep20/getTestnetAssets'].filter(Boolean)
+        else return this.$store.getters['sep20/getAssets'].filter(Boolean)
+      }
+
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           return item
         }
       })
+    },
+
+    earliestBlock() {
+      if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
+      return Math.min(
+        ...this.transactions
+          .map(tx => tx && tx.block)
+          .filter(Boolean)
+          .filter(Number.isSafeInteger)
+      )
     }
   },
 
@@ -187,6 +240,40 @@ export default {
   },
 
   methods: {
+    getFallbackAssetLogo(asset) {
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      return logoGenerator(String(asset && asset.id))
+    },
+    promptChangeNetwork () {
+      this.$q.dialog({
+        title: 'Select network',
+        message: 'Select network',
+        options: {
+          type: 'radio',
+          model: this.selectedNetwork,
+          items: [
+            { value: 'BCH', label: this.networks.BCH.name },
+            { value: 'sBCH', label: this.networks.sBCH.name },
+          ]
+        },
+        cancel: true,
+        persistent: true
+      }).onOk(data => {
+        this.changeNetwork(data)
+      })
+    },
+    changeNetwork (newNetwork='BCH') {
+      const prevNetwork = this.selectedNetwork
+      this.selectedNetwork = newNetwork
+      if (prevNetwork !== this.selectedNetwork) {
+        this.selectedAsset = this.assets[0]
+        this.transactions = []
+        this.transactionsPage = 1
+        this.transactionsLoaded = false
+        this.getTransactions()
+        if (this.selectedAsset) this.getBalance(this.selectedAsset.id)
+      }
+    },
     toggleManageAssets () {
       this.manageAssets = !this.manageAssets
     },
@@ -220,6 +307,38 @@ export default {
       }, 100)
     },
     getBalance (id) {
+      if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
+      return this.getBchBalance(id)
+    },
+    getSbchBalance(id) {
+      const vm = this
+      if (!id) {
+        id = vm.selectedAsset.id
+      }
+      const parsedId = String(id)
+
+      if (sep20IdRegexp.test(parsedId)) {
+        const contractAddress = parsedId.match(sep20IdRegexp)[1]
+        vm.wallet.sBCH.getSep20TokenBalance(contractAddress)
+          .then(balance => {
+            const commitName = vm.isTestnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
+            vm.$store.commit(commitName, {
+              id: parsedId,
+              balance: balance,
+            })
+          })
+      } else {
+        vm.wallet.sBCH.getBalance()
+          .then(balance => {
+            const commitName = vm.isTestnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
+            vm.$store.commit(commitName, {
+              id: parsedId,
+              balance: balance,
+            })
+          })
+      }
+    },
+    getBchBalance(id) {
       const vm = this
       if (!id) {
         id = vm.selectedAsset.id
@@ -247,6 +366,58 @@ export default {
     },
 
     getTransactions () {
+      if (this.selectedNetwork === 'sBCH') return this.getSbchTransactions()
+      return this.getBchTransactions()
+    },
+    getSbchTransactions() {
+      const vm = this
+      const id = String(vm.selectedAsset.id)
+      vm.transactionsLoaded = false
+
+      const opts = { limit: 10, includeTimestamp: true }
+      if (vm.transactionsFilter === 'sent') {
+        opts.type = 'outgoing'
+      } else if (vm.transactionsFilter === 'received') {
+        opts.type = 'incoming'
+      }
+
+      let appendResults = false
+      if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
+        opts.before = '0x' + (this.earliestBlock - 1).toString(16)
+        appendResults = true
+      }
+
+      let requestPromise = null
+      if (sep20IdRegexp.test(id)) {
+        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
+        requestPromise = vm.wallet.sBCH.getSep20Transactions(contractAddress, opts)
+      } else {
+        requestPromise = vm.wallet.sBCH.getTransactions(opts)
+      }
+
+      if (!requestPromise) return
+      requestPromise
+        .then(response => {
+          vm.transactionsPageHasNext = false
+          if (Array.isArray(response.transactions)) {
+            vm.transactionsPageHasNext = response.transactions.length > 0
+            if (!appendResults) vm.transactions = []
+ 
+            vm.transactions.push(...response.transactions
+              .map(tx => {
+                tx.senders = [tx.from]
+                tx.recipients = [tx.to]
+                return tx
+              })
+            )
+
+          }
+        })
+        .finally(() => {
+          vm.transactionsLoaded = true
+        })
+    },
+    getBchTransactions () {
       const vm = this
       const id = vm.selectedAsset.id
       vm.transactionsLoaded = false
@@ -403,6 +574,46 @@ export default {
       } else {
         this.pinDialogAction = ''
       }
+    },
+
+    loadWallet() {
+      const vm = this
+      getMnemonic().then(function (mnemonic) {
+        vm.wallet = new Wallet(mnemonic, vm.isTestnet)
+        vm.assets.map(function (asset) {
+          vm.getBalance(asset.id)
+        })
+        vm.getTransactions()
+
+        // Create change addresses if nothing is set yet
+        // This is to make sure that v1 wallets auto-upgrades to v2 wallets
+        const bchChangeAddress = vm.getChangeAddress('bch')
+        if (bchChangeAddress.length === 0) {
+          vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+            vm.$store.commit('global/updateWallet', {
+              type: 'bch',
+              walletHash: vm.wallet.BCH.walletHash,
+              derivationPath: vm.wallet.BCH.derivationPath,
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: 0
+            })
+          })
+        }
+        const slpChangeAddress = vm.getChangeAddress('slp')
+        if (slpChangeAddress.length === 0) {
+          vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
+            vm.$store.commit('global/updateWallet', {
+              type: 'slp',
+              walletHash: vm.wallet.SLP.walletHash,
+              derivationPath: vm.wallet.SLP.derivationPath,
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: 0
+            })
+          })
+        }
+      })
     }
   },
 
@@ -412,6 +623,18 @@ export default {
     })
   },
 
+  watch: {
+    isTestnet() {
+      if (!this.wallet) return this.loadWallet()
+
+      if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {
+        this.wallet.setTestnet(this.isTestnet)
+        this.transactions = []
+        this.getTransactions()
+      }
+    }
+  },
+
   async mounted () {
     const vm = this
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
@@ -419,47 +642,13 @@ export default {
     }
 
     // Load wallets
-    getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic)
-      vm.assets.map(function (asset) {
-        vm.getBalance(asset.id)
-      })
-      vm.getTransactions()
+    this.loadWallet()
 
-      // Create change addresses if nothing is set yet
-      // This is to make sure that v1 wallets auto-upgrades to v2 wallets
-      const bchChangeAddress = vm.getChangeAddress('bch')
-      if (bchChangeAddress.length === 0) {
-        vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            type: 'bch',
-            walletHash: vm.wallet.BCH.walletHash,
-            derivationPath: vm.wallet.BCH.derivationPath,
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: 0
-          })
-        })
-      }
-      const slpChangeAddress = vm.getChangeAddress('slp')
-      if (slpChangeAddress.length === 0) {
-        vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            type: 'slp',
-            walletHash: vm.wallet.SLP.walletHash,
-            derivationPath: vm.wallet.SLP.derivationPath,
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: 0
-          })
-        })
-      }
-      if (vm.prevPath === '/') {
-        vm.logIn()
-      } else {
-        vm.startPageStatus = false
-      }
-    })
+    if (vm.prevPath === '/') {
+      vm.logIn()
+    } else {
+      vm.startPageStatus = false
+    }
   }
 }
 </script>
@@ -474,7 +663,7 @@ export default {
   }
   .transaction-row {
     position: relative;
-    margin-top: 270px;
+    margin-top: 305px;
     z-index: 5;
   }
   .transaction-list {

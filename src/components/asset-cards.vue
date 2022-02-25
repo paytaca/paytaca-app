@@ -17,7 +17,7 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </div>
       <div class="row items-start no-wrap justify-between">
-        <img :src="asset.logo" height="30" class="q-mr-xs">
+        <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
         <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
           {{ asset.symbol }}
         </p>
@@ -30,7 +30,7 @@
       </div>
     </div>
     <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
-</div>
+  </div>
 </template>
 
 <script>
@@ -40,6 +40,10 @@ import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 export default {
   name: 'asset-cards',
   props: {
+    network: {
+      type: String,
+      default: 'BCH',
+    },
     assets: { type: Array }
   },
   data () {
@@ -48,7 +52,19 @@ export default {
       assetClickTimer: null
     }
   },
+  computed: {
+    isTestnet() {
+      return this.$store.getters['global/isTestnet']
+    },
+    isSep20 () {
+      return this.network === 'sBCH'
+    }
+  },
   methods: {
+    getFallbackAssetLogo(asset) {
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      return logoGenerator(String(asset && asset.id))
+    },
     selectAsset (event, asset) {
       const vm = this
       vm.assetClickCounter += 1
@@ -101,12 +117,32 @@ export default {
         }
       })
     },
+    addSep20Asset(contractAddress) {
+      const vm = this
+      this.$parent.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
+        if (response.success && response.token) {
+          const commitName = vm.isTestnet ? 'sep20/addNewTestnetAsset' : 'sep20/addNewAsset'
+          vm.$store.commit(commitName, {
+            id: `sep20/${response.token.address}`,
+            symbol: response.token.symbol,
+            name: response.token.name,
+            logo: '',
+            balance: 0,
+          })
+        }
+      })
+    },
     addNewAsset () {
       const vm = this
       vm.$q.dialog({
+        // need both in passing props for now for backwards compatibility
+        componentProps: { network: this.network },
+        network: this.network,
+
         component: AddNewAsset,
         parent: vm
       }).onOk((asset) => {
+        if (this.isSep20) return this.addSep20Asset(asset)
         vm.addAsset(asset)
       }).onCancel(() => {
       })
@@ -119,6 +155,10 @@ export default {
         parent: vm,
         assetName
       }).onOk(() => {
+        if (this.isSep20) {
+          const commitName = vm.isTestnet ? 'sep20/removeTestnetAsset' : 'sep20/removeAsset'
+          return vm.$store.commit(commitName, asset.id)
+        }
         vm.$store.commit('assets/removeAsset', asset.id)
       }).onCancel(() => {
       })

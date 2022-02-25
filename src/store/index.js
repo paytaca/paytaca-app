@@ -4,6 +4,7 @@ import createPersistedState from 'vuex-persistedstate'
 
 import global from './global'
 import assets from './assets'
+import sep20 from './sep20'
 
 Vue.use(Vuex)
 
@@ -21,7 +22,8 @@ export default function (/* { ssrContext } */) {
     plugins: [createPersistedState()],
     modules: {
       global,
-      assets
+      assets,
+      sep20
     },
 
     // enable strict mode (adds overhead!)

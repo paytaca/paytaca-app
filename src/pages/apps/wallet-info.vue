@@ -66,6 +66,25 @@
               </q-list>
             </div>
           </div>
+          <div class="row" style="margin-top: 20px;">
+            <div class="col">
+              <p class="section-title">Smart BCH Address</p>
+              <q-list bordered separator class="list">
+                <q-item clickable v-ripple>
+                  <q-item-section>
+                    <q-item-label caption>Derivation Path</q-item-label>
+                    <q-item-label>{{ getWallet('sBch').derivationPath }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-ripple @click="copyToClipboard(getWallet('sBch').walletHash)">
+                  <q-item-section>
+                    <q-item-label caption>Wallet Hash</q-item-label>
+                    <q-item-label style="word-wrap: break-word;">{{ getWallet('sBch').walletHash }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </div>
           <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
             <div class="col">
             <p class="section-title">About the App</p>

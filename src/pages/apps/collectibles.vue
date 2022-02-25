@@ -1,7 +1,7 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;">
+  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;">
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
+    <q-icon id="context-menu" size="35px" name="more_vert">
       <q-menu>
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -13,7 +13,17 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <div style="padding-top: 60px;">
+    <q-tabs
+      dense
+      active-color="brandblue"
+      class="col-12 q-px-lg"
+      :value="selectedNetwork"
+      @input="changeNetwork"
+    >
+      <q-tab name="BCH" label="BCH"/>
+      <q-tab name="sBCH" label="SmartBCH"/>
+    </q-tabs>
+    <q-slide-transition>
       <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
         <div style="margin-bottom: 5px;">click to copy</div>
         <qr-code
@@ -23,46 +33,128 @@
           :size="160"
           error-level="H"
           class="q-mb-sm"
-        ></qr-code>
+        />
       </div>
-      <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
-        <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
-      </div>
-      <div id="app" ref="app">
-        <div style="text-align: center; margin-top: 40px;" v-if="!collectiblesLoaded">
-          <loader />
-        </div>
-        <template v-if="collectiblesLoaded && collectibles.length > 0">
-          <div
-            ref="collectibles"
-            style="margin-left: auto; margin-right: auto; margin-bottom: 50px;"
-            class="q-pa-md row items-start q-gutter-md"
-          >
-            <q-card
-              v-for="(collectible, index) in collectibles"
-              :key="index"
-              class="collectible-card"
-              @click="showDetails(collectible)"
-            >
-              <template v-if="getImageUrl(collectible).length > 0">
-                <q-img :src="getImageUrl(collectible)" fit="fill"></q-img>
-              </template>
-              <template v-else>
-                <gravatar
-                  :hash="collectible.token_id"
-                />
-              </template>
-            </q-card>
-          </div>
-        </template>
-        <template v-if="collectibles.length === 0 && collectiblesLoaded">
-          <p style="font-size: 20px; color: gray; text-align: center; margin-top: 50px;">
-            You don't own any collectibles yet.
-          </p>
-        </template>
-        <collectible ref="collectible"></collectible>
-      </div>
+    </q-slide-transition>
+    <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
+      <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
     </div>
+    <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;">
+      <q-tab-panel name="BCH">
+        <SLPCollectibles
+          ref="slpCollectibles"
+          :wallet="wallet"
+          style="margin:auto;"
+        />
+      </q-tab-panel>
+      <q-tab-panel name="sBCH">
+        <AddERC721AssetFormDialog v-model="showAddERC721Form"/>
+        <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :asset="erc721AssetDetailDialog.asset"/>
+        <div class="row items-start justify-end q-px-sm">
+          <q-btn
+            flat
+            rounded
+            padding="sm"
+            size="sm"
+            icon="add"
+            style="color: #3B7BF6;"
+            class="q-mx-sm"
+            @click="showAddERC721Form = true"
+          />
+          <q-btn
+            flat
+            rounded
+            padding="sm"
+            size="sm"
+            icon="app_registration"
+            style="color: #3B7BF6;"
+            class="q-mx-sm"
+            @click="toggleManageAssets"
+          />
+        </div>
+        <p
+          v-if="erc721Assets && erc721Assets.length === 0"
+          style="font-size: 20px; color: gray; text-align: center;"
+          class="q-py-md"
+        >
+          Asset list empty
+        </p>
+        <template v-else>
+          <q-expansion-item v-model="selectERC721AssetExpanded" dense dense-toggle>
+            <template v-slot:header>
+              <div class="row no-wrap items-center q-space q-pl-md" style="min-height:40px">
+                <template v-if="erc721Assets[selectedERC721AssetIndex]">
+                  <q-btn
+                    flat
+                    rounded
+                    padding="sm"
+                    icon="info"
+                    style="color: #3B7BF6;"
+                    @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
+                  />
+                  <div class="text-subtitle1">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
+                </template>
+                <div v-else class="text-grey">
+                  Select Collection
+                </div>
+              </div>
+            </template>
+
+            <q-item
+              v-for="(asset, index) in erc721Assets"
+              :key="index"
+              clickable
+              :active="index === selectedERC721AssetIndex"
+              @click="
+                selectedERC721AssetIndex = index
+                selectERC721AssetExpanded = false
+              "
+            >
+              <q-item-section side>
+                <q-btn
+                  v-if="enableManageAssets"
+                  flat
+                  rounded
+                  padding="sm"
+                  icon="delete"
+                  style="color: #3B7BF6;"
+                  @click.stop="confirmRemoveERC721Asset(asset)"
+                />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ asset.name }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-btn
+                  flat
+                  rounded
+                  padding="sm"
+                  icon="info"
+                  style="color: #3B7BF6;"
+                  @click.stop="showERC721Asset(asset)"
+                />
+              </q-item-section>
+            </q-item>
+          </q-expansion-item>
+          <q-separator spaced inset/>
+        </template>
+        <q-tab-panels v-model="selectedERC721AssetIndex" keep-alive style="background:inherit;">
+          <q-tab-panel
+            v-for="(asset, index) in erc721Assets"
+            :key="index"
+            :name="index"
+            class="q-pa-none"
+          >
+            <ERC721Collectibles
+              ref='erc721Collectibles'
+              :contract-address="asset.address"
+              :wallet="wallet"
+            />
+          </q-tab-panel>
+        </q-tab-panels>
+      </q-tab-panel>
+    </q-tab-panels>
+    <div style="padding-bottom:60px;"></div>
     <footer-menu />
   </div>
 </template>
@@ -70,55 +162,96 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
-import Loader from '../../components/loader'
-import Gravatar from 'vue-gravatar'
-import Collectible from 'src/components/collectible.vue'
+import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetFormDialog.vue'
+import ERC721Collectibles from 'src/components/collectibles/ERC721Collectibles.vue'
+import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDialog.vue'
+import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav, Gravatar, Loader, Collectible },
+  components: { HeaderNav, AddERC721AssetFormDialog, ERC721Collectibles, ERC721AssetDetailDialog, SLPCollectibles },
   data () {
     return {
-      collectibles: [],
-      collectiblesLoaded: false,
+      collectibleDetail: {
+        show: false,
+        collectible: null
+      },
+      enableManageAssets: false,
+      showAddERC721Form: false,
+      selectERC721AssetExpanded: false,
+      erc721AssetDetailDialog: {
+        show: false,
+        asset: null
+      },
+      selectedERC721AssetIndex: -1,
       showAddress: false,
       wallet: null
     }
   },
   computed: {
+    isTestnet () {
+      return this.$store.getters['global/isTestnet']
+    },
+    isSep20 () {
+      return this.selectedNetwork === 'sBCH'
+    },
+    erc721Assets () {
+      if (this.isTestnet) return this.$store.getters['sep20/getTestnetNftAssets']
+      return this.$store.getters['sep20/getNftAssets']
+    },
+    selectedNetwork: {
+      get () {
+        return this.$store.getters['global/network']
+      },
+      set (value) {
+        return this.$store.commit('global/setNetwork', value)
+      }
+    },
     receivingAddress () {
+      if (!this.wallet) return ''
+
+      if (this.isSep20) return this.wallet.sBCH._wallet.address
       return this.$store.getters['global/getAddress']('slp')
     }
   },
   methods: {
-    getScreenWidth () {
-      const divBounds = document.body.getBoundingClientRect()
-      return divBounds.width
+    changeNetwork (newNetwork = 'BCH') {
+      this.selectedNetwork = newNetwork
     },
-    getCollectibles () {
-      const vm = this
-      vm.collectiblesLoaded = false
-      vm.wallet.SLP.getCollectibles().then(function (collectibles) {
-        vm.collectibles = collectibles
-        // Sort by date_created
-        vm.collectibles = vm.collectibles.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
-        vm.collectiblesLoaded = true
-        if (collectibles.length > 0 && vm.$refs.collectibles) {
-          vm.$refs.collectibles.style.width = screen.width + 'px'
-        }
+    toggleManageAssets () {
+      this.enableManageAssets = !Boolean(this.enableManageAssets)
+      this.selectERC721AssetExpanded = this.enableManageAssets
+    },
+    showERC721Asset (asset) {
+      this.erc721AssetDetailDialog.asset = asset
+      this.erc721AssetDetailDialog.show = true
+    },
+    confirmRemoveERC721Asset (asset) {
+      const title = this.isTestnet ? 'Remove testnet asset' : 'Remove asset'
+      const message = 'Remove asset "' + asset.name + '". Are you sure?'
+      this.$q.dialog({
+        title: title,
+        message: message,
+        cancel: true,
+        persistent: true
+      }).onOk(() => {
+        console.log('removing asset', asset)
+        const commitName = this.isTestnet ? 'sep20/removeTestnetNftAsset' : 'sep20/removeNftAsset'
+        this.$store.commit(commitName, asset.address)
       })
     },
-    getImageUrl (collectible) {
-      if (collectible.thumbnail_image_url.length > 0) {
-        return collectible.thumbnail_image_url
-      } else if (collectible.medium_image_url.length > 0) {
-        return collectible.medium_image_url
-      } else {
-        return collectible.original_image_url
+    getCollectibles () {
+      if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
+        this.$refs.slpCollectibles.fetchCollectibles()
       }
-    },
-    showDetails (collectible) {
-      this.$refs.collectible.show(collectible)
+
+      if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {
+        this.$refs.erc721Collectibles.fetchCollectibles()
+      } else if (Array.isArray(this?.$refs?.erc721Collectibles)) {
+        this.$refs.erc721Collectibles.forEach(component => {
+          if (component?.fetchCollectibles?.call) component.fetchCollectibles()
+        })
+      }
     },
     copyAddress (address) {
       this.$copyText(address)
@@ -126,17 +259,26 @@ export default {
         message: 'Copied address',
         timeout: 800
       })
+    },
+    loadWallet () {
+      const vm = this
+      getMnemonic().then(function (mnemonic) {
+        vm.wallet = new Wallet(mnemonic, vm.isTestnet)
+      })
+    }
+  },
+  watch: {
+    isTestnet () {
+      if (!this.wallet) return this.loadWallet()
+
+      if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {
+        this.wallet.setTestnet(this.isTestnet)
+        this.getCollectibles()
+      }
     }
   },
   mounted () {
-    const divHeight = screen.availHeight - 120
-    this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
-
-    const vm = this
-    getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic)
-      vm.getCollectibles()
-    })
+    this.loadWallet()
   }
 }
 </script>
@@ -156,6 +298,7 @@ export default {
 #context-menu {
   position: fixed;
   top: 16px;
+  right: 10px;
   z-index: 150 !important;
   color: #3b7bf6;
 }
