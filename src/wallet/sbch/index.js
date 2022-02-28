@@ -352,14 +352,25 @@ export class SmartBchWallet {
 
     const contract = getERC721Contract(contractAddress, this._testnet)
     const uri = await contract.tokenURI(tokenID)
-    const response = await axios.get(uri)
+    let success = false
+    let data = null
+    let error = undefined
+    try {
+      const response = await axios.get(uri)
+      success = true
+      data = response.data
+    } catch (err) {
+      success = false
+      error = err
+    }
 
     return {
-      success: true,
+      success: success,
       id: tokenID,
       address: contract.address,
       url: uri,
-      data: response.data,
+      data: data,
+      error: error,
     }
   }
 
@@ -419,10 +430,12 @@ export class SmartBchWallet {
   
     if (includeMetadata) {
       const metadataPromises = Promise.all(parsedTokens.map(async (token, index) => {
-        const {url, data} = await this.getNFTMetadata(contract.address, token.id)
-        token.metadata_url = url
-        token.metadata = data
-        if (typeof metadataCallback === 'function') metadataCallback(token, index)
+        try {
+          const {url, data} = await this.getNFTMetadata(contract.address, token.id)
+          token.metadata_url = url
+          token.metadata = data
+          if (typeof metadataCallback === 'function') metadataCallback(token, index)
+        } catch {}
         return Promise.resolve()
       }))
 
