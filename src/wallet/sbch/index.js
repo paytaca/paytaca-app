@@ -350,7 +350,7 @@ export class SmartBchWallet {
       error: 'Invalid token address',
     }
 
-    const contract = getERC721Contract(contractAddress)
+    const contract = getERC721Contract(contractAddress, this._testnet)
     const uri = await contract.tokenURI(tokenID)
     const response = await axios.get(uri)
 
