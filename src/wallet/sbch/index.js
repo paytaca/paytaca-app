@@ -1,9 +1,9 @@
 import axios from 'axios'
 import { BigNumber, ethers, utils } from 'ethers'
 
-import { getProvider, getERC721Contract, getSep20Contract, watchTransactions } from './utils'
+import { getProvider, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
 
-export { getProvider, getERC721Contract, getSep20Contract, watchTransactions }
+export { getProvider, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions }
 
 
 export class SmartBchWallet {

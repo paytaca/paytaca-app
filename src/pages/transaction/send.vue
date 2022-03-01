@@ -141,6 +141,7 @@
 
 <script>
 import { getMnemonic, Wallet, Address } from '../../wallet'
+import { decodeEIP681URI } from '../../wallet/sbch'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import Loader from '../../components/loader'
@@ -508,10 +509,26 @@ export default {
       }
     },
     onDecode (content) {
-      const valid = this.checkAddress(content)
+      console.log('Got content:', content)
+      let address = content
+      let amount = null
+      try {
+        console.log('Parsing content as eip681')
+        const eip6821data = decodeEIP681URI(content)
+        address = eip6821data.target_address
+        amount = eip6821data.parsedValue
+      } catch (err) {
+        console.log('Failed to parse as eip681 uri')
+        console.log(err)
+      }
+      const valid = this.checkAddress(address)
       if (valid) {
-        this.sendData.recipientAddress = content
+        this.sendData.recipientAddress = address
         this.scannedRecipientAddress = true
+
+        if (amount !== null) {
+          this.sendData.amount = amount
+        }
       }
       this.scanner.show = !this.scanner.show
     },
