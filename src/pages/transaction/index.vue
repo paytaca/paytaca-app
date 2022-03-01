@@ -619,7 +619,6 @@ export default {
         }
 
         const sBchDerivationPath = vm.getWallet('sbch').derivationPath
-        console.log(sBchDerivationPath, sBchDerivationPath.length)
         if (sBchDerivationPath.length !== 14) {
           vm.$store.commit('global/updateWallet', {
             type: 'sbch',

@@ -2,22 +2,22 @@ import { BigNumber, ethers, utils } from 'ethers'
 
 import { sep20Abi, erc721Abi } from './abi'
 
-export function getProvider(test=false) {
+export function getProvider (test = false) {
   const rpcUrls = {
     test: 'http://35.220.203.194:8545/',
-    main: 'https://smartbch.fountainhead.cash/mainnet',
+    main: 'https://smartbch.fountainhead.cash/mainnet'
   }
 
-  return new ethers.providers.JsonRpcBatchProvider(test ? rpcUrls.test : rpcUrls.main);
+  return new ethers.providers.JsonRpcBatchProvider(test ? rpcUrls.test : rpcUrls.main)
 }
 
-export function getERC721Contract(contractAddress, test=false) {
+export function getERC721Contract (contractAddress, test = false) {
   if (!utils.isAddress(contractAddress)) return
 
   return new ethers.Contract(
     contractAddress,
     erc721Abi,
-    getProvider(test),
+    getProvider(test)
   )
 }
 
@@ -27,7 +27,7 @@ export function getSep20Contract(contractAddress, test=false) {
   return new ethers.Contract(
     contractAddress,
     sep20Abi,
-    getProvider(test),
+    getProvider(test)
   )
 }
 
