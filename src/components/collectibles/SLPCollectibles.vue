@@ -1,5 +1,8 @@
 <template>
   <div>
+    <div v-if="fetchingCollectibles" class="row items-center justify-center">
+      <Loader/>
+    </div>
     <div v-if="collectibles.length > 0" class="q-pa-md row items-start">
       <q-card
         v-for="(collectible, index) in collectibles"
@@ -20,9 +23,6 @@
         You don't own any collectibles yet.
       </p>
     </template>
-    <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <Loader/>
-    </div>
     <Collectible v-model="collectibleDetail.show" :collectible="collectibleDetail.collectible"/>
   </div>
 </template>
