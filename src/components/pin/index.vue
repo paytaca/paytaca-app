@@ -127,7 +127,11 @@ export default {
         vm.btnIcon = vm.pinDialogAction === 'VERIFY' ? 'verified_user' : 'done'
         vm.subTitle = vm.pinDialogAction === 'VERIFY' ? vm.subText1 : vm.subText2
       } else {
-        vm.dialog = false
+        if (vm.pinDialogAction === 'SKIP') {
+          vm.$emit('nextAction', 'send')
+        } else {
+          vm.dialog = false
+        }
       }
     }
   },

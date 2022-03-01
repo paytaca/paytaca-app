@@ -45,7 +45,6 @@ export class SmartBchWallet {
 
   async getBalance () {
     const balance = await this._wallet.getBalance()
-    console.log('Balance:', balance)
     return utils.formatEther(balance)
   }
 

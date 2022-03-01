@@ -192,7 +192,7 @@ export default {
   },
 
   computed: {
-    isTestnet() {
+    isTestnet () {
       return this.$store.getters['global/isTestnet']
     },
     selectedNetwork: {
@@ -216,7 +216,7 @@ export default {
       })
     },
 
-    earliestBlock() {
+    earliestBlock () {
       if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
       return Math.min(
         ...this.transactions
@@ -240,7 +240,7 @@ export default {
   },
 
   methods: {
-    getFallbackAssetLogo(asset) {
+    getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
@@ -262,7 +262,7 @@ export default {
         this.changeNetwork(data)
       })
     },
-    changeNetwork (newNetwork='BCH') {
+    changeNetwork (newNetwork = 'BCH') {
       const prevNetwork = this.selectedNetwork
       this.selectedNetwork = newNetwork
       if (prevNetwork !== this.selectedNetwork) {
@@ -310,7 +310,7 @@ export default {
       if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
       return this.getBchBalance(id)
     },
-    getSbchBalance(id) {
+    getSbchBalance (id) {
       const vm = this
       if (!id) {
         id = vm.selectedAsset.id
@@ -324,7 +324,7 @@ export default {
             const commitName = vm.isTestnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
             vm.$store.commit(commitName, {
               id: parsedId,
-              balance: balance,
+              balance: balance
             })
           })
       } else {
@@ -333,12 +333,12 @@ export default {
             const commitName = vm.isTestnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
             vm.$store.commit(commitName, {
               id: parsedId,
-              balance: balance,
+              balance: balance
             })
           })
       }
     },
-    getBchBalance(id) {
+    getBchBalance (id) {
       const vm = this
       if (!id) {
         id = vm.selectedAsset.id
@@ -369,7 +369,7 @@ export default {
       if (this.selectedNetwork === 'sBCH') return this.getSbchTransactions()
       return this.getBchTransactions()
     },
-    getSbchTransactions() {
+    getSbchTransactions () {
       const vm = this
       const id = String(vm.selectedAsset.id)
       vm.transactionsLoaded = false
@@ -410,7 +410,6 @@ export default {
                 return tx
               })
             )
-
           }
         })
         .finally(() => {
@@ -514,9 +513,24 @@ export default {
         )
     },
 
+    setVerifyDialogAction () {
+      const vm = this
+      let pinVerificationCount
+      pinVerificationCount = vm.$q.localStorage.getItem('pinVerificationCount')
+      pinVerificationCount = isNaN(pinVerificationCount) ? 0 : parseInt(pinVerificationCount)
+      if (pinVerificationCount % 10 === 0) {
+        // Verify PIN every 10th load of this index page
+        vm.$q.localStorage.set('pinVerificationCount', pinVerificationCount + 1)
+        vm.pinDialogAction = 'VERIFY'
+      } else {
+        vm.pinDialogAction = 'SKIP'
+        vm.$q.localStorage.set('pinVerificationCount', pinVerificationCount + 1)
+      }
+    },
+
     verifyOrSetupPIN () {
       if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-        this.pinDialogAction = 'VERIFY'
+        this.setVerifyDialogAction()
       } else {
         this.setPreferredSecurity('pin')
       }
@@ -553,7 +567,7 @@ export default {
         if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
           SecureStoragePlugin.get({ key: 'pin' })
             .then(() => {
-              vm.pinDialogAction = 'VERIFY'
+              vm.setVerifyDialogAction()
             })
             .catch(_err => {
               vm.pinDialogAction = 'SET UP'
