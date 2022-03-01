@@ -402,7 +402,7 @@ export default {
           if (Array.isArray(response.transactions)) {
             vm.transactionsPageHasNext = response.transactions.length > 0
             if (!appendResults) vm.transactions = []
- 
+
             vm.transactions.push(...response.transactions
               .map(tx => {
                 tx.senders = [tx.from]
@@ -576,7 +576,11 @@ export default {
       }
     },
 
-    loadWallet() {
+    getWallet (type) {
+      return this.$store.getters['global/getWallet'](type)
+    },
+
+    loadWallets () {
       const vm = this
       getMnemonic().then(function (mnemonic) {
         vm.wallet = new Wallet(mnemonic, vm.isTestnet)
@@ -614,11 +618,15 @@ export default {
           })
         }
 
-        vm.$store.commit('global/updateWallet', {
-          type: 'sbch',
-          derivationPath: vm.wallet.sBCH._wallet.mnemonic.path,
-          walletHash: vm.wallet.sBCH._wallet.address
-        })
+        const sBchDerivationPath = vm.getWallet('sbch').derivationPath
+        console.log(sBchDerivationPath, sBchDerivationPath.length)
+        if (sBchDerivationPath.length !== 14) {
+          vm.$store.commit('global/updateWallet', {
+            type: 'sbch',
+            derivationPath: vm.wallet.sBCH.derivationPath,
+            walletHash: vm.wallet.sBCH.walletHash
+          })
+        }
       })
     }
   },
@@ -630,7 +638,7 @@ export default {
   },
 
   watch: {
-    isTestnet() {
+    isTestnet () {
       if (!this.wallet) return this.loadWallet()
 
       if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {
@@ -648,7 +656,7 @@ export default {
     }
 
     // Load wallets
-    this.loadWallet()
+    this.loadWallets()
 
     if (vm.prevPath === '/') {
       vm.logIn()

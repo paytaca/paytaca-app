@@ -16,7 +16,7 @@ const bchjs = new BCHJS()
 const projectId = process.env.WATCHTOWER_PROJECT_ID
 
 export class Wallet {
-  constructor (mnemonic, test=false) {
+  constructor (mnemonic, test = false) {
     this._testnet = Boolean(test)
     this.mnemonic = mnemonic
     this.BCH = new BchWallet(projectId, mnemonic, "m/44'/145'/0'") // Main BCH wallet
@@ -24,7 +24,7 @@ export class Wallet {
     this.SLP = new SlpWallet(projectId, mnemonic, "m/44'/245'/0'") // SLP wallet
   }
 
-  async setTestnet(value=true) {
+  async setTestnet (value = true) {
     this._testnet = Boolean(value)
     this.sBCH.setTestnet(this._testnet)
   }

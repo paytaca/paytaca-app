@@ -1,4 +1,5 @@
 import axios from 'axios'
+import sha256 from 'js-sha256'
 import { BigNumber, ethers, utils } from 'ethers'
 
 import { getProvider, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
@@ -13,17 +14,27 @@ export class SmartBchWallet {
     this.TX_INCOMING = 'incoming'
     this.TX_OUTGOING = 'outgoing'
 
+    this.mnemonic = mnemonic
     this.projectId = projectId
+    this.derivationPath = path
+    this.walletHash = this.getWalletHash()
     this._testnet = test
 
     this.provider = getProvider(this._testnet)
 
-    // Single-account for now
-    // TODO: Support multiple accounts in the future
-    const accountIndex = 0
-    const addressPath = `${path}/${accountIndex}`
+    // Single address for now
+    // TODO: Add support for multiple addresses in the future
+    const addressIndex = 0
+    const addressPath = `${path}/${addressIndex}`
 
     this._wallet = ethers.Wallet.fromMnemonic(mnemonic, addressPath).connect(this.provider)
+  }
+
+  getWalletHash () {
+    const mnemonicHash = sha256(this.mnemonic)
+    const derivationPath = sha256(this.derivationPath)
+    const walletHash = sha256(mnemonicHash + derivationPath)
+    return walletHash
   }
 
   setTestnet (value = true) {

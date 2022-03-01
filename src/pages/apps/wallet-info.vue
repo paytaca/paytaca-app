@@ -73,7 +73,7 @@
                 <q-item clickable v-ripple>
                   <q-item-section>
                     <q-item-label caption>Derivation Path</q-item-label>
-                    <q-item-label>{{ getWallet('sBch').derivationPath }}</q-item-label>
+                    <q-item-label>{{ getWallet('sbch').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('sbch').walletHash)">
