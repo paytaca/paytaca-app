@@ -326,6 +326,7 @@ export default {
               id: parsedId,
               balance: balance
             })
+            vm.balanceLoaded = true
           })
       } else {
         vm.wallet.sBCH.getBalance()
@@ -335,6 +336,7 @@ export default {
               id: parsedId,
               balance: balance
             })
+            vm.balanceLoaded = true
           })
       }
     },
@@ -402,7 +404,6 @@ export default {
           if (Array.isArray(response.transactions)) {
             vm.transactionsPageHasNext = response.transactions.length > 0
             if (!appendResults) vm.transactions = []
-
             vm.transactions.push(...response.transactions
               .map(tx => {
                 tx.senders = [tx.from]

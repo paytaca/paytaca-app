@@ -320,7 +320,6 @@ export class SmartBchWallet {
     }
     const tokenContract = getERC721Contract(contractAddress, this._testnet)
     const address = await tokenContract.ownerOf(tokenId)
-    console.log(address)
     if (address !== this._wallet.address) {
       return {
         success: false,
