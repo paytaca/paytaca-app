@@ -20,7 +20,7 @@ export default function () {
         lastChangeAddress: '',
         lastAddressIndex: 0
       },
-      sBch: {
+      sbch: {
         walletHash: '',
         derivationPath: ''
       }

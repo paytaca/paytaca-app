@@ -5,44 +5,49 @@ import { getProvider, getERC721Contract, getSep20Contract, decodeEIP681URI, watc
 
 export { getProvider, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions }
 
-
 export class SmartBchWallet {
   static TX_INCOMING = 'incoming'
   static TX_OUTGOING = 'outgoing'
 
-  constructor (projectId, mnemonic, path, test=false) {
+  constructor (projectId, mnemonic, path, test = false) {
     this.TX_INCOMING = 'incoming'
     this.TX_OUTGOING = 'outgoing'
-  
+
     this.projectId = projectId
     this._testnet = test
 
     this.provider = getProvider(this._testnet)
-    this._wallet = ethers.Wallet.fromMnemonic(mnemonic, path).connect(this.provider)
+
+    // Single-account for now
+    // TODO: Support multiple accounts in the future
+    const accountIndex = 0
+    const addressPath = `${path}/${accountIndex}`
+
+    this._wallet = ethers.Wallet.fromMnemonic(mnemonic, addressPath).connect(this.provider)
   }
 
-  setTestnet(value=true) {
+  setTestnet (value = true) {
     this._testnet = Boolean(value)
     this.provider = getProvider(this._testnet)
     this._wallet = this._wallet.connect(this.provider)
   }
 
-  async getBalance() {
+  async getBalance () {
     const balance = await this._wallet.getBalance()
     return utils.formatEther(balance)
   }
 
-  async getSep20TokenBalance(contractAddress) {
+  async getSep20TokenBalance (contractAddress) {
     if (!utils.isAddress(contractAddress)) return 0
     const tokenContract = getSep20Contract(contractAddress, this._testnet)
     const balance = await tokenContract.balanceOf(this._wallet.address)
     return utils.formatEther(balance)
   }
 
-  async getTransactions({ type= null, before= 'latest', after= '0x0', limit= 10, includeTimestamp=false }) {
+  async getTransactions ({ type = null, before = 'latest', after = '0x0', limit = 10, includeTimestamp = false }) {
     let method = 'sbch_queryTxByAddr'
     if (type === this.TX_INCOMING) method = 'sbch_queryTxByDst'
-    else if(type === this.TX_OUTGOING) method = 'sbch_queryTxBySrc'
+    else if (type === this.TX_OUTGOING) method = 'sbch_queryTxBySrc'
 
     const txs = await this._wallet.provider.send(
       method,
@@ -50,7 +55,7 @@ export class SmartBchWallet {
         this._wallet.address,
         before,
         after,
-        '0x' + limit.toString(16),
+        '0x' + limit.toString(16)
       ]
     )
 
@@ -68,7 +73,7 @@ export class SmartBchWallet {
 
           gas: utils.formatEther(BigNumber.from(tx.gas)),
 
-          _raw: tx,          
+          _raw: tx
         }
       })
 
@@ -78,7 +83,7 @@ export class SmartBchWallet {
       await Promise.all(
         // Returns list of promise, each run asynchronously to fetch their own timestamps from block number
         parsedTxs.map(tx => {
-          if(!includeTimestamp) return Promise.resolve()
+          if (!includeTimestamp) return Promise.resolve()
           if (!tx || !tx.block) return Promise.resolve()
 
           // With <ethers.providers.JsonRpcBatchProvider>, each call would be compiled in one request
@@ -95,11 +100,11 @@ export class SmartBchWallet {
 
     return {
       success: true,
-      transactions: parsedTxs,
+      transactions: parsedTxs
     }
   }
 
-  async _getSep20Transaction(contractAddress, { before='latest', after='0x0', limit= 10}) {
+  async _getSep20Transaction (contractAddress, { before = 'latest', after = '0x0', limit = 10 }) {
     if (!utils.isAddress(contractAddress)) return []
 
     const tokenContract = getSep20Contract(contractAddress, this._testnet)
@@ -112,7 +117,7 @@ export class SmartBchWallet {
         eventFilter.topics,
         before,
         after,
-        '0x' + limit.toString(16),
+        '0x' + limit.toString(16)
       ]
     )
 
@@ -130,7 +135,7 @@ export class SmartBchWallet {
         from: parsedLog.args._from,
         to: parsedLog.args._to,
 
-        _raw: parsedLog,          
+        _raw: parsedLog
       }
     })
 
@@ -152,10 +157,12 @@ export class SmartBchWallet {
         - Encountered empty filtered txs for an `limiter` number of time. (This condition is arbitrary, its just to prevent looping for forever)
     https://docs.smartbch.org/smartbch/developers-guide/jsonrpc#sbch_querylogs
   */
-  async getSep20Transactions(contractAddress, { type= null, before= 'latest', after= '0x0', limit= 10, includeTimestamp=false }) {
-    if (!utils.isAddress(contractAddress)) return {
-      success: false,
-      error: 'Invalid token address',
+  async getSep20Transactions (contractAddress, { type = null, before = 'latest', after = '0x0', limit = 10, includeTimestamp = false }) {
+    if (!utils.isAddress(contractAddress)) {
+      return {
+        success: false,
+        error: 'Invalid token address'
+      }
     }
 
     const tokenContract = getSep20Contract(contractAddress, this._testnet)
@@ -165,9 +172,9 @@ export class SmartBchWallet {
     // need to check if after is a block number
     const afterBlock = /0x[0-9a-f]/i.test(after) ? BigNumber.from(after) : Infinity
     let limiterCtr = 0
-    let limiter = limit
-    while(limiterCtr < limiter) {
-      const txs = await this._getSep20Transaction(tokenContract.address, {before: pseudoBefore, after, limit})
+    const limiter = limit
+    while (limiterCtr < limiter) {
+      const txs = await this._getSep20Transaction(tokenContract.address, { before: pseudoBefore, after, limit })
       const filteredTxs = txs.filter(tx => {
         if (type === this.TX_INCOMING) return this._wallet.address === tx.to
         if (type === this.TX_OUTGOING) return this._wallet.address === tx.from
@@ -192,7 +199,7 @@ export class SmartBchWallet {
       await Promise.all(
         // Returns list of promise, each run asynchronously to fetch their own timestamps from block number
         parsedTxs.map(tx => {
-          if(!includeTimestamp) return Promise.resolve()
+          if (!includeTimestamp) return Promise.resolve()
           if (!tx || !tx.block) return Promise.resolve()
 
           // With <ethers.providers.JsonRpcBatchProvider>, each call would be compiled in one request
@@ -207,7 +214,6 @@ export class SmartBchWallet {
       )
     }
 
-
     return {
       success: true,
       // Causing new requests per transaction
@@ -216,43 +222,49 @@ export class SmartBchWallet {
       //   name: await tokenContract.name(),
       //   symbol: await tokenContract.symbol(),
       // },
-      transactions: parsedTxs,
+      transactions: parsedTxs
     }
   }
 
-  async sendBch(amount, recipientAddress) {
-    if (!utils.isAddress(recipientAddress)) return {
-      success: false,
-      error: 'Invalid recipient address',
+  async sendBch (amount, recipientAddress) {
+    if (!utils.isAddress(recipientAddress)) {
+      return {
+        success: false,
+        error: 'Invalid recipient address'
+      }
     }
 
     const parsedAmount = utils.parseEther(amount)
     try {
       const tx = await this._wallet.sendTransaction({
         to: recipientAddress,
-        value: parsedAmount,
+        value: parsedAmount
       })
       return {
         success: true,
-        transaction: tx,
+        transaction: tx
       }
     } catch (e) {
       return {
         success: false,
-        error: e.reason,
+        error: e.reason
       }
     }
   }
 
-  async sendSep20Token(contractAddress, amount, recipientAddress) {
-    if (!utils.isAddress(recipientAddress)) return {
-      success: false,
-      error: 'Invalid recipient address',
+  async sendSep20Token (contractAddress, amount, recipientAddress) {
+    if (!utils.isAddress(recipientAddress)) {
+      return {
+        success: false,
+        error: 'Invalid recipient address'
+      }
     }
 
-    if (!utils.isAddress(contractAddress)) return {
-      success: false,
-      error: 'Invalid token address',
+    if (!utils.isAddress(contractAddress)) {
+      return {
+        success: false,
+        error: 'Invalid token address'
+      }
     }
 
     const parsedAmount = utils.parseEther(amount)
@@ -260,35 +272,39 @@ export class SmartBchWallet {
     const contractWithSigner = tokenContract.connect(this._wallet)
     try {
       const tx = await contractWithSigner.transfer(recipientAddress, parsedAmount)
-      const minedTx = await tx.wait();
+      const minedTx = await tx.wait()
       return {
         success: true,
-        transaction: minedTx,
+        transaction: minedTx
       }
-    } catch(e) {
+    } catch (e) {
       return {
         success: false,
-        error: e.reason,
+        error: e.reason
       }
     }
   }
 
-  async sendERC721Token(contractAddress, tokenId, recipientAddress) {
-    if (!utils.isAddress(recipientAddress)) return {
-      success: false,
-      error: 'Invalid recipient address',
+  async sendERC721Token (contractAddress, tokenId, recipientAddress) {
+    if (!utils.isAddress(recipientAddress)) {
+      return {
+        success: false,
+        error: 'Invalid recipient address'
+      }
     }
 
-    if (!utils.isAddress(contractAddress)) return {
-      success: false,
-      error: 'Invalid token address',
+    if (!utils.isAddress(contractAddress)) {
+      return {
+        success: false,
+        error: 'Invalid token address'
+      }
     }
 
     const parsedTokenId = Number(tokenId)
     if (!Number.isSafeInteger(parsedTokenId)) {
       return {
         success: false,
-        error: 'Invalid Token ID',
+        error: 'Invalid Token ID'
       }
     }
     const tokenContract = getERC721Contract(contractAddress, this._testnet)
@@ -304,15 +320,15 @@ export class SmartBchWallet {
     const contractWithSigner = tokenContract.connect(this._wallet)
     try {
       const tx = await contractWithSigner.safeTransferFrom(this._wallet.address, recipientAddress, parsedTokenId)
-      const minedTx = await tx.wait();
+      const minedTx = await tx.wait()
       return {
         success: true,
-        transaction: minedTx,
+        transaction: minedTx
       }
-    } catch(e) {
+    } catch (e) {
       return {
         success: false,
-        error: e.reason,
+        error: e.reason
       }
     }
   }
@@ -324,37 +340,41 @@ export class SmartBchWallet {
     )
   }
 
-  async getSep20ContractDetails(contractAddress) {    
-    if (!utils.isAddress(contractAddress)) return {
-      success: false,
-      error: 'Invalid token address',
+  async getSep20ContractDetails (contractAddress) {
+    if (!utils.isAddress(contractAddress)) {
+      return {
+        success: false,
+        error: 'Invalid token address'
+      }
     }
     const tokenContract = getSep20Contract(contractAddress, this._testnet)
-    
-    const tokenName = await tokenContract.name();
-    const tokenSymbol = await tokenContract.symbol();
+
+    const tokenName = await tokenContract.name()
+    const tokenSymbol = await tokenContract.symbol()
 
     return {
       success: true,
       token: {
         address: tokenContract.address,
         name: tokenName,
-        symbol: tokenSymbol,
+        symbol: tokenSymbol
       }
     }
   }
-  
-  async getNFTMetadata(contractAddress, tokenID) {
-    if (!utils.isAddress(contractAddress)) return {
-      success: false,
-      error: 'Invalid token address',
+
+  async getNFTMetadata (contractAddress, tokenID) {
+    if (!utils.isAddress(contractAddress)) {
+      return {
+        success: false,
+        error: 'Invalid token address'
+      }
     }
 
     const contract = getERC721Contract(contractAddress, this._testnet)
     const uri = await contract.tokenURI(tokenID)
     let success = false
     let data = null
-    let error = undefined
+    let error
     try {
       const response = await axios.get(uri)
       success = true
@@ -370,11 +390,11 @@ export class SmartBchWallet {
       address: contract.address,
       url: uri,
       data: data,
-      error: error,
+      error: error
     }
   }
 
-  async getOwnedNFTs(contractAddress, {limit=10, offset=0, includeMetadata=false}) {
+  async getOwnedNFTs (contractAddress, { limit = 10, offset = 0, includeMetadata = false }) {
     return this.getNFTs(
       contractAddress,
       {
@@ -382,7 +402,7 @@ export class SmartBchWallet {
         offset,
         includeMetadata,
         address: this._wallet.address,
-        test: this._testnet,
+        test: this._testnet
       }
     )
   }
@@ -396,42 +416,44 @@ export class SmartBchWallet {
    * @param {bool}    includeMetadata flag to include metadata in response. See ERC721 metadata
    * @param {bool}    asyncMetadata flag to fetch the metadatta async. Only meaningful with `includeMetadata`
    * @param {func}    metadataCallback function to call when a token metadata is fetched. Recommended if `asyncMetadata` is set.
-   * 
+   *
    * - Metadata is not fetched by default as it can get costly
    * - Added fetching metadata asynchronously to allow partial response with less response time
    */
-  async getNFTs(contractAddress, {limit=10, offset=0, includeMetadata=false, asyncMetadata=false, metadataCallback=()=>{}, address=''}) {
-    if (!utils.isAddress(contractAddress)) return {
-      success: false,
-      error: 'Invalid token address',
+  async getNFTs (contractAddress, { limit = 10, offset = 0, includeMetadata = false, asyncMetadata = false, metadataCallback = () => {}, address = '' }) {
+    if (!utils.isAddress(contractAddress)) {
+      return {
+        success: false,
+        error: 'Invalid token address'
+      }
     }
-  
+
     const contract = getERC721Contract(contractAddress, this._testnet)
     var balance
     if (address) balance = await contract.balanceOf(this._wallet.address)
     else balance = await contract.totalSupply()
-  
+
     const startIndex = Math.min(offset, balance)
-    const endIndex = Math.min(offset+limit, balance)
-  
+    const endIndex = Math.min(offset + limit, balance)
+
     const promises = []
     for (var i = startIndex; i < endIndex; i++) {
       if (address) promises.push(contract.tokenOfOwnerByIndex(this._wallet.address, i))
       else promises.push(contract.tokenByIndex(i))
     }
-  
+
     const tokenIDs = await Promise.all(promises)
     const parsedTokens = tokenIDs.map(tokenID => {
       return {
         id: tokenID.toNumber(),
-        contractAddress: contract.address,
+        contractAddress: contract.address
       }
     })
-  
+
     if (includeMetadata) {
       const metadataPromises = Promise.all(parsedTokens.map(async (token, index) => {
         try {
-          const {url, data} = await this.getNFTMetadata(contract.address, token.id)
+          const { url, data } = await this.getNFTMetadata(contract.address, token.id)
           token.metadata_url = url
           token.metadata = data
           if (typeof metadataCallback === 'function') metadataCallback(token, index)
@@ -441,14 +463,14 @@ export class SmartBchWallet {
 
       if (!asyncMetadata) await metadataPromises
     }
-  
+
     return {
       success: true,
       tokens: parsedTokens,
       pagination: {
         count: balance.toNumber(),
         limit: limit,
-        offset: offset,
+        offset: offset
       }
     }
   }

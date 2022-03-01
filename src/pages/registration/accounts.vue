@@ -158,9 +158,9 @@ export default {
       })
 
       vm.$store.commit('global/updateWallet', {
-        type: 'sBch',
-        walletHash: wallet.sBCH._wallet.address,
+        type: 'sbch',
         derivationPath: wallet.sBCH._wallet.mnemonic.path,
+        walletHash: wallet.sBCH._wallet.address
       })
     },
     choosePreferedSecurity () {

@@ -156,7 +156,7 @@ const { SecureStoragePlugin } = Plugins
 
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
-const sBCHWalletType = 'Smart BCH'
+const sBCHWalletType = 'SmartBCH'
 
 export default {
   name: 'Send-page',
@@ -171,7 +171,7 @@ export default {
   props: {
     network: {
       type: String,
-      defualt: 'BCH',
+      defualt: 'BCH'
     },
     assetId: {
       type: String,

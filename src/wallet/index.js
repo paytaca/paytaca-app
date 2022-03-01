@@ -20,7 +20,7 @@ export class Wallet {
     this._testnet = Boolean(test)
     this.mnemonic = mnemonic
     this.BCH = new BchWallet(projectId, mnemonic, "m/44'/145'/0'") // Main BCH wallet
-    this.sBCH = new SmartBchWallet(projectId, mnemonic, "m/44'/60'/0'/0/0", this._testnet) // SmartBCH wallet
+    this.sBCH = new SmartBchWallet(projectId, mnemonic, "m/44'/60'/0'/0", this._testnet) // SmartBCH wallet
     this.SLP = new SlpWallet(projectId, mnemonic, "m/44'/245'/0'") // SLP wallet
   }
 
