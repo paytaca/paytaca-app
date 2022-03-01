@@ -1,7 +1,7 @@
 <template>
   <div id="q-app" ref="container">
     <div v-if="isTestnet && showTestnetIndicator" class="testnet-div" @click.stop>
-      <q-tooltip hide-delay="1000">Currently using testnet network</q-tooltip>
+      <q-tooltip :hide-delay="1000">Currently using testnet network</q-tooltip>
       <q-icon name="info" class="q-ml-xs" size="1.25em"/> Testnet
     </div>
     <router-view />

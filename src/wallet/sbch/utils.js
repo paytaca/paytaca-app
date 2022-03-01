@@ -1,4 +1,4 @@
-import { ethers, utils } from 'ethers'
+import { BigNumber, ethers, utils } from 'ethers'
 
 import { sep20Abi, erc721Abi } from './abi'
 
@@ -52,6 +52,41 @@ export async function getERC721ContractDetails (contractAddress, test=false) {
       symbol: tokenSymbol,
     }
   }
+}
+
+export function decodeEIP681URI (uri, urnScheme) {
+  // https://github.com/tokenkit/eip681
+
+  urnScheme = urnScheme || 'ethereum'
+  var exp = new RegExp('^' + urnScheme + ':(pay-)?(0x[\\w]{40})\\@?([\\w]*)*\\/?([\\w]*)*')
+  var data = uri.match(exp)
+
+  if(!data) {
+    throw new Error('Invalid BIP681 URI: ' + uri)
+  }
+
+  var parameters = uri.split('?');
+  parameters = parameters.length > 1 ? parameters[1] : '';
+
+  var obj = {
+    urnScheme: urnScheme,
+    hasPayTag: !!data[1],
+    target_address: data[2],
+    chain_id: data[3],
+    function_name: data[4],
+    parsedValue: null,
+    parameters: Object.fromEntries(new URLSearchParams(parameters).entries()),
+  }
+
+  // 判断金额
+  var key = obj.function_name === 'transfer' ? 'uint256' : 'value';
+
+  if(obj.parameters[key]) {
+    const decimalNotation = Number(obj.parameters[key]).toString(10);
+    const parsed = utils.formatEther(decimalNotation)
+    obj.parsedValue = parsed
+  }
+  return obj;
 }
 
 export async function watchTransactions(address, {type=null, tokensOnly=false, contractAddresses=[], test=true}, callback) {

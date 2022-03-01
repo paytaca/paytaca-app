@@ -613,6 +613,12 @@ export default {
             })
           })
         }
+
+        vm.$store.commit('global/updateWallet', {
+          type: 'sBch',
+          walletHash: vm.wallet.sBCH._wallet.address,
+          derivationPath: vm.wallet.sBCH._wallet.mnemonic.path,
+        })
       })
     }
   },
