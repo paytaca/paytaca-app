@@ -4,7 +4,7 @@
       <q-card-section class="pt-label">
         <strong class="text-h6">ERC721 Token</strong>
       </q-card-section>
-      <q-card-section>
+      <q-card-section v-if="asset">
         <div class="q-mb-sm">
           <div>Name</div>
           <div class="text-subtitle1">{{ asset.name }}</div>
