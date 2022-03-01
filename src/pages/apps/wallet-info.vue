@@ -6,18 +6,6 @@
         <div id="app" ref="app">
           <div class="row">
             <div class="col">
-              <p class="section-title">Mnemonic Backup Phrase</p>
-              <q-list bordered separator class="list">
-                <q-item clickable @click="toggleMnemonicDisplay()">
-                  <q-item-section>
-                    <q-item-label :class="{'blurry-text': !showMnemonic}">{{ mnemonic }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-          </div>
-          <div class="row" style="margin-top: 20px;">
-            <div class="col">
               <p class="section-title">BCH Addresses</p>
               <q-list bordered separator class="list">
                 <q-item clickable v-ripple>
@@ -83,6 +71,21 @@
                   </q-item-section>
                 </q-item>
               </q-list>
+            </div>
+          </div>
+          <div class="row" style="margin-top: 20px;">
+            <div class="col">
+              <p class="section-title">Mnemonic Backup Phrase</p>
+              <q-list bordered separator class="list">
+                <q-item clickable @click="toggleMnemonicDisplay()">
+                  <q-item-section>
+                    <q-item-label :class="{'blurry-text': !showMnemonic}">{{ mnemonic }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+              <div v-if="showMnemonic" style="color: red; margin: 5px;">
+                <b>Warning: Do not copy this to clipboard!</b><br>Some malicious apps installed in your device may be able to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.
+              </div>
             </div>
           </div>
           <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
