@@ -25,7 +25,7 @@
           "
           :value="pageNumberPaginationData.currentPage"
           :max="pageNumberPaginationData.pageCount"
-          :max-pages="5"
+          :max-pages="6"
           unelevated
           padding="xs sm"
           input
@@ -51,33 +51,32 @@
 <script>
 import ERC721CollectibleDetail from 'components/collectibles/ERC721CollectibleDetail.vue'
 import Loader from 'components/loader'
-import Gravatar from 'vue-gravatar'
 
 export default {
   name: 'ERC721Collectibles',
 
-  components: { ERC721CollectibleDetail, Loader, Gravatar },
+  components: { ERC721CollectibleDetail, Loader },
 
   props: {
     wallet: { },
     contractAddress: {
       type: String,
       default: ''
-    },
+    }
   },
 
-  data() {
+  data () {
     return {
       collectibleDetail: {
         show: false,
-        collectible: null,
+        collectible: null
       },
       fetchingCollectibles: false,
       collectibles: [],
       pagination: {
         limit: 10,
         offset: 0,
-        count: 0,
+        count: 0
       }
     }
   },
@@ -96,11 +95,11 @@ export default {
         currentPage: Math.ceil(this.pagination.offset / this.pagination.limit) + 1,
         pageSize: this.pagination.limit
       }
-    },
+    }
   },
 
   methods: {
-    getImageUrl(collectible) {
+    getImageUrl (collectible) {
       if (!collectible || !collectible.metadata) return ''
       return collectible.metadata.image || ''
     },
@@ -110,10 +109,10 @@ export default {
       this.collectibleDetail.collectible = collectible
     },
 
-    fetchCollectibles(opts={}) {
+    fetchCollectibles (opts = {}) {
       if (!this.wallet) return
       const _opts = opts || {}
-      if (!Number.isSafeInteger(_opts.limit)) _opts.limit = 5
+      if (!Number.isSafeInteger(_opts.limit)) _opts.limit = 6
       _opts.includeMetadata = true
       _opts.asyncMetadata = true
       _opts.metadataCallback = (/* collectible, index */) => {
@@ -138,7 +137,7 @@ export default {
   },
 
   watch: {
-    wallet() {
+    wallet () {
       this.fetchCollectibles()
     }
   },

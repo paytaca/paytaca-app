@@ -17,8 +17,8 @@
       <q-card-section v-if="collectibleAttributes.length">
         <div class="text-subtitle1">Properties</div>
         <q-separator/>
-        <div class="row justify-around items-start"> 
-          <div v-for="(attribute, index) in collectibleAttributes" class="text-center q-ma-xs">
+        <div class="row justify-around items-start">
+          <div v-for="(attribute, index) in collectibleAttributes" :key="index" class="text-center q-ma-xs">
             <div class="text-caption">{{ attribute.trait_type }}</div>
             <div class="text-weight-medium">{{ attribute.value }}</div>
           </div>
@@ -40,16 +40,14 @@
 </template>
 
 <script>
-import Gravatar from 'vue-gravatar'
 import { openURL } from 'quasar'
 
 export default {
   name: 'ERC721CollectibleDetail',
-  components: { Gravatar },
   props: {
     value: {
       type: Boolean,
-      default: false,
+      default: false
     },
     collectible: { }
   },
@@ -84,7 +82,7 @@ export default {
           network: 'sBCH',
           assetId: 'erc721/' + this.collectible.contractAddress + ':' + this.collectible.id,
           amount: 1,
-          symbol: this.collectible.name || `#${this.collectible.id}` ,
+          symbol: this.collectible.name || `#${this.collectible.id}`,
           image: this.imageUrl
         }
       })
