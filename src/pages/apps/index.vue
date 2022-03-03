@@ -60,12 +60,6 @@ export default {
           active: false
         },
         {
-          name: 'Hopcash',
-          iconName: 'fas fa-running',
-          path: '/apps/hopcash/',
-          active: true
-        },
-        {
           name: 'Settings',
           iconName: 'settings',
           path: '/apps/settings',
