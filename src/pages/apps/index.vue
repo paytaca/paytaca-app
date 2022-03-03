@@ -32,8 +32,8 @@ export default {
         {
           name: 'Asset Swap',
           iconName: 'swap_horiz',
-          path: '',
-          active: false
+          path: '/apps/asset-swap',
+          active: true
         },
         {
           name: 'Rewards',
