@@ -91,12 +91,36 @@
               Address
             </div>
             <q-input
+              v-if="manualAddress"
+              key="manualRecipient"
+              autogrow
+              clearable
+              dense
+              outlined
+              :disable="lockInputs"
+              v-model="recipientAddress"
+              class="q-space q-my-sm"
+              :rules="[
+                val => validateAddress(val) || 'Invalid address',
+              ]"
+            />
+            <q-input
+              v-else
+              key="defaultRecipient"
+              autogrow
               dense
               outlined
               readonly
-              :value="recipientAddress"
+              :value="defaultRecipientAddress"
               class="q-space q-my-sm"
               bottom-slots
+            />
+          </div>
+          <div class="row justify-end items-start">
+            <q-toggle
+              dense
+              v-model="manualAddress"
+              label="Send to another address"
             />
           </div>
         </q-card-section>
@@ -146,7 +170,7 @@
   </div>
 </template>
 <script>
-import { getMnemonic, Wallet } from '../../wallet'
+import { getMnemonic, Wallet, Address } from '../../wallet'
 import { deductFromFee, s2c, c2s } from '../../wallet/hopcash'
 import DragSlide from 'components/drag-slide'
 import Loader from 'components/Loader'
@@ -178,6 +202,8 @@ export default {
 
       transferType: 'c2s', // s2c || c2s
       amount: '',
+      manualAddress: false,
+      recipientAddress: '',
       errors: [],
 
       lockInputs: false,
@@ -191,6 +217,9 @@ export default {
   },
 
   computed: {
+    isTestnet() {
+      return this.$store.getters['global/isTestnet']
+    },
     transferredAmount: {
       get() {
         const parsedNum = Number(this.amount)
@@ -199,7 +228,7 @@ export default {
         const hopCashDeducted = deductFromFee(parsedNum, hopCashFee)
         const paytacaDeducted = deductFromFee(hopCashDeducted, paytacaFee)
 
-        return paytacaDeducted
+        return Number(paytacaDeducted.toFixed(8))
       },
       set(value) {
         const parsedNum = Number(value)
@@ -221,10 +250,10 @@ export default {
           }
         )
 
-        this.amount = reverseHopCashDeducted
+        this.amount = Number(reverseHopCashDeducted.toFixed(8))
       }
     },
-    recipientAddress() {
+    defaultRecipientAddress() {
       if (!this.wallet) return ''
       if(this.transferType === 'c2s') {
         return this.wallet.sBCH._wallet.address
@@ -233,12 +262,27 @@ export default {
     },
   },
   methods: {
+    validateAddress(address) {
+      const addressObj = new Address(address)
+      let valid = false
+      if (this.transferType === 'c2s') valid = addressObj.isSep20Address()
+      if (this.transferType === 's2c') {
+        try {
+          valid = addressObj.isLegacyAddress() || addressObj.isCashAddress()
+        } catch {
+          valid = false
+        }
+      }
+      return valid
+    },
     getChangeAddress () {
       return this.$store.getters['global/getChangeAddress']('bch')
     },
     resetForm () {
       this.lockInputs = false
       this.amount = ''
+      this.manualAddress = false
+      this.recipientAddress = ''
       if (typeof this?.$refs?.form?.resetValidation === 'function') {
         this.$refs.form.resetValidation()
       }
@@ -312,7 +356,10 @@ export default {
       console.log('swapping')
       this.loading = true
       this.lockInputs = true
-      func(this.wallet, this.amount, this.recipientAddress, this.getChangeAddress())
+      let recipientAddress = this.manualAddress
+        ? this.recipientAddress
+        : this.defaultRecipientAddress
+      func(this.wallet, this.amount, recipientAddress, this.getChangeAddress())
         .finally(() => {
           this.errors = []
           this.loading = false
