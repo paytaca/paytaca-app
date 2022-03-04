@@ -182,9 +182,56 @@ export async function findC2SOutgoingTx(txId='') {
 }
 
 export async function findS2COutgoingTx(txId='') {
-  return {
-    success: false,
-    error: 'Not implemented'
+  let prasedTxId = txId
+  if (prasedTxId.startsWith('0x')) prasedTxId = prasedTxId.substring(2)
+  const query = `{
+    "v": 3,
+    "q": {
+      "find": {
+        "out.b0.op": 106,
+        "out.h1": "${prasedTxId}"
+      },
+      "limit": 1
+    },
+    "r": {
+      "f": "[.[] | { hash: .tx.h? }  ]"
+    }
+  }`
+
+  const url = `https://bitdb.bch.sx/q/${btoa(query)}`
+  let response = null
+  try {
+    response = await axios.get(url)
+  } catch(err) {
+    return {
+      success: false,
+      error: err,
+    }
+  }
+
+  let txHash = ''
+  let confirmed = false
+  if (response.data?.c?.[0]?.hash) {
+    txHash = response.data.c[0].hash
+    confirmed = true
+  } else if (response.data?.u?.[0]?.hash) {
+    txHash = response.data.u[0].hash
+    confirmed = true
+  }
+
+  if (txHash) {
+    return {
+      success: true,
+      tx: {
+        hash: txHash,
+        confirmed: confirmed,
+      }
+    }
+  } else {
+    return {
+      success: false,
+      error: 'Not found',
+    }
   }
 }
 
