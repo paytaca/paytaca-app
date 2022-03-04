@@ -1,21 +1,32 @@
 import BCHJS from '@psf/bch-js'
+import axios from 'axios'
 import { ethers, utils, BigNumber } from 'ethers'
 import { getProvider } from './sbch/utils'
 
 const bchjs = new BCHJS()
 const provider = getProvider(false)
 
-const bchBridge = 'bitcoincash:qqa0dj5rwaw2s4tz88m3xmcpjyzry356gglq7zvu80'
-const sbchBridge = '0x3207d65b4D45CF617253467625AF6C1b687F720b'
+/*
+  when performing an exchange, the user/wallet sends bch to the 'receiver' address; then
+  wait or watch for transactions sent by the 'sender' address.
+    - The amount to exchange must not exceed the 'sender' address' balance.
+*/
+const addresses = {
+  cash2smart: {
+    receiver: 'bitcoincash:qqa0dj5rwaw2s4tz88m3xmcpjyzry356gglq7zvu80',
+    sender: '0xa659c0434399a8D0e15b8286b39f8d97830F8F91',
+  },
 
-// address of sender in main chain for s2c outgoing txs, from examples
-const bchSender = 'bitcoincash:qzteyuny2hdvvcd4tu6dktwx9f04jarzkyt57qel0y'
+  smart2cash: {
+    receiver: '0x3207d65b4D45CF617253467625AF6C1b687F720b',
+    sender: 'bitcoincash:qzteyuny2hdvvcd4tu6dktwx9f04jarzkyt57qel0y',
+  },
 
-// address of sender in smart chain for c2s outgoing txs, from examples
-const sbchSender = '0xBAe8Af26E08D3332C7163462538B82F0CBe45f2a'
+  sbchContractAddress: '0x3207d65b4D45CF617253467625AF6C1b687F720b',
+}
 
 const bridgeContract = new ethers.Contract(
-  sbchSender,
+  addresses.sbchContractAddress,
   [
     'event Bridged(bytes32 indexed sourceTransaction, address indexed liquidityProviderAddress, address indexed outputAddress, uint256 outputAmount);',
   ],
@@ -33,14 +44,14 @@ function toBigNumber(value) {
  *  
  * @param {number} amount
  * @param {Object} feeInfo ex: { pctg: 0.001, fixed: 1 }
- * @returns {Number}
+ * @returns {number}
  */
 export function deductFromFee(amount, feeInfo={pctg: 0.0, fixed: 0}) {
   return amount * (1-feeInfo.pctg) - feeInfo.fixed
 }
 
-export async function bchBridgeBalance() {
-  const response = await bchjs.Electrumx.balance(bchBridge);
+export async function smart2cashMax() {
+  const response = await bchjs.Electrumx.balance(addresses.smart2cash.sender);
   if (response.success) {
     return {
       success: true,
@@ -53,8 +64,8 @@ export async function bchBridgeBalance() {
   }
 }
 
-export async function sbchBridgeBalance() {
-  const balance = await provider.getBalance(sbchBridge)
+export async function cash2smartMax() {
+  const balance = await provider.getBalance(addresses.cash2smart.sender)
   return {
     success: true,
     balance: balance,
@@ -62,7 +73,7 @@ export async function sbchBridgeBalance() {
 }
 
 /**
- * Sends a c2s,incoming type transaction
+ * Sends a cash to smart,incoming type transaction
  * @param {number} amount in BCH 
  * @param {string} recipientAddress address of sbch wallet
  * @param {string} changeAddress bch address 
@@ -92,14 +103,14 @@ export async function c2s(wallet, amount, recipientAddress, changeAddress) {
 
   const recipients = [
     { address: opReturnBuffer, amount: 0 },
-    { address: bchBridge, amount: amount },
+    { address: addresses.cash2smart.receiver, amount: amount },
   ]
 
   return wallet.BCH.sendBchMultiple(recipients, changeAddress)
 }
 
 /**
- * Sends a c2s,incoming type transaction
+ * Sends a smart to cash,incoming type transaction
  * @param {Wallet} amount in sBCH 
  * @param {number} amount in sBCH 
  * @param {string} recipientAddress address of bch wallet
@@ -122,7 +133,7 @@ export async function s2c(wallet, amount, recipientAddress) {
 
   return wallet.sBCH.sendBchWithData(
     amount,
-    sbchBridge,
+    addresses.smart2cash.receiver,
     '0x' + Buffer.from(bchjs.Address.toLegacyAddress(recipientAddress), 'utf8').toString('hex')
   )
 }
@@ -249,7 +260,7 @@ async function matchOpReturnFromHash(txId, txHash) {
  */
 export function s2cOutgoingListener(txId='', callback=() => {}) {
   const txHashRegex = /[0-9a-f]{64}/
-  const websocket = new WebSocket(`wss://watchtower.cash/ws/watch/bch/${bchSender}/`)
+  const websocket = new WebSocket(`wss://watchtower.cash/ws/watch/bch/${addresses.smart2cash.sender}/`)
   websocket.onmessage = async (message) => {
     const data = JSON.parse(message)
     const txid = data?.txid
