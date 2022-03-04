@@ -45,6 +45,24 @@
     <q-form ref="form" @submit="onSwapSubmit()">
       <q-card class="q-mt-sm">
         <q-card-section>
+          <div>
+            <span>Bridge balance:</span>
+            <q-btn
+              padding="xs sm"
+              flat
+              :label="maxBridgeBalance + ' BCH'"
+              @click="amount = maxBridgeBalance"
+            />
+          </div>
+          <div>
+            <span>Wallet balance:</span>
+            <q-btn
+              padding="xs sm"
+              flat
+              :label="sourceTransferBalance + ' BCH'"
+              @click="amount = sourceTransferBalance"
+            />
+          </div>
           <div class="row no-wrap items-start">
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               <img height="50" src="bch-logo.png"/>
@@ -61,7 +79,8 @@
               placeholder="0.0"
               class="q-space q-my-sm"
               :rules="[
-                val => Number(val) > 0.01 || 'Must be greater than 0.01'
+                val => Number(val) > 0.01 || 'Must be greater than 0.01',
+                val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
               ]"
               bottom-slots
             />
@@ -170,8 +189,9 @@
   </div>
 </template>
 <script>
+import { throttle } from 'quasar'
 import { getMnemonic, Wallet, Address } from '../../wallet'
-import { deductFromFee, s2c, c2s } from '../../wallet/hopcash'
+import { deductFromFee, s2c, c2s, smart2cashMax, cash2smartMax } from '../../wallet/hopcash'
 import DragSlide from 'components/drag-slide'
 import Loader from 'components/Loader'
 
@@ -206,6 +226,11 @@ export default {
       recipientAddress: '',
       errors: [],
 
+      bridgeBalances: {
+        bch: 0,
+        sbch: 0,
+      },
+
       lockInputs: false,
       showDragSlide: false,
       loading: false,
@@ -219,6 +244,22 @@ export default {
   computed: {
     isTestnet() {
       return this.$store.getters['global/isTestnet']
+    },
+    maxBridgeBalance () {
+      if (this.transferType === 'c2s') return this.bridgeBalances.sbch
+      if (this.transferType === 's2c') return this.bridgeBalances.bch
+      return 0
+    },
+    sourceTransferBalance() {
+      if (this.transferType === 'c2s') return this.bchBalance
+      if (this.transferType === 's2c') return this.sbchBalance
+      return 0
+    },
+    bchBalance () {
+      return this.$store.getters['assets/getAsset']('bch')[0].balance
+    },
+    sbchBalance () {
+      return this.$store.getters['sep20/getAsset']('bch')[0].balance
     },
     transferredAmount: {
       get() {
@@ -278,6 +319,43 @@ export default {
     getChangeAddress () {
       return this.$store.getters['global/getChangeAddress']('bch')
     },
+    updateBridgeBalances: throttle(function(all=false) {
+      if (this.transferType === 'c2s' || all) {
+        cash2smartMax()
+          .then(({ balance, success }) => {
+            if (!success) return
+            this.bridgeBalances.sbch = balance
+          })
+      }
+      if (this.transferType === 's2c' || all) {
+        smart2cashMax()
+          .then(({ balance, success }) => {
+            if (!success) return
+            this.bridgeBalances.bch = balance
+          })
+      }
+    }, 5000),
+    updateWalletBalance: throttle(function(all=false) {
+      const id = 'bch'
+      if (this.transferType === 'c2s' || all) {
+        this.wallet.BCH.getBalance().then((response) => {
+          this.$store.commit('assets/updateAssetBalance', {
+            id: id,
+            balance: response.balance
+          })
+        })
+      }
+      if (this.transferType === 's2c') {
+        this.wallet.sBCH.getBalance()
+          .then(balance => {
+            const commitName = this.wallet._testnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
+            this.$store.commit(commitName, {
+              id: id,
+              balance: balance
+            })
+          })
+      }
+    }, 5000),
     resetForm () {
       this.lockInputs = false
       this.amount = ''
@@ -404,14 +482,24 @@ export default {
     loadWallet () {
       const vm = this
       // Load wallets
-      getMnemonic().then(function (mnemonic) {
+      return getMnemonic().then(function (mnemonic) {
         vm.wallet = new Wallet(mnemonic, vm.isTestnet)
       })
     }
   },
 
+  watch: {
+    transferType() {
+      this.updateBridgeBalances()
+    }
+  },
+
   mounted () {
     this.loadWallet()
+      .then(() => {
+        this.updateWalletBalance(true)
+      })
+    this.updateBridgeBalances(true)
   }
 }
 </script>

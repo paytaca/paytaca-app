@@ -55,7 +55,7 @@ export async function smart2cashMax() {
   if (response.success) {
     return {
       success: true,
-      balance: toBigNumber(response.balance.confirmed),
+      balance: response.balance.confirmed * (10 ** -8 ),
     }
   }
   return {
@@ -68,7 +68,7 @@ export async function cash2smartMax() {
   const balance = await provider.getBalance(addresses.cash2smart.sender)
   return {
     success: true,
-    balance: balance,
+    balance: Number(utils.formatEther(balance)),
   }
 }
 
