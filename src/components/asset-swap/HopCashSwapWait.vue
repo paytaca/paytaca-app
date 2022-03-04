@@ -77,7 +77,7 @@
           <Loader/>
         </div>
         <div v-else-if="parsedOutgoingTx.hash">
-          <div v-if="transferType === 'c2s'">
+          <div>
             <div class="q-mb-sm">
               {{ parsedOutgoingTx.chainName }} Transaction:
               <q-btn
@@ -105,7 +105,6 @@
         </div>
       </q-card-section>
     </q-card>
-
     <slot name="after" v-bind="{ waiting, fetchingOutgoingTx, outgoingTxFound }"/>
   </div>
 </template>
@@ -211,7 +210,7 @@ export default {
       if (!func) return
 
       // stop previous listener if exists
-      if (typeof this?.waitPromiseObj?.cancelWatch === 'function') this.waitPromiseObj.cancelWatch()
+      this.cancelWaitOutgoingTx()
 
       // both function will return a promise object with callable `cancelWatch` property to cancel the listener anytime
       this.waitPromiseObj = func(this.incomingTxid)
@@ -226,6 +225,10 @@ export default {
         })
     },
 
+    cancelWaitOutgoingTx () {
+      if (typeof this?.waitPromiseObj?.cancelWatch === 'function') this.waitPromiseObj.cancelWatch()
+    },
+
     findAndOrWaitOutgoingTx() {
       this.findOutgoingTx()
         .catch(() => {
@@ -237,6 +240,9 @@ export default {
     incomingTxid() {
       this.findAndOrWaitOutgoingTx()
     }
+  },
+  beforeDestroy() {
+    this.cancelWaitOutgoingTx()
   },
   mounted() {
     this.findAndOrWaitOutgoingTx()
