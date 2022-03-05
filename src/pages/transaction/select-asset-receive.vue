@@ -66,7 +66,7 @@ export default {
     return {
       networks: {
         BCH: { name: 'BCH' },
-        sBCH: { name: 'SEP20' },
+        sBCH: { name: 'SmartBCH' },
       },
       activeBtn: 'btn-bch',
       result: '',
