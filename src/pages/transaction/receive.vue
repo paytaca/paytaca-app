@@ -274,8 +274,7 @@ export default {
             vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
           )
         }
-      )
-      .then(listener => {
+      ).then(listener => {
         vm.sBCHListener = listener
       })
     },

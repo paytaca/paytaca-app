@@ -52,7 +52,8 @@ export class SmartBchWallet {
     if (!utils.isAddress(contractAddress)) return 0
     const tokenContract = getSep20Contract(contractAddress, this._testnet)
     const balance = await tokenContract.balanceOf(this._wallet.address)
-    return utils.formatEther(balance)
+    const decimals = await tokenContract.decimals()
+    return utils.formatUnits(balance, decimals)
   }
 
   async getTransactions ({ type = null, before = 'latest', after = '0x0', limit = 10, includeTimestamp = false }) {
@@ -119,6 +120,7 @@ export class SmartBchWallet {
     if (!utils.isAddress(contractAddress)) return []
 
     const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const decimals = await tokenContract.decimals()
     const eventFilter = tokenContract.filters.Transfer(this._wallet.address, this._wallet.address)
 
     const logs = await tokenContract.provider.send(
@@ -142,7 +144,7 @@ export class SmartBchWallet {
         hash: log.transactionHash,
         block: BigNumber.from(log.blockNumber).toNumber(),
 
-        amount: utils.formatEther(parsedLog.args._value),
+        amount: utils.formatUnits(parsedLog.args._value, decimals),
         from: parsedLog.args._from,
         to: parsedLog.args._to,
 
@@ -278,8 +280,9 @@ export class SmartBchWallet {
       }
     }
 
-    const parsedAmount = utils.parseEther(amount)
     const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const decimals = await tokenContract.decimals()
+    const parsedAmount = utils.parseUnits(amount, decimals)
     const contractWithSigner = tokenContract.connect(this._wallet)
     try {
       const tx = await contractWithSigner.transfer(recipientAddress, parsedAmount)
