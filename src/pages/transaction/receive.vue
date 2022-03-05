@@ -4,7 +4,7 @@
       :title="'RECEIVE ' + asset.symbol"
       backnavpath="/"
     ></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
+    <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
       <q-menu anchor="bottom right" self="top end">
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -22,7 +22,7 @@
             <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="copyAddress">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <img :src="asset.logo" height="50" style="position: absolute; margin-top: 73px; background: #fff;">
+                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" style="position: absolute; margin-top: 73px; background: #fff;">
                   <qr-code :text="address" color="#253933" :size="190" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
@@ -113,7 +113,7 @@ export default {
     }
   },
   methods: {
-    getFallbackAssetLogo(asset) {
+    getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
@@ -231,14 +231,14 @@ export default {
             vm.notifyOnReceive(
               data.amount,
               vm.asset.symbol,
-              vm.asset.logo || vm.getFallbackAssetLogo(asset)
+              vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
             )
           }
         } else {
           vm.notifyOnReceive(
             data.amount,
             vm.asset.symbol,
-            vm.asset.logo || vm.getFallbackAssetLogo(asset)
+            vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
           )
         }
       }
