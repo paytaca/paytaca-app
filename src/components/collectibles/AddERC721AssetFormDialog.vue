@@ -2,7 +2,7 @@
   <q-dialog v-model="val" @hide="resetForm()">
     <q-card class="q-dialog-plugin">
         <q-card-section class="pt-label">
-            <strong>Add ERC721 Token</strong>
+            <strong>Add SEP721 Token</strong>
         </q-card-section>
         <q-separator />
         <q-form class="q-gutter-y-sm q-mx-none" method="post" @submit="submitAddToken">
@@ -10,7 +10,7 @@
             <q-input
               dense
               filled
-              label="Input ERC721 Token address"
+              label="Input SEP721 Token address"
               type="text"
               lazy-rules
               v-model="formData.contractAddress"

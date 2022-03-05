@@ -2,7 +2,7 @@
   <q-dialog v-model="val" ref="dialogRef">
     <q-card class="q-dialog-plugin">
       <q-card-section class="pt-label">
-        <strong class="text-h6">ERC721 Token</strong>
+        <strong class="text-h6">SEP721 Token</strong>
       </q-card-section>
       <q-card-section v-if="asset">
         <div class="q-mb-sm">
