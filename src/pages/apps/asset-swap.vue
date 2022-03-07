@@ -64,8 +64,9 @@ export default {
       this.$q.dialog({
         title: 'Swap update',
         message: message
+      }).onDismiss(() => {
+        this.waitInfo = info
       })
-      this.waitInfo = info
     },
     clearWaitInfo() {
       this.waitInfo = {

@@ -10,14 +10,14 @@
         </li>
       </ul>
     </div>
-    <div class="row no-wrap justify-around items-center">
+    <div class="row no-wrap justify-around items-baseline">
       <div class="col-5 column items-center">
         <img
           height="50"
           src="bch-logo.png"
         />
         <div>from</div>
-        <div class="text-subtitle1">
+        <div class="text-subtitle1 text-center">
           <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
           <template v-else>Smart Bitcoin Cash</template>
         </div>
@@ -35,7 +35,7 @@
       <div class="col-5 column items-center">
         <img height="50" src="bch-logo.png"/>
         <div>from</div>
-        <div class="text-subtitle1">
+        <div class="text-subtitle1 text-center">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
           <template v-else>Bitcoin Cash</template>
         </div>
@@ -445,7 +445,9 @@ export default {
         .then(response => {
           if (response.success) {
             const txid = response.txid || (response.transaction && response.transaction.hash)
-            // const txid = 'e07122a6abb43941170b6477c29618fe8d5325e1a4bdbe9012e2940def10faeb'
+            // const txid = this.transferType === 'c2s'
+            //   ? 'e07122a6abb43941170b6477c29618fe8d5325e1a4bdbe9012e2940def10faeb'
+            //   : '0xdd879c7c9695ff81c5b952dc2237a3792bdddcd3d9092bf3835f0b5bfb804ef2'
             this.onSuccessSwap(txid)
             return Promise.resolve(response)
           }

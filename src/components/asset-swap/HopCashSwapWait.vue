@@ -1,13 +1,13 @@
 <template>
   <div>
-    <div class="row no-wrap justify-around items-center">
+    <div class="row no-wrap justify-around items-baseline">
       <div class="col-5 column items-center">
         <img
           height="50"
           src="bch-logo.png"
         />
         <div>from</div>
-        <div class="text-subtitle1">
+        <div class="text-subtitle1 text-center">
           <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
           <template v-else>Smart Bitcoin Cash</template>
         </div>
@@ -24,7 +24,7 @@
       <div class="col-5 column items-center">
         <img height="50" src="bch-logo.png"/>
         <div>from</div>
-        <div class="text-subtitle1">
+        <div class="text-subtitle1 text-center">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
           <template v-else>Bitcoin Cash</template>
         </div>
@@ -194,6 +194,7 @@ export default {
           this.fetchingOutgoingTx = false
         })
         .then(response => {
+          console.log(response)
           if (response.success) {
             console.log(response)
             this.tx = response.tx
