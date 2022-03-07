@@ -36,6 +36,7 @@ export default {
       waitInfo: {
         transferType: 'c2s',
         incomingTxid: '',
+        // incomingTxid: '0xb2c6383e9e96a51171658f8b08113fbe54f873136fcd47add2307692e47bc9a5',
         // incomingTxid: '6f4f020193146fb711e64977917753d1f927da2815a6e350ce470c114b123b57',
         amount: '0.02306408',
         expectedAmount: '0.02295788',
@@ -64,9 +65,8 @@ export default {
       this.$q.dialog({
         title: 'Swap update',
         message: message
-      }).onDismiss(() => {
-        this.waitInfo = info
       })
+      this.waitInfo = info
     },
     clearWaitInfo() {
       this.waitInfo = {

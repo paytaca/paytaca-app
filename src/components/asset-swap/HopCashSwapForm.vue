@@ -246,14 +246,20 @@ export default {
       return this.$store.getters['global/isTestnet']
     },
     maxBridgeBalance () {
-      if (this.transferType === 'c2s') return this.bridgeBalances.sbch
-      if (this.transferType === 's2c') return this.bridgeBalances.bch
-      return 0
+      let balance = 0
+      if (this.transferType === 'c2s') balance = this.bridgeBalances.sbch
+      if (this.transferType === 's2c') balance = this.bridgeBalances.bch
+      balance = Number(balance)
+      if (isNaN(balance)) return 0
+      return Number(balance.toFixed(6))
     },
     sourceTransferBalance() {
-      if (this.transferType === 'c2s') return this.bchBalance
-      if (this.transferType === 's2c') return this.sbchBalance
-      return 0
+      let balance = 0
+      if (this.transferType === 'c2s') balance = this.bchBalance
+      if (this.transferType === 's2c') balance = this.sbchBalance
+      balance = Number(balance)
+      if (isNaN(balance)) return 0
+      return Number(balance.toFixed(6))
     },
     bchBalance () {
       return this.$store.getters['assets/getAsset']('bch')[0].balance
