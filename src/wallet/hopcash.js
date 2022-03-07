@@ -22,7 +22,7 @@ const addresses = {
     sender: 'bitcoincash:qzteyuny2hdvvcd4tu6dktwx9f04jarzkyt57qel0y',
   },
 
-  sbchContractAddress: '0x3207d65b4D45CF617253467625AF6C1b687F720b',
+  sbchContractAddress: '0xBAe8Af26E08D3332C7163462538B82F0CBe45f2a',
 }
 
 const bridgeContract = new ethers.Contract(
@@ -102,11 +102,27 @@ export async function c2s(wallet, amount, recipientAddress, changeAddress) {
   )
 
   const recipients = [
-    { address: opReturnBuffer, amount: 0 },
+    { scriptHex: opReturnBuffer, amount: 0 },
     { address: addresses.cash2smart.receiver, amount: amount },
   ]
 
-  return wallet.BCH.sendBchMultiple(recipients, changeAddress)
+  const kwargs = {
+    sender: {
+      walletHash: wallet.BCH.walletHash,
+      mnemonic: wallet.BCH.mnemonic,
+      derivationPath: wallet.BCH.derivationPath
+    },
+    recipients: recipients,
+    changeAddress: changeAddress,
+    wallet: {
+      mnemonic: wallet.BCH.mnemonic,
+      derivationPath: wallet.BCH.derivationPath
+    },
+    broadcast: true
+  }
+
+  const result = await c2sIncoming(wallet, kwargs)
+  return result
 }
 
 /**
@@ -352,4 +368,161 @@ export function waitS2COutgoing(txId) {
   })
 
   return promise
+}
+
+export async function c2sIncoming(wallet, { sender, recipients, changeAddress, broadcast }) {
+  let walletHash
+  if (sender.walletHash !== undefined) {
+    walletHash = sender.walletHash
+  }
+
+  if (broadcast == undefined) {
+    broadcast = true
+  }
+
+  let totalSendAmount = 0
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i]
+    if (recipient.scriptHex) {
+
+    } else if (recipient.address.indexOf('bitcoincash') < 0) {
+      return {
+        success: false,
+        error: 'recipient should have a BCH address'
+      }
+    }
+    totalSendAmount += recipient.amount
+  }
+
+
+  const totalSendAmountSats = parseInt(totalSendAmount * (10 ** 8))
+  let handle
+  if (walletHash) {
+    handle = 'wallet:' + walletHash
+  } else {
+    handle = sender.address
+  }
+
+  const bchUtxos = await wallet.BCH.watchtower.BCH.getBchUtxos(handle, totalSendAmountSats)
+  if (bchUtxos.cumulativeValue < totalSendAmountSats) {
+    return {
+      success: false,
+      error: `not enough balance in sender (${bchUtxos.cumulativeValue}) to cover the send amount (${totalSendAmountSats})`
+    }
+  }
+
+  const keyPairs = []
+
+  let transactionBuilder = new bchjs.TransactionBuilder()
+  let outputsCount = 0
+  let totalInput = new BigNumber(0)
+  let totalOutput = new BigNumber(0)
+  
+  for (let i = 0; i < bchUtxos.utxos.length; i++) {
+    transactionBuilder.addInput(bchUtxos.utxos[i].tx_hash, bchUtxos.utxos[i].tx_pos)
+    totalInput = totalInput.plus(bchUtxos.utxos[i].value)
+    let utxoKeyPair
+    if (walletHash) {
+      let addressPath
+      if (bchUtxos.utxos[i].address_path) {
+        addressPath = bchUtxos.utxos[i].address_path
+      } else {
+        addressPath = bchUtxos.utxos[i].wallet_index
+      }
+      const utxoPkWif = await this.retrievePrivateKey(
+        sender.mnemonic,
+        sender.derivationPath,
+        addressPath
+      )
+      utxoKeyPair = bchjs.ECPair.fromWIF(utxoPkWif)
+      keyPairs.push(utxoKeyPair)
+      if (!changeAddress) {
+        changeAddress = bchjs.ECPair.toCashAddress(utxoKeyPair)
+      }
+    } else {
+      const senderKeyPair = bchjs.ECPair.fromWIF(sender.wif)
+      keyPairs.push(senderKeyPair)
+      if (!changeAddress) {
+        changeAddress = bchjs.ECPair.toCashAddress(senderKeyPair)
+      }
+    }
+  }
+
+  let inputsCount = bchUtxos.utxos.length
+
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i]
+    const sendAmount = new BigNumber(recipient.amount).times(10 ** 8)
+    let outputData
+    if (recipient.scriptHex) {
+      outputData = scriptHex
+    } else {
+      outputData = bchjs.Address.toLegacyAddress(recipient.address)
+    }
+    transactionBuilder.addOutput(
+      outputData,
+      parseInt(sendAmount)
+    )
+    outputsCount += 1
+    totalOutput = totalOutput.plus(sendAmount)
+  }
+
+  outputsCount += 1  // Add extra for sending the BCH change,if any
+  let byteCount = bchjs.BitcoinCash.getByteCount(
+    {
+      P2PKH: inputsCount
+    },
+    {
+      P2PKH: outputsCount
+    }
+  )
+
+  const feeRate = 1.1 // 1.1 sats/byte fee rate
+
+  let txFee = Math.ceil(byteCount * feeRate)
+  let senderRemainder = 0
+
+  // Send the BCH change back to the wallet, if any
+  senderRemainder = totalInput.minus(totalOutput.plus(txFee))
+  if (senderRemainder.isGreaterThan(this.dustLimit)) {
+    transactionBuilder.addOutput(
+      bchjs.Address.toLegacyAddress(changeAddress),
+      parseInt(senderRemainder)
+    )
+  } else {
+    txFee += senderRemainder.toNumber()
+  }
+
+  let combinedUtxos = bchUtxos.utxos
+
+  // Sign each token UTXO being consumed.
+  let redeemScript
+  for (let i = 0; i < keyPairs.length; i++) {
+    const utxo = combinedUtxos[i]
+    transactionBuilder.sign(
+      i,
+      keyPairs[i],
+      redeemScript,
+      transactionBuilder.hashTypes.SIGHASH_ALL,
+      parseInt(utxo.value)
+    )
+  }
+
+  const tx = transactionBuilder.build()
+  const hex = tx.toHex()
+
+  if (broadcast === true) {
+    try {
+      const response = await wallet.BCH.watchtower.BCH.broadcastTransaction(hex)
+      return response.data
+    } catch (error) {
+      return error.response.data
+    }
+  } else {
+    return {
+      success: true,
+      transaction: hex,
+      fee: txFee
+    }
+  }
 }
