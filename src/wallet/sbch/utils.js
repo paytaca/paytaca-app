@@ -31,17 +31,19 @@ export function getSep20Contract(contractAddress, test=false) {
   )
 }
 
-export async function getERC721ContractDetails (contractAddress, test=false) {
-  if (!utils.isAddress(contractAddress)) return {
-    success: false,
-    error: 'Invalid token address',
+export async function getERC721ContractDetails (contractAddress, test = false) {
+  if (!utils.isAddress(contractAddress)) {
+    return {
+      success: false,
+      error: 'Invalid token address'
+    }
   }
   console.log('gettin details for:', contractAddress)
   const tokenContract = getERC721Contract(contractAddress, test)
 
-  const tokenName = await tokenContract.name();
+  const tokenName = await tokenContract.name()
   console.log('got name:', tokenName)
-  const tokenSymbol = await tokenContract.symbol();
+  const tokenSymbol = await tokenContract.symbol()
   console.log('got symbol:', tokenSymbol)
 
   return {
@@ -49,7 +51,7 @@ export async function getERC721ContractDetails (contractAddress, test=false) {
     token: {
       address: tokenContract.address,
       name: tokenName,
-      symbol: tokenSymbol,
+      symbol: tokenSymbol
     }
   }
 }
@@ -61,12 +63,12 @@ export function decodeEIP681URI (uri, urnScheme) {
   var exp = new RegExp('^' + urnScheme + ':(pay-)?(0x[\\w]{40})\\@?([\\w]*)*\\/?([\\w]*)*')
   var data = uri.match(exp)
 
-  if(!data) {
+  if (!data) {
     throw new Error('Invalid BIP681 URI: ' + uri)
   }
 
-  var parameters = uri.split('?');
-  parameters = parameters.length > 1 ? parameters[1] : '';
+  var parameters = uri.split('?')
+  parameters = parameters.length > 1 ? parameters[1] : ''
 
   var obj = {
     urnScheme: urnScheme,
@@ -75,21 +77,21 @@ export function decodeEIP681URI (uri, urnScheme) {
     chain_id: data[3],
     function_name: data[4],
     parsedValue: null,
-    parameters: Object.fromEntries(new URLSearchParams(parameters).entries()),
+    parameters: Object.fromEntries(new URLSearchParams(parameters).entries())
   }
 
   // 判断金额
-  var key = obj.function_name === 'transfer' ? 'uint256' : 'value';
+  var key = obj.function_name === 'transfer' ? 'uint256' : 'value'
 
-  if(obj.parameters[key]) {
-    const decimalNotation = Number(obj.parameters[key]).toString(10);
+  if (obj.parameters[key]) {
+    const decimalNotation = Number(obj.parameters[key]).toString(10)
     const parsed = utils.formatEther(decimalNotation)
     obj.parsedValue = parsed
   }
-  return obj;
+  return obj
 }
 
-export async function watchTransactions(address, {type=null, tokensOnly=false, contractAddresses=[], test=true}, callback) {
+export async function watchTransactions (address, { type = null, tokensOnly = false, contractAddresses = [], test = true }, callback) {
   if (!utils.isAddress(address)) return
 
   const contracts = !Array.isArray(contractAddresses) ? [] : contractAddresses.map(contractAddress => getSep20Contract(contractAddress, test))
@@ -97,33 +99,35 @@ export async function watchTransactions(address, {type=null, tokensOnly=false, c
   const tokensWatched = []
   await Promise.all(
     contracts.map(async (contract) => {
-      const receiveFilter = contract.filters.Transfer(null, address);
-      const sendFilter = contract.filters.Transfer(address);
-  
-      const tokenName = await contract.name();
-      const tokenSymbol = await contract.symbol();
+      const receiveFilter = contract.filters.Transfer(null, address)
+      const sendFilter = contract.filters.Transfer(address)
+
+      const tokenName = await contract.name()
+      const tokenSymbol = await contract.symbol()
+      const decimals = await contract.decimals()
       let eventFilter = [receiveFilter, sendFilter]
       if (type === 'incoming') eventFilter = receiveFilter
       if (type === 'outgoing') eventFilter = sendFilter
       const eventCallback = (...args) => {
-        const tx = args[args.length-1]
+        const tx = args[args.length - 1]
+        // eslint-disable-next-line standard/no-callback-literal
         callback({
           tx: {
             hash: tx.transactionHash,
             to: tx.args._to,
             from: tx.args._from,
             value: tx.args._value,
-            amount: utils.formatEther(tx.args._value),
-            _raw: tx,
+            amount: utils.formatUnits(tx.args._value, decimals),
+            _raw: tx
           },
           token: {
             address: contract.address,
             name: tokenName,
-            symbol: tokenSymbol,
+            symbol: tokenSymbol
           }
         })
       }
-      
+
       contract.on(eventFilter, eventCallback)
       tokensWatched.push({
         address: contract.address,
