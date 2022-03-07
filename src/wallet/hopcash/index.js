@@ -1,37 +1,9 @@
 import BCHJS from '@psf/bch-js'
 import axios from 'axios'
-import { ethers, utils, BigNumber } from 'ethers'
-import { getProvider } from './sbch/utils'
+import { utils, BigNumber } from 'ethers'
+import { provider, bridgeContract, addresses } from './config'
 
 const bchjs = new BCHJS()
-const provider = getProvider(false)
-
-/*
-  when performing an exchange, the user/wallet sends bch to the 'receiver' address; then
-  wait or watch for transactions sent by the 'sender' address.
-    - The amount to exchange must not exceed the 'sender' address' balance.
-*/
-const addresses = {
-  cash2smart: {
-    receiver: 'bitcoincash:qqa0dj5rwaw2s4tz88m3xmcpjyzry356gglq7zvu80',
-    sender: '0xa659c0434399a8D0e15b8286b39f8d97830F8F91',
-  },
-
-  smart2cash: {
-    receiver: '0x3207d65b4D45CF617253467625AF6C1b687F720b',
-    sender: 'bitcoincash:qzteyuny2hdvvcd4tu6dktwx9f04jarzkyt57qel0y',
-  },
-
-  sbchContractAddress: '0xBAe8Af26E08D3332C7163462538B82F0CBe45f2a',
-}
-
-const bridgeContract = new ethers.Contract(
-  addresses.sbchContractAddress,
-  [
-    'event Bridged(bytes32 indexed sourceTransaction, address indexed liquidityProviderAddress, address indexed outputAddress, uint256 outputAmount);',
-  ],
-  provider,
-)
 
 function toBigNumber(value) {
   return BigNumber.from('0x' + BigInt(value).toString(16)) 
@@ -93,26 +65,16 @@ export async function c2s(wallet, amount, recipientAddress, changeAddress) {
     }
   }
 
-  const OP_RETURN = '6a', PUSH = '4c'
-  const data = Buffer.from(recipientAddress, 'utf8').toString('hex');
-  const dataLength = data.length.toString(16)
-  const opReturnBuffer = Buffer.from(
-    OP_RETURN + PUSH + dataLength + data,
-    'hex',
-  )
-
-  const recipients = [
-    { scriptHex: opReturnBuffer, amount: 0 },
-    { address: addresses.cash2smart.receiver, amount: amount },
-  ]
-
   const kwargs = {
     sender: {
       walletHash: wallet.BCH.walletHash,
       mnemonic: wallet.BCH.mnemonic,
       derivationPath: wallet.BCH.derivationPath
     },
-    recipients: recipients,
+    recipients: [
+      { address: addresses.cash2smart.receiver, amount: amount }
+    ],
+    data: recipientAddress,
     changeAddress: changeAddress,
     wallet: {
       mnemonic: wallet.BCH.mnemonic,
@@ -121,7 +83,7 @@ export async function c2s(wallet, amount, recipientAddress, changeAddress) {
     broadcast: true
   }
 
-  const result = await c2sIncoming(wallet, kwargs)
+  const result = await wallet.BCH.watchtower.BCH.send(kwargs)
   return result
 }
 
@@ -198,6 +160,9 @@ export async function findC2SOutgoingTx(txId='') {
 }
 
 export async function findS2COutgoingTx(txId='') {
+  // return {
+  //   success: false,
+  // }
   let prasedTxId = txId
   if (prasedTxId.startsWith('0x')) prasedTxId = prasedTxId.substring(2)
   const query = `{
@@ -278,7 +243,7 @@ export async function findS2COutgoingTx(txId='') {
 
   contract.on(filter, eventCallback)
   return () => {
-    contract.removeListener(eventFilter, eventCallback) 
+    contract.removeListener(filter, eventCallback) 
   }
 }
 
@@ -289,7 +254,7 @@ function matchOpReturn(txId, txData) {
   if (!Array.isArray(outputs)) return false
 
   for(var i = 0; i < outputs.length; i++) {
-    const match = String(out?.scriptPubKey?.asm).match(asmRegex)
+    const match = String(outputs[i]?.scriptPubKey?.asm).match(asmRegex)
     if (!match) continue
     if (String(txId).substring(2) === match[1]) {
       return true
@@ -325,7 +290,13 @@ export function s2cOutgoingListener(txId='', callback=() => {}) {
   const txHashRegex = /[0-9a-f]{64}/
   const websocket = new WebSocket(`wss://watchtower.cash/ws/watch/bch/${addresses.smart2cash.sender}/`)
   websocket.onmessage = async (message) => {
-    const data = JSON.parse(message)
+    let data
+    try {
+      data = JSON.parse(message.data)
+    } catch(error) {
+      console.log(error)
+      return
+    }
     const txid = data?.txid
     if (!txHashRegex.test(txid)) return
 
@@ -333,7 +304,7 @@ export function s2cOutgoingListener(txId='', callback=() => {}) {
     if (!response.success) return
     callback(response.tx)
   }
-  
+
   return () => {
     websocket.close()
   }
@@ -368,161 +339,4 @@ export function waitS2COutgoing(txId) {
   })
 
   return promise
-}
-
-export async function c2sIncoming(wallet, { sender, recipients, changeAddress, broadcast }) {
-  let walletHash
-  if (sender.walletHash !== undefined) {
-    walletHash = sender.walletHash
-  }
-
-  if (broadcast == undefined) {
-    broadcast = true
-  }
-
-  let totalSendAmount = 0
-  for (let i = 0; i < recipients.length; i++) {
-    const recipient = recipients[i]
-    if (recipient.scriptHex) {
-
-    } else if (recipient.address.indexOf('bitcoincash') < 0) {
-      return {
-        success: false,
-        error: 'recipient should have a BCH address'
-      }
-    }
-    totalSendAmount += recipient.amount
-  }
-
-
-  const totalSendAmountSats = parseInt(totalSendAmount * (10 ** 8))
-  let handle
-  if (walletHash) {
-    handle = 'wallet:' + walletHash
-  } else {
-    handle = sender.address
-  }
-
-  const bchUtxos = await wallet.BCH.watchtower.BCH.getBchUtxos(handle, totalSendAmountSats)
-  if (bchUtxos.cumulativeValue < totalSendAmountSats) {
-    return {
-      success: false,
-      error: `not enough balance in sender (${bchUtxos.cumulativeValue}) to cover the send amount (${totalSendAmountSats})`
-    }
-  }
-
-  const keyPairs = []
-
-  let transactionBuilder = new bchjs.TransactionBuilder()
-  let outputsCount = 0
-  let totalInput = new BigNumber(0)
-  let totalOutput = new BigNumber(0)
-  
-  for (let i = 0; i < bchUtxos.utxos.length; i++) {
-    transactionBuilder.addInput(bchUtxos.utxos[i].tx_hash, bchUtxos.utxos[i].tx_pos)
-    totalInput = totalInput.plus(bchUtxos.utxos[i].value)
-    let utxoKeyPair
-    if (walletHash) {
-      let addressPath
-      if (bchUtxos.utxos[i].address_path) {
-        addressPath = bchUtxos.utxos[i].address_path
-      } else {
-        addressPath = bchUtxos.utxos[i].wallet_index
-      }
-      const utxoPkWif = await this.retrievePrivateKey(
-        sender.mnemonic,
-        sender.derivationPath,
-        addressPath
-      )
-      utxoKeyPair = bchjs.ECPair.fromWIF(utxoPkWif)
-      keyPairs.push(utxoKeyPair)
-      if (!changeAddress) {
-        changeAddress = bchjs.ECPair.toCashAddress(utxoKeyPair)
-      }
-    } else {
-      const senderKeyPair = bchjs.ECPair.fromWIF(sender.wif)
-      keyPairs.push(senderKeyPair)
-      if (!changeAddress) {
-        changeAddress = bchjs.ECPair.toCashAddress(senderKeyPair)
-      }
-    }
-  }
-
-  let inputsCount = bchUtxos.utxos.length
-
-  for (let i = 0; i < recipients.length; i++) {
-    const recipient = recipients[i]
-    const sendAmount = new BigNumber(recipient.amount).times(10 ** 8)
-    let outputData
-    if (recipient.scriptHex) {
-      outputData = scriptHex
-    } else {
-      outputData = bchjs.Address.toLegacyAddress(recipient.address)
-    }
-    transactionBuilder.addOutput(
-      outputData,
-      parseInt(sendAmount)
-    )
-    outputsCount += 1
-    totalOutput = totalOutput.plus(sendAmount)
-  }
-
-  outputsCount += 1  // Add extra for sending the BCH change,if any
-  let byteCount = bchjs.BitcoinCash.getByteCount(
-    {
-      P2PKH: inputsCount
-    },
-    {
-      P2PKH: outputsCount
-    }
-  )
-
-  const feeRate = 1.1 // 1.1 sats/byte fee rate
-
-  let txFee = Math.ceil(byteCount * feeRate)
-  let senderRemainder = 0
-
-  // Send the BCH change back to the wallet, if any
-  senderRemainder = totalInput.minus(totalOutput.plus(txFee))
-  if (senderRemainder.isGreaterThan(this.dustLimit)) {
-    transactionBuilder.addOutput(
-      bchjs.Address.toLegacyAddress(changeAddress),
-      parseInt(senderRemainder)
-    )
-  } else {
-    txFee += senderRemainder.toNumber()
-  }
-
-  let combinedUtxos = bchUtxos.utxos
-
-  // Sign each token UTXO being consumed.
-  let redeemScript
-  for (let i = 0; i < keyPairs.length; i++) {
-    const utxo = combinedUtxos[i]
-    transactionBuilder.sign(
-      i,
-      keyPairs[i],
-      redeemScript,
-      transactionBuilder.hashTypes.SIGHASH_ALL,
-      parseInt(utxo.value)
-    )
-  }
-
-  const tx = transactionBuilder.build()
-  const hex = tx.toHex()
-
-  if (broadcast === true) {
-    try {
-      const response = await wallet.BCH.watchtower.BCH.broadcastTransaction(hex)
-      return response.data
-    } catch (error) {
-      return error.response.data
-    }
-  } else {
-    return {
-      success: true,
-      transaction: hex,
-      fee: txFee
-    }
-  }
 }
