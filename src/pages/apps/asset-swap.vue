@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;">
+  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;">
     <HeaderNav
       title="Asset Swap"
       backnavpath="/apps"

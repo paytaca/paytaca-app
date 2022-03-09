@@ -50,6 +50,7 @@
             <q-btn
               padding="xs sm"
               flat
+              :disable="lockInputs"
               :label="maxBridgeBalance + ' BCH'"
               @click="amount = maxBridgeBalance"
             />
@@ -59,6 +60,7 @@
             <q-btn
               padding="xs sm"
               flat
+              :disable="lockInputs"
               :label="sourceTransferBalance + ' BCH'"
               @click="amount = sourceTransferBalance"
             />
@@ -136,11 +138,38 @@
             />
           </div>
           <div class="row justify-end items-start">
+            <q-btn
+              v-if="manualAddress"
+              no-caps
+              padding="xs sm"
+              label="Scan QR code"
+              :disable="lockInputs"
+              @click="showQrScanner = true"
+            />
+          </div>
+          <div class="row justify-end items-start">
+            <q-space />
             <q-toggle
               dense
               v-model="manualAddress"
               label="Send to another address"
             />
+          </div>
+
+          <q-separator spaced/>
+          <div class="q-pa-sm rounded-borders">
+            <div class="row justify-between q-pl-sm no-wrap">
+              <span>BCH to send:</span>
+              <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
+            </div>
+            <div class="row justify-between q-pl-sm no-wrap">
+              <span>Estimated fees:</span>
+              <span class="text-nowrap q-ml-xs">~{{ fees.paytaca + fees.hopcash }} BCH</span>
+            </div>
+            <div class="row justify-between q-pl-sm no-wrap">
+              <span>BCH to receive:</span>
+              <span class="text-nowrap q-ml-xs">~{{ transferredAmount }} BCH</span>
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -181,6 +210,10 @@
         actionType === 'send' ? executeSwap(): null
       }"
     />
+    <QrScanner
+      v-model="showQrScanner"
+      @decode="onScannerDecode"
+    />
 
     <BiometricWarningAttempt
       :warning-attempts="verification.warningAttemptsStatus"
@@ -192,6 +225,7 @@
 import { throttle } from 'quasar'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { deductFromFee, s2c, c2s, smart2cashMax, cash2smartMax } from '../../wallet/hopcash'
+import QrScanner from 'components/qr-scanner.vue'
 import DragSlide from 'components/drag-slide'
 import Loader from 'components/Loader'
 
@@ -214,7 +248,7 @@ const paytacaFee = {
 
 export default {
   name: 'HopCashSwapForm',
-  components: { DragSlide, Pin, BiometricWarningAttempt, Loader },
+  components: { QrScanner, DragSlide, Pin, BiometricWarningAttempt, Loader },
 
   data() {
     return {
@@ -231,6 +265,7 @@ export default {
         sbch: 0,
       },
 
+      showQrScanner: false,
       lockInputs: false,
       showDragSlide: false,
       loading: false,
@@ -267,37 +302,49 @@ export default {
     sbchBalance () {
       return this.$store.getters['sep20/getAsset']('bch')[0].balance
     },
+    fees() {
+      const parsedNum = Number(this.amount)
+      if (isNaN(parsedNum)) return 0
+
+      const paytacaDeducted = deductFromFee(parsedNum, paytacaFee)
+      const hopCashDeducted = deductFromFee(paytacaDeducted, hopCashFee)
+
+      return {
+        paytaca: Number((parsedNum - paytacaDeducted).toFixed(16)),
+        hopcash: Number((paytacaDeducted - hopCashDeducted).toFixed(16)),
+      }
+    },
     transferredAmount: {
       get() {
         const parsedNum = Number(this.amount)
         if (isNaN(parsedNum)) return 0
 
-        const hopCashDeducted = deductFromFee(parsedNum, hopCashFee)
-        const paytacaDeducted = deductFromFee(hopCashDeducted, paytacaFee)
+        const paytacaDeducted = deductFromFee(parsedNum, paytacaFee)
+        const hopCashDeducted = deductFromFee(paytacaDeducted, hopCashFee)
 
-        return Number(paytacaDeducted.toFixed(8))
+        return Number(hopCashDeducted.toFixed(8))
       },
       set(value) {
         const parsedNum = Number(value)
         if (isNaN(parsedNum)) this.amount = ''
 
-        const reversePaytacaDeducted = deductFromFee(
-          parsedNum,
-          {
-            pctg: 1 - 1/(1-paytacaFee.pctg),
-            fixed: -paytacaFee.fixed / (1-paytacaFee.pctg),
-          }
-        )
-
         const reverseHopCashDeducted = deductFromFee(
-          reversePaytacaDeducted,
+          parsedNum,
           {
             pctg: 1 - 1/(1-hopCashFee.pctg),
             fixed: -hopCashFee.fixed / (1-hopCashFee.pctg),
           }
         )
 
-        this.amount = Number(reverseHopCashDeducted.toFixed(8))
+        const reversePaytacaDeducted = deductFromFee(
+          reverseHopCashDeducted,
+          {
+            pctg: 1 - 1/(1-paytacaFee.pctg),
+            fixed: -paytacaFee.fixed / (1-paytacaFee.pctg),
+          }
+        )
+
+        this.amount = Number(reversePaytacaDeducted.toFixed(8))
       }
     },
     defaultRecipientAddress() {
@@ -324,6 +371,15 @@ export default {
     },
     getChangeAddress () {
       return this.$store.getters['global/getChangeAddress']('bch')
+    },
+    onScannerDecode(content) {
+      this.showQrScanner = false
+      if (!this.validateAddress(content)) {
+        this.$q.notify('Invalid address')
+      } else {
+        this.manualAddress = true
+        this.recipientAddress = content
+      }
     },
     updateBridgeBalances: throttle(function(all=false) {
       if (this.transferType === 'c2s' || all) {
@@ -511,3 +567,8 @@ export default {
   }
 }
 </script>
+<style scoped>
+.text-nowrap {
+  white-space: nowrap;
+}
+</style>
