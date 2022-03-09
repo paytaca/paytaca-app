@@ -73,7 +73,20 @@
                 <div>BCH</div>
               </div>
             </div>
-            <q-input
+            <CustomKeyboardInput
+              v-model="amount"
+              :fieldProps="{
+                dense: true,
+                outlined: true,
+                disable: lockInputs,
+                rules: [
+                  val => Number(val) > 0.01 || 'Must be greater than 0.01',
+                  val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
+                ],
+              }"
+              class="q-space q-my-sm"
+            />
+            <!-- <q-input
               dense
               outlined
               :disable="lockInputs"
@@ -85,7 +98,7 @@
                 val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
               ]"
               bottom-slots
-            />
+            /> -->
           </div>
 
           <div class="row no-wrap items-start">
@@ -96,7 +109,16 @@
                 <div>BCH</div>
               </div>
             </div>
-            <q-input
+            <CustomKeyboardInput
+              v-model="transferredAmount"
+              :fieldProps="{
+                dense: true,
+                outlined: true,
+                bottomSlots: true,
+              }"
+              class="q-space q-my-sm"
+            />
+            <!-- <q-input
               dense
               outlined
               :disable="lockInputs"
@@ -104,7 +126,7 @@
               placeholder="0.0"
               class="q-space q-my-sm"
               bottom-slots
-            />
+            /> -->
           </div>
 
           <div class="row no-wrap items-start">
@@ -158,15 +180,15 @@
 
           <q-separator spaced/>
           <div class="q-pa-sm rounded-borders">
-            <div class="row justify-between q-pl-sm no-wrap">
+            <div class="row justify-between no-wrap">
               <span>BCH to send:</span>
               <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
             </div>
-            <div class="row justify-between q-pl-sm no-wrap">
+            <div class="row justify-between no-wrap">
               <span>Estimated fees:</span>
               <span class="text-nowrap q-ml-xs">~{{ fees.paytaca + fees.hopcash }} BCH</span>
             </div>
-            <div class="row justify-between q-pl-sm no-wrap">
+            <div class="row justify-between no-wrap">
               <span>BCH to receive:</span>
               <span class="text-nowrap q-ml-xs">~{{ transferredAmount }} BCH</span>
             </div>
@@ -225,6 +247,7 @@
 import { throttle } from 'quasar'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { deductFromFee, s2c, c2s, smart2cashMax, cash2smartMax } from '../../wallet/hopcash'
+import CustomKeyboardInput from 'components/CustomKeyboardInput.vue'
 import QrScanner from 'components/qr-scanner.vue'
 import DragSlide from 'components/drag-slide'
 import Loader from 'components/Loader'
@@ -248,7 +271,7 @@ const paytacaFee = {
 
 export default {
   name: 'HopCashSwapForm',
-  components: { QrScanner, DragSlide, Pin, BiometricWarningAttempt, Loader },
+  components: { CustomKeyboardInput, QrScanner, DragSlide, Pin, BiometricWarningAttempt, Loader },
 
   data() {
     return {
