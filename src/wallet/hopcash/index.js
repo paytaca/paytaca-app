@@ -48,10 +48,12 @@ export async function cash2smartMax() {
  * Sends a cash to smart,incoming type transaction
  * @param {number} amount in BCH 
  * @param {string} recipientAddress address of sbch wallet
+ * @param {number} fee in BCH that is sent to paytaca's fee receiver,
+ *                      the value of fee is inclusive to the value specified in amount parameter
  * @param {string} changeAddress bch address 
  * @returns 
  */
-export async function c2s(wallet, amount, recipientAddress, changeAddress) {
+export async function c2s(wallet, amount, recipientAddress, fee=0, changeAddress) {
   if (wallet && wallet._testnet) {
     return {
       success: false,
@@ -65,15 +67,25 @@ export async function c2s(wallet, amount, recipientAddress, changeAddress) {
     }
   }
 
+  const recipients = [
+    { address: addresses.cash2smart.receiver, amount: amount }
+  ]
+
+  if (!bchjs.Address.isCashAddress(addresses.cash2smart.paytacaFeeReceiver) && fee > 0) {
+    recipients.push({
+      address: addresses.cash2smart.paytacaFeeReceiver,
+      amount: fee,
+    })
+    recipients[0].amount = Number(amount) - fee
+  }
+
   const kwargs = {
     sender: {
       walletHash: wallet.BCH.walletHash,
       mnemonic: wallet.BCH.mnemonic,
       derivationPath: wallet.BCH.derivationPath
     },
-    recipients: [
-      { address: addresses.cash2smart.receiver, amount: amount }
-    ],
+    recipients: recipients,
     data: recipientAddress,
     changeAddress: changeAddress,
     wallet: {
@@ -91,10 +103,12 @@ export async function c2s(wallet, amount, recipientAddress, changeAddress) {
  * Sends a smart to cash,incoming type transaction
  * @param {Wallet} amount in sBCH 
  * @param {number} amount in sBCH 
+ * @param {number} fee in BCH that is sent to paytaca's fee receiver,
+ *                      the value of fee is inclusive to the value specified in amount parameter
  * @param {string} recipientAddress address of bch wallet
  * @returns 
  */
-export async function s2c(wallet, amount, recipientAddress) {
+export async function s2c(wallet, amount, fee=0, recipientAddress) {
   if (wallet && wallet._testnet) {
     return {
       success: false,
@@ -109,11 +123,29 @@ export async function s2c(wallet, amount, recipientAddress) {
     }
   }
 
-  return wallet.sBCH.sendBchWithData(
-    amount,
+  let parsedAmount = amount
+  let hasFee = false
+  if (fee > 0 && utils.isAddress(addresses.smart2cash.paytacaFeeReceiver)) {
+    hasFee = true
+    parsedAmount = Number(amount) - fee
+  }
+  
+  const response = await wallet.sBCH.sendBchWithData(
+    parsedAmount,
     addresses.smart2cash.receiver,
     '0x' + Buffer.from(bchjs.Address.toLegacyAddress(recipientAddress), 'utf8').toString('hex')
   )
+
+  if (response.success && hasFee) {
+    const feeTx = wallet.sBCH.sendBCH(
+      fee,
+      addresses.smart2cash.paytacaFeeReceiver
+    )
+
+    response.feeTx = feeTx
+  }
+
+  return response
 }
 
 export async function findC2SOutgoingTx(txId='') {

@@ -265,7 +265,7 @@ const hopCashFee = {
 }
 
 const paytacaFee = {
-  pctg: 0,
+  pctg: 0.001,
   fixed: 0,
 }
 
@@ -522,7 +522,7 @@ export default {
       let recipientAddress = this.manualAddress
         ? this.recipientAddress
         : this.defaultRecipientAddress
-      func(this.wallet, this.amount, recipientAddress, this.getChangeAddress())
+      func(this.wallet, this.amount, recipientAddress, this.fees.paytaca, this.getChangeAddress())
         .finally(() => {
           this.errors = []
           this.loading = false
