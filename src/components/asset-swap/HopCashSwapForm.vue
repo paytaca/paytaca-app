@@ -184,13 +184,30 @@
               <span>BCH to send:</span>
               <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
             </div>
-            <div class="row justify-between no-wrap">
-              <span>Estimated fees:</span>
-              <span class="text-nowrap q-ml-xs">~{{ fees.paytaca + fees.hopcash }} BCH</span>
+            <div class="row justify-between no-wrap" @click="showSplitFees = !showSplitFees">
+              <span>
+                Estimated fees:
+                <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/>
+              </span>
+              <span v-if="!showSplitFees" class="text-nowrap q-ml-xs">
+                ~{{ (fees.paytaca + fees.hopcash) | formatAmount }} BCH
+              </span>
             </div>
+            <q-slide-transition>
+              <div v-if="showSplitFees">
+                <div class="row justify-between no-wrap q-pl-sm">
+                  <span>Paytaca:</span>
+                  <span class="text-nowrap q-ml-xs">~{{ fees.paytaca | formatAmount }} BCH</span>
+                </div>
+                <div class="row justify-between no-wrap q-pl-sm">
+                  <span>Hopcash:</span>
+                  <span class="text-nowrap q-ml-xs">~{{ fees.hopcash | formatAmount }} BCH</span>
+                </div>
+              </div>
+            </q-slide-transition>
             <div class="row justify-between no-wrap">
               <span>BCH to receive:</span>
-              <span class="text-nowrap q-ml-xs">~{{ transferredAmount }} BCH</span>
+              <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
             </div>
           </div>
         </q-card-section>
@@ -273,6 +290,15 @@ export default {
   name: 'HopCashSwapForm',
   components: { CustomKeyboardInput, QrScanner, DragSlide, Pin, BiometricWarningAttempt, Loader },
 
+  filters: {
+    formatAmount(value) {
+      const parsedNum = Number(value)
+      if (isNaN(parsedNum)) return ''
+      
+      return Number(parsedNum.toFixed(6))
+    }
+  },
+
   data() {
     return {
       wallet: null,
@@ -288,6 +314,7 @@ export default {
         sbch: 0,
       },
 
+      showSplitFees: false,
       showQrScanner: false,
       lockInputs: false,
       showDragSlide: false,
