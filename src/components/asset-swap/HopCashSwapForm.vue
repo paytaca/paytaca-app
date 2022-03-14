@@ -34,7 +34,7 @@
 
       <div class="col-5 column items-center">
         <img height="50" src="bch-logo.png"/>
-        <div>from</div>
+        <div>to</div>
         <div class="text-subtitle1 text-center">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
           <template v-else>Bitcoin Cash</template>
