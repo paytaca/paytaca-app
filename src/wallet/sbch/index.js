@@ -240,6 +240,10 @@ export class SmartBchWallet {
   }
 
   async sendBch (amount, recipientAddress) {
+    return this.sendBchWithData(amount, recipientAddress)
+  }
+
+  async sendBchWithData (amount, recipientAddress, data='') {
     if (!utils.isAddress(recipientAddress)) {
       return {
         success: false,
@@ -247,9 +251,17 @@ export class SmartBchWallet {
       }
     }
 
+    if (data && !/0x[0-9a-f]+/i.test(data)) {
+      return {
+        success: false,
+        error: 'Data must be a valid hex string',
+      }
+    }
+
     const parsedAmount = utils.parseEther(amount)
     try {
       const tx = await this._wallet.sendTransaction({
+        data: data,
         to: recipientAddress,
         value: parsedAmount
       })

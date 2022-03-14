@@ -32,20 +32,20 @@ export default {
         {
           name: 'Asset Swap',
           iconName: 'swap_horiz',
-          path: '',
-          active: false
-        },
-        {
-          name: 'Rewards',
-          iconName: 'grade',
-          path: '',
-          active: false
+          path: '/apps/asset-swap',
+          active: true
         },
         {
           name: 'Connecta',
           iconName: 'delivery_dining',
           path: '/apps/connecta/',
           active: true
+        },
+        {
+          name: 'Rewards',
+          iconName: 'grade',
+          path: '',
+          active: false
         },
         {
           name: 'Bills Payment',

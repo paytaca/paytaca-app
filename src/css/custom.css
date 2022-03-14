@@ -94,3 +94,11 @@ h5, p, label, a {
 .bg-brandblue {
   background: rgb(60, 100, 246) !important;
 }
+
+.text-brandlight {
+  color: #ECF3F3 !important;
+}
+
+.bg-brandlight {
+  background-color: #ECF3F3 !important;
+}
