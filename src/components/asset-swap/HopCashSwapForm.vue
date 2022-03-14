@@ -80,7 +80,7 @@
                 outlined: true,
                 disable: lockInputs,
                 rules: [
-                  val => Number(val) > 0.01 || 'Must be greater than 0.01',
+                  val => Number(val) >= 0.01 || 'Must be atleast 0.01',
                   val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
                 ],
               }"
@@ -184,7 +184,7 @@
               <span>BCH to send:</span>
               <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
             </div>
-            <div class="row justify-between no-wrap" @click="showSplitFees = !showSplitFees">
+            <div class="row justify-between no-wrap">
               <span>
                 Estimated fees:
                 <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/>
@@ -282,7 +282,7 @@ const hopCashFee = {
 }
 
 const paytacaFee = {
-  pctg: 0.001,
+  pctg: 0,
   fixed: 0,
 }
 
@@ -549,7 +549,7 @@ export default {
       let recipientAddress = this.manualAddress
         ? this.recipientAddress
         : this.defaultRecipientAddress
-      func(this.wallet, this.amount, recipientAddress, this.fees.paytaca, this.getChangeAddress())
+      func(this.wallet, this.amount, recipientAddress, 0, this.getChangeAddress())
         .finally(() => {
           this.errors = []
           this.loading = false
