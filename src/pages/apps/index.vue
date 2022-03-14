@@ -36,16 +36,16 @@ export default {
           active: true
         },
         {
-          name: 'Rewards',
-          iconName: 'grade',
-          path: '',
-          active: false
-        },
-        {
           name: 'Connecta',
           iconName: 'delivery_dining',
           path: '/apps/connecta/',
           active: true
+        },
+        {
+          name: 'Rewards',
+          iconName: 'grade',
+          path: '',
+          active: false
         },
         {
           name: 'Bills Payment',
