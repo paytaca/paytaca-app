@@ -9,6 +9,13 @@ function toBigNumber(value) {
   return BigNumber.from('0x' + BigInt(value).toString(16)) 
 }
 
+function isValidMainchainAddress(address) {
+  try{
+    return bchjs.Address.isCashAddress(address) || bchjs.Address.isLegacyAddress(address)
+  } catch {}
+  return false
+}
+
 /**
  * To reverse value set feeInfo:
  * nf = -f/(1-p), np = 1 - 1/(1-p), Where:
@@ -71,7 +78,7 @@ export async function c2s(wallet, amount, recipientAddress, fee=0, changeAddress
     { address: addresses.cash2smart.receiver, amount: amount }
   ]
 
-  if (!bchjs.Address.isCashAddress(addresses.cash2smart.paytacaFeeReceiver) && fee > 0) {
+  if (!isValidMainchainAddress(addresses.cash2smart.paytacaFeeReceiver) && fee > 0) {
     recipients.push({
       address: addresses.cash2smart.paytacaFeeReceiver,
       amount: fee,
@@ -108,7 +115,7 @@ export async function c2s(wallet, amount, recipientAddress, fee=0, changeAddress
  * @param {string} recipientAddress address of bch wallet
  * @returns 
  */
-export async function s2c(wallet, amount, fee=0, recipientAddress) {
+export async function s2c(wallet, amount, recipientAddress, fee=0) {
   if (wallet && wallet._testnet) {
     return {
       success: false,
@@ -116,7 +123,7 @@ export async function s2c(wallet, amount, fee=0, recipientAddress) {
     }
   }
 
-  if (!bchjs.Address.isCashAddress(recipientAddress) && !bchjs.Address.isLegacyAddress(recipientAddress)) {
+  if (!isValidMainchainAddress(recipientAddress)) {
     return {
       success: false,
       error: 'Recipient address must be a valid cash/legacy address',
@@ -131,7 +138,7 @@ export async function s2c(wallet, amount, fee=0, recipientAddress) {
   }
   
   const response = await wallet.sBCH.sendBchWithData(
-    parsedAmount,
+    String(parsedAmount),
     addresses.smart2cash.receiver,
     '0x' + Buffer.from(bchjs.Address.toLegacyAddress(recipientAddress), 'utf8').toString('hex')
   )
