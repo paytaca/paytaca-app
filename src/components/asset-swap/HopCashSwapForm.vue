@@ -506,6 +506,11 @@ export default {
             }
           }, 500)
         })
+        .catch(() => {
+          setTimeout(() => {
+            this.verifyBiometric()
+          }, 500)
+        })
     },
 
     verifyBiometric () {
