@@ -595,53 +595,55 @@ export default {
       return this.$store.getters['global/getWallet'](type)
     },
 
-    loadWallets () {
+    async loadWallets () {
       const vm = this
-      getMnemonic().then(function (mnemonic) {
-        vm.wallet = new Wallet(mnemonic, vm.isTestnet)
-        vm.assets.map(function (asset) {
-          vm.getBalance(asset.id)
-        })
-        vm.getTransactions()
-
-        // Create change addresses if nothing is set yet
-        // This is to make sure that v1 wallets auto-upgrades to v2 wallets
-        const bchChangeAddress = vm.getChangeAddress('bch')
-        if (bchChangeAddress.length === 0) {
-          vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
-            vm.$store.commit('global/updateWallet', {
-              type: 'bch',
-              walletHash: vm.wallet.BCH.walletHash,
-              derivationPath: vm.wallet.BCH.derivationPath,
-              lastAddress: addresses.receiving,
-              lastChangeAddress: addresses.change,
-              lastAddressIndex: 0
-            })
-          })
-        }
-        const slpChangeAddress = vm.getChangeAddress('slp')
-        if (slpChangeAddress.length === 0) {
-          vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
-            vm.$store.commit('global/updateWallet', {
-              type: 'slp',
-              walletHash: vm.wallet.SLP.walletHash,
-              derivationPath: vm.wallet.SLP.derivationPath,
-              lastAddress: addresses.receiving,
-              lastChangeAddress: addresses.change,
-              lastAddressIndex: 0
-            })
-          })
-        }
-
-        const sBchDerivationPath = vm.getWallet('sbch').derivationPath
-        if (sBchDerivationPath.length !== 14) {
-          vm.$store.commit('global/updateWallet', {
-            type: 'sbch',
-            derivationPath: vm.wallet.sBCH.derivationPath,
-            walletHash: vm.wallet.sBCH.walletHash
-          })
-        }
+      const mnemonic = await getMnemonic()
+      
+      const wallet = new Wallet(mnemonic, vm.isTestnet)
+      await wallet.sBCH.getOrInitWallet()
+      vm.wallet = wallet
+      vm.assets.map(function (asset) {
+        vm.getBalance(asset.id)
       })
+      vm.getTransactions()
+
+      // Create change addresses if nothing is set yet
+      // This is to make sure that v1 wallets auto-upgrades to v2 wallets
+      const bchChangeAddress = vm.getChangeAddress('bch')
+      if (bchChangeAddress.length === 0) {
+        vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+          vm.$store.commit('global/updateWallet', {
+            type: 'bch',
+            walletHash: vm.wallet.BCH.walletHash,
+            derivationPath: vm.wallet.BCH.derivationPath,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: 0
+          })
+        })
+      }
+      const slpChangeAddress = vm.getChangeAddress('slp')
+      if (slpChangeAddress.length === 0) {
+        vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
+          vm.$store.commit('global/updateWallet', {
+            type: 'slp',
+            walletHash: vm.wallet.SLP.walletHash,
+            derivationPath: vm.wallet.SLP.derivationPath,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: 0
+          })
+        })
+      }
+
+      const sBchDerivationPath = vm.getWallet('sbch').derivationPath
+      if (sBchDerivationPath.length !== 14) {
+        vm.$store.commit('global/updateWallet', {
+          type: 'sbch',
+          derivationPath: vm.wallet.sBCH.derivationPath,
+          walletHash: vm.wallet.sBCH.walletHash
+        })
+      }
     }
   },
 

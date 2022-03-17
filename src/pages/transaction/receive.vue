@@ -294,8 +294,12 @@ export default {
   mounted () {
     const vm = this
     getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic, vm.isTestnet)
-      vm.setupListener()
+      const wallet = new Wallet(mnemonic, vm.isTestnet)
+      wallet.sBCH.getOrInitWallet()
+        .then(() => {
+          vm.wallet = wallet
+          vm.setupListener()
+        })
     })
   },
 

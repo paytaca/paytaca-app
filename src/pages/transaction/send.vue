@@ -771,7 +771,11 @@ export default {
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic, vm.isTestnet)
+      const wallet = new Wallet(mnemonic, vm.isTestnet)
+      wallet.sBCH.getOrInitWallet()
+        .then(() => {
+          vm.wallet = wallet
+        })
     })
   },
 

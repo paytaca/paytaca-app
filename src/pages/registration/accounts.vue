@@ -156,11 +156,12 @@ export default {
         })
         vm.steps += 1
       })
-
-      vm.$store.commit('global/updateWallet', {
-        type: 'sbch',
-        derivationPath: wallet.sBCH.derivationPath,
-        walletHash: wallet.sBCH.walletHash
+      wallet.sBCH.getOrInitWallet().then(function () {
+        vm.$store.commit('global/updateWallet', {
+          type: 'sbch',
+          derivationPath: wallet.sBCH.derivationPath,
+          walletHash: wallet.sBCH.walletHash
+        })
       })
     },
     choosePreferedSecurity () {
