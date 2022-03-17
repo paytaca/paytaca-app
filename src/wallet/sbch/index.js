@@ -277,12 +277,23 @@ export class SmartBchWallet {
     }
 
     const parsedAmount = utils.parseEther(amount)
+    const txParams = {
+      data: data,
+      to: recipientAddress,
+      value: parsedAmount
+    }
+    const balance = await this._wallet.getBalance()
+    const estGas = await this._wallet.estimateGas(txParams)
+    const totalReq = estGas.add(balance)
+
+    if (balance.lt(totalReq)) {
+      // for future reference setting value to max allowed by balance
+      // txParams.value = txParams.value.sub(estGas)
+      return { success: false, error: 'Not enough balance for gas' }
+    }
+
     try {
-      const tx = await this._wallet.sendTransaction({
-        data: data,
-        to: recipientAddress,
-        value: parsedAmount
-      })
+      const tx = await this._wallet.sendTransaction(txParams)
       return {
         success: true,
         transaction: tx
