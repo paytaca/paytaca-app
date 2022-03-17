@@ -1,5 +1,7 @@
 import axios from 'axios'
 import sha256 from 'js-sha256'
+import * as Bip39 from 'bip39'
+import { hdkey } from 'ethereumjs-wallet';
 import { BigNumber, ethers, utils } from 'ethers'
 
 import { getProvider, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
@@ -24,10 +26,25 @@ export class SmartBchWallet {
 
     // Single address for now
     // TODO: Add support for multiple addresses in the future
-    const addressIndex = 0
-    const addressPath = `${path}/${addressIndex}`
 
-    this._wallet = ethers.Wallet.fromMnemonic(mnemonic, addressPath).connect(this.provider)
+    // this._wallet = ethers.Wallet.fromMnemonic(mnemonic, addressPath).connect(this.provider)
+    this.getOrInitWallet(addressIndex)
+  }
+
+  async initWallet() {
+    // Changed from using ethers.Wallet.fromMnemonic for faster initialization time
+    // https://stackoverflow.com/a/71065135
+    const seed = await Bip39.mnemonicToSeed(this.mnemonic);
+    const hdNode = hdkey.fromMasterSeed(seed);
+    const node = hdNode.derivePath(this.derivationPath)
+    const childNode = node.deriveChild(0);
+    const childWallet = childNode.getWallet();
+    this._wallet = new ethers.Wallet(childWallet.getPrivateKey().toString('hex')).connect(this.provider)
+  }
+
+  async getOrInitWallet() {
+    if (!this._wallet) await this.initWallet()
+    return this._wallet
   }
 
   getWalletHash () {
@@ -44,6 +61,7 @@ export class SmartBchWallet {
   }
 
   async getBalance () {
+    await this.getOrInitWallet()
     const balance = await this._wallet.getBalance()
     return utils.formatEther(balance)
   }
