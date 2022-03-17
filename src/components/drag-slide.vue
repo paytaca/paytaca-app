@@ -93,8 +93,8 @@ export default {
       const absPctg = (e.clientX - containerEl.offsetLeft - thumbHalfWidth) / (containerEl.offsetWidth - thumbHalfWidth)
       const pctg = Math.max(Math.min(absPctg, 1), 0)
 
-      this.val = Number((pctg*100).toFixed())
-      if (this.val >= 100) {
+      this.val = Number((pctg * 100).toFixed())
+      if (this.val >= 90) {
         this.$nextTick(() => {
           this.swiped = true
           this.mouseUpHandler()
