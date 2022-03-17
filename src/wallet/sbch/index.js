@@ -28,7 +28,7 @@ export class SmartBchWallet {
     // TODO: Add support for multiple addresses in the future
 
     // this._wallet = ethers.Wallet.fromMnemonic(mnemonic, addressPath).connect(this.provider)
-    this.getOrInitWallet(addressIndex)
+    this.getOrInitWallet()
   }
 
   async initWallet() {
