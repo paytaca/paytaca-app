@@ -32,8 +32,7 @@
     ]
   }],
   "permissions": [
-    "storage",
-    "tabs"
+    "storage"
   ],
   "web_accessible_resources": [
     "www/*",
