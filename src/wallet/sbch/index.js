@@ -284,8 +284,7 @@ export class SmartBchWallet {
     }
     const balance = await this._wallet.getBalance()
     const estGas = await this._wallet.estimateGas(txParams)
-    const totalReq = estGas.add(balance)
-
+    const totalReq = estGas.add(parsedAmount)
     if (balance.lt(totalReq)) {
       // for future reference setting value to max allowed by balance
       // txParams.value = txParams.value.sub(estGas)
