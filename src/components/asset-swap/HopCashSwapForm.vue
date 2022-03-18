@@ -13,7 +13,7 @@
     <div class="row no-wrap justify-around items-baseline">
       <div class="col-5 column items-center">
         <img
-          height="50"
+          height="40"
           src="bch-logo.png"
         />
         <div>from</div>
@@ -33,7 +33,7 @@
       />
 
       <div class="col-5 column items-center">
-        <img height="50" src="bch-logo.png"/>
+        <img height="40" src="bch-logo.png"/>
         <div>to</div>
         <div class="text-subtitle1 text-center">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
@@ -67,9 +67,9 @@
           </div>
           <div class="row no-wrap items-start">
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-              <img height="50" src="bch-logo.png"/>
+              <img height="40" src="bch-logo.png"/>
               <div class="q-ml-sm">
-                <div class="text-caption" style="margin-bottom:-10px">You send:</div>
+                <div class="text-caption" style="margin-bottom:-6px">You send:</div>
                 <div>BCH</div>
               </div>
             </div>
@@ -101,11 +101,11 @@
             /> -->
           </div>
 
-          <div class="row no-wrap items-start">
+          <div class="row no-wrap items-start" style="margin-top: -10px;">
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-              <img height="50" src="bch-logo.png"/>
+              <img height="40" src="bch-logo.png"/>
               <div class="q-ml-sm">
-                <div class="text-caption" style="margin-bottom:-10px">You receive:</div>
+                <div class="text-caption" style="margin-bottom:-6px">You receive:</div>
                 <div>BCH</div>
               </div>
             </div>
@@ -129,7 +129,7 @@
             /> -->
           </div>
 
-          <div class="row no-wrap items-start">
+          <div class="row no-wrap items-start" style="margin-top: -10px;">
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               Address
             </div>
@@ -210,10 +210,11 @@
               <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
             </div>
           </div>
+          <div class="row justify-center" style="color: gray;">Powered by hop.cash</div>
         </q-card-section>
       </q-card>
 
-      <div class="row items-start justify-center q-mt-sm">
+      <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
         <Loader
           v-if="loading"
         />
@@ -629,5 +630,8 @@ export default {
 <style scoped>
 .text-nowrap {
   white-space: nowrap;
+}
+.text-subtitle1 {
+  font-size: 14px;
 }
 </style>
