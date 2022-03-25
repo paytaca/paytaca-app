@@ -284,15 +284,6 @@ export class SmartBchWallet {
     }
 
     try {
-    } catch (e) {
-      let error = e
-      if (e.message === "insufficient-balance") {
-        error = 'Not enough balance for gas'
-      }
-      return { success: false, error: error }
-    }
-
-    try {
       const balance = await this._wallet.getBalance()
       const estGas = await this._wallet.estimateGas(txParams)
       const totalReq = estGas.add(parsedAmount)
