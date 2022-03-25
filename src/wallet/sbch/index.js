@@ -282,22 +282,35 @@ export class SmartBchWallet {
       to: recipientAddress,
       value: parsedAmount
     }
-    const balance = await this._wallet.getBalance()
-    const estGas = await this._wallet.estimateGas(txParams)
-    const totalReq = estGas.add(parsedAmount)
-    if (balance.lt(totalReq)) {
-      // for future reference setting value to max allowed by balance
-      // txParams.value = txParams.value.sub(estGas)
-      return { success: false, error: 'Not enough balance for gas' }
+
+    try {
+    } catch (e) {
+      let error = e
+      if (e.message === "insufficient-balance") {
+        error = 'Not enough balance for gas'
+      }
+      return { success: false, error: error }
     }
 
     try {
+      const balance = await this._wallet.getBalance()
+      const estGas = await this._wallet.estimateGas(txParams)
+      const totalReq = estGas.add(parsedAmount)
+      if (balance.lt(totalReq)) {
+        // for future reference setting value to max allowed by balance
+        // txParams.value = txParams.value.sub(estGas)
+        return { success: false, error: 'Not enough balance for gas' }
+      }
       const tx = await this._wallet.sendTransaction(txParams)
       return {
         success: true,
         transaction: tx
       }
     } catch (e) {
+      if (e && e.message === "insufficient-balance") {
+        return { success: false, error: 'Not enough balance for gas' }
+      }
+
       return {
         success: false,
         error: e.reason
