@@ -78,7 +78,7 @@
               :fieldProps="{
                 dense: true,
                 outlined: true,
-                disable: lockInputs,
+                disable: lockInputs || maxBridgeBalance === 0,
                 rules: [
                   val => Number(val) >= 0.01 || 'Must be atleast 0.01',
                   val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
@@ -114,6 +114,7 @@
               :fieldProps="{
                 dense: true,
                 outlined: true,
+                disable: maxBridgeBalance === 0,
                 bottomSlots: true,
               }"
               class="q-space q-my-sm"
