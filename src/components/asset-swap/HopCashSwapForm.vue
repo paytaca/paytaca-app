@@ -179,7 +179,7 @@
           </div>
 
           <q-separator spaced/>
-          <div class="q-pa-sm rounded-borders">
+          <div v-if="!loading" class="q-pa-sm rounded-borders">
             <div class="row justify-between no-wrap">
               <span>BCH to send:</span>
               <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
