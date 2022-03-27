@@ -33,7 +33,7 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none" style="font-size: 18px; color: #444655;">
-                  {{ asset.balance }}
+                  {{ String(asset.balance).substring(0, 16) }}
                   {{ asset.symbol }}
                 </p>
               </div>
