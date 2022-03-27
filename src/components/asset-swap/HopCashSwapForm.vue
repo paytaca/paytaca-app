@@ -159,7 +159,7 @@
               bottom-slots
             />
           </div>
-          <div class="row justify-end items-start">
+          <div v-if="!loading" class="row justify-end items-start">
             <q-btn
               v-if="manualAddress"
               no-caps
@@ -169,7 +169,7 @@
               @click="showQrScanner = true"
             />
           </div>
-          <div class="row justify-end items-start">
+          <div v-if="!loading" class="row justify-end items-start">
             <q-space />
             <q-toggle
               dense
