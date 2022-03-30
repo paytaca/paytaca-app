@@ -17,11 +17,11 @@
             </span>
           </p> -->
           <q-tabs
-            dense
             active-color="brandblue"
-            class="col-12 q-px-sm q-pb-md"
+            class="col-12 q-px-sm"
             :value="selectedNetwork"
             @input="changeNetwork"
+            style="margin-top: -20px; padding-bottom: 16px;"
           >
             <q-tab name="BCH" :label="networks.BCH.name"/>
             <q-tab name="sBCH" :label="networks.sBCH.name"/>
