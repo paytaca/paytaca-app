@@ -12,7 +12,7 @@ export class SmartBchWallet {
   static TX_INCOMING = 'incoming'
   static TX_OUTGOING = 'outgoing'
 
-  constructor (projectId, mnemonic, path, test = false) {
+  constructor (projectId, mnemonic, path) {
     this.TX_INCOMING = 'incoming'
     this.TX_OUTGOING = 'outgoing'
 
@@ -20,9 +20,8 @@ export class SmartBchWallet {
     this.projectId = projectId
     this.derivationPath = path
     this.walletHash = this.getWalletHash()
-    this._testnet = test
 
-    this.provider = getProvider(this._testnet)
+    this.provider = getProvider()
 
     // Single address for now
     // TODO: Add support for multiple addresses in the future
@@ -54,12 +53,6 @@ export class SmartBchWallet {
     return walletHash
   }
 
-  setTestnet (value = true) {
-    this._testnet = Boolean(value)
-    this.provider = getProvider(this._testnet)
-    this._wallet = this._wallet.connect(this.provider)
-  }
-
   async getBalance () {
     await this.getOrInitWallet()
     const balance = await this._wallet.getBalance()
@@ -68,7 +61,7 @@ export class SmartBchWallet {
 
   async getSep20TokenBalance (contractAddress) {
     if (!utils.isAddress(contractAddress)) return 0
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
     const balance = await tokenContract.balanceOf(this._wallet.address)
     const decimals = await tokenContract.decimals()
     return utils.formatUnits(balance, decimals)
@@ -137,7 +130,7 @@ export class SmartBchWallet {
   async _getSep20Transaction (contractAddress, { before = 'latest', after = '0x0', limit = 10 }) {
     if (!utils.isAddress(contractAddress)) return []
 
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
     const decimals = await tokenContract.decimals()
     const eventFilter = tokenContract.filters.Transfer(this._wallet.address, this._wallet.address)
 
@@ -196,7 +189,7 @@ export class SmartBchWallet {
       }
     }
 
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
     const parsedTxs = []
     let pseudoBefore = before
 
@@ -324,7 +317,7 @@ export class SmartBchWallet {
       }
     }
 
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
     const decimals = await tokenContract.decimals()
     const parsedAmount = utils.parseUnits(amount, decimals)
     const contractWithSigner = tokenContract.connect(this._wallet)
@@ -365,7 +358,7 @@ export class SmartBchWallet {
         error: 'Invalid Token ID'
       }
     }
-    const tokenContract = getERC721Contract(contractAddress, this._testnet)
+    const tokenContract = getERC721Contract(contractAddress)
     const address = await tokenContract.ownerOf(tokenId)
     if (address !== this._wallet.address) {
       return {
@@ -404,7 +397,7 @@ export class SmartBchWallet {
         error: 'Invalid token address'
       }
     }
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
 
     const tokenName = await tokenContract.name()
     const tokenSymbol = await tokenContract.symbol()
@@ -427,7 +420,7 @@ export class SmartBchWallet {
       }
     }
 
-    const contract = getERC721Contract(contractAddress, this._testnet)
+    const contract = getERC721Contract(contractAddress)
     const uri = await contract.tokenURI(tokenID)
     let success = false
     let data = null
@@ -459,7 +452,6 @@ export class SmartBchWallet {
         offset,
         includeMetadata,
         address: this._wallet.address,
-        test: this._testnet
       }
     )
   }
@@ -485,7 +477,7 @@ export class SmartBchWallet {
       }
     }
 
-    const contract = getERC721Contract(contractAddress, this._testnet)
+    const contract = getERC721Contract(contractAddress)
     var balance
     if (address) balance = await contract.balanceOf(this._wallet.address)
     else balance = await contract.totalSupply()

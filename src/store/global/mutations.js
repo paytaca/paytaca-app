@@ -1,10 +1,3 @@
-export function setTestnet(state, value) {
-  state.testnet = Boolean(value)
-}
-export function setShowTestnetIndicator(state, value) {
-  state.showTestnetIndicator = Boolean(value)
-}
-
 export function setNetwork(state, network) {
   switch(network) {
     case 'BCH':

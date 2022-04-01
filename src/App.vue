@@ -1,9 +1,5 @@
 <template>
   <div id="q-app" ref="container">
-    <div v-if="isTestnet && showTestnetIndicator" class="testnet-div" @click.stop>
-      <q-tooltip :hide-delay="1000">Currently using testnet network</q-tooltip>
-      <q-icon name="info" class="q-ml-xs" size="1.25em"/> Testnet
-    </div>
     <router-view />
   </div>
 </template>
@@ -12,14 +8,6 @@
 export default {
   name: 'App',
 
-  computed: {
-    isTestnet() {
-      return this.$store.getters['global/isTestnet']
-    },
-    showTestnetIndicator() {
-      return this.$store.getters['global/showTestnetIndicator']
-    },
-  },
   mounted () {
     const vm = this
     if (vm.$q.platform.is.bex) {
@@ -62,15 +50,5 @@ export default {
 <style>
 #q-app {
   overflow: auto;
-}
-</style>
-<style scoped>
-.testnet-div {
-  position: fixed;
-  top: 0px;
-  right: 0px;
-  padding: 6px;
-  opacity: 0.7;
-  z-index: 999;
 }
 </style>

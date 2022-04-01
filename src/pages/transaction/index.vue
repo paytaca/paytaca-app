@@ -192,9 +192,6 @@ export default {
   },
 
   computed: {
-    isTestnet () {
-      return this.$store.getters['global/isTestnet']
-    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -205,8 +202,7 @@ export default {
     },
     assets () {
       if (this.selectedNetwork === 'sBCH') {
-        if (this.isTestnet) return this.$store.getters['sep20/getTestnetAssets'].filter(Boolean)
-        else return this.$store.getters['sep20/getAssets'].filter(Boolean)
+        return this.$store.getters['sep20/getAssets'].filter(Boolean)
       }
 
       return this.$store.getters['assets/getAssets'].filter(function (item) {
@@ -321,7 +317,7 @@ export default {
         const contractAddress = parsedId.match(sep20IdRegexp)[1]
         vm.wallet.sBCH.getSep20TokenBalance(contractAddress)
           .then(balance => {
-            const commitName = vm.isTestnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
+            const commitName = 'sep20/updateAssetBalance'
             vm.$store.commit(commitName, {
               id: parsedId,
               balance: balance
@@ -331,7 +327,7 @@ export default {
       } else {
         vm.wallet.sBCH.getBalance()
           .then(balance => {
-            const commitName = vm.isTestnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
+            const commitName = 'sep20/updateAssetBalance'
             vm.$store.commit(commitName, {
               id: parsedId,
               balance: balance
@@ -599,7 +595,7 @@ export default {
       const vm = this
       const mnemonic = await getMnemonic()
       
-      const wallet = new Wallet(mnemonic, vm.isTestnet)
+      const wallet = new Wallet(mnemonic)
       await wallet.sBCH.getOrInitWallet()
       vm.wallet = wallet
       vm.assets.map(function (asset) {
@@ -651,18 +647,6 @@ export default {
     next(vm => {
       vm.prevPath = from.path
     })
-  },
-
-  watch: {
-    isTestnet () {
-      if (!this.wallet) return this.loadWallet()
-
-      if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {
-        this.wallet.setTestnet(this.isTestnet)
-        this.transactions = []
-        this.getTransactions()
-      }
-    }
   },
 
   async mounted () {

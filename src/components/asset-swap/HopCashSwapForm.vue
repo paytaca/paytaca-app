@@ -329,9 +329,6 @@ export default {
   },
 
   computed: {
-    isTestnet() {
-      return this.$store.getters['global/isTestnet']
-    },
     maxBridgeBalance () {
       let balance = 0
       if (this.transferType === 'c2s') balance = this.bridgeBalances.sbch
@@ -462,7 +459,7 @@ export default {
       if (this.transferType === 's2c') {
         this.wallet.sBCH.getBalance()
           .then(balance => {
-            const commitName = this.wallet._testnet ? 'sep20/updateTestnetAssetBalance' : 'sep20/updateAssetBalance'
+            const commitName = 'sep20/updateAssetBalance'
             this.$store.commit(commitName, {
               id: id,
               balance: balance
@@ -604,7 +601,7 @@ export default {
       const vm = this
       // Load wallets
       return getMnemonic().then(function (mnemonic) {
-        const wallet = new Wallet(mnemonic, vm.isTestnet)
+        const wallet = new Wallet(mnemonic)
         return wallet.sBCH.getOrInitWallet()
           .then(() => {
             vm.wallet = wallet

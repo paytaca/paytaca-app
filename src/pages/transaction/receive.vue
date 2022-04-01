@@ -95,9 +95,6 @@ export default {
     }
   },
   computed: {
-    isTestnet() {
-      return this.$store.getters['global/isTestnet']
-    },
     isSep20 () {
       return this.network === 'sBCH'
     },
@@ -180,8 +177,7 @@ export default {
     getAsset (id) {
       let getter = 'assets/getAsset'
       if (this.isSep20) {
-        if (this.isTestnet) getter = 'sep20/getTestnetAsset'
-        else getter = 'sep20/getAsset'
+        getter = 'sep20/getAsset'
       }
       const assets = this.$store.getters[getter](id)
       if (assets.length > 0) {
@@ -257,7 +253,6 @@ export default {
       } else {
         opts.tokensOnly = false
       }
-      opts.test = vm.isTestnet
 
       // Stop listener if another listener already exists
       vm.stopSbchListener()
@@ -294,7 +289,7 @@ export default {
   mounted () {
     const vm = this
     getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic, vm.isTestnet)
+      const wallet = new Wallet(mnemonic)
       wallet.sBCH.getOrInitWallet()
         .then(() => {
           vm.wallet = wallet

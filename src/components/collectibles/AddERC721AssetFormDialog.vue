@@ -80,11 +80,7 @@ export default {
     }
   },
   computed: {
-    isTestnet() {
-      return this.$store.getters['global/isTestnet']
-    },
     erc721Assets () {
-      if (this.isTestnet) return this.$store.getters['sep20/getTestnetNftAssets']
       return this.$store.getters['sep20/getNftAssets']
     }
   },
@@ -105,7 +101,7 @@ export default {
       if (!this.isValidAddress(this.formData.contractAddress)) return
       this.autoFilling = true
       try {
-        const response = await getERC721ContractDetails(this.formData.contractAddress, this.isTestnet)
+        const response = await getERC721ContractDetails(this.formData.contractAddress)
         if (!response.success) return
         if (!response.token) return
         this.formData.name = response.token.name
@@ -115,7 +111,7 @@ export default {
       this.autoFilling = false
     }, 250),
     submitAddToken () {
-      const commitName = this.isTestnet ? 'sep20/addNewTestnetNftAsset' : 'sep20/addNewNftAsset'
+      const commitName = 'sep20/addNewNftAsset'
       const payload = {
         address: this.formData.contractAddress,
         name: this.formData.name,

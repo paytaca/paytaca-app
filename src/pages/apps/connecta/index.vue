@@ -273,9 +273,6 @@ export default {
     }
   },
   computed: {
-    isTestnet() {
-      return this.$store.getters['global/isTestnet']
-    },
     paymentRequest() {
       if (!this.rawPaymentRequest) return
 
@@ -498,22 +495,12 @@ export default {
 
     loadWallet () {
       getMnemonic().then((mnemonic) => {
-        const wallet = new Wallet(mnemonic, this.isTestnet)
+        const wallet = new Wallet(mnemonic)
         wallet.sBCH.getOrInitWallet()
           .then(() => {
             this.wallet = wallet
           })
       })
-    }
-  },
-
-  watch: {
-    isTestnet() {
-      if (!this.wallet) return this.loadWallet()
-
-      if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {
-        this.wallet.setTestnet(this.isTestnet)
-      }
     }
   },
 
