@@ -63,11 +63,11 @@
                 v-if="[4, 8, 12, 16].includes(key)"
                 :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4))"
                 @click="removeKey(key === 4 ? 'reset' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'cancel' : '')"
-                class="full-width pt-key-del pt-remove-key"
+                class="full-width pp-key pt-key-del pt-remove-key"
                 :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'highlight_off' : ''" />
               <q-btn
                 push
-                class="full-width pt-key-num"
+                class="full-width pp-key pt-key-num"
                 :disable="(key === 13)"
                 v-else-if="(key !== 15)" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key"
                 @click="processKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key)" />
@@ -321,5 +321,8 @@ export default {
   width: 100%;
   left: 0px;
   bottom: 0px !important;
+}
+.pp-key {
+  color: #515151 !important;
 }
 </style>

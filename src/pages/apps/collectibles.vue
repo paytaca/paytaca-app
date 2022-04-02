@@ -5,10 +5,10 @@
       <q-menu>
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
+            <q-item-section class="pp-text" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
-            <q-item-section @click="getCollectibles()">Refresh List</q-item-section>
+            <q-item-section class="pp-text" @click="getCollectibles()">Refresh List</q-item-section>
           </q-item>
         </q-list>
       </q-menu>
@@ -16,7 +16,7 @@
     <q-tabs
       dense
       active-color="brandblue"
-      class="col-12 q-px-lg"
+      class="col-12 q-px-lg pp-text"
       :value="selectedNetwork"
       @input="changeNetwork"
     >
@@ -25,7 +25,7 @@
     </q-tabs>
     <q-slide-transition>
       <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
-        <div style="margin-bottom: 5px;">click to copy</div>
+        <div class="pp-text" style="margin-bottom: 5px;">click to copy</div>
         <qr-code
           :text="receivingAddress"
           style="width: 160px; margin-left: auto; margin-right: auto;"
@@ -94,7 +94,7 @@
                   />
                   <div class="text-subtitle1">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
                 </template>
-                <div v-else class="text-grey">
+                <div v-else class="text-grey pp-text">
                   Select Collection
                 </div>
               </div>
@@ -122,7 +122,7 @@
                 />
               </q-item-section>
               <q-item-section>
-                <q-item-label>{{ asset.name }}</q-item-label>
+                <q-item-label class="pp-text">{{ asset.name }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-btn
@@ -305,5 +305,8 @@ export default {
   right: 10px;
   z-index: 150 !important;
   color: #3b7bf6;
+}
+.pp-text {
+  color: #000 !important;
 }
 </style>

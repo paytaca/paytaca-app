@@ -6,15 +6,15 @@
     >
       <q-card class="">
           <q-card-section>
-            <p class="q-my-none">Please choose your preferred security authentication.</p>
+            <p class="q-my-none pp-text">Please choose your preferred security authentication.</p>
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row q-mb-sm">
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="pin" label="PIN" color="pt-radio" class="full-width" />
+                <q-radio v-model="preferredSecurity" val="pin" label="PIN" color="pt-radio" class="full-width pp-text" />
               </div>
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="biometric" label="Biometric" color="pt-radio" class="full-width" />
+                <q-radio v-model="preferredSecurity" val="biometric" label="Biometric" color="pt-radio" class="full-width pp-text" />
               </div>
             </div>
             <q-separator />
@@ -76,5 +76,8 @@ export default {
 }
 .text-pt-radio {
   color: #D36EE1 !important;
+}
+.pp-text {
+  color: #000 !important;
 }
 </style>
