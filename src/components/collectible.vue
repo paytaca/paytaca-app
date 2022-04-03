@@ -54,6 +54,12 @@ export default {
       const url = 'https://simpleledger.info/#token/' + this.collectible.token_id
       openURL(url)
     },
+    getImageUrl (collectible) {
+      if (!collectible) return ''
+      return collectible.thumbnail_image_url ||
+            collectible.thumbnail_image_url ||
+            collectible.original_image_url
+    },
     send () {
       this.$router.push({
         name: 'transaction-send',
