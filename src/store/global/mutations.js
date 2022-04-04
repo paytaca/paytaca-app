@@ -19,6 +19,10 @@ export function updateWallet (state, details) {
   state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
 }
 
+export function setWalletSubscribed(state, details) {
+  state.wallets[details.type].subscribed = details.subscribed
+}
+
 export function updateXPubKey (state, details) {
   state.wallets[details.type].xPubKey = details.xPubKey
 }

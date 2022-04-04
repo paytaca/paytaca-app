@@ -19,6 +19,7 @@ export default function () {
         lastAddressIndex: 0
       },
       sbch: {
+        subscribed: false,
         walletHash: '',
         derivationPath: ''
       }
