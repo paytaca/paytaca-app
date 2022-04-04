@@ -189,14 +189,10 @@ export default {
     }
   },
   computed: {
-    isTestnet () {
-      return this.$store.getters['global/isTestnet']
-    },
     isSep20 () {
       return this.selectedNetwork === 'sBCH'
     },
     erc721Assets () {
-      if (this.isTestnet) return this.$store.getters['sep20/getTestnetNftAssets']
       return this.$store.getters['sep20/getNftAssets']
     },
     selectedNetwork: {
@@ -227,7 +223,7 @@ export default {
       this.erc721AssetDetailDialog.show = true
     },
     confirmRemoveERC721Asset (asset) {
-      const title = this.isTestnet ? 'Remove testnet asset' : 'Remove asset'
+      const title = 'Remove asset'
       const message = 'Remove asset "' + asset.name + '". Are you sure?'
       this.$q.dialog({
         title: title,
@@ -236,7 +232,7 @@ export default {
         persistent: true
       }).onOk(() => {
         console.log('removing asset', asset)
-        const commitName = this.isTestnet ? 'sep20/removeTestnetNftAsset' : 'sep20/removeNftAsset'
+        const commitName = 'sep20/removeNftAsset'
         this.$store.commit(commitName, asset.address)
       })
     },
@@ -263,22 +259,12 @@ export default {
     loadWallet () {
       const vm = this
       getMnemonic().then(function (mnemonic) {
-        const wallet = new Wallet(mnemonic, vm.isTestnet)
+        const wallet = new Wallet(mnemonic)
         wallet.sBCH.getOrInitWallet()
           .then(() => {
             vm.wallet = wallet
           })
       })
-    }
-  },
-  watch: {
-    isTestnet () {
-      if (!this.wallet) return this.loadWallet()
-
-      if (Boolean(this.wallet._testnet) !== Boolean(this.isTestnet)) {
-        this.wallet.setTestnet(this.isTestnet)
-        this.getCollectibles()
-      }
     }
   },
   mounted () {

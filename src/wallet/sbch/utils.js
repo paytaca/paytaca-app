@@ -91,7 +91,7 @@ export function decodeEIP681URI (uri, urnScheme) {
   return obj
 }
 
-export async function watchTransactions (address, { type = null, tokensOnly = false, contractAddresses = [], test = true }, callback) {
+export async function watchTransactions (address, { type = null, tokensOnly = false, contractAddresses = [], test = false }, callback) {
   if (!utils.isAddress(address)) return
 
   const contracts = !Array.isArray(contractAddresses) ? [] : contractAddresses.map(contractAddress => getSep20Contract(contractAddress, test))

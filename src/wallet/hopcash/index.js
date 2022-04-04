@@ -61,12 +61,6 @@ export async function cash2smartMax() {
  * @returns 
  */
 export async function c2s(wallet, amount, recipientAddress, fee=0, changeAddress) {
-  if (wallet && wallet._testnet) {
-    return {
-      success: false,
-      error: 'Wallet used is in testnet.',
-    }
-  }
   if (!utils.isAddress(recipientAddress)) {
     return {
       success: false,
@@ -116,12 +110,6 @@ export async function c2s(wallet, amount, recipientAddress, fee=0, changeAddress
  * @returns 
  */
 export async function s2c(wallet, amount, recipientAddress, fee=0) {
-  if (wallet && wallet._testnet) {
-    return {
-      success: false,
-      error: 'Wallet used is in testnet.',
-    }
-  }
 
   if (!isValidMainchainAddress(recipientAddress)) {
     return {

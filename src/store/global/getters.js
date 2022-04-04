@@ -1,13 +1,5 @@
 const sha256 = require('js-sha256')
 
-export function isTestnet (state) {
-  return state.testnet
-}
-
-export function showTestnetIndicator (state) {
-  return state.showTestnetIndicator
-}
-
 export function network (state) {
   return state.network
 }

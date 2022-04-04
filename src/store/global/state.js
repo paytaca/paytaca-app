@@ -1,7 +1,5 @@
 export default function () {
   return {
-    testnet: false,
-    showTestnetIndicator: false,
     network: 'BCH', // BCH || sBCH
     wallets: {
       bch: {

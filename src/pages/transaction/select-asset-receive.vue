@@ -74,9 +74,6 @@ export default {
     }
   },
   computed: {
-    isTestnet() {
-      return this.$store.getters['global/isTestnet']
-    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -87,8 +84,7 @@ export default {
     },
     assets () {
       if (this.selectedNetwork === 'sBCH') {
-        if (this.isTestnet) return this.$store.getters['sep20/getTestnetAssets'].filter(Boolean)
-        else return this.$store.getters['sep20/getAssets'].filter(Boolean)
+        return this.$store.getters['sep20/getAssets'].filter(Boolean)
       }
 
       return this.$store.getters['assets/getAssets'].filter(function (item) {

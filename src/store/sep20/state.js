@@ -24,23 +24,6 @@ export default function () {
       }
     ],
 
-    testnetAssets: [
-      {
-        id: 'bch',
-        symbol: 'BCH',
-        name: 'Bitcoin Cash',
-        logo: 'bch-logo.png',
-        balance: 0
-      },
-      {
-        id: 'sep20/0xFa77D1D8AADDd9a263C7d685375EF148E268c558',
-        symbol: 'ATK',
-        name: 'AnToken',
-        logo: '',
-        balance: 0,
-      }
-    ],
-
     nftAssets: [
       {
         address: '0xC054A7F7866ba73889511c48967be776008eb408',
@@ -52,8 +35,6 @@ export default function () {
         name: 'CashCats NFT',
         symbol: '',
       }
-    ],
-    testnetNftAssets: [
     ]
   }
 }

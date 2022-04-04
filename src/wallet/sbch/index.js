@@ -1,3 +1,4 @@
+import Watchtower from 'watchtower-cash-js'
 import axios from 'axios'
 import sha256 from 'js-sha256'
 import * as Bip39 from 'bip39'
@@ -12,17 +13,19 @@ export class SmartBchWallet {
   static TX_INCOMING = 'incoming'
   static TX_OUTGOING = 'outgoing'
 
-  constructor (projectId, mnemonic, path, test = false) {
+  constructor (projectId, mnemonic, path) {
     this.TX_INCOMING = 'incoming'
     this.TX_OUTGOING = 'outgoing'
+
+    this._watchtowerApi = new WatchtowerSBCH(projectId)
+    this.watchtower = new Watchtower()
 
     this.mnemonic = mnemonic
     this.projectId = projectId
     this.derivationPath = path
     this.walletHash = this.getWalletHash()
-    this._testnet = test
 
-    this.provider = getProvider(this._testnet)
+    this.provider = getProvider()
 
     // Single address for now
     // TODO: Add support for multiple addresses in the future
@@ -47,17 +50,23 @@ export class SmartBchWallet {
     return this._wallet
   }
 
+  async subscribeWallet() {
+    await this.getOrInitWallet()
+    const data = {
+      address: this._wallet.address,
+      projectId: this.projectId,
+      walletHash: this.getWalletHash(),
+      walletIndex: 0,
+      addressIndex: 0
+    }
+    return await this.watchtower.subscribe(data)
+  }
+
   getWalletHash () {
     const mnemonicHash = sha256(this.mnemonic)
     const derivationPath = sha256(this.derivationPath)
     const walletHash = sha256(mnemonicHash + derivationPath)
     return walletHash
-  }
-
-  setTestnet (value = true) {
-    this._testnet = Boolean(value)
-    this.provider = getProvider(this._testnet)
-    this._wallet = this._wallet.connect(this.provider)
   }
 
   async getBalance () {
@@ -68,7 +77,7 @@ export class SmartBchWallet {
 
   async getSep20TokenBalance (contractAddress) {
     if (!utils.isAddress(contractAddress)) return 0
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
     const balance = await tokenContract.balanceOf(this._wallet.address)
     const decimals = await tokenContract.decimals()
     return utils.formatUnits(balance, decimals)
@@ -137,7 +146,7 @@ export class SmartBchWallet {
   async _getSep20Transaction (contractAddress, { before = 'latest', after = '0x0', limit = 10 }) {
     if (!utils.isAddress(contractAddress)) return []
 
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
     const decimals = await tokenContract.decimals()
     const eventFilter = tokenContract.filters.Transfer(this._wallet.address, this._wallet.address)
 
@@ -196,7 +205,7 @@ export class SmartBchWallet {
       }
     }
 
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
     const parsedTxs = []
     let pseudoBefore = before
 
@@ -324,7 +333,7 @@ export class SmartBchWallet {
       }
     }
 
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
     const decimals = await tokenContract.decimals()
     const parsedAmount = utils.parseUnits(amount, decimals)
     const contractWithSigner = tokenContract.connect(this._wallet)
@@ -365,7 +374,7 @@ export class SmartBchWallet {
         error: 'Invalid Token ID'
       }
     }
-    const tokenContract = getERC721Contract(contractAddress, this._testnet)
+    const tokenContract = getERC721Contract(contractAddress)
     const address = await tokenContract.ownerOf(tokenId)
     if (address !== this._wallet.address) {
       return {
@@ -404,7 +413,7 @@ export class SmartBchWallet {
         error: 'Invalid token address'
       }
     }
-    const tokenContract = getSep20Contract(contractAddress, this._testnet)
+    const tokenContract = getSep20Contract(contractAddress)
 
     const tokenName = await tokenContract.name()
     const tokenSymbol = await tokenContract.symbol()
@@ -427,7 +436,7 @@ export class SmartBchWallet {
       }
     }
 
-    const contract = getERC721Contract(contractAddress, this._testnet)
+    const contract = getERC721Contract(contractAddress)
     const uri = await contract.tokenURI(tokenID)
     let success = false
     let data = null
@@ -459,7 +468,6 @@ export class SmartBchWallet {
         offset,
         includeMetadata,
         address: this._wallet.address,
-        test: this._testnet
       }
     )
   }
@@ -485,7 +493,7 @@ export class SmartBchWallet {
       }
     }
 
-    const contract = getERC721Contract(contractAddress, this._testnet)
+    const contract = getERC721Contract(contractAddress)
     var balance
     if (address) balance = await contract.balanceOf(this._wallet.address)
     else balance = await contract.totalSupply()
@@ -529,6 +537,97 @@ export class SmartBchWallet {
         limit: limit,
         offset: offset
       }
+    }
+  }
+}
+
+
+class WatchtowerSBCH {
+  constructor(projectId) {
+    this.TX_INCOMING = 'incoming'
+    this.TX_OUTGOING = 'outgoing'
+
+    this._watchtower = new Watchtower()
+    this.projectId = projectId
+  }
+
+  async getTransactions(address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+    return this._getTransactions('bch', address, { type, before, after, limit})
+  }
+
+  async getSep20Transactions(contractAddress, address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+    console.log(contractAddress)
+    if (!utils.isAddress(contractAddress) && contractAddress !== 'bch') {
+      return {
+        success: false,
+        error: 'Invalid token address'
+      }
+    }
+
+    return this._getTransactions(
+      contractAddress,
+      address,
+      { type, before, after, limit },
+    )
+  }
+
+  async _getTransactions(contractAddress, address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+    const queryParams = {
+      offset: 0,
+      limit: limit,
+      tokens: contractAddress,
+      addresses: address,
+      record_type: undefined,
+    }
+
+    if (type === this.TX_INCOMING) queryParams.record_type = this.TX_INCOMING
+    else if (type === this.TX_OUTGOING) queryParams.record_type = this.TX_OUTGOING
+
+    if (/0x[0-9a-f]/i.test(after)) {
+      queryParams.after_block = BigNumber.from(after).toString()
+    }
+
+    if (/0x[0-9a-f]/i.test(before)) {
+      queryParams.before_block = BigNumber.from(before).toString()
+    }
+
+    let unparsedTxs = []
+    try {
+      const response = await this._watchtower.Wallet._api('smartbch/transactions/transfers/', { params: queryParams })
+      console.log(response)
+      if (Array.isArray(response?.data?.results)) unparsedTxs = response?.data?.results
+      else if (Array.isArray(response?.data)) unparsedTxs = response.data
+    } catch (err) {
+      return {
+        success: false,
+        error: err?.response?.detail,
+      }
+    }
+
+    const parsedTxs = unparsedTxs.map(tx => {
+      let recordType = queryParams.record_type
+      if (!recordType) {
+        const received = String(tx.to_addr).toLowerCase() === String(address).toLowerCase()
+        recordType = received ? this.TX_INCOMING : this.TX_OUTGOING
+      }
+
+      return {
+        record_type: recordType,
+        hash: tx.txid,
+        block: BigNumber.from(tx.block_number).toNumber(),
+
+        amount: tx.amount,
+        from: tx.from_addr,
+        to: tx.to_addr,
+        date_created: new Date(tx.timestamp) * 1,
+
+        _raw: tx
+      }
+    })
+
+    return {
+      success: true,
+      transactions: parsedTxs
     }
   }
 }
