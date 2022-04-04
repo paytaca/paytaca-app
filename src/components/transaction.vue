@@ -1,7 +1,7 @@
 <template>
   <div id="transaction">
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
-      <q-card ref="card" v-if="transaction && transaction.asset" style="padding: 20px 10px 5px 0;">
+      <q-card ref="card" class="pp-text" v-if="transaction && transaction.asset" style="padding: 20px 10px 5px 0;">
         <div style="right: 10px; top: 10px; position: absolute; background: lightgray; border-radius: 20px; z-index: 100;">
           <q-btn icon="close" flat round dense v-close-popup />
         </div>
