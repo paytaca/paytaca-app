@@ -388,9 +388,16 @@ export default {
       let requestPromise = null
       if (sep20IdRegexp.test(id)) {
         const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
-        requestPromise = vm.wallet.sBCH.getSep20Transactions(contractAddress, opts)
+        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
+          contractAddress,
+          vm.wallet.sBCH._wallet.address,
+          opts,
+        )
       } else {
-        requestPromise = vm.wallet.sBCH.getTransactions(opts)
+        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
+          vm.wallet.sBCH._wallet.address,
+          opts,
+        )
       }
 
       if (!requestPromise) return
@@ -634,6 +641,7 @@ export default {
 
       const sBchDerivationPath = vm.getWallet('sbch').derivationPath
       if (sBchDerivationPath.length !== 14) {
+        wallet.sBCH.subscribeWallet()
         vm.$store.commit('global/updateWallet', {
           type: 'sbch',
           derivationPath: vm.wallet.sBCH.derivationPath,

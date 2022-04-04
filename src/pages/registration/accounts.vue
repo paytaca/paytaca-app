@@ -157,6 +157,7 @@ export default {
         vm.steps += 1
       })
       wallet.sBCH.getOrInitWallet().then(function () {
+        wallet.sBCH.subscribeWallet()
         vm.$store.commit('global/updateWallet', {
           type: 'sbch',
           derivationPath: wallet.sBCH.derivationPath,

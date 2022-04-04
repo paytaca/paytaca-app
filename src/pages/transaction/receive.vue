@@ -146,6 +146,10 @@ export default {
           vm.setupListener()
         })
       }
+
+      if (vm.walletType === sBCHWalletType) {
+        vm.wallet.sBCH.subscribeWallet()
+      }
     },
     getAddress () {
       if (this.isSep20) {

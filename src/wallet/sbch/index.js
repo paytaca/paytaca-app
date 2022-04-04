@@ -1,3 +1,4 @@
+import Watchtower from 'watchtower-cash-js'
 import axios from 'axios'
 import sha256 from 'js-sha256'
 import * as Bip39 from 'bip39'
@@ -15,6 +16,9 @@ export class SmartBchWallet {
   constructor (projectId, mnemonic, path) {
     this.TX_INCOMING = 'incoming'
     this.TX_OUTGOING = 'outgoing'
+
+    this._watchtowerApi = new WatchtowerSBCH(projectId)
+    this.watchtower = new Watchtower()
 
     this.mnemonic = mnemonic
     this.projectId = projectId
@@ -44,6 +48,18 @@ export class SmartBchWallet {
   async getOrInitWallet() {
     if (!this._wallet) await this.initWallet()
     return this._wallet
+  }
+
+  async subscribeWallet() {
+    await this.getOrInitWallet()
+    const data = {
+      address: this._wallet.address,
+      projectId: this.projectId,
+      walletHash: this.getWalletHash(),
+      walletIndex: 0,
+      addressIndex: 0
+    }
+    return await this.watchtower.subscribe(data)
   }
 
   getWalletHash () {
@@ -521,6 +537,97 @@ export class SmartBchWallet {
         limit: limit,
         offset: offset
       }
+    }
+  }
+}
+
+
+class WatchtowerSBCH {
+  constructor(projectId) {
+    this.TX_INCOMING = 'incoming'
+    this.TX_OUTGOING = 'outgoing'
+
+    this._watchtower = new Watchtower()
+    this.projectId = projectId
+  }
+
+  async getTransactions(address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+    return this._getTransactions('bch', address, { type, before, after, limit})
+  }
+
+  async getSep20Transactions(contractAddress, address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+    console.log(contractAddress)
+    if (!utils.isAddress(contractAddress) && contractAddress !== 'bch') {
+      return {
+        success: false,
+        error: 'Invalid token address'
+      }
+    }
+
+    return this._getTransactions(
+      contractAddress,
+      address,
+      { type, before, after, limit },
+    )
+  }
+
+  async _getTransactions(contractAddress, address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+    const queryParams = {
+      offset: 0,
+      limit: limit,
+      tokens: contractAddress,
+      addresses: address,
+      record_type: undefined,
+    }
+
+    if (type === this.TX_INCOMING) queryParams.record_type = this.TX_INCOMING
+    else if (type === this.TX_OUTGOING) queryParams.record_type = this.TX_OUTGOING
+
+    if (/0x[0-9a-f]/i.test(after)) {
+      queryParams.after_block = BigNumber.from(after).toString()
+    }
+
+    if (/0x[0-9a-f]/i.test(before)) {
+      queryParams.before_block = BigNumber.from(before).toString()
+    }
+
+    let unparsedTxs = []
+    try {
+      const response = await this._watchtower.Wallet._api('smartbch/transactions/transfers/', { params: queryParams })
+      console.log(response)
+      if (Array.isArray(response?.data?.results)) unparsedTxs = response?.data?.results
+      else if (Array.isArray(response?.data)) unparsedTxs = response.data
+    } catch (err) {
+      return {
+        success: false,
+        error: err?.response?.detail,
+      }
+    }
+
+    const parsedTxs = unparsedTxs.map(tx => {
+      let recordType = queryParams.record_type
+      if (!recordType) {
+        const received = String(tx.to_addr).toLowerCase() === String(address).toLowerCase()
+        recordType = received ? this.TX_INCOMING : this.TX_OUTGOING
+      }
+
+      return {
+        record_type: recordType,
+        hash: tx.txid,
+        block: BigNumber.from(tx.block_number).toNumber(),
+
+        amount: tx.amount,
+        from: tx.from_addr,
+        to: tx.to_addr,
+        date_created: new Date(tx.timestamp) * 1,
+
+        _raw: tx
+      }
+    })
+
+    return {
+      success: true,
+      transactions: parsedTxs
     }
   }
 }
