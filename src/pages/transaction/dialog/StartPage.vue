@@ -7,7 +7,7 @@
               <p class="pt-brand-name text-h4">Paytaca</p>
               <p style="color: gray;">YOUR MONEY. YOUR CONTROL.</p>
               <br>
-              <q-btn label="Log In" @click="logIn" />
+              <q-btn label="Log In" class="pp-text" @click="logIn" />
           </div>
       </div>
   </div>
@@ -49,5 +49,8 @@ export default {
 }
 .pt-brand-name {
   color: 000;
+}
+.pp-text {
+  color: #000 !important;
 }
 </style>
