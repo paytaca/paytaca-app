@@ -9,7 +9,7 @@
       <div v-if="!rawPaymentRequest">
         <div v-if="paymentRequestStatus.fetching" class="text-center q-my-lg">
           <q-spinner size="md" color="primary"/>
-          <div>
+          <div class="pp-text">
             Fetching payment data ...
           </div>
         </div>
@@ -38,7 +38,7 @@
             mask="####"
             prefix="#"
             hint="Input order number from Connecta"
-            class="full-width"
+            class="full-width pp-text"
             :rules="[
               val => Boolean(val) || 'Required',
             ]"
@@ -57,11 +57,11 @@
       </div>
 
       <div v-else>
-        <div v-if="!paymentRequest || !paymentRequest._isValid" class="text-center">
+        <div v-if="!paymentRequest || !paymentRequest._isValid" class="text-center pp-text">
           Unable to read payment request
         </div>
         <q-card v-else class="q-pa-md" style="background:none">
-          <div class="text-h5">
+          <div class="text-h5 pp-text">
             Payment Details
           </div>
           <q-separator class="q-mb-sm"/>
@@ -91,6 +91,7 @@
               :loading="paymentRequestStatus.fetching"
               size="sm"
               variant="link"
+              class="pp-text"
               label="Refetch"
               @click="fetchPaymentRequest({ orderId: merchantData.order.id })"
             />
@@ -98,33 +99,33 @@
 
           <div class="flex q-gutter-sm">
             <div v-if="merchantData.order.name">
-              <div class="text-caption">Order number</div>
-              <div class="text-subtitle1">{{ merchantData.order.name }}</div>
+              <div class="text-caption pp-text">Order number</div>
+              <div class="text-subtitle1 pp-text">{{ merchantData.order.name }}</div>
             </div>
             <div v-if="merchantData.shop.name">
-              <div class="text-caption">Shop name</div>
-              <div class="text-subtitle1">{{ merchantData.shop.name }} </div>
+              <div class="text-caption pp-text">Shop name</div>
+              <div class="text-subtitle1 pp-text">{{ merchantData.shop.name }} </div>
             </div>
           </div>
 
           <div v-if="paymentRequest.paymentDetails.memo">
-            <div class="text-caption">Memo</div>
-            <div class="text-subtitle1">{{ paymentRequest.paymentDetails.memo }}</div>
+            <div class="text-caption pp-text">Memo</div>
+            <div class="text-subtitle1 pp-text">{{ paymentRequest.paymentDetails.memo }}</div>
           </div>
 
           <q-separator spaced />
 
           <q-list>
-            <q-item-label header class="q-pa-xs">
+            <q-item-label header class="q-pa-xs pp-text">
               Recipient/s
             </q-item-label>
             <template v-for="(output, index) in paymentRequest.paymentDetails.outputs">
               <q-item :key="index">
                 <q-item-section>
-                  <q-item-label caption>Address</q-item-label>
-                  <q-item-label style="word-break:break-word">{{ output.toCashAddress() }}</q-item-label>
-                  <q-item-label caption>Amount</q-item-label>
-                  <q-item-label>{{ output.toBCHString() }}</q-item-label>
+                  <q-item-label class="pp-text" caption>Address</q-item-label>
+                  <q-item-label class="pp-text" style="word-break:break-word">{{ output.toCashAddress() }}</q-item-label>
+                  <q-item-label class="pp-text" caption>Amount</q-item-label>
+                  <q-item-label class="pp-text">{{ output.toBCHString() }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator
@@ -134,7 +135,7 @@
             </template>
           </q-list>
           <q-separator spaced/>
-          <div class="text-body1">
+          <div class="text-body1 pp-text">
             <span>Total:</span>
             {{ paymentRequest.paymentDetails.getTotalAmountBCHString() }}
           </div>
@@ -160,6 +161,7 @@
                 paymentRequestStatus.fetching
                 "
               :loading="paymentRequestStatus.executing || paymentRequestStatus.fetching"
+              class="pp-text"
               label="Send"
               @click="showDragSlide = true"
             />
@@ -204,7 +206,7 @@
         <q-card-section>
           <div class="q-my-sm text-subtitle1 row justify-center items-center q-gutter-xs">
             <q-icon name="done" color="positive" size="sm"/>
-            <span>Transaction Sent!</span>
+            <span class="pp-text">Transaction Sent!</span>
           </div>
         </q-card-section>
       </q-card>
@@ -523,3 +525,9 @@ export default {
   }
 }
 </script>
+
+<style>
+.pp-text {
+  color: #000 !important;
+}
+</style>

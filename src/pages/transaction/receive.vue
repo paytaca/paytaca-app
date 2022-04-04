@@ -8,7 +8,7 @@
       <q-menu anchor="bottom right" self="top end">
         <q-list style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section @click="generateNewAddress">Generate new address</q-item-section>
+            <q-item-section class="pp-text" @click="generateNewAddress">Generate new address</q-item-section>
           </q-item>
         </q-list>
       </q-menu>
@@ -26,7 +26,7 @@
                   <qr-code :text="address" color="#253933" :size="190" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
-              <div>click to copy</div>
+              <div class="pp-text">click to copy</div>
             </div>
             <div style="text-align: center;" v-if="walletType === 'bch'" @click="showOptions = !showOptions">
               <q-btn :icon="showOptions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" flat round dense />
@@ -412,4 +412,7 @@ export default {
     color: #3992EA;
     font-size: 26px;
   }
+.pp-text {
+  color: #000 !important;
+}
 </style>

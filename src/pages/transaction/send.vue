@@ -117,7 +117,7 @@
       <div class="row" v-if="sendErrors.length > 0">
         <div class="col">
           <ul style="margin-left: -40px; list-style: none;">
-            <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg">
+            <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
               <q-icon name="error" left/>
               {{ error }}
             </li>
@@ -127,8 +127,8 @@
       <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
         <q-icon size="120px" name="check_circle" style="color: green;"></q-icon>
         <div style="margin-top: 20px;">
-          <p style="font-size: 30px;">Successfully sent</p>
-          <p style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+          <p class="pp-text" style="font-size: 30px;">Successfully sent</p>
+          <p class="pp-text" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
         </div>
       </div>
     </div>

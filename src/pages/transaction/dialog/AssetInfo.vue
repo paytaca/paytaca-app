@@ -5,11 +5,11 @@
       style="padding: 15px 0;"
     >
       <div style="right: 10px; top: 10px; position: absolute; background: lightgray; border-radius: 20px; z-index: 100;">
-        <q-btn icon="close" flat round dense v-close-popup />
+        <q-btn icon="close" class="pp-text" flat round dense v-close-popup />
       </div>
       <q-card-section v-if="asset">
         <div style="text-align: center; font-size: 20px;">
-          <p>
+          <p class="pp-text">
             {{ asset.symbol }}
             <template v-if="isSep20">(SEP20)</template>
           </p>
@@ -28,8 +28,8 @@
           </a>
         </div>
         <div style="margin-top: 20px; text-align: center;">
-          <q-btn @click="send">Send</q-btn>&nbsp;
-          <q-btn @click="receive">Receive</q-btn>
+          <q-btn class="pp-text" @click="send">Send</q-btn>&nbsp;
+          <q-btn class="pp-text" @click="receive">Receive</q-btn>
         </div>
       </q-card-section>
     </q-card>
@@ -107,3 +107,9 @@ export default {
   }
 }
 </script>
+
+<style>
+.pp-text {
+  color: #000 !important;
+}
+</style>
