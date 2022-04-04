@@ -2,7 +2,7 @@
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
     <q-card class="q-dialog-plugin">
 
-        <q-card-section class="pt-label">
+        <q-card-section class="pt-label pp-text">
             <strong v-if="isSep20">Add SEP20 Token</strong>
             <strong v-else>Add SLP Token</strong>
         </q-card-section>
@@ -30,7 +30,7 @@
 
           <q-card-actions align="right">
               <q-btn rounded class="btn-add-payment text-white" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-              <q-btn rounded padding="0.5em 2em 0.5em 2em" label="close" @click="onCancelClick" />
+              <q-btn class="pp-text" rounded padding="0.5em 2em 0.5em 2em" label="close" @click="onCancelClick" />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -84,5 +84,8 @@ export default {
 <style>
 .btn-add-payment {
   background: radial-gradient(circle, #3C64F6 10%, #2648C3 100%) !important;
+}
+.pp-text {
+  color: #000 !important;
 }
 </style>
