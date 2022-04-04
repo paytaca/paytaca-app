@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" full-width persistent seamless>
-    <q-card v-if="collectible" style="max-width:90vw;">
+    <q-card v-if="collectible" class="pp-text" style="max-width:90vw;">
       <q-card-section class="row no-wrap items-start">
         <div class="text-h6">{{ collectible.name }}</div>
         <q-space/>

@@ -28,14 +28,14 @@
               </div>
               <div class="pp-text">click to copy</div>
             </div>
-            <div style="text-align: center;" v-if="walletType === 'bch'" @click="showOptions = !showOptions">
+            <div style="text-align: center; color: black;" v-if="walletType === 'bch'" @click="showOptions = !showOptions">
               <q-btn :icon="showOptions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" flat round dense />
             </div>
         </div>
       </div>
       <div class="row" v-if="showOptions">
         <q-toggle
-          style="margin: auto;"
+          style="margin: auto; color: black;"
           v-model="legacy"
           label="Legacy Address"
         />

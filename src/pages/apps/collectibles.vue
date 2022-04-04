@@ -36,7 +36,7 @@
         />
       </div>
     </q-slide-transition>
-    <div style="text-align: center;" v-if="showAddress" @click="showAddress = !showAddress">
+    <div style="text-align: center; color: black;" v-if="showAddress" @click="showAddress = !showAddress">
       <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
     </div>
     <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;">
@@ -92,7 +92,7 @@
                     style="color: #3B7BF6;"
                     @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
                   />
-                  <div class="text-subtitle1">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
+                  <div class="text-subtitle1 pp-text">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
                 </template>
                 <div v-else class="text-grey pp-text">
                   Select Collection
