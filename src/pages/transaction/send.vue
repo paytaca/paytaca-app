@@ -18,7 +18,7 @@
           <div class="col-12 q-mt-lg">
             <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
           </div>
-          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px;">
+          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000 !important;">
             OR
           </div>
           <div class="col-12 q-mt-lg" style="text-align: center;">

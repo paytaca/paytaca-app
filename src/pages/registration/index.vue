@@ -16,7 +16,7 @@
             <div class="row">
               <div class="col q-mt-sm">
                 <label class="get-started-text">Name</label>
-                <input type="text" class="pt-form-input q-mt-xs">
+                <input type="text" class="pt-form-input q-mt-xs pt-input">
               </div>
             </div>
             <div class="row">

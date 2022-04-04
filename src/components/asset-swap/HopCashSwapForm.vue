@@ -16,8 +16,8 @@
           height="40"
           src="bch-logo.png"
         />
-        <div>from</div>
-        <div class="text-subtitle1 text-center">
+        <div class="pp-text">from</div>
+        <div class="text-subtitle1 text-center pp-text">
           <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
           <template v-else>Smart Bitcoin Cash</template>
         </div>
@@ -29,13 +29,14 @@
         padding="sm"
         icon="arrow_forward"
         :disable="lockInputs"
+        class="pp-text"
         @click="transferType = transferType === 'c2s' ? 's2c': 'c2s'"
       />
 
       <div class="col-5 column items-center">
         <img height="40" src="bch-logo.png"/>
-        <div>to</div>
-        <div class="text-subtitle1 text-center">
+        <div class="pp-text">to</div>
+        <div class="text-subtitle1 text-center pp-text">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
           <template v-else>Bitcoin Cash</template>
         </div>
@@ -45,23 +46,25 @@
     <q-form ref="form" @submit="onSwapSubmit()">
       <q-card class="q-mt-sm">
         <q-card-section>
-          <div>
+          <div class="pp-text">
             <span>Bridge balance:</span>
             <q-btn
               padding="xs sm"
               flat
               :disable="lockInputs"
               :label="maxBridgeBalance + ' BCH'"
+              class="pp-text"
               @click="amount = maxBridgeBalance"
             />
           </div>
           <div>
-            <span>Wallet balance:</span>
+            <span class="pp-text">Wallet balance:</span>
             <q-btn
               padding="xs sm"
               flat
               :disable="lockInputs"
               :label="sourceTransferBalance + ' BCH'"
+              class="pp-text"
               @click="amount = sourceTransferBalance"
             />
           </div>
@@ -69,8 +72,8 @@
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               <img height="40" src="bch-logo.png"/>
               <div class="q-ml-sm">
-                <div class="text-caption" style="margin-bottom:-6px">You send:</div>
-                <div>BCH</div>
+                <div class="text-caption pp-text" style="margin-bottom:-6px">You send:</div>
+                <div class="pp-text">BCH</div>
               </div>
             </div>
             <CustomKeyboardInput
@@ -105,8 +108,8 @@
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               <img height="40" src="bch-logo.png"/>
               <div class="q-ml-sm">
-                <div class="text-caption" style="margin-bottom:-6px">You receive:</div>
-                <div>BCH</div>
+                <div class="text-caption pp-text" style="margin-bottom:-6px">You receive:</div>
+                <div class="pp-text">BCH</div>
               </div>
             </div>
             <CustomKeyboardInput
@@ -131,7 +134,7 @@
           </div>
 
           <div class="row no-wrap items-start" style="margin-top: -10px;">
-            <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+            <div class="row items-center pp-text no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               Address
             </div>
             <q-input
@@ -143,7 +146,7 @@
               outlined
               :disable="lockInputs"
               v-model="recipientAddress"
-              class="q-space q-my-sm"
+              class="q-space q-my-sm "
               :rules="[
                 val => validateAddress(val) || 'Invalid address',
               ]"
@@ -175,17 +178,18 @@
             <q-toggle
               dense
               v-model="manualAddress"
+              class="pp-text"
               label="Send to another address"
             />
           </div>
 
           <q-separator spaced/>
           <div v-if="!loading" class="q-pa-sm rounded-borders">
-            <div class="row justify-between no-wrap">
+            <div class="row justify-between no-wrap pp-text">
               <span>BCH to send:</span>
               <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
             </div>
-            <div class="row justify-between no-wrap">
+            <div class="row justify-between no-wrap pp-text">
               <span>
                 Estimated fees:
                 <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/>
@@ -196,17 +200,17 @@
             </div>
             <q-slide-transition>
               <div v-if="showSplitFees">
-                <div class="row justify-between no-wrap q-pl-sm">
+                <div class="row justify-between no-wrap q-pl-sm pp-text">
                   <span>Paytaca:</span>
                   <span class="text-nowrap q-ml-xs">~{{ fees.paytaca | formatAmount }} BCH</span>
                 </div>
-                <div class="row justify-between no-wrap q-pl-sm">
+                <div class="row justify-between no-wrap q-pl-sm pp-text">
                   <span>Hopcash:</span>
                   <span class="text-nowrap q-ml-xs">~{{ fees.hopcash | formatAmount }} BCH</span>
                 </div>
               </div>
             </q-slide-transition>
-            <div class="row justify-between no-wrap">
+            <div class="row justify-between no-wrap pp-text">
               <span>BCH to receive:</span>
               <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
             </div>
@@ -634,5 +638,8 @@ export default {
 }
 .text-subtitle1 {
   font-size: 14px;
+}
+.pp-text {
+  color: #000 !important;
 }
 </style>

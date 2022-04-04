@@ -11,19 +11,19 @@
                 <q-item clickable v-ripple>
                   <q-item-section>
                     <q-item-label caption>Derivation Path</q-item-label>
-                    <q-item-label>{{ getWallet('bch').derivationPath }}</q-item-label>
+                    <q-item-label class="pp-text">{{ getWallet('bch').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
                   <q-item-section>
                     <q-item-label caption>xPub Key</q-item-label>
-                    <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
+                    <q-item-label class="pp-text" style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
                   <q-item-section>
                     <q-item-label caption>Wallet Hash</q-item-label>
-                    <q-item-label style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
+                    <q-item-label class="pp-text" style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -36,19 +36,19 @@
                 <q-item clickable v-ripple>
                   <q-item-section>
                     <q-item-label caption>Derivation Path</q-item-label>
-                    <q-item-label>{{ getWallet('slp').derivationPath }}</q-item-label>
+                    <q-item-label class="pp-text">{{ getWallet('slp').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
                   <q-item-section>
                     <q-item-label caption>xPub Key</q-item-label>
-                    <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
+                    <q-item-label class="pp-text" style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
                   <q-item-section>
                     <q-item-label caption>Wallet Hash</q-item-label>
-                    <q-item-label style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
+                    <q-item-label class="pp-text" style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -61,13 +61,13 @@
                 <q-item clickable v-ripple>
                   <q-item-section>
                     <q-item-label caption>Derivation Path</q-item-label>
-                    <q-item-label>{{ getWallet('sbch').derivationPath }}</q-item-label>
+                    <q-item-label class="pp-text">{{ getWallet('sbch').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('sbch').walletHash)">
                   <q-item-section>
                     <q-item-label caption>Wallet Hash</q-item-label>
-                    <q-item-label style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
+                    <q-item-label class="pp-text" style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -79,7 +79,7 @@
               <q-list bordered separator class="list">
                 <q-item clickable @click="toggleMnemonicDisplay()">
                   <q-item-section>
-                    <q-item-label :class="{'blurry-text': !showMnemonic}">{{ mnemonic }}</q-item-label>
+                    <q-item-label :class="{'blurry-text': !showMnemonic, 'pp-text':showMnemonic }">{{ mnemonic }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -95,7 +95,7 @@
                 <q-item>
                   <q-item-section>
                     <q-item-label caption>Version</q-item-label>
-                    <q-item-label>v{{ appVersion }}</q-item-label>
+                    <q-item-label class="pp-text">v{{ appVersion }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item>
@@ -181,5 +181,8 @@ export default {
   .blurry-text {
     color: transparent;
     text-shadow: 0 0 5px rgba(0,0,0,0.5);
+  }
+  .pp-text {
+    color: #000 !important;
   }
 </style>

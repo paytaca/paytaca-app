@@ -4,7 +4,7 @@
     <q-tabs
       dense
       active-color="brandblue"
-      class="col-12 q-px-lg"
+      class="col-12 q-px-lg pp-fcolor"
       :value="selectedNetwork"
       @input="changeNetwork"
     >
@@ -120,5 +120,8 @@ export default {
     border-radius: 7px;
     margin-top: 5px;
     margin-bottom: 5px;
+  }
+  .pp-fcolor {
+    color: #000 !important;
   }
 </style>

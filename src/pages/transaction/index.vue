@@ -18,7 +18,7 @@
           </p> -->
           <q-tabs
             active-color="brandblue"
-            class="col-12 q-px-sm"
+            class="col-12 q-px-sm q-pb-md pp-fcolor"
             :value="selectedNetwork"
             @input="changeNetwork"
             style="margin-top: -20px; padding-bottom: 16px;"
@@ -720,7 +720,11 @@ export default {
     font-size: 45px;
   }
   .payment-methods {
+    color: #000;
     font-size: 20px;
+  }
+  .pp-fcolor {
+    color: #000 !important;
   }
   .selected {
     box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;

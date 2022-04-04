@@ -23,7 +23,7 @@
     </div>
     <div class="row pt-wallet q-mt-sm" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">
-        <p style="text-align: center; font-size: 16px;">Restore your Paytaca wallet from its mnemonic backup phrase.</p>
+        <p style="text-align: center; font-size: 16px; color: #000 !important;">Restore your Paytaca wallet from its mnemonic backup phrase.</p>
         <textarea class="form-textarea q-mt-xs pt-input" rows="4" v-model="seedPhraseBackup"></textarea>
         <q-btn push class="full-width pt-btn-wallet q-mt-sm" @click="createWallets" label="Restore Wallet" rounded />
       </div>

@@ -1,7 +1,7 @@
 <template>
   <q-dialog v-model="val" @hide="resetForm()">
     <q-card class="q-dialog-plugin">
-        <q-card-section class="pt-label">
+        <q-card-section class="pt-label pp-text">
             <strong>Add SEP721 Token</strong>
         </q-card-section>
         <q-separator />
@@ -46,7 +46,7 @@
           <q-separator />
           <q-card-actions align="right">
             <q-btn rounded class="btn-add-payment text-white" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" label="close" v-close-popup />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" class="pp-text" label="close" v-close-popup />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -147,5 +147,8 @@ export default {
 <style scoped>
 .btn-add-payment {
   background: radial-gradient(circle, #3C64F6 10%, #2648C3 100%) !important;
+}
+.pp-text {
+  color: #000 !important;
 }
 </style>

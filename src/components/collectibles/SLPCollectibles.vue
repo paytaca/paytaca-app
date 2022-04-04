@@ -52,7 +52,7 @@ export default {
   },
 
   methods: {
-    getImageUrl(collectible) {
+    getImageUrl (collectible) {
       if (!collectible) return ''
       return collectible.thumbnail_image_url ||
             collectible.thumbnail_image_url ||
