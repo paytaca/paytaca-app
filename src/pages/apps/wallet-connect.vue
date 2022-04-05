@@ -54,7 +54,7 @@
                 no-caps
                 flat
                 label="Disconnect"
-                @click="diconnectConnector"
+                @click="disconnectConnector"
                 text-color="black"
               />
             </div>
@@ -330,7 +330,7 @@ export default {
       this.attachEventsToConnector()
     },
 
-    diconnectConnector() {
+    disconnectConnector() {
       if (!this.connector) return
 
       this.detachEventstToConnector()
@@ -362,7 +362,7 @@ export default {
           class: 'text-black',
         })
 
-        this.diconnectConnector()
+        this.disconnectConnector()
       })
 
       this.connector.on('call_request', (error, payload) => {
@@ -464,7 +464,7 @@ export default {
   },
 
   beforeDestroy() {
-    this.diconnectConnector()
+    this.disconnectConnector()
   },
 
   mounted () {
