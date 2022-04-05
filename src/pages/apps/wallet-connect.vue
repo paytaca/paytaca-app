@@ -208,6 +208,7 @@ import { createConnector, getPreviousConnector, callRequestHandler } from '../..
 import JSONRenderer from '../../components/JSONRenderer.vue'
 import QrScanner from '../../components/qr-scanner.vue'
 import HeaderNav from '../../components/header-nav'
+import WalletConnectConfirmDialog from '../../components/WalletConnectConfirmDialog.vue'
 const ago = require('s-ago')
 
 export default {
@@ -309,8 +310,7 @@ export default {
 
     initializeConnector (uri) {
       const connector = createConnector(uri)
-      this.connector = connector
-      this.connector.on('session_request', async (error, payload) => {
+      connector.on('session_request', async (error, payload) => {
         console.log('session_request:', error, payload)
         if (error) {
           throw error;
@@ -319,15 +319,33 @@ export default {
         // NOTE: for testing in dev
         // Test site: https://example.walletconnect.org/
         // use `chainId: 1`
-        this.connector.approveSession({
-          accounts: [this.wallet.sBCH._wallet.address],
-          chainId: await this.wallet.sBCH._wallet.getChainId(),
-          // chainId: 1,
-        })
-        this.connector.off('session_request')
-      })
+        // const chainId = 1
+        const chainId = await this.wallet.sBCH._wallet.getChainId()
+        const accounts = [this.wallet.sBCH._wallet.address]
 
-      this.attachEventsToConnector()
+        this.$q.dialog({
+          component: WalletConnectConfirmDialog,
+
+          peerId: payload.params[0].peerId,
+          peerMeta: payload.params[0].peerMeta,
+        }).onOk(() => {    
+          this.disconnectConnector()
+          this.connector = connector
+          this.attachEventsToConnector()
+
+          connector.approveSession({
+            accounts: accounts,
+            chainId: chainId,
+          })
+        })
+        .onDismiss(() => {
+          connector.rejectSession({
+            message: 'User rejected'
+          })
+        })
+
+        connector.off('session_request')
+      })
     },
 
     disconnectConnector() {
@@ -468,7 +486,6 @@ export default {
   },
 
   mounted () {
-    console.log(this)
     this.loadWallet()
     const connector = getPreviousConnector()
     if (connector) {
