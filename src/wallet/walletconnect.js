@@ -127,6 +127,7 @@ export async function callRequestHandler(connector, payload, wallet) {
 
   const response = {
     success: false,
+    requestPayload: payload,
   }
 
   console.log(payload, result, error)

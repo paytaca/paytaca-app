@@ -386,11 +386,28 @@ export default {
       if (!accept) {
         this.rejectCallRequest(this.callRequestDialog.callRequest)
         this.hideCallRequestDialog()
+        this.$q.notify({
+          type: 'info',
+          message: 'Rejected call request',
+        })
         return
       }
 
       this.callRequestDialog.processing = true
       this.acceptCallRequest(this.callRequestDialog.callRequest)
+        .then(response => {
+          if (response.success) {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Call request accepted',
+            })
+          } else {
+            this.$q.notify({
+              type: 'negative',
+              message: 'Error accepting call request',
+            })
+          }
+        })
         .finally(() => {
           this.callRequestDialog.processing = false
           this.hideCallRequestDialog()
