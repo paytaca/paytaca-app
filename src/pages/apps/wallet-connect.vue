@@ -88,7 +88,9 @@
                   @click="copyToClipboard(account)"
                 >
                   <q-item-section>
-                    <q-item-label class="ellipsis text-black">{{ account }}</q-item-label>
+                    <q-item-label class="ellipsis text-black">
+                      {{ account | ellipsisText }}
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
@@ -208,8 +210,8 @@ export default {
   filters: {
     ellipsisText(value) {
       if (typeof value !== 'string') return ''
-      if (value.length <= 12) return value
-      return value.substr(0, 5) + '...' + value.substr(value.length-5, value.length)
+      if (value.length <= 20) return value
+      return value.substr(0, 5) + '...' + value.substr(value.length-12, value.length)
     },
     formatDate (date) {
       return ago(new Date(date))
