@@ -18,9 +18,10 @@
             label="Input wallet connect uri"
             v-model="handshakeFormData.walletConnectUri"
           />
-          <div class="row items-center q-mt-sm">
+          <div class="row items-center justify-end q-mt-sm">
             <q-btn
               no-caps
+              padding="xs md"
               label="Connect"
               type="submit"
               text-color="black"
