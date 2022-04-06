@@ -11,7 +11,6 @@
         <div style="text-align: center; font-size: 20px;">
           <p class="pp-text">
             {{ asset.symbol }}
-            <template v-if="isSep20">(SEP20)</template>
           </p>
         </div>
         <div style="text-align: center;">
