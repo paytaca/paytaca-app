@@ -123,7 +123,8 @@ export default {
     alertTokenAdded (token) {
       this.$q.dialog({
         title: 'Token added',
-        message: `Added token ${token.name} with address: ${token.address}`
+        message: `Added token ${token.name} with address: ${token.address}`,
+        class: 'pp-text'
       }).onDismiss(() => {
         this.val = false
       })

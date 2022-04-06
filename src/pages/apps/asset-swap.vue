@@ -64,7 +64,8 @@ export default {
 
       this.$q.dialog({
         title: 'Swap update',
-        message: message
+        message: message,
+        class: 'pp-text'
       })
       this.waitInfo = info
     },
@@ -84,7 +85,8 @@ export default {
       title: 'Leaving page',
       message: 'Leaving the page may result in being unable to view progress. Leave page?',
       cancel: true,
-      persistent: true
+      persistent: true,
+      class: 'pp-text'
     }).onOk(() => {
       next()
     })

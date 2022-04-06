@@ -253,7 +253,8 @@ export default {
           ]
         },
         cancel: true,
-        persistent: true
+        persistent: true,
+        class: 'pp-text'
       }).onOk(data => {
         this.changeNetwork(data)
       })
@@ -671,7 +672,6 @@ export default {
   },
 
   async mounted () {
-    console.log(this)
     const vm = this
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
       vm.selectedAsset = vm.assets[0]

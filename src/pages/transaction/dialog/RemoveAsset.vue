@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin">
+    <q-card class="q-dialog-plugin pp-text">
 
         <q-card-section class="pt-label">
             <strong>Confirmation</strong>

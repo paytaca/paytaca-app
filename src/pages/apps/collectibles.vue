@@ -229,7 +229,8 @@ export default {
         title: title,
         message: message,
         cancel: true,
-        persistent: true
+        persistent: true,
+        class: 'pp-text'
       }).onOk(() => {
         console.log('removing asset', asset)
         const commitName = 'sep20/removeNftAsset'

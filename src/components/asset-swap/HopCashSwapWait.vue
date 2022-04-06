@@ -32,7 +32,7 @@
       </div>
     </div>
 
-    <q-card class="q-mt-sm">
+    <q-card class="q-mt-sm pp-text">
       <q-card-section>
         <q-banner class="bg-grey-3 rounded-borders q-mb-sm pp-text">
           <template v-slot:avatar>
