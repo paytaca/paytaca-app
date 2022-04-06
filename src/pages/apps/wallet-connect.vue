@@ -17,6 +17,7 @@
           <q-input
             label="Input wallet connect uri"
             v-model="handshakeFormData.walletConnectUri"
+            clearable
           />
           <div class="row items-center justify-end q-mt-sm">
             <q-btn
@@ -277,15 +278,28 @@ export default {
         const chainId = await this.wallet.sBCH._wallet.getChainId()
         const accounts = [this.wallet.sBCH._wallet.address]
 
+        if (payload.params[0].chainId !== null && payload.params[0].chainId !== chainId) {
+          this.$q.notify({
+            type: 'negative',
+            message: `Mismatch chain id with "${payload.params[0].peerMeta.name}". Rejecting connection request`
+          })
+
+          connector.rejectSession({
+            message: 'Chain ID is not supported'
+          })
+          return
+        }
+
         this.$q.dialog({
           component: WalletConnectConfirmDialog,
 
           peerId: payload.params[0].peerId,
           peerMeta: payload.params[0].peerMeta,
-        }).onOk(() => {    
+        }).onOk(() => {
           this.disconnectConnector()
           this.connector = connector
           this.attachEventsToConnector()
+          console.log(this.connector)
 
           connector.approveSession({
             accounts: accounts,
