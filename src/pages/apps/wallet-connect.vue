@@ -94,7 +94,16 @@
           </q-card-section>
 
           <q-card-section v-if="Array.isArray(callRequests) && callRequests.length">
-            <div class="text-weight-medium text-black">Requests</div>
+            <div class="row items-start text-weight-medium text-black">
+              <div class="q-space">Requests</div>
+              <q-btn
+                no-caps
+                size="sm"
+                flat
+                label="Clear"
+                @click="confirmClearCallRequests()"
+              />
+            </div>
             <q-list bordered separator style="border-radius: 14px; background: #fff" class="q-mt-sm">
               <q-item
                 v-for="(request, index) in callRequests"
@@ -332,12 +341,12 @@ export default {
           throw error;
         }
         if (!Array.isArray(this.callRequests)) this.callRequests = []
-        this.callRequests.push({
+        this.callRequests.unshift({
           timestamp: Date.now(),
           payload: payload,
         })
 
-        if (this.callRequests.length === 1) this.showCallRequestInDialog(this.callRequests[0])
+        if (!this.callRequestDialog.show) this.showCallRequestInDialog(this.callRequests[0])
       })
     },
 
@@ -414,6 +423,19 @@ export default {
       })
 
       this.removeCallRequest(callRequest)
+    },
+
+    confirmClearCallRequests() {
+      this.$q.dialog({
+        title: "Clear call requests",
+        message: "Removing all call requests. Are you sure?",
+        ok: true,
+        cancel: true,
+        class: "text-black",
+      })
+        .onOk(() => {
+          this.callRequests = []
+        })
     },
 
     loadWallet () {
