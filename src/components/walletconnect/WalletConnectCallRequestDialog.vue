@@ -90,19 +90,19 @@
             <div class="text-caption">To:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].to }}</div>
           </div>
-          <div>
+          <div v-if="parsedCallRequest.payload.params[0].gasPrice">
             <div class="text-caption">Gas Price:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].gasPrice) }}</div>
           </div>
-          <div>
+          <div v-if="parsedCallRequest.payload.params[0].gas">
             <div class="text-caption">Gas:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].gas) }}</div>
           </div>
-          <div>
+          <div v-if="parsedCallRequest.payload.params[0].value">
             <div class="text-caption">Value:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].value) }}</div>
           </div>
-          <div>
+          <div v-if="parsedCallRequest.payload.params[0].data">
             <div class="text-caption">Data:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].data }}</div>
           </div>
