@@ -136,84 +136,27 @@
       </div>
     </div>
 
-    <q-dialog
+    <WalletConnectCallRequestDialog
       v-model="callRequestDialog.show"
       :persistent="callRequestDialog.processing"
-    >
-      <q-card style="max-width:90vw;min-width:300px;" class="text-black">
-        <q-card-section class="row no-wrap items-center q-pb-xs">
-          <div>
-            <div class="text-subtitle1">Call Request</div>
-            <div v-if="callRequestDialog.callRequest" class="text-caption">
-              #{{ callRequestDialog.callRequest.payload.id }}
-            </div>
-          </div>
-          <q-space/>
-          <q-btn
-            icon="close"
-            :disable="callRequestDialog.processing"
-            flat
-            round
-            dense
-            v-close-popup
-          />
-        </q-card-section>
-        <q-separator inset/>
-        <q-card-section v-if="callRequestDialog.callRequest">
-          <div class="text-subtitle2">
-            {{ callRequestDialog.callRequest.payload.method }}
-          </div>
-          <q-list
-            v-if="Array.isArray(callRequestDialog.callRequest.payload.params)"
-            style="max-height:50vh;overflow:auto"
-            separator
-          >
-            <q-item
-              v-for="(param, index) in callRequestDialog.callRequest.payload.params"
-              :key="index"
-              style="word-break:break-all"
-            >
-              <q-item-section>
-                <q-item-label>{{ index }}</q-item-label>
-                <JSONRenderer :value="param"/>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section>
-        <q-card-actions>
-          <q-btn
-            outline
-            no-caps
-            padding="xs md"
-            color="grey"
-            label="Reject"
-            @click="respondToCallRequestInDialog(false)"
-          />
-          <q-space/>
-          <q-btn
-            no-caps
-            padding="xs md"
-            color="brandblue"
-            label="Accept"
-            @click="respondToCallRequestInDialog(true)"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+      :callRequest="callRequestDialog.callRequest"
+      @accept="respondToCallRequestInDialog(true)"
+      @reject="respondToCallRequestInDialog(false)"
+    />
   </div>
 </template>
 <script>
 import { getMnemonic, Wallet } from '../../wallet'
 import { createConnector, getPreviousConnector, callRequestHandler } from '../../wallet/walletconnect'
-import JSONRenderer from '../../components/JSONRenderer.vue'
 import QrScanner from '../../components/qr-scanner.vue'
 import HeaderNav from '../../components/header-nav'
-import WalletConnectConfirmDialog from '../../components/WalletConnectConfirmDialog.vue'
+import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
+import WalletConnectCallRequestDialog from '../../components/walletconnect/WalletConnectCallRequestDialog.vue'
 const ago = require('s-ago')
 
 export default {
   name: 'WalletConnect',
-  components: { JSONRenderer, QrScanner, HeaderNav },
+  components: { QrScanner, WalletConnectCallRequestDialog, HeaderNav },
   data() {
     return {
       handshakeFormData: {
@@ -338,7 +281,7 @@ export default {
             chainId: chainId,
           })
         })
-        .onDismiss(() => {
+        .onCancel(() => {
           connector.rejectSession({
             message: 'User rejected'
           })
