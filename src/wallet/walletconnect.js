@@ -103,19 +103,20 @@ export async function callRequestHandler(connector, payload, wallet) {
         result = signedMessage
         break
       case('eth_signTypedData'):
+        const parsedSignTypedDataParams = JSON.parse(payload.params[1])
         const signedTypedData = await wallet._signTypedData(
-          payload.params[1].domain,
-          payload.params[1].types,
-          payload.params[1].message,
+          parsedSignTypedDataParams.domain,
+          parsedSignTypedDataParams.types,
+          parsedSignTypedDataParams.message,
         )
         result = signedTypedData
         break;
       case('eth_sendTransaction'):
-        const tx = await wallet.sendTransaction(payload.params[0])
+        const tx = await wallet.sendTransaction(serializeTransactionRequest(payload.params[0]))
         result = tx.hash
         break;
       case ('eth_signTransaction'):
-        const signedTx = await wallet.signTransaction(payload.params[0])
+        const signedTx = await wallet.signTransaction(serializeTransactionRequest(payload.params[0]))
         result = signedTx
         break;
       default:
@@ -142,4 +143,20 @@ export async function callRequestHandler(connector, payload, wallet) {
   }
 
   return response
+}
+
+
+function serializeTransactionRequest(payload) {
+  if (!payload) return payload
+  const data = {
+    from: payload.from,
+    to: payload.to,
+    value: payload.value,
+    data: payload.data,
+    gasLimit: payload.gas,
+    gasPrice: payload.gasPrice,
+    nonce: payload.nonce,
+  }
+
+  return data
 }
