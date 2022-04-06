@@ -11,6 +11,12 @@ export function getProvider (test = false) {
   return new ethers.providers.JsonRpcBatchProvider(test ? rpcUrls.test : rpcUrls.main)
 }
 
+export function toChecksumAddress(address='') {
+  if (!utils.isAddress(address)) return address
+
+  return utils.getAddress(address)
+}
+
 export function getERC721Contract (contractAddress, test = false) {
   if (!utils.isAddress(contractAddress)) return
 
