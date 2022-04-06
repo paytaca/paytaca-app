@@ -435,6 +435,9 @@ export default {
         class: "text-black",
       })
         .onOk(() => {
+          if (Array.isArray(this.callRequests)) {
+            this.callRequests.forEach(this.rejectCallRequest)
+          }
           this.callRequests = []
         })
     },
