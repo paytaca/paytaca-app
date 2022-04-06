@@ -134,6 +134,8 @@
         <q-btn
           outline
           no-caps
+          :loading="loading"
+          :disable="loading"
           padding="xs md"
           color="grey"
           label="Reject"
@@ -142,6 +144,8 @@
         <q-space/>
         <q-btn
           no-caps
+          :loading="loading"
+          :disable="loading"
           padding="xs md"
           color="brandblue"
           label="Accept"
@@ -164,6 +168,10 @@ export default {
       default: false,
     },
     persistent: {
+      type: Boolean,
+      default: false,
+    },
+    loading: {
       type: Boolean,
       default: false,
     },

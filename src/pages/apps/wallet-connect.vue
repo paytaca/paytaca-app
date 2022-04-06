@@ -149,6 +149,7 @@
     <WalletConnectCallRequestDialog
       v-model="callRequestDialog.show"
       :persistent="callRequestDialog.processing"
+      :loading="callRequestDialog.processing"
       :callRequest="callRequestDialog.callRequest"
       @accept="respondToCallRequestInDialog(true)"
       @reject="respondToCallRequestInDialog(false)"
