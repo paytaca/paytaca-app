@@ -4,7 +4,7 @@
       <q-card-section class="text-black">
         <div class="text-grey-8">Connect to this site?</div>
         <div class="row items-start justify-start no-wrap q-gutter-x-sm">
-          <div class="text-h6 text-black">{{ parsedPeerMeta.name }}</div>
+          <div class="text-h6 text-black q-space">{{ parsedPeerMeta.name }}</div>
           <img
             v-if="parsedPeerMeta.icon"
             width="50"
