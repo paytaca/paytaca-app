@@ -5,9 +5,9 @@ import * as Bip39 from 'bip39'
 import { hdkey } from 'ethereumjs-wallet';
 import { BigNumber, ethers, utils } from 'ethers'
 
-import { getProvider, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
+import { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
 
-export { getProvider, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions }
+export { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions }
 
 export class SmartBchWallet {
   static TX_INCOMING = 'incoming'
@@ -575,8 +575,8 @@ class WatchtowerSBCH {
     const queryParams = {
       offset: 0,
       limit: limit,
-      tokens: contractAddress,
-      addresses: address,
+      tokens: toChecksumAddress(contractAddress),
+      addresses: toChecksumAddress(address),
       record_type: undefined,
     }
 

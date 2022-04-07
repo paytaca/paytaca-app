@@ -24,6 +24,12 @@ export default {
     return {
       apps: [
         {
+          name: 'Wallet Connect',
+          iconName: 'fas fa-wallet',
+          path: '/apps/wallet-connect',
+          active: true
+        },
+        {
           name: 'Collectibles',
           iconName: 'collections_bookmark',
           path: '/apps/collectibles',
