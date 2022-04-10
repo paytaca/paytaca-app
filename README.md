@@ -1,4 +1,6 @@
-# Paytaca - Secure and convenient Bitcoin Cash wallet app
+# Paytaca
+
+**Secure and convenient Bitcoin Cash wallet app**
 
 Bitcoin Cash (BCH) is a purely peer-to-peer version of electronic cash that allows online payments to be sent directly from one party to another. It is sound money for the modern internet world.
 
