@@ -2,13 +2,13 @@
   <div>
     <div class="row">
       <div class="col 12">
-        <div class="pt-header">
-          <router-link :to="{ path: backnavpath }" class="pt-arrow-left-link" :style="{width: $q.platform.is.bex ? '375px' : '100%'}">
+        <div class="pt-header" :class="{'pt-dark': $q.dark.mode}">
+          <router-link :to="{ path: backnavpath }" class="pt-arrow-left-link" :class="{'pt-dark-label': $q.dark.mode}" :style="{width: $q.platform.is.bex ? '375px' : '100%'}">
             <span class="material-icons">
                 arrow_back
             </span>
           </router-link>
-          <p class="text-h5 text-center q-my-none">
+          <p class="text-h5 text-center q-my-none" :class="{'pt-dark-label': $q.dark.mode}">
             {{ title }}
           </p>
         </div>

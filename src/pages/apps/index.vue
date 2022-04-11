@@ -1,14 +1,14 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;">
+  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $q.dark.mode}">
     <div id="apps" ref="apps">
-      <p class="section-title">Applications</p>
+      <p class="section-title" :class="{'pt-dark-label': $q.dark.mode}">Applications</p>
 
       <div class="row q-px-xs">
         <div v-for="(app, index) in apps" :key="index" class="col-xs-3 col-sm-2 col-md-1 q-pa-sm text-center">
           <div class="pt-app" :class="app.active ? 'text-white' : 'pt-grey'" @click="openApp(app)">
             <q-icon class="app-icon" size="34px" :name="app.iconName" />
           </div>
-          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none">{{ app.name }}</p>
+          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $q.dark.mode}">{{ app.name }}</p>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@
       v-for="(asset, index) in assets"
       :key="index"
       class="method-cards q-pa-md q-mr-none"
-      :class="{ selected: asset.id === $parent.selectedAsset.id }"
+      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow': $q.dark.mode}]"
       @click="(event) => {
         selectAsset(event, asset)
       }"

@@ -6,7 +6,7 @@
         <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm" v-if="mnemonic.length === 0 && importSeedPhrase === false">
+    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $q.dark.mode}" v-if="mnemonic.length === 0 && importSeedPhrase === false">
       <div class="col-12 q-mt-md q-px-lg q-py-none">
         <div class="row">
           <div class="col-12 q-py-sm">
@@ -21,9 +21,12 @@
         </div>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm" v-if="importSeedPhrase && mnemonic.length === 0">
+    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $q.dark.mode}" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">
-        <p style="text-align: center; font-size: 16px; color: #000 !important;">Restore your Paytaca wallet from its mnemonic backup phrase.</p>
+        <p
+          style="text-align: center; font-size: 16px; color: #000;"
+          :class="{'pt-dark-label': $q.dark.mode}"
+        >Restore your Paytaca wallet from its mnemonic backup phrase.</p>
         <textarea class="form-textarea q-mt-xs pt-input" rows="4" v-model="seedPhraseBackup"></textarea>
         <q-btn push class="full-width pt-btn-wallet q-mt-sm" @click="createWallets" label="Restore Wallet" rounded />
       </div>

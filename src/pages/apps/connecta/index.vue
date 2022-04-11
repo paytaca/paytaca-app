@@ -1,5 +1,8 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;">
+  <div
+    style="background-color: #ECF3F3; min-height: 100vh;"
+    :class="{'pt-dark': $q.dark.mode}"
+  >
     <header-nav
       title="Connecta"
       backnavpath="/apps"

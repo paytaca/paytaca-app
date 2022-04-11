@@ -1,11 +1,11 @@
 <template>
-  <div style="background-color: #ECF3F3;">
+  <div style="background-color: #ECF3F3;" :class="{'pt-dark': $q.dark.mode}">
 
     <startPage v-if="startPageStatus" v-on:logIn="logIn" />
 
     <div v-else>
 
-      <div class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+      <div class="fixed-container" :class="{'pt-dark': $q.dark.mode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
         <div class="row q-pt-lg">
 
           <!-- <p class="col-12 q-px-lg q-ma-none text-subtitle1" role="button" @click="promptChangeNetwork()">
@@ -23,8 +23,8 @@
             @input="changeNetwork"
             style="margin-top: -20px; padding-bottom: 16px;"
           >
-            <q-tab name="BCH" :label="networks.BCH.name"/>
-            <q-tab name="sBCH" :label="networks.sBCH.name"/>
+            <q-tab name="BCH" :class="{'pt-dark-label': $q.dark.mode}" :label="networks.BCH.name"/>
+            <q-tab name="sBCH" :class="{'pt-dark-label': $q.dark.mode}" :label="networks.sBCH.name"/>
           </q-tabs>
           <div class="col q-pl-lg">
             <p class="text-light p-label" style="color: #ABA9BB;">
@@ -44,7 +44,7 @@
         </div>
         <div class="row">
           <div class="col">
-            <p class="q-ml-lg q-mb-sm payment-methods">
+            <p class="q-ml-lg q-mb-sm payment-methods" :class="{'pt-dark-label': $q.dark.mode}">
               Assets
               <q-btn
                 flat
@@ -52,6 +52,7 @@
                 size="sm"
                 icon="app_registration"
                 style="color: #3B7BF6;"
+                :class="{'pt-dark-label': $q.dark.mode}"
                 @click="toggleManageAssets"
               />
             </p>
@@ -78,12 +79,12 @@
       </div>
       <div class="row transaction-row">
         <transaction ref="transaction"></transaction>
-        <div class="col transaction-container">
-            <p class="q-ma-lg transaction-wallet">Transactions</p>
-            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction">
-                <button class="btn-custom q-mt-none active-transaction-btn btn-all" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
-                <button class="btn-custom q-mt-none btn-sent" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
-                <button class="btn-custom q-mt-none btn-received" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
+        <div class="col transaction-container" :class="{'pt-dark-card-2': $q.dark.mode}">
+            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': $q.dark.mode}">Transactions</p>
+            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': $q.dark.mode}">
+              <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': $q.dark.mode}" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
+              <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': $q.dark.mode}" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
+              <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': $q.dark.mode}" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
             <div class="transaction-list">
               <template v-if="balanceLoaded && transactionsLoaded">
@@ -95,8 +96,8 @@
                         </div> -->
                         <div class="col col-transaction">
                           <div>
-                            <p class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
-                            <p class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
+                            <p :class="{'pt-dark-label': $q.dark.mode}" class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
+                            <p :class="{'pt-dark-label': $q.dark.mode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
                           </div>
                           <div class="col">
                               <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.date_created | formatDate }}</b></span>
@@ -106,7 +107,7 @@
                       </div>
                     </div>
                 </div>
-                <div v-if="transactionsLoaded && transactionsPageHasNext" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+                <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': $q.dark.mode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
                   <p @click="() => { transactionsPage += 1; getTransactions() }">Show More</p>
                 </div>
               </template>

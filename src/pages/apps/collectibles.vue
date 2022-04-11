@@ -1,14 +1,17 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;">
+  <div
+    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;"
+    :class="{'pt-dark': $q.dark.mode}"
+  >
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert">
+    <q-icon id="context-menu"size="35px" name="more_vert">
       <q-menu>
-        <q-list style="min-width: 100px">
+        <q-list :class="{'pt-dark': $q.dark.mode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section class="pp-text" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
+            <q-item-section :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
-            <q-item-section class="pp-text" @click="getCollectibles()">Refresh List</q-item-section>
+            <q-item-section :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">Refresh List</q-item-section>
           </q-item>
         </q-list>
       </q-menu>
@@ -16,16 +19,16 @@
     <q-tabs
       dense
       active-color="brandblue"
-      class="col-12 q-px-lg pp-text"
+      class="col-12 q-px-lg"
       :value="selectedNetwork"
       @input="changeNetwork"
     >
-      <q-tab name="BCH" label="BCH"/>
-      <q-tab name="sBCH" label="SmartBCH"/>
+      <q-tab :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" name="BCH" label="BCH"/>
+      <q-tab :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" name="sBCH" label="SmartBCH"/>
     </q-tabs>
     <q-slide-transition>
       <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
-        <div class="pp-text" style="margin-bottom: 5px;">click to copy</div>
+        <div :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" style="margin-bottom: 5px;">click to copy</div>
         <qr-code
           :text="receivingAddress"
           style="width: 160px; margin-left: auto; margin-right: auto;"
@@ -94,7 +97,7 @@
                   />
                   <div class="text-subtitle1 pp-text">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
                 </template>
-                <div v-else class="text-grey pp-text">
+                <div v-else class="text-grey" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
                   Select Collection
                 </div>
               </div>
@@ -122,7 +125,7 @@
                 />
               </q-item-section>
               <q-item-section>
-                <q-item-label class="pp-text">{{ asset.name }}</q-item-label>
+                <q-item-label :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">{{ asset.name }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-btn

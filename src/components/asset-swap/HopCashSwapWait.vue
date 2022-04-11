@@ -6,8 +6,8 @@
           height="50"
           src="bch-logo.png"
         />
-        <div class="pp-text">from</div>
-        <div class="text-subtitle1 text-center pp-text">
+        <div :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" class="pp-text">from</div>
+        <div class="text-subtitle1 text-center" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
           <template v-else>Smart Bitcoin Cash</template>
         </div>
@@ -18,14 +18,14 @@
         flat
         padding="sm"
         icon="arrow_forward"
-        class="pp-text"
+        :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']"
         disable
       />
 
       <div class="col-5 column items-center">
         <img height="50" src="bch-logo.png"/>
-        <div class="pp-text">to</div>
-        <div class="text-subtitle1 text-center pp-text">
+        <div :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">to</div>
+        <div class="text-subtitle1 text-center" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
           <template v-else>Bitcoin Cash</template>
         </div>
@@ -34,29 +34,29 @@
 
     <q-card class="q-mt-sm pp-text">
       <q-card-section>
-        <q-banner class="bg-grey-3 rounded-borders q-mb-sm pp-text">
+        <q-banner class="bg-grey-3 rounded-borders q-mb-sm" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
           <template v-slot:avatar>
             <q-icon name="info" color="grey" />
           </template>
           Leaving the page may result in being unable to view progress
         </q-banner>
 
-        <div class="text-center pp-text">
+        <div class="text-center" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
           {{ amount }} BCH
           <q-icon name="arrow_forward"/>
           ~{{ expectedAmount }} BCH
         </div>
         <div class="q-mt-sm">
           <div class="q-mb-sm">
-            <template class="pp-text" v-if="transferType === 'c2s'">BCH Transaction:</template>
-            <template class="pp-text" v-else-if="transferType === 's2c'">SmartBCH Transaction:</template>
-            <template class="pp-text" v-else>Source tx:</template>
+            <template :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" v-if="transferType === 'c2s'">BCH Transaction:</template>
+            <template :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" v-else-if="transferType === 's2c'">SmartBCH Transaction:</template>
+            <template :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" v-else>Source tx:</template>
             <q-btn
               flat
               icon="content_copy"
               size="sm"
               padding="xs"
-              class="pp-text"
+              :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']"
               @click="copyToClipboard(incomingTxid)"
             />
           </div>
@@ -67,7 +67,7 @@
 
         <q-separator spaced/>
 
-        <div v-if="fetchingOutgoingTx || waiting" class="text-center pp-text">
+        <div v-if="fetchingOutgoingTx || waiting" class="text-center" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="fetchingOutgoingTx">
             <div v-if="transferType === 'c2s'">Looking for SmartBCH Transaction</div>
             <div v-else-if="transferType === 's2c'">Looking for BCH Transaction</div>
@@ -80,14 +80,14 @@
         </div>
         <div v-else-if="parsedOutgoingTx.hash">
           <div>
-            <div class="q-mb-sm pp-text">
+            <div class="q-mb-sm" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
               {{ parsedOutgoingTx.chainName }} Transaction:
               <q-btn
                 flat
                 icon="content_copy"
                 size="sm"
                 padding="xs"
-                class="pp-text"
+                :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']"
                 @click="copyToClipboard(parsedOutgoingTx.hash)"
               />
             </div>
@@ -97,12 +97,13 @@
           </div>
         </div>
         <div v-else class="text-center">
-          <div class="q-my-md pp-text">Outgoing transaction not found</div>
+          <div class="q-my-md" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">Outgoing transaction not found</div>
           <q-btn
             no-caps
             color="brandblue"
             label="Retry"
-            class="full-width pp-text"
+            class="full-width"
+            :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']"
             @click="findAndOrWaitOutgoingTx()"
           />
         </div>
