@@ -15,7 +15,7 @@
       <div v-if="!connector">
         <q-form @submit="handShakeFormSubmit">
           <q-input
-            label="Input wallet connect uri"
+            label="Input WalletConnect URI"
             v-model="handshakeFormData.walletConnectUri"
             clearable
           />
@@ -30,7 +30,7 @@
           </div>
         </q-form>
         <div class="q-mt-md text-center text-grey">
-          or scan qr code
+          or scan QR code
         </div>
         <div class="q-mt-md row justify-center items-center">
           <q-btn
