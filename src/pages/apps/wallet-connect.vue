@@ -161,7 +161,7 @@
 </template>
 <script>
 import { getMnemonic, Wallet } from '../../wallet'
-import { createConnector, getPreviousConnector, callRequestHandler } from '../../wallet/walletconnect'
+import { createConnector, getPreviousConnector, callRequestHandler, isValidWalletConnectUri } from '../../wallet/walletconnect'
 import QrScanner from '../../components/qr-scanner.vue'
 import HeaderNav from '../../components/header-nav'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
@@ -171,6 +171,12 @@ const ago = require('s-ago')
 export default {
   name: 'WalletConnect',
   components: { QrScanner, WalletConnectCallRequestDialog, HeaderNav },
+  props: {
+    uri: {
+      type: String,
+      default: '',
+    }
+  },
   data() {
     return {
       handshakeFormData: {
@@ -474,7 +480,11 @@ export default {
   mounted () {
     this.loadWallet()
     const connector = getPreviousConnector()
-    if (connector) {
+    if (isValidWalletConnectUri(this.uri)) {
+      if (connector) connector.killSession()
+      this.handshakeFormData.walletConnectUri = this.uri
+      this.handShakeFormSubmit()
+    } else if (connector) {
       this.connector = connector
       this.attachEventsToConnector()
     }

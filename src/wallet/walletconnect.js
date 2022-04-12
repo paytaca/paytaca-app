@@ -160,3 +160,11 @@ function serializeTransactionRequest(payload) {
 
   return data
 }
+
+
+export function isValidWalletConnectUri(uri) {
+  if (!uri) return false
+  if (typeof uri !== 'string') return false
+
+  return /wc:[0-9a-f-]*@\d*\?(bridge=.*|key=[0-9a-f]*)/i.test(uri)
+}
