@@ -1,14 +1,14 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin pp-text">
+    <q-card class="q-dialog-plugin" :class="{'pt-dark-card-2': $q.dark.mode}">
 
-        <q-card-section class="pt-label">
+        <q-card-section class="pt-label" :class="{'pt-dark-label': $q.dark.mode}">
             <strong>Confirmation</strong>
         </q-card-section>
 
         <q-separator />
 
-        <q-card-section class="pt-label">
+        <q-card-section class="pt-label" :class="{'pt-dark-label': $q.dark.mode}">
           <label> Do you want to continue removing the asset?</label>
         </q-card-section>
 
@@ -16,7 +16,7 @@
 
         <q-card-actions align="right">
             <q-btn rounded class="btn-add-payment text-white" padding="0.5em 1.5em 0.5em 1.5em" label="Continue" @click="onOKClick" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" label="cancel" @click="onCancelClick" />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[$q.dark.mode ? 'pt-bg-dark' : 'pp-text']" label="cancel" @click="onCancelClick" />
         </q-card-actions>
     </q-card>
   </q-dialog>

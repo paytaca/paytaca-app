@@ -23,8 +23,8 @@
       :value="selectedNetwork"
       @input="changeNetwork"
     >
-      <q-tab :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" name="BCH" label="BCH"/>
-      <q-tab :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" name="sBCH" label="SmartBCH"/>
+      <q-tab :class="[$q.dark.mode ? 'pt-dark-label' : '']" name="BCH" label="BCH"/>
+      <q-tab :class="[$q.dark.mode ? 'pt-dark-label' : '']" name="sBCH" label="SmartBCH"/>
     </q-tabs>
     <q-slide-transition>
       <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
