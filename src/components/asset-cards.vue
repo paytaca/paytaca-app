@@ -5,7 +5,7 @@
       v-for="(asset, index) in assets"
       :key="index"
       class="method-cards q-pa-md q-mr-none"
-      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow': $q.dark.mode}]"
+      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow method-cards-dark': $q.dark.mode}]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
@@ -189,5 +189,9 @@ export default {
     border-radius: 16px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
     box-shadow: 2px 2px 2px 2px #f2f2fc;
+  }
+  .method-cards-dark {
+    /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
+    background: #717D7E;
   }
 </style>

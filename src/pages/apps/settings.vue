@@ -10,7 +10,7 @@
                         <q-item-label class="pt-setting-menu">Security Authentication Setup</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="security" class="pt-setting-avatar"></q-icon>
+                        <q-icon name="security" :class="$q.dark.mode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
@@ -18,7 +18,7 @@
                         <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $q.dark.mode}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="pin" class="pt-setting-avatar"></q-icon>
+                        <q-icon name="pin" :class="$q.dark.mode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
@@ -136,5 +136,8 @@ export default {
 }
 .pt-setting-avatar {
     color: #da53b2;
+}
+.pt-setting-avatar-dark {
+    color: #A6ACAF;
 }
 </style>
