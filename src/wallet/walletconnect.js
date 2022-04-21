@@ -164,7 +164,30 @@ function serializeTransactionRequest(payload) {
 
 export function isValidWalletConnectUri(uri) {
   if (!uri) return false
-  if (typeof uri !== 'string') return false
 
   return /wc:[0-9a-f-]*@\d*\?(bridge=.*|key=[0-9a-f]*)/i.test(uri)
+}
+
+export function parseWalletConnectUri(uri) {
+  if (!uri) return
+
+  const data = {
+    uri: uri,
+    handshakeTopic: '',
+    version: '',
+    bridge: '',
+    key: '',
+  }
+
+  const match = String(uri).match(/^wc:([0-9a-f-]{36})@(\d*)(\?(bridge=.*)|(key=[0-9a-f]*))?$/i)
+  if (!match) return
+
+  const url = new URL(uri)
+  data.handshakeTopic = match[1]
+  data.version = match[2]
+  data.bridge = url.searchParams.get('bridge')
+  data.key = url.searchParams.get('key')
+
+  return data
+  
 }

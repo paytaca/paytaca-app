@@ -4,7 +4,7 @@ import VueRouter from 'vue-router'
 import { getMnemonic } from '../wallet'
 import routes from './routes'
 
-import { isValidWalletConnectUri } from '../wallet/walletconnect'
+import { parseWalletConnectUri } from '../wallet/walletconnect'
 
 Vue.use(VueRouter)
 
@@ -57,10 +57,10 @@ export default function ({ store }) {
       else if (url.searchParams.has('orderId')) query.orderId = url.searchParams.get('orderId')
 
       Router.push({ name: 'connecta', query: query })
-    } else if(isValidWalletConnectUri(url)) {
+    } else if(parseWalletConnectUri(url)) {
       Router.push({
         name: 'app-wallet-connect',
-        query: { uri: url },
+        query: { uri: String(url) },
       })
     }
   })

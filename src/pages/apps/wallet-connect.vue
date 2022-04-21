@@ -160,8 +160,9 @@
   </div>
 </template>
 <script>
+import { Plugins } from '@capacitor/core'
 import { getMnemonic, Wallet } from '../../wallet'
-import { createConnector, getPreviousConnector, callRequestHandler, isValidWalletConnectUri } from '../../wallet/walletconnect'
+import { createConnector, getPreviousConnector, callRequestHandler, parseWalletConnectUri } from '../../wallet/walletconnect'
 import QrScanner from '../../components/qr-scanner.vue'
 import HeaderNav from '../../components/header-nav'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
@@ -267,24 +268,25 @@ export default {
       this.handShakeFormSubmit()
     },
 
-    handShakeFormSubmit() {
-      this.initializeConnector(this.handshakeFormData.walletConnectUri)
+    handShakeFormSubmit(switchActivity=false) {
+      this.initializeConnector(this.handshakeFormData.walletConnectUri, switchActivity)
     },
 
-    initializeConnector (uri) {
+    async initializeConnector (uri, switchActivity=false) {
+      // NOTE: for testing in dev
+      // Test site: https://example.walletconnect.org/
+      // use `chainId: 1`
+      // const chainId = 1
+      await this.wallet.sBCH.getOrInitWallet()
+      const chainId = await this.wallet.sBCH._wallet.getChainId()
+      const accounts = [this.wallet.sBCH._wallet.address]
+
       const connector = createConnector(uri)
-      connector.on('session_request', async (error, payload) => {
+      connector.on('session_request', (error, payload) => {
         console.log('session_request:', error, payload)
         if (error) {
           throw error;
         }
-
-        // NOTE: for testing in dev
-        // Test site: https://example.walletconnect.org/
-        // use `chainId: 1`
-        // const chainId = 1
-        const chainId = await this.wallet.sBCH._wallet.getChainId()
-        const accounts = [this.wallet.sBCH._wallet.address]
 
         if (payload.params[0].chainId !== null && payload.params[0].chainId !== chainId) {
           this.$q.notify({
@@ -318,6 +320,11 @@ export default {
           connector.rejectSession({
             message: 'User rejected'
           })
+        })
+        .onDismiss(() => {
+          if (switchActivity) {
+            Plugins.DeepLinkHelperPlugin.finishActivity()
+          }
         })
 
         connector.off('session_request')
@@ -467,9 +474,10 @@ export default {
 
     loadWallet () {
       const vm = this
-      getMnemonic().then(function (mnemonic) {
-        vm.wallet = new Wallet(mnemonic, vm.isTestnet)
-      })
+      return getMnemonic()
+        .then(function (mnemonic) {
+          vm.wallet = new Wallet(mnemonic, vm.isTestnet)
+        })
     },
   },
 
@@ -479,15 +487,24 @@ export default {
 
   mounted () {
     this.loadWallet()
-    const connector = getPreviousConnector()
-    if (isValidWalletConnectUri(this.uri)) {
-      if (connector) connector.killSession()
-      this.handshakeFormData.walletConnectUri = this.uri
-      this.handShakeFormSubmit()
-    } else if (connector) {
-      this.connector = connector
-      this.attachEventsToConnector()
-    }
+      .then(() => {
+        const cachedConnector = getPreviousConnector()
+        const uriData = parseWalletConnectUri(this.uri)
+        if (uriData) {
+          if (cachedConnector && cachedConnector.handshakeTopic === uriData.handshakeTopic) {  
+            this.connector = cachedConnector
+            this.attachEventsToConnector()
+            return
+          } else if (cachedConnector) {
+            cachedConnector.killSession()
+          }
+          this.handshakeFormData.walletConnectUri = this.uri
+          this.handShakeFormSubmit(true)
+        } else if (cachedConnector) {
+          this.connector = cachedConnector
+          this.attachEventsToConnector()
+        }
+      })
   }
 }
 </script>
