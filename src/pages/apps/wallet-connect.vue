@@ -13,10 +13,11 @@
 
     <div class="q-px-md">
       <div v-if="!connector">
-        <q-form @submit="handShakeFormSubmit">
+        <q-form @submit="handShakeFormSubmit()">
           <q-input
             label="Input wallet connect uri"
             v-model="handshakeFormData.walletConnectUri"
+            :disable="handshakeOnProgress"
             clearable
           />
           <div class="row items-center justify-end q-mt-sm">
@@ -26,6 +27,7 @@
               label="Connect"
               type="submit"
               text-color="black"
+              :disable="handshakeOnProgress"
             />
           </div>
         </q-form>
@@ -39,8 +41,23 @@
             icon="camera_alt"
             @click="scanner.show = true"
             text-color="black"
+            :disable="handshakeOnProgress"
           />
         </div>
+        <template v-if="handshakeOnProgress">
+          <div class="row items-center justify-center">
+            <Loader/>
+          </div>
+          <div v-if="pendingConnector" class="row items-center justify-center">
+            <q-btn
+              flat
+              no-caps
+              color="grey"
+              label="Cancel"
+              @click="stopPendingConnector()"
+            />
+          </div>
+        </template>
       </div>
       <div v-else>
         <q-card>
@@ -165,13 +182,14 @@ import { getMnemonic, Wallet } from '../../wallet'
 import { createConnector, getPreviousConnector, callRequestHandler, parseWalletConnectUri } from '../../wallet/walletconnect'
 import QrScanner from '../../components/qr-scanner.vue'
 import HeaderNav from '../../components/header-nav'
+import Loader from '../../components/Loader.vue'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
 import WalletConnectCallRequestDialog from '../../components/walletconnect/WalletConnectCallRequestDialog.vue'
 const ago = require('s-ago')
 
 export default {
   name: 'WalletConnect',
-  components: { QrScanner, WalletConnectCallRequestDialog, HeaderNav },
+  components: { QrScanner, WalletConnectCallRequestDialog, HeaderNav, Loader },
   props: {
     uri: {
       type: String,
@@ -189,6 +207,8 @@ export default {
         frontCamera: false,
       },
       wallet: null,
+      handshakeOnProgress: false,
+      pendingConnector: null,
       connector: null,
       callRequests: [
         /*
@@ -273,6 +293,10 @@ export default {
     },
 
     async initializeConnector (uri, switchActivity=false) {
+      const uriData = parseWalletConnectUri(uri)
+      if (!uriData || !uriData.bridge) return
+
+      this.handshakeOnProgress = true
       // NOTE: for testing in dev
       // Test site: https://example.walletconnect.org/
       // use `chainId: 1`
@@ -282,6 +306,7 @@ export default {
       const accounts = [this.wallet.sBCH._wallet.address]
 
       const connector = createConnector(uri)
+      this.pendingConnector = connector
       connector.on('session_request', (error, payload) => {
         console.log('session_request:', error, payload)
         if (error) {
@@ -328,7 +353,17 @@ export default {
         })
 
         connector.off('session_request')
+        this.handshakeOnProgress = false
       })
+    },
+
+    stopPendingConnector() {
+      if (this.pendingConnector && this.pendingConnector.off && this.pendingConnector.off.call) {
+        this.pendingConnector.off('session_request')
+      }
+      this.handshakeOnProgress = false
+      this.pendingConnector = null
+      this.handshakeFormData.walletConnectUri = ''
     },
 
     disconnectConnector() {
