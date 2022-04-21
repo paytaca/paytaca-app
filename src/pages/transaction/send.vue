@@ -1,5 +1,5 @@
 <template>
-  <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;">
+  <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $q.dark.mode}">
     <header-nav
       :title="'SEND ' + asset.symbol"
       backnavpath="/send/select-asset"
@@ -18,7 +18,7 @@
           <div class="col-12 q-mt-lg">
             <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
           </div>
-          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000 !important;">
+          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000;" :class="{'pt-dark-label': $q.dark.mode}">
             OR
           </div>
           <div class="col-12 q-mt-lg" style="text-align: center;">

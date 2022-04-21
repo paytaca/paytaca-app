@@ -107,3 +107,19 @@ h5, p, label, a {
 .bg-brandlight {
   background-color: #ECF3F3 !important;
 }
+
+.pt-dark {
+  background: #273746 !important;
+}
+.pt-dark-card {
+  background: #1C2833 !important;
+}
+.pt-dark-card-2 {
+  background: #212F3D !important;
+}
+.pt-dark-label {
+  color: #fff !important;
+}
+.pt-dark-box-shadow {
+  box-shadow: 2px 2px 2px 2px #212F3D !important;
+}

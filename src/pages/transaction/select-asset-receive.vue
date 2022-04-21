@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top: 75px;">
+  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top: 75px;" :class="{'pt-dark': $q.dark.mode}">
     <header-nav title="RECEIVE" backnavpath="/"></header-nav>
     <q-tabs
       dense
@@ -8,13 +8,13 @@
       :value="selectedNetwork"
       @input="changeNetwork"
     >
-      <q-tab name="BCH" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :label="networks.sBCH.name"/>
+      <q-tab name="BCH" :class="{'pt-dark-label': $q.dark.mode}" :label="networks.BCH.name"/>
+      <q-tab name="sBCH" :class="{'pt-dark-label': $q.dark.mode}" :label="networks.sBCH.name"/>
     </q-tabs>
     <template v-if="assets">
       <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm">SELECT ASSET TO BE RECEIVED</p>
+          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $q.dark.mode}">SELECT ASSET TO BE RECEIVED</p>
         </div>
       </div>
       <div ref="assetsList" style="overflow-y: scroll; padding-bottom: 20px;">
@@ -29,10 +29,10 @@
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
-                <p class="q-ma-none text-token text-weight-medium" style="font-size: 18px; color: #444655;">
+                <p class="q-ma-none text-token text-weight-medium" :class="{'pt-dark-label': $q.dark.mode}" style="font-size: 18px; color: #444655;">
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none" style="font-size: 18px; color: #444655;">
+                <p class="q-ma-none" :class="{'pt-dark-label': $q.dark.mode}" style="font-size: 18px; color: #444655;">
                   {{ String(asset.balance).substring(0, 16) }}
                   {{ asset.symbol }}
                 </p>

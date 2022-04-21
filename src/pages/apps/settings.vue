@@ -1,24 +1,34 @@
 <template>
-  <div class="pt-settings">
+  <div class="pt-settings" :class="{'pt-dark': $q.dark.mode}">
       <header-nav title="Settings" backnavpath="/apps" />
       <div class="row" style="padding-top: 60px;">
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6">SECURITY</p>
-              <q-list bordered separator padding style="border-radius: 14px; background: #fff">
+              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': $q.dark.mode}">SECURITY</p>
+              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': $q.dark.mode}">
                 <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus = 'show in settings'">
                     <q-item-section>
                         <q-item-label class="pt-setting-menu">Security Authentication Setup</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="security" class="pt-setting-avatar"></q-icon>
+                        <q-icon name="security" :class="$q.dark.mode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $q.dark.mode}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="pin" class="pt-setting-avatar"></q-icon>
+                        <q-icon name="pin" :class="$q.dark.mode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
+                    </q-item-section>
+                </q-item>
+                <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
+                    <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $q.dark.mode}">Darkmode</q-item-label>
+                    </q-item-section>
+                    <q-item-section avatar>
+                      <q-toggle
+                        v-model="darkMode"
+                      />
                     </q-item-section>
                 </q-item>
               </q-list>
@@ -46,10 +56,16 @@ export default {
       pinDialogAction: '',
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
-      pinStatus: true
+      pinStatus: true,
+      darkMode: this.$q.dark.mode
     }
   },
   components: { HeaderNav, pinDialog, securityOptionDialog },
+  watch: {
+    darkMode (newVal, oldVal) {
+      this.$q.dark.set(newVal)
+    }
+  },
   methods: {
     popUpPinDialog () {
       this.pinDialogAction = 'SET NEW'
@@ -120,5 +136,8 @@ export default {
 }
 .pt-setting-avatar {
     color: #da53b2;
+}
+.pt-setting-avatar-dark {
+    color: #A6ACAF;
 }
 </style>
