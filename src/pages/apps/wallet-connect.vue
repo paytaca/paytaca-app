@@ -481,9 +481,9 @@ export default {
     },
   },
 
-  beforeDestroy() {
-    this.disconnectConnector()
-  },
+  // beforeDestroy() {
+  //   this.disconnectConnector()
+  // },
 
   mounted () {
     this.loadWallet()
