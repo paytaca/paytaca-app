@@ -11,11 +11,14 @@
       @decode="onScannerDecode"
     />
 
-    <div class="q-px-md">
+    <div class="q-px-md q-pt-md">
       <div v-if="!connector">
         <q-form @submit="handShakeFormSubmit()">
           <q-input
             label="Input WalletConnect URI"
+            label-color="grey"
+            font-color="black"
+            input-class="pp-text"
             v-model="handshakeFormData.walletConnectUri"
             :disable="handshakeOnProgress"
             clearable
@@ -31,7 +34,7 @@
             />
           </div>
         </q-form>
-        <div class="q-mt-md text-center text-grey">
+        <div class="q-mt-md q-pt-md text-center text-grey">
           or scan QR code
         </div>
         <div class="q-mt-md row justify-center items-center">

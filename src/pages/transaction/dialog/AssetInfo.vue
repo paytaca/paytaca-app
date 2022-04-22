@@ -28,8 +28,8 @@
           </a>
         </div>
         <div style="margin-top: 20px; text-align: center;">
-          <q-btn :class="{'pt-bg-dark pt-dark-label': $q.dark.mode}" @click="send">Send</q-btn>&nbsp;
-          <q-btn :class="{'pt-bg-dark pt-dark-label': $q.dark.mode}" @click="receive">Receive</q-btn>
+          <q-btn :class="$q.dark.mode ? 'pt-bg-dark pt-dark-label': 'pp-text'" @click="send">Send</q-btn>&nbsp;
+          <q-btn :class="$q.dark.mode ? 'pt-bg-dark pt-dark-label': 'pp-text'" @click="receive">Receive</q-btn>
         </div>
       </q-card-section>
     </q-card>
@@ -60,7 +60,7 @@ export default {
       if (this.isSep20) return `https://www.smartscan.cash/address/${tokenId}`
       return `https://simpleledger.info/#token/${tokenId}`
     },
-    fallbackAssetLogo() {
+    fallbackAssetLogo () {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(this.asset && this.asset.id))
     }

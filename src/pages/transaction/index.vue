@@ -100,7 +100,7 @@
                             <p :class="{'pt-dark-label': $q.dark.mode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
                           </div>
                           <div class="col">
-                              <span class="float-left subtext" style="font-size: 12px;"><b>{{ transaction.date_created | formatDate }}</b></span>
+                              <span class="float-left subtext" :class="{'pt-dark-label': $q.dark.mode}" style="font-size: 12px;"><b>{{ transaction.date_created | formatDate }}</b></span>
                               <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                           </div>
                         </div>
