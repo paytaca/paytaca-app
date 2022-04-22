@@ -77,7 +77,7 @@
                 flat
                 label="Disconnect"
                 @click="disconnectConnector"
-                text-color="black"
+                :text-color="$q.dark.mode ? 'white' : 'black'"
               />
             </div>
             <div class="row items-center justify-start no-wrap q-gutter-x-sm">
@@ -87,17 +87,17 @@
                 height="auto"
                 :src="parsedPeerMeta.icon"
               />
-              <div class="text-h6 text-black">{{ parsedPeerMeta.name }}</div>
+              <div class="text-h6" :class="[$q.dark.mode ? 'text-white' : 'text-black' ]">{{ parsedPeerMeta.name }}</div>
             </div>
-            <div v-if="parsedPeerMeta.url" class="q-mt-sm text-body2 text-black">
+            <div v-if="parsedPeerMeta.url" class="q-mt-sm text-body2">
               <a :href="parsedPeerMeta.url" target="_blank">{{ parsedPeerMeta.url }}</a>
             </div>
-            <div v-if="parsedPeerMeta.description" class="q-mt-sm text-body2 text-black">
+            <div v-if="parsedPeerMeta.description" class="q-mt-sm" :class="[$q.dark.mode ? 'text-white' : 'text-black' ]">
               {{ parsedPeerMeta.description }}
             </div>
           </q-card-section>
           <q-card-section>
-            <div class="text-weight-medium text-black">Accounts</div>
+            <div class="text-weight-medium" :class="[$q.dark.mode ? 'text-white' : 'text-black' ]">Account</div>
             <q-list bordered separator style="border-radius: 14px; background: #fff" class="q-mt-sm">
               <template v-if="Array.isArray(connector.accounts)">
                 <q-item
@@ -241,7 +241,7 @@ export default {
     ellipsisText(value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value
-      return value.substr(0, 5) + '...' + value.substr(value.length-12, value.length)
+      return value.substr(0, 13) + '...' + value.substr(value.length - 13, value.length)
     },
     formatDate (date) {
       return ago(new Date(date))

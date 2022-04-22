@@ -42,15 +42,27 @@ export default {
           active: true
         },
         {
-          name: 'Connecta',
-          iconName: 'delivery_dining',
-          path: '/apps/connecta/',
+          name: 'Settings',
+          iconName: 'settings',
+          path: '/apps/settings',
+          active: true
+        },
+        {
+          name: 'Wallet Info',
+          iconName: 'info',
+          path: '/apps/wallet-info',
           active: true
         },
         {
           name: 'Rewards',
           iconName: 'grade',
           path: '',
+          active: false
+        },
+        {
+          name: 'Connecta',
+          iconName: 'delivery_dining',
+          path: '/apps/connecta/',
           active: false
         },
         {
@@ -64,18 +76,6 @@ export default {
           iconName: 'system_security_update_good',
           path: '',
           active: false
-        },
-        {
-          name: 'Settings',
-          iconName: 'settings',
-          path: '/apps/settings',
-          active: true
-        },
-        {
-          name: 'Wallet Info',
-          iconName: 'info',
-          path: '/apps/wallet-info',
-          active: true
         }
       ],
       appHeight: null
