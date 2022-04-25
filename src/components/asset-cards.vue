@@ -22,6 +22,9 @@
           {{ asset.symbol }}
         </p>
       </div>
+      <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -20px;">
+        ~ {{ getAssetMarketBalance(asset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+      </div>
       <div class="row">
         <q-space />
         <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
@@ -55,9 +58,24 @@ export default {
   computed: {
     isSep20 () {
       return this.network === 'sBCH'
+    },
+    selectedMarketCurrency() {
+      return this.$store.getters['market/selectedCurrency']
+    },
+    marketAssetPrices() {
+      return this.$store.getters['market/assetPrices']
     }
   },
   methods: {
+    getAssetMarketBalance(asset) {
+      if (!asset || !asset.id) return ''
+
+      const assetPrice = this.marketAssetPrices.find(assetPrice => assetPrice.assetId === asset.id)
+      if (!assetPrice || !assetPrice.prices || !assetPrice.prices[this.selectedMarketCurrency]) return ''
+      const computedBalance = Number(asset.balance || 0) * Number(assetPrice.prices[this.selectedMarketCurrency])
+
+      return computedBalance.toFixed(2)
+    },
     getFallbackAssetLogo(asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))

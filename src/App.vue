@@ -38,6 +38,12 @@ export default {
       })
     }
   },
+  mounted () {
+    this.$store.dispatch('market/updateCoinsList', { force: false })
+      .finally(() => {
+        this.$store.dispatch('market/updateAssetPrices', {})
+      })
+  },
   created () {
     const vm = this
     setTimeout(function () {
