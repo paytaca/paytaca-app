@@ -43,6 +43,8 @@ export default {
       .finally(() => {
         this.$store.dispatch('market/updateAssetPrices', {})
       })
+
+    this.$store.dispatch('market/updateSupportedCurrencies', {})
   },
   created () {
     const vm = this
