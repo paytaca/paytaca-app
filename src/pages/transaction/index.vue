@@ -6,7 +6,7 @@
     <div v-else>
 
       <div class="fixed-container" :class="{'pt-dark': $q.dark.mode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-        <div class="row q-pt-lg">
+        <div class="row q-pt-lg q-pb-xs">
 
           <!-- <p class="col-12 q-px-lg q-ma-none text-subtitle1" role="button" @click="promptChangeNetwork()">
             <span
@@ -37,7 +37,7 @@
               <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
             </p>
             <div v-if="selectedAssetMarketBalance" class="text-caption pp-text" style="margin-top:-30px;">
-              ~ {{ selectedAssetMarketBalance }} {{ String(selectedMarketCurrency).toUpperCase() }}
+              {{ selectedAssetMarketBalance }} {{ String(selectedMarketCurrency).toUpperCase() }}
             </div>
           </div>
           <div class="q-space q-pr-lg">
