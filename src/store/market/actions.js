@@ -40,8 +40,10 @@ export function getAllAssetList(context) {
   // console.log(smartchainAssets)
 
   const mainchain = mainchainAssets.map(asset => {
+    const isSpice = String(asset.id).toLowerCase() === 'slp/4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf'
     const filteredSymbol = context.state.coinsList
       .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
+      .filter(coin => String(coin.name).toLowerCase() === String(asset.name).toLowerCase() || isSpice)
     const filteredPlatform = filteredSymbol
       .filter(coin => !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1)
     const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
@@ -50,13 +52,13 @@ export function getAllAssetList(context) {
   })
 
   const smartchain = smartchainAssets.map(asset => {
+    const isSpice = String(asset.id).toLowerCase() === 'sep20/0xe11829a7d5d8806bb36e118461a1012588fafd89'
     const filteredSymbol = context.state.coinsList
       .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
+      .filter(coin => String(coin.name).toLowerCase() === String(asset.name).toLowerCase() || isSpice)
     const filteredPlatform = filteredSymbol
       .filter(coin => {
-        if (String(asset.id).toLowerCase() === 'sep20/0xe11829a7d5d8806bb36e118461a1012588fafd89') {
-          return !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1
-        }
+        if (isSpice) return !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1
 
         return coin.platforms && coin.platforms.smartbch
       })
@@ -76,11 +78,11 @@ export async function updateAssetPrices(context, { clearExisting = false }) {
   const coinIds = [] 
   coinIds.push(
     ...assetList.mainchain
-      .map(({ coin }) => coin.id)
+      .map(({ coin }) => coin && coin.id)
       .filter(Boolean)
       .filter((e, i, s) => s.indexOf(e) === i),
     ...assetList.smartchain
-      .map(({ coin }) => coin.id)
+      .map(({ coin }) => coin && coin.id)
       .filter(Boolean)
       .filter((e, i, s) => s.indexOf(e) === i),
   )
@@ -95,13 +97,16 @@ export async function updateAssetPrices(context, { clearExisting = false }) {
     }
   )
 
-  const newAssetPrices = [...assetList.mainchain, ...assetList.smartchain].map(({ asset, coin }) => {
-    return {
-      assetId: asset.id,
-      coinId: coin.id,
-      prices: prices[coin.id],
-    }
-  })
+  const newAssetPrices = [...assetList.mainchain, ...assetList.smartchain]
+    .filter(({ coin }) => coin && coin.id)
+    .filter(({ asset }) => asset && asset.id)
+    .map(({ asset, coin }) => {
+      return {
+        assetId: asset.id,
+        coinId: coin.id,
+        prices: prices[coin.id],
+      }
+    })
 
   if (clearExisting) context.commit('clearAssetPrices')
   context.commit('updateAssetPrices', newAssetPrices)
