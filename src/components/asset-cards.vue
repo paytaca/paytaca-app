@@ -129,7 +129,7 @@ export default {
         }
         if (details.symbol.length > 0 && details.token_type === 1) {
           vm.$store.commit('assets/addNewAsset', asset)
-          vm.$store.dispatch('market/updateMainchainAssetPrices', { commit: true })
+          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
         }
       })
     },
@@ -145,7 +145,7 @@ export default {
             logo: '',
             balance: 0,
           })
-          vm.$store.dispatch('market/updateSmartchainPrices', { commit: true })
+          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
         }
       })
     },

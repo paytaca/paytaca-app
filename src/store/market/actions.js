@@ -53,7 +53,13 @@ export function getAllAssetList(context) {
     const filteredSymbol = context.state.coinsList
       .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
     const filteredPlatform = filteredSymbol
-      .filter(coin => coin.platforms && coin.platforms.smartbch)
+      .filter(coin => {
+        if (String(asset.id).toLowerCase() === 'sep20/0xe11829a7d5d8806bb36e118461a1012588fafd89') {
+          return !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1
+        }
+
+        return coin.platforms && coin.platforms.smartbch
+      })
 
     const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
     // console.log(asset.name, filteredSymbol, filteredPlatform)
@@ -64,7 +70,7 @@ export function getAllAssetList(context) {
 }
 
 
-export async function updateAssetPrices2(context, { clearExisting = false }) {
+export async function updateAssetPrices(context, { clearExisting = false }) {
   const assetList = await context.dispatch('getAllAssetList')
   console.log(assetList)
   const coinIds = [] 
@@ -176,7 +182,7 @@ export async function updateSmartchainPrices(context, { commit=true }) {
   return marketPrices
 }
 
-export async function updateAssetPrices(context, { clearExisting = false }) {
+export async function updateAssetPrices2(context, { clearExisting = false }) {
   const mainchainMarketPrices = await context.dispatch('updateMainchainAssetPrices', { commit: false })
   const smartchainMarketPrices = await context.dispatch('updateSmartchainPrices', { commit: false })
   console.log(smartchainMarketPrices)
