@@ -45,7 +45,7 @@
             <img class="float-right q-mt-sm" :src="selectedAsset.logo || getFallbackAssetLogo(selectedAsset)" height="50">
           </div>
         </div>
-        <div class="row">
+        <div class="row q-mt-sm">
           <div class="col">
             <p class="q-ml-lg q-mb-sm payment-methods" :class="{'pt-dark-label': $q.dark.mode}">
               Assets
