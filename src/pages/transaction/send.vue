@@ -68,6 +68,9 @@
           <div class="row" v-if="!isNFT">
             <div class="col q-mt-md">
               <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
+              <div v-if="sendAmountMarketValue" class="text-body2 text-grey q-mt-sm q-px-sm">
+                ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+              </div>
             </div>
           </div>
           <div class="row" v-if="!isNFT">
@@ -261,6 +264,25 @@ export default {
       if (this.isSep20 && erc721IdRegexp.test(this.assetId)) return true
 
       return this.tokenType === 65
+    },
+    selectedAssetMarketPrice() {
+      if (!this.assetId) return
+
+      return this.$store.getters['market/assetPrices'].find(assetPrice => assetPrice.assetId === this.assetId)
+    },
+    selectedMarketCurrency() {
+      return this.$store.getters['market/selectedCurrency']
+    },
+    sendAmountMarketValue() {
+      const parsedAmount = Number(this.sendData.amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      if (!this.selectedAssetMarketPrice.prices) return ''
+      if (!this.selectedAssetMarketPrice.prices[this.selectedMarketCurrency]) return ''
+      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice.prices[this.selectedMarketCurrency])
+      if (!computedBalance) return ''
+
+      return computedBalance.toFixed(2)
     },
     disableRecipientInput () {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
