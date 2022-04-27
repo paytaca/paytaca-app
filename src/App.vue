@@ -8,6 +8,12 @@
 export default {
   name: 'App',
 
+  data() {
+    return {
+      assetPricesUpdateIntervalId: null
+    }
+  },
+
   mounted () {
     const vm = this
     if (vm.$q.platform.is.bex) {
@@ -37,6 +43,20 @@ export default {
         })
       })
     }
+  },
+  unmounted() {
+    if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
+  },
+  mounted () {
+    this.$store.dispatch('market/updateCoinsList', { force: false })
+      .finally(() => {
+        this.$store.dispatch('market/updateAssetPrices', {})
+        this.assetPricesUpdateIntervalId = setInterval(() => {
+          this.$store.dispatch('market/updateAssetPrices', {})
+        }, 60 * 1000)
+      })
+
+    this.$store.dispatch('market/updateSupportedCurrencies', {})
   },
   created () {
     const vm = this

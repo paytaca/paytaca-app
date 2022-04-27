@@ -33,6 +33,42 @@
                 </q-item>
               </q-list>
           </div>
+
+          <div class="col-12 q-px-lg q-mt-md">
+              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': $q.dark.mode}">WALLET</p>
+              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': $q.dark.mode}">
+                <q-item>
+                    <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $q.dark.mode}">Currency</q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-select
+                        use-input
+                        fill-input
+                        hide-selected
+                        borderless
+                        :option-label="opt => String(opt).toUpperCase()"
+                        v-model="selectedCurrency"
+                        :options="filteredCurrencyOptions"
+                        @filter="filterCurrencyOptionSelection"
+                      >
+                        <template v-slot:option="scope">
+                          <q-item
+                            v-bind="scope.itemProps"
+                            v-on="scope.itemEvents"
+                          >
+                            <q-item-section>
+                              <q-item-label :class="{ 'text-black': !$q.dark.mode && !scope.selected }">
+                                {{ String(scope.opt).toUpperCase() }}
+                              </q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </template>
+                      </q-select>
+                    </q-item-section>
+                </q-item>
+              </q-list>
+          </div>
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
@@ -57,16 +93,44 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
       pinStatus: true,
-      darkMode: this.$q.dark.mode
+      darkMode: this.$q.dark.mode,
+      filteredCurrencyOptions: [],
     }
   },
   components: { HeaderNav, pinDialog, securityOptionDialog },
   watch: {
     darkMode (newVal, oldVal) {
       this.$q.dark.set(newVal)
+    },
+    selectedCurrency() {
+      this.$store.dispatch('market/updateAssetPrices', {})
     }
   },
+  computed: {
+    currencyOptions () {
+      return this.$store.getters['market/currencyOptions']
+    },
+    selectedCurrency: {
+      get() {
+        return this.$store.getters['market/selectedCurrency']
+      },
+      set(value) {
+        this.$store.commit('market/updateSelectedCurrency', value)
+      }
+    },
+  },
   methods: {
+    filterCurrencyOptionSelection (val, update) {
+      if (!val) {
+        this.filteredCurrencyOptions =  this.currencyOptions
+      } else {
+        const needle = String(val).toLowerCase()
+        this.filteredCurrencyOptions =  this.currencyOptions
+          .filter(currency => String(currency).toLowerCase().indexOf(needle) >= 0)
+      }
+
+      update()
+    },
     popUpPinDialog () {
       this.pinDialogAction = 'SET NEW'
     },
