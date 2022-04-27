@@ -3,6 +3,7 @@ import Vuex from 'vuex'
 import createPersistedState from 'vuex-persistedstate'
 
 import global from './global'
+import market from './market'
 import assets from './assets'
 import sep20 from './sep20'
 
@@ -23,6 +24,7 @@ export default function (/* { ssrContext } */) {
     modules: {
       global,
       assets,
+      market,
       sep20
     },
 

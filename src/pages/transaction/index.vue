@@ -6,7 +6,7 @@
     <div v-else>
 
       <div class="fixed-container" :class="{'pt-dark': $q.dark.mode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-        <div class="row q-pt-lg">
+        <div class="row q-pt-lg q-pb-xs">
 
           <!-- <p class="col-12 q-px-lg q-ma-none text-subtitle1" role="button" @click="promptChangeNetwork()">
             <span
@@ -36,13 +36,16 @@
               </span>
               <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
             </p>
+            <div v-if="selectedAssetMarketBalance" class="text-caption pp-text" style="margin-top:-30px;">
+              {{ selectedAssetMarketBalance }} {{ String(selectedMarketCurrency).toUpperCase() }}
+            </div>
           </div>
           <div class="q-space q-pr-lg">
             <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
             <img class="float-right q-mt-sm" :src="selectedAsset.logo || getFallbackAssetLogo(selectedAsset)" height="50">
           </div>
         </div>
-        <div class="row">
+        <div class="row q-mt-sm">
           <div class="col">
             <p class="q-ml-lg q-mb-sm payment-methods" :class="{'pt-dark-label': $q.dark.mode}">
               Assets
@@ -212,7 +215,24 @@ export default {
         }
       })
     },
+    selectedAssetMarketPrice() {
+      if (!this.selectedAsset || !this.selectedAsset.id) return
 
+      return this.$store.getters['market/assetPrices'].find(assetPrice => assetPrice.assetId === this.selectedAsset.id)
+    },
+    selectedMarketCurrency() {
+      return this.$store.getters['market/selectedCurrency']
+    },
+    selectedAssetMarketBalance () {
+      console.log(this.selectedAssetMarketPrice)
+      if (!this.selectedAsset) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      if (!this.selectedAssetMarketPrice.prices) return ''
+      if (!this.selectedAssetMarketPrice.prices[this.selectedMarketCurrency]) return ''
+      const computedBalance = Number(this.selectedAsset.balance || 0) * Number(this.selectedAssetMarketPrice.prices[this.selectedMarketCurrency])
+
+      return computedBalance.toFixed(2)
+    },
     earliestBlock () {
       if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
       return Math.min(

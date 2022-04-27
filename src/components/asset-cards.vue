@@ -16,17 +16,20 @@
         style="float: right; width: 20px; margin-top: -10px;">
         <q-btn icon="close" flat round dense v-close-popup />
       </div>
-      <div class="row items-start no-wrap justify-between">
+      <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
         <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
           {{ asset.symbol }}
         </p>
       </div>
-      <div class="row">
+      <div class="row" style="margin-top: -7px;">
         <q-space />
         <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
           {{ String(asset.balance).substring(0, 10) }}
         </p>
+      </div>
+      <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
+        {{ getAssetMarketBalance(asset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
       </div>
     </div>
     <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
@@ -55,9 +58,24 @@ export default {
   computed: {
     isSep20 () {
       return this.network === 'sBCH'
+    },
+    selectedMarketCurrency() {
+      return this.$store.getters['market/selectedCurrency']
+    },
+    marketAssetPrices() {
+      return this.$store.getters['market/assetPrices']
     }
   },
   methods: {
+    getAssetMarketBalance(asset) {
+      if (!asset || !asset.id) return ''
+
+      const assetPrice = this.marketAssetPrices.find(assetPrice => assetPrice.assetId === asset.id)
+      if (!assetPrice || !assetPrice.prices || !assetPrice.prices[this.selectedMarketCurrency]) return ''
+      const computedBalance = Number(asset.balance || 0) * Number(assetPrice.prices[this.selectedMarketCurrency])
+
+      return computedBalance.toFixed(2)
+    },
     getFallbackAssetLogo(asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
@@ -111,6 +129,7 @@ export default {
         }
         if (details.symbol.length > 0 && details.token_type === 1) {
           vm.$store.commit('assets/addNewAsset', asset)
+          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
         }
       })
     },
@@ -126,6 +145,7 @@ export default {
             logo: '',
             balance: 0,
           })
+          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
         }
       })
     },
