@@ -5,6 +5,7 @@ import createPersistedState from 'vuex-persistedstate'
 import global from './global'
 import market from './market'
 import assets from './assets'
+import lns from './lns'
 import sep20 from './sep20'
 
 Vue.use(Vuex)
@@ -25,6 +26,7 @@ export default function (/* { ssrContext } */) {
       global,
       assets,
       market,
+      lns,
       sep20
     },
 
