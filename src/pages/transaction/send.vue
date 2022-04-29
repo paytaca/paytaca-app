@@ -22,10 +22,34 @@
             OR
           </div>
           <div class="col-12 q-mt-lg" style="text-align: center;">
-            <q-input outlined bottom-slots v-model="manualAddress" label="Paste address here">
+            <q-input outlined bottom-slots v-model="manualAddress" :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'" @input="resolveLnsName">
               <template v-slot:append>
-                <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="checkAddress(manualAddress)" />
+                <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
               </template>
+              <q-menu v-model="lns.show" fit :no-parent-event="!isValidLNSName(manualAddress) && (!lns.name || lns.name !== manualAddress) && !lns.loading" no-focus>
+                <q-item v-if="lns.loading">
+                  <q-item-section class="items-center">
+                    <q-spinner color="black"/>
+                    <q-item-label caption>Resolving LNS name address</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
+                  <q-item-section>
+                    <q-item-label caption>{{ lns.name }}</q-item-label>
+                    <q-item-label style="word-break:break-all;" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">{{ lns.address }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-else :class="[$q.dark.mode ? 'pt-dark-label' : 'text-grey']">
+                  <q-item-section side>
+                    <q-icon name="error"/>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>
+                      Unable to resolve LNS name address
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-menu>
             </q-input>
           </div>
         </div>
@@ -62,7 +86,14 @@
         <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
           <div class="row">
             <div class="col q-mt-sm se">
-              <q-input outlined v-model="sendData.recipientAddress" label="Recipient" :disabled="disableRecipientInput" :readonly="disableRecipientInput"></q-input>
+              <q-input outlined v-model="sendData.recipientAddress" label-slot :disabled="disableRecipientInput" :readonly="disableRecipientInput">
+                <template v-slot:label>
+                  Recipient
+                  <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
+                    ({{ sendData.lnsName }})
+                  </template>
+                </template>
+              </q-input>
             </div>
           </div>
           <div class="row" v-if="!isNFT">
@@ -143,6 +174,8 @@
 </template>
 
 <script>
+import { debounce } from 'quasar'
+import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { decodeEIP681URI } from '../../wallet/sbch'
 import { QrcodeStream } from 'vue-qrcode-reader'
@@ -233,7 +266,15 @@ export default {
         amount: null,
         fixedAmount: false,
         recipientAddress: '',
+        lnsName: '',
+        _lnsAddress: '', // in case recipient address is edited in form will check if name still matches the address
         fixedRecipientAddress: false
+      },
+      lns: {
+        show: false,
+        loading: false,
+        name: '',
+        address: '',
       },
       sendErrors: [],
       online: true,
@@ -284,6 +325,12 @@ export default {
 
       return computedBalance.toFixed(2)
     },
+    canUseLNS() {
+      if (this.isSep20) return true // if smartchain
+      if (this.assetId === 'bch') return true // if not smartchain but BCH only (EIP2304 doesnt seem to support SLP addresses)
+
+      return false
+    },
     disableRecipientInput () {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     },
@@ -318,11 +365,42 @@ export default {
   },
 
   methods: {
+    isValidLNSName: isNameLike,
     readonlyState (state) {
       this.amountInputState = state
       if (this.amountInputState) {
         this.customKeyboardState = 'show'
       }
+    },
+    resolveLnsName: debounce(function(name) {
+      if (!name) return
+      if (!this.canUseLNS) return
+      if (!this.isValidLNSName(name)) return
+
+      this.lns.loading = true
+      this.lns.show = true
+      this.clearLnsName()
+      this.$store.dispatch('lns/resolveName', { name: name, coinType: this.isSep20 ? 60 : 145 })
+        .then(response => {
+          if (response && response.address) {
+            this.lns.name = name
+            this.lns.address = response.address
+            this.lns.show = true
+          }
+        })
+        .finally(() => {
+          this.lns.loading = false
+        })
+    }, 500),
+    useResolvedLnsName() {
+      if (!this.lns.address) return
+      this.sendData.lnsName = this.lns.name
+      this.sendData.recipientAddress = this.lns.address
+      this.sendData._lnsAddress = this.lns.address
+    },
+    clearLnsName() {
+      this.lns.name = ''
+      this.lns.address = ''
     },
     setAmount (key) {
       this.sendData.amount = this.sendData.amount === null ? '' : this.sendData.amount

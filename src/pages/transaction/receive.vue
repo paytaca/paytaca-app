@@ -47,6 +47,18 @@
             <div class="text-nowrap pp-text" @click="copyAddress">
               {{ address }}
             </div>
+            <div v-if="lnsName" class="text-center text-caption pp-text">
+              {{ lnsName }}
+              <q-btn
+                type="a"
+                size="sm"
+                flat
+                padding="none"
+                icon="open_in_new"
+                :href="`https://app.bch.domains/name/${lnsName}/details`"
+                target="_blank"
+              />
+            </div>
           </span>
         </div>
       </div>
@@ -81,6 +93,7 @@ export default {
       showOptions: false,
       legacy: false,
       wallet: null,
+      lnsName: '',
       generatingAddress: false
     }
   },
@@ -111,6 +124,19 @@ export default {
     }
   },
   methods: {
+    updateLnsName() {
+      if (!this.isSep20) return
+      if (!this.address) return
+
+      return this.$store.dispatch('lns/resolveAddress', { address: this.address })
+        .then(response => {
+          if (response && response.name) {
+            this.lnsName = response.name
+            return Promise.resolve(response)
+          }
+          return Promise.reject()
+        })
+    },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
@@ -287,6 +313,13 @@ export default {
     }
   },
 
+  watch: {
+    address() {
+      this.lnsName = ''
+      this.updateLnsName()
+    }
+  },
+
   beforeDestroy () {
     this.stopSbchListener()
   },
@@ -301,6 +334,7 @@ export default {
           vm.setupListener()
         })
     })
+    this.updateLnsName()
   },
 
   created () {
