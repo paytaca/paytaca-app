@@ -24,13 +24,29 @@
           <div class="col-12 q-mt-lg" style="text-align: center;">
             <q-input outlined bottom-slots v-model="manualAddress" :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'" @input="resolveLnsName">
               <template v-slot:append>
-                <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="checkAddress(manualAddress)" />
+                <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
               </template>
-              <q-menu v-model="lns.show" fit :no-parent-event="!Boolean(lns.address) || lns.name !== manualAddress" no-focus>
-                <q-item clickable @click="useResolvedLnsName()" class="text-black">
+              <q-menu v-model="lns.show" fit :no-parent-event="!isValidLNSName(manualAddress) && (!lns.name || lns.name !== manualAddress) && !lns.loading" no-focus>
+                <q-item v-if="lns.loading">
+                  <q-item-section class="items-center">
+                    <q-spinner color="black"/>
+                    <q-item-label caption>Resolving LNS name address</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
                   <q-item-section>
                     <q-item-label caption>{{ lns.name }}</q-item-label>
                     <q-item-label style="word-break:break-all;" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">{{ lns.address }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-else :class="[$q.dark.mode ? 'pt-dark-label' : 'text-grey']">
+                  <q-item-section side>
+                    <q-icon name="error"/>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>
+                      Unable to resolve LNS name address
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </q-menu>
@@ -159,6 +175,7 @@
 
 <script>
 import { debounce } from 'quasar'
+import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { decodeEIP681URI } from '../../wallet/sbch'
 import { QrcodeStream } from 'vue-qrcode-reader'
@@ -255,6 +272,7 @@ export default {
       },
       lns: {
         show: false,
+        loading: false,
         name: '',
         address: '',
       },
@@ -347,6 +365,7 @@ export default {
   },
 
   methods: {
+    isValidLNSName: isNameLike,
     readonlyState (state) {
       this.amountInputState = state
       if (this.amountInputState) {
@@ -356,7 +375,11 @@ export default {
     resolveLnsName: debounce(function(name) {
       if (!name) return
       if (!this.canUseLNS) return
+      if (!this.isValidLNSName(name)) return
 
+      this.lns.loading = true
+      this.lns.show = true
+      this.clearLnsName()
       this.$store.dispatch('lns/resolveName', { name: name, coinType: this.isSep20 ? 60 : 145 })
         .then(response => {
           if (response && response.address) {
@@ -364,6 +387,9 @@ export default {
             this.lns.address = response.address
             this.lns.show = true
           }
+        })
+        .finally(() => {
+          this.lns.loading = false
         })
     }, 500),
     useResolvedLnsName() {

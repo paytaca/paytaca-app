@@ -59,6 +59,10 @@ function base58Encode(data) {
   )
 }
 
+export function isNameLike(value) {
+  return /^\w+(\.\w+)+$/.test(String(value))
+}
+
 /**
  * 
  * @param {String} hexBytes 
