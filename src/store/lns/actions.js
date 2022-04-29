@@ -41,6 +41,6 @@ export async function resolveAddress(context, { address, ignoreCache=false}) {
   }
 
   const name = await _resolveAddress(address)
-  if (address) context.commit('setNodeAddress', { name, coinType: 60, address })
+  if (name) context.commit('setNodeAddress', { name, coinType: 60, address })
   return { _cache: false, name }
 }

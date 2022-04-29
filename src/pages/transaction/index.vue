@@ -662,13 +662,15 @@ export default {
       }
 
       const sBchDerivationPath = vm.getWallet('sbch').derivationPath
+      const lastAddress = vm.getWallet('sbch').lastAddress
       let subscribeSbchAddress = !vm.getWallet('sbch').subscribed
-      if (sBchDerivationPath.length !== 14) {
+      if (sBchDerivationPath.length !== 14 || lastAddress !== wallet.sBCH._wallet.address) {
         subscribeSbchAddress = true
         vm.$store.commit('global/updateWallet', {
           type: 'sbch',
           derivationPath: vm.wallet.sBCH.derivationPath,
-          walletHash: vm.wallet.sBCH.walletHash
+          walletHash: vm.wallet.sBCH.walletHash,
+          lastAddress: vm.wallet.sBCH._wallet ? wallet.sBCH._wallet.address: '',
         })
       }
 

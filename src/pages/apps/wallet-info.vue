@@ -70,6 +70,23 @@
                     <q-item-label :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
+                <q-item v-if="sbchLnsName" clickable v-ripple @click="copyToClipboard(sbchLnsName)">
+                  <q-item-section>
+                    <q-item-label caption>LNS Name</q-item-label>
+                    <q-item-label :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ sbchLnsName }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-btn
+                      type="a"
+                      flat
+                      padding="none"
+                      icon="open_in_new"
+                      :href="`https://app.bch.domains/name/${sbchLnsName}/details`"
+                      target="_blank"
+                      @click.stop
+                    />
+                  </q-item-section>
+                </q-item>
               </q-list>
             </div>
           </div>
@@ -130,10 +147,25 @@ export default {
     return {
       mnemonic: '',
       showMnemonic: false,
-      appVersion: version
+      appVersion: version,
+      sbchLnsName: '',
     }
   },
   methods: {
+    updateSbchLnsName() {
+      const { lastAddress: address } = this.getWallet('sbch')
+      if (!address) return
+
+      return this.$store.dispatch('lns/resolveAddress', { address: address })
+        .then(response => {
+          if (response && response.name) {
+            this.sbchLnsName = response.name
+            return Promise.resolve(response)
+          }
+          this.sbchLnsName = ''
+          return Promise.reject()
+        })
+    },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
@@ -149,8 +181,10 @@ export default {
     }
   },
   mounted () {
+    console.log(this.getWallet('sbch'))
     const divHeight = screen.availHeight - 120
     this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
+    this.updateSbchLnsName()
   },
   created () {
     const vm = this

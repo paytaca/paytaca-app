@@ -21,7 +21,8 @@ export default function () {
       sbch: {
         subscribed: false,
         walletHash: '',
-        derivationPath: ''
+        derivationPath: '',
+        lastAddress: ''
       }
     },
     user: {
