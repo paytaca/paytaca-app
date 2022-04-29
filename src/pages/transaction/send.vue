@@ -30,7 +30,7 @@
                 <q-item clickable @click="useResolvedLnsName()" class="text-black">
                   <q-item-section>
                     <q-item-label caption>{{ lns.name }}</q-item-label>
-                    <q-item-label style="word-break:break-all;">{{ lns.address }}</q-item-label>
+                    <q-item-label style="word-break:break-all;" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">{{ lns.address }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-menu>
