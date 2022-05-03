@@ -4,7 +4,7 @@
     :class="{'pt-dark': $q.dark.mode}"
   >
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-    <q-icon id="context-menu"size="35px" name="more_vert">
+    <q-icon id="context-menu" size="35px" name="more_vert">
       <q-menu>
         <q-list :class="{'pt-dark': $q.dark.mode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -19,12 +19,12 @@
     <q-tabs
       dense
       active-color="brandblue"
-      class="col-12 q-px-lg"
+      class="col-12 q-px-lg pp-fcolor"
       :value="selectedNetwork"
       @input="changeNetwork"
     >
-      <q-tab :class="[$q.dark.mode ? 'pt-dark-label' : '']" name="BCH" label="BCH"/>
-      <q-tab :class="[$q.dark.mode ? 'pt-dark-label' : '']" name="sBCH" label="SmartBCH"/>
+      <q-tab :class="{'pt-dark-label': $q.dark.mode}" name="BCH" label="BCH"/>
+      <q-tab :class="{'pt-dark-label': $q.dark.mode}" name="sBCH" label="SmartBCH"/>
     </q-tabs>
     <q-slide-transition>
       <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
@@ -95,7 +95,7 @@
                     style="color: #3B7BF6;"
                     @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
                   />
-                  <div class="text-subtitle1 pp-text">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
+                  <div class="text-subtitle1" :class="{'pt-dark-label': $q.dark.mode}">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
                 </template>
                 <div v-else class="text-grey" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
                   Select Collection

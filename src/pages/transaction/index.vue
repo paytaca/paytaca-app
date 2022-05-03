@@ -36,8 +36,15 @@
               </span>
               <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
             </p>
-            <div v-if="selectedAssetMarketBalance" class="text-caption pp-text" style="margin-top:-30px;">
-              {{ selectedAssetMarketBalance }} {{ String(selectedMarketCurrency).toUpperCase() }}
+            <div class="text-caption pp-text" style="margin-top:-30px;">
+              <template v-if="selectedAssetMarketBalance">
+                <span :class="{'pt-dark-label': $q.dark.mode}">
+                  {{ selectedAssetMarketBalance }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </span>
+              </template>
+              <template v-else>
+                <span style="color: transparent;">NA</span>
+              </template>
             </div>
           </div>
           <div class="q-space q-pr-lg">
