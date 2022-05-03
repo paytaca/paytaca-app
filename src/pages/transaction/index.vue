@@ -1,11 +1,11 @@
 <template>
-  <div style="background-color: #ECF3F3;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
 
     <startPage v-if="startPageStatus" v-on:logIn="logIn" />
 
     <div v-else>
 
-      <div class="fixed-container" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+      <div class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
         <div class="row q-pt-lg q-pb-xs">
 
           <!-- <p class="col-12 q-px-lg q-ma-none text-subtitle1" role="button" @click="promptChangeNetwork()">
@@ -23,8 +23,8 @@
             @input="changeNetwork"
             style="margin-top: -20px; padding-bottom: 16px;"
           >
-            <q-tab name="BCH" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" :label="networks.BCH.name"/>
-            <q-tab name="sBCH" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name"/>
+            <q-tab name="BCH" :class="{'pt-dark-label': darkMode}" :label="networks.BCH.name"/>
+            <q-tab name="sBCH" :class="{'pt-dark-label': darkMode}" :label="networks.sBCH.name"/>
           </q-tabs>
           <div class="col q-pl-lg">
             <p class="text-light p-label" style="color: #ABA9BB;">
@@ -38,7 +38,7 @@
             </p>
             <div class="text-caption pp-text" style="margin-top:-30px;">
               <template v-if="selectedAssetMarketBalance">
-                <span :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+                <span :class="{'pt-dark-label': darkMode}">
                   {{ selectedAssetMarketBalance }} {{ String(selectedMarketCurrency).toUpperCase() }}
                 </span>
               </template>
@@ -54,7 +54,7 @@
         </div>
         <div class="row q-mt-sm">
           <div class="col">
-            <p class="q-ml-lg q-mb-sm payment-methods" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+            <p class="q-ml-lg q-mb-sm payment-methods" :class="{'pt-dark-label': darkMode}">
               Assets
               <q-btn
                 flat
@@ -62,7 +62,7 @@
                 size="sm"
                 icon="app_registration"
                 style="color: #3B7BF6;"
-                :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"
+                :class="{'pt-dark-label': darkMode}"
                 @click="toggleManageAssets"
               />
             </p>
@@ -89,12 +89,12 @@
       </div>
       <div class="row transaction-row">
         <transaction ref="transaction"></transaction>
-        <div class="col transaction-container" :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}">
-            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Transactions</p>
-            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
-              <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
-              <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
-              <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
+        <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
+            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">Transactions</p>
+            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
+              <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-all')" id="btn-all"><b>All</b></button>
+              <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-sent')" id="btn-sent"><b>Sent</b></button>
+              <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-received')" id="btn-received"><b>Received</b></button>
             </div>
             <div class="transaction-list">
               <template v-if="balanceLoaded && transactionsLoaded">
@@ -106,18 +106,18 @@
                         </div> -->
                         <div class="col col-transaction">
                           <div>
-                            <p :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
-                            <p :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
+                            <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;"><b>{{ recordTypeMap[transaction.record_type] }}</b></p>
+                            <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm"><b>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</b></p>
                           </div>
                           <div class="col">
-                              <span class="float-left subtext" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" style="font-size: 12px;"><b>{{ transaction.date_created | formatDate }}</b></span>
+                              <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;"><b>{{ transaction.date_created | formatDate }}</b></span>
                               <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                           </div>
                         </div>
                       </div>
                     </div>
                 </div>
-                <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+                <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
                   <p @click="() => { transactionsPage += 1; getTransactions() }">Show More</p>
                 </div>
               </template>
@@ -198,7 +198,8 @@ export default {
       pinDialogAction: '',
       securityOptionDialogStatus: 'dismiss',
       startPageStatus: true,
-      prevPath: null
+      prevPath: null,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
 
@@ -325,7 +326,7 @@ export default {
       const txCheck = setInterval(function () {
         if (transaction) {
           transaction.asset = vm.selectedAsset
-          vm.$refs.transaction.show(transaction)
+          vm.$refs.transaction.show(transaction, vm.darkMode)
           vm.hideBalances = true
           clearInterval(txCheck)
         }
