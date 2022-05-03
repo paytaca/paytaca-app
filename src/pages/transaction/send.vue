@@ -1,5 +1,5 @@
 <template>
-  <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
     <header-nav
       :title="'SEND ' + asset.symbol"
       backnavpath="/send/select-asset"
@@ -18,11 +18,18 @@
           <div class="col-12 q-mt-lg">
             <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
           </div>
-          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000;" :class="{'pt-dark-label': darkMode}">
             OR
           </div>
           <div class="col-12 q-mt-lg" style="text-align: center;">
-            <q-input outlined bottom-slots v-model="manualAddress" :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'" @input="resolveLnsName">
+            <q-input
+              outlined
+              bottom-slots
+              :dark="darkMode"
+              v-model="manualAddress"
+              :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
+              @input="resolveLnsName"
+            >
               <template v-slot:append>
                 <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
               </template>
@@ -35,11 +42,11 @@
                 </q-item>
                 <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
                   <q-item-section>
-                    <q-item-label caption>{{ lns.name }}</q-item-label>
-                    <q-item-label style="word-break:break-all;" :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ lns.address }}</q-item-label>
+                    <q-item-label :class="darkMode ? '' : 'text-black'" caption>{{ lns.name }}</q-item-label>
+                    <q-item-label style="word-break:break-all;" :class="darkMode ? '' : 'text-black'">{{ lns.address }}</q-item-label>
                   </q-item-section>
                 </q-item>
-                <q-item v-else :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'text-grey']">
+                <q-item v-else :class="[darkMode ? 'pt-dark-label' : 'text-grey']">
                   <q-item-section side>
                     <q-icon name="error"/>
                   </q-item-section>
@@ -86,7 +93,7 @@
         <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
           <div class="row">
             <div class="col q-mt-sm se">
-              <q-input outlined v-model="sendData.recipientAddress" label-slot :disabled="disableRecipientInput" :readonly="disableRecipientInput">
+              <q-input outlined v-model="sendData.recipientAddress" label-slot :disabled="disableRecipientInput" :readonly="disableRecipientInput" :dark="darkMode">
                 <template v-slot:label>
                   Recipient
                   <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
@@ -98,7 +105,7 @@
           </div>
           <div class="row" v-if="!isNFT">
             <div class="col q-mt-md">
-              <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput"></q-input>
+              <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput" :dark="darkMode"></q-input>
               <div v-if="sendAmountMarketValue" class="text-body2 text-grey q-mt-sm q-px-sm">
                 ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
               </div>
@@ -290,7 +297,8 @@ export default {
       warningAttemptsStatus: 'dismiss',
       amountInputState: false,
       customKeyboardState: 'dismiss',
-      sliderStatus: false
+      sliderStatus: false,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
 
