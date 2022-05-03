@@ -51,7 +51,7 @@
                     <q-icon name="error"/>
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>
+                    <q-item-label caption>
                       Unable to resolve LNS name address
                     </q-item-label>
                   </q-item-section>
@@ -179,8 +179,8 @@
       <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
         <q-icon size="120px" name="check_circle" style="color: green;"></q-icon>
         <div style="margin-top: 20px;">
-          <p class="pp-text" style="font-size: 30px;">Successfully sent</p>
-          <p class="pp-text" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+          <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 30px;">Successfully sent</p>
+          <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
         </div>
       </div>
     </div>
@@ -391,7 +391,7 @@ export default {
         this.customKeyboardState = 'show'
       }
     },
-    resolveLnsName: debounce(function(name) {
+    resolveLnsName: debounce(function (name) {
       if (!name) return
       if (!this.canUseLNS) return
       if (!this.isValidLNSName(name)) return
@@ -411,13 +411,13 @@ export default {
           this.lns.loading = false
         })
     }, 500),
-    useResolvedLnsName() {
+    useResolvedLnsName () {
       if (!this.lns.address) return
       this.sendData.lnsName = this.lns.name
       this.sendData.recipientAddress = this.lns.address
       this.sendData._lnsAddress = this.lns.address
     },
-    clearLnsName() {
+    clearLnsName () {
       this.lns.name = ''
       this.lns.address = ''
     },
@@ -920,7 +920,7 @@ export default {
     border: 2px solid #3b7bf6;
   }
   .btn-scan {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
     color: white;
   }
   .qrcode-scanner {

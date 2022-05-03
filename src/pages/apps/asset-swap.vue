@@ -65,7 +65,7 @@ export default {
       let message = 'Transaction sent!'
       if (info && info.transferType === 'c2s') message += ' Waiting for transaction in Smart BCH'
       if (info && info.transferType === 's2c') message += ' Waiting for transaction in Bitcoin Cash'
-      const dialogStyleClass = this.darkMode ? 'pp-text pt-dark-card' : 'text-black'
+      const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
       this.$q.dialog({
         title: 'Swap update',
         message: message,
@@ -84,13 +84,13 @@ export default {
   },
   beforeRouteLeave (to, from, next) {
     if (!this.waiting) return next()
-
+    const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
     this.$q.dialog({
       title: 'Leaving page',
       message: 'Leaving the page may result in being unable to view progress. Leave page?',
       cancel: true,
       persistent: true,
-      class: 'pp-text'
+      class: dialogStyleClass
     }).onOk(() => {
       next()
     })

@@ -6,7 +6,7 @@
           height="50"
           src="bch-logo.png"
         />
-        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="pp-text">from</div>
+        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">from</div>
         <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
           <template v-else>Smart Bitcoin Cash</template>
@@ -32,9 +32,9 @@
       </div>
     </div>
 
-    <q-card class="q-mt-sm pp-text">
+    <q-card class="q-mt-sm pp-text" :class="{'pt-dark-card': darkMode}">
       <q-card-section>
-        <q-banner class="bg-grey-3 rounded-borders q-mb-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <q-banner class="bg-grey-3 rounded-borders q-mb-sm" :class="[darkMode ? 'text-black' : 'pp-text']">
           <template v-slot:avatar>
             <q-icon name="info" color="grey" />
           </template>
@@ -48,9 +48,9 @@
         </div>
         <div class="q-mt-sm">
           <div class="q-mb-sm">
-            <template :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-if="transferType === 'c2s'">BCH Transaction:</template>
-            <template :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-else-if="transferType === 's2c'">SmartBCH Transaction:</template>
-            <template :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-else>Source tx:</template>
+            <span :class="[darkMode ? 'text-white' : 'pp-text']" v-if="transferType === 'c2s'">BCH Transaction:</span>
+            <span :class="[darkMode ? 'text-white' : 'pp-text']" v-else-if="transferType === 's2c'">SmartBCH Transaction:</span>
+            <span :class="[darkMode ? 'text-white' : 'pp-text']" v-else>Source tx:</span>
             <q-btn
               flat
               icon="content_copy"
