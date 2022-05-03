@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" :persistent="persistent">
-    <q-card style="max-width:90vw;min-width:300px;" class="text-black">
+    <q-card style="max-width:90vw; min-width:300px;" :class="{'pt-dark-card': darkMode, 'text-white': darkMode, 'text-black': !darkMode }">
       <q-card-section class="row no-wrap items-center q-pb-xs">
         <div>
           <div class="text-subtitle1">Call Request</div>
@@ -184,8 +184,9 @@ export default {
         }
       }
     },
+    darkMode: Boolean
   },
-  data() {
+  data () {
     return {
       val: this.value,
       showDecoded: true,

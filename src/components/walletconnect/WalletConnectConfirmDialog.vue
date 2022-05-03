@@ -1,10 +1,10 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide">
-    <q-card class="q-dialog-plugin">
+    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': darkMode }">
       <q-card-section class="text-black">
         <div class="text-grey-8">Connect to this site?</div>
         <div class="row items-start justify-start no-wrap q-gutter-x-sm">
-          <div class="text-h6 q-space" :class="[$store.getters['darkmode/getStatus'] ? 'text-white' : 'text-black']">{{ parsedPeerMeta.name }}</div>
+          <div class="text-h6 q-space" :class="[darkMode ? 'text-white' : 'text-black']">{{ parsedPeerMeta.name }}</div>
           <img
             v-if="parsedPeerMeta.icon"
             width="50"
@@ -12,7 +12,7 @@
             :src="parsedPeerMeta.icon"
           />
         </div>
-        <div v-if="parsedPeerMeta.url" class="text-caption text-center" :class="[$store.getters['darkmode/getStatus'] ? 'text-white' : 'text-black']">
+        <div v-if="parsedPeerMeta.url" class="text-caption text-center" :class="[darkMode ? 'text-white' : 'text-black']">
           {{ parsedPeerMeta.url }}
         </div>
       </q-card-section>
@@ -41,10 +41,10 @@
 export default {
   // Custom Qdialog component
   name: 'WalletConnectConfirmDialog',
-
   props: {
     peerMeta: {},
     peerId: String,
+    darkMode: Boolean
   },
   computed: {
     parsedPeerMeta () {
@@ -52,7 +52,7 @@ export default {
         name: '',
         icon: '',
         description: '',
-        url: '',
+        url: ''
       }
 
       if (this.peerMeta && this.peerMeta) {

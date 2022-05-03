@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;">
+  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;" :class="{ 'pt-dark': darkMode }">
     <HeaderNav
       title="Wallet Connect"
       backnavpath="/apps"
@@ -29,7 +29,7 @@
               padding="xs md"
               label="Connect"
               type="submit"
-              text-color="black"
+              text-color="darkMode ? 'white' : 'black'"
               :disable="handshakeOnProgress"
             />
           </div>
@@ -42,6 +42,7 @@
             rounded
             padding="md"
             icon="camera_alt"
+            :color="darkMode ? 'white' : 'black'"
             @click="scanner.show = true"
             text-color="black"
             :disable="handshakeOnProgress"
@@ -63,7 +64,7 @@
         </template>
       </div>
       <div v-else>
-        <q-card>
+        <q-card :class="{'pt-dark-card': darkMode }">
           <q-card-section>
             <div class="row items-start">
               <div class="text-grey">
@@ -77,7 +78,7 @@
                 flat
                 label="Disconnect"
                 @click="disconnectConnector"
-                :text-color="$store.getters['darkmode/getStatus'] ? 'white' : 'black'"
+                :text-color="darkMode ? 'white' : 'black'"
               />
             </div>
             <div class="row items-center justify-start no-wrap q-gutter-x-sm">
@@ -87,17 +88,17 @@
                 height="auto"
                 :src="parsedPeerMeta.icon"
               />
-              <div class="text-h6" :class="[$store.getters['darkmode/getStatus'] ? 'text-white' : 'text-black' ]">{{ parsedPeerMeta.name }}</div>
+              <div class="text-h6" :class="[darkMode ? 'text-white' : 'text-black' ]">{{ parsedPeerMeta.name }}</div>
             </div>
             <div v-if="parsedPeerMeta.url" class="q-mt-sm text-body2">
               <a :href="parsedPeerMeta.url" target="_blank">{{ parsedPeerMeta.url }}</a>
             </div>
-            <div v-if="parsedPeerMeta.description" class="q-mt-sm" :class="[$store.getters['darkmode/getStatus'] ? 'text-white' : 'text-black' ]">
+            <div v-if="parsedPeerMeta.description" class="q-mt-sm" :class="[darkMode ? 'text-white' : 'text-black' ]">
               {{ parsedPeerMeta.description }}
             </div>
           </q-card-section>
           <q-card-section>
-            <div class="text-weight-medium" :class="[$store.getters['darkmode/getStatus'] ? 'text-white' : 'text-black' ]">Account</div>
+            <div class="text-weight-medium" :class="[darkMode ? 'text-white' : 'text-black' ]">Account</div>
             <q-list bordered separator style="border-radius: 14px; background: #fff" class="q-mt-sm">
               <template v-if="Array.isArray(connector.accounts)">
                 <q-item
@@ -174,6 +175,7 @@
       :persistent="callRequestDialog.processing"
       :loading="callRequestDialog.processing"
       :callRequest="callRequestDialog.callRequest"
+      :darkMode="darkMode"
       @accept="respondToCallRequestInDialog(true)"
       @reject="respondToCallRequestInDialog(false)"
     />
@@ -199,15 +201,14 @@ export default {
       default: '',
     }
   },
-  data() {
+  data () {
     return {
       handshakeFormData: {
-        walletConnectUri: '',
+        walletConnectUri: ''
       },
-
       scanner: {
         show: false,
-        frontCamera: false,
+        frontCamera: false
       },
       wallet: null,
       handshakeOnProgress: false,
@@ -233,12 +234,13 @@ export default {
       callRequestDialog: {
         processing: false,
         show: false,
-        callRequest: null,
-      }
+        callRequest: null
+      },
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   filters: {
-    ellipsisText(value) {
+    ellipsisText (value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value
       return value.substr(0, 13) + '...' + value.substr(value.length - 13, value.length)
@@ -246,8 +248,8 @@ export default {
     formatDate (date) {
       return ago(new Date(date))
     },
-    formatJSON(value) {
-      try{
+    formatJSON (value) {
+      try {
         return JSON.stringify(JSON.parse(value), undefined, 1)
       } catch {
         return value
@@ -333,6 +335,7 @@ export default {
 
           peerId: payload.params[0].peerId,
           peerMeta: payload.params[0].peerMeta,
+          darkMode: this.darkMode
         }).onOk(() => {
           this.disconnectConnector()
           this.connector = connector
@@ -398,7 +401,7 @@ export default {
         this.$q.dialog({
           title: 'Wallet Connect',
           message: 'Disconnected!',
-          class: 'text-black',
+          class: 'text-black'
         })
 
         this.disconnectConnector()
