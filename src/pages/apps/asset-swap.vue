@@ -10,8 +10,8 @@
     />
 
     <div class="q-px-md">
-      <HopCashSwapForm v-if="!waiting" @new-incoming="onNewIncoming" :darkMode="darkMode"/>
-      <HopCashSwapWait v-else v-bind="parsedWaitInfo">
+      <HopCashSwapForm v-if="!waiting" @new-incoming="onNewIncoming" :darkMode="darkMode" />
+      <HopCashSwapWait v-else v-bind="parsedWaitInfo" :darkMode="darkMode">
         <template v-slot:after="ctx">
           <q-btn
             v-if="ctx && ctx.outgoingTxFound"
@@ -65,11 +65,11 @@ export default {
       let message = 'Transaction sent!'
       if (info && info.transferType === 'c2s') message += ' Waiting for transaction in Smart BCH'
       if (info && info.transferType === 's2c') message += ' Waiting for transaction in Bitcoin Cash'
-
+      const dialogStyleClass = this.darkMode ? 'pp-text pt-dark-card' : 'text-black'
       this.$q.dialog({
         title: 'Swap update',
         message: message,
-        class: 'pp-text'
+        class: dialogStyleClass
       })
       this.waitInfo = info
     },

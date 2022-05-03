@@ -1,8 +1,8 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}">
+    <q-card class="q-dialog-plugin" :class="{'pt-dark-card-2': darkMode}">
 
-        <q-card-section class="pt-label" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text'">
+        <q-card-section class="pt-label" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
             <strong v-if="isSep20">Add SEP20 Token</strong>
             <strong v-else>Add SLP Token</strong>
         </q-card-section>
@@ -20,6 +20,7 @@
               type="text"
               lazy-rules
               v-model="asset"
+              :dark="darkMode"
               :rules="[
                 val => Boolean(val) || `Enter ${isSep20 ? 'SEP20 contract adress': 'SLP token id'} is required`,
               ]"
@@ -30,7 +31,7 @@
 
           <q-card-actions align="right">
               <q-btn rounded class="btn-add-payment text-white" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[$store.getters['darkmode/getStatus'] ? 'pt-bg-dark' : 'pp-text']" label="close" @click="onCancelClick" />
+              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" label="close" @click="onCancelClick" />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -42,8 +43,9 @@ export default {
   props: {
     network: {
       type: String,
-      default: 'BCH',
+      default: 'BCH'
     },
+    darkMode: Boolean
   },
 
   data () {

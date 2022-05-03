@@ -5,7 +5,7 @@
       v-for="(asset, index) in assets"
       :key="index"
       class="method-cards q-pa-md q-mr-none"
-      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow method-cards-dark': $store.getters['darkmode/getStatus']}]"
+      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow method-cards-dark': darkMode}]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
@@ -45,29 +45,30 @@ export default {
   props: {
     network: {
       type: String,
-      default: 'BCH',
+      default: 'BCH'
     },
     assets: { type: Array }
   },
   data () {
     return {
       assetClickCounter: 0,
-      assetClickTimer: null
+      assetClickTimer: null,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
     isSep20 () {
       return this.network === 'sBCH'
     },
-    selectedMarketCurrency() {
+    selectedMarketCurrency () {
       return this.$store.getters['market/selectedCurrency']
     },
-    marketAssetPrices() {
+    marketAssetPrices () {
       return this.$store.getters['market/assetPrices']
     }
   },
   methods: {
-    getAssetMarketBalance(asset) {
+    getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 
       const assetPrice = this.marketAssetPrices.find(assetPrice => assetPrice.assetId === asset.id)
@@ -76,7 +77,7 @@ export default {
 
       return computedBalance.toFixed(2)
     },
-    getFallbackAssetLogo(asset) {
+    getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
@@ -133,7 +134,7 @@ export default {
         }
       })
     },
-    addSep20Asset(contractAddress) {
+    addSep20Asset (contractAddress) {
       const vm = this
       this.$parent.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
         if (response.success && response.token) {
@@ -143,7 +144,7 @@ export default {
             symbol: response.token.symbol,
             name: response.token.name,
             logo: '',
-            balance: 0,
+            balance: 0
           })
           vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
         }
@@ -155,6 +156,7 @@ export default {
         // need both in passing props for now for backwards compatibility
         componentProps: { network: this.network },
         network: this.network,
+        darkMode: this.darkMode,
 
         component: AddNewAsset,
         parent: vm
