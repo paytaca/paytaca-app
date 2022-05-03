@@ -1,7 +1,7 @@
 <template>
   <q-dialog v-model="val" @hide="resetForm()">
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
-        <q-card-section class="pt-label" :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">
+    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': darkMode}">
+        <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <strong>Add SEP721 Token</strong>
         </q-card-section>
         <q-separator />
@@ -15,6 +15,7 @@
               lazy-rules
               v-model="formData.contractAddress"
               @input="autoFillFromAddress()"
+              :dark="darkMode"
               :rules="[
                 val => Boolean(val) || 'Required',
                 val => isValidAddress(val) || 'Input valid address',
@@ -28,6 +29,7 @@
               label="Name"
               lazy-rules
               v-model="formData.name"
+              :dark="darkMode"
               :rules="[
                 val => Boolean(val) || 'Required',
               ]"
@@ -39,6 +41,7 @@
               label="Symbol"
               lazy-rules
               v-model="formData.symbol"
+              :dark="darkMode"
               :rules="[true]"
             />
           </q-card-section>
@@ -46,7 +49,7 @@
           <q-separator />
           <q-card-actions align="right">
             <q-btn rounded class="btn-add-payment text-white" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[$store.getters['darkmode/getStatus'] ? 'pt-bg-dark' : 'pp-text']" label="close" v-close-popup />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" label="close" v-close-popup />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -63,8 +66,9 @@ export default {
   props: {
     value: {
       type: Boolean,
-      default: false,
-    }
+      default: false
+    },
+    darkMode: Boolean
   },
 
   data () {

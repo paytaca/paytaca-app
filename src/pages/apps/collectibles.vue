@@ -1,17 +1,17 @@
 <template>
   <div
     style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;"
-    :class="{'pt-dark': $store.getters['darkmode/getStatus']}"
+    :class="{'pt-dark': darkMode}"
   >
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert">
       <q-menu>
-        <q-list :class="{'pt-dark': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
+        <q-list :class="{'pt-dark': darkMode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
+            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">Refresh List</q-item-section>
+            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">Refresh List</q-item-section>
           </q-item>
         </q-list>
       </q-menu>
@@ -23,12 +23,12 @@
       :value="selectedNetwork"
       @input="changeNetwork"
     >
-      <q-tab :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" name="BCH" label="BCH"/>
-      <q-tab :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" name="sBCH" label="SmartBCH"/>
+      <q-tab :class="{'pt-dark-label': darkMode}" name="BCH" label="BCH"/>
+      <q-tab :class="{'pt-dark-label': darkMode}" name="sBCH" label="SmartBCH"/>
     </q-tabs>
     <q-slide-transition>
       <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
-        <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" style="margin-bottom: 5px;">click to copy</div>
+        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="margin-bottom: 5px;">click to copy</div>
         <qr-code
           :text="receivingAddress"
           style="width: 160px; margin-left: auto; margin-right: auto;"
@@ -51,7 +51,7 @@
         />
       </q-tab-panel>
       <q-tab-panel name="sBCH">
-        <AddERC721AssetFormDialog v-model="showAddERC721Form"/>
+        <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" />
         <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :asset="erc721AssetDetailDialog.asset"/>
         <div class="row items-start justify-end q-px-sm">
           <q-btn
@@ -95,9 +95,9 @@
                     style="color: #3B7BF6;"
                     @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
                   />
-                  <div class="text-subtitle1" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
+                  <div class="text-subtitle1" :class="{'pt-dark-label': darkMode}">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
                 </template>
-                <div v-else class="text-grey" :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">
+                <div v-else class="text-grey" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
                   Select Collection
                 </div>
               </div>
@@ -125,7 +125,7 @@
                 />
               </q-item-section>
               <q-item-section>
-                <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ asset.name }}</q-item-label>
+                <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ asset.name }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-btn
@@ -188,7 +188,8 @@ export default {
       },
       selectedERC721AssetIndex: -1,
       showAddress: false,
-      wallet: null
+      wallet: null,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
@@ -228,12 +229,13 @@ export default {
     confirmRemoveERC721Asset (asset) {
       const title = 'Remove asset'
       const message = 'Remove asset "' + asset.name + '". Are you sure?'
+      const dialogStyleClass = this.darkMode ? 'pp-text pt-dark-card' : 'text-black'
       this.$q.dialog({
         title: title,
         message: message,
         cancel: true,
         persistent: true,
-        class: 'pp-text'
+        class: dialogStyleClass
       }).onOk(() => {
         console.log('removing asset', asset)
         const commitName = 'sep20/removeNftAsset'
