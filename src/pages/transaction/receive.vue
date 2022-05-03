@@ -6,9 +6,9 @@
     ></header-nav>
     <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
       <q-menu anchor="bottom right" self="top end">
-        <q-list :class="{'pt-dark': $q.dark.mode}" style="min-width: 100px">
+        <q-list :class="{'pt-dark': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">Generate new address</q-item-section>
+            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">Generate new address</q-item-section>
           </q-item>
         </q-list>
       </q-menu>

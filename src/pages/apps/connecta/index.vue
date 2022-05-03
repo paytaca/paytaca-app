@@ -1,7 +1,7 @@
 <template>
   <div
     style="background-color: #ECF3F3; min-height: 100vh;"
-    :class="{'pt-dark': $q.dark.mode}"
+    :class="{'pt-dark': $store.getters['darkmode/getStatus']}"
   >
     <header-nav
       title="Connecta"

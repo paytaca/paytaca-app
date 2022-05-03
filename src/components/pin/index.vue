@@ -8,7 +8,7 @@
     transition-hide="slide-down"
     seamless
     >
-      <q-card v-if="loader" :class="{'pt-dark': $q.dark.mode}">
+      <q-card v-if="loader" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
           <q-card-section>
               <div class="row">
                   <div class="col-12 text-center q-mt-lg">
@@ -21,10 +21,10 @@
           </q-card-section>
       </q-card>
 
-      <q-card v-else class="pt-bg-card" :class="{'pt-dark': $q.dark.mode}">
+      <q-card v-else class="pt-bg-card" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
         <q-card-section class="q-mt-md q-pb-none">
             <div class="text-center">
-                <p class="text-h6 pt-set-pin" :class="{'pt-dark-label': $q.dark.mode}"><strong>{{ actionCaption }} PIN</strong></p>
+                <p class="text-h6 pt-set-pin" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"><strong>{{ actionCaption }} PIN</strong></p>
                 <p class="dim-text q-mt-md">{{ subTitle }}</p>
             </div>
         </q-card-section>
@@ -32,13 +32,13 @@
         <q-card-section class="q-pt-none">
           <div class="row justify-center">
               <div class="col-10 text-center">
-                  <p class="q-py-none q-my-none pt-set-pin" :class="{'pt-dark-label': $q.dark.mode}">{{ pinLabel }}</p>
+                  <p class="q-py-none q-my-none pt-set-pin" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ pinLabel }}</p>
               </div>
               <div class="col-10">
                   <div class="row justify-center">
                       <div class="col-2 pt-pin-key" v-for="(keys, index) in pinKeys" :key="index">
                         <p class="q-py-md text-h5 text-center q-my-none pt-text-key">
-                            <span v-if="keys.key !== ''" class="material-icons" :class="{'pt-radio-dark': $q.dark.mode}">
+                            <span v-if="keys.key !== ''" class="material-icons" :class="{'pt-radio-dark': $store.getters['darkmode/getStatus']}">
                               radio_button_checked
                             </span>
                             <span v-else class="material-icons">
@@ -64,12 +64,12 @@
                 :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4))"
                 @click="removeKey(key === 4 ? 'reset' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'cancel' : '')"
                 class="full-width pp-key pt-key-del pt-remove-key"
-                :class="{'pt-bg-dark': $q.dark.mode}"
+                :class="{'pt-bg-dark': $store.getters['darkmode/getStatus']}"
                 :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'highlight_off' : ''" />
               <q-btn
                 push
                 class="full-width pp-key pt-key-num"
-                :class="{'pt-bg-dark-2': $q.dark.mode}"
+                :class="{'pt-bg-dark-2': $store.getters['darkmode/getStatus']}"
                 :disable="(key === 13)"
                 v-else-if="(key !== 15)" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key"
                 @click="processKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key)" />

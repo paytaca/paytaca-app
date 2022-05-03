@@ -41,7 +41,7 @@
       </div>
     </template>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
-      <p style="font-size: 20px; color: gray; text-align: center;" class="q-py-md" :class="{'pt-dark-label': $q.dark.mode}">
+      <p style="font-size: 20px; color: gray; text-align: center;" class="q-py-md" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
         You don't own any collectibles yet.
       </p>
     </template>

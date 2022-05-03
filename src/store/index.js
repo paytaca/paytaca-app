@@ -3,6 +3,7 @@ import Vuex from 'vuex'
 import createPersistedState from 'vuex-persistedstate'
 
 import global from './global'
+import darkmode from './darkmode'
 import market from './market'
 import assets from './assets'
 import lns from './lns'
@@ -24,6 +25,7 @@ export default function (/* { ssrContext } */) {
     plugins: [createPersistedState()],
     modules: {
       global,
+      darkmode,
       assets,
       market,
       lns,

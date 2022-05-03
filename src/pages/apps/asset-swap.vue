@@ -1,7 +1,7 @@
 <template>
   <div
     style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': $q.dark.mode}"
+    :class="{'pt-dark': $store.getters['darkmode/getStatus']}"
   >
     <HeaderNav
       title="Asset Swap"

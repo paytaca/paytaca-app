@@ -1,7 +1,7 @@
 <template>
   <q-dialog v-model="val" @hide="resetForm()">
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': $q.dark.mode}">
-        <q-card-section class="pt-label" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">
+    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+        <q-card-section class="pt-label" :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">
             <strong>Add SEP721 Token</strong>
         </q-card-section>
         <q-separator />
@@ -46,7 +46,7 @@
           <q-separator />
           <q-card-actions align="right">
             <q-btn rounded class="btn-add-payment text-white" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[$q.dark.mode ? 'pt-bg-dark' : 'pp-text']" label="close" v-close-popup />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[$store.getters['darkmode/getStatus'] ? 'pt-bg-dark' : 'pp-text']" label="close" v-close-popup />
           </q-card-actions>
         </q-form>
     </q-card>

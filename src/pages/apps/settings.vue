@@ -1,29 +1,29 @@
 <template>
-  <div class="pt-settings" :class="{'pt-dark': $q.dark.mode}">
+  <div class="pt-settings" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
       <header-nav title="Settings" backnavpath="/apps" />
       <div class="row" style="padding-top: 60px;">
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': $q.dark.mode}">SECURITY</p>
-              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': $q.dark.mode}">
+              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">SECURITY</p>
+              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
                 <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus = 'show in settings'">
                     <q-item-section>
                         <q-item-label class="pt-setting-menu">Security Authentication Setup</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="security" :class="$q.dark.mode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
+                        <q-icon name="security" :class="$store.getters['darkmode/getStatus'] ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $q.dark.mode}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="pin" :class="$q.dark.mode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
+                        <q-icon name="pin" :class="$store.getters['darkmode/getStatus'] ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $q.dark.mode}">Darkmode</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Darkmode</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
                       <q-toggle
@@ -35,11 +35,11 @@
           </div>
 
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': $q.dark.mode}">WALLET</p>
-              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': $q.dark.mode}">
+              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">WALLET</p>
+              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
                 <q-item>
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $q.dark.mode}">Currency</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Currency</q-item-label>
                     </q-item-section>
                     <q-item-section side>
                       <q-select
@@ -58,7 +58,7 @@
                             v-on="scope.itemEvents"
                           >
                             <q-item-section>
-                              <q-item-label :class="{ 'text-black': !$q.dark.mode && !scope.selected }">
+                              <q-item-label :class="{ 'text-black': !$store.getters['darkmode/getStatus'] && !scope.selected }">
                                 {{ String(scope.opt).toUpperCase() }}
                               </q-item-label>
                             </q-item-section>
@@ -93,16 +93,17 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
       pinStatus: true,
-      darkMode: this.$q.dark.mode,
-      filteredCurrencyOptions: [],
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      filteredCurrencyOptions: []
     }
   },
   components: { HeaderNav, pinDialog, securityOptionDialog },
   watch: {
     darkMode (newVal, oldVal) {
-      this.$q.dark.set(newVal)
+      // this.$q.dark.set(newVal)
+      this.$store.commit('darkmode/setDarkmodeSatus', newVal)
     },
-    selectedCurrency() {
+    selectedCurrency () {
       this.$store.dispatch('market/updateAssetPrices', {})
     }
   },
@@ -111,21 +112,21 @@ export default {
       return this.$store.getters['market/currencyOptions']
     },
     selectedCurrency: {
-      get() {
+      get () {
         return this.$store.getters['market/selectedCurrency']
       },
-      set(value) {
+      set (value) {
         this.$store.commit('market/updateSelectedCurrency', value)
       }
-    },
+    }
   },
   methods: {
     filterCurrencyOptionSelection (val, update) {
       if (!val) {
-        this.filteredCurrencyOptions =  this.currencyOptions
+        this.filteredCurrencyOptions = this.currencyOptions
       } else {
         const needle = String(val).toLowerCase()
-        this.filteredCurrencyOptions =  this.currencyOptions
+        this.filteredCurrencyOptions = this.currencyOptions
           .filter(currency => String(currency).toLowerCase().indexOf(needle) >= 0)
       }
 

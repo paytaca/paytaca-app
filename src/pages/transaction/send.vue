@@ -1,5 +1,5 @@
 <template>
-  <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $q.dark.mode}">
+  <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
     <header-nav
       :title="'SEND ' + asset.symbol"
       backnavpath="/send/select-asset"
@@ -18,7 +18,7 @@
           <div class="col-12 q-mt-lg">
             <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
           </div>
-          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000;" :class="{'pt-dark-label': $q.dark.mode}">
+          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
             OR
           </div>
           <div class="col-12 q-mt-lg" style="text-align: center;">
@@ -36,10 +36,10 @@
                 <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
                   <q-item-section>
                     <q-item-label caption>{{ lns.name }}</q-item-label>
-                    <q-item-label style="word-break:break-all;" :class="[$q.dark.mode ? 'pt-dark-label' : 'pp-text']">{{ lns.address }}</q-item-label>
+                    <q-item-label style="word-break:break-all;" :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ lns.address }}</q-item-label>
                   </q-item-section>
                 </q-item>
-                <q-item v-else :class="[$q.dark.mode ? 'pt-dark-label' : 'text-grey']">
+                <q-item v-else :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'text-grey']">
                   <q-item-section side>
                     <q-icon name="error"/>
                   </q-item-section>

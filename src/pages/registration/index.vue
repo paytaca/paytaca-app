@@ -9,25 +9,25 @@
     <div>
       <form @submit="submitForm" v-if="show" v-cloak>
         <div class="row">
-          <div class="pt-get-started q-pa-lg" :class="{'pt-dark': $q.dark.mode}">
-            <h5 class="q-ma-none get-started-text" :class="{'pt-dark-label': $q.dark.mode}">Get Started</h5>
+          <div class="pt-get-started q-pa-lg" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+            <h5 class="q-ma-none get-started-text" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Get Started</h5>
             <p class="dim-text">We'll just need a few basic details</p>
 
             <div class="row">
               <div class="col q-mt-sm">
-                <label class="get-started-text" :class="{'pt-dark-label': $q.dark.mode}">Name</label>
+                <label class="get-started-text" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Name</label>
                 <input type="text" class="pt-form-input q-mt-xs pt-input">
               </div>
             </div>
             <div class="row">
               <div class="col q-mt-md">
-                <label class="get-started-text" :class="{'pt-dark-label': $q.dark.mode}">Email</label>
+                <label class="get-started-text" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Email</label>
                 <input type="text" class="pt-form-input q-mt-xs pt-input" placeholder="Optional">
               </div>
             </div>
             <div class="row">
               <div class="col q-mt-md">
-                <label class="get-started-text" :class="{'pt-dark-label': $q.dark.mode}">Mobile Number</label>
+                <label class="get-started-text" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Mobile Number</label>
                 <input type="text" class="pt-form-input q-mt-xs pt-input" placeholder="Optional">
               </div>
             </div>
