@@ -23,7 +23,7 @@
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Darkmode</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Dark Mode</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
                       <q-toggle
@@ -47,6 +47,7 @@
                         fill-input
                         hide-selected
                         borderless
+                        :dark="darkMode"
                         :option-label="opt => String(opt).toUpperCase()"
                         v-model="selectedCurrency"
                         :options="filteredCurrencyOptions"

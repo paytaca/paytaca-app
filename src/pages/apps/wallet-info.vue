@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
     <div>
       <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
       <div style="margin-top: 60px;">
@@ -7,23 +7,23 @@
           <div class="row">
             <div class="col">
               <p class="section-title">BCH Addresses</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple>
                   <q-item-section>
-                    <q-item-label caption>Derivation Path</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ getWallet('bch').derivationPath }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Derivation Path</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('bch').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
                   <q-item-section>
-                    <q-item-label caption>xPub Key</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>xPub Key</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
                   <q-item-section>
-                    <q-item-label caption>Wallet Hash</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Wallet Hash</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -32,23 +32,23 @@
           <div class="row" style="margin-top: 20px;">
             <div class="col">
               <p class="section-title">SLP Addresses</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple>
                   <q-item-section>
-                    <q-item-label caption>Derivation Path</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ getWallet('slp').derivationPath }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Derivation Path</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('slp').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
                   <q-item-section>
-                    <q-item-label caption>xPub Key</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>xPub Key</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
                   <q-item-section>
-                    <q-item-label caption>Wallet Hash</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Wallet Hash</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -57,23 +57,23 @@
           <div class="row" style="margin-top: 20px;">
             <div class="col">
               <p class="section-title">SmartBCH Addresses</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple>
                   <q-item-section>
-                    <q-item-label caption>Derivation Path</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ getWallet('sbch').derivationPath }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Derivation Path</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('sbch').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('sbch').walletHash)">
                   <q-item-section>
-                    <q-item-label caption>Wallet Hash</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Wallet Hash</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item v-if="sbchLnsName" clickable v-ripple @click="copyToClipboard(sbchLnsName)">
                   <q-item-section>
-                    <q-item-label caption>LNS Name</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ sbchLnsName }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>LNS Name</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ sbchLnsName }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <q-btn
@@ -93,10 +93,10 @@
           <div class="row" style="margin-top: 20px;">
             <div class="col">
               <p class="section-title">Mnemonic Backup Phrase</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable @click="toggleMnemonicDisplay()">
                   <q-item-section>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] && !showMnemonic ? 'blurry-text-d' : $store.getters['darkmode/getStatus'] ? 'pp-text-d' : '', !$store.getters['darkmode/getStatus'] && !showMnemonic ? 'blurry-text' : !$store.getters['darkmode/getStatus'] ? 'pp-text' : '']">{{ mnemonic }}</q-item-label>
+                    <q-item-label :class="[darkMode && !showMnemonic ? 'blurry-text-d' : darkMode ? 'pp-text-d' : '', !darkMode && !showMnemonic ? 'blurry-text' : !darkMode ? 'pp-text' : '']">{{ mnemonic }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -108,16 +108,16 @@
           <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
             <div class="col">
             <p class="section-title">About the App</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item>
                   <q-item-section>
-                    <q-item-label caption>Version</q-item-label>
-                    <q-item-label :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">v{{ appVersion }}</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Version</q-item-label>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">v{{ appVersion }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item>
                   <q-item-section>
-                    <q-item-label caption>Open source code</q-item-label>
+                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Open source code</q-item-label>
                     <q-item-label>
                       <a href="https://github.com/paytaca/paytaca-app" target="_blank" style="text-decoration: none;">
                         https://github.com/paytaca/paytaca-app
@@ -149,10 +149,11 @@ export default {
       showMnemonic: false,
       appVersion: version,
       sbchLnsName: '',
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
-    updateSbchLnsName() {
+    updateSbchLnsName () {
       const { lastAddress: address } = this.getWallet('sbch')
       if (!address) return
 
@@ -201,6 +202,9 @@ export default {
     overflow-y: auto;
     z-index: 1 !important;
     min-height: 100vh;
+  }
+  .text-gray {
+    color: gray;
   }
   .section-title {
     font-size: 18px;

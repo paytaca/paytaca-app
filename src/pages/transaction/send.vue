@@ -105,7 +105,18 @@
           </div>
           <div class="row" v-if="!isNFT">
             <div class="col q-mt-md">
-              <q-input type="text" inputmode="tel" ref="amount" @focus="readonlyState(true)" @blur="readonlyState(false)" outlined v-model="sendData.amount" label="Amount" :disabled="disableAmountInput" :readonly="disableAmountInput" :dark="darkMode"></q-input>
+              <q-input
+                type="text"
+                inputmode="tel"
+                ref="amount"
+                @focus="readonlyState(true)"
+                @blur="readonlyState(false)"
+                outlined v-model="sendData.amount"
+                label="Amount"
+                :disabled="disableAmountInput"
+                :readonly="disableAmountInput"
+                :dark="darkMode"
+              ></q-input>
               <div v-if="sendAmountMarketValue" class="text-body2 text-grey q-mt-sm q-px-sm">
                 ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
               </div>

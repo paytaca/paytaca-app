@@ -5,7 +5,7 @@
       class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
     >
       <ul class="q-my-sm q-pl-lg">
-        <li :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" v-for="(error, index) in errors" :key="index">
+        <li :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-for="(error, index) in errors" :key="index">
           {{ error }}
         </li>
       </ul>
@@ -16,8 +16,8 @@
           height="40"
           src="bch-logo.png"
         />
-        <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">from</div>
-        <div class="text-subtitle1 text-center" :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">
+        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">from</div>
+        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
           <template v-else>Smart Bitcoin Cash</template>
         </div>
@@ -29,14 +29,14 @@
         padding="sm"
         icon="arrow_forward"
         :disable="lockInputs"
-        :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']"
+        :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
         @click="transferType = transferType === 'c2s' ? 's2c': 'c2s'"
       />
 
       <div class="col-5 column items-center">
         <img height="40" src="bch-logo.png"/>
-        <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">to</div>
-        <div class="text-subtitle1 text-center" :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">
+        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">to</div>
+        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
           <template v-else>Bitcoin Cash</template>
         </div>
@@ -44,27 +44,27 @@
     </div>
 
     <q-form ref="form" @submit="onSwapSubmit()">
-      <q-card class="q-mt-sm" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+      <q-card class="q-mt-sm" :class="{'pt-dark-card': darkMode}">
         <q-card-section>
-          <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Bridge balance:</span>
             <q-btn
               padding="xs sm"
               flat
               :disable="lockInputs"
               :label="maxBridgeBalance + ' BCH'"
-              :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']"
+              :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
               @click="amount = maxBridgeBalance"
             />
           </div>
           <div>
-            <span :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">Wallet balance:</span>
+            <span :class="[darkMode ? 'pt-dark-label' : 'pp-text']">Wallet balance:</span>
             <q-btn
               padding="xs sm"
               flat
               :disable="lockInputs"
               :label="sourceTransferBalance + ' BCH'"
-              :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']"
+              :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
               @click="amount = sourceTransferBalance"
             />
           </div>
@@ -72,8 +72,8 @@
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               <img height="40" src="bch-logo.png"/>
               <div class="q-ml-sm">
-                <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You send:</div>
-                <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">BCH</div>
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You send:</div>
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
               </div>
             </div>
             <CustomKeyboardInput
@@ -81,6 +81,7 @@
               :fieldProps="{
                 dense: true,
                 outlined: true,
+                dark: darkMode,
                 disable: lockInputs || maxBridgeBalance === 0,
                 rules: [
                   val => Number(val) >= 0.01 || 'Must be atleast 0.01',
@@ -108,8 +109,8 @@
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               <img height="40" src="bch-logo.png"/>
               <div class="q-ml-sm">
-                <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You receive:</div>
-                <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">BCH</div>
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You receive:</div>
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
               </div>
             </div>
             <CustomKeyboardInput
@@ -117,6 +118,7 @@
               :fieldProps="{
                 dense: true,
                 outlined: true,
+                dark: darkMode,
                 disable: maxBridgeBalance === 0,
                 bottomSlots: true,
               }"
@@ -134,7 +136,7 @@
           </div>
 
           <div class="row no-wrap items-start" style="margin-top: -10px;">
-            <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               Address
             </div>
             <q-input
@@ -158,6 +160,7 @@
               dense
               outlined
               readonly
+              :dark="darkMode"
               :value="defaultRecipientAddress"
               class="q-space q-my-sm"
               bottom-slots
@@ -178,18 +181,18 @@
             <q-toggle
               dense
               v-model="manualAddress"
-              :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']"
+              :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
               label="Send to another address"
             />
           </div>
 
           <q-separator spaced/>
           <div v-if="!loading" class="q-pa-sm rounded-borders">
-            <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
               <span>BCH to send:</span>
               <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
             </div>
-            <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
               <span>
                 Estimated fees:
                 <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/>
@@ -200,17 +203,17 @@
             </div>
             <q-slide-transition>
               <div v-if="showSplitFees">
-                <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
                   <span>Paytaca:</span>
                   <span class="text-nowrap q-ml-xs">~{{ fees.paytaca | formatAmount }} BCH</span>
                 </div>
-                <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
                   <span>Hopcash:</span>
                   <span class="text-nowrap q-ml-xs">~{{ fees.hopcash | formatAmount }} BCH</span>
                 </div>
               </div>
             </q-slide-transition>
-            <div :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
               <span>BCH to receive:</span>
               <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
             </div>
@@ -295,17 +298,18 @@ const paytacaFee = {
 export default {
   name: 'HopCashSwapForm',
   components: { CustomKeyboardInput, QrScanner, DragSlide, Pin, BiometricWarningAttempt, Loader },
-
+  props: {
+    darkMode: Boolean
+  },
   filters: {
-    formatAmount(value) {
+    formatAmount (value) {
       const parsedNum = Number(value)
       if (isNaN(parsedNum)) return ''
-      
       return Number(parsedNum.toFixed(6))
     }
   },
 
-  data() {
+  data () {
     return {
       wallet: null,
 
@@ -317,7 +321,7 @@ export default {
 
       bridgeBalances: {
         bch: 0,
-        sbch: 0,
+        sbch: 0
       },
 
       showSplitFees: false,
