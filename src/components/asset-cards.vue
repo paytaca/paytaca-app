@@ -211,7 +211,8 @@ export default {
     box-shadow: 2px 2px 2px 2px #f2f2fc;
   }
   .method-cards-dark {
+    background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
     /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
-    background: #717D7E;
+    /* background: #717D7E; */
   }
 </style>
