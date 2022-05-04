@@ -21,6 +21,14 @@
             <template v-else>
               {{ transaction.amount }} {{ transaction.asset.symbol }}
             </template>
+            <div v-if="transactionAmountMarketValue" class="text-caption">
+              <template v-if="transaction.record_type === 'outgoing'">
+                {{ transactionAmountMarketValue * -1 }} {{ String(selectedMarketCurrency).toUpperCase() }}
+              </template>
+              <template v-else>
+                {{ transactionAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+              </template>
+            </div>
           </div>
         </q-card-section>
         <q-card-section>
@@ -72,10 +80,18 @@
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>Gas fee</q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.gas }} BCH</q-item-label>
+                <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
+                  {{ txFeeMarketValue }}
+                  {{ String(selectedMarketCurrency).toUpperCase() }}
+                </q-item-label>
               </q-item-section>
               <q-item-section v-else>
                 <q-item-label class="text-gray" caption>Miner fee</q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.tx_fee / (10**8) }} BCH</q-item-label>
+                <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
+                  {{ txFeeMarketValue }}
+                  {{ String(selectedMarketCurrency).toUpperCase() }}
+                </q-item-label>
               </q-item-section>
             </q-item>
             <q-item clickable>
@@ -130,6 +146,24 @@ export default {
       if (!this.transaction || !this.transaction.asset) return ''
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(this.transaction.asset.id))
+    },
+    selectedMarketCurrency () {
+      return this.$store.getters['market/selectedCurrency']
+    },
+    marketAssetPrice () {
+      return this.$store.getters['market/assetPrices'].find(assetPrice => assetPrice.assetId === this.transaction.asset.id)
+    },
+    transactionAmountMarketValue() {
+      if (!this.transaction) return ''
+      if (!this.marketAssetPrice || !this.marketAssetPrice.prices || !this.marketAssetPrice.prices[this.selectedMarketCurrency]) return ''
+      return (Number(this.transaction.amount) * Number(this.marketAssetPrice.prices[this.selectedMarketCurrency])).toFixed(5)
+    },
+    txFeeMarketValue () {
+      const bchMarketValue = this.$store.getters['market/assetPrices'].find(assetPrice => assetPrice.assetId === 'bch')
+      if (!bchMarketValue || !bchMarketValue.prices || !bchMarketValue.prices[this.selectedMarketCurrency])  return ''
+      const gas = this.transaction && ( this.isSep20Tx ? this.transaction.gas : this.transaction.tx_fee / (10**8) )
+      if (!gas) return ''
+      return (Number(gas) * Number(bchMarketValue.prices[this.selectedMarketCurrency])).toFixed(8)
     }
   },
   filters: {
