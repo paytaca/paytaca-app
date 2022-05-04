@@ -43,11 +43,7 @@ export default {
         })
       })
     }
-  },
-  unmounted() {
-    if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
-  },
-  mounted () {
+
     this.$store.dispatch('market/updateCoinsList', { force: false })
       .finally(() => {
         this.$store.dispatch('market/updateAssetPrices', {})
@@ -59,6 +55,9 @@ export default {
     this.$store.dispatch('market/updateSupportedCurrencies', {})
     this.$store.dispatch('assets/updateTokenIcons', { all: false })
     this.$store.dispatch('sep20/updateTokenIcons', { all: false })
+  },
+  unmounted() {
+    if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
   },
   created () {
     const vm = this
