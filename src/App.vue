@@ -57,6 +57,8 @@ export default {
       })
 
     this.$store.dispatch('market/updateSupportedCurrencies', {})
+    this.$store.dispatch('assets/updateTokenIcons', { all: false })
+    this.$store.dispatch('sep20/updateTokenIcons', { all: false })
   },
   created () {
     const vm = this

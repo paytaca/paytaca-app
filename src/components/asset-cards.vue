@@ -131,6 +131,7 @@ export default {
         if (details.symbol.length > 0 && details.token_type === 1) {
           vm.$store.commit('assets/addNewAsset', asset)
           vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
+          vm.$store.dispatch('assets/updateTokenIcon', { assetId: asset.id })
         }
       })
     },
@@ -139,14 +140,16 @@ export default {
       this.$parent.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
         if (response.success && response.token) {
           const commitName = 'sep20/addNewAsset'
-          vm.$store.commit(commitName, {
+          const asset = {
             id: `sep20/${response.token.address}`,
             symbol: response.token.symbol,
             name: response.token.name,
             logo: '',
             balance: 0
-          })
+          }
+          vm.$store.commit(commitName, asset)
           vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
+          vm.$store.dispatch('sep20/updateTokenIcon', { assetId: asset.id })
         }
       })
     },
