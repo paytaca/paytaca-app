@@ -34,3 +34,20 @@ export function removeNftAsset (state, nftContractAddress) {
       return nftAsset && nftAsset.address !== nftContractAddress
     })
 }
+
+/**
+ * 
+ * @param {Object} state 
+ * @param {{ assetId: String, imageUrl: String }} data
+ */
+ export function updateAssetImageUrl(state, data) {
+  if (!Array.isArray(state.assets)) return
+
+  for (var i = 0; i < state.assets.length; i++) {
+    if (!state.assets[i]) continue
+    if (state.assets[i].id === data.assetId) {
+      state.assets[i].logo = data.imageUrl
+      break
+    }
+  }
+}
