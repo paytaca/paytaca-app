@@ -616,6 +616,7 @@ class WatchtowerSBCH {
         hash: tx.txid,
         block: BigNumber.from(tx.block_number).toNumber(),
 
+        gas: tx.tx_fee,
         amount: tx.amount,
         from: tx.from_addr,
         to: tx.to_addr,
