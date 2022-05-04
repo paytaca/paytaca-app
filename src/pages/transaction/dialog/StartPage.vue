@@ -1,13 +1,13 @@
 <template>
-  <div class="pt-start-page">
+  <div class="pt-start-page" :class="{'pt-dark': darkMode}">
       <div class="row q-pb-sm pt-brand-container">
-          <div class="col-12 q-pt-md q-pb-sm pt-brand-body bg-white">
+          <div class="col-12 q-pt-md q-pb-sm pt-brand-body" :class="darkMode ? 'pt-dark' : 'bg-white'">
               <img src="~/assets/paytaca_logo.png" height="120">
               <br>
-              <p class="pt-brand-name text-h4">Paytaca</p>
-              <p style="color: gray;">YOUR MONEY. YOUR CONTROL.</p>
+              <p class="text-h4" :class="darkMode ? 'text-white' : 'text-black'">Paytaca</p>
+              <p :class="darkMode ? 'text-white' : 'text-black'">YOUR MONEY. YOUR CONTROL.</p>
               <br>
-              <q-btn label="Log In" class="pp-text" @click="logIn" />
+              <q-btn label="Log In" :class="darkMode ? 'text-white' : 'text-black'" @click="logIn" />
           </div>
       </div>
   </div>
@@ -16,7 +16,9 @@
 <script>
 export default {
   data () {
-    return {}
+    return {
+      darkMode: this.$store.getters['darkmode/getStatus']
+    }
   },
   methods: {
     logIn () {
@@ -46,9 +48,6 @@ export default {
   padding-bottom: 30px;
   text-align: center;
   font-family: Arial, Helvetica, sans-serif;
-}
-.pt-brand-name {
-  color: 000;
 }
 .pp-text {
   color: #000 !important;
