@@ -22,9 +22,15 @@ export function updateCoinsList(context, { force = true }) {
 export async function updateSupportedCurrencies(context, { force = true }) {
   if (Array.isArray(context.state.currencyOptions) && context.state.currencyOptions.length >= 1 && !force) return
 
-  const { data:currencies } = await axios.get('https://api.coingecko.com/api/v3/simple/supported_vs_currencies')
-  // console.log(currencies)
+  const { data } = await axios.get('https://api.yadio.io/currencies')
+  const currencies = Object.getOwnPropertyNames(data)
+    .map(symbol => {
+      if (typeof data[symbol] !== 'string') return
+      return { symbol, name: data[symbol] }
+    })
+    .filter(Boolean)
   context.commit('updateCurrencyOptions', currencies)
+  return Promise.resolve(currencies)
 }
 
 /**
@@ -74,7 +80,6 @@ export function getAllAssetList(context) {
 
 export async function updateAssetPrices(context, { clearExisting = false }) {
   const assetList = await context.dispatch('getAllAssetList')
-  console.log(assetList)
   const coinIds = [] 
   coinIds.push(
     ...assetList.mainchain
@@ -92,7 +97,7 @@ export async function updateAssetPrices(context, { clearExisting = false }) {
     {
       params: {
         ids: coinIds.join(','),
-        vs_currencies: context.state.selectedCurrency,
+        vs_currencies: 'usd',
       }
     }
   )
@@ -110,6 +115,9 @@ export async function updateAssetPrices(context, { clearExisting = false }) {
 
   if (clearExisting) context.commit('clearAssetPrices')
   context.commit('updateAssetPrices', newAssetPrices)
+  let selectedCurrency = null
+  if (context.state.selectedCurrency && context.state.selectedCurrency.symbol) selectedCurrency = context.state.selectedCurrency.symbol
+  context.dispatch('updateUsdRates', { currency: selectedCurrency })
 }
 
 
@@ -130,7 +138,7 @@ export async function updateMainchainAssetPrices(context, { commit=true }) {
     {
       params: {
         ids: coinIds.join(','),
-        vs_currencies: context.state.selectedCurrency,
+        vs_currencies: 'usd',
       }
     }
   )
@@ -143,7 +151,12 @@ export async function updateMainchainAssetPrices(context, { commit=true }) {
     }
   })
 
-  if (commit) context.commit('updateAssetPrices', marketPrices)
+  if (commit) {
+    context.commit('updateAssetPrices', marketPrices)
+    let selectedCurrency = null
+    if (context.state.selectedCurrency && context.state.selectedCurrency.symbol) selectedCurrency = context.state.selectedCurrency.symbol
+    context.dispatch('updateUsdRates', { currency: selectedCurrency })
+  }
   return marketPrices
 }
 
@@ -151,7 +164,6 @@ export async function updateSmartchainPrices(context, { commit=true }) {
   const smartchainAssets = context.rootGetters['sep20/getAssets']
     .map(asset => {
       const match = String(asset.id).match(/^sep20\/(0x[0-9a-fA-F]*)$/)
-      console.log(match)
       if (!match) return
       return { asset, address: match[1] }
     })
@@ -164,7 +176,7 @@ export async function updateSmartchainPrices(context, { commit=true }) {
     {
       params: {
         contract_addresses: addresses.join(','),
-        vs_currencies: context.state.selectedCurrency,
+        vs_currencies: 'usd',
       }
     }
   )
@@ -182,15 +194,18 @@ export async function updateSmartchainPrices(context, { commit=true }) {
     })
     .filter(Boolean)
 
-  if (commit) context.commit('updateAssetPrices', marketPrices)
-  console.log(marketPrices)
+  if (commit) {
+    context.commit('updateAssetPrices', marketPrices)
+    let selectedCurrency = null
+    if (context.state.selectedCurrency && context.state.selectedCurrency.symbol) selectedCurrency = context.state.selectedCurrency.symbol
+    context.dispatch('updateUsdRates', { currency: selectedCurrency })
+  }
   return marketPrices
 }
 
 export async function updateAssetPrices2(context, { clearExisting = false }) {
   const mainchainMarketPrices = await context.dispatch('updateMainchainAssetPrices', { commit: false })
   const smartchainMarketPrices = await context.dispatch('updateSmartchainPrices', { commit: false })
-  console.log(smartchainMarketPrices)
 
   const newAssetPrices = [
     ...mainchainMarketPrices,
@@ -199,4 +214,33 @@ export async function updateAssetPrices2(context, { clearExisting = false }) {
   
   if (clearExisting) context.commit('clearAssetPrices')
   context.commit('updateAssetPrices', newAssetPrices)
+  let selectedCurrency = null
+  if (context.state.selectedCurrency && context.state.selectedCurrency.symbol) selectedCurrency = context.state.selectedCurrency.symbol
+  context.dispatch('updateUsdRates', { currency: selectedCurrency })
+}
+
+
+export async function updateUsdRates(context, { currency }) {
+  let rates = []
+
+  if (currency) {
+    const { data } = await axios.get(`https://api.yadio.io/rate/${currency}/USD`)
+    if (!data.rate) return Promise.reject()
+    rates = [
+      { symbol: String(currency), rate: data.rate}
+    ]
+  } else {
+    const { data } = await axios.get('https://api.yadio.io/exrates/USD')
+    if (!data.USD) return Promise.reject()
+
+    rates = Object.getOwnPropertyNames(data)
+      .map(symbol => {
+        if (typeof data[symbol] !== 'string') return
+        return { symbol, rate: data[symbol] }
+      })
+      .filter(Boolean)
+  }
+
+  context.commit('updateUsdRates', rates)
+  return Promise.resolve(rates)
 }

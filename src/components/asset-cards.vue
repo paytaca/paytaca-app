@@ -61,19 +61,21 @@ export default {
       return this.network === 'sBCH'
     },
     selectedMarketCurrency () {
-      return this.$store.getters['market/selectedCurrency']
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency && currency.symbol
     },
     marketAssetPrices () {
-      return this.$store.getters['market/assetPrices']
+      return 
     }
   },
   methods: {
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 
-      const assetPrice = this.marketAssetPrices.find(assetPrice => assetPrice.assetId === asset.id)
-      if (!assetPrice || !assetPrice.prices || !assetPrice.prices[this.selectedMarketCurrency]) return ''
-      const computedBalance = Number(asset.balance || 0) * Number(assetPrice.prices[this.selectedMarketCurrency])
+      const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
+      if (!assetPrice) return ''
+  
+      const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
 
       return computedBalance.toFixed(2)
     },
