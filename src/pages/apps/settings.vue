@@ -43,6 +43,7 @@
                     </q-item-section>
                     <q-item-section side>
                       <q-select
+                        :style="{ width: $q.platform.is.mobile === true ? '75%' : '100%' }"
                         use-input
                         fill-input
                         hide-selected
