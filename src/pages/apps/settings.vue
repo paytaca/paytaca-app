@@ -43,7 +43,6 @@
                     </q-item-section>
                     <q-item-section side>
                       <q-select
-                        style="width: 95%;"
                         use-input
                         fill-input
                         hide-selected
@@ -80,7 +79,7 @@
           </div>
       </div>
 
-      <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
+      <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
       <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
 
   </div>

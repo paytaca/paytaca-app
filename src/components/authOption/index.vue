@@ -4,17 +4,17 @@
     v-model="dialog"
     persistent
     >
-      <q-card class="">
+      <q-card :class="{ 'pt-dark-card': darkMode }">
           <q-card-section>
-            <p class="q-my-none pp-text">Please choose your preferred security authentication.</p>
+            <p class="q-my-none" :class="darkMode ? 'text-white' : 'text-black'">Please choose your preferred security authentication.</p>
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row q-mb-sm">
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="pin" label="PIN" color="pt-radio" class="full-width pp-text" />
+                <q-radio v-model="preferredSecurity" val="pin" label="PIN" color="pt-radio" class="full-width" :class="darkMode ? 'text-white' : 'text-black'" />
               </div>
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="biometric" label="Biometric" color="pt-radio" class="full-width pp-text" />
+                <q-radio v-model="preferredSecurity" val="biometric" label="Biometric" color="pt-radio" class="full-width" :class="darkMode ? 'text-white' : 'text-black'" />
               </div>
             </div>
             <q-separator />
@@ -37,7 +37,10 @@ export default {
       btnLabel: 'Set Up'
     }
   },
-  props: ['securityOptionDialogStatus'],
+  props: [
+    'securityOptionDialogStatus',
+    'darkMode'
+  ],
   watch: {
     securityOptionDialogStatus () {
       if (this.securityOptionDialogStatus === 'show' || this.securityOptionDialogStatus === 'show in settings') {
