@@ -1,29 +1,29 @@
 <template>
-  <div class="pt-settings" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div class="pt-settings" :class="{'pt-dark': darkMode}">
       <header-nav title="Settings" backnavpath="/apps" />
       <div class="row" style="padding-top: 60px;">
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">SECURITY</p>
-              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': darkMode}">SECURITY</p>
+              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus = 'show in settings'">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu">Security Authentication Setup</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Security Authentication Setup</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="security" :class="$store.getters['darkmode/getStatus'] ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
+                        <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="pin" :class="$store.getters['darkmode/getStatus'] ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
+                        <q-icon name="pin" :class="darkMode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
                     </q-item-section>
                 </q-item>
-                <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
+                <q-item clickable v-ripple @click="darkMode = !darkMode">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Dark Mode</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Dark Mode</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
                       <q-toggle
@@ -35,11 +35,11 @@
           </div>
 
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">WALLET</p>
-              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
+              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': darkMode}">WALLET</p>
+              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
                 <q-item>
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Currency</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Currency</q-item-label>
                     </q-item-section>
                     <q-item-section side>
                       <q-select
@@ -60,13 +60,13 @@
                             v-on="scope.itemEvents"
                           >
                             <q-item-section>
-                              <q-item-label :class="{ 'text-black': !$store.getters['darkmode/getStatus'] && !scope.selected }">
+                              <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
                                 {{ String(scope.opt.symbol).toUpperCase() }}
                               </q-item-label>
                               <q-item-label
                                 v-if="scope.opt.name"
                                 caption
-                                :class="{ 'text-black': !$store.getters['darkmode/getStatus'] && !scope.selected }"
+                                :class="{ 'text-black': !darkMode && !scope.selected }"
                               >
                                 {{ scope.opt.name }}
                               </q-item-label>
@@ -102,14 +102,13 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
       pinStatus: true,
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      filteredCurrencyOptions: []
+      filteredCurrencyOptions: [],
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   components: { HeaderNav, pinDialog, securityOptionDialog },
   watch: {
     darkMode (newVal, oldVal) {
-      // this.$q.dark.set(newVal)
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
     },
     selectedCurrency () {
