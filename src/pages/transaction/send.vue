@@ -328,18 +328,17 @@ export default {
     selectedAssetMarketPrice() {
       if (!this.assetId) return
 
-      return this.$store.getters['market/assetPrices'].find(assetPrice => assetPrice.assetId === this.assetId)
+      return this.$store.getters['market/getAssetPrice'](this.assetId, this.selectedMarketCurrency)
     },
     selectedMarketCurrency() {
-      return this.$store.getters['market/selectedCurrency']
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency && currency.symbol
     },
     sendAmountMarketValue() {
       const parsedAmount = Number(this.sendData.amount)
       if (!parsedAmount) return ''
       if (!this.selectedAssetMarketPrice) return ''
-      if (!this.selectedAssetMarketPrice.prices) return ''
-      if (!this.selectedAssetMarketPrice.prices[this.selectedMarketCurrency]) return ''
-      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice.prices[this.selectedMarketCurrency])
+      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)

@@ -13,7 +13,7 @@ export function updateCoinsList(state, coinsList) {
 /**
  * 
  * @param {Object} state vuex model state
- * @param {String[]} currencyOptions 
+ * @param {{symbol: String, name: String}[]} currencyOptions 
  */
  export function updateCurrencyOptions(state, currencyOptions) {
   if (!Array.isArray(currencyOptions) || !currencyOptions.length) return
@@ -48,4 +48,19 @@ export function updateAssetPrices(state, assetPrices) {
 
 export function clearAssetPrices(state) {
   state.assetPrices = []
+}
+
+/**
+ * 
+ * @param {Object} state vuex module state
+ * @param {{ symbol:String, rate:Number }[]} data 
+ */
+export function updateUsdRates(state, data) {
+  if (!Array.isArray(data)) return
+
+  if (!state.usdRates) state.usdRates = {}
+  data.forEach(rateInfo => {
+    if (typeof rateInfo.symbol !== 'string') return
+    state.usdRates[rateInfo.symbol] = rateInfo.rate
+  })
 }

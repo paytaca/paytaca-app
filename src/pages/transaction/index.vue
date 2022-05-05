@@ -122,7 +122,7 @@
                 </div>
               </template>
               <div style="text-align: center;" v-else>
-                <loader :hideCallback="toggleHideBalances"></loader>
+                <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
               </div>
             </div>
         </div>
@@ -225,19 +225,17 @@ export default {
     },
     selectedAssetMarketPrice () {
       if (!this.selectedAsset || !this.selectedAsset.id) return
-
-      return this.$store.getters['market/assetPrices'].find(assetPrice => assetPrice.assetId === this.selectedAsset.id)
+      if (!this.selectedMarketCurrency) return
+      return this.$store.getters['market/getAssetPrice'](this.selectedAsset.id, this.selectedMarketCurrency)
     },
     selectedMarketCurrency () {
-      return this.$store.getters['market/selectedCurrency']
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency && currency.symbol
     },
     selectedAssetMarketBalance () {
-      console.log(this.selectedAssetMarketPrice)
       if (!this.selectedAsset) return ''
       if (!this.selectedAssetMarketPrice) return ''
-      if (!this.selectedAssetMarketPrice.prices) return ''
-      if (!this.selectedAssetMarketPrice.prices[this.selectedMarketCurrency]) return ''
-      const computedBalance = Number(this.selectedAsset.balance || 0) * Number(this.selectedAssetMarketPrice.prices[this.selectedMarketCurrency])
+      const computedBalance = Number(this.selectedAsset.balance || 0) * Number(this.selectedAssetMarketPrice)
 
       return computedBalance.toFixed(2)
     },

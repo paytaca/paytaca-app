@@ -48,7 +48,7 @@
                         hide-selected
                         borderless
                         :dark="darkMode"
-                        :option-label="opt => String(opt).toUpperCase()"
+                        :option-label="opt => String(opt && opt.name)"
                         v-model="selectedCurrency"
                         :options="filteredCurrencyOptions"
                         @filter="filterCurrencyOptionSelection"
@@ -60,7 +60,14 @@
                           >
                             <q-item-section>
                               <q-item-label :class="{ 'text-black': !$store.getters['darkmode/getStatus'] && !scope.selected }">
-                                {{ String(scope.opt).toUpperCase() }}
+                                {{ String(scope.opt.symbol).toUpperCase() }}
+                              </q-item-label>
+                              <q-item-label
+                                v-if="scope.opt.name"
+                                caption
+                                :class="{ 'text-black': !$store.getters['darkmode/getStatus'] && !scope.selected }"
+                              >
+                                {{ scope.opt.name }}
                               </q-item-label>
                             </q-item-section>
                           </q-item>
@@ -128,7 +135,10 @@ export default {
       } else {
         const needle = String(val).toLowerCase()
         this.filteredCurrencyOptions = this.currencyOptions
-          .filter(currency => String(currency).toLowerCase().indexOf(needle) >= 0)
+          .filter(currency =>
+            String(currency && currency.name).toLowerCase().indexOf(needle) >= 0 ||
+            String(currency && currency.symbol).toLowerCase().indexOf(needle) >= 0
+          )
       }
 
       update()
