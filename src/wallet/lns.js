@@ -60,7 +60,10 @@ function base58Encode(data) {
 }
 
 export function isNameLike(value) {
-  return /^\w+(\.\w+)+$/.test(String(value))
+  // Regex is from: https://www.regextester.com/111178
+  return /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/.test(String(value))
+
+  // return /^\w+(\.\w+)+$/.test(String(value))
 }
 
 /**
