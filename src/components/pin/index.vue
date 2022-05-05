@@ -15,7 +15,7 @@
                       <p class="text-h6 dim-text">Saving your PIN...</p>
                   </div>
                   <div class="col-12 text-center">
-                      <loader></loader>
+                      <ProgressLoader/>
                   </div>
               </div>
           </q-card-section>
@@ -91,7 +91,7 @@
 
 <script>
 import 'capacitor-secure-storage-plugin'
-import Loader from '../../components/loader'
+import ProgressLoader from '../../components/ProgressLoader'
 import { Plugins } from '@capacitor/core'
 
 const { SecureStoragePlugin } = Plugins
@@ -117,7 +117,7 @@ export default {
       subTitle: null
     }
   },
-  components: { Loader },
+  components: { ProgressLoader },
   props: ['pinDialogAction', 'nextAction'],
   watch: {
     pinDialogAction () {

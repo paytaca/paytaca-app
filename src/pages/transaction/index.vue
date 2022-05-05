@@ -139,7 +139,7 @@
 <script>
 import { getMnemonic, Wallet } from '../../wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
-import Loader from '../../components/loader'
+import ProgressLoader from '../../components/ProgressLoader'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
@@ -158,7 +158,7 @@ const sep20IdRegexp = /sep20\/(.*)/
 
 export default {
   name: 'Transaction-page',
-  components: { Loader, Transaction, AssetInfo, AssetCards, pinDialog, securityOptionDialog, startPage },
+  components: { ProgressLoader, Transaction, AssetInfo, AssetCards, pinDialog, securityOptionDialog, startPage },
   directives: {
     dragscroll
   },

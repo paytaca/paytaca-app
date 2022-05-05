@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <Loader/>
+      <ProgressLoader/>
     </div>
     <template v-if="collectibles.length > 0">
       <div class="q-pa-md row items-start">
@@ -50,12 +50,12 @@
 </template>
 <script>
 import ERC721CollectibleDetail from 'components/collectibles/ERC721CollectibleDetail.vue'
-import Loader from 'components/loader'
+import ProgressLoader from 'components/ProgressLoader'
 
 export default {
   name: 'ERC721Collectibles',
 
-  components: { ERC721CollectibleDetail, Loader },
+  components: { ERC721CollectibleDetail, ProgressLoader },
 
   props: {
     wallet: { },

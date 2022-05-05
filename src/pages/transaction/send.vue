@@ -136,7 +136,7 @@
           </div>
           <div class="row" v-if="sendData.sending">
             <div class="col-12 text-center">
-              <loader></loader>
+              <ProgressLoader/>
             </div>
           </div>
         </form>
@@ -198,7 +198,7 @@ import { getMnemonic, Wallet, Address } from '../../wallet'
 import { decodeEIP681URI } from '../../wallet/sbch'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
-import Loader from '../../components/loader'
+import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
@@ -216,7 +216,7 @@ export default {
   name: 'Send-page',
   components: {
     QrcodeStream,
-    Loader,
+    ProgressLoader,
     HeaderNav,
     pinDialog,
     biometricWarningAttmepts,

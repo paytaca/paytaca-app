@@ -9,7 +9,7 @@
 
 <script>
 export default {
-  name: 'Loader'
+  name: 'ProgressLoader'
 }
 </script>
 

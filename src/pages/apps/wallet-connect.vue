@@ -50,7 +50,7 @@
         </div>
         <template v-if="handshakeOnProgress">
           <div class="row items-center justify-center">
-            <Loader/>
+            <ProgressLoader/>
           </div>
           <div v-if="pendingConnector" class="row items-center justify-center">
             <q-btn
@@ -187,18 +187,18 @@ import { getMnemonic, Wallet } from '../../wallet'
 import { createConnector, getPreviousConnector, callRequestHandler, parseWalletConnectUri } from '../../wallet/walletconnect'
 import QrScanner from '../../components/qr-scanner.vue'
 import HeaderNav from '../../components/header-nav'
-import Loader from '../../components/Loader.vue'
+import ProgressLoader from '../../components/ProgressLoader.vue'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
 import WalletConnectCallRequestDialog from '../../components/walletconnect/WalletConnectCallRequestDialog.vue'
 const ago = require('s-ago')
 
 export default {
   name: 'WalletConnect',
-  components: { QrScanner, WalletConnectCallRequestDialog, HeaderNav, Loader },
+  components: { QrScanner, WalletConnectCallRequestDialog, HeaderNav, ProgressLoader },
   props: {
     uri: {
       type: String,
-      default: '',
+      default: ''
     }
   },
   data () {

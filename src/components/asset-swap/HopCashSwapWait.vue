@@ -76,7 +76,7 @@
             <div v-if="transferType === 'c2s'">Waiting for SmartBCH Transaction</div>
             <div v-else-if="transferType === 's2c'">Waiting for BCH Transaction</div>
           </template>
-          <Loader/>
+          <ProgressLoader/>
         </div>
         <div v-else-if="parsedOutgoingTx.hash">
           <div>
@@ -114,10 +114,10 @@
 </template>
 <script>
 import { findC2SOutgoingTx, findS2COutgoingTx, waitC2SOutgoing, waitS2COutgoing } from '../../wallet/hopcash'
-import Loader from 'components/Loader.vue'
+import ProgressLoader from 'components/ProgressLoader.vue'
 export default {
   name: 'HopCashSwapWait',
-  components: { Loader },
+  components: { ProgressLoader },
   props: {
     transferType: {
       type: String,
@@ -135,7 +135,7 @@ export default {
     return {
       waitPromiseObj: null,
       fetchingOutgoingTx: false,
-      tx: null,
+      tx: null
     }
   },
   computed: {
@@ -143,7 +143,7 @@ export default {
       // Could do more checks like comparing `this.incomingTxid` with the data in `this.tx` to be more convincing
       return Boolean(this.parsedOutgoingTx.hash)
     },
-    waiting() {
+    waiting () {
       return Boolean(this.waitPromiseObj)
     },
     incomingTxUrl () {
@@ -151,7 +151,7 @@ export default {
       if (this.transferType === 'c2s') return this.blockChairUrl(this.incomingTxid)
       return ''
     },
-    parsedOutgoingTx() {
+    parsedOutgoingTx () {
       const data = {
         chainName: '',
         hash: '',
@@ -171,7 +171,7 @@ export default {
       }
 
       return data
-    },
+    }
   },
   methods: {
     copyToClipboard (value) {
@@ -181,13 +181,13 @@ export default {
         timeout: 200
       })
     },
-    blockChairUrl(txid) {
+    blockChairUrl (txid) {
       return `https://blockchair.com/bitcoin-cash/transaction/${txid}`
     },
-    smartScanUrl(txid) {
+    smartScanUrl (txid) {
       return `https://www.smartscan.cash/transaction/${txid}`
     },
-    findOutgoingTx() {
+    findOutgoingTx () {
       let func = null
       if (this.transferType === 'c2s') func = findC2SOutgoingTx
       if (this.transferType === 's2c') func = findS2COutgoingTx
@@ -209,7 +209,7 @@ export default {
         })
     },
 
-    waitOutgoingTx() {
+    waitOutgoingTx () {
       let func = null
       if (this.transferType === 'c2s') func = waitC2SOutgoing
       if (this.transferType === 's2c') func = waitS2COutgoing

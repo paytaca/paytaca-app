@@ -223,7 +223,7 @@
       </q-card>
 
       <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
-        <Loader
+        <ProgressLoader
           v-if="loading"
         />
         <q-btn
@@ -276,7 +276,7 @@ import { deductFromFee, s2c, c2s, smart2cashMax, cash2smartMax } from '../../wal
 import CustomKeyboardInput from 'components/CustomKeyboardInput.vue'
 import QrScanner from 'components/qr-scanner.vue'
 import DragSlide from 'components/drag-slide'
-import Loader from 'components/Loader'
+import ProgressLoader from 'components/ProgressLoader'
 
 import Pin from 'components/pin'
 import BiometricWarningAttempt from 'components/authOption/biometric-warning-attempt.vue'
@@ -297,7 +297,7 @@ const paytacaFee = {
 
 export default {
   name: 'HopCashSwapForm',
-  components: { CustomKeyboardInput, QrScanner, DragSlide, Pin, BiometricWarningAttempt, Loader },
+  components: { CustomKeyboardInput, QrScanner, DragSlide, Pin, BiometricWarningAttempt, ProgressLoader },
   props: {
     darkMode: Boolean
   },

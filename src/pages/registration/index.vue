@@ -45,7 +45,7 @@
         </div>
         <div class="col" v-else>
           <div class="col q-mt-sm" style="text-align: center;">
-            <loader></loader>
+            <ProgressLoader/>
           </div>
         </div>
       </div>
@@ -54,11 +54,11 @@
 </template>
 
 <script>
-import Loader from '../../components/loader'
+import ProgressLoader from '../../components/ProgressLoader'
 
 export default {
   name: 'registration-index',
-  components: { Loader },
+  components: { ProgressLoader },
   data () {
     return {
       show: false,

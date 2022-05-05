@@ -14,7 +14,7 @@
       </q-menu>
     </q-icon>
     <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
-      <loader></loader>
+      <ProgressLoader/>
     </div>
     <template v-else>
       <div class="row">
@@ -70,7 +70,7 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import Loader from '../../components/loader'
+import ProgressLoader from '../../components/ProgressLoader'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 
@@ -82,7 +82,7 @@ export default {
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav, Loader },
+  components: { HeaderNav, ProgressLoader },
   data () {
     return {
       sBCHListener: null,

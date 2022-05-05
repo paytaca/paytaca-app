@@ -55,7 +55,7 @@
             </ul>
           </div>
           <div class="col q-mt-sm" v-if="steps < totalSteps" style="text-align: center;">
-            <loader></loader>
+            <ProgressLoader/>
           </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
@@ -72,14 +72,14 @@
 
 <script>
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
-import Loader from '../../components/loader'
+import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
 import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
 
 export default {
   name: 'registration-accounts',
-  components: { Loader, pinDialog, securityOptionDialog },
+  components: { ProgressLoader, pinDialog, securityOptionDialog },
   data () {
     return {
       importSeedPhrase: false,

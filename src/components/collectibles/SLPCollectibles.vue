@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <Loader/>
+      <ProgressLoader/>
     </div>
     <div v-if="collectibles.length > 0" class="q-pa-md row items-start">
       <q-card
@@ -27,17 +27,17 @@
   </div>
 </template>
 <script>
-import Loader from 'components/loader'
+import ProgressLoader from 'components/ProgressLoader'
 import Collectible from 'components/Collectible'
 import Gravatar from 'vue-gravatar'
 
 export default {
   name: 'SLPCollectibles',
 
-  components: { Loader, Collectible, Gravatar },
+  components: { ProgressLoader, Collectible, Gravatar },
 
   props: {
-    wallet: {},
+    wallet: {}
   },
 
   data () {

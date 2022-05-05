@@ -143,7 +143,7 @@
             {{ paymentRequest.paymentDetails.getTotalAmountBCHString() }}
           </div>
           <div v-if="paymentRequestStatus.executing" class="q-mt-md row justify-center">
-            <Loader/>
+            <ProgressLoader/>
           </div>
           <div v-else class="q-mt-md row justify-end">
             <q-btn
@@ -225,7 +225,7 @@ import HeaderNav from 'components/header-nav'
 import DragSlide from 'components/drag-slide'
 import Pin from 'components/pin'
 import BiometricWarningAttempt from 'components/authOption/biometric-warning-attempt.vue'
-import Loader from 'components/Loader'
+import ProgressLoader from 'components/ProgressLoader'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
@@ -241,15 +241,15 @@ export default {
     DragSlide,
     Pin,
     BiometricWarningAttempt,
-    Loader,
+    ProgressLoader
   },
   props: {
     orderId: {},
     paymentRequestData: {
       // test info
       // default: 'eyI0IjogIntcIjJcIjoge1wiMUdTRDVYY2JORXVYdUJlNFRtUEtKVEdGcFJjYTh0SzdWelwiOiBcIjAuMDIxMzMyNzI5NjY1Nzk1MzY5MDg3NjA3MDY5NjlcIn0sIFwiM1wiOiAxNjQyNzQ2MTk0LCBcIjRcIjogMTY0Mjc0NjMxNCwgXCI1XCI6IFwiUmFuZG9tIHN0cmluZ1wiLCBcIjdcIjoge1wicGF5bWVudF9pbnZvaWNlX2lkXCI6IDEsIFwib3JkZXJcIjoge1wiaWRcIjogMzk0NjI1NzcxMTIzNiwgXCJuYW1lXCI6IFwiIzEzNTJcIiwgXCJzaG9wXCI6IHtcImlkXCI6IDIsIFwibmFtZVwiOiBcIlNvbWUgUGFnZVwifX19fSJ9'
-      default: '',
-    },
+      default: ''
+    }
   },
   data () {
     return {
