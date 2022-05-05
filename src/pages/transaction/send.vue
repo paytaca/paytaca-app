@@ -16,7 +16,7 @@
         </div>
         <div class="row justify-center" v-if="!scanner.show && sendData.recipientAddress === ''">
           <div class="col-12 q-mt-lg">
-            <q-btn class="full-width btn-scan q-py-xs" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
+            <q-btn class="full-width q-py-xs" :class="darkMode ? 'btn-scan-dark' : 'btn-scan'" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
           </div>
           <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000;" :class="{'pt-dark-label': darkMode}">
             OR
@@ -920,6 +920,10 @@ export default {
     border: 2px solid #3b7bf6;
   }
   .btn-scan {
+    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    color: white;
+  }
+  .btn-scan-dark {
     background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
     color: white;
   }
