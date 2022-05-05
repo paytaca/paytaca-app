@@ -43,6 +43,7 @@
                     </q-item-section>
                     <q-item-section side>
                       <q-select
+                        style="width: 95%;"
                         use-input
                         fill-input
                         hide-selected

@@ -1,18 +1,22 @@
-export function coinsList(state) {
+export function coinsList (state) {
   if (Array.isArray(state.coinsList)) return []
   return state.coinsList
 }
 
-export function currencyOptions(state) {
+export function currencyOptions (state) {
   if (!Array.isArray(state.currencyOptions)) return []
   return state.currencyOptions
 }
 
-export function selectedCurrency(state) {
-  return state.selectedCurrency
+export function selectedCurrency (state) {
+  if (typeof state.selectedCurrency === 'object') {
+    return state.selectedCurrency
+  } else {
+    return { name: 'United States Dollar', symbol: 'USD' }
+  }
 }
 
-export function assetPrices(state) {
+export function assetPrices (state) {
   if (!Array.isArray(state.assetPrices)) return []
   return state.assetPrices
 }

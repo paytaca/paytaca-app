@@ -2,9 +2,9 @@ export default function () {
   return {
     coinsList: [],
     currencyOptions: [
-      { name: 'United States Dollar', symbol: 'USD'}
+      { name: 'United States Dollar', symbol: 'USD' }
     ],
-    selectedCurrency: { name: 'United States Dollar', symbol: 'USD'},
+    selectedCurrency: { name: 'United States Dollar', symbol: 'USD' },
     assetPrices: [
       // {
       //   assetId: '',
