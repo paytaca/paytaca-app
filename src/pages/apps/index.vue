@@ -24,33 +24,39 @@ export default {
     return {
       apps: [
         {
-          name: 'Wallet Connect',
-          iconName: 'fas fa-wallet',
-          path: '/apps/wallet-connect',
-          active: true
-        },
-        {
           name: 'Collectibles',
-          iconName: 'collections_bookmark',
+          iconName: 'burst_mode',
           path: '/apps/collectibles',
           active: true
         },
         {
+          name: 'Bridge',
+          iconName: 'h_mobiledata',
+          path: '/apps/bridge',
+          active: true
+        },
+        {
           name: 'Asset Swap',
-          iconName: 'swap_horiz',
+          iconName: 'sync',
           path: '/apps/asset-swap',
+          active: true
+        },
+        {
+          name: 'Wallet Connect',
+          iconName: 'link',
+          path: '/apps/wallet-connect',
+          active: true
+        },
+        {
+          name: 'Wallet Info',
+          iconName: 'description',
+          path: '/apps/wallet-info',
           active: true
         },
         {
           name: 'Settings',
           iconName: 'settings',
           path: '/apps/settings',
-          active: true
-        },
-        {
-          name: 'Wallet Info',
-          iconName: 'info',
-          path: '/apps/wallet-info',
           active: true
         },
         {
