@@ -31,13 +31,13 @@ export default {
         },
         {
           name: 'Bridge',
-          iconName: 'h_mobiledata',
+          iconName: 'mdi-bridge',
           path: '/apps/bridge',
           active: true
         },
         {
           name: 'Asset Swap',
-          iconName: 'sync',
+          iconName: 'mdi-swap-horizontal',
           path: '/apps/asset-swap',
           active: true
         },

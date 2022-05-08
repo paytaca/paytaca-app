@@ -95,7 +95,7 @@
                     style="color: #3B7BF6;"
                     @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
                   />
-                  <div class="text-subtitle1" :class="{'pt-dark-label': darkMode}">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
+                  <div class="text-subtitle1" :class="darkMode ? 'pt-dark-label' : 'text-black'">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
                 </template>
                 <div v-else class="text-grey" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
                   Select Collection

@@ -197,7 +197,6 @@ import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { decodeEIP681URI } from '../../wallet/sbch'
 import { QrcodeStream } from 'vue-qrcode-reader'
-import { fasQrcode, fasWallet } from '@quasar/extras/fontawesome-v5'
 import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
@@ -894,9 +893,6 @@ export default {
   },
 
   created () {
-    this.fasQrcode = fasQrcode
-    this.fasWallet = fasWallet
-
     const vm = this
     if (vm.assetId && vm.amount && vm.recipient) {
       vm.sendData.amount = vm.amount
