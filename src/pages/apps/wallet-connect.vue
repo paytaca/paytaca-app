@@ -29,7 +29,7 @@
               padding="xs md"
               label="Connect"
               type="submit"
-              text-color="darkMode ? 'white' : 'black'"
+              :text-color="darkMode ? 'white' : 'black'"
               :disable="handshakeOnProgress"
             />
           </div>
@@ -42,7 +42,7 @@
             rounded
             padding="md"
             icon="camera_alt"
-            :color="darkMode ? 'white' : 'black'"
+            :color="darkMode ? 'white' : 'gray'"
             @click="scanner.show = true"
             text-color="black"
             :disable="handshakeOnProgress"
