@@ -42,7 +42,7 @@ export default {
           active: true
         },
         {
-          name: 'WalletConnect',
+          name: 'Wallet Connect',
           iconName: 'link',
           path: '/apps/wallet-connect',
           active: true
