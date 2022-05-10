@@ -8,7 +8,19 @@ export function updateAssetBalance (state, data) {
   }
 }
 
+/**
+ * 
+ * @param {Object} state 
+ * @param {{ id:String, symbol:String, name:String, logo:String, balance: Number }} asset 
+ * @returns 
+ */
 export function addNewAsset (state, asset) {
+  if (!Array.isArray(state.assets)) state.assets = []
+
+  if (state.assets.some(_asset => String(_asset && _asset.id).toLowerCase() === String(asset.id).toLowerCase())) {
+    return
+  }
+
   state.assets.push(asset)
 }
 
