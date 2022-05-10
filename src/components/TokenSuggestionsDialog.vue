@@ -11,8 +11,8 @@
           v-close-popup
         />
       </div>
-      <q-separator/>
-      <q-card-section style="max-height:50vh;overflow-y:auto;">
+      <!-- <q-separator/> -->
+      <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
         <q-list v-if="!loading && parsedTokens.length">
           <template v-for="(token, index) in parsedTokens">
             <q-item
@@ -64,7 +64,7 @@
           No tokens found
         </div>
       </q-card-section>
-      <q-separator/>
+      <!-- <q-separator/> -->
       <q-card-section class="row q-gutter-sm justify-around">
         <q-btn
           no-caps
