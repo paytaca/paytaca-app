@@ -77,3 +77,35 @@ export async function updateTokenIcon(context, { assetId, forceUpdate=false }) {
 
   return updatedAssets
 }
+
+
+/**
+ * 
+ * @param {Object} context 
+ * @param {{ walletHash:String }} param1
+ */
+export async function getMissingAssets(context, { walletHash }) {
+  const filterParams = {
+    has_balance: true,
+    wallet_hash: walletHash,
+  }
+
+  if (Array.isArray(context.state.assets) && context.state.assets.length) {
+    filterParams.exclude_token_ids = context.state.assets
+      .map(asset => {
+        const match = String(asset && asset.id).match(/^slp\/([a-fA-F0-9]+)$/)
+        if (!match) return
+        return match[1]
+      })
+      .filter(Boolean)
+      .join(',')
+  }
+
+  const { data } = await axiosInstance.get(
+    'https://watchtower.cash/api/tokens/',
+    { params: filterParams }
+  )
+
+  if (!Array.isArray(data.results)) return []
+  return data.results
+}
