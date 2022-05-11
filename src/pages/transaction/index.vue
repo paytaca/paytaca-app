@@ -648,10 +648,10 @@ export default {
     },
 
     async checkMissingAssets(opts={ autoOpen: false }) {
-      try{
-
+      try {
+        const autoOpen = opts && opts.autoOpen
         this.tokenSuggestionsDialog.loading = true
-        if (opts && opts.autoOpen) {
+        if (autoOpen) {
           this.tokenSuggestionsDialog.tokens = []
           this.tokenSuggestionsDialog.show = true
         }
@@ -685,16 +685,23 @@ export default {
           this.tokenSuggestionsDialog.tokens = tokens
         }
 
-        if (opts && opts.autoOpen) {
+        if (autoOpen && this.tokenSuggestionsDialog.show) {
           showTokenSuggestions()
           return
         }
 
         this.$q.notify({
+          color: this.darkMode ? 'dark' : 'white',
+          textColor: this.darkMode ? 'white' : 'black',
           progress: true,
           timeout: 15 * 1000,
-          message: `Found ${tokens.length} token\\s for wallet.`,
+          message: `Found ${tokens.length} token${tokens.length > 1 ? 's' : ''} for wallet.`,
           actions: [
+            {
+              label: 'Dismiss',
+              color: this.darkMode ? 'white' : 'grey',
+              handler: () => { /* ... */ }
+            },
             {
               label: 'View tokens',
               handler: showTokenSuggestions,
