@@ -87,6 +87,7 @@ export async function updateTokenIcon(context, { assetId, forceUpdate=false }) {
 export async function getMissingAssets(context, { walletHash }) {
   const filterParams = {
     has_balance: true,
+    token_type: 1,
     wallet_hash: walletHash,
   }
 
