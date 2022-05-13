@@ -1,7 +1,11 @@
 <template>
   <q-dialog v-model="val" persistent @hide="onClose()">
     <q-card class="q-dialog-plugin" :class="{'pt-dark-card': darkMode }">
-      <div class="row items-center">
+      <div class="row items-center no-wrap q-pb-sm">
+        <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">
+          <template v-if="loading">Finding unlisted assets</template>
+          <template v-else>Unlisted Assets</template>
+        </div>
         <q-space/>
         <q-btn
           flat
@@ -12,42 +16,58 @@
         />
       </div>
       <!-- <q-separator/> -->
-      <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
-        <q-list v-if="!loading && parsedTokens.length">
-          <template v-for="(token, index) in parsedTokens">
-            <q-item
-              :key="index"
-              :class="[
-                darkMode ? 'text-white' : 'text-black',
-              ]"
-            >
-              <q-item-section v-if="token.logo" side>
-                <img :src="token.logo" height="30">
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>
-                  {{ token.name }}
-                  <template v-if="token.symbol">
-                    ({{ token.symbol }})
-                  </template>
-                </q-item-label>
-                <q-item-label class="text-caption">
-                  {{ token.isSep20 ? 'SEP20' : 'SLP' }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-btn
-                  round
-                  padding="sm"
-                  :icon="assetIdExists(token.id) ? 'remove' : 'add'"
-                  :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
-                  @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
-                />
-              </q-item-section>
-            </q-item>
-            <q-separator v-if="index < parsedTokens.length - 1"/>
-          </template>
-        </q-list>
+      <q-card-section class="q-pt-none">
+        <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
+          <q-tabs
+            active-color="brandblue"
+            class="col-12 q-px-sm q-pb-md pp-fcolor"
+            v-model="selectedNetwork"
+            style="margin-top: -20px; padding-bottom: 16px;"
+          >
+            <q-tab
+              name="BCH"
+              :class="{'pt-dark-label': darkMode}"
+              :label="'BCH' + (parsedMainchainTokens.length ? ` (${parsedMainchainTokens.length})` : '')"
+            />
+            <q-tab
+              name="sBCH"
+              :class="{'pt-dark-label': darkMode}"
+              :label="'SmartBCH' + (parsedSmartchainTokens.length ? ` (${parsedSmartchainTokens.length})` : '')"
+            />
+          </q-tabs>
+          <q-list style="max-height:45vh;overflow-y:auto;">
+            <template v-for="(token, index) in parsedTokens">
+              <q-item
+                :key="index"
+                :class="[
+                  darkMode ? 'text-white' : 'text-black',
+                ]"
+              >
+                <q-item-section v-if="token.logo" side>
+                  <img :src="token.logo" height="30">
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    {{ token.name }}
+                    <template v-if="token.symbol">
+                      ({{ token.symbol }})
+                    </template>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn
+                    round
+                    padding="sm"
+                    :icon="assetIdExists(token.id) ? 'remove' : 'add'"
+                    :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
+                    @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
+                  />
+                </q-item-section>
+              </q-item>
+              <q-separator v-if="index < parsedTokens.length - 1" :dark="darkMode"/>
+            </template>
+          </q-list>
+        </template>
         <div v-else-if="loading" class="column items-center justify-center">
           <ProgressLoader/>
           <div :class="darkMode ? 'text-white' : 'text-grey'">
@@ -55,7 +75,7 @@
           </div>
         </div>
         <div
-          v-else-if="!parsedTokens.length"
+          v-else
           :class="[
             darkMode ? 'text-white' : 'text-black',
             'text-center',
@@ -100,35 +120,56 @@ export default {
       type: Boolean,
       default: false,
     },
-    tokens: {
+    mainchainTokens: {
+      type: Array,
+    },
+    smartchainTokens: {
       type: Array,
     }
   },
   data() {
     return {
       val: this.value,
+      selectedNetwork: 'BCH',
     }
   },
   computed: {
     parsedTokens () {
-      if (!Array.isArray(this.tokens)) return []
+      if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
+      if (this.selectedNetwork === 'sBCH') return this.parsedSmartchainTokens
+      return []
+    },
+    parsedMainchainTokens () {
+      if (!Array.isArray(this.mainchainTokens)) return []
 
-      return this.tokens
+      return this.mainchainTokens
         .map(token => {
           if (!token) return
-          const tokenInfo = {
-            id: '',
+          return {
+            id: token.id || '',
             name: token.name || '',
             symbol: token.symbol || '',
             logo: token.image_url || '',
             balance: token.balance || 0,
-            isSep20: token.isSep20, 
+            isSep20: false,
           }
+        })
+        .filter(Boolean)
+    },
+    parsedSmartchainTokens () {
+      if (!Array.isArray(this.smartchainTokens)) return []
 
-          if (token.isSep20) tokenInfo.id = `sep20/${token.address}`
-          else tokenInfo.id = token.id
-
-          return tokenInfo
+      return this.smartchainTokens
+        .map(token => {
+          if (!token) return
+          return {
+            id: token.address ? `sep20/${token.address}` : '',
+            name: token.name || '',
+            symbol: token.symbol || '',
+            logo: token.image_url || '',
+            balance: token.balance || 0,
+            isSep20: true,
+          }
         })
         .filter(Boolean)
     },

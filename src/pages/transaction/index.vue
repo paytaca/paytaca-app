@@ -145,7 +145,8 @@
 
     <TokenSuggestionsDialog
       v-model="tokenSuggestionsDialog.show"
-      :tokens="tokenSuggestionsDialog.tokens"
+      :mainchain-tokens="tokenSuggestionsDialog.mainchainTokens"
+      :smartchain-tokens="tokenSuggestionsDialog.smartchainTokens"
       :loading="tokenSuggestionsDialog.loading"
     />
   </div>
@@ -219,6 +220,8 @@ export default {
         show: false,
         loading: false,
         tokens: [],
+        smartchainTokens: [],
+        mainchainTokens: [],
       },
       darkMode: this.$store.getters['darkmode/getStatus']
     }
@@ -652,7 +655,8 @@ export default {
         const autoOpen = opts && opts.autoOpen
         this.tokenSuggestionsDialog.loading = true
         if (autoOpen) {
-          this.tokenSuggestionsDialog.tokens = []
+          this.tokenSuggestionsDialog.mainchainTokens = []
+          this.tokenSuggestionsDialog.smartchainTokens = []
           this.tokenSuggestionsDialog.show = true
         }
 
@@ -665,24 +669,14 @@ export default {
           'sep20/getMissingAssets',
           { address: this.wallet.sBCH._wallet.address, filterWithBalance: true }
         )
+        const tokensCount = mainchainTokens.length + smartchainTokens.length
 
-        console.log(mainchainTokens, smartchainTokens)
-        const tokens = [
-          ...mainchainTokens.map(token => {
-            token.isSep20 = false
-            return token
-          }),
-          ...smartchainTokens.map(token => {
-            token.isSep20 = true
-            return token
-          }),
-        ]
-
-        if (!tokens.length) return
+        if (!tokensCount) return
 
         const showTokenSuggestions = () => {
           this.tokenSuggestionsDialog.show = true
-          this.tokenSuggestionsDialog.tokens = tokens
+          this.tokenSuggestionsDialog.mainchainTokens = mainchainTokens
+          this.tokenSuggestionsDialog.smartchainTokens = smartchainTokens
         }
 
         if (autoOpen && this.tokenSuggestionsDialog.show) {
@@ -690,12 +684,13 @@ export default {
           return
         }
 
+
         this.$q.notify({
           color: this.darkMode ? 'dark' : 'white',
           textColor: this.darkMode ? 'white' : 'black',
           progress: true,
           timeout: 15 * 1000,
-          message: `Found ${tokens.length} token${tokens.length > 1 ? 's' : ''} for wallet.`,
+          message: `Found ${tokensCount} token${tokensCount > 1 ? 's' : ''} for wallet.`,
           actions: [
             {
               label: 'Dismiss',
