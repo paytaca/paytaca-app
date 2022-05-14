@@ -54,7 +54,7 @@
         </div>
         <div class="row q-mt-sm">
           <div class="col">
-            <p class="q-ml-lg q-mb-sm payment-methods" :class="{'pt-dark-label': darkMode}">
+            <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
               Assets
               <q-btn
                 flat
@@ -64,6 +64,16 @@
                 style="color: #3B7BF6;"
                 :class="{'pt-dark-label': darkMode}"
                 @click="toggleManageAssets"
+              />
+              <q-btn
+                v-if="manageAssets"
+                flat
+                padding="none"
+                size="sm"
+                icon="search"
+                style="color: #3B7BF6;"
+                :class="{'pt-dark-label': darkMode}"
+                @click="checkMissingAssets({autoOpen: true})"
               />
             </p>
           </div>
@@ -133,12 +143,19 @@
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
     <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
+    <TokenSuggestionsDialog
+      v-model="tokenSuggestionsDialog.show"
+      :mainchain-tokens="tokenSuggestionsDialog.mainchainTokens"
+      :smartchain-tokens="tokenSuggestionsDialog.smartchainTokens"
+      :loading="tokenSuggestionsDialog.loading"
+    />
   </div>
 </template>
 
 <script>
 import { getMnemonic, Wallet } from '../../wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import ProgressLoader from '../../components/ProgressLoader'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
@@ -158,7 +175,7 @@ const sep20IdRegexp = /sep20\/(.*)/
 
 export default {
   name: 'Transaction-page',
-  components: { ProgressLoader, Transaction, AssetInfo, AssetCards, pinDialog, securityOptionDialog, startPage },
+  components: { TokenSuggestionsDialog, ProgressLoader, Transaction, AssetInfo, AssetCards, pinDialog, securityOptionDialog, startPage },
   directives: {
     dragscroll
   },
@@ -199,6 +216,13 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       startPageStatus: true,
       prevPath: null,
+      tokenSuggestionsDialog: {
+        show: false,
+        loading: false,
+        tokens: [],
+        smartchainTokens: [],
+        mainchainTokens: [],
+      },
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -626,6 +650,64 @@ export default {
       return this.$store.getters['global/getWallet'](type)
     },
 
+    async checkMissingAssets(opts={ autoOpen: false }) {
+      try {
+        const autoOpen = opts && opts.autoOpen
+        this.tokenSuggestionsDialog.loading = true
+        if (autoOpen) {
+          this.tokenSuggestionsDialog.mainchainTokens = []
+          this.tokenSuggestionsDialog.smartchainTokens = []
+          this.tokenSuggestionsDialog.show = true
+        }
+
+        const mainchainTokens = await this.$store.dispatch(
+          'assets/getMissingAssets',
+          { walletHash: this.getWallet('slp').walletHash }
+        )
+
+        const smartchainTokens = await this.$store.dispatch(
+          'sep20/getMissingAssets',
+          { address: this.wallet.sBCH._wallet.address, filterWithBalance: true }
+        )
+        const tokensCount = mainchainTokens.length + smartchainTokens.length
+
+        if (!tokensCount) return
+
+        const showTokenSuggestions = () => {
+          this.tokenSuggestionsDialog.show = true
+          this.tokenSuggestionsDialog.mainchainTokens = mainchainTokens
+          this.tokenSuggestionsDialog.smartchainTokens = smartchainTokens
+        }
+
+        if (autoOpen && this.tokenSuggestionsDialog.show) {
+          showTokenSuggestions()
+          return
+        }
+
+
+        this.$q.notify({
+          color: this.darkMode ? 'dark' : 'white',
+          textColor: this.darkMode ? 'white' : 'black',
+          progress: true,
+          timeout: 15 * 1000,
+          message: `Found ${tokensCount} token${tokensCount > 1 ? 's' : ''} for wallet.`,
+          actions: [
+            {
+              label: 'Dismiss',
+              color: this.darkMode ? 'white' : 'grey',
+              handler: () => { /* ... */ }
+            },
+            {
+              label: 'View tokens',
+              handler: showTokenSuggestions,
+            }
+          ]
+        })
+      } finally {
+        this.tokenSuggestionsDialog.loading = false
+      }
+    },
+
     async loadWallets () {
       const vm = this
       const mnemonic = await getMnemonic()
@@ -708,6 +790,7 @@ export default {
 
     // Load wallets
     this.loadWallets()
+      .then(() => this.checkMissingAssets())
 
     if (vm.prevPath === '/') {
       vm.logIn()

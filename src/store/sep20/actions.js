@@ -1,4 +1,5 @@
 import { axiosInstance } from '../../boot/axios'
+import { getSep20Contract } from '../../wallet/sbch/utils'
 
 function getTokenIdFromAssetId(assetId) {
   const match = String(assetId).match(/^sep20\/(0x[0-9a-fA-F]+)$/)
@@ -73,4 +74,53 @@ export async function updateTokenIcons(context, { all=false }) {
   })
 
   return updatedAssets
+}
+
+/**
+ * 
+ * @param {Object} context 
+ * @param {{ address: String, filterWithBalance: Boolean }} param1 
+ */
+export async function getMissingAssets(context, { address, filterWithBalance=true }) {
+  const filterParams = {
+    token_type: 20,
+    wallet_addresses: address,
+  }
+
+  if (Array.isArray(context.state.assets) && context.state.assets.length) {
+    filterParams.exclude_addresses = context.state.assets
+      .map(asset => {
+        const match = String(asset && asset.id).match(/^sep20\/(0x[a-fA-F0-9]+)$/)
+        if (!match) return
+        return match[1]
+      })
+      .filter(Boolean)
+      .join(',')
+  }
+
+  const { data } = await axiosInstance.get(
+    'https://watchtower.cash/api/smartbch/token-contracts/',
+    { params: filterParams }
+  )
+
+  if (!Array.isArray(data.results) && data.results.length) return []
+  if (!filterWithBalance) return data.results
+
+  const contracts = data.results
+    .map(tokenInfo => tokenInfo && tokenInfo.address)
+    .filter(Boolean)
+    .map(tokenAddress => getSep20Contract(tokenAddress, false))
+
+  const addresses = await Promise.all(contracts.map(async (contract) => {
+    try {
+      const balance = await contract.balanceOf(address)
+      if (balance > 0) return contract.address
+    } catch (err) { console.error(err) }
+    return
+  }))
+
+  return data.results.filter(tokenInfo => {
+    if (!tokenInfo || !tokenInfo.address) return false
+    return addresses.filter(Boolean).map(addr => addr.toLowerCase()).indexOf(tokenInfo.address.toLowerCase()) >= 0
+  })
 }
