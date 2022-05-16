@@ -116,24 +116,26 @@ export default {
       type: Boolean,
       default: false,
     },
-    loading: {
-      type: Boolean,
-      default: false,
+    slpWalletHash: {
+      type: String,
     },
-    mainchainTokens: {
-      type: Array,
-    },
-    smartchainTokens: {
-      type: Array,
+    sbchAddress: {
+      type: String,
     }
   },
   data() {
     return {
       val: this.value,
       selectedNetwork: 'BCH',
+      mainchainTokens: [],
+      smartchainTokens: [],
+      loading: false,
     }
   },
   computed: {
+    darkMode() {
+      return this.$store.getters['darkmode/getStatus']
+    },
     parsedTokens () {
       if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
       if (this.selectedNetwork === 'sBCH') return this.parsedSmartchainTokens
@@ -207,6 +209,61 @@ export default {
     },
     addAllTokens() {
       this.parsedTokens.forEach(this.addToken)
+    },
+    async updateMainchainList(opts={ includeIgnored: false }) {
+      this.mainchainTokens = await this.$store.dispatch(
+        'assets/getMissingAssets',
+        {
+          walletHash: this.slpWalletHash,
+          icludeIgnoredTokens: opts.includeIgnored,
+        }
+      )
+    },
+    async updateSmartchainList(opts={ includeIgnored: false }) {
+      this.smartchainTokens = await this.$store.dispatch(
+        'sep20/getMissingAssets',
+        {
+          address: this.sbchAddress,
+          icludeIgnoredTokens: opts.includeIgnored,
+        }
+      )
+    },
+    updateList(opts={ includeIgnored: false, autoOpen: false }) {
+      alert(`${this.slpWalletHash}, ${this.sbchAddress}`)
+      this.loading = true
+
+      Promise.all([this.updateMainchainList(opts),  this.updateSmartchainList(opts)])
+        .finally(() => {
+          this.loading = false
+        })
+
+      const count = this.parsedMainchainTokens.length + this.parsedSmartchainTokens.length
+      if (!count) return
+
+      if (opts.autoOpen) {
+        this.val = true
+      } else {
+        this.$q.notify({
+          color: this.darkMode ? 'dark' : 'white',
+          textColor: this.darkMode ? 'white' : 'black',
+          progress: true,
+          timeout: 15 * 1000,
+          message: `Found ${tokensCount} token${tokensCount > 1 ? 's' : ''} for wallet.`,
+          actions: [
+            {
+              label: 'Dismiss',
+              color: this.darkMode ? 'white' : 'grey',
+              handler: () => { /* ... */ }
+            },
+            {
+              label: 'View tokens',
+              handler: () => {
+                this.val = true
+              },
+            }
+          ]
+        })
+      }
     },
     onClose() {
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })
