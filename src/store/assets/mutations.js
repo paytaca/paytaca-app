@@ -40,6 +40,30 @@ export function removeAsset (state, assetId) {
 /**
  * 
  * @param {Object} state 
+ * @param {String} tokenId 
+ */
+export function addIgnoredTokenId(state, tokenId) {
+  if (!Array.isArray(state.ignoredTokenIds)) state.ignoredTokenIds = []
+  
+  if (state.ignoredTokenIds.indexOf(tokenId) < 0) state.ignoredTokenIds.push(tokenId)
+}
+
+
+/**
+ * 
+ * @param {Object} state 
+ * @param {String} tokenId 
+ */
+ export function removeIgnoredTokenId(state, tokenId) {
+  if (!Array.isArray(state.ignoredTokenIds)) return
+  const index = state.ignoredTokenIds.indexOf(tokenId)
+  if (index < 0) state.ignoredTokenIds.splice(index, 1)
+}
+
+
+/**
+ * 
+ * @param {Object} state 
  * @param {{ assetId: String, imageUrl: String }} data
  */
 export function updateAssetImageUrl(state, data) {

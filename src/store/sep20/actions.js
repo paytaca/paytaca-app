@@ -79,9 +79,9 @@ export async function updateTokenIcons(context, { all=false }) {
 /**
  * 
  * @param {Object} context 
- * @param {{ address: String, filterWithBalance: Boolean }} param1 
+ * @param {{ address: String, filterWithBalance: Boolean, includeIgnoredTokens: Boolean }} param1 
  */
-export async function getMissingAssets(context, { address, filterWithBalance=true }) {
+export async function getMissingAssets(context, { address, filterWithBalance=true, icludeIgnoredTokens=false }) {
   const filterParams = {
     token_type: 20,
     wallet_addresses: address,
@@ -96,6 +96,12 @@ export async function getMissingAssets(context, { address, filterWithBalance=tru
       })
       .filter(Boolean)
       .join(',')
+  }
+
+  if (icludeIgnoredTokens && Array.isArray(context.state.ignoredTokenIds) && context.state.ignoredTokenIds.length) {
+    let ignoredTokensStr = context.state.ignoredTokenIds.join(',')
+    if (filterParams.exclude_addresses) ignoredTokensStr = ',' + ignoredTokensStr
+    filterParams.exclude_addresses += ignoredTokensStr
   }
 
   const { data } = await axiosInstance.get(

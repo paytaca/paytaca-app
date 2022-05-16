@@ -23,6 +23,7 @@ export default function () {
         balance: 0
       }
     ],
+    ignoredTokenIds: [],
 
     nftAssets: [
       {
