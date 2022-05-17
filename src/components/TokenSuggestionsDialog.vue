@@ -16,6 +16,18 @@
         />
       </div>
       <!-- <q-separator/> -->
+      <q-btn
+        v-if="!loading"
+        label="View ignored tokens"
+        no-caps
+        flat
+        padding="none"
+        size="sm"
+        class="q-mx-md"
+        :text-color="darkMode ? 'grey-4' : 'grey'"
+        style="margin-top:-1.5rem;"
+        :to="{ path: '/apps/settings/ignored-tokens' }"
+      />
       <q-card-section class="q-pt-none">
         <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
           <q-tabs

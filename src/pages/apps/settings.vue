@@ -76,6 +76,19 @@
                       </q-select>
                     </q-item-section>
                 </q-item>
+                <q-item>
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Ignored Tokens</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-btn
+                      flat
+                      label="Manage"
+                      no-caps
+                      :to="{ path: '/apps/settings/ignored-tokens' }"
+                    />
+                  </q-item-section>
+                </q-item>
               </q-list>
           </div>
       </div>
