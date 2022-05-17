@@ -28,7 +28,7 @@
         style="margin-top:-1.5rem;"
         :to="{ path: '/apps/settings/ignored-tokens' }"
       />
-      <q-card-section class="q-pt-none">
+      <q-card-section class="q-pt-none q-px-sm">
         <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
           <q-tabs
             active-color="brandblue"
@@ -52,7 +52,7 @@
               <q-item
                 :key="index"
                 :class="[
-                  darkMode ? 'text-white' : 'text-black',
+                  isAssetInIgnoredList(token.id) ? 'text-grey' : (darkMode ? 'text-white' : 'text-black'),
                 ]"
               >
                 <q-item-section v-if="token.logo" side>
@@ -67,13 +67,22 @@
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn
-                    round
-                    padding="sm"
-                    :icon="assetIdExists(token.id) ? 'remove' : 'add'"
-                    :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
-                    @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
-                  />
+                  <div class="row q-gutter-sm">
+                    <q-btn
+                      round
+                      padding="sm"
+                      :icon="isAssetInIgnoredList(token.id) ? 'notifications_off' : 'notifications_active'"
+                      :text-color="isAssetInIgnoredList(token.id) ? 'grey' : (darkMode ? 'white' : 'black')"
+                      @click="isAssetInIgnoredList(token.id) ? removeTokenFromIgnoredList(token) : addTokenToIgnoredList(token)"
+                    />
+                    <q-btn
+                      round
+                      padding="sm"
+                      :icon="assetIdExists(token.id) ? 'remove' : 'add'"
+                      :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
+                      @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
+                    />
+                  </div>
                 </q-item-section>
               </q-item>
               <q-separator v-if="index < parsedTokens.length - 1" :dark="darkMode"/>
@@ -106,7 +115,7 @@
           v-close-popup
         />
         <q-btn
-          v-if="parsedTokens.length > 0"
+          v-if="parsedTokens.length > 0 && !loading"
           no-caps
           :label="`Add all ${parsedTokens.length}`"
           :text-color="darkMode ? 'black' : 'white'"
@@ -204,6 +213,10 @@ export default {
       }
       return false  
     },
+    isAssetInIgnoredList(assetId) {
+      return this.$store.getters['assets/ignoredAssets'].some(asset => asset && asset.id === assetId) ||
+              this.$store.getters['sep20/ignoredAssets'].some(asset => asset && asset.id === assetId) 
+    },
     assetIdExists(assetId) {
       return this.isMainchainAsset(assetId) || this.isSmartchainAsset(assetId)
     },
@@ -219,20 +232,20 @@ export default {
       if (tokenInfo.isSep20) this.$store.commit('sep20/removeAsset', tokenInfo.id)
       else this.$store.commit('assets/removeAsset', tokenInfo.id)
     },
+    addTokenToIgnoredList(tokenInfo) {
+      if (!tokenInfo) return
+
+      if (tokenInfo.isSep20) this.$store.commit('sep20/addIgnoredAsset', tokenInfo)
+      else this.$store.commit('assets/addIgnoredAsset', tokenInfo)
+    },
+    removeTokenFromIgnoredList(tokenInfo) {
+      if (!tokenInfo || !tokenInfo.id) return
+
+      if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
+      else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
+    },
     addAllTokens() {
       this.parsedTokens.forEach(this.addToken)
-    },
-    addTokensToIgnoredList() {
-      this.parsedMainchainTokens.forEach(tokenInfo => {
-        if (this.assetIdExists(tokenInfo.id)) return
-
-        this.$store.commit('assets/addIgnoredAsset', tokenInfo)
-      })
-      this.parsedSmartchainTokens.forEach(tokenInfo => {
-        if (this.assetIdExists(tokenInfo.id)) return
-
-        this.$store.commit('sep20/addIgnoredAsset', tokenInfo)
-      })
     },
     async updateMainchainList(opts={ includeIgnored: false }) {
       this.mainchainTokens = await this.$store.dispatch(
@@ -290,8 +303,6 @@ export default {
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
-
-      if (!this.loading) this.addTokensToIgnoredList()
     }
   },
   watch: {
