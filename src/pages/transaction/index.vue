@@ -144,10 +144,10 @@
     <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
     <TokenSuggestionsDialog
-      v-model="tokenSuggestionsDialog.show"
-      :mainchain-tokens="tokenSuggestionsDialog.mainchainTokens"
-      :smartchain-tokens="tokenSuggestionsDialog.smartchainTokens"
-      :loading="tokenSuggestionsDialog.loading"
+      ref="tokenSuggestionsDialog"
+      v-model="showTokenSuggestionsDialog"
+      :slp-wallet-hash="getWallet('slp').walletHash"
+      :sbch-address="wallet && wallet.sBCH && wallet.sBCH._wallet && wallet.sBCH._wallet.address"
     />
   </div>
 </template>
@@ -216,13 +216,7 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       startPageStatus: true,
       prevPath: null,
-      tokenSuggestionsDialog: {
-        show: false,
-        loading: false,
-        tokens: [],
-        smartchainTokens: [],
-        mainchainTokens: [],
-      },
+      showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -651,61 +645,9 @@ export default {
     },
 
     async checkMissingAssets(opts={ autoOpen: false }) {
-      try {
-        const autoOpen = opts && opts.autoOpen
-        this.tokenSuggestionsDialog.loading = true
-        if (autoOpen) {
-          this.tokenSuggestionsDialog.mainchainTokens = []
-          this.tokenSuggestionsDialog.smartchainTokens = []
-          this.tokenSuggestionsDialog.show = true
-        }
-
-        const mainchainTokens = await this.$store.dispatch(
-          'assets/getMissingAssets',
-          { walletHash: this.getWallet('slp').walletHash }
-        )
-
-        const smartchainTokens = await this.$store.dispatch(
-          'sep20/getMissingAssets',
-          { address: this.wallet.sBCH._wallet.address, filterWithBalance: true }
-        )
-        const tokensCount = mainchainTokens.length + smartchainTokens.length
-
-        if (!tokensCount) return
-
-        const showTokenSuggestions = () => {
-          this.tokenSuggestionsDialog.show = true
-          this.tokenSuggestionsDialog.mainchainTokens = mainchainTokens
-          this.tokenSuggestionsDialog.smartchainTokens = smartchainTokens
-        }
-
-        if (autoOpen && this.tokenSuggestionsDialog.show) {
-          showTokenSuggestions()
-          return
-        }
-
-
-        this.$q.notify({
-          color: this.darkMode ? 'dark' : 'white',
-          textColor: this.darkMode ? 'white' : 'black',
-          progress: true,
-          timeout: 15 * 1000,
-          message: `Found ${tokensCount} token${tokensCount > 1 ? 's' : ''} for wallet.`,
-          actions: [
-            {
-              label: 'Dismiss',
-              color: this.darkMode ? 'white' : 'grey',
-              handler: () => { /* ... */ }
-            },
-            {
-              label: 'View tokens',
-              handler: showTokenSuggestions,
-            }
-          ]
-        })
-      } finally {
-        this.tokenSuggestionsDialog.loading = false
-      }
+      if (!this.$refs.tokenSuggestionsDialog) return Promise.reject()
+      this.showTokenSuggestionsDialog = Boolean(opts && opts.autoOpen)
+      return this.$refs.tokenSuggestionsDialog.updateList(opts)
     },
 
     async loadWallets () {
@@ -790,7 +732,14 @@ export default {
 
     // Load wallets
     this.loadWallets()
-      .then(() => this.checkMissingAssets())
+      .then(() => {
+        console.log('Notified suggestions: ', this.$root.hasSuggestedAssets)
+        if (this.$root.hasSuggestedAssets) return
+        this.checkMissingAssets()
+          .then(() => {
+            this.$root.hasSuggestedAssets = true
+          })
+      })
 
     if (vm.prevPath === '/') {
       vm.logIn()

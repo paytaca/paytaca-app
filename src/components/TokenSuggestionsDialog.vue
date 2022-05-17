@@ -16,13 +16,25 @@
         />
       </div>
       <!-- <q-separator/> -->
-      <q-card-section class="q-pt-none">
+      <q-btn
+        v-if="!loading"
+        label="View ignored tokens"
+        no-caps
+        flat
+        padding="none"
+        size="sm"
+        class="q-mx-md"
+        :text-color="darkMode ? 'grey-4' : 'grey'"
+        style="margin-top:-1.5rem;"
+        :to="{ path: '/apps/settings/ignored-tokens' }"
+      />
+      <q-card-section class="q-pt-none q-px-sm">
         <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
           <q-tabs
             active-color="brandblue"
             class="col-12 q-px-sm q-pb-md pp-fcolor"
             v-model="selectedNetwork"
-            style="margin-top: -20px; padding-bottom: 16px;"
+            style="padding-bottom: 16px;"
           >
             <q-tab
               name="BCH"
@@ -40,7 +52,7 @@
               <q-item
                 :key="index"
                 :class="[
-                  darkMode ? 'text-white' : 'text-black',
+                  isAssetInIgnoredList(token.id) ? 'text-grey' : (darkMode ? 'text-white' : 'text-black'),
                 ]"
               >
                 <q-item-section v-if="token.logo" side>
@@ -55,13 +67,22 @@
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn
-                    round
-                    padding="sm"
-                    :icon="assetIdExists(token.id) ? 'remove' : 'add'"
-                    :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
-                    @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
-                  />
+                  <div class="row q-gutter-sm">
+                    <q-btn
+                      round
+                      padding="sm"
+                      :icon="isAssetInIgnoredList(token.id) ? 'notifications_off' : 'notifications_active'"
+                      :text-color="isAssetInIgnoredList(token.id) ? 'grey' : (darkMode ? 'white' : 'black')"
+                      @click="isAssetInIgnoredList(token.id) ? removeTokenFromIgnoredList(token) : addTokenToIgnoredList(token)"
+                    />
+                    <q-btn
+                      round
+                      padding="sm"
+                      :icon="assetIdExists(token.id) ? 'remove' : 'add'"
+                      :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
+                      @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
+                    />
+                  </div>
                 </q-item-section>
               </q-item>
               <q-separator v-if="index < parsedTokens.length - 1" :dark="darkMode"/>
@@ -94,7 +115,7 @@
           v-close-popup
         />
         <q-btn
-          v-if="parsedTokens.length > 0"
+          v-if="parsedTokens.length > 0 && !loading"
           no-caps
           :label="`Add all ${parsedTokens.length}`"
           :text-color="darkMode ? 'black' : 'white'"
@@ -116,24 +137,26 @@ export default {
       type: Boolean,
       default: false,
     },
-    loading: {
-      type: Boolean,
-      default: false,
+    slpWalletHash: {
+      type: String,
     },
-    mainchainTokens: {
-      type: Array,
-    },
-    smartchainTokens: {
-      type: Array,
+    sbchAddress: {
+      type: String,
     }
   },
   data() {
     return {
       val: this.value,
       selectedNetwork: 'BCH',
+      mainchainTokens: [],
+      smartchainTokens: [],
+      loading: false,
     }
   },
   computed: {
+    darkMode() {
+      return this.$store.getters['darkmode/getStatus']
+    },
     parsedTokens () {
       if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
       if (this.selectedNetwork === 'sBCH') return this.parsedSmartchainTokens
@@ -190,6 +213,10 @@ export default {
       }
       return false  
     },
+    isAssetInIgnoredList(assetId) {
+      return this.$store.getters['assets/ignoredAssets'].some(asset => asset && asset.id === assetId) ||
+              this.$store.getters['sep20/ignoredAssets'].some(asset => asset && asset.id === assetId) 
+    },
     assetIdExists(assetId) {
       return this.isMainchainAsset(assetId) || this.isSmartchainAsset(assetId)
     },
@@ -205,8 +232,72 @@ export default {
       if (tokenInfo.isSep20) this.$store.commit('sep20/removeAsset', tokenInfo.id)
       else this.$store.commit('assets/removeAsset', tokenInfo.id)
     },
+    addTokenToIgnoredList(tokenInfo) {
+      if (!tokenInfo) return
+
+      if (tokenInfo.isSep20) this.$store.commit('sep20/addIgnoredAsset', tokenInfo)
+      else this.$store.commit('assets/addIgnoredAsset', tokenInfo)
+    },
+    removeTokenFromIgnoredList(tokenInfo) {
+      if (!tokenInfo || !tokenInfo.id) return
+
+      if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
+      else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
+    },
     addAllTokens() {
       this.parsedTokens.forEach(this.addToken)
+    },
+    async updateMainchainList(opts={ includeIgnored: false }) {
+      this.mainchainTokens = await this.$store.dispatch(
+        'assets/getMissingAssets',
+        {
+          walletHash: this.slpWalletHash,
+          icludeIgnoredTokens: opts.includeIgnored,
+        }
+      )
+    },
+    async updateSmartchainList(opts={ includeIgnored: false }) {
+      this.smartchainTokens = await this.$store.dispatch(
+        'sep20/getMissingAssets',
+        {
+          address: this.sbchAddress,
+          icludeIgnoredTokens: opts.includeIgnored,
+        }
+      )
+    },
+    async updateList(opts={ includeIgnored: false, autoOpen: false }) {
+      this.loading = true
+
+      await Promise.all([this.updateMainchainList(opts),  this.updateSmartchainList(opts)])  
+      this.loading = false
+
+      const count = this.parsedMainchainTokens.length + this.parsedSmartchainTokens.length
+      if (!count) return
+
+      if (opts.autoOpen) {
+        this.val = true
+      } else {
+        this.$q.notify({
+          color: this.darkMode ? 'dark' : 'white',
+          textColor: this.darkMode ? 'white' : 'black',
+          progress: true,
+          timeout: 15 * 1000,
+          message: `Found ${count} token${count > 1 ? 's' : ''} for wallet.`,
+          actions: [
+            {
+              label: 'Dismiss',
+              color: this.darkMode ? 'white' : 'grey',
+              handler: () => { /* ... */ }
+            },
+            {
+              label: 'View tokens',
+              handler: () => {
+                this.val = true
+              },
+            }
+          ]
+        })
+      }
     },
     onClose() {
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })

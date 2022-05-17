@@ -22,6 +22,7 @@ export default function () {
         logo: 'spice-logo.png',
         balance: 0
       }
-    ]
+    ],
+    ignoredAssets: [],
   }
 }

@@ -40,6 +40,37 @@ export function removeAsset (state, assetId) {
 /**
  * 
  * @param {Object} state 
+ * @param {{ id:String, symbol:String, name:String, logo: String }} asset
+ */
+export function addIgnoredAsset(state, asset) {
+  if (!asset || !asset.id) return
+  if (!Array.isArray(state.ignoredAssets)) state.ignoredAssets = []
+  
+  const index = state.ignoredAssets.map(assetInfo => assetInfo && assetInfo.id).indexOf(asset.id)
+  if (index >= 0) state.ignoredAssets[index] = asset
+  else state.ignoredAssets.push(asset)
+}
+
+
+/**
+ * 
+ * @param {Object} state 
+ * @param {String} assetId
+ */
+export function removeIgnoredAsset(state, assetId) {
+  if (!Array.isArray(state.ignoredAssets)) return
+  state.ignoredAssets = state.ignoredAssets
+    .filter(asset => {
+      if (!asset || !asset.id) return
+      return asset.id !== assetId
+    })
+    .filter(Boolean)
+}
+
+
+/**
+ * 
+ * @param {Object} state 
  * @param {{ assetId: String, imageUrl: String }} data
  */
 export function updateAssetImageUrl(state, data) {
