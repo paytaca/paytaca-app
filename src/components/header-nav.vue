@@ -4,7 +4,7 @@
       <div class="col 12">
         <div class="pt-header" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
           <router-link :to="{ path: backnavpath }" class="pt-arrow-left-link" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" :style="{width: $q.platform.is.bex ? '375px' : '100%'}">
-            <span class="material-icons">
+            <span class="material-icons" @click="!backnavpath ? $router.go(-1) : null">
                 arrow_back
             </span>
           </router-link>

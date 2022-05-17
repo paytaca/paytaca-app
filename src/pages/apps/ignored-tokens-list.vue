@@ -1,6 +1,6 @@
 <template>
   <div class="pt-settings" :class="{'pt-dark': darkMode}">
-    <header-nav title="Ignored Tokens" backnavpath="/apps/settings" />
+    <header-nav title="Ignored Tokens"/>
     <div
       style="padding-top:100px;height:100vh;"
       :class="[
