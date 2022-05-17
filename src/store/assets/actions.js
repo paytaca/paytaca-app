@@ -88,7 +88,8 @@ export async function getMissingAssets(context, { walletHash, icludeIgnoredToken
   const filterParams = {
     has_balance: true,
     token_type: 1,
-    wallet_hash: walletHash,
+    limit: 3,
+    // wallet_hash: walletHash,
   }
 
   if (Array.isArray(context.state.assets) && context.state.assets.length) {

@@ -645,9 +645,9 @@ export default {
     },
 
     async checkMissingAssets(opts={ autoOpen: false }) {
-      if (!this.$refs.tokenSuggestionsDialog) return
-      this.$refs.tokenSuggestionsDialog.updateList(opts)
+      if (!this.$refs.tokenSuggestionsDialog) return Promise.reject()
       this.showTokenSuggestionsDialog = Boolean(opts && opts.autoOpen)
+      return this.$refs.tokenSuggestionsDialog.updateList(opts)
     },
 
     async loadWallets () {
@@ -732,7 +732,14 @@ export default {
 
     // Load wallets
     this.loadWallets()
-      .then(() => this.checkMissingAssets())
+      .then(() => {
+        console.log('Notified suggestions: ', this.$root.hasSuggestedAssets)
+        if (this.$root.hasSuggestedAssets) return
+        this.checkMissingAssets()
+          .then(() => {
+            this.$root.hasSuggestedAssets = true
+          })
+      })
 
     if (vm.prevPath === '/') {
       vm.logIn()

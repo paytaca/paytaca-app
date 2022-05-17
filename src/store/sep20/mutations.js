@@ -60,7 +60,7 @@ export function addIgnoredAsset(state, asset) {
 export function removeIgnoredAsset(state, assetId) {
   if (!Array.isArray(state.ignoredAssets)) return
   state.ignoredAssets = state.ignoredAssets
-    .map(asset => {
+    .filter(asset => {
       if (!asset || !asset.id) return
       return asset.id !== assetId
     })
