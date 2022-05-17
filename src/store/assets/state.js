@@ -23,6 +23,6 @@ export default function () {
         balance: 0
       }
     ],
-    ignoredTokenIds: [],
+    ignoredAssets: [],
   }
 }

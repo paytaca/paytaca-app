@@ -98,8 +98,8 @@ export async function getMissingAssets(context, { address, filterWithBalance=tru
       .join(',')
   }
 
-  if (icludeIgnoredTokens && Array.isArray(context.state.ignoredTokenIds) && context.state.ignoredTokenIds.length) {
-    let ignoredTokensStr = context.state.ignoredTokenIds.join(',')
+  if (!icludeIgnoredTokens && context.getters.ignoredTokenIds.length) {
+    let ignoredTokensStr = context.getters.ignoredTokenIds.join(',')
     if (filterParams.exclude_addresses) ignoredTokensStr = ',' + ignoredTokensStr
     filterParams.exclude_addresses += ignoredTokensStr
   }

@@ -22,7 +22,7 @@
             active-color="brandblue"
             class="col-12 q-px-sm q-pb-md pp-fcolor"
             v-model="selectedNetwork"
-            style="margin-top: -20px; padding-bottom: 16px;"
+            style="padding-bottom: 16px;"
           >
             <q-tab
               name="BCH"
@@ -210,6 +210,18 @@ export default {
     addAllTokens() {
       this.parsedTokens.forEach(this.addToken)
     },
+    addTokensToIgnoredList() {
+      this.parsedMainchainTokens.forEach(tokenInfo => {
+        if (this.assetIdExists(tokenInfo.id)) return
+
+        this.$store.commit('assets/addIgnoredAsset', tokenInfo)
+      })
+      this.parsedSmartchainTokens.forEach(tokenInfo => {
+        if (this.assetIdExists(tokenInfo.id)) return
+
+        this.$store.commit('sep20/addIgnoredAsset', tokenInfo)
+      })
+    },
     async updateMainchainList(opts={ includeIgnored: false }) {
       this.mainchainTokens = await this.$store.dispatch(
         'assets/getMissingAssets',
@@ -228,14 +240,11 @@ export default {
         }
       )
     },
-    updateList(opts={ includeIgnored: false, autoOpen: false }) {
-      alert(`${this.slpWalletHash}, ${this.sbchAddress}`)
+    async updateList(opts={ includeIgnored: false, autoOpen: false }) {
       this.loading = true
 
-      Promise.all([this.updateMainchainList(opts),  this.updateSmartchainList(opts)])
-        .finally(() => {
-          this.loading = false
-        })
+      await Promise.all([this.updateMainchainList(opts),  this.updateSmartchainList(opts)])  
+      this.loading = false
 
       const count = this.parsedMainchainTokens.length + this.parsedSmartchainTokens.length
       if (!count) return
@@ -248,7 +257,7 @@ export default {
           textColor: this.darkMode ? 'white' : 'black',
           progress: true,
           timeout: 15 * 1000,
-          message: `Found ${tokensCount} token${tokensCount > 1 ? 's' : ''} for wallet.`,
+          message: `Found ${count} token${count > 1 ? 's' : ''} for wallet.`,
           actions: [
             {
               label: 'Dismiss',
@@ -269,6 +278,8 @@ export default {
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
+
+      if (!this.loading) this.addTokensToIgnoredList()
     }
   },
   watch: {

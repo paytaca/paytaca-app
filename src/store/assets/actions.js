@@ -102,8 +102,8 @@ export async function getMissingAssets(context, { walletHash, icludeIgnoredToken
       .join(',')
   }
 
-  if (icludeIgnoredTokens && Array.isArray(context.state.ignoredTokenIds) && context.state.ignoredTokenIds.length) {
-    let ignoredTokensStr = context.state.ignoredTokenIds.join(',')
+  if (!icludeIgnoredTokens && context.getters.ignoredTokenIds.length) {
+    let ignoredTokensStr = context.getters.ignoredTokenIds.join(',')
     if (filterParams.exclude_token_ids) ignoredTokensStr = ',' + ignoredTokensStr
     filterParams.exclude_token_ids += ignoredTokensStr
   }
