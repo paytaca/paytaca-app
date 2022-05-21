@@ -575,8 +575,8 @@ export default {
           amount: this.stagedSwapDetails.amount,
           minReturn: this.computedStagedSwapDetails.minReturn,
           distribution: this.stagedSwapDetails.distribution,
-          // deadline: Math.round(Date.now() / 1000) + 20 * 60, // 20 minutes from timestamp
-          // feePercent: 500000000000000, // taken from tango swap
+          deadline: Math.round(Date.now() / 1000) + 20 * 60, // 20 minutes from timestamp
+          feePercent: 500000000000000, // taken from tango swap
         }
         const txParams = await getSwapDetails(params)
         console.log(decodeSwapHexData(txParams.data))
