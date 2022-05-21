@@ -414,7 +414,25 @@ export default {
         this.networkData.isApproved = true
         this.updateNetworkData()
       }
-      setTimeout(onApproveSuccess, 2000)
+
+      approveTokenOnSmartswap(tokenInfo.address, this.wallet.sBCH._wallet)
+        .then(response => {
+          if (response.success) {
+            onApproveSuccess()
+            return Promise.resolve(response)
+          }
+          return Promise.reject(response)
+        })
+        .catch((error) => {
+          dialog.update({
+            message: 'Failed to approve token' + ((error && error.error) ? `. ${error.error}` : ''),
+            progress: false,
+            ok: true,
+          })
+        })
+        .finally(() => {
+          this.approvingToken = false
+        })
     },
     updateNetworkData: debounce (async function() {
       this.networkData.loading = true
