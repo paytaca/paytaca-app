@@ -129,6 +129,9 @@
           @click="confirmApproveToken()"
         />
       </div>
+      <div class="row justify-center" style="margin-top: 24px; color: gray;">
+        <span>Powered by SmartSwap.fi</span>
+      </div>
     </q-card-section>
     <q-card-section v-else>
       <div v-if="!stagedSwapDetails.txid" class="row items-center justify-end">
@@ -190,8 +193,12 @@
           <a :href="`https://www.smartscan.cash/transaction/${stagedSwapDetails.txid}`" target="_blank"> {{ stagedSwapDetails.txid }}</a>
         </div>
       </div>
+      <hr>
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
         <ProgressLoader/>
+      </div>
+      <div class="row justify-center" style="margin-top: 24px; color: gray;">
+        <span>Powered by SmartSwap.fi</span>
       </div>
       <DragSlide
         v-if="stagedSwapDetails.show && stagedSwapDetails.showConfirmSwipe"
@@ -219,7 +226,7 @@ import {
   bigNumberToCurrency,
   getSwapDetails,
   decodeSwapHexData,
-  BigNumber,
+  BigNumber
 } from '../../wallet/smartswap'
 import { bchToken, tokensList } from '../../wallet/smartswap/tokens'
 import DragSlide from '../drag-slide.vue'
@@ -240,7 +247,7 @@ export default {
       default: false,
     }
   },
-  data() {
+  data () {
     return {
       wallet: null,
 
@@ -251,7 +258,7 @@ export default {
         // sourceToken: tokensList[2],
         destToken: tokensList[3],
         amount: 0,
-        slippageTolerance: 1,
+        slippageTolerance: 1
       },
 
       // info that needs to be updated from the network when formData changes, see computed 'networkDataReqs' below
@@ -262,14 +269,14 @@ export default {
         expectedReturn: 0,
         distribution: [],
 
-        error: null,
+        error: null
       },
       approvingToken: false,
 
       // state for regular network data update functionality
       networkDataUpdater: {
         intervalId: null,
-        rate: 60 * 1000,
+        rate: 60 * 1000
       },
 
       // all the info necessary to display, confirm, and perform the swap is moved in this object to;
@@ -300,23 +307,23 @@ export default {
 
         loading: false,
         error: null,
-        txid: '',
+        txid: ''
       },
 
       tokensList: [bchToken, ...tokensList],
     }
   },
   computed: {
-    computedFormData() {
+    computedFormData () {
       /*
         Swap info that are calculated from 'networkData' and 'formData'
       */
       const slippagePctg = this.formData.slippageTolerance / 100
       return {
-        minimumReturn: this.networkData.expectedReturn * (1-slippagePctg)
+        minimumReturn: this.networkData.expectedReturn * (1 - slippagePctg)
       }
     },
-    networkDataReqs() {
+    networkDataReqs () {
       /*
         Extracted data from formData to use when updating network data
       */
@@ -324,16 +331,16 @@ export default {
       return {
         sourceToken: {
           address: this.formData.sourceToken.address,
-          decimals: this.formData.sourceToken.decimals,
+          decimals: this.formData.sourceToken.decimals
         },
         destToken: {
           address: this.formData.destToken.address,
-          decimals: this.formData.destToken.decimals,
+          decimals: this.formData.destToken.decimals
         },
-        amount: parsedAmount,
+        amount: parsedAmount
       }
     },
-    parsedSwapParameters() {
+    parsedSwapParameters () {
       /*
         Swap info taken from 'networkData' and 'formData', used for as parameters for the final params
       */
@@ -347,7 +354,7 @@ export default {
 
       return params
     },
-    computedStagedSwapDetails() {
+    computedStagedSwapDetails () {
       const minReturn = this.stagedSwapDetails.expectedReturn.sub(
         this.stagedSwapDetails.expectedReturn.div(10 ** 2).mul(this.formData.slippageTolerance)
       )
@@ -360,15 +367,15 @@ export default {
           bigNumberToCurrency(this.stagedSwapDetails.expectedReturn, this.stagedSwapDetails.destToken.decimals)
         ),
         minReturn: minReturn,
-        formattedMinReturn: formattedMinReturn,
+        formattedMinReturn: formattedMinReturn
       }
     },
   },
   methods: {
-    formatNumber(value=0, decimals=6) {
+    formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },
-    confirmApproveToken() {
+    confirmApproveToken () {
       if (this.approvingToken) return
 
       const tokenInfo = {
@@ -386,7 +393,7 @@ export default {
           this.approveSourceToken()
         })
     },
-    approveSourceToken() {
+    approveSourceToken () {
       if (this.approvingToken) return
 
       const tokenInfo = {
@@ -434,7 +441,7 @@ export default {
           this.approvingToken = false
         })
     },
-    updateNetworkData: debounce (async function() {
+    updateNetworkData: debounce(async function () {
       this.networkData.loading = true
       this.networkData.error = null
       try {
@@ -451,7 +458,7 @@ export default {
           const { amount: expectedReturn, distribution: _distribution } = await getExpectedReturnWithGas(
             this.networkDataReqs.sourceToken.address,
             this.networkDataReqs.destToken.address,
-            this.networkDataReqs.amount.toHexString(),
+            this.networkDataReqs.amount.toHexString()
           )
 
           parsedExpectedReturn = bigNumberToCurrency(expectedReturn, this.networkDataReqs.destToken.decimals)
@@ -466,27 +473,27 @@ export default {
         this.networkData.expectedReturn = parsedExpectedReturn
         this.networkData.exchangeRate = exchangeRate
         this.networkData.distribution = distribution
-      } catch(error) {
-        console.error("Error fetching network data")
+      } catch (error) {
+        console.error('Error fetching network data')
         console.error(error)
         this.networkData.error = error
       } finally {
         this.networkData.loading = false
       }
     }, 500),
-    startNetworkDataUpdater(forceRestart = false) {
+    startNetworkDataUpdater (forceRestart = false) {
       if (this.networkDataUpdater.intervalId && !forceRestart) return
       this.stopNetworkDataUpdater()
       this.networkDataUpdater.intervalId = setInterval(() => {
         this.updateNetworkData()
       }, this.networkDataUpdater.rate)
     },
-    stopNetworkDataUpdater() {
+    stopNetworkDataUpdater () {
       if (!this.networkDataUpdater.intervalId) return
       clearInterval(this.networkDataUpdater.intervalId)
       this.networkDataUpdater.intervalId = null
     },
-    updateExcptectedReturn() {
+    updateExcptectedReturn () {
       /*
         Intended only for interactivity purposes in the ui,
         should ideally call 'updateNetworkData' after for more reliable data
@@ -497,7 +504,7 @@ export default {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
-    selectSourceToken() {
+    selectSourceToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
         tokensList: this.tokensList,
@@ -512,11 +519,11 @@ export default {
           this.formData.sourceToken = token
         })
     },
-    selectDestToken() {
+    selectDestToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
         tokensList: this.tokensList,
-        darkMode: this.darkMode,
+        darkMode: this.darkMode
       })
         .onOk(token => {
           if (!token) return
@@ -527,12 +534,12 @@ export default {
           this.formData.destToken = token
         })
     },
-    reverseSelectedTokens() {
+    reverseSelectedTokens () {
       const buffer = this.formData.destToken
       this.formData.destToken = this.formData.sourceToken
       this.formData.sourceToken = buffer
     },
-    confirmSwiped() {
+    confirmSwiped () {
       this.stagedSwapDetails.showConfirmSwipe = false
       this.$q.dialog({
         component: SecurityCheckDialog,
@@ -545,7 +552,7 @@ export default {
           this.stagedSwapDetails.showConfirmSwipe = true
         })
     },
-    moveSwapDetailsToStaging() { 
+    moveSwapDetailsToStaging () {
       // guard to prevent updating data while sending swap transaction
       if (this.stagedSwapDetails.loading) return
       this.stagedSwapDetails.error = null
@@ -558,14 +565,15 @@ export default {
         name: this.formData.sourceToken.name,
         symbol: this.formData.sourceToken.symbol,
         decimals: this.formData.sourceToken.decimals,
-        image_url: this.formData.sourceToken.image_url,
-      },
+        image_url: this.formData.sourceToken.image_url
+      }
+
       this.stagedSwapDetails.destToken = {
         address: this.formData.destToken.address,
         name: this.formData.destToken.name,
         symbol: this.formData.destToken.symbol,
         decimals: this.formData.destToken.decimals,
-        image_url: this.formData.destToken.image_url,
+        image_url: this.formData.destToken.image_url
       }
 
       this.stagedSwapDetails.amount = currencyToBigNumber(this.formData.amount, this.formData.sourceToken.decimals)
@@ -576,7 +584,7 @@ export default {
       this.stagedSwapDetails.show = true
       this.stagedSwapDetails.showConfirmSwipe = true
     },
-    async commitStagedSwapDetails() {
+    async commitStagedSwapDetails () {
       // guard to check if swap details are shown before performing
       if (!this.stagedSwapDetails.show) return
 
