@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { BigNumber, ethers, utils } from 'ethers'
 
 import { sep20Abi, erc721Abi } from './abi'
@@ -59,6 +60,52 @@ export async function getERC721ContractDetails (contractAddress, test = false) {
       name: tokenName,
       symbol: tokenSymbol
     }
+  }
+}
+
+
+export async function getSep20ContractDetails (contractAddress, test) {
+  const parsedAddress = utils.getAddress(String(contractAddress).toLowerCase())
+  if (!utils.isAddress(parsedAddress)) {
+    return {
+      success: false,
+      error: 'Invalid token address'
+    }
+  }
+
+  const token = {
+    address: parsedAddress,
+    name: '',
+    symbol: '',
+    decimals: 0,
+    image_url: '',
+  }
+  try {
+    const { data } = await axios.get(`https://watchtower.cash/api/smartbch/token-contracts/${parsedAddress}/`)
+    if (data && data.name && data.symbol) {
+      token.name = data.name
+      token.symbol = data.symbol
+      token.decimals = data.decimals
+      token.image_url = data.image_url
+    }
+  } catch {}
+
+  if (!token.name && !token.symbol) {
+    const tokenContract = getSep20Contract(parsedAddress, test)
+    tokenContract // necessary for not getting reference error
+    const data = await Promise.all([
+      tokenContract.name(),
+      tokenContract.symbol(),
+      tokenContract.decimals(),
+    ])
+    token.name = data[0]
+    token.symbol = data[1]
+    token.decimals = data[2]
+  }
+
+  return {
+    success: true,
+    token: token,
   }
 }
 
