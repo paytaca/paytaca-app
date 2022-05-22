@@ -2,7 +2,7 @@
   <q-card
     :flat="darkMode"
     :class="[
-      darkMode ? 'text-white pt-dark' : 'text-black',
+      darkMode ? 'text-white pt-dark-card' : 'text-black',
     ]"
   >
     <q-card-section v-if="!stagedSwapDetails.show">
@@ -28,8 +28,8 @@
         </template>
       </q-banner>
       <q-item clickable>
-        <q-item-section avatar @click="selectSourceToken()">
-          <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" class="q-mr-xs">
+        <q-item-section avatar @click="selectSourceToken()" class="items-center">
+          <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" class="q-mr-xs" style="border-radius:50%">
           <q-item-label>
             {{ formData.sourceToken.symbol }}
           </q-item-label>
@@ -58,8 +58,8 @@
       </div>
 
       <q-item clickable>
-        <q-item-section avatar @click="selectDestToken()">
-          <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" class="q-mr-xs">
+        <q-item-section avatar @click="selectDestToken()" class="items-center">
+          <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" class="q-mr-xs" style="border-radius:50%">
           <q-item-label>
             {{ formData.destToken.symbol }}
           </q-item-label>
@@ -639,6 +639,8 @@ export default {
               ...response.data.tokens
                 .map(token => {
                   if (!token || !token.address) return
+                  if (token.chainId !== 10000) return
+
                   return {
                     address: token.address,
                     name: token.name,
