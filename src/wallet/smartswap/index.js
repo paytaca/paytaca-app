@@ -3,7 +3,6 @@ import { getProvider, getSep20Contract } from '../sbch/utils'
 import smartswapAbi from './abi'
 
 export { BigNumber }
-window.BN = BigNumber
 
 
 // Token address is from TangoSwap
@@ -37,18 +36,6 @@ export function bigNumberToCurrency(value, decimals=0) {
   if (decimals < 0) decimals = 0
 
   return Number(utils.formatUnits(value, decimals))
-}
-
-
-/**
- * 
- * @param {String} sourceTokenAddress SEP20 token contract address
- * @param {String} destTokenAddress SEP20 token contract address
- * @returns {ethers.BigNumber|null}
-*/
-export async function getSwaprate(sourceTokenAddress, destTokenAddress) {
-  const response = await contract.getExpectedReturn(sourceTokenAddress, destTokenAddress, '0x1', 1, 0)
-  return response.returnAmount
 }
 
 
@@ -184,4 +171,3 @@ export function decodeSwapHexData(dataHex) {
     feePercent: data.feePercent,
   }
 }
-window.decodeSwapHexData = decodeSwapHexData
