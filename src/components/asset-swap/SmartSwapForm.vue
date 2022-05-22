@@ -11,7 +11,15 @@
           round
           padding="xs"
           icon="refresh"
+          class="q-ml-md"
           @click="updateNetworkData()"
+        />
+        <q-btn
+          round
+          padding="xs"
+          icon="settings"
+          class="q-ml-md"
+          @click="showSettingsDialogForm = true"
         />
       </div>
 
@@ -85,12 +93,17 @@
           {{ formData.destToken.symbol }}
         </template>
       </div>
+      <div class="q-px-sm row items-center justify-end">
+        <q-btn icon="launch" flat padding="xs" size="sm" @click="showSettingsDialogForm = true"/>
+      </div>
       <q-item>
         <q-item-section side>
           <q-item-label :class="darkMode ? 'text-grey-6' : ''">Slippage</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Deadline</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label>{{ formData.slippageTolerance }}%</q-item-label>
+          <q-item-label>{{ formData.transactionDeadline }} minute/s</q-item-label>
         </q-item-section>
       </q-item>
       <q-separator />
@@ -178,6 +191,7 @@
         <q-item-section side>
           <q-item-label :class="darkMode ? 'text-grey-6' : ''">Slippage</q-item-label>
           <q-item-label :class="darkMode ? 'text-grey-6' : ''">Min. Return</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Deadline</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label>{{ stagedSwapDetails.slippageTolerance }}%</q-item-label>
@@ -185,6 +199,7 @@
             {{ computedStagedSwapDetails.formattedMinReturn }}
             {{ stagedSwapDetails.destToken.symbol }}
           </q-item-label>
+          <q-item-label>{{ stagedSwapDetails.transactionDeadline }} minute/s</q-item-label>
         </q-item-section>
       </q-item>
       <div v-if="stagedSwapDetails.txid" class="q-mx-sm q-mt-sm">
@@ -213,6 +228,81 @@
         @swiped="confirmSwiped()"
       />
     </q-card-section>
+    <q-dialog v-model="showSettingsDialogForm">
+      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;">
+        <div class="row no-wrap items-center justify-center q-pl-md">
+          <div class="text-subtitle1 q-space">Settings</div>
+          <q-btn
+            flat
+            padding="sm"
+            icon="close"
+            v-close-popup
+          />
+        </div>
+        <q-card-section>
+          <div class="row items-center justify-end q-mb-sm">
+            <q-btn
+              flat
+              no-caps
+              padding="none sm"
+              label="Defaults"
+              class="q-ml-md"
+              @click="
+                formData.transactionDeadline = 20
+                formData.slippageTolerance = 1
+              "
+            />
+          </div>
+          <div class="q-mb-sm text-subtitle2">
+            Slippage Tolerance
+            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grey' : 'black'">
+              <q-popup-proxy :breakpoint="0">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark' : 'text-black']">
+                  The swap will be reverted if price changes unfavorably by this percentage
+                </div>
+              </q-popup-proxy>
+            </q-icon>
+          </div>
+          <div class="no-wrap row items-center q-gutter-sm">
+            <q-btn-toggle
+              v-model="formData.slippageTolerance"
+              push
+              padding="xs md"
+              toggle-color="primary"
+              :options="[
+                {label: '0.5%', value: 0.5 },
+                {label: '1%', value: 1},
+                {label: '2%', value: 2},
+              ]"
+            />
+            <!-- <q-input
+              dense
+              outlined
+              suffix="%" 
+              v-model.number="formData.slippageTolerance"
+              :input-class="darkMode ? 'text-white' : 'text-black'"
+            /> -->
+          </div>
+          <div class="q-mt-lg q-mb-sm text-subtitle2">
+            Transaction deadline
+            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grey' : 'black'">
+              <q-popup-proxy :breakpoint="0">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark' : 'text-black']">
+                  The swap will be reverted if the transaction is pending for more than this duration
+                </div>
+              </q-popup-proxy>
+            </q-icon>
+          </div>
+          <div>{{ formData.transactionDeadline }} minutes</div>
+          <div class="no-wrap row items-center q-gutter-sm">
+            <q-slider
+              :min="5"
+              :max="30"
+              v-model="formData.transactionDeadline"/>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-card>
 </template>
 <script>
@@ -258,8 +348,10 @@ export default {
         // sourceToken: tokensList[2],
         destToken: tokensList[3],
         amount: 0,
-        slippageTolerance: 1
+        slippageTolerance: 1,
+        transactionDeadline: 20,
       },
+      showSettingsDialogForm: false,
 
       // info that needs to be updated from the network when formData changes, see computed 'networkDataReqs' below
       networkData: {
@@ -300,6 +392,7 @@ export default {
           image_url: 'bch-logo.png',
         },
         slippageTolerance: 1,
+        transactionDeadline: 20,
 
         amount: BigNumber.from('0x0'), // must be after adjusting decimals, (e.g. if BCH, amount must be in ether)
         expectedReturn: BigNumber.from('0x0'), // must be adjusting decimals
@@ -580,6 +673,7 @@ export default {
       this.stagedSwapDetails.expectedReturn = currencyToBigNumber(this.networkData.expectedReturn, this.formData.destToken.decimals)
       this.stagedSwapDetails.distribution = this.networkData.distribution
       this.stagedSwapDetails.slippageTolerance = this.formData.slippageTolerance
+      this.stagedSwapDetails.transactionDeadline = this.formData.transactionDeadline
 
       this.stagedSwapDetails.show = true
       this.stagedSwapDetails.showConfirmSwipe = true
@@ -601,7 +695,7 @@ export default {
           amount: this.stagedSwapDetails.amount,
           minReturn: this.computedStagedSwapDetails.minReturn,
           distribution: this.stagedSwapDetails.distribution,
-          deadline: Math.round(Date.now() / 1000) + 20 * 60, // 20 minutes from timestamp
+          deadline: Math.round(Date.now() / 1000) + this.stagedSwapDetails.transactionDeadline * 60, // 20 minutes from timestamp
           feePercent: 500000000000000, // taken from tango swap
         }
         const txParams = await getSwapDetails(params)
