@@ -384,7 +384,7 @@ export default {
       }
       this.$q.dialog({
         title: 'Approve token',
-        message: `Approving ${tokenInfo.name} will allow us to manage your assets. Are you sure?`,
+        message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
         ok: true,
         cancel: true,
         class: this.darkMode ? 'text-white pt-dark-card' : 'text-black',
