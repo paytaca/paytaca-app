@@ -12,6 +12,7 @@ const contract = new ethers.Contract(
   smartswapAbi,
   getProvider(false)
 )
+const ROUTE_PARTS = 10
 
 
 /**
@@ -49,7 +50,7 @@ export function bigNumberToCurrency(value, decimals=0) {
  */
 export async function getExpectedReturnWithGas(sourceTokenAddress, destTokenAddress, amount) {
   const parsedAmount = BigNumber.from(amount)
-  const response = await contract.getExpectedReturnWithGas(sourceTokenAddress, destTokenAddress, parsedAmount, 1, 0, 0)
+  const response = await contract.getExpectedReturnWithGas(sourceTokenAddress, destTokenAddress, parsedAmount, ROUTE_PARTS, 0, 0)
   return {
     amount: response.returnAmount,
     gasAmount: response.gasAmount,
@@ -181,7 +182,7 @@ export function decodeSwapHexData(dataHex) {
  * @returns {{ steps:Number, grouped:Map<String,{percentage:Number, exhange:String, currency:String}> }}
  * @see {@link https://github.com/tangoswap-cash/tangoswap-interface/blob/v3.0.0/src/features/exchange-v1/swap/SmartSwapRouting.tsx}
  */
-export function parseDistribution(distribution, parts=10) {
+export function parseDistribution(distribution, parts=ROUTE_PARTS) {
   const swapOptions = [
     {exchange: "1BCH", currency: "DIRECT_SWAP"},
     {exchange: "1BCH", currency: "BCH"},
