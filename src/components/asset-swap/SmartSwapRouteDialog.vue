@@ -15,7 +15,6 @@
           <img
             :src="inputCurrency.image_url"
             height="30"
-            class="q-mr-xs"
             style="border-radius:50%"
           >
           <q-item-label>{{ inputCurrency.symbol }}</q-item-label>
@@ -38,7 +37,6 @@
               <img
                 :src="routeGroup.logo"
                 height="30"
-                class="q-mr-xs"
                 style="border-radius:50%"
               >
               <q-item-label>{{ routeGroup.currency }}</q-item-label>
@@ -62,7 +60,6 @@
           <img
             :src="outputCurrency.image_url"
             height="30"
-            class="q-mr-xs"
             style="border-radius:50%"
           >
           <q-item-label>{{ outputCurrency.symbol }}</q-item-label>

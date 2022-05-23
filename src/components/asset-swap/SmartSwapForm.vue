@@ -40,7 +40,7 @@
       </q-banner>
       <q-item clickable>
         <q-item-section avatar @click="selectSourceToken()" class="items-center">
-          <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" class="q-mr-xs" style="border-radius:50%">
+          <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" style="border-radius:50%">
           <q-item-label>
             {{ formData.sourceToken.symbol }}
           </q-item-label>
@@ -79,7 +79,7 @@
 
       <q-item clickable>
         <q-item-section avatar @click="selectDestToken()" class="items-center">
-          <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" class="q-mr-xs" style="border-radius:50%">
+          <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" style="border-radius:50%">
           <q-item-label>
             {{ formData.destToken.symbol }}
           </q-item-label>
@@ -128,7 +128,7 @@
           <q-item-label :class="darkMode ? 'text-grey-6' : ''">Minimum return</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
-          <q-item-label @click="showRouteDialog = true" style="cursor:pointer;">
+          <q-item-label @click="showRouteDialog = computedFormData.parsedDistribution.steps > 0" style="cursor:pointer;">
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else-if="computedFormData.parsedDistribution.steps > 0">
               {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
@@ -238,8 +238,8 @@
             {{ stagedSwapDetails.transactionDeadline }}
             minute{{ stagedSwapDetails.transactionDeadline > 1 ? 's' : '' }}
           </q-item-label>
-          <q-item-label @click="showRouteDialog = true" style="cursor:pointer;">
-            <template v-if="computedFormData.parsedDistribution.steps > 0">
+          <q-item-label @click="showRouteDialog = computedStagedSwapDetails.parsedDistribution.steps > 0" style="cursor:pointer;">
+            <template v-if="computedStagedSwapDetails.parsedDistribution.steps > 0">
               {{ `${computedStagedSwapDetails.parsedDistribution.steps} step${computedStagedSwapDetails.parsedDistribution.steps > 1 ? 's' : ''}` }}
               <q-icon name="launch"/>
                 <SmartSwapRouteDialog
