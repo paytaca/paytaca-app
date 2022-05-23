@@ -393,7 +393,7 @@ export default {
         sourceToken: bchToken,
         // sourceToken: tokensList[2],
         destToken: tokensList[3],
-        amount: 0.2,
+        amount: 0,
         slippageTolerance: 1,
         transactionDeadline: 20,
       },
