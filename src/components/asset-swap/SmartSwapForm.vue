@@ -12,7 +12,10 @@
           padding="xs"
           icon="refresh"
           class="q-ml-md"
-          @click="updateNetworkData()"
+          @click="
+            updateNetworkData()
+            updateTokenListBalances()
+          "
         />
         <q-btn
           round
