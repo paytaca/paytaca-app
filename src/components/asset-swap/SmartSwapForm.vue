@@ -157,16 +157,7 @@
       </q-item>
       <div class="row">
         <q-btn
-          v-if="networkData.isApproved || formData.sourceToken.mainCurrency"
-          :disable="!formData.amount || networkData.loading || Boolean(networkData.error)"
-          no-caps
-          :label="formData.amount ? 'Swap' : 'Enter amount'"
-          color="brandblue"
-          class="q-space"
-          @click="moveSwapDetailsToStaging()"
-        />
-        <q-btn
-          v-else
+          v-if="!networkData.isApproved && !formData.sourceToken.mainCurrency"
           :disable="networkData.approvingToken || networkData.loading || Boolean(networkData.error)"
           no-caps
           :loading="networkData.approvingToken"
@@ -174,6 +165,23 @@
           color="brandblue"
           class="q-space"
           @click="confirmApproveToken()"
+        />
+        <q-btn
+          v-else-if="!formData.amount"
+          disable
+          no-caps
+          label="Enter amount"
+          color="brandblue"
+          class="q-space"
+        />
+        <q-btn
+          v-else
+          :disable="insufficientBalance || networkData.approvingToken || networkData.loading || Boolean(networkData.error)"
+          no-caps
+          :label="insufficientBalance ? 'Insufficient balance': 'Swap'"
+          color="brandblue"
+          class="q-space"
+          @click="moveSwapDetailsToStaging()"
         />
       </div>
       <div class="row justify-center" style="margin-top: 24px; color: gray;">
@@ -468,6 +476,12 @@ export default {
     }
   },
   computed: {
+    insufficientBalance() {
+      const hasValidBalance = this.formData.sourceToken.balance >= 0
+      if (!hasValidBalance) return true
+
+      return this.formData.sourceToken.balance < this.formData.amount
+    },
     computedFormData () {
       /*
         Swap info that are calculated from 'networkData' and 'formData'
@@ -617,8 +631,9 @@ export default {
             this.networkDataReqs.amount.toHexString()
           )
 
+          const decimalDiff = this.networkDataReqs.destToken.decimals - this.networkDataReqs.sourceToken.decimals
           parsedExpectedReturn = bigNumberToCurrency(expectedReturn, this.networkDataReqs.destToken.decimals)
-          exchangeRate = expectedReturn / this.networkDataReqs.amount
+          exchangeRate = expectedReturn / (this.networkDataReqs.amount * 10 ** decimalDiff)
           distribution = _distribution
         } else {
           parsedExpectedReturn = 0
@@ -792,6 +807,35 @@ export default {
         this.stagedSwapDetails.loading = false
       }
     },
+    updateSourceTokenBalance: throttle(async function() {
+      const sourceTokenAddress = this.formData.sourceToken.address
+      const sourceTokenDecimals = this.formData.sourceToken.decimals
+      if (sourceTokenAddress === '0x0000000000000000000000000000000000000000') {
+        const bchBalance = await this.wallet.sBCH.getBalance()
+
+        // Estimate swap gas is around 1.5 million gas
+        const gas = await this.wallet.sBCH._wallet.getGasPrice()
+        const estimateGas =  gas.mul(1.5 * 10 ** 6)
+        const estimateGasBCH = bigNumberToCurrency(estimateGas, 18)
+
+        // sourceToken changes while balance is being updated on some instances
+        if (sourceTokenAddress === this.formData.sourceToken.address) {
+          this.formData.sourceToken.balance = Number(bchBalance) - estimateGasBCH
+        }
+        this.$forceUpdate()
+        return
+      }
+
+      const balanceMap = await batchFetchBalance([sourceTokenAddress], this.wallet.sBCH._wallet.address)
+      const tokenBalance = balanceMap[sourceTokenAddress.toLowerCase()]
+      if (!tokenBalance) return
+
+      // sourceToken changes while balance is being updated on some instances
+      if (sourceTokenAddress === this.formData.sourceToken.address) {
+        this.formData.sourceToken.balance = bigNumberToCurrency(tokenBalance, sourceTokenDecimals)
+      }
+      this.$forceUpdate()
+    }, 500),
     updateBchTokenBalance: throttle(async function() {
       const bchToken = this.tokensList.find(tokenInfo => tokenInfo && tokenInfo.address === '0x0000000000000000000000000000000000000000')
       if (bchToken) {
@@ -865,6 +909,7 @@ export default {
     "formData.sourceToken.address": {
       handler() {
         this.updateNetworkData()
+        this.updateSourceTokenBalance()
       }
     },
     "formData.destToken.address": {
@@ -886,6 +931,7 @@ export default {
     ])
       .then(() => {
         this.updateTokenListBalances()
+        this.updateSourceTokenBalance()
       })
     this.updateNetworkData()
     // this.startNetworkDataUpdater()
