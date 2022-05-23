@@ -7,6 +7,7 @@ export { BigNumber }
 
 // Token address is from TangoSwap
 const contract = new ethers.Contract(
+  // "0x3718e9c405d0bc779870355c34fb5624196a1caa",
   "0xEd2E356C00A555DDdd7663BDA822C6acB34Ce614",
   smartswapAbi,
   getProvider(false)
@@ -170,4 +171,75 @@ export function decodeSwapHexData(dataHex) {
     deadline: data.deadline,
     feePercent: data.feePercent,
   }
+}
+
+
+/**
+ * Parses SmartSwap distribution to human readable route. Taken from TangoSwap's SmartSwap interface code
+ * @param {ethers.BigNumber[]} distribution 
+ * @param {Number} parts 
+ * @returns {{ steps:Number, grouped:Map<String,{percentage:Number, exhange:String, currency:String}> }}
+ * @see {@link https://github.com/tangoswap-cash/tangoswap-interface/blob/v3.0.0/src/features/exchange-v1/swap/SmartSwapRouting.tsx}
+ */
+export function parseDistribution(distribution, parts=10) {
+  const swapOptions = [
+    {exchange: "1BCH", currency: "DIRECT_SWAP"},
+    {exchange: "1BCH", currency: "BCH"},
+    {exchange: "1BCH", currency: "flexUSD"},
+    {exchange: "BenSwap", currency: "DIRECT_SWAP"},
+    {exchange: "BenSwap", currency: "BCH"},
+    {exchange: "BenSwap", currency: "flexUSD"},
+    {exchange: "MistSwap", currency: "DIRECT_SWAP"},
+    {exchange: "MistSwap", currency: "BCH"},
+    {exchange: "MistSwap", currency: "flexUSD"},
+    {exchange: "CowSwap", currency: "DIRECT_SWAP"},
+    {exchange: "CowSwap", currency: "BCH"},
+    {exchange: "CowSwap", currency: "flexUSD"},
+    {exchange: "TangoSwap", currency: "DIRECT_SWAP"},
+    {exchange: "TangoSwap", currency: "BCH"},
+    {exchange: "TangoSwap", currency: "flexUSD"},
+    {exchange: "Tropical", currency: "DIRECT_SWAP"},
+    {exchange: "Tropical", currency: "BCH"},
+    {exchange: "Tropical", currency: "flexUSD"},
+    {exchange: "EmberSwap", currency: "DIRECT_SWAP"},
+    {exchange: "EmberSwap", currency: "BCH"},
+    {exchange: "EmberSwap", currency: "flexUSD"},
+
+    {exchange: "1BCH", currency: "TANGO"},
+    {exchange: "BenSwap", currency: "TANGO"},
+    {exchange: "MistSwap", currency: "TANGO"},
+    {exchange: "CowSwap", currency: "TANGO"},
+    {exchange: "TangoSwap", currency: "TANGO"},
+    {exchange: "Tropical", currency: "TANGO"},
+    {exchange: "EmberSwap", currency: "TANGO"},
+
+    {exchange: "LawSwap", currency: "DIRECT_SWAP"},
+    {exchange: "LawSwap", currency: "BCH"},
+    {exchange: "LawSwap", currency: "flexUSD"},
+    {exchange: "LawSwap", currency: "TANGO"},
+
+    {exchange: "KoingFu", currency: "DIRECT_SWAP"},
+    {exchange: "KoingFu", currency: "BCH"},
+    {exchange: "KoingFu", currency: "flexUSD"},
+    {exchange: "KoingFu", currency: "TANGO"},
+  ]
+
+  const returnData = {
+    steps: 0,
+    grouped: {},
+  }
+
+  distribution.forEach((value, index) => {
+    if(value.toString() !== "0") {
+      const route = {percentage: parseInt(value) * 100 / parts, ...swapOptions[index] }
+      returnData.steps += 1
+      if (Array.isArray(returnData.grouped[route.currency])) {
+        returnData.grouped[route.currency].push(route)
+      } else {
+        returnData.grouped[route.currency] = [ route ]
+      }
+    }
+  })
+
+  return returnData
 }

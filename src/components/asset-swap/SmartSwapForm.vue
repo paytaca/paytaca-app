@@ -103,15 +103,37 @@
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label>{{ formData.slippageTolerance }}%</q-item-label>
-          <q-item-label>{{ formData.transactionDeadline }} minute/s</q-item-label>
+          <q-item-label>
+            {{ formData.transactionDeadline }}
+            minute{{ formData.transactionDeadline > 1 ? 's' : '' }}
+          </q-item-label>
         </q-item-section>
       </q-item>
       <q-separator />
-      <q-item>
+      <q-item class="q-mb-sm">
         <q-item-section side>
+          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Route</q-item-label>
           <q-item-label :class="darkMode ? 'text-grey-6' : ''">Minimum return</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
+          <q-item-label @click="showRouteDialog = true" style="cursor:pointer;">
+            <q-skeleton v-if="networkData.loading" type="text"/>
+            <template v-else-if="computedFormData.parsedDistribution.steps > 0">
+              {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
+              <q-icon name="launch"/>
+                <SmartSwapRouteDialog
+                  v-model="showRouteDialog"
+                  :steps="computedFormData.parsedDistribution.steps"
+                  :groupedRoute="computedFormData.parsedDistribution.grouped"
+                  :darkMode="darkMode"
+                  :inputCurrency="formData.sourceToken"
+                  :outputCurrency="formData.destToken"
+                />
+            </template>
+            <template v-else>
+              &nbsp
+            </template>
+          </q-item-label>
           <q-item-label>
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else>
@@ -192,6 +214,7 @@
           <q-item-label :class="darkMode ? 'text-grey-6' : ''">Slippage</q-item-label>
           <q-item-label :class="darkMode ? 'text-grey-6' : ''">Min. Return</q-item-label>
           <q-item-label :class="darkMode ? 'text-grey-6' : ''">Deadline</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Route</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label>{{ stagedSwapDetails.slippageTolerance }}%</q-item-label>
@@ -199,7 +222,27 @@
             {{ computedStagedSwapDetails.formattedMinReturn }}
             {{ stagedSwapDetails.destToken.symbol }}
           </q-item-label>
-          <q-item-label>{{ stagedSwapDetails.transactionDeadline }} minute/s</q-item-label>
+          <q-item-label>
+            {{ stagedSwapDetails.transactionDeadline }}
+            minute{{ stagedSwapDetails.transactionDeadline > 1 ? 's' : '' }}
+          </q-item-label>
+          <q-item-label @click="showRouteDialog = true" style="cursor:pointer;">
+            <template v-if="computedFormData.parsedDistribution.steps > 0">
+              {{ `${computedStagedSwapDetails.parsedDistribution.steps} step${computedStagedSwapDetails.parsedDistribution.steps > 1 ? 's' : ''}` }}
+              <q-icon name="launch"/>
+                <SmartSwapRouteDialog
+                  v-model="showRouteDialog"
+                  :steps="computedStagedSwapDetails.parsedDistribution.steps"
+                  :groupedRoute="computedStagedSwapDetails.parsedDistribution.grouped"
+                  :darkMode="darkMode"
+                  :inputCurrency="stagedSwapDetails.sourceToken"
+                  :outputCurrency="stagedSwapDetails.destToken"
+                />
+            </template>
+            <template v-else>
+              &nbsp
+            </template>
+          </q-item-label>
         </q-item-section>
       </q-item>
       <div v-if="stagedSwapDetails.txid" class="q-mx-sm q-mt-sm">
@@ -316,6 +359,7 @@ import {
   bigNumberToCurrency,
   getSwapDetails,
   decodeSwapHexData,
+  parseDistribution,
   BigNumber
 } from '../../wallet/smartswap'
 import { bchToken, tokensList } from '../../wallet/smartswap/tokens'
@@ -323,6 +367,7 @@ import DragSlide from '../drag-slide.vue'
 import ProgressLoader from '../ProgressLoader.vue'
 import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SmartSwapTokenSelectorDialog from './SmartSwapTokenSelectorDialog.vue'
+import SmartSwapRouteDialog from './SmartSwapRouteDialog.vue'
 
 
 export default {
@@ -330,6 +375,7 @@ export default {
   components: {
     ProgressLoader,
     DragSlide,
+    SmartSwapRouteDialog,
   },
   props: {
     darkMode: {
@@ -347,11 +393,12 @@ export default {
         sourceToken: bchToken,
         // sourceToken: tokensList[2],
         destToken: tokensList[3],
-        amount: 0,
+        amount: 0.2,
         slippageTolerance: 1,
         transactionDeadline: 20,
       },
       showSettingsDialogForm: false,
+      showRouteDialog: false,
 
       // info that needs to be updated from the network when formData changes, see computed 'networkDataReqs' below
       networkData: {
@@ -413,6 +460,7 @@ export default {
       */
       const slippagePctg = this.formData.slippageTolerance / 100
       return {
+        parsedDistribution: parseDistribution(this.networkData.distribution),
         minimumReturn: this.networkData.expectedReturn * (1 - slippagePctg)
       }
     },
@@ -460,7 +508,8 @@ export default {
           bigNumberToCurrency(this.stagedSwapDetails.expectedReturn, this.stagedSwapDetails.destToken.decimals)
         ),
         minReturn: minReturn,
-        formattedMinReturn: formattedMinReturn
+        formattedMinReturn: formattedMinReturn,
+        parsedDistribution: parseDistribution(this.stagedSwapDetails.distribution),
       }
     },
   },
