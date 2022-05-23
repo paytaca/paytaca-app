@@ -1,0 +1,174 @@
+<html>
+
+<body>
+<div style="display:flex;justify-content:center;">
+  <canvas
+    id="canvas"
+    style="border: 1px solid black;"
+  ></canvas>
+</div>
+<hr/>
+<button id="newRandBtn">New Random</button>
+<br/>
+<br/>
+<textarea id="input">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</textarea>
+<button id="fromBtn">From String</button>
+<br/>
+<a href="https://emn178.github.io/online-tools/sha3_256.html" target="_blank">SHA3 online tool</a>
+
+<script>
+  const randBtn = document.getElementById('newRandBtn')
+  const input = document.getElementById('input')
+  const fromStrBtn = document.getElementById('fromBtn')
+  const canvas = document.getElementById('canvas')
+
+  const canvasSize = 250
+  const colorPallete = [
+    '#f94144',
+    '#f3722c',
+    '#f8961e',
+    '#f9c74f',
+    '#90be6d',
+    '#43aa8b',
+  ]
+
+  const bgColor = '#577590'
+  function drawTriangle(ctx, p1, p2, p3) {
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.lineTo(p3.x, p3.y);
+    ctx.fill();
+  }
+
+  function drawEquilateralTriangle(ctx, x, y, length, angle) {
+    // console.log(x, y, length, angle)
+    // degrees to radians
+    const radian = Math.PI/180
+    angle = Math.abs(angle)
+    if (Number.isNaN(angle)) angle = 0
+
+    const p2 = {
+      x: x + Math.cos((angle + 150)*radian) * length,
+      y: y + Math.sin((angle + 150)*radian) * length,
+    }
+
+    const p3 = {
+      x: x + Math.cos((angle + 210)*radian) * length,
+      y: y + Math.sin((angle + 210)*radian) * length,
+    }
+
+    drawTriangle(ctx, { x, y }, p2, p3)
+  }
+
+  function cropCircle() {
+    const ctx = canvas.getContext('2d')
+    const halfHeight = canvas.height/2
+    const halfWidth = canvas.width/2
+
+    const img = ctx.toDataURL()
+
+    ctx.beginPath()
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.drawImage(img,0,0);
+    // ctx.globalCompositeOperation='destination-in'
+    ctx.beginPath()
+    ctx.arc(halfWidth,halfHeight,halfHeight,0,Math.PI*2)
+    ctx.closePath()
+    ctx.fill()
+  }
+
+  function randomImage() {
+    canvas.width = canvasSize
+    canvas.height = canvasSize
+    const ctx = canvas.getContext('2d');
+    const halfHeight = canvas.height/2
+    const halfWidth = canvas.width/2
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const sideLength = halfHeight/2
+    for (var i = 0; i < colorPallete.length; i++) {
+      ctx.fillStyle = colorPallete[i % colorPallete.length];
+      const quadrant = (i % 4) + 1
+      const up = quadrant === 1 || quadrant === 2
+      const left = quadrant === 2 || quadrant === 3
+
+      const xOffset = Math.random() * sideLength * (left ? -1: 1)
+      const yOffset = Math.random() * sideLength * (up ? -1: 1)
+      let startAngle = 0
+      if(quadrant === 4) startAngle = 0
+      if(quadrant === 3) startAngle = 90
+      if(quadrant === 2) startAngle = 180
+      if(quadrant === 1) startAngle = 270
+
+      const angle = startAngle + (Math.random() * 90)
+      // console.log(quadrant, up, left, startAngle, angle)
+
+      drawEquilateralTriangle(
+        ctx,
+        xOffset + halfWidth,
+        yOffset + halfHeight,
+        halfWidth*2,
+        angle,
+      )
+    }
+  }
+
+  function fromString(string='') {
+    if (!/^[0-9a-f]{64}$/i.test(string)) return alert('Must be hex string with 64 characters')
+    console.log(string)
+    const ctx = canvas.getContext('2d');
+    const halfHeight = canvas.height/2
+    const halfWidth = canvas.width/2
+    const sideLength = halfHeight/2
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let quadrant = 1
+    for (var i = 0; i < string.length/8; i++) {
+      ctx.fillStyle = colorPallete[i % colorPallete.length];
+      const up = quadrant === 1 || quadrant === 2
+      const left = quadrant === 2 || quadrant === 3
+      const x = parseInt(string.substring(i*8 + 0, i*8 + 2), 16) / 256
+      const y = parseInt(string.substring(i*8 + 6, i*8 + 8), 16) / 256
+
+      const xOffset = x * sideLength * (left ? -1: 1)
+      const yOffset = y * sideLength * (up ? -1: 1)
+      let startAngle = 0
+      if(quadrant === 4) startAngle = 0
+      if(quadrant === 3) startAngle = 90
+      if(quadrant === 2) startAngle = 180
+      if(quadrant === 1) startAngle = 270
+
+      const angle = startAngle + (parseInt(string.substring(i*8, (i+1)*8), 16) % 90)
+      // console.log(x, y)
+      // console.log(quadrant, up, left, startAngle, angle)
+
+      drawEquilateralTriangle(
+        ctx,
+        xOffset + halfWidth,
+        yOffset + halfHeight,
+        halfWidth*2,
+        angle,
+      )
+
+      quadrant = (quadrant % 4) + 1
+    }
+  }
+
+  randBtn.addEventListener('click', randomImage)
+  fromStrBtn.addEventListener('click', function() {
+    fromString(input.value)
+    cropCircle()
+  })
+
+  randomImage()
+</script>
+</body>
+</html>

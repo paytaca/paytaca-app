@@ -318,6 +318,27 @@ export class SmartBchWallet {
     }
   }
 
+  async sendTransaction(txParams, wait=true) {
+    try {
+      const tx = await this._wallet.sendTransaction(txParams)
+      if (wait) await tx.wait()
+
+      return {
+        success: true,
+        transaction: tx
+      }
+    } catch (e) {
+      if (e && e.message === "insufficient-balance") {
+        return { success: false, error: 'Not enough balance for gas' }
+      }
+
+      return {
+        success: false,
+        error: e.reason
+      }
+    }
+  }
+
   async sendSep20Token (contractAddress, amount, recipientAddress) {
     if (!utils.isAddress(recipientAddress)) {
       return {
