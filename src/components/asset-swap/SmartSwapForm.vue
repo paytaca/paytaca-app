@@ -53,6 +53,15 @@
               updateNetworkData()
             "
           />
+          <q-item-label
+            v-if="formData.sourceToken.balance > 0 || formData.sourceToken.balance === 0"
+            class="text-right q-mt-sm"
+            caption
+            :class="darkMode ? 'text-grey-6' : ''"
+            @click="setAmountToSourceTokenBalance()"
+          >
+            Balance: {{ formatNumber(formData.sourceToken.balance) }}
+          </q-item-label>
         </q-item-section>
       </q-item>
       <div class="q-px-md q-my-xs row items-center justify-left">
@@ -349,9 +358,10 @@
   </q-card>
 </template>
 <script>
-import { debounce } from 'quasar'
+import { debounce, throttle } from 'quasar'
 import { getMnemonic, Wallet } from '../../wallet'
 import {
+  batchFetchBalance,
   hasApprovedSmartswap,
   approveTokenOnSmartswap,
   getExpectedReturnWithGas,
@@ -451,6 +461,7 @@ export default {
       },
 
       tokensList: [bchToken, ...tokensList],
+      updatingTokenBalances: false,
     }
   },
   computed: {
@@ -646,6 +657,14 @@ export default {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
+    setAmountToSourceTokenBalance() {
+      if (!this.formData.sourceToken || !typeof this.formData.sourceToken.balance === 'number') return
+      if (this.formData.sourceToken.balance === this.formData.amount) return
+
+      this.formData.amount = this.formData.sourceToken.balance
+      this.updateExcptectedReturn()
+      this.updateNetworkData()
+    },
     selectSourceToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
@@ -770,8 +789,42 @@ export default {
         this.stagedSwapDetails.loading = false
       }
     },
-    fetchTokensList () {
-      this.$axios
+    updateBchTokenBalance: throttle(async function() {
+      const bchToken = this.tokensList.find(tokenInfo => tokenInfo && tokenInfo.address === '0x0000000000000000000000000000000000000000')
+      if (bchToken) {
+        const bchBalance = await this.wallet.sBCH.getBalance()
+
+        // Estimate swap gas is around 1.5 million gas
+        const gas = await this.wallet.sBCH._wallet.getGasPrice()
+        const estimateGas =  gas.mul(1.5 * 10 ** 6)
+        const estimateGasBCH = bigNumberToCurrency(estimateGas, 18)
+        bchToken.balance = Number(bchBalance) - estimateGasBCH
+        this.$forceUpdate()
+      }
+    }, 500),
+    updateTokenListBalances: throttle(async function() {
+      this.updatingTokenBalances = true
+      try {
+        this.updateBchTokenBalance()
+
+        const tokenAddresses = this.tokensList
+          .map(tokenInfo => tokenInfo && tokenInfo.address)
+          .filter(address => address && address !== '0x0000000000000000000000000000000000000000')
+
+        const balanceMap = await batchFetchBalance(tokenAddresses, this.wallet.sBCH._wallet.address)
+        this.tokensList.forEach(tokenInfo => {
+          if (!tokenInfo) return
+          const balance = balanceMap[tokenInfo.address.toLowerCase()]
+          if (!balance) return
+          tokenInfo.balance = bigNumberToCurrency(balance, tokenInfo.decimals)
+        })
+
+      } finally {
+        this.updatingTokenBalances = false
+      }
+    }, 500),
+    fetchTokensList (updateBalances = true) {
+      return this.$axios
         .get(
           'https://raw.githubusercontent.com/zh/sep20tokens/main/smartbch.tokenlist.json',
         )
@@ -794,6 +847,7 @@ export default {
                 })
                 .filter(Boolean)
             ]
+            if (updateBalances) this.updateTokenListBalances()
           }
         })
     },
@@ -823,10 +877,15 @@ export default {
     this.stopNetworkDataUpdater()
   },
   mounted() {
-    this.loadWallet()
+    Promise.all([
+      this.loadWallet(),
+      this.fetchTokensList(false),
+    ])
+      .then(() => {
+        this.updateTokenListBalances()
+      })
     this.updateNetworkData()
     // this.startNetworkDataUpdater()
-    this.fetchTokensList()
   }
 }
 </script>

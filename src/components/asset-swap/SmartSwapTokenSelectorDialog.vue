@@ -17,8 +17,14 @@
               <q-btn no-caps label="Select custom token" padding="none xs" flat @click="panel='custom'"/>
             </div>
             <q-input dense outlined v-model="searchText" :input-class="darkMode ? 'text-white' : 'text-black'"/>
+            <q-toggle
+              label="Has balance"
+              class="q-mt-sm"
+              color="brandblue"
+              v-model="showHasBalance"
+            />
           </q-card-section>
-          <q-card-section style="max-height:50vh;overflow-y:auto;">
+          <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
             <q-virtual-scroll :items="filteredTokensList">
               <template v-slot="{ item: token, index }">
                 <q-item clickable @click="onOKClick(token)">
@@ -28,6 +34,14 @@
                   <q-item-section>
                     <q-item-label>{{ token.symbol }}</q-item-label>
                     <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ token.name }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section v-if="token.balance" side>
+                    <q-item-label
+                      :class="darkMode ? 'text-grey-6' : ''"
+                      caption
+                    >
+                      {{ formatNumber(token.balance) }}
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
@@ -117,6 +131,7 @@ export default {
   data() {
     return {
       searchText: '',
+      showHasBalance: false,
       panel: 'list',
       customToken: {
         address: '',
@@ -134,17 +149,23 @@ export default {
   computed: {
     filteredTokensList() {
       if (!Array.isArray(this.tokensList)) return []
-      if (!this.searchText) return this.tokensList
+      if (!this.searchText && !this.showHasBalance) return this.tokensList
 
       const needle = String(this.searchText).toLowerCase()
 
-      return this.tokensList.filter(token => {
-        if (!token) return false
-        if (/0x[0-9a-f]+/.test(needle) && String(token.address).toLowerCase() === needle) return true
+      return this.tokensList
+        .filter(token => {
+          if (!this.searchText) return true
+          if (!token) return false
+          if (/0x[0-9a-f]+/.test(needle) && String(token.address).toLowerCase() === needle) return true
 
-        return String(token.name).toLowerCase().includes(needle) ||
-                String(token.symbol).toLowerCase().includes(needle)
-      })
+          return String(token.name).toLowerCase().includes(needle) ||
+                  String(token.symbol).toLowerCase().includes(needle)
+        })
+        .filter(token => {
+          if (!this.showHasBalance) return true
+          return token.balance > 0
+        })
     },
     matchedTokensListFromCustomAddress() {
       return this.tokensList
@@ -155,6 +176,9 @@ export default {
     }
   },
   methods: {
+    formatNumber (value = 0, decimals = 6) {
+      return Number(value.toPrecision(decimals))
+    },
     updateCustomTokenInfo: debounce(function() {
       if (!this.customToken.address) return
       if (_customTokenInfoCache[this.customToken.address.toLowerCase()]) {

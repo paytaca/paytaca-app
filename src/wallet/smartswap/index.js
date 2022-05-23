@@ -114,6 +114,49 @@ export async function approveTokenOnSmartswap(sourceTokenAddress, signer) {
 }
 
 /**
+ * Returns balance of token addresses in raw units
+ * doesn't provide & convert balances to their corresponding decimals
+ * @param {String[]} tokenAddresses 
+ * @param {String} walletAddress 
+ * @param {Map<String, ethers.BigNumber>}
+ */
+export async function batchFetchBalance(tokenAddresses, walletAddress) {
+  if (!utils.isAddress(walletAddress)) return {}
+
+  const addresses = tokenAddresses
+    .map(contractAddress => {
+      const parsedAddress = utils.getAddress(String(contractAddress).toLowerCase())
+      if (!utils.isAddress(parsedAddress)) return
+      return parsedAddress
+    }) // parse addresses
+    .filter(Boolean) // filter invalid addresses
+    .filter((e, i, s) => s.indexOf(e) === i) // remove duplicates
+
+  const provider = getProvider(false)
+  const balances = await Promise.all(
+    addresses.map(tokenAddress => {
+      return provider.send(
+        'eth_call',
+        [{ data: `0x70a08231000000000000000000000000${walletAddress.replace('0x', '')}`, to: tokenAddress }, 'latest']
+      ).then(balanceHex => {
+        return { address: tokenAddress, balance: BigNumber.from(balanceHex) }
+      }).catch(() => {
+        // need to force resolve some tokens to allow to continue for tokens that succeeded
+        return Promise.resolve()
+      })
+    })
+  )
+
+  const balanceMap = {}
+  balances.forEach(balanceInfo => {
+    if (!balanceInfo) return
+    balanceMap[balanceInfo.address.toLowerCase()] = balanceInfo.balance
+  })
+
+  return balanceMap
+}
+
+/**
  * Returns an unsigned tx for the swap
  * @param {Object} swapInfo
  * @param {String} swapInfo.sourceTokenAddress contract address of token to swap from
