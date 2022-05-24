@@ -123,3 +123,7 @@ h5, p, label, a {
 .pt-dark-box-shadow {
   box-shadow: 2px 2px 2px 2px #212F3D !important;
 }
+
+.bex.q-body--prevent-scroll {
+  position: unset !important;
+}
