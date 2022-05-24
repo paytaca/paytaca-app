@@ -25,7 +25,8 @@ export function currencyToBigNumber(value, decimals=0) {
   if (decimals < 0) decimals = 0
 
   // Removes the excess decimals since ethers.BigNumber does not handle floating point
-  const trimmedValue = Math.round(value - value % (10 ** -decimals))
+  // const trimmedValue = value - value % (10 ** -decimals)
+  const trimmedValue = Math.round(value * (10 ** decimals)) / (10 ** decimals)
   return utils.parseUnits(String(trimmedValue), decimals)
 }
 
