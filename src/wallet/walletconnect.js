@@ -104,6 +104,7 @@ export async function callRequestHandler(connector, payload, wallet) {
         break
       case('eth_signTypedData'):
         const parsedSignTypedDataParams = JSON.parse(payload.params[1])
+        if (parsedSignTypedDataParams.types.EIP712Domain) delete parsedSignTypedDataParams.types.EIP712Domain
         const signedTypedData = await wallet._signTypedData(
           parsedSignTypedDataParams.domain,
           parsedSignTypedDataParams.types,
