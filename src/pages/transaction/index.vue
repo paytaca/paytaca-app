@@ -5,7 +5,7 @@
 
     <div v-else>
 
-      <div class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+      <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
         <div class="row q-pt-lg q-pb-xs">
 
           <!-- <p class="col-12 q-px-lg q-ma-none text-subtitle1" role="button" @click="promptChangeNetwork()">
@@ -97,7 +97,7 @@
           </asset-cards>
         </template>
       </div>
-      <div class="row transaction-row">
+      <div ref="transactionSection" class="row transaction-row">
         <transaction ref="transaction"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
             <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">Transactions</p>
@@ -218,6 +218,15 @@ export default {
       prevPath: null,
       showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus']
+    }
+  },
+
+  watch: {
+    startPageStatus (n, o) {
+      setTimeout(() => {
+        const sectionHeight = this.$refs.fixedSection.clientHeight
+        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
+      }, 100)
     }
   },
 
