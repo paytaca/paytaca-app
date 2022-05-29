@@ -12,7 +12,7 @@
     />
 
     <div class="q-px-md q-pt-md">
-      <div v-if="!connector">
+      <div v-if="!$walletConnect.connector">
         <q-form @submit="handShakeFormSubmit()">
           <q-input
             label="Input WalletConnect URI"
@@ -213,12 +213,15 @@ export default {
       wallet: null,
       handshakeOnProgress: false,
       pendingConnector: null,
-      connector: null,
+      walletConnect: this.$walletConnect, // for reactivity purposes
       callRequestDialog: {
         processing: false,
         show: false,
         callRequest: null
       },
+
+      onDisconnectListener: null,
+      onCallRequestListener: null,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -240,6 +243,14 @@ export default {
     }
   },
   computed: {
+    connector: {
+      get() {
+        return this.$walletConnect.connector
+      },
+      set(value) {
+        this.$walletConnect.connector = value
+      }
+    },
     parsedPeerMeta () {
       const meta = {
         name: '',
@@ -261,9 +272,6 @@ export default {
     },
     callRequests() {
       return this.$store.getters['walletconnect/callRequests']
-    },
-    sessionKeyPeerIdMismatch() {
-      if(!this.connector) return
     }
   },
 
@@ -284,6 +292,10 @@ export default {
 
     handShakeFormSubmit(switchActivity=false) {
       this.initializeConnector(this.handshakeFormData.walletConnectUri, switchActivity)
+    },
+
+    forceUpdateConnector() {
+      this._connector = this.$walletConnect.connector
     },
 
     async initializeConnector (uri, switchActivity=false) {
@@ -328,6 +340,7 @@ export default {
         }).onOk(() => {
           this.disconnectConnector()
           this.connector = connector
+          this.forceUpdateConnector()
           this.attachEventsToConnector()
           console.log(this.connector)
 
@@ -368,6 +381,7 @@ export default {
       this.detachEventstToConnector()
       this.connector.killSession()
       this.connector = null
+      this.forceUpdateConnector()
       this.handshakeFormData.walletConnectUri = ''
       this.$store.commit('walletconnect/clearCallRequests')
     },
@@ -375,15 +389,18 @@ export default {
     detachEventstToConnector() {
       if (!this.connector) return
 
-      this.connector.off('session_request')
-      this.connector.off('disconnect')
-      this.connector.off('call_request')
+      this.$walletConnect.removeEventListener('session_request')
+      this.$walletConnect.removeEventListener('disconnect', this.onDisconnectListener || undefined)
+      this.$walletConnect.removeEventListener('call_request', this.onCallRequestListener || undefined)
+
+      this.onDisconnectListener = undefined
+      this.onCallRequestListener = undefined
     },
 
     attachEventsToConnector () {
       if (!this.connector) return
 
-      this.connector.on('disconnect', (error, payload) => {
+      const onDisconnectListener = (error, payload) => {
         console.log('disconnect:', error, payload)
         if (error) {
           throw error;
@@ -396,9 +413,11 @@ export default {
         })
 
         this.disconnectConnector()
-      })
+      }
+      this.$walletConnect.addEventListener('disconnect', onDisconnectListener)
+      this.onDisconnectListener = onDisconnectListener
 
-      this.connector.on('call_request', (error, payload) => {
+      const onCallRequestListener = (error, payload) => {
         console.log('call_request:', error, payload)
         if (error) {
           throw error;
@@ -410,7 +429,10 @@ export default {
         })
 
         if (!this.callRequestDialog.show) this.showCallRequestInDialog(this.callRequests[0])
-      })
+      }
+
+      this.$walletConnect.addEventListener('call_request', onCallRequestListener)
+      this.onCallRequestListener = onCallRequestListener
     },
 
     respondToCallRequestInDialog(accept) {
@@ -509,28 +531,23 @@ export default {
     },
   },
 
-  // beforeDestroy() {
-  //   this.disconnectConnector()
-  // },
+  beforeDestroy() {
+    this.detachEventstToConnector()
+  },
 
   mounted () {
     this.loadWallet()
       .then(() => {
-        const cachedConnector = getPreviousConnector()
+        this.detachEventstToConnector()
+        this.attachEventsToConnector()
+
         const uriData = parseWalletConnectUri(this.uri)
         if (uriData) {
-          if (cachedConnector && cachedConnector.handshakeTopic === uriData.handshakeTopic) {  
-            this.connector = cachedConnector
-            this.attachEventsToConnector()
-            return
-          } else if (cachedConnector) {
-            cachedConnector.killSession()
+          if (this.connector && this.connector.handshakeTopic !== uriData.handshakeTopic) {
+            this.connector.killSession()
           }
           this.handshakeFormData.walletConnectUri = this.uri
           this.handShakeFormSubmit(true)
-        } else if (cachedConnector) {
-          this.connector = cachedConnector
-          this.attachEventsToConnector()
         }
       })
   }

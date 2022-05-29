@@ -20,7 +20,7 @@ export function updateSessionKeyPeerId(state, { key, peerId }) {
   const duplicateCallReq = state.callRequests.find(_callRequest => _callRequest?.payload?.id === callRequest?.payload?.id)
   if (duplicateCallReq) {
     const index = state.callRequests.indexOf(duplicateCallReq)
-    state.callRequests[index] = payload
+    state.callRequests[index] = callRequest
   } else {
     state.callRequests.unshift(callRequest)
   }
