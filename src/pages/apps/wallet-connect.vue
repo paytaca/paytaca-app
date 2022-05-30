@@ -542,12 +542,15 @@ export default {
         this.attachEventsToConnector()
 
         const uriData = parseWalletConnectUri(this.uri)
-        if (uriData) {
+        if (uriData && uriData.handshakeTopic && uriData.key && uriData.bridge) {
           if (this.connector && this.connector.handshakeTopic !== uriData.handshakeTopic) {
             this.connector.killSession()
           }
-          this.handshakeFormData.walletConnectUri = this.uri
-          this.handShakeFormSubmit(true)
+
+          if (!this.connector) {
+            this.handshakeFormData.walletConnectUri = this.uri
+            this.handShakeFormSubmit(true)
+          }
         }
       })
   }
