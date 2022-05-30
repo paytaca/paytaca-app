@@ -60,7 +60,10 @@ export default function ({ store }) {
     } else if(parseWalletConnectUri(url)) {
       Router.push({
         name: 'app-wallet-connect',
-        query: { uri: String(url) },
+        query: {
+          uri: String(url),
+          openCallRequest: true,
+        },
       })
     }
   })

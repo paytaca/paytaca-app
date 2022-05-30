@@ -552,6 +552,12 @@ export default {
             this.handShakeFormSubmit(true)
           }
         }
+
+        setTimeout(() => {
+          if (this.openCallRequest && this.callRequests.length && !this.callRequestDialog.show) {
+            this.showCallRequestInDialog(this.callRequests[0])
+          }
+        }, 250)
       })
   }
 }
