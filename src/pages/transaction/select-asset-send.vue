@@ -25,7 +25,7 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm">
+          <div class="col row group-currency q-mb-sm shadow-1">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
@@ -73,6 +73,9 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkMode/getStatus']
+    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -108,10 +111,10 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
   .group-currency {
     width: 100%;
-    border: 2px solid #ed5f59;
+    border: 2px solid rgb(60, 100, 246);
     border-radius: 7px;
     margin-top: 5px;
     margin-bottom: 5px;

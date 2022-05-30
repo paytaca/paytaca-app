@@ -8,6 +8,7 @@ import market from './market'
 import assets from './assets'
 import lns from './lns'
 import sep20 from './sep20'
+import walletconnect from './walletconnect'
 
 Vue.use(Vuex)
 
@@ -29,7 +30,8 @@ export default function (/* { ssrContext } */) {
       assets,
       market,
       lns,
-      sep20
+      sep20,
+      walletconnect,
     },
 
     // enable strict mode (adds overhead!)
