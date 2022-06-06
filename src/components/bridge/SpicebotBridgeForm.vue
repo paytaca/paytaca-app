@@ -266,6 +266,7 @@ import DragSlide from '../drag-slide.vue'
 import ProgressLoader from '../ProgressLoader.vue'
 import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SpicebotBridgeTokenSelectDialog from './SpicebotBridgeTokenSelectDialog.vue'
+import SpicebotBridgeSwapListenerDialog from './SpicebotBridgeSwapListenerDialog.vue'
 
 export default {
   name: 'SpicebotBridgeForm',
@@ -386,7 +387,7 @@ export default {
       return data
     },
     stagedSwapSlpSendParams() {
-      const bchWallet = this.$store.getters['global/getWallet']('bch'),
+      const bchWallet = this.$store.getters['global/getWallet']('bch')
       const params = {
         amount: this.stagedSwapInfo?.amount,
         tokenId: this.stagedSwapInfo?.token?.slp_token_id,
@@ -427,6 +428,23 @@ export default {
         substring = substring.substr(0, 6) + '...' + substring.substr(-4)
       }
       return (keepPrefix ? prefix : '') + substring
+    },
+    resetForm() {
+      this.resetStagedFormData()
+      this.resetFormData()
+    },
+    resetFormData() {
+      this.formData.token = null
+      this.formData.amount = 0
+    },
+    resetStagedFormData() {
+      this.stagedSwapInfo.show = false
+      this.stagedSwapInfo.showConfirmSwipe = false
+      this.stagedSwapInfo.loading = false
+      this.stagedSwapInfo.token = null
+      this.stagedSwapInfo.amount = 0
+      this.stagedSwapInfo.recipientAddress = ''
+      this.stagedSwapInfo.spiceBotSwapRequest = null
     },
     stageFormData() {
       this.stagedSwapInfo.token = this.formData.token
@@ -473,11 +491,10 @@ export default {
     commitStagedSwapInfo() {
       // was here
       this.stagedSwapInfo.loading = true
-      if (!this.stagedSwapSlpSendParams) {
+      if (!this.stagedSwapSlpSendParams.valid) {
         this.stagedSwapInfo.errors = [
           'Incorrect Swap Info',
         ]
-
         return
       }
 
@@ -503,6 +520,16 @@ export default {
               message: 'Waiting for SEP20 token to be sent.',
               class: dialogStyleClass,
             })
+              .onDismiss(() => {
+                this.$q.dialog({
+                  component: SpicebotBridgeSwapListenerDialog,
+                  swapRequestId: this.stagedSwapInfo.swapRequest.id,
+                  darkMode: this.darkMode
+                })
+                  .onDismiss(() => {
+                    this.resetForm()
+                  })
+              }) 
             return Promise.resolve(result)
           } 
           
@@ -519,7 +546,6 @@ export default {
           } else {
             this.stagedSwapInfo.errors.push('Unknown error occurred')
           }
-
         })
     },
     async resolveTokenImage(slpTokenId, sep20ContractAddress) {
