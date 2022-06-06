@@ -74,7 +74,8 @@ export default {
   data () {
     return {
       mode: {
-        active: 'spicebot-slp-2-sep20',
+        // active: 'spicebot-slp-2-sep20',
+        active: 'main',
         opts: {
           main: 'main',
           spicebotSlp2Sep20: 'spicebot-slp-2-sep20',

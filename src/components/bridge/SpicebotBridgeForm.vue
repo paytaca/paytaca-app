@@ -282,7 +282,7 @@ export default {
       errors: [],
       formData: {
         token: null,
-        amount: 1000,
+        amount: 0,
       },
 
       stagedSwapInfo: {
@@ -618,8 +618,6 @@ export default {
             this.$forceUpdate()
           })
       })
-
-      this.formData.token = this.tokens[5]
 
       updateTokenSourceBalances()
     },
