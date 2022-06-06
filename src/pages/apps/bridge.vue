@@ -9,20 +9,56 @@
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
 
+    <q-icon class="context-menu" size="35px" name="more_vert">
+      <q-menu>
+        <q-list :class="{'pt-dark': darkMode}" style="min-width: 100px">
+          <q-item
+            :disable="waiting"
+            clickable
+            v-close-popup
+            :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+            :active="mode.active === mode.opts.main"
+            @click="mode.active = mode.opts.main"
+          >
+            <q-item-section>
+              BCH Bridge
+            </q-item-section>
+          </q-item>
+          <q-item
+            :disable="waiting"
+            clickable
+            v-close-popup
+            :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+            :active="mode.active === mode.opts.spicebotSlp2Sep20"
+            @click="mode.active = mode.opts.spicebotSlp2Sep20"
+          >
+            <q-item-section>
+              SLP to SEP20
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-icon>
+
     <div class="q-px-md">
-      <HopCashSwapForm v-if="!waiting" @new-incoming="onNewIncoming" :darkMode="darkMode" />
-      <HopCashSwapWait v-else v-bind="parsedWaitInfo" :darkMode="darkMode">
-        <template v-slot:after="ctx">
-          <q-btn
-            v-if="ctx && ctx.outgoingTxFound"
-            no-caps
-            color="brandblue"
-            label="Swap Again"
-            class="q-mt-md full-width"
-            @click="clearWaitInfo()"
-          />
-        </template>
-      </HopCashSwapWait>
+      <template v-if="mode.active === mode.opts.main">
+        <HopCashSwapForm v-if="!waiting" @new-incoming="onNewIncoming" :darkMode="darkMode" />
+        <HopCashSwapWait v-else v-bind="parsedWaitInfo" :darkMode="darkMode">
+          <template v-slot:after="ctx">
+            <q-btn
+              v-if="ctx && ctx.outgoingTxFound"
+              no-caps
+              color="brandblue"
+              label="Swap Again"
+              class="q-mt-md full-width"
+              @click="clearWaitInfo()"
+            />
+          </template>
+        </HopCashSwapWait>
+      </template>
+      <template v-if="mode.active === mode.opts.spicebotSlp2Sep20">
+        <SpicebotBridgeForm/>
+      </template>
     </div>
   </div>
 </template>
@@ -30,12 +66,20 @@
 import HeaderNav from '../../components/header-nav'
 import HopCashSwapForm from '../../components/bridge/HopCashSwapForm.vue'
 import HopCashSwapWait from '../../components/bridge/HopCashSwapWait.vue'
+import SpicebotBridgeForm from '../../components/bridge/SpicebotBridgeForm.vue'
 
 export default {
   name: 'Bridge',
-  components: { HeaderNav, HopCashSwapForm, HopCashSwapWait },
+  components: { HeaderNav, HopCashSwapForm, HopCashSwapWait, SpicebotBridgeForm },
   data () {
     return {
+      mode: {
+        active: 'spicebot-slp-2-sep20',
+        opts: {
+          main: 'main',
+          spicebotSlp2Sep20: 'spicebot-slp-2-sep20',
+        }
+      },
       waitInfo: {
         transferType: 'c2s',
         incomingTxid: '',
@@ -97,3 +141,12 @@ export default {
   }
 }
 </script>
+<style scoped>
+.context-menu {
+  position: fixed;
+  top: 16px;
+  right: 10px;
+  z-index: 150 !important;
+  color: #3b7bf6;
+}
+</style>
