@@ -340,8 +340,8 @@ export default {
       }
 
       if (this.wallet) {
-        // data.recipientAddress = this.wallet.sBCH._wallet.address
-        data.recipientAddress = '0x6516f05b533251d7cb03e37f5167eaf74949d47f'
+        data.recipientAddress = this.wallet.sBCH._wallet.address
+        // data.recipientAddress = '0x6516f05b533251d7cb03e37f5167eaf74949d47f'
       }
 
       return data

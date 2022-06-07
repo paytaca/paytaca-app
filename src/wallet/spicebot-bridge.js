@@ -21,11 +21,11 @@ const SPICEBOT_API_BASE_URL = 'https:spicebot.scibizinformatics.com/api'
  * @property {String}  sep20_source_address 
  * @returns {{success: Boolean, tokens?: SpicebotBridgeToken[], error?: undefined }} 
  */
-export async function fetchTokensList() {
+export async function fetchTokensList () {
   try {
     const { data } = await axios.get(
       `${SPICEBOT_API_BASE_URL}/bridge/tokens/`,
-      { params: { active: true } },
+      { params: { active: true } }
     )
 
     return {
@@ -42,7 +42,7 @@ export async function fetchTokensList() {
  * @param {[contractAddress: String, walletAddress: String][]} tokenWalletPairs
  * @return {{token: String, wallet: String, balance: Number}[]}
 */
-export async function batchFetchSep20TokenBalances(tokenWalletPairs) {
+export async function batchFetchSep20TokenBalances (tokenWalletPairs) {
   const provider = getProvider(false)
 
   // fetch balance of pairs
