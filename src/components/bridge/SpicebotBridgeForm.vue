@@ -231,7 +231,7 @@
         <q-btn
           v-else
           no-caps
-          :disable="computedStagedSwapInfo.errors.length > 0 || stagedSwapInfo.updatingSwapRequest"
+          :disable="computedStagedSwapInfo.errors.length > 0 || stagedSwapInfo.updatingSwapRequest || stagedSwapInfo.updatingSwapRequest"
           :loading="stagedSwapInfo.updatingSwapRequest"
           label="Confirm Swap"
           color="brandblue"
@@ -373,7 +373,7 @@ export default {
         data.spicebotSwapRequestValid = data.spicebotSwapRequestValid && Boolean(!swapRequest?.date_fulfilled)
       }
 
-      if (!data.spicebotSwapRequestValid) {
+      if (!data.spicebotSwapRequestValid && !this.stagedSwapInfo?.updatingSwapRequest) {
         if (this.stagedSwapInfo?.spiceBotSwapRequest?.id) {
           data.errors.push('Invalid swap request.')
         } else {
