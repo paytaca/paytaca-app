@@ -181,6 +181,11 @@
             </q-item-label>
             <q-item-label>
               {{ shortenSlpAddress(senderAddress) }}
+              <q-popup-proxy :breakpoint="0">
+                <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
+                  {{ senderAddress }}
+                </div>
+              </q-popup-proxy>
             </q-item-label>
           </q-item-section>
           <q-item-section style="flex:1 1 1rem;" class="q-mx-sm">
@@ -193,6 +198,12 @@
             <q-item-label class="text-grey">
               <template v-if="stagedSwapInfo.spiceBotSwapRequest && stagedSwapInfo.spiceBotSwapRequest.from_address">
                 {{ shortenSlpAddress(stagedSwapInfo.spiceBotSwapRequest.from_address) }}
+                
+                <q-popup-proxy :breakpoint="0">
+                  <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
+                    {{ stagedSwapInfo.spiceBotSwapRequest.from_address }}
+                  </div>
+                </q-popup-proxy>
               </template>
               <template>
                 &nbsp
@@ -209,6 +220,11 @@
             </q-item-label>
             <q-item-label class="text-grey">
               {{ shortenSlpAddress(stagedSwapInfo.token && stagedSwapInfo.token.sep20_source_address) }}
+              <q-popup-proxy :breakpoint="0">
+                <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
+                  {{ stagedSwapInfo.token && stagedSwapInfo.token.sep20_source_address }}
+                </div>
+              </q-popup-proxy>
             </q-item-label>
           </q-item-section>
           <q-item-section style="flex:1 1 1rem;" class="q-mx-sm">
@@ -221,6 +237,11 @@
             </q-item-label>
             <q-item-label>
               {{ shortenSlpAddress(stagedSwapInfo.recipientAddress) }}
+              <q-popup-proxy :breakpoint="0">
+                <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
+                  {{ stagedSwapInfo.recipientAddress }}
+                </div>
+              </q-popup-proxy>
             </q-item-label>
           </q-item-section>
         </q-item>
