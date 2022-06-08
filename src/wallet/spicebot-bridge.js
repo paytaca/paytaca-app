@@ -121,7 +121,7 @@ export async function getOrCreateSwapRequest(slpTokenId, amount, recipientSep20A
       }
     }
 
-    const { swapRequest } = await axios.post(
+    const { data: swapRequest } = await axios.post(
       `${SPICEBOT_API_BASE_URL}/bridge/swap-requests/`,
       {
         amount: amount,
