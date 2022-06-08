@@ -12,8 +12,8 @@
     </div>
     <q-form v-if="!stagedSwapInfo.show" @submit="stageFormData()">
       <q-card class="q-mt-sm" :class="{'pt-dark-card': darkMode, 'text-black': !darkMode }">
-        <q-card-section>
-          <div class="text-center q-mx-md" @click="selectToken()">
+        <q-card-section class="row items-center justify-center">
+          <div v-ripple class="text-center  q-pa-sm q-mx-md cursor-pointer relative-position" @click="selectToken()">
             <template v-if="formData.token">
               <img
                 height="40"
@@ -28,7 +28,7 @@
                 SEP20
               </div>
             </template>
-            <div v-else class="text-center text-subtitle1">
+            <div v-else v-ripple class="text-center text-subtitle1 cursor-pointer relative-position q-pa-md">
               Select Token
             </div>
           </div>
@@ -54,10 +54,23 @@
               :rules="[
                 val => Number(val) > 0.01 || 'Must be greater than 0.01',
                 val => !computedFormData.maxAllowed || Number(val) <= computedFormData.maxAllowed || 'Not enough liquidity',
+                val => !computedFormData.selectedTokenBalance || computedFormData.selectedTokenBalance >= val || 'Insufficient balance',
               ]"
+              reactive-rules
               bottom-slots
               :input-class="darkMode ? 'text-white' : 'text-black'"
-            />
+            >
+              <template v-slot:hint>
+                <div
+                  v-if="computedFormData.selectedTokenBalance !== null"
+                  class="text-caption ellipsis text-right"
+                  :class="darkMode ? 'text-white': 'text-black'"
+                  @click="formData.amount = computedFormData.selectedTokenBalance"
+                >
+                  Balance: {{ computedFormData.selectedTokenBalance }}
+                </div>
+              </template>
+            </q-input>
           </div>
           <div class="row no-wrap items-start">
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
@@ -278,6 +291,7 @@ export default {
   data() {
     return {
       wallet: null,
+      slpTokenBalances: [],
       tokens: [],
       errors: [],
       formData: {
@@ -328,6 +342,7 @@ export default {
         },
         maxAllowed: 0,
         recipientAddress: '',
+        selectedTokenBalance: null,
       }
       if (this.formData?.token?.slp_to_sep20_ratio) {
         data.expectedAmount = this.formData.amount / (this.formData?.token?.slp_to_sep20_ratio)
@@ -342,6 +357,11 @@ export default {
       if (this.wallet) {
         data.recipientAddress = this.wallet.sBCH._wallet.address
         // data.recipientAddress = '0x6516f05b533251d7cb03e37f5167eaf74949d47f'
+      }
+
+      if (this.formData?.token?.slp_token_id) {
+        const tokenBalance = this.slpTokenBalances.find(tokenBalance => tokenBalance?.slp_token_id === this.formData.token.slp_token_id)
+        data.selectedTokenBalance = tokenBalance.balance
       }
 
       return data
@@ -507,7 +527,7 @@ export default {
         this.stagedSwapSlpSendParams.changeAddresses,
       )
         .finally(() => {
-          this.stagedSwapInfo.loading = true
+          this.stagedSwapInfo.loading = false
           this.stagedSwapInfo.errors = []
         })
         .then((result) => {
@@ -579,6 +599,26 @@ export default {
         if (token?.image_url) return token.image_url
       } catch (err){ console.error(err) }
     },
+    updateWalletSlpTokenBalances(slp_token_id='') {
+      var tokens = []
+      if (slp_token_id) tokens = [{ slp_token_id }]
+      else tokens = this.tokens
+
+      tokens.forEach(async (token) => {
+        const { balance } = await this.wallet.SLP.getBalance(token.slp_token_id)
+        const tokenBalance = this.slpTokenBalances.find(tokenBalance => tokenBalance?.slp_token_id === token.slp_token_id)
+        if (tokenBalance) tokenBalance.balance = balance
+        else this.slpTokenBalances.push({ slp_token_id: token.slp_token_id, balance: balance })
+
+        console.log('Got balance for', token.slp_token_id, ':', balance)
+
+        // not necessary but helps keeping an updated asset list
+        this.$store.commit('assets/updateAssetBalance', {
+          id: `slp/${token.slp_token_id}`,
+          balance: balance
+        })
+      })
+    },
     async updateTokenSourceBalances() {
       const tokenVaultPairs = this.tokens.map(token => {
         return [token.sep20_contract, token.sep20_source_address]
@@ -619,7 +659,8 @@ export default {
           })
       })
 
-      updateTokenSourceBalances()
+      this.updateTokenSourceBalances()
+      this.updateWalletSlpTokenBalances()
     },
     loadWallet () {
       const vm = this
@@ -631,6 +672,14 @@ export default {
             vm.wallet = wallet
           })
       })
+    }
+  },
+  watch: {
+    'formData.token.slp_token_id': {
+      handler() {
+        console.log('here', this.formData?.token?.slp_token_id)
+        if(this.formData?.token?.slp_token_id) this.updateWalletSlpTokenBalances(this.formData.token.slp_token_id)
+      }
     }
   },
   mounted() {
