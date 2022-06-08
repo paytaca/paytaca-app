@@ -496,7 +496,6 @@ export default {
         this.stagedSwapInfo.recipientAddress,
       )
         .then(response => {
-          console.log(response)
           if (response && response.swapRequest) {
             this.stagedSwapInfo.spiceBotSwapRequest = response.swapRequest
             return Promise.resolve(response)
@@ -610,8 +609,6 @@ export default {
         if (tokenBalance) tokenBalance.balance = balance
         else this.slpTokenBalances.push({ slp_token_id: token.slp_token_id, balance: balance })
 
-        console.log('Got balance for', token.slp_token_id, ':', balance)
-
         // not necessary but helps keeping an updated asset list
         this.$store.commit('assets/updateAssetBalance', {
           id: `slp/${token.slp_token_id}`,
@@ -648,12 +645,10 @@ export default {
       const { tokens } = await fetchTokensList()
       if (!Array.isArray(tokens)) return
       this.tokens = tokens
-      console.log(this.tokens)
       this.tokens.forEach(token => {
         this.resolveTokenImage(token?.slp_token_id, token?.sep20_contract)
           .then(tokenImageUrl => {
             if (!tokenImageUrl) return
-            console.log('Got image for token', token, tokenImageUrl)
             token.image_url = tokenImageUrl
             this.$forceUpdate()
           })
@@ -677,7 +672,6 @@ export default {
   watch: {
     'formData.token.slp_token_id': {
       handler() {
-        console.log('here', this.formData?.token?.slp_token_id)
         if(this.formData?.token?.slp_token_id) this.updateWalletSlpTokenBalances(this.formData.token.slp_token_id)
       }
     }
