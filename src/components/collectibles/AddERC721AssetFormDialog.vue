@@ -1,8 +1,8 @@
 <template>
   <q-dialog v-model="val" @hide="resetForm()">
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': darkMode}">
+    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card': darkMode}">
         <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-            <strong>Add SEP721 Token</strong>
+          <span class="text-weight-medium">Add SEP721 Token</span>
         </q-card-section>
         <q-separator />
         <q-form class="q-gutter-y-sm q-mx-none" method="post" @submit="submitAddToken">
@@ -46,10 +46,11 @@
             />
           </q-card-section>
 
-          <q-separator />
+          <q-separator class="q-mt-none"/>
+
           <q-card-actions align="right">
-            <q-btn rounded class="btn-add-payment text-white" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" label="close" v-close-popup />
+            <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" flat :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" label="close" v-close-popup />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -146,9 +147,6 @@ export default {
 }
 </script>
 <style scoped>
-.btn-add-payment {
-  background: radial-gradient(circle, #3C64F6 10%, #2648C3 100%) !important;
-}
 .pp-text {
   color: #000 !important;
 }

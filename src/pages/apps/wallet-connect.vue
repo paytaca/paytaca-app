@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;" :class="{ 'pt-dark': darkMode }">
+  <div style="background-color: #ECF3F3; min-height: 100vh;" class="flex flex-center" :class="{ 'pt-dark': darkMode }">
     <HeaderNav
       title="Wallet Connect"
       backnavpath="/apps"
@@ -11,40 +11,39 @@
       @decode="onScannerDecode"
     />
 
-    <div class="q-px-md q-pt-md">
+    <div>
       <div v-if="!$walletConnect.connector">
         <q-form @submit="handShakeFormSubmit()">
           <q-input
             label="Input WalletConnect URI"
-            label-color="grey"
-            font-color="black"
             input-class="pp-text"
+            filled
             v-model="handshakeFormData.walletConnectUri"
             :disable="handshakeOnProgress"
             clearable
-          />
-          <div class="row items-center justify-end q-mt-sm">
-            <q-btn
-              no-caps
-              padding="xs md"
-              label="Connect"
-              type="submit"
-              :text-color="darkMode ? 'white' : 'black'"
-              :disable="handshakeOnProgress"
-            />
-          </div>
+          >
+            <template v-slot:append>
+              <q-btn
+                no-caps
+                rounded
+                color="blue-9"
+                label="Connect"
+                type="submit"
+                :disable="handshakeOnProgress"
+              />
+            </template>
+          </q-input>
         </q-form>
-        <div class="q-mt-md q-pt-md text-center text-grey">
-          or scan QR code
+        <div class="q-mt-md q-pt-md text-center text-grey" style="font-size: 15px;">
+          OR
         </div>
-        <div class="q-mt-md row justify-center items-center">
+        <div class="q-mt-lg row justify-center items-center">
           <q-btn
-            rounded
-            padding="md"
-            icon="camera_alt"
-            :color="darkMode ? 'white' : 'gray'"
+            round
+            icon="mdi-qrcode"
+            color="grad"
+            size="lg"
             @click="scanner.show = true"
-            text-color="black"
             :disable="handshakeOnProgress"
           />
         </div>
@@ -280,7 +279,9 @@ export default {
       this.$copyText(value)
       this.$q.notify({
         message: 'Copied to clipboard',
-        timeout: 200
+        timeout: 200,
+        icon: 'mdi-clipboard-check',
+        color: 'blue-9'
       })
     },
 
@@ -321,7 +322,8 @@ export default {
 
         if (payload.params[0].chainId !== null && payload.params[0].chainId !== chainId) {
           this.$q.notify({
-            type: 'negative',
+            color: 'red-5',
+            icon: 'mdi-close-circle',
             message: `Mismatch chain id with "${payload.params[0].peerMeta.name}". Rejecting connection request`
           })
 
@@ -442,7 +444,8 @@ export default {
         this.rejectCallRequest(this.callRequestDialog.callRequest)
         this.hideCallRequestDialog()
         this.$q.notify({
-          type: 'info',
+          color: 'blue-9',
+          icon: 'mdi-information',
           message: 'Rejected call request',
         })
         return
@@ -453,12 +456,14 @@ export default {
         .then(response => {
           if (response.success) {
             this.$q.notify({
-              type: 'positive',
+              color: 'green-5',
+              icon: 'mdi-check-circle',
               message: 'Call request accepted',
             })
           } else {
             this.$q.notify({
-              type: 'negative',
+              color: 'red-5',
+              icon: 'mdi-close-circle',
               message: 'Error accepting call request',
             })
           }

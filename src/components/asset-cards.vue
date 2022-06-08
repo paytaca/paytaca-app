@@ -1,6 +1,6 @@
 <template>
   <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-if="assets">
-    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-4" @click="addNewAsset">+</button>
+    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-3" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
       :key="index"
@@ -14,7 +14,7 @@
         v-if="$parent.manageAssets && asset.symbol !== 'BCH'"
         @click="() => removeAsset(asset)"
         style="float: right; width: 20px; margin-top: -10px;">
-        <q-btn icon="close" flat round dense v-close-popup />
+        <q-btn icon="close" color="white" flat round dense v-close-popup />
       </div>
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
@@ -191,7 +191,7 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss">
   #asset-container {
     overflow: scroll;
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
@@ -201,7 +201,7 @@ export default {
     display: none;  /* Safari and Chrome */
   }
   .btn-add-payment-method {
-    border: 1px solid #2B7ED1;
+    border: 1px solid $grey-1;
     background-color: transparent;
     color: #2B7ED1;
     padding: 34px 20px 34px 20px;

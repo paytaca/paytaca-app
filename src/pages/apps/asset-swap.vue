@@ -22,7 +22,7 @@
         label="BCH"
       >
         <q-popup-proxy>
-          <q-banner :class="darkMode ? 'pt-dark' : 'text-black'">
+          <q-banner :class="darkMode ? 'pt-dark' : 'text-black'" class="q-pa-md br-15 text-center">
             We will integrate SLP DEX for SLP tokens soon!
           </q-banner>
         </q-popup-proxy>

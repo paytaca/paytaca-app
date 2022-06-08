@@ -53,7 +53,7 @@
             <span :class="[darkMode ? 'text-white' : 'pp-text']" v-else>Source tx:</span>
             <q-btn
               flat
-              icon="content_copy"
+              icon="mdi-content-copy"
               size="sm"
               padding="xs"
               :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
@@ -84,7 +84,7 @@
               {{ parsedOutgoingTx.chainName }} Transaction:
               <q-btn
                 flat
-                icon="content_copy"
+                icon="mdi-content-copy"
                 size="sm"
                 padding="xs"
                 :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
@@ -178,7 +178,9 @@ export default {
       this.$copyText(value)
       this.$q.notify({
         message: 'Copied to clipboard',
-        timeout: 200
+        timeout: 200,
+        icon: 'mdi-clipboard-check',
+        color: 'blue-9'
       })
     },
     blockChairUrl (txid) {

@@ -1,19 +1,28 @@
 <template>
-  <div class="lds-ellipsis">
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
+  <div class="lds-ellipsis transparent">
+    <div :class="`bg-${color}`"></div>
+    <div :class="`bg-${color}`"></div>
+    <div :class="`bg-${color}`"></div>
+    <div :class="`bg-${color}`"></div>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'ProgressLoader'
+  name: 'ProgressLoader',
+  props: {
+    color: {
+      type: String,
+      default: 'pink'
+    }
+  }
 }
 </script>
 
 <style scoped>
+.bg-pink {
+  background: #ef4f84;
+}
 .lds-ellipsis {
   display: inline-block;
   position: relative;
@@ -26,7 +35,6 @@ export default {
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: #ef4f84;
   animation-timing-function: cubic-bezier(0, 1, 1, 0);
 }
 .lds-ellipsis div:nth-child(1) {

@@ -4,7 +4,7 @@
     styleVal: {{ styleVal }},
     dragging: {{ dragging }}, -->
     <div
-      class="drag-slide-container q-pa-xs"
+      class="drag-slide-container q-py-sm q-px-md"
       :style="{
         borderRadius: square ? '': '999px',
       }"
@@ -22,10 +22,12 @@
           @mousedown="mouseDownHandler"
           @mouseup="mouseUpHandler"
           v-touch-pan.horizontal.prevent="touchPanHandler"
+          class="pt-animate-submit"
         >
           <q-icon
-            class="drag-slide-thumb"
-            name="arrow_forward"
+            color="white"
+            style="border-radius: 50%"
+            name="mdi-chevron-double-right"
             size="4em"
           />
         </div>
@@ -37,7 +39,7 @@
               opacity: `${100-val}%`,
               marginRight: '5%',
             }"
-          >Swipe to send</span>
+          >Swipe to Send</span>
         </div>
       </template>
       <div v-else
@@ -152,15 +154,20 @@ export default {
   width: 100%;
   position: relative;
   display: flex;
-
-  border: 1px solid black;
-
   background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84);
 }
-.drag-slide-thumb {
-  color: white;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  background-color: #3b7bf6;
-}
+.pt-animate-submit {
+    position: absolute;
+    width: 150px;
+    height: 65px;
+    width: 65px;
+    left: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #3b7bf6;
+    border: 2px solid #346ddc;
+    overflow: hidden;
+  }
 </style>

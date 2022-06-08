@@ -5,7 +5,7 @@
       backnavpath="/send/select-asset"
       v-if="!sendData.sent"
     ></header-nav>
-    <div>
+    <div class="q-mt-xl">
       <div class="q-pa-md" style="padding-top: 70px;">
         <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
           <img :src="image" width="150" />
@@ -14,17 +14,11 @@
           <q-icon name="error" left/>
           {{ scanner.error }}
         </div>
-        <div class="row justify-center" v-if="!scanner.show && sendData.recipientAddress === ''">
-          <div class="col-12 q-mt-lg">
-            <q-btn class="full-width q-py-xs" :class="darkMode ? 'btn-scan-dark' : 'btn-scan'" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
-          </div>
-          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000;" :class="{'pt-dark-label': darkMode}">
-            OR
-          </div>
-          <div class="col-12 q-mt-lg" style="text-align: center;">
+        <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendData.recipientAddress === ''">
+          <div class="col-12" style="text-align: center;">
             <q-input
-              outlined
               bottom-slots
+              filled
               :dark="darkMode"
               v-model="manualAddress"
               :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
@@ -59,12 +53,24 @@
               </q-menu>
             </q-input>
           </div>
+          <div class="col-12" style="text-align: center; font-size: 15px; color: grey;" :class="{'pt-dark-label': darkMode}">
+            OR
+          </div>
+          <div class="col-12 q-mt-lg text-center">
+            <q-btn round size="lg" :class="darkMode ? 'btn-scan-dark' : 'btn-scan'" icon="mdi-qrcode" @click="scanner.show = !scanner.show" />
+          </div>
         </div>
         <div class="row justify-center q-pt-lg" v-show="scanner.show">
           <div ref="scanner" class="q-pa-none qrcode-scanner">
-            <span class="material-icons close-scanner" @click="closeQrScanner">
-            close
-            </span>
+            <q-btn
+              icon="close"
+              round
+              padding="sm"
+              unelevated
+              class="scanner-close-btn"
+              style="z-index:2022;"
+              @click="closeQrScanner"
+            />
             <div :class="{'scanner-box' : scanner.show}" ref="box">
               <div class="scan-layout-design" v-if="scanner.show">
                 <div class="scan-design1">
@@ -93,7 +99,14 @@
         <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
           <div class="row">
             <div class="col q-mt-sm se">
-              <q-input outlined v-model="sendData.recipientAddress" label-slot :disabled="disableRecipientInput" :readonly="disableRecipientInput" :dark="darkMode">
+              <q-input
+                filled
+                v-model="sendData.recipientAddress"
+                label-slot
+                :disabled="disableRecipientInput"
+                :readonly="disableRecipientInput"
+                :dark="darkMode"
+              >
                 <template v-slot:label>
                   Recipient
                   <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
@@ -111,7 +124,8 @@
                 ref="amount"
                 @focus="readonlyState(true)"
                 @blur="readonlyState(false)"
-                outlined v-model="sendData.amount"
+                filled
+                v-model="sendData.amount"
                 label="Amount"
                 :disabled="disableAmountInput"
                 :readonly="disableAmountInput"
@@ -144,22 +158,26 @@
 
       <customKeyboard :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
 
-      <div class="pt-submit-container" :class="[!showSlider ? 'pt-invisible' : '']">
-        <p class="text-h6 q-my-none q-py-none text-white pt-send-text">
+      <div class="pt-submit-container q-pa-none" :class="[!showSlider ? 'pt-invisible' : '']">
+        <p class="text-h5 q-ma-none q-pa-none text-white pt-send-text">
           Swipe to send
         </p>
         <div class="text-center pt-on-process" :class="[!swiped ? 'animate-process' : '']">
           <p class="text-h6 text-white q-my-none q-py-none pt-process-text">
             <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">{{ submitLabel }}</span>
             <span class="material-icons pt-check-icon">
-            task_alt
+              task_alt
             </span>
           </p>
         </div>
         <div class="pt-animate-submit text-white text-center" v-touch-pan.horizontal.prevent.mouse="slideToSubmit">
-          <span v-if="swiped" class="material-icons pt-arrow-right-icon">
-          arrow_forward
-          </span>
+          <q-icon
+            v-if="swiped"
+            color="white"
+            style="border-radius: 50%"
+            name="mdi-chevron-double-right"
+            size="4em"
+          />
         </div>
       </div>
       <template v-if="!showSlider">
@@ -936,13 +954,12 @@ export default {
     flex-flow: column nowrap;
     justify-content: center;
   }
-  .close-scanner {
+  .scanner-close-btn {
     position: absolute;
-    top: 24px;
-    right: 24px;
-    font-size: 38px;
+    top: 0;
+    right: 0;
+    margin: 10px;
     color: #ef4f84;
-    z-index: 2500;
   }
   .scanner-text {
     position: absolute;
@@ -1149,7 +1166,7 @@ export default {
     width: 150px;
     height: 65px;
     width: 65px;
-    left: 30px;
+    left: 20px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1183,8 +1200,7 @@ export default {
   }
   .pt-send-text {
     position: absolute;
-    right: 40px;
-    font-family: Arial, Helvetica, sans-serif;
+    right: 20px;
   }
   .pt-on-process {
     position: absolute;

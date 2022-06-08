@@ -3,14 +3,14 @@
       <header-nav title="Settings" backnavpath="/apps" />
       <div class="row" style="padding-top: 60px;">
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': darkMode}">SECURITY</p>
-              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': darkMode}">Security</p>
+              <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus = 'show in settings'">
                     <q-item-section>
                         <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Security Authentication Setup</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
+                        <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
@@ -18,7 +18,7 @@
                         <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="pin" :class="darkMode ? 'pt-setting-avatar-dark' : 'pt-setting-avatar'"></q-icon>
+                        <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="darkMode = !darkMode">
@@ -28,6 +28,8 @@
                     <q-item-section avatar>
                       <q-toggle
                         v-model="darkMode"
+                        color="blue-9"
+                        keep-color
                       />
                     </q-item-section>
                 </q-item>
@@ -35,14 +37,15 @@
           </div>
 
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': darkMode}">WALLET</p>
-              <q-list bordered separator padding style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': darkMode}">Wallet</p>
+              <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
                 <q-item>
                     <q-item-section>
                         <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Currency</q-item-label>
                     </q-item-section>
                     <q-item-section side>
                       <q-select
+                        dense
                         :style="{ width: $q.platform.is.mobile === true ? '75%' : '100%' }"
                         use-input
                         fill-input
@@ -222,9 +225,7 @@ export default {
 }
 .pt-setting-menu {
     color: #3B7BF6;
-}
-.pt-setting-avatar {
-    color: #da53b2;
+    font-weight: 400;
 }
 .pt-setting-avatar-dark {
     color: #A6ACAF;

@@ -1,8 +1,8 @@
 <template>
-  <q-dialog v-model="val">
-    <q-card :class="[darkMode ? 'pt-dark' : 'text-black']">
+  <q-dialog v-model="val" persistent>
+    <q-card :class="[darkMode ? 'pt-dark' : 'text-black']" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-subtitle1 q-space">Routing</div>
+        <div class="text-subtitle1 q-space q-pt-sm">Routing</div>
         <q-btn
           flat
           padding="sm"
@@ -17,7 +17,7 @@
             height="30"
             style="border-radius:50%"
           >
-          <q-item-label>{{ inputCurrency.symbol }}</q-item-label>
+          <q-item-label class="q-mt-sm">{{ inputCurrency.symbol }}</q-item-label>
         </div>
         <div class="row items-center justify-center q-my-sm">
           <q-icon name="arrow_downward"/>
@@ -39,9 +39,9 @@
                 height="30"
                 style="border-radius:50%"
               >
-              <q-item-label>{{ routeGroup.currency }}</q-item-label>
+              <q-item-label class="q-mt-sm">{{ routeGroup.currency }}</q-item-label>
             </q-item-section>
-            <q-item-section top>
+            <q-item-section>
               <q-item-label
                 v-for="(route, index1) in routeGroup.routes"
                 :key="index + '-' + index1"
@@ -62,7 +62,7 @@
             height="30"
             style="border-radius:50%"
           >
-          <q-item-label>{{ outputCurrency.symbol }}</q-item-label>
+          <q-item-label class="q-mt-sm">{{ outputCurrency.symbol }}</q-item-label>
         </div>
       </q-card-section>
     </q-card>

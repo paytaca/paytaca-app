@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" persistent @hide="onClose()">
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': darkMode }">
+    <q-card class="q-dialog-plugin br-15" :class="{'pt-dark-card': darkMode }">
       <div class="row items-center no-wrap q-pb-sm">
         <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">
           <template v-if="loading">Finding unlisted assets</template>
@@ -9,8 +9,8 @@
         <q-space/>
         <q-btn
           flat
-          padding="md"
           icon="close"
+          round
           :class="darkMode ? 'text-white' : 'text-black'"
           v-close-popup
         />
@@ -23,8 +23,9 @@
         flat
         padding="none"
         size="sm"
+        icon="mdi-eye"
         class="q-mx-md"
-        :text-color="darkMode ? 'grey-4' : 'grey'"
+        :text-color="darkMode ? 'grey-4' : 'blue-9'"
         style="margin-top:-1.5rem;"
         :to="{ path: '/apps/settings/ignored-tokens' }"
       />
@@ -97,6 +98,7 @@
         </div>
         <div
           v-else
+          class="q-py-md"
           :class="[
             darkMode ? 'text-white' : 'text-black',
             'text-center',
@@ -107,13 +109,6 @@
       </q-card-section>
       <!-- <q-separator/> -->
       <q-card-section class="row q-gutter-sm justify-around">
-        <q-btn
-          no-caps
-          flat
-          label="Close"
-          :text-color="darkMode ? 'white' : 'grey'"
-          v-close-popup
-        />
         <q-btn
           v-if="parsedTokens.length > 0 && !loading"
           no-caps
@@ -278,19 +273,19 @@ export default {
         this.val = true
       } else {
         this.$q.notify({
-          color: this.darkMode ? 'dark' : 'white',
-          textColor: this.darkMode ? 'white' : 'black',
+          color: 'blue-9',
           progress: true,
           timeout: 15 * 1000,
           message: `Found ${count} token${count > 1 ? 's' : ''} for wallet.`,
           actions: [
             {
               label: 'Dismiss',
-              color: this.darkMode ? 'white' : 'grey',
+              color: 'yellow-5',
               handler: () => { /* ... */ }
             },
             {
               label: 'View tokens',
+              color: 'white',
               handler: () => {
                 this.val = true
               },

@@ -100,8 +100,12 @@
                   </q-item-section>
                 </q-item>
               </q-list>
-              <div v-if="showMnemonic" style="color: red; margin: 5px;">
-                <b>Warning: Do not copy this to clipboard!</b><br>Some malicious apps installed in your device may be able to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.
+              <div v-if="showMnemonic" style="color: red;" class="q-ma-sm">
+                <span class="text-weight-medium">
+                  Warning: Do not copy this to clipboard!
+                </span>
+                <br>Some malicious apps installed in your device may be able 
+                to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.
               </div>
             </div>
           </div>
@@ -119,7 +123,7 @@
                   <q-item-section>
                     <q-item-label :class="{ 'text-gray': darkMode }" caption>Open source code</q-item-label>
                     <q-item-label>
-                      <a href="https://github.com/paytaca/paytaca-app" target="_blank" style="text-decoration: none;">
+                      <a href="https://github.com/paytaca/paytaca-app" target="_blank" class="text-blue-9" style="text-decoration: none;">
                         https://github.com/paytaca/paytaca-app
                       </a>
                     </q-item-label>
@@ -174,7 +178,9 @@ export default {
       this.$copyText(value)
       this.$q.notify({
         message: 'Copied to clipboard',
-        timeout: 200
+        timeout: 200,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
       })
     },
     toggleMnemonicDisplay () {
@@ -208,8 +214,9 @@ export default {
   }
   .section-title {
     font-size: 18px;
-    margin-left: 2px;
+    margin-left: 10px;
     color: #ed5f59;
+    font-weight: 400;
   }
   .list {
     background-color: #fff;

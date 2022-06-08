@@ -24,7 +24,7 @@
       <q-card v-else class="pt-bg-card" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
         <q-card-section class="q-mt-md q-pb-none">
             <div class="text-center">
-                <p class="text-h6 pt-set-pin" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"><strong>{{ actionCaption }} PIN</strong></p>
+                <p class="text-h6 text-blue-9" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"><strong>{{ actionCaption }} PIN</strong></p>
                 <p class="dim-text q-mt-md">{{ subTitle }}</p>
             </div>
         </q-card-section>
@@ -32,7 +32,7 @@
         <q-card-section class="q-pt-none">
           <div class="row justify-center">
               <div class="col-10 text-center">
-                  <p class="q-py-none q-my-none pt-set-pin" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ pinLabel }}</p>
+                  <p class="q-py-none q-my-none text-blue-9" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ pinLabel }}</p>
               </div>
               <div class="col-10">
                   <div class="row justify-center">
@@ -56,20 +56,22 @@
         </q-card-section>
 
         <q-card-section class="q-px-sm q-mt-none">
-          <div class="row q-px-xs pt-num-keys q-py-sm shadow-up-3">
+          <div class="row q-px-md pt-num-keys q-py-md bg-grad">
             <div class="col-3 pt-col-key" v-for="(key, index) in 16" :key="index">
               <q-btn
                 push
                 v-if="[4, 8, 12, 16].includes(key)"
                 :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4))"
                 @click="removeKey(key === 4 ? 'reset' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'cancel' : '')"
-                class="full-width pp-key pt-key-del pt-remove-key"
-                :class="{'pt-bg-dark': $store.getters['darkmode/getStatus']}"
-                :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'highlight_off' : ''" />
+                class="pp-key pt-key-del"
+                :color="key === 16 ? '#ef4f84' : 'white'"
+                :text-color="key === 16 ? 'white' : '#515151'" 
+                :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'mdi-close-circle' : ''" />
               <q-btn
                 push
-                class="full-width pp-key pt-key-num"
-                :class="{'pt-bg-dark-2': $store.getters['darkmode/getStatus']}"
+                class="pp-key pt-key-num"
+                color="white"
+                text-color="#515151"
                 :disable="(key === 13)"
                 v-else-if="(key !== 15)" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key"
                 @click="processKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key)" />
@@ -79,7 +81,8 @@
                 :icon="btnIcon"
                 :disable="saveBtn"
                 @click="setPin"
-                class="full-width pt-key-enter pt-check-key"
+                class="pt-key-enter pt-check-key"
+                style="width: 95%; height: 95%"
                />
             </div>
           </div>
@@ -249,11 +252,7 @@ export default {
 }
 </script>
 
-<style>
-.pt-set-pin {
-  font-family: Arial, Helvetica, sans-serif;
-  color: #2E73D2;
-}
+<style lang="scss">
 .pt-bg-card {
   position: relative;
   background: #fff;
@@ -299,13 +298,9 @@ export default {
 .pt-key-num {
   height: 45px;
   font-size: 16px;
-  font-weight: bolder;
-  background: #fff;
 }
 .pt-key-del {
   height: 45px;
-  font-weight: bolder;
-  background: #fff;
 }
 .pt-check-key {
   color: #fff;
@@ -323,10 +318,15 @@ export default {
   position: fixed !important;
   width: 100%;
   left: 0px;
+  height: 250px;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
   bottom: 0px !important;
 }
 .pp-key {
-  color: #515151 !important;
+  width: 95%;
+  height: 95%;
+  font-weight: 400;
 }
 .pt-bg-dark {
   color: #fff !important;

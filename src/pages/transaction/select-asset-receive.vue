@@ -14,7 +14,7 @@
     <template v-if="assets">
       <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">SELECT ASSET TO BE RECEIVED</p>
+          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Select Asset to be Received</p>
         </div>
       </div>
       <div ref="assetsList" style="overflow-y: scroll; padding-bottom: 20px;">
@@ -25,14 +25,14 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm shadow-1">
+          <div class="col row group-currency q-mb-sm bg-grad-reverse">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
-                <p class="q-ma-none text-token text-weight-medium" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" style="font-size: 18px; color: #444655;">
+                <p class="q-ma-none text-token text-weight-regular text-white" style="font-size: 18px; color: #444655;">
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" style="font-size: 18px; color: #444655;">
+                <p class="q-ma-none text-white" style="font-size: 18px; color: #444655;">
                   {{ String(asset.balance).substring(0, 16) }}
                   {{ asset.symbol }}
                 </p>
@@ -112,7 +112,6 @@ export default {
 <style lang="scss" scoped>
   .group-currency {
     width: 100%;
-    border: 2px solid rgb(60, 100, 246);
     border-radius: 7px;
     margin-top: 5px;
     margin-bottom: 5px;

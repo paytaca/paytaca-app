@@ -44,7 +44,7 @@
     </div>
 
     <q-form ref="form" @submit="onSwapSubmit()">
-      <q-card class="q-mt-sm" :class="{'pt-dark-card': darkMode}">
+      <q-card class="q-mt-sm br-15" :class="{'pt-dark-card': darkMode}">
         <q-card-section>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Bridge balance:</span>
@@ -80,11 +80,11 @@
               v-model="amount"
               :fieldProps="{
                 dense: true,
-                outlined: true,
+                filled: true,
                 dark: darkMode,
                 disable: lockInputs || maxBridgeBalance === 0,
                 rules: [
-                  val => Number(val) >= 0.01 || 'Must be atleast 0.01',
+                  val => Number(val) >= 0.01 || 'Must be at least 0.01',
                   val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
                 ],
               }"
@@ -117,7 +117,7 @@
               v-model="transferredAmount"
               :fieldProps="{
                 dense: true,
-                outlined: true,
+                filled: true,
                 dark: darkMode,
                 disable: maxBridgeBalance === 0,
                 bottomSlots: true,
@@ -144,8 +144,8 @@
               key="manualRecipient"
               autogrow
               clearable
+              filled
               dense
-              outlined
               :disable="lockInputs"
               v-model="recipientAddress"
               class="q-space q-my-sm "
@@ -167,22 +167,29 @@
             />
           </div>
           <div v-if="!loading" class="row justify-end items-start">
-            <q-btn
-              v-if="manualAddress"
-              no-caps
-              padding="xs sm"
-              label="Scan QR code"
-              :disable="lockInputs"
-              @click="showQrScanner = true"
-            />
-          </div>
-          <div v-if="!loading" class="row justify-end items-start">
             <q-space />
             <q-toggle
               dense
               v-model="manualAddress"
               :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+              class="q-mb-md"
+              keep-color
+              color="blue-9"
               label="Send to another address"
+            />
+          </div>
+
+          <div v-if="!loading" class="row justify-end items-start">
+            <q-btn
+              v-if="manualAddress"
+              no-caps
+              padding="xs md"
+              label="Scan QR code"
+              rounded
+              class="q-mb-sm"
+              color="blue-9"
+              :disable="lockInputs"
+              @click="showQrScanner = true"
             />
           </div>
 
@@ -218,7 +225,7 @@
               <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
             </div>
           </div>
-          <div class="row justify-center" style="color: gray;">Powered by hop.cash</div>
+          <div class="row justify-center q-mt-sm" style="color: gray;">Powered by hop.cash</div>
         </q-card-section>
       </q-card>
 
@@ -229,6 +236,7 @@
         <q-btn
           v-else
           no-caps
+          rounded
           :disable="lockInputs"
           label="Swap"
           color="brandblue"
@@ -432,7 +440,11 @@ export default {
     onScannerDecode(content) {
       this.showQrScanner = false
       if (!this.validateAddress(content)) {
-        this.$q.notify('Invalid address')
+        this.$q.notify({
+          message: 'Invalid address',
+          icon: 'mdi-clipboard-check',
+          color: 'blue-9'
+        })
       } else {
         this.manualAddress = true
         this.recipientAddress = content

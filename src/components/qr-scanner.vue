@@ -4,6 +4,7 @@
 			icon="close"
 			rounded
 			padding="xs"
+			flat
 			class="scanner-close-btn"
 			style="z-index:2022;"
 			@click="val = false"
@@ -121,6 +122,7 @@ export default {
   top: 0;
   right: 0;
   margin: 10px;
+  color: #ef4f84;
 }
 .scanner-container > .scanner-error-dialog {
 	border-radius: 15px;

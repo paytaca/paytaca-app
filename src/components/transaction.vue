@@ -1,8 +1,8 @@
 <template>
   <div id="transaction">
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
-      <q-card ref="card" class="pp-text" v-if="transaction && transaction.asset" style="padding: 20px 10px 5px 0;" :class="{'pt-dark-card': darkMode}">
-        <div style="right: 10px; top: 10px; position: absolute; background: lightgray; border-radius: 20px; z-index: 100;">
+      <q-card ref="card" v-if="transaction && transaction.asset" style="padding: 20px 10px 5px 0;" :class="{'pt-dark-card': darkMode}" class="pp-text br-15">
+        <div style="right: 10px; top: 10px; position: absolute; z-index: 100;">
           <q-btn icon="close" flat round dense v-close-popup />
         </div>
         <div class="text-h6" :class="darkMode ? 'text-white' : 'pp-text'" style="text-align: center !important;">
@@ -14,7 +14,7 @@
         </div>
         <q-card-section class="amount">
           <img :src="transaction.asset.logo || fallbackAssetLogo" height="30" /> &nbsp;
-          <div class="amount-label" :class="darkMode ? 'text-white' : 'pp-text'">
+          <div class="amount-label q-pl-sm" :class="darkMode ? 'text-white' : 'pp-text'">
             <template v-if="transaction.record_type === 'outgoing'">
               {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
             </template>
@@ -31,7 +31,7 @@
             </div>
           </div>
         </q-card-section>
-        <q-card-section>
+        <q-card-section class="q-mt-xs">
           <q-list class="list">
             <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.date_created))">
               <q-item-section>
@@ -41,7 +41,7 @@
             </q-item>
             <q-item clickable v-ripple @click="copyToClipboard(isSep20Tx ? transaction.hash : transaction.txid)" style="overflow-wrap: anywhere;">
               <q-item-section>
-                <q-item-label class="text-gray" caption>Transction ID</q-item-label>
+                <q-item-label class="text-gray" caption>Transaction ID</q-item-label>
                 <q-item-label v-if="isSep20Tx" :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.hash }}</q-item-label>
                 <q-item-label v-else :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.txid }}</q-item-label>
               </q-item-section>
@@ -202,7 +202,9 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
+        color: 'blue-9',
         message: 'Copied to clipboard',
+        icon: 'mdi-clipboard-check',
         timeout: 200
       })
     }

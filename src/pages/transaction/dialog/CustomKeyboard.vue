@@ -1,18 +1,22 @@
 <template>
   <div class="pt-custom-keyboard" v-if="keyboard">
-    <div class="pt-keyboard-container shadow-2" :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}">
-      <div class="row q-px-sm q-mb-none q-py-sm pt-custom-keyboard-row">
+    <div class="pt-keyboard-container shadow-2 br-top-15" :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}">
+      <div class="row q-px-sm q-mb-none q-py-sm pt-custom-keyboard-row br-top-15 full-height bg-grad q-pb-lg q-pt-md">
         <div class="col-3 pt-col-key" v-for="(key, index) in 15" :key="index">
           <q-btn
             push
             v-if="[4, 8, 12].includes(key)"
             @click="makeKeyAction(key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'ready to submit' : '')"
-            class="full-width pt-key-del"
+            class="pt-key-del"
+            style="width: 95%; height: 95%"
             :class="[key === 12 ? 'pt-check-key' : 'pt-remove-key', {'pt-bg-dark': $store.getters['darkmode/getStatus']}]"
             :icon="key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'done' : ''" />
           <q-btn
             push
-            class="full-width pt-key-num"
+            class="pt-key-num"
+            color="white"
+            text-color="dark"
+            style="width: 95%; height: 95%; font-weight: 400; line-height: 200%"
             :class="{'pt-bg-dark-2': $store.getters['darkmode/getStatus']}"
             v-else-if="key !== 13" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key"
             @click="enterKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key)" />
@@ -93,7 +97,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .pt-custom-keyboard {
   position: fixed !important;
   display: flex;
@@ -102,21 +106,21 @@ export default {
   bottom: 30pt !important;
 }
 .pt-keyboard-container {
-  height: 250px;
+  height: 300px;
   background: #fff;
 }
+.br-top-15 {
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
 .pt-custom-keyboard-row {
-  /* width: 95%; */
   width: 100%;
-  /* border-radius: 12px; */
   color: #515151;
-  /* background: #ececec; */
 }
 .pt-key-num {
   height: 45px;
   font-size: 16px;
   font-weight: bolder;
-  background: #fff;
 }
 .pt-key-del {
   height: 45px;

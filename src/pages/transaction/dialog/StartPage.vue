@@ -7,7 +7,7 @@
               <p class="text-h4" :class="darkMode ? 'text-white' : 'text-black'">Paytaca</p>
               <p :class="darkMode ? 'text-white' : 'text-black'">YOUR MONEY. YOUR CONTROL.</p>
               <br>
-              <q-btn label="Log In" :class="darkMode ? 'text-white' : 'text-black'" @click="logIn" />
+              <q-btn label="Log In" color="blue-9" rounded @click="logIn" />
           </div>
       </div>
   </div>
@@ -47,7 +47,6 @@ export default {
   padding-top: 20px;
   padding-bottom: 30px;
   text-align: center;
-  font-family: Arial, Helvetica, sans-serif;
 }
 .pp-text {
   color: #000 !important;
