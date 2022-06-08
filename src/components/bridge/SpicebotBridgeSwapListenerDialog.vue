@@ -2,7 +2,10 @@
   <q-dialog
     ref="dialog"
     @hide="onDialogHide"
-    @show="updateSwapRequest()"
+    @before-show="
+      startPoller()
+      updateSwapRequest()
+    "
     full-width
     persistent>
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
@@ -16,7 +19,7 @@
         />
       </div>
       <q-card-section>
-        <q-banner rounded :class="darkMode ? 'text-white bg-red-4': ''">
+        <q-banner rounded :class="'text-white bg-red-4'">
           You can close this dialog and the swap will proceed.
           However you might not be able to see the progress. 
         </q-banner>

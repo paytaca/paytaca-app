@@ -563,7 +563,7 @@ export default {
               .onDismiss(() => {
                 this.$q.dialog({
                   component: SpicebotBridgeSwapListenerDialog,
-                  swapRequestId: this.stagedSwapInfo.swapRequest.id,
+                  swapRequestId: this.stagedSwapInfo.spiceBotSwapRequest.id,
                   darkMode: this.darkMode
                 })
                   .onDismiss(() => {
