@@ -3,7 +3,7 @@
       <header-nav title="Settings" backnavpath="/apps" />
       <div class="row" style="padding-top: 60px;">
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': darkMode}">Security</p>
+              <p class="q-px-sm q-my-sm dim-text text-h6">Security</p>
               <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus = 'show in settings'">
                     <q-item-section>
@@ -18,7 +18,7 @@
                         <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
-                        <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+                        <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
                     </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="darkMode = !darkMode">
@@ -37,7 +37,7 @@
           </div>
 
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6" :class="{'pt-dark-label': darkMode}">Wallet</p>
+              <p class="q-px-sm q-my-sm dim-text text-h6">Wallet</p>
               <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
                 <q-item>
                     <q-item-section>
@@ -221,7 +221,7 @@ export default {
     border-bottom-left-radius: 14px;
 }
 .dim-text {
-    color: #8F8CB8;
+    color: #ed5f59;
 }
 .pt-setting-menu {
     color: #3B7BF6;

@@ -23,8 +23,8 @@
             @input="changeNetwork"
             style="margin-top: -20px; padding-bottom: 16px;"
           >
-            <q-tab name="BCH" :class="{'pt-dark-label': darkMode}" :label="networks.BCH.name"/>
-            <q-tab name="sBCH" :class="{'pt-dark-label': darkMode}" :label="networks.sBCH.name"/>
+            <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
+            <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
           </q-tabs>
           <div class="col q-pl-lg">
             <p class="text-light p-label" style="color: #ABA9BB;">
@@ -62,7 +62,6 @@
                 size="sm"
                 icon="app_registration"
                 style="color: #3B7BF6;"
-                :class="{'pt-dark-label': darkMode}"
                 @click="toggleManageAssets"
               />
               <q-btn
@@ -72,7 +71,6 @@
                 size="sm"
                 icon="search"
                 style="color: #3B7BF6;"
-                :class="{'pt-dark-label': darkMode}"
                 @click="checkMissingAssets({autoOpen: true})"
               />
             </p>
@@ -109,7 +107,7 @@
             <div class="transaction-list">
               <template v-if="balanceLoaded && transactionsLoaded">
                 <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
-                    <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" style="border-bottom: 1px solid #DAE0E7">
+                    <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                       <div class="row" @click="showTransactionDetails(transaction)">
                         <!-- <div class="q-mr-sm">
                           <img :src="selectedAsset.logo" width="40">
@@ -117,7 +115,7 @@
                         <div class="col col-transaction ">
                           <div>
                             <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
-                            <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
+                            <p :class="{'text-grey': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
                           </div>
                           <div class="col">
                               <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">{{ transaction.date_created | formatDate }}</span>

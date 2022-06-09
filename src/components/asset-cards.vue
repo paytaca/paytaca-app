@@ -1,11 +1,11 @@
 <template>
   <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-if="assets">
-    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-3" @click="addNewAsset">+</button>
+    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
       :key="index"
       class="method-cards q-pa-md q-mr-none"
-      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow method-cards-dark': darkMode}]"
+      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow': darkMode}]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
@@ -201,9 +201,7 @@ export default {
     display: none;  /* Safari and Chrome */
   }
   .btn-add-payment-method {
-    border: 1px solid $grey-1;
-    background-color: transparent;
-    color: #2B7ED1;
+    border: 0px solid $grey-1;
     padding: 34px 20px 34px 20px;
     border-radius: 16px;
     font-size: 20px;

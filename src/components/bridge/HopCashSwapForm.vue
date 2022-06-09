@@ -29,7 +29,7 @@
         padding="sm"
         icon="arrow_forward"
         :disable="lockInputs"
-        :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+        :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
         @click="transferType = transferType === 'c2s' ? 's2c': 'c2s'"
       />
 
@@ -148,7 +148,8 @@
               dense
               :disable="lockInputs"
               v-model="recipientAddress"
-              class="q-space q-my-sm "
+              class="q-space q-my-sm"
+              :dark="darkMode"
               :rules="[
                 val => validateAddress(val) || 'Invalid address',
               ]"
@@ -160,6 +161,7 @@
               dense
               outlined
               readonly
+              :input-class="darkMode ? 'text-blue-5' : 'text-blue-9'"
               :dark="darkMode"
               :value="defaultRecipientAddress"
               class="q-space q-my-sm"

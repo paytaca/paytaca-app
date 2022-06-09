@@ -1,11 +1,12 @@
 <template>
   <q-dialog v-model="val" persistent>
-    <q-card :class="[darkMode ? 'pt-dark' : 'text-black']" class="br-15">
+    <q-card :class="[darkMode ? 'pt-dark-card' : 'text-black']" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-subtitle1 q-space q-pt-sm">Routing</div>
+        <div class="text-subtitle1 q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">Routing</div>
         <q-btn
           flat
           padding="sm"
+          :color="darkMode ? 'grey' : ''"
           icon="close"
           v-close-popup
         />
@@ -17,10 +18,10 @@
             height="30"
             style="border-radius:50%"
           >
-          <q-item-label class="q-mt-sm">{{ inputCurrency.symbol }}</q-item-label>
+          <q-item-label class="q-mt-sm" :class="darkMode ? 'text-white' : ''">{{ inputCurrency.symbol }}</q-item-label>
         </div>
         <div class="row items-center justify-center q-my-sm">
-          <q-icon name="arrow_downward"/>
+          <q-icon name="arrow_downward" :color="darkMode ? 'grey' : ''" />
         </div>
 
         <q-list style="max-height: 30vh;overflow-y:auto;">
@@ -28,9 +29,9 @@
             v-for="(routeGroup, index) in parsedGroupedRoute"
             :key="index"
             :class="[
-              'round-borders',
+              'br-15',
               'q-mb-sm',
-              darkMode ? 'pt-dark-card' : 'bg-grey-2',
+              darkMode ? 'pt-dark' : 'bg-grey-2',
             ]"
           >
             <q-item-section avatar class="items-center">
@@ -39,12 +40,13 @@
                 height="30"
                 style="border-radius:50%"
               >
-              <q-item-label class="q-mt-sm">{{ routeGroup.currency }}</q-item-label>
+              <q-item-label class="q-mt-sm" :class="darkMode ? 'text-white' : ''">{{ routeGroup.currency }}</q-item-label>
             </q-item-section>
             <q-item-section>
               <q-item-label
                 v-for="(route, index1) in routeGroup.routes"
                 :key="index + '-' + index1"
+                :class="darkMode ? 'text-white' : ''"
               >
                 {{ route.exchange }}:
                 {{ route.percentage }}%
@@ -54,7 +56,7 @@
         </q-list>
 
         <div class="row items-center justify-center q-my-sm">
-          <q-icon name="arrow_downward"/>
+          <q-icon name="arrow_downward" :color="darkMode ? 'grey' : ''" />
         </div>    
         <div class="column items-center justify-center">
           <img
@@ -62,7 +64,7 @@
             height="30"
             style="border-radius:50%"
           >
-          <q-item-label class="q-mt-sm">{{ outputCurrency.symbol }}</q-item-label>
+          <q-item-label class="q-mt-sm" :class="darkMode ? 'text-white' : ''">{{ outputCurrency.symbol }}</q-item-label>
         </div>
       </q-card-section>
     </q-card>

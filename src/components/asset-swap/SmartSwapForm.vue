@@ -1,7 +1,6 @@
 <template>
   <q-card
     class="br-15 q-pt-sm"
-    :flat="darkMode"
     :class="[
       darkMode ? 'text-white pt-dark-card' : 'text-black',
     ]"
@@ -35,6 +34,7 @@
           <q-btn
             no-caps
             flat
+            rounded
             color="white"
             label="Refetch"
             @click="updateNetworkData()"
@@ -53,7 +53,7 @@
             dense
             filled
             v-model.number="formData.amount"
-            :input-class="darkMode ? 'text-white' : 'text-black'"
+            :dark="darkMode"
             @input="
               updateExcptectedReturn()
               updateNetworkData()
@@ -95,7 +95,7 @@
             disable
             dense
             filled
-            :input-class="darkMode ? 'text-white' : 'text-black'"
+            :dark="darkMode"
             :value="formatNumber(networkData.expectedReturn, 6)"
           />
           <q-item-label
@@ -177,6 +177,7 @@
           :label="'Approve ' + formData.sourceToken.symbol"
           color="brandblue"
           class="q-space"
+          rounded
           @click="confirmApproveToken()"
         />
         <q-btn
@@ -304,10 +305,10 @@
         @swiped="confirmSwiped()"
       />
     </q-card-section>
-    <q-dialog v-model="showSettingsDialogForm">
+    <q-dialog v-model="showSettingsDialogForm" persistent>
       <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;" class="br-15">
         <div class="row no-wrap items-center justify-center q-pl-md">
-          <div class="text-subtitle1 text-weight-medium q-space q-pt-sm">Settings</div>
+          <div class="text-subtitle1 text-weight-medium q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">Settings</div>
           <q-btn
               flat
               color="blue-9"
@@ -322,6 +323,7 @@
           <q-btn
             flat
             round
+            color="grey"
             padding="sm"
             icon="close"
             v-close-popup
@@ -330,9 +332,9 @@
         <q-card-section class="text-center">
           <div class="q-mb-sm text-subtitle2 text-weight-regular">
             Slippage Tolerance
-            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grey' : 'blue-9'">
+            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark' : 'text-black']" class="text-caption">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
                   The swap will be reverted if price changes unfavorably by this percentage
                 </div>
               </q-popup-proxy>
@@ -343,8 +345,9 @@
               v-model="formData.slippageTolerance"
               rounded-borders
               toggle-color="grad"
-              color="grey-3"
-              text-color="dark"
+              :toggle-text-color="darkMode ? 'dark' : 'white'"
+              :color="darkMode ? 'blue-9' : 'grey-3'"
+              :text-color="darkMode ? 'pt-dark-label' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
                 {label: '1%', value: 1},
@@ -361,20 +364,21 @@
           </div>
           <div class="q-mt-lg q-mb-sm text-subtitle2 text-weight-regular">
             Transaction Deadline
-            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grey' : 'blue-9'">
+            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark' : 'text-black']" class="text-caption">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
                   The swap will be reverted if the transaction is pending for more than this duration
                 </div>
               </q-popup-proxy>
             </q-icon>
           </div>
-          <div>{{ formData.transactionDeadline }} minutes</div>
+          <div :class="darkMode ? 'text-grey-6' : ''">{{ formData.transactionDeadline }} minutes</div>
           <div class="no-wrap row items-center q-gutter-sm">
             <q-slider
               :min="5"
               :max="30"
-              v-model="formData.transactionDeadline"/>
+              v-model="formData.transactionDeadline"
+            />
           </div>
         </q-card-section>
       </q-card>
@@ -569,8 +573,15 @@ export default {
         title: 'Approve token',
         message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
         ok: true,
+        persistent: true,
+        ok: {
+          rounded: true
+        },
+        cancel: {
+          rounded: true
+        },
         cancel: true,
-        class: this.darkMode ? 'text-white pt-dark-card' : 'text-black',
+        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
       })
         .onOk(() => {
           this.approveSourceToken()
@@ -591,7 +602,7 @@ export default {
         progress: true,
         persistent: false,
         ok: false, // we want the user to not be able to close it
-        class: this.darkMode ? 'text-white pt-dark-card' : 'text-black',
+        class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black',
       })
 
       const onApproveSuccess = () => {

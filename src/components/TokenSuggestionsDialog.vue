@@ -25,7 +25,7 @@
         size="sm"
         icon="mdi-eye"
         class="q-mx-md"
-        :text-color="darkMode ? 'grey-4' : 'blue-9'"
+        :text-color="darkMode ? 'blue-5' : 'blue-9'"
         style="margin-top:-1.5rem;"
         :to="{ path: '/apps/settings/ignored-tokens' }"
       />
@@ -280,7 +280,7 @@ export default {
           actions: [
             {
               label: 'Dismiss',
-              color: 'yellow-5',
+              color: 'white',
               handler: () => { /* ... */ }
             },
             {

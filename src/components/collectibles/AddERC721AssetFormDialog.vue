@@ -1,6 +1,6 @@
 <template>
-  <q-dialog v-model="val" @hide="resetForm()">
-    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card': darkMode}">
+  <q-dialog v-model="val" @hide="resetForm()" persistent>
+    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark': darkMode}">
         <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <span class="text-weight-medium">Add SEP721 Token</span>
         </q-card-section>

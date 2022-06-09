@@ -18,6 +18,7 @@
             label="Input WalletConnect URI"
             input-class="pp-text"
             filled
+            :dark="darkMode"
             v-model="handshakeFormData.walletConnectUri"
             :disable="handshakeOnProgress"
             clearable

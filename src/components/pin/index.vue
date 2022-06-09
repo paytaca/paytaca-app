@@ -24,8 +24,8 @@
       <q-card v-else class="pt-bg-card" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
         <q-card-section class="q-mt-md q-pb-none">
             <div class="text-center">
-                <p class="text-h6 text-blue-9" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"><strong>{{ actionCaption }} PIN</strong></p>
-                <p class="dim-text q-mt-md">{{ subTitle }}</p>
+                <p class="text-h6 text-blue-9" :class="{'text-grad': $store.getters['darkmode/getStatus']}"><strong>{{ actionCaption }} PIN</strong></p>
+                <p class="dim-text q-mt-md" :class="{'text-grey-5': $store.getters['darkmode/getStatus']}">{{ subTitle }}</p>
             </div>
         </q-card-section>
 
@@ -38,7 +38,7 @@
                   <div class="row justify-center">
                       <div class="col-2 pt-pin-key" v-for="(keys, index) in pinKeys" :key="index">
                         <p class="q-py-md text-h5 text-center q-my-none pt-text-key">
-                            <span v-if="keys.key !== ''" class="material-icons" :class="{'pt-radio-dark': $store.getters['darkmode/getStatus']}">
+                            <span v-if="keys.key !== ''" class="material-icons" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">
                               radio_button_checked
                             </span>
                             <span v-else class="material-icons">
@@ -64,13 +64,12 @@
                 :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4))"
                 @click="removeKey(key === 4 ? 'reset' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'cancel' : '')"
                 class="pp-key pt-key-del"
-                :color="key === 16 ? '#ef4f84' : 'white'"
-                :text-color="key === 16 ? 'white' : '#515151'" 
+                :class="nonNumKeysClass(key)"
                 :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'mdi-close-circle' : ''" />
               <q-btn
                 push
                 class="pp-key pt-key-num"
-                color="white"
+                :class="$store.getters['darkmode/getStatus'] ? 'pt-bg-dark' : 'bg-white'"
                 text-color="#515151"
                 :disable="(key === 13)"
                 v-else-if="(key !== 15)" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key"
@@ -142,6 +141,15 @@ export default {
     }
   },
   methods: {
+    nonNumKeysClass (key) {
+      let classes = ''
+      if (this.$store.getters['darkmode/getStatus']) {
+        classes = key === 16 ? 'bg-red-7 text-white' : 'bg-grey-9 text-grey-1'
+      } else {
+        classes = key === 16 ? 'bg-red-5 text-white' : 'bg-white text-grey-10'
+      }
+      return classes
+    },
     processKey (num) {
       const vm = this
 

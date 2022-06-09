@@ -58,8 +58,12 @@ a {
   background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
 }
 
-.bg-grad-reverse {
-  background-image: linear-gradient(to left top, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+.text-grad {
+  background: -webkit-linear-gradient(-70deg, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-box-decoration-break: clone;
 }
 
 #registration-container {

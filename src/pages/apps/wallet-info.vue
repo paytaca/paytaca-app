@@ -10,19 +10,19 @@
               <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Derivation Path</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Derivation Path</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('bch').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>xPub Key</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>xPub Key</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Wallet Hash</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Wallet Hash</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
@@ -35,19 +35,19 @@
               <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Derivation Path</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Derivation Path</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('slp').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>xPub Key</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>xPub Key</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Wallet Hash</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Wallet Hash</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
@@ -60,19 +60,19 @@
               <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable v-ripple>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Derivation Path</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Derivation Path</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('sbch').derivationPath }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-ripple @click="copyToClipboard(getWallet('sbch').walletHash)">
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Wallet Hash</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Wallet Hash</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item v-if="sbchLnsName" clickable v-ripple @click="copyToClipboard(sbchLnsName)">
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>LNS Name</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>LNS Name</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ sbchLnsName }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
@@ -100,7 +100,7 @@
                   </q-item-section>
                 </q-item>
               </q-list>
-              <div v-if="showMnemonic" style="color: red;" class="q-ma-sm">
+              <div v-if="showMnemonic" :class="darkMode ? 'text-red-5' : 'text-red-6'" class="q-ma-sm">
                 <span class="text-weight-medium">
                   Warning: Do not copy this to clipboard!
                 </span>
@@ -115,15 +115,15 @@
               <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Version</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Version</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">v{{ appVersion }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-gray': darkMode }" caption>Open source code</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Open source code</q-item-label>
                     <q-item-label>
-                      <a href="https://github.com/paytaca/paytaca-app" target="_blank" class="text-blue-9" style="text-decoration: none;">
+                      <a href="https://github.com/paytaca/paytaca-app" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
                         https://github.com/paytaca/paytaca-app
                       </a>
                     </q-item-label>

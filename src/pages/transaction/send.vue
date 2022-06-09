@@ -53,11 +53,11 @@
               </q-menu>
             </q-input>
           </div>
-          <div class="col-12" style="text-align: center; font-size: 15px; color: grey;" :class="{'pt-dark-label': darkMode}">
+          <div class="col-12" style="text-align: center; font-size: 15px; color: grey;">
             OR
           </div>
           <div class="col-12 q-mt-lg text-center">
-            <q-btn round size="lg" :class="darkMode ? 'btn-scan-dark' : 'btn-scan'" icon="mdi-qrcode" @click="scanner.show = !scanner.show" />
+            <q-btn round size="lg" class="btn-scan" :class="darkMode ? 'text-dark' : 'text-white'" icon="mdi-qrcode" @click="scanner.show = !scanner.show" />
           </div>
         </div>
         <div class="row justify-center q-pt-lg" v-show="scanner.show">
@@ -195,7 +195,7 @@
         </div>
       </div>
       <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
-        <q-icon size="120px" name="check_circle" style="color: green;"></q-icon>
+        <q-icon size="120px" name="check_circle" color="green-5"></q-icon>
         <div style="margin-top: 20px;">
           <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 30px;">Successfully sent</p>
           <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>

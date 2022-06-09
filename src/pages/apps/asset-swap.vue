@@ -17,19 +17,19 @@
     >
       <q-tab
         name="BCH"
-        :class="{'pt-dark-label': darkMode}"
+        :class="{'text-blue-5': darkMode}"
         disable
         label="BCH"
       >
         <q-popup-proxy>
-          <q-banner :class="darkMode ? 'pt-dark' : 'text-black'" class="q-pa-md br-15 text-center">
+          <q-banner :class="darkMode ? 'pt-dark text-white' : 'text-black'" class="q-pa-md br-15 text-center">
             We will integrate SLP DEX for SLP tokens soon!
           </q-banner>
         </q-popup-proxy>
       </q-tab>
       <q-tab
         name="sBCH"
-        :class="{'pt-dark-label': darkMode}"
+        :class="{'text-blue-5': darkMode}"
         label="SmartBCH"
       />
     </q-tabs>
