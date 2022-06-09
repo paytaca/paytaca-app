@@ -142,7 +142,7 @@
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else-if="computedFormData.parsedDistribution.steps > 0">
               {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" color="blue-9" />
+              <q-icon name="launch" :color="darkMode ? 'blue-5' : 'blue-9'" />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedFormData.parsedDistribution.steps"
@@ -210,7 +210,7 @@
       <div class="row no-wrap justify-around items-baseline">
         <div class="col-5 column items-center">
           <img height="40" :src="stagedSwapDetails.sourceToken.image_url"/>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mt-sm">
             {{ computedStagedSwapDetails.formattedAmount }}
           </div>
           <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
@@ -222,7 +222,7 @@
 
         <div class="col-5 column items-center">
           <img height="40" :src="stagedSwapDetails.destToken.image_url"/>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mt-sm">
             {{ computedStagedSwapDetails.formattedExpectedReturn }}
           </div>
           <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
@@ -279,13 +279,20 @@
           @click="stagedSwapDetails.show = false"
         />
       </div>
-      <div v-if="stagedSwapDetails.txid" class="q-mx-sm q-mt-sm">
+      <div v-if="stagedSwapDetails.txid" class="q-mx-md q-mt-sm">
         <div>View transaction in smartscan:</div>
         <div class="ellipsis">
-          <a :href="`https://www.smartscan.cash/transaction/${stagedSwapDetails.txid}`" target="_blank"> {{ stagedSwapDetails.txid }}</a>
+          <a
+            :href="`https://www.smartscan.cash/transaction/${stagedSwapDetails.txid}`"
+            target="_blank"
+            style="text-decoration: none;"
+            :class="darkMode ? 'text-blue-5' : 'text-blue-9'"
+          >
+            {{ stagedSwapDetails.txid }}
+          </a>
         </div>
       </div>
-      <hr>
+      <q-separator />
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
         <ProgressLoader/>
       </div>
@@ -294,7 +301,6 @@
       </div>
       <DragSlide
         v-if="stagedSwapDetails.show && stagedSwapDetails.showConfirmSwipe"
-        square
         :style="{
           position: 'fixed',
           bottom: 0,
@@ -819,8 +825,11 @@ export default {
           title: 'Swap success',
           message: 'Assets swapped succesfully!',
           ok: true,
-          persistend: true,
-          class: this.darkMode ? 'text-white pt-dark-card' : 'text-black',
+          ok: {
+            rounded: true
+          },
+          persisted: true,
+          class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black',
         })
       } catch(err) {
         console.error(err)

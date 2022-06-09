@@ -57,7 +57,7 @@
             OR
           </div>
           <div class="col-12 q-mt-lg text-center">
-            <q-btn round size="lg" class="btn-scan" :class="darkMode ? 'text-dark' : 'text-white'" icon="mdi-qrcode" @click="scanner.show = !scanner.show" />
+            <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="scanner.show = !scanner.show" />
           </div>
         </div>
         <div class="row justify-center q-pt-lg" v-show="scanner.show">
@@ -158,6 +158,29 @@
 
       <customKeyboard :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
 
+      <q-list v-if="showSlider" class="absolute-bottom">
+        <q-slide-item left-color="blue" @left="slideToSubmit">
+          <template v-slot:left>
+            <div style="font-size: 15px" class="text-body1">
+            <q-icon class="material-icons q-mr-md" size="lg">
+              task_alt
+            </q-icon>
+            Security Check
+            </div>
+          </template>
+
+          <q-item class="bg-grad text-white q-py-md">
+            <q-item-section avatar>
+              <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+            </q-item-section>
+            <q-item-section class="text-right">
+              <h5 class="q-my-sm text-grey-4">SWIPE TO SEND</h5>
+            </q-item-section>
+          </q-item>
+        </q-slide-item>
+      </q-list>
+
+      <!--
       <div class="pt-submit-container q-pa-none" :class="[!showSlider ? 'pt-invisible' : '']">
         <p class="text-h5 q-ma-none q-pa-none text-white pt-send-text">
           Swipe to send
@@ -180,6 +203,7 @@
           />
         </div>
       </div>
+    -->
       <template v-if="!showSlider">
         <footer-menu v-if="!sendData.sending" />
       </template>
@@ -194,7 +218,7 @@
           </ul>
         </div>
       </div>
-      <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
+      <div class="q-px-lg" v-if="sendData.sent" style="text-align: center;">
         <q-icon size="120px" name="check_circle" color="green-5"></q-icon>
         <div style="margin-top: 20px;">
           <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 30px;">Successfully sent</p>
@@ -474,62 +498,66 @@ export default {
         this.sliderStatus = true
       }
     },
-    slideToSubmit ({ evt, ...newInfo }) {
-      const vm = this
-      const htmlTag = document.querySelector('.pt-animate-submit')
-      const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
-
-      let screenX, clientX
-      if (evt.changedTouches === undefined) {
-        screenX = evt.screenX
-        clientX = evt.clientX
-      } else {
-        screenX = evt.changedTouches[0].screenX
-        clientX = evt.changedTouches[0].clientX
-      }
-
-      if (vm.counter === 0) {
-        vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
-        vm.leftX = Math.round(screenX)
-      }
-
-      if (!newInfo.isFinal) {
-        vm.counter++
-        if (window.innerWidth <= (clientX + 100) && right <= 90) {
-          vm.swiped = false
-          htmlTag.classList.add('animate-full-width')
-          document.querySelector('.pt-send-text').style.opacity = 0
-          vm.submitLabel = 'Security check'
-          vm.submitStatus = true
-        } else {
-          const htmlTag = document.querySelector('.pt-animate-submit')
-          const newPadding = vm.slider + screenX - vm.leftX
-
-          if (newPadding >= 0) {
-            htmlTag.style.left = newPadding + 'px'
-            document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
-            vm.opacity += 0.005
-          }
-        }
-      } else {
-        vm.counter = 0
-        vm.opacity = 0.1
-        const htmlTag = document.querySelector('.pt-animate-submit')
-        const htmlTag2 = document.querySelector('.pt-send-text')
-        if (vm.submitStatus !== true) {
-          htmlTag.classList.add('animate-left')
-          htmlTag2.classList.add('animate-opacity')
-          setTimeout(() => {
-            htmlTag.style.left = '30px'
-            htmlTag2.style.opacity = '10'
-            htmlTag.classList.remove('animate-left')
-            htmlTag2.classList.remove('animate-opacity')
-          }, 500)
-        } else {
-          vm.executeSecurityChecking()
-        }
-      }
+    slideToSubmit ({ reset }) {
+      setTimeout(() => { reset() }, 2000)
+      this.executeSecurityChecking()
     },
+    // slideToSubmit ({ evt, ...newInfo }) {
+    //   const vm = this
+    //   const htmlTag = document.querySelector('.pt-animate-submit')
+    //   const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
+
+    //   let screenX, clientX
+    //   if (evt.changedTouches === undefined) {
+    //     screenX = evt.screenX
+    //     clientX = evt.clientX
+    //   } else {
+    //     screenX = evt.changedTouches[0].screenX
+    //     clientX = evt.changedTouches[0].clientX
+    //   }
+
+    //   if (vm.counter === 0) {
+    //     vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
+    //     vm.leftX = Math.round(screenX)
+    //   }
+
+    //   if (!newInfo.isFinal) {
+    //     vm.counter++
+    //     if (window.innerWidth <= (clientX + 100) && right <= 90) {
+    //       vm.swiped = false
+    //       htmlTag.classList.add('animate-full-width')
+    //       document.querySelector('.pt-send-text').style.opacity = 0
+    //       vm.submitLabel = 'Security check'
+    //       vm.submitStatus = true
+    //     } else {
+    //       const htmlTag = document.querySelector('.pt-animate-submit')
+    //       const newPadding = vm.slider + screenX - vm.leftX
+
+    //       if (newPadding >= 0) {
+    //         htmlTag.style.left = newPadding + 'px'
+    //         document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
+    //         vm.opacity += 0.005
+    //       }
+    //     }
+    //   } else {
+    //     vm.counter = 0
+    //     vm.opacity = 0.1
+    //     const htmlTag = document.querySelector('.pt-animate-submit')
+    //     const htmlTag2 = document.querySelector('.pt-send-text')
+    //     if (vm.submitStatus !== true) {
+    //       htmlTag.classList.add('animate-left')
+    //       htmlTag2.classList.add('animate-opacity')
+    //       setTimeout(() => {
+    //         htmlTag.style.left = '30px'
+    //         htmlTag2.style.opacity = '10'
+    //         htmlTag.classList.remove('animate-left')
+    //         htmlTag2.classList.remove('animate-opacity')
+    //       }, 500)
+    //     } else {
+    //       vm.executeSecurityChecking()
+    //     }
+    //   }
+    // },
 
     executeSecurityChecking () {
       const vm = this
@@ -594,15 +622,15 @@ export default {
     },
 
     resetSubmit () {
-      const htmlTag = document.querySelector('.animate-full-width')
-      const htmlTag2 = document.querySelector('.pt-animate-submit')
-      htmlTag.classList.add('pt-animate-submit')
-      htmlTag2.classList.remove('animate-full-width')
-      htmlTag2.style.left = '30px'
+      // const htmlTag = document.querySelector('.animate-full-width')
+      // const htmlTag2 = document.querySelector('.pt-animate-submit')
+      // htmlTag.classList.add('pt-animate-submit')
+      // htmlTag2.classList.remove('animate-full-width')
+      // htmlTag2.style.left = '30px'
       this.swiped = true
       this.submitStatus = false
       this.submitLabel = 'Processing'
-      document.querySelector('.pt-send-text').style.opacity = 10
+      // document.querySelector('.pt-send-text').style.opacity = 10
       this.pinDialogAction = ''
     },
 
@@ -855,6 +883,7 @@ export default {
         } else if (vm.walletType === 'bch') {
           address = addressObj.toCashAddress()
           const changeAddress = vm.getChangeAddress('bch')
+          console.log('jihyo')
           vm.wallet.BCH.sendBch(vm.sendData.amount, address, changeAddress).then(function (result) {
             vm.sendData.sending = false
             if (result.success) {
@@ -897,8 +926,8 @@ export default {
       vm.walletType = 'bch'
     }
 
-    const sendTag = document.querySelector('.pt-animate-submit')
-    vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
+    // const sendTag = document.querySelector('.pt-animate-submit')
+    // vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {

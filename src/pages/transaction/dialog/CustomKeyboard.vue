@@ -9,7 +9,7 @@
             @click="makeKeyAction(key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'ready to submit' : '')"
             class="pt-key-del"
             style="width: 95%; height: 95%"
-            :class="[key === 12 ? 'pt-check-key' : 'pt-remove-key', {'pt-bg-dark': $store.getters['darkmode/getStatus']}]"
+            :class="[key === 12 ? 'pt-check-key' : 'pt-remove-key', {'bg-grey-9 text-white': $store.getters['darkmode/getStatus'] && key !== 12}]"
             :icon="key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'done' : ''" />
           <q-btn
             push
@@ -17,7 +17,7 @@
             color="white"
             text-color="dark"
             style="width: 95%; height: 95%; font-weight: 400; line-height: 200%"
-            :class="{'pt-bg-dark-2': $store.getters['darkmode/getStatus']}"
+            :class="{'pt-bg-dark': $store.getters['darkmode/getStatus']}"
             v-else-if="key !== 13" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key"
             @click="enterKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key)" />
         </div>

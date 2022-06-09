@@ -250,7 +250,6 @@
 
     <DragSlide
       v-if="showDragSlide"
-      square
       :style="{
         position: 'fixed',
         bottom: 0,
