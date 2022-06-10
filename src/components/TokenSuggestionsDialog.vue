@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" persistent @hide="onClose()">
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': darkMode }">
+    <q-card class="q-dialog-plugin br-15" :class="{'pt-dark-card': darkMode }">
       <div class="row items-center no-wrap q-pb-sm">
         <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">
           <template v-if="loading">Finding unlisted assets</template>
@@ -9,8 +9,8 @@
         <q-space/>
         <q-btn
           flat
-          padding="md"
           icon="close"
+          round
           :class="darkMode ? 'text-white' : 'text-black'"
           v-close-popup
         />
@@ -23,8 +23,9 @@
         flat
         padding="none"
         size="sm"
+        icon="mdi-eye"
         class="q-mx-md"
-        :text-color="darkMode ? 'grey-4' : 'grey'"
+        :text-color="darkMode ? 'blue-5' : 'blue-9'"
         style="margin-top:-1.5rem;"
         :to="{ path: '/apps/settings/ignored-tokens' }"
       />
@@ -38,12 +39,12 @@
           >
             <q-tab
               name="BCH"
-              :class="{'pt-dark-label': darkMode}"
+              :class="{'text-blue-5': darkMode}"
               :label="'BCH' + (parsedMainchainTokens.length ? ` (${parsedMainchainTokens.length})` : '')"
             />
             <q-tab
               name="sBCH"
-              :class="{'pt-dark-label': darkMode}"
+              :class="{'text-blue-5': darkMode}"
               :label="'SmartBCH' + (parsedSmartchainTokens.length ? ` (${parsedSmartchainTokens.length})` : '')"
             />
           </q-tabs>
@@ -79,7 +80,7 @@
                       round
                       padding="sm"
                       :icon="assetIdExists(token.id) ? 'remove' : 'add'"
-                      :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
+                      :text-color="darkMode ? (assetIdExists(token.id) ? 'red-5' : 'green-5') : (assetIdExists(token.id) ? 'red' : 'green')"
                       @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
                     />
                   </div>
@@ -97,6 +98,7 @@
         </div>
         <div
           v-else
+          class="q-py-md"
           :class="[
             darkMode ? 'text-white' : 'text-black',
             'text-center',
@@ -108,18 +110,12 @@
       <!-- <q-separator/> -->
       <q-card-section class="row q-gutter-sm justify-around">
         <q-btn
-          no-caps
-          flat
-          label="Close"
-          :text-color="darkMode ? 'white' : 'grey'"
-          v-close-popup
-        />
-        <q-btn
           v-if="parsedTokens.length > 0 && !loading"
           no-caps
+          rounded
           :label="`Add all ${parsedTokens.length}`"
-          :text-color="darkMode ? 'black' : 'white'"
-          :color="darkMode ? 'brandlight': 'brandblue'"
+          text-color="white"
+          :color="darkMode ? 'blue-9': 'brandblue'"
           @click="addAllTokens()"          
         />
       </q-card-section>
@@ -278,19 +274,19 @@ export default {
         this.val = true
       } else {
         this.$q.notify({
-          color: this.darkMode ? 'dark' : 'white',
-          textColor: this.darkMode ? 'white' : 'black',
+          color: 'blue-9',
           progress: true,
           timeout: 15 * 1000,
           message: `Found ${count} token${count > 1 ? 's' : ''} for wallet.`,
           actions: [
             {
               label: 'Dismiss',
-              color: this.darkMode ? 'white' : 'grey',
+              color: 'white',
               handler: () => { /* ... */ }
             },
             {
               label: 'View tokens',
+              color: 'white',
               handler: () => {
                 this.val = true
               },

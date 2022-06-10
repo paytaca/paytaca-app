@@ -1,6 +1,6 @@
 <template>
   <div id="registration-container">
-    <div class="row q-pb-sm pt-brand-row">
+    <div class="row q-pb-sm">
       <div class="col-12 pt-brand">
         <img src="~/assets/paytaca_logo.png" height="60">
         <p class="pt-brandname">Paytaca</p>
@@ -16,36 +16,36 @@
             <div class="row">
               <div class="col q-mt-sm">
                 <label class="get-started-text" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Name</label>
-                <input type="text" class="pt-form-input q-mt-xs pt-input">
+                <q-input type="text" class="q-mt-xs bg-grey-3 br-40" dense rounded outlined />
               </div>
             </div>
             <div class="row">
               <div class="col q-mt-md">
                 <label class="get-started-text" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Email</label>
-                <input type="text" class="pt-form-input q-mt-xs pt-input" placeholder="Optional">
+                <q-input type="text" class="q-mt-xs bg-grey-3 br-40" placeholder="Optional" dense rounded outlined />
               </div>
             </div>
             <div class="row">
-              <div class="col q-mt-md">
+              <div class="col q-my-md">
                 <label class="get-started-text" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Mobile Number</label>
-                <input type="text" class="pt-form-input q-mt-xs pt-input" placeholder="Optional">
+                <q-input type="text" class="q-mt-xs bg-grey-3 br-40" placeholder="Optional" dense rounded outlined />
               </div>
             </div>
             <div class="row">
-              <q-btn push class="full-width pt-submit-btn q-mt-md" type="submit" label="Submit" rounded />
+              <q-btn push class="full-width bg-blue-9 text-white q-mt-md" type="submit" label="Submit" rounded />
             </div>
           </div>
         </div>
       </form>
-      <div class="row" v-else style="background: #fff; margin-top: 60px;">
+      <div class="row" v-else style="margin-top: 60px;">
         <div class="col" v-if="error">
-          <div class="col q-mt-sm pt-internet-required">
+          <div class="col q-mt-sm pt-internet-required text-white">
             Internet connection is required to proceed. &#128533;
           </div>
         </div>
-        <div class="col" v-else>
-          <div class="col q-mt-sm" style="text-align: center;">
-            <ProgressLoader/>
+        <div class="col transparent" v-else>
+          <div class="col q-mt-sm text-center">
+            <ProgressLoader color="white" />
           </div>
         </div>
       </div>
@@ -68,7 +68,7 @@ export default {
   methods: {
     submitForm (event) {
       event.preventDefault()
-      this.$router.push('/registration/accounts')
+      this.$router.push('/accounts')
     }
   },
   async created () {
@@ -87,10 +87,7 @@ export default {
 
 <style lang="scss">
 [v-cloak] {
-    display: none;
-}
-.pt-brand-row {
-  height: 152px;
+  display: none;
 }
 .icon-container {
   width: 30px;
@@ -100,20 +97,11 @@ export default {
   font-size: 24px;
   padding: 30px;
   color: gray;
-  font-family: Arial, Helvetica, sans-serif;
 }
 .get-started-text {
   color: #4C4F4F;
 }
 .dim-text {
   color: #8F8CB8;
-}
-.pt-submit-btn {
-  color: #fff;
-  height: 40px;
-  background-color: #2E73D2;
-}
-.submit-btn:focus {
-  box-shadow: 0px 0px 2px 2px rgba(93, 173, 226, .8);
 }
 </style>

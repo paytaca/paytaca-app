@@ -33,11 +33,10 @@ const routes = [
     ]
   },
   {
-    path: '/registration',
-    component: () => import('layouts/Registration.vue'),
+    path: '/accounts',
+    component: () => import('layouts/Accounts.vue'),
     children: [
-      { path: '', component: () => import('pages/registration/index.vue') },
-      { path: 'accounts', component: () => import('pages/registration/accounts.vue') }
+      { path: '', component: () => import('pages/registration/accounts.vue') }
     ]
   },
   {

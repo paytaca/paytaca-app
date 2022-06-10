@@ -1,8 +1,8 @@
 <template>
 	<q-dialog ref="dialog" @hide="onDialogHide" full-width>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
+    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-subtitle1 q-space">{{ title }}</div>
+        <div class="text-subtitle1 q-space q-mt-sm">{{ title }}</div>
         <q-btn
           flat
           padding="sm"
@@ -13,18 +13,37 @@
       <q-tab-panels v-model="panel" animated :class="darkMode ? 'pt-dark' : 'text-black'">
         <q-tab-panel name="list" class="q-pa-none">
           <q-card-section>
-            <div class="row items-center justify-end q-mb-xs">
-              <q-btn no-caps label="Select custom token" padding="none xs" flat @click="panel='custom'"/>
+            <div class="row items-center justify-end q-mb-sm">
+              <q-btn
+                no-caps
+                flat
+                icon-right="mdi-arrow-right"
+                label="Select custom token"
+                color="blue-9"
+                padding="none xs"
+                @click="panel='custom'"
+              />
             </div>
-            <q-input dense outlined v-model="searchText" :input-class="darkMode ? 'text-white' : 'text-black'"/>
+            <q-input
+              dense
+              outlined
+              v-model="searchText"
+              rounded
+              :input-class="darkMode ? 'text-white' : 'text-black'"
+            >
+               <template v-slot:append>
+                <q-icon name="search" color="grey-5" />
+              </template>
+            </q-input>
             <q-toggle
               label="Has balance"
               class="q-mt-sm"
               color="brandblue"
+              keep-color
               v-model="showHasBalance"
             />
           </q-card-section>
-          <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
+          <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none q-mb-sm q-mx-md">
             <q-virtual-scroll :items="filteredTokensList">
               <template v-slot="{ item: token, index }">
                 <q-item clickable @click="onOKClick(token)">
@@ -50,13 +69,22 @@
         </q-tab-panel>
         <q-tab-panel name="custom" class="q-pa-none">
           <q-card-section>
-            <div class="row items-center justify-end">
-              <q-btn no-caps label="Select from list" padding="none xs" flat @click="panel='list'"/>
+            <div class="row items-center justify-end q-mb-sm">
+              <q-btn
+                no-caps
+                icon="mdi-arrow-left"
+                label="Select from list"
+                color="blue-9"
+                padding="none xs"
+                flat
+                @click="panel='list'"
+              />
             </div>
-            <div>Input token address</div>
             <q-input
               dense
               outlined
+              rounded
+              placeholder="Input token address"
               v-model="customToken.address"
               :input-class="darkMode ? 'text-white' : 'text-black'"
               @input="!matchedTokensListFromCustomAddress.length ? updateCustomTokenInfo() : null"
@@ -114,7 +142,7 @@ export default {
   props: {
     title: {
       type: String,
-      default: 'Select a token',
+      default: 'Select Token',
     },
     tokensList: {
       type: Array,

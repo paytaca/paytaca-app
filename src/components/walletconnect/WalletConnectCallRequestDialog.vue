@@ -1,10 +1,10 @@
 <template>
   <q-dialog v-model="val" :persistent="persistent">
-    <q-card style="max-width:90vw; min-width:300px;" :class="{'pt-dark-card': darkMode, 'text-white': darkMode, 'text-black': !darkMode }">
+    <q-card style="max-width:90vw; min-width:300px;" class="br-15 q-pb-xs" :class="{'pt-dark-card': darkMode, 'text-white': darkMode, 'text-black': !darkMode }">
       <q-card-section class="row no-wrap items-center q-pb-xs">
         <div>
-          <div class="text-subtitle1">Call Request</div>
-          <div v-if="parsedCallRequest.payload.id" class="text-caption">
+          <div class="text-subtitle1 text-grad text-weight-medium">Call Request</div>
+          <div v-if="parsedCallRequest.payload.id" class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
             #{{ parsedCallRequest.payload.id }}
           </div>
         </div>
@@ -16,9 +16,11 @@
           round
           dense
           v-close-popup
+          :color="darkMode ? 'grey' : ''"
         />
       </q-card-section>
-      <q-separator inset/>
+
+      <q-separator inset class="q-my-sm" />
 
       <q-card-section
         v-if="hasDecoded"
@@ -29,6 +31,7 @@
           v-model="showDecoded"
           toggle-color="brandblue"
           dense
+          rounded
           padding="xs md"
           no-caps
           :options="[
@@ -44,11 +47,11 @@
         <div class="text-subtitle2 q-mb-xs">Sign Message</div>
         <div class="q-gutter-y-sm params-section">
           <div>
-            <div class="text-caption">Account:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Account:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0] }}</div>
           </div>
           <div>
-            <div class="text-caption">Message:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Message:</div>
             <div class="break-word">{{ decodeHex(parsedCallRequest.payload.params[1]) }}</div>
           </div>
         </div>
@@ -60,20 +63,20 @@
         <div class="text-subtitle2 q-mb-xs">Sign Message</div>
         <div class="q-gutter-y-sm params-section">
           <div>
-            <div class="text-caption">Account:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Account:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[1] }}</div>
           </div>
           <div>
-            <div class="text-caption">Message:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Message:</div>
             <div class="break-word">{{ decodeHex(parsedCallRequest.payload.params[0]) }}</div>
           </div>
         </div>
       </q-card-section>
       <q-card-section
         v-else-if="parsedCallRequest.payload.method === 'eth_signTransaction' || parsedCallRequest.payload.method === 'eth_sendTransaction' && showDecoded"
-        class="call-request-body"
+        class="call-request-body q-mt-md"
       >
-        <div class="text-subtitle2 q-mb-xs">
+        <div class="text-subtitle2 q-mb-md">
           <template v-if="parsedCallRequest.payload.method === 'eth_signTransaction'"> 
             Sign Transaction
           </template>
@@ -81,34 +84,34 @@
             Send Transaction
           </template>
         </div>
-        <div class="q-gutter-y-sm params-section">
+        <div class="q-gutter-y-sm params-section q-px-md q-pb-md br-15" :class="darkMode ? 'pt-dark-card-2' : 'bg-grey-4'">
           <div>
-            <div class="text-caption">From:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">From:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].from }}</div>
           </div>
           <div>
-            <div class="text-caption">To:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">To:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].to }}</div>
           </div>
           <div v-if="parsedCallRequest.payload.params[0].gasPrice">
-            <div class="text-caption">Gas Price:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Gas Price:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].gasPrice) }}</div>
           </div>
           <div v-if="parsedCallRequest.payload.params[0].gas">
-            <div class="text-caption">Gas:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Gas:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].gas) }}</div>
           </div>
           <div v-if="parsedCallRequest.payload.params[0].value">
-            <div class="text-caption">Value:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Value:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].value) }}</div>
           </div>
           <div v-if="parsedCallRequest.payload.params[0].data">
-            <div class="text-caption">Data:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Data:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].data }}</div>
           </div>
         </div>
       </q-card-section>
-      <q-card-section v-else class="call-request-body">
+      <q-card-section v-else class="call-request-body q-mt-sm">
         <div class="text-subtitle2">
           {{ parsedCallRequest.payload.method }}
         </div>
@@ -121,29 +124,31 @@
             v-for="(param, index) in parsedCallRequest.payload.params"
             :key="index"
             style="word-break:break-all"
-            class="q-px-xs"
+            class="q-px-xs q-mt-sm"
           >
-            <q-item-section>
+            <q-item-section class="q-mt-xs">
               <q-item-label>#{{ index }}</q-item-label>
-              <JSONRenderer :value="param"/>
+              <JSONRenderer :value="param" :darkMode="darkMode" />
             </q-item-section>
           </q-item>
         </q-list>
       </q-card-section>
       <q-card-actions>
         <q-btn
-          outline
           no-caps
           :loading="loading"
           :disable="loading"
           padding="xs md"
           color="grey"
+          flat
+          rounded
           label="Reject"
           @click="$emit('reject', parsedCallRequest)"
         />
         <q-space/>
         <q-btn
           no-caps
+          rounded
           :loading="loading"
           :disable="loading"
           padding="xs md"
@@ -245,7 +250,7 @@ export default {
 
 }
 </script>
-<style scoped>
+<style scoped lang="scss">
 .break-word {
   word-break: break-all;
 }

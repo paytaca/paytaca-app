@@ -1,10 +1,9 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card-2': darkMode}">
-
-        <q-card-section class="pt-label" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
-            <strong v-if="isSep20">Add SEP20 Token</strong>
-            <strong v-else>Add SLP Token</strong>
+    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': darkMode}">
+        <q-card-section class="pt-label text-weight-medium" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
+            <span v-if="isSep20">Add SEP20 Token</span>
+            <span v-else>Add SLP Token</span>
         </q-card-section>
 
         <q-separator />
@@ -15,23 +14,22 @@
               dense
               filled
               color="input-color"
-              class="pt-label"
-              :label="$t(`Enter ${isSep20 ? 'SEP20 contract adress': 'SLP token ID'}`)"
+              :label="$t(`Enter ${isSep20 ? 'SEP20 contract address': 'SLP token ID'}`)"
               type="text"
               lazy-rules
               v-model="asset"
               :dark="darkMode"
               :rules="[
-                val => Boolean(val) || `Enter ${isSep20 ? 'SEP20 contract adress': 'SLP token id'} is required`,
+                val => Boolean(val) || `Enter ${isSep20 ? 'SEP20 contract address': 'SLP token id'} is required`,
               ]"
             />
           </q-card-section>
 
-          <q-separator />
+          <q-separator class="q-mt-none" />
 
           <q-card-actions align="right">
-              <q-btn rounded class="btn-add-payment text-white" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" label="close" @click="onCancelClick" />
+              <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
+              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" flat label="close" @click="onCancelClick" />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -84,9 +82,6 @@ export default {
 </script>
 
 <style>
-.btn-add-payment {
-  background: radial-gradient(circle, #3C64F6 10%, #2648C3 100%) !important;
-}
 .pp-text {
   color: #000 !important;
 }

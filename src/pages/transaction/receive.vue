@@ -1,12 +1,12 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;">
+  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
     <header-nav
       :title="'RECEIVE ' + asset.symbol"
       backnavpath="/"
     ></header-nav>
     <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px'}">
       <q-menu anchor="bottom right" self="top end">
-        <q-list :class="{'pt-dark': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
+        <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
           <q-item clickable v-close-popup>
             <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">Generate new address</q-item-section>
           </q-item>
@@ -19,32 +19,31 @@
     <template v-else>
       <div class="row">
         <div class="col qr-code-container">
-            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="copyAddress">
+            <div class="col col-qr-code bg-grad q-pl-sm q-pr-sm q-pt-md" @click="copyAddress">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" style="position: absolute; margin-top: 73px; background: #fff;">
-                  <qr-code :text="address" color="#253933" :size="190" error-level="H" class="q-mb-sm"></qr-code>
+                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
+                  <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
-              <div class="pp-text">click to copy</div>
-            </div>
-            <div style="text-align: center; color: black;" v-if="walletType === 'bch'" @click="showOptions = !showOptions">
-              <q-btn :icon="showOptions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'" flat round dense />
+              <div class="text-white">click to copy</div>
             </div>
         </div>
       </div>
-      <div class="row" v-if="showOptions">
+      <div class="row q-mt-md" v-if="walletType === 'bch'">
         <q-toggle
-          style="margin: auto; color: black;"
+          style="margin: auto;"
           v-model="legacy"
-          class="pp-text"
+          :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'"
+          keep-color
+          color="blue-9"
           label="Legacy Address"
         />
       </div>
       <div class="row">
         <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
-          <span class="qr-code-text text-weight-medium">
-            <div class="text-nowrap pp-text" @click="copyAddress">
+          <span class="qr-code-text text-weight-light text-center">
+            <div class="text-nowrap" style="letter-spacing: 1px" @click="copyAddress" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
               {{ address }}
             </div>
             <div v-if="lnsName" class="text-center text-caption pp-text">
@@ -90,7 +89,6 @@ export default {
       walletType: '',
       asset: {},
       assetLoaded: false,
-      showOptions: false,
       legacy: false,
       wallet: null,
       lnsName: '',
@@ -202,7 +200,9 @@ export default {
       this.$copyText(this.address)
       this.$q.notify({
         message: 'Copied address',
-        timeout: 800
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
       })
     },
     getAsset (id) {
@@ -225,7 +225,10 @@ export default {
       const vm = this
       vm.playSound(true)
       vm.$q.notify({
+        classes: 'br-15 text-body1',
         message: `${amount} ${symbol} received!`,
+        color: 'blue-9',
+        position: 'center',
         avatar: logo,
         timeout: 3000
       })
@@ -381,8 +384,7 @@ export default {
     width: 300px;
     border-radius: 16px;
     padding: 25px 10px 32px 10px;
-    box-shadow: 1px 2px 2px 1px rgba(99, 103, 103, .1);
-    border: 4px solid #ed5f59;
+    // background: white;
   }
   .receive-add-amount {
     color: #3992EA;
@@ -395,7 +397,6 @@ export default {
   }
   .qr-code-text {
     font-size: 18px;
-    font-family: monospace;
     color: #000;
   }
   .currencies {
@@ -445,6 +446,13 @@ export default {
   .icon-copy {
     color: #3992EA;
     font-size: 26px;
+  }
+  .receive-icon-asset {
+    position: absolute;
+      margin-top: 73px;
+      background: white;
+      border-radius: 50%;
+      padding: 4px;
   }
 .pp-text {
   color: #000 !important;

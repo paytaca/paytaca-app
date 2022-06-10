@@ -1,8 +1,8 @@
 <template>
   <div>
     <q-dialog
-    v-model="dialog"
-    persistent
+      v-model="dialog"
+      persistent
     >
       <q-card :class="{ 'pt-dark-card': darkMode }">
           <q-card-section>

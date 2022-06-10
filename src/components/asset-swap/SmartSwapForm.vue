@@ -1,14 +1,15 @@
 <template>
   <q-card
-    :flat="darkMode"
+    class="br-15 q-pt-sm"
     :class="[
       darkMode ? 'text-white pt-dark-card' : 'text-black',
     ]"
   >
     <q-card-section v-if="!stagedSwapDetails.show">
-      <div class="row items-center justify-end q-mb-sm">
+      <div class="row items-center justify-end q-mb-md">
         <q-btn
           round
+          color="blue-9"
           padding="xs"
           icon="refresh"
           class="q-ml-md"
@@ -19,6 +20,7 @@
         />
         <q-btn
           round
+          color="blue-9"
           padding="xs"
           icon="settings"
           class="q-ml-md"
@@ -32,6 +34,7 @@
           <q-btn
             no-caps
             flat
+            rounded
             color="white"
             label="Refetch"
             @click="updateNetworkData()"
@@ -40,7 +43,7 @@
       </q-banner>
       <q-item clickable>
         <q-item-section avatar @click="selectSourceToken()" class="items-center">
-          <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" style="border-radius:50%">
+          <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" style="border-radius:50%" class="q-mb-sm">
           <q-item-label>
             {{ formData.sourceToken.symbol }}
           </q-item-label>
@@ -48,9 +51,9 @@
         <q-item-section>
           <q-input
             dense
-            outlined
+            filled
             v-model.number="formData.amount"
-            :input-class="darkMode ? 'text-white' : 'text-black'"
+            :dark="darkMode"
             @input="
               updateExcptectedReturn()
               updateNetworkData()
@@ -67,19 +70,20 @@
           </q-item-label>
         </q-item-section>
       </q-item>
-      <div class="q-px-md q-my-xs row items-center justify-left">
+      <div class="q-px-md q-my-xs row items-center justify-center">
         <q-btn
-          icon="swap_vert"
+          icon="mdi-swap-vertical"
           round
-          padding="sm"
-          flat
+          text-color="blue-9"
+          color="grey-4"
+          unelevated
           @click="reverseSelectedTokens()"
         />
       </div>
 
       <q-item clickable>
         <q-item-section avatar @click="selectDestToken()" class="items-center">
-          <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" style="border-radius:50%">
+          <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" style="border-radius:50%" class="q-mb-sm">
           <q-item-label>
             {{ formData.destToken.symbol }}
           </q-item-label>
@@ -90,28 +94,34 @@
             v-else
             disable
             dense
-            outlined
-            :input-class="darkMode ? 'text-white' : 'text-black'"
+            filled
+            :dark="darkMode"
             :value="formatNumber(networkData.expectedReturn, 6)"
           />
+          <q-item-label
+            v-if="networkData.exchangeRate"
+            class="text-right q-mt-sm"
+            caption
+            :class="darkMode ? 'text-grey-6' : ''"
+          >
+            <div>
+              <q-skeleton v-if="networkData.loading" type="text"/>
+              <template v-else>
+                1 {{ formData.sourceToken.symbol}} ~=
+                {{ formatNumber(networkData.exchangeRate, 10) }}
+                {{ formData.destToken.symbol }}
+              </template>
+            </div>
+          </q-item-label>
         </q-item-section>
       </q-item>
-
-      <div v-if="networkData.exchangeRate" class="q-px-md text-right">
-        <q-skeleton v-if="networkData.loading" type="text"/>
-        <template v-else>
-          1 {{ formData.sourceToken.symbol}} ~=
-          {{ formatNumber(networkData.exchangeRate, 10) }}
-          {{ formData.destToken.symbol }}
-        </template>
+      <div class="q-px-sm row items-center justify-end q-mt-md">
+        <q-btn icon="launch" color="blue-9" flat padding="xs" size="sm" @click="showSettingsDialogForm = true"/>
       </div>
-      <div class="q-px-sm row items-center justify-end">
-        <q-btn icon="launch" flat padding="xs" size="sm" @click="showSettingsDialogForm = true"/>
-      </div>
-      <q-item>
+      <q-item class="q-mt-sm">
         <q-item-section side>
-          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Slippage</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Deadline</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Slippage:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Deadline:</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label>{{ formData.slippageTolerance }}%</q-item-label>
@@ -122,17 +132,17 @@
         </q-item-section>
       </q-item>
       <q-separator />
-      <q-item class="q-mb-sm">
+      <q-item class="q-my-sm">
         <q-item-section side>
-          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Route</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Minimum return</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Route:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Minimum return:</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label @click="showRouteDialog = computedFormData.parsedDistribution.steps > 0" style="cursor:pointer;">
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else-if="computedFormData.parsedDistribution.steps > 0">
               {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch"/>
+              <q-icon name="launch" :color="darkMode ? 'blue-5' : 'blue-9'" />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedFormData.parsedDistribution.steps"
@@ -155,6 +165,9 @@
           </q-item-label>
         </q-item-section>
       </q-item>
+      <div class="row justify-center q-mb-md" style="color: gray;">
+        <span>Powered by SmartSwap.fi</span>
+      </div>
       <div class="row">
         <q-btn
           v-if="!networkData.isApproved && !formData.sourceToken.mainCurrency"
@@ -164,11 +177,13 @@
           :label="'Approve ' + formData.sourceToken.symbol"
           color="brandblue"
           class="q-space"
+          rounded
           @click="confirmApproveToken()"
         />
         <q-btn
           v-else-if="!formData.amount"
           disable
+          rounded
           no-caps
           label="Enter amount"
           color="brandblue"
@@ -178,28 +193,15 @@
           v-else
           :disable="insufficientBalance || networkData.approvingToken || networkData.loading || Boolean(networkData.error)"
           no-caps
+          rounded
           :label="insufficientBalance ? 'Insufficient balance': 'Swap'"
           color="brandblue"
           class="q-space"
           @click="moveSwapDetailsToStaging()"
         />
       </div>
-      <div class="row justify-center" style="margin-top: 24px; color: gray;">
-        <span>Powered by SmartSwap.fi</span>
-      </div>
     </q-card-section>
     <q-card-section v-else>
-      <div v-if="!stagedSwapDetails.txid" class="row items-center justify-end">
-        <q-btn
-          flat
-          no-caps
-          :disable="stagedSwapDetails.loading"
-          padding="xs sm"
-          label="Edit"
-          class="q-mb-sm"
-          @click="stagedSwapDetails.show = false"
-        />
-      </div>
       <div>
         <q-banner v-if="Boolean(stagedSwapDetails.error)" dense rounded class="text-white bg-red q-mx-md q-mb-sm">
           {{ stagedSwapDetails.error }}
@@ -208,7 +210,7 @@
       <div class="row no-wrap justify-around items-baseline">
         <div class="col-5 column items-center">
           <img height="40" :src="stagedSwapDetails.sourceToken.image_url"/>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mt-sm">
             {{ computedStagedSwapDetails.formattedAmount }}
           </div>
           <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
@@ -220,7 +222,7 @@
 
         <div class="col-5 column items-center">
           <img height="40" :src="stagedSwapDetails.destToken.image_url"/>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mt-sm">
             {{ computedStagedSwapDetails.formattedExpectedReturn }}
           </div>
           <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
@@ -231,10 +233,10 @@
       <q-separator spaced/>
       <q-item>
         <q-item-section side>
-          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Slippage</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Min. Return</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Deadline</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : ''">Route</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Slippage:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Min. Return:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Deadline:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Route:</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label>{{ stagedSwapDetails.slippageTolerance }}%</q-item-label>
@@ -249,7 +251,7 @@
           <q-item-label @click="showRouteDialog = computedStagedSwapDetails.parsedDistribution.steps > 0" style="cursor:pointer;">
             <template v-if="computedStagedSwapDetails.parsedDistribution.steps > 0">
               {{ `${computedStagedSwapDetails.parsedDistribution.steps} step${computedStagedSwapDetails.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch"/>
+              <q-icon name="launch" color="blue-9" />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedStagedSwapDetails.parsedDistribution.steps"
@@ -265,22 +267,40 @@
           </q-item-label>
         </q-item-section>
       </q-item>
-      <div v-if="stagedSwapDetails.txid" class="q-mx-sm q-mt-sm">
+      <div v-if="!stagedSwapDetails.txid" class="row items-center justify-end q-mb-md">
+        <q-btn
+          flat
+          no-caps
+          :disable="stagedSwapDetails.loading"
+          rounded
+          color="blue-9"
+          icon="mdi-arrow-left"
+          label="Back to Edit"
+          @click="stagedSwapDetails.show = false"
+        />
+      </div>
+      <div v-if="stagedSwapDetails.txid" class="q-mx-md q-mt-sm">
         <div>View transaction in smartscan:</div>
         <div class="ellipsis">
-          <a :href="`https://www.smartscan.cash/transaction/${stagedSwapDetails.txid}`" target="_blank"> {{ stagedSwapDetails.txid }}</a>
+          <a
+            :href="`https://www.smartscan.cash/transaction/${stagedSwapDetails.txid}`"
+            target="_blank"
+            style="text-decoration: none;"
+            :class="darkMode ? 'text-blue-5' : 'text-blue-9'"
+          >
+            {{ stagedSwapDetails.txid }}
+          </a>
         </div>
       </div>
-      <hr>
+      <q-separator />
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
         <ProgressLoader/>
       </div>
-      <div class="row justify-center" style="margin-top: 24px; color: gray;">
+      <div class="row justify-center" style="margin-top: 20px; color: gray;">
         <span>Powered by SmartSwap.fi</span>
       </div>
       <DragSlide
         v-if="stagedSwapDetails.show && stagedSwapDetails.showConfirmSwipe"
-        square
         :style="{
           position: 'fixed',
           bottom: 0,
@@ -291,47 +311,49 @@
         @swiped="confirmSwiped()"
       />
     </q-card-section>
-    <q-dialog v-model="showSettingsDialogForm">
-      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;">
+    <q-dialog v-model="showSettingsDialogForm" persistent>
+      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;" class="br-15">
         <div class="row no-wrap items-center justify-center q-pl-md">
-          <div class="text-subtitle1 q-space">Settings</div>
+          <div class="text-subtitle1 text-weight-medium q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">Settings</div>
           <q-btn
-            flat
-            padding="sm"
-            icon="close"
-            v-close-popup
-          />
-        </div>
-        <q-card-section>
-          <div class="row items-center justify-end q-mb-sm">
-            <q-btn
               flat
-              no-caps
-              padding="none sm"
-              label="Defaults"
-              class="q-ml-md"
+              color="blue-9"
+              icon="refresh"
+              round
+              padding="sm"
               @click="
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
               "
             />
-          </div>
-          <div class="q-mb-sm text-subtitle2">
+          <q-btn
+            flat
+            round
+            color="grey"
+            padding="sm"
+            icon="close"
+            v-close-popup
+          />
+        </div>
+        <q-card-section class="text-center">
+          <div class="q-mb-sm text-subtitle2 text-weight-regular">
             Slippage Tolerance
-            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grey' : 'black'">
+            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark' : 'text-black']">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
                   The swap will be reverted if price changes unfavorably by this percentage
                 </div>
               </q-popup-proxy>
             </q-icon>
           </div>
-          <div class="no-wrap row items-center q-gutter-sm">
+          <div class="no-wrap row items-center justify-center q-gutter-sm">
             <q-btn-toggle
               v-model="formData.slippageTolerance"
-              push
-              padding="xs md"
-              toggle-color="primary"
+              rounded-borders
+              toggle-color="grad"
+              :toggle-text-color="darkMode ? 'dark' : 'white'"
+              :color="darkMode ? 'blue-9' : 'grey-3'"
+              :text-color="darkMode ? 'pt-dark-label' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
                 {label: '1%', value: 1},
@@ -346,22 +368,23 @@
               :input-class="darkMode ? 'text-white' : 'text-black'"
             /> -->
           </div>
-          <div class="q-mt-lg q-mb-sm text-subtitle2">
-            Transaction deadline
-            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grey' : 'black'">
+          <div class="q-mt-lg q-mb-sm text-subtitle2 text-weight-regular">
+            Transaction Deadline
+            <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark' : 'text-black']">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
                   The swap will be reverted if the transaction is pending for more than this duration
                 </div>
               </q-popup-proxy>
             </q-icon>
           </div>
-          <div>{{ formData.transactionDeadline }} minutes</div>
+          <div :class="darkMode ? 'text-grey-6' : ''">{{ formData.transactionDeadline }} minutes</div>
           <div class="no-wrap row items-center q-gutter-sm">
             <q-slider
               :min="5"
               :max="30"
-              v-model="formData.transactionDeadline"/>
+              v-model="formData.transactionDeadline"
+            />
           </div>
         </q-card-section>
       </q-card>
@@ -556,8 +579,15 @@ export default {
         title: 'Approve token',
         message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
         ok: true,
+        persistent: true,
+        ok: {
+          rounded: true
+        },
+        cancel: {
+          rounded: true
+        },
         cancel: true,
-        class: this.darkMode ? 'text-white pt-dark-card' : 'text-black',
+        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
       })
         .onOk(() => {
           this.approveSourceToken()
@@ -578,7 +608,7 @@ export default {
         progress: true,
         persistent: false,
         ok: false, // we want the user to not be able to close it
-        class: this.darkMode ? 'text-white pt-dark-card' : 'text-black',
+        class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black',
       })
 
       const onApproveSuccess = () => {
@@ -795,8 +825,11 @@ export default {
           title: 'Swap success',
           message: 'Assets swapped succesfully!',
           ok: true,
-          persistend: true,
-          class: this.darkMode ? 'text-white pt-dark-card' : 'text-black',
+          ok: {
+            rounded: true
+          },
+          persisted: true,
+          class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black',
         })
       } catch(err) {
         console.error(err)

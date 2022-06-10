@@ -5,7 +5,7 @@
       backnavpath="/send/select-asset"
       v-if="!sendData.sent"
     ></header-nav>
-    <div>
+    <div class="q-mt-xl">
       <div class="q-pa-md" style="padding-top: 70px;">
         <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
           <img :src="image" width="150" />
@@ -14,17 +14,11 @@
           <q-icon name="error" left/>
           {{ scanner.error }}
         </div>
-        <div class="row justify-center" v-if="!scanner.show && sendData.recipientAddress === ''">
-          <div class="col-12 q-mt-lg">
-            <q-btn class="full-width q-py-xs" :class="darkMode ? 'btn-scan-dark' : 'btn-scan'" label="scan qr code" icon="qr_code_scanner" @click="scanner.show = !scanner.show"></q-btn>
-          </div>
-          <div class="col-12 q-mt-lg" style="text-align: center; font-size: 20px; color: #000;" :class="{'pt-dark-label': darkMode}">
-            OR
-          </div>
-          <div class="col-12 q-mt-lg" style="text-align: center;">
+        <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendData.recipientAddress === ''">
+          <div class="col-12" style="text-align: center;">
             <q-input
-              outlined
               bottom-slots
+              filled
               :dark="darkMode"
               v-model="manualAddress"
               :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
@@ -59,12 +53,24 @@
               </q-menu>
             </q-input>
           </div>
+          <div class="col-12" style="text-align: center; font-size: 15px; color: grey;">
+            OR
+          </div>
+          <div class="col-12 q-mt-lg text-center">
+            <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="scanner.show = !scanner.show" />
+          </div>
         </div>
         <div class="row justify-center q-pt-lg" v-show="scanner.show">
           <div ref="scanner" class="q-pa-none qrcode-scanner">
-            <span class="material-icons close-scanner" @click="closeQrScanner">
-            close
-            </span>
+            <q-btn
+              icon="close"
+              round
+              padding="sm"
+              unelevated
+              class="scanner-close-btn"
+              style="z-index:2022;"
+              @click="closeQrScanner"
+            />
             <div :class="{'scanner-box' : scanner.show}" ref="box">
               <div class="scan-layout-design" v-if="scanner.show">
                 <div class="scan-design1">
@@ -93,7 +99,14 @@
         <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
           <div class="row">
             <div class="col q-mt-sm se">
-              <q-input outlined v-model="sendData.recipientAddress" label-slot :disabled="disableRecipientInput" :readonly="disableRecipientInput" :dark="darkMode">
+              <q-input
+                filled
+                v-model="sendData.recipientAddress"
+                label-slot
+                :disabled="disableRecipientInput"
+                :readonly="disableRecipientInput"
+                :dark="darkMode"
+              >
                 <template v-slot:label>
                   Recipient
                   <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
@@ -111,7 +124,8 @@
                 ref="amount"
                 @focus="readonlyState(true)"
                 @blur="readonlyState(false)"
-                outlined v-model="sendData.amount"
+                filled
+                v-model="sendData.amount"
                 label="Amount"
                 :disabled="disableAmountInput"
                 :readonly="disableAmountInput"
@@ -144,24 +158,52 @@
 
       <customKeyboard :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
 
-      <div class="pt-submit-container" :class="[!showSlider ? 'pt-invisible' : '']">
-        <p class="text-h6 q-my-none q-py-none text-white pt-send-text">
+      <q-list v-if="showSlider" class="absolute-bottom">
+        <q-slide-item left-color="blue" @left="slideToSubmit">
+          <template v-slot:left>
+            <div style="font-size: 15px" class="text-body1">
+            <q-icon class="material-icons q-mr-md" size="lg">
+              task_alt
+            </q-icon>
+            Security Check
+            </div>
+          </template>
+
+          <q-item class="bg-grad text-white q-py-md">
+            <q-item-section avatar>
+              <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+            </q-item-section>
+            <q-item-section class="text-right">
+              <h5 class="q-my-sm text-grey-4">SWIPE TO SEND</h5>
+            </q-item-section>
+          </q-item>
+        </q-slide-item>
+      </q-list>
+
+      <!--
+      <div class="pt-submit-container q-pa-none" :class="[!showSlider ? 'pt-invisible' : '']">
+        <p class="text-h5 q-ma-none q-pa-none text-white pt-send-text">
           Swipe to send
         </p>
         <div class="text-center pt-on-process" :class="[!swiped ? 'animate-process' : '']">
           <p class="text-h6 text-white q-my-none q-py-none pt-process-text">
             <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">{{ submitLabel }}</span>
             <span class="material-icons pt-check-icon">
-            task_alt
+              task_alt
             </span>
           </p>
         </div>
         <div class="pt-animate-submit text-white text-center" v-touch-pan.horizontal.prevent.mouse="slideToSubmit">
-          <span v-if="swiped" class="material-icons pt-arrow-right-icon">
-          arrow_forward
-          </span>
+          <q-icon
+            v-if="swiped"
+            color="white"
+            style="border-radius: 50%"
+            name="mdi-chevron-double-right"
+            size="4em"
+          />
         </div>
       </div>
+    -->
       <template v-if="!showSlider">
         <footer-menu v-if="!sendData.sending" />
       </template>
@@ -176,8 +218,8 @@
           </ul>
         </div>
       </div>
-      <div class="q-px-lg" v-if="sendData.sent" style="text-align: center; margin-top: 25%;">
-        <q-icon size="120px" name="check_circle" style="color: green;"></q-icon>
+      <div class="q-px-lg" v-if="sendData.sent" style="text-align: center;">
+        <q-icon size="120px" name="check_circle" color="green-5"></q-icon>
         <div style="margin-top: 20px;">
           <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 30px;">Successfully sent</p>
           <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
@@ -456,62 +498,66 @@ export default {
         this.sliderStatus = true
       }
     },
-    slideToSubmit ({ evt, ...newInfo }) {
-      const vm = this
-      const htmlTag = document.querySelector('.pt-animate-submit')
-      const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
-
-      let screenX, clientX
-      if (evt.changedTouches === undefined) {
-        screenX = evt.screenX
-        clientX = evt.clientX
-      } else {
-        screenX = evt.changedTouches[0].screenX
-        clientX = evt.changedTouches[0].clientX
-      }
-
-      if (vm.counter === 0) {
-        vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
-        vm.leftX = Math.round(screenX)
-      }
-
-      if (!newInfo.isFinal) {
-        vm.counter++
-        if (window.innerWidth <= (clientX + 100) && right <= 90) {
-          vm.swiped = false
-          htmlTag.classList.add('animate-full-width')
-          document.querySelector('.pt-send-text').style.opacity = 0
-          vm.submitLabel = 'Security check'
-          vm.submitStatus = true
-        } else {
-          const htmlTag = document.querySelector('.pt-animate-submit')
-          const newPadding = vm.slider + screenX - vm.leftX
-
-          if (newPadding >= 0) {
-            htmlTag.style.left = newPadding + 'px'
-            document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
-            vm.opacity += 0.005
-          }
-        }
-      } else {
-        vm.counter = 0
-        vm.opacity = 0.1
-        const htmlTag = document.querySelector('.pt-animate-submit')
-        const htmlTag2 = document.querySelector('.pt-send-text')
-        if (vm.submitStatus !== true) {
-          htmlTag.classList.add('animate-left')
-          htmlTag2.classList.add('animate-opacity')
-          setTimeout(() => {
-            htmlTag.style.left = '30px'
-            htmlTag2.style.opacity = '10'
-            htmlTag.classList.remove('animate-left')
-            htmlTag2.classList.remove('animate-opacity')
-          }, 500)
-        } else {
-          vm.executeSecurityChecking()
-        }
-      }
+    slideToSubmit ({ reset }) {
+      setTimeout(() => { reset() }, 2000)
+      this.executeSecurityChecking()
     },
+    // slideToSubmit ({ evt, ...newInfo }) {
+    //   const vm = this
+    //   const htmlTag = document.querySelector('.pt-animate-submit')
+    //   const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
+
+    //   let screenX, clientX
+    //   if (evt.changedTouches === undefined) {
+    //     screenX = evt.screenX
+    //     clientX = evt.clientX
+    //   } else {
+    //     screenX = evt.changedTouches[0].screenX
+    //     clientX = evt.changedTouches[0].clientX
+    //   }
+
+    //   if (vm.counter === 0) {
+    //     vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
+    //     vm.leftX = Math.round(screenX)
+    //   }
+
+    //   if (!newInfo.isFinal) {
+    //     vm.counter++
+    //     if (window.innerWidth <= (clientX + 100) && right <= 90) {
+    //       vm.swiped = false
+    //       htmlTag.classList.add('animate-full-width')
+    //       document.querySelector('.pt-send-text').style.opacity = 0
+    //       vm.submitLabel = 'Security check'
+    //       vm.submitStatus = true
+    //     } else {
+    //       const htmlTag = document.querySelector('.pt-animate-submit')
+    //       const newPadding = vm.slider + screenX - vm.leftX
+
+    //       if (newPadding >= 0) {
+    //         htmlTag.style.left = newPadding + 'px'
+    //         document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
+    //         vm.opacity += 0.005
+    //       }
+    //     }
+    //   } else {
+    //     vm.counter = 0
+    //     vm.opacity = 0.1
+    //     const htmlTag = document.querySelector('.pt-animate-submit')
+    //     const htmlTag2 = document.querySelector('.pt-send-text')
+    //     if (vm.submitStatus !== true) {
+    //       htmlTag.classList.add('animate-left')
+    //       htmlTag2.classList.add('animate-opacity')
+    //       setTimeout(() => {
+    //         htmlTag.style.left = '30px'
+    //         htmlTag2.style.opacity = '10'
+    //         htmlTag.classList.remove('animate-left')
+    //         htmlTag2.classList.remove('animate-opacity')
+    //       }, 500)
+    //     } else {
+    //       vm.executeSecurityChecking()
+    //     }
+    //   }
+    // },
 
     executeSecurityChecking () {
       const vm = this
@@ -576,15 +622,15 @@ export default {
     },
 
     resetSubmit () {
-      const htmlTag = document.querySelector('.animate-full-width')
-      const htmlTag2 = document.querySelector('.pt-animate-submit')
-      htmlTag.classList.add('pt-animate-submit')
-      htmlTag2.classList.remove('animate-full-width')
-      htmlTag2.style.left = '30px'
+      // const htmlTag = document.querySelector('.animate-full-width')
+      // const htmlTag2 = document.querySelector('.pt-animate-submit')
+      // htmlTag.classList.add('pt-animate-submit')
+      // htmlTag2.classList.remove('animate-full-width')
+      // htmlTag2.style.left = '30px'
       this.swiped = true
       this.submitStatus = false
       this.submitLabel = 'Processing'
-      document.querySelector('.pt-send-text').style.opacity = 10
+      // document.querySelector('.pt-send-text').style.opacity = 10
       this.pinDialogAction = ''
     },
 
@@ -824,6 +870,7 @@ export default {
         } else if (vm.walletType === 'bch') {
           address = addressObj.toCashAddress()
           const changeAddress = vm.getChangeAddress('bch')
+          console.log('jihyo')
           vm.wallet.BCH.sendBch(vm.sendData.amount, address, changeAddress).then(function (result) {
             vm.sendData.sending = false
             if (result.success) {
@@ -866,8 +913,8 @@ export default {
       vm.walletType = 'bch'
     }
 
-    const sendTag = document.querySelector('.pt-animate-submit')
-    vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
+    // const sendTag = document.querySelector('.pt-animate-submit')
+    // vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {
@@ -923,13 +970,12 @@ export default {
     flex-flow: column nowrap;
     justify-content: center;
   }
-  .close-scanner {
+  .scanner-close-btn {
     position: absolute;
-    top: 24px;
-    right: 24px;
-    font-size: 38px;
+    top: 0;
+    right: 0;
+    margin: 10px;
     color: #ef4f84;
-    z-index: 2500;
   }
   .scanner-text {
     position: absolute;
@@ -1136,7 +1182,7 @@ export default {
     width: 150px;
     height: 65px;
     width: 65px;
-    left: 30px;
+    left: 20px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1170,8 +1216,7 @@ export default {
   }
   .pt-send-text {
     position: absolute;
-    right: 40px;
-    font-family: Arial, Helvetica, sans-serif;
+    right: 20px;
   }
   .pt-on-process {
     position: absolute;

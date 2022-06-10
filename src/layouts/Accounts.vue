@@ -7,7 +7,7 @@
 <script>
 
 export default {
-  name: 'registration-layout',
+  name: 'accounts-layout',
   data () {
     return {
     }

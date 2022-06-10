@@ -1,12 +1,12 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
     <q-card
-      class="q-dialog-plugin"
-      style="padding: 15px 0;"
-      :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}"
+      class="q-dialog-plugin br-15"
+      style="padding: 5px 0;"
+      :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}"
     >
-      <div style="right: 10px; top: 10px; position: absolute; background: lightgray; border-radius: 20px; z-index: 100;">
-        <q-btn icon="close" class="pp-text" flat round dense v-close-popup />
+      <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
+        <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : ''" />
       </div>
       <q-card-section v-if="asset">
         <div style="text-align: center; font-size: 20px;">
@@ -23,13 +23,13 @@
             style="text-decoration: none; color: gray;"
             target="_blank"
           >
-            {{ asset.id.split('/')[1].slice(0, 7) }}
-            <q-icon name="exit_to_app" />
+            {{ asset.id.split('/')[1].slice(0, 7) }}...
+            <q-icon name="exit_to_app" :color="$store.getters['darkmode/getStatus'] ? 'blue-5' : 'blue-9'" size="sm" />
           </a>
         </div>
         <div style="margin-top: 20px; text-align: center;">
-          <q-btn :class="$store.getters['darkmode/getStatus'] ? 'pt-bg-dark pt-dark-label': 'pp-text'" @click="send">Send</q-btn>&nbsp;
-          <q-btn :class="$store.getters['darkmode/getStatus'] ? 'pt-bg-dark pt-dark-label': 'pp-text'" @click="receive">Receive</q-btn>
+          <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded icon-right="mdi-send" label="Send" no-caps />
+          <q-btn @click="receive" icon-right="mdi-inbox" rounded color="blue-9" label="Receive" no-caps />
         </div>
       </q-card-section>
     </q-card>

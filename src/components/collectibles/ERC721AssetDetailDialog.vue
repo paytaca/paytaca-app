@@ -1,25 +1,34 @@
 <template>
   <q-dialog v-model="val" ref="dialogRef">
-    <q-card class="q-dialog-plugin pp-text">
+    <q-card class="q-dialog-plugin pp-text br-15" :class="darkMode ? 'pt-dark' : ''">
       <q-card-section class="pt-label">
-        <strong class="text-h6">SEP721 Token</strong>
+        <strong class="text-h6" :class="darkMode ? 'text-grad' : ''">SEP721 Token</strong>
       </q-card-section>
       <q-card-section v-if="asset">
-        <div class="q-mb-sm">
-          <div>Name</div>
-          <div class="text-subtitle1">{{ asset.name }}</div>
+        <div class="q-mb-lg">
+          <div :class="darkMode ? 'text-grad' : ''">Name:</div>
+          <div class="text-caption" :class="darkMode ? 'text-white' : ''">{{ asset.name }}</div>
         </div>
-        <div v-if="asset.symbol" class="q-mb-sm">
-          <div>Symbol:</div>
-          <div class="text-subtitle1">{{ asset.symbol }}</div>
+        <div v-if="asset.symbol" class="q-mb-lg">
+          <div :class="darkMode ? 'text-grad' : ''">Symbol:</div>
+          <div class="text-caption" :class="darkMode ? 'text-white' : ''">{{ asset.symbol }}</div>
         </div>
         <div class="q-mb-sm">
-          <div>Address:</div>
-          <div class="text-subtitle1" style="word-break: break-all;">
+          <div :class="darkMode ? 'text-grad' : ''">Address:</div>
+          <div class="text-caption q-mb-sm" :class="darkMode ? 'text-white' : ''" style="word-break: break-all;">
             {{ asset.address }}
-            <q-icon name="exit_to_app" size="1.25em" class="q-px-sm" role="button" @click="copyToClipboard(asset.address)"/>
+            <q-icon
+              name="mdi-content-copy"
+              size="1.25em"
+              class="q-px-sm"
+              role="button"
+              :color="darkMode ? 'blue-5' : 'blue-9'"
+              @click="copyToClipboard(asset.address)"
+            />
           </div>
-          <a :href="`https://smartscan.cash/address/${asset.address}`" target="_blank">
+          <q-separator class="q-my-md" />
+
+          <a :href="`https://smartscan.cash/address/${asset.address}`" target="_blank" style="text-decoration: none" :class="darkMode ? 'text-blue-5' : 'text-blue-9'">
             View in smartscan
           </a>
         </div>
@@ -30,10 +39,10 @@
 <script>
 export default {
   name: 'ERC721AssetDetailDialog',
-
   props: {
     value: { type: Boolean, default: false },
     asset: {},
+    darkMode: { type: Boolean, default: false }
   },
 
   data () {
@@ -47,7 +56,9 @@ export default {
       this.$copyText(value)
       this.$q.notify({
         message: 'Copied to clipboard',
-        timeout: 200
+        timeout: 200,
+        icon: 'mdi-clipboard-check',
+        color: 'blue-9'
       })
     }
   },

@@ -6,7 +6,7 @@
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
     <q-icon id="context-menu" size="35px" name="more_vert">
       <q-menu>
-        <q-list :class="{'pt-dark': darkMode}" style="min-width: 100px">
+        <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
             <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
           </q-item>
@@ -23,24 +23,26 @@
       :value="selectedNetwork"
       @input="changeNetwork"
     >
-      <q-tab :class="{'pt-dark-label': darkMode}" name="BCH" label="BCH"/>
-      <q-tab :class="{'pt-dark-label': darkMode}" name="sBCH" label="SmartBCH"/>
+      <q-tab :class="{'text-blue-5': darkMode}" name="BCH" label="BCH"/>
+      <q-tab :class="{'text-blue-5': darkMode}" name="sBCH" label="SmartBCH"/>
     </q-tabs>
     <q-slide-transition>
-      <div v-if="showAddress" @click="copyAddress(receivingAddress)" style="text-align: center; padding-top: 20px;">
-        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="margin-bottom: 5px;">click to copy</div>
-        <qr-code
-          :text="receivingAddress"
-          style="width: 160px; margin-left: auto; margin-right: auto;"
-          color="#253933"
-          :size="160"
-          error-level="H"
-          class="q-mb-sm"
-        />
+      <div v-if="showAddress" @click="copyAddress(receivingAddress)" class="flex flex-center q-py-md">
+        <div class="bg-grad q-pa-md br-15">
+          <qr-code
+            :text="receivingAddress"
+            style="width: 160px; margin-left: auto; margin-right: auto;"
+            color="#253933"
+            :size="160"
+            error-level="H"
+            class="q-mb-sm"
+          />
+          <div class="text-white text-center">click to copy</div>
+        </div>
       </div>
     </q-slide-transition>
-    <div style="text-align: center; color: black;" v-if="showAddress" @click="showAddress = !showAddress">
-      <q-btn :icon="showAddress ? 'close' : 'close'" flat round dense />
+    <div style="text-align: center;" :class="darkMode ? 'text-white' : 'text-black'" v-if="showAddress" @click="showAddress = !showAddress">
+      <q-btn icon="close" flat round dense />
     </div>
     <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;">
       <q-tab-panel name="BCH">
@@ -52,7 +54,7 @@
       </q-tab-panel>
       <q-tab-panel name="sBCH">
         <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" />
-        <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :asset="erc721AssetDetailDialog.asset"/>
+        <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :darkMode="darkMode" :asset="erc721AssetDetailDialog.asset"/>
         <div class="row items-start justify-end q-px-sm">
           <q-btn
             flat
@@ -229,13 +231,22 @@ export default {
     confirmRemoveERC721Asset (asset) {
       const title = 'Remove asset'
       const message = 'Remove asset "' + asset.name + '". Are you sure?'
-      const dialogStyleClass = this.darkMode ? 'pp-text pt-dark-card' : 'text-black'
+      let dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
+      dialogStyleClass += ' br-15'
+
       this.$q.dialog({
         title: title,
         message: message,
         cancel: true,
         persistent: true,
-        class: dialogStyleClass
+        class: dialogStyleClass,
+        ok: {
+          rounded: true
+        },
+        cancel: {
+          rounded: true,
+          flat: true
+        }
       }).onOk(() => {
         console.log('removing asset', asset)
         const commitName = 'sep20/removeNftAsset'
@@ -259,7 +270,9 @@ export default {
       this.$copyText(address)
       this.$q.notify({
         message: 'Copied address',
-        timeout: 800
+        timeout: 800,
+        icon: 'mdi-clipboard-check',
+        color: 'blue-9'
       })
     },
     loadWallet () {

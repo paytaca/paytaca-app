@@ -11,7 +11,7 @@
     <div class="q-my-xl q-py-lg q-px-md">
       <div v-if="!rawPaymentRequest">
         <div v-if="paymentRequestStatus.fetching" class="text-center q-my-lg">
-          <q-spinner size="md" color="primary"/>
+          <q-spinner size="md" color="blue-9"/>
           <div class="pp-text">
             Fetching payment data ...
           </div>
@@ -173,7 +173,6 @@
 
         <DragSlide
           v-if="showDragSlide"
-          square
           :style="{
             position: 'fixed',
             bottom: 0,
@@ -400,7 +399,11 @@ export default {
 
       this.$connectaAxios.post(url, data, { headers })
         .then(() => {
-          this.$q.notify({ message: 'Payment acknowledged', color: 'positive' })
+          this.$q.notify({
+            message: 'Payment acknowledged',
+            color: 'green-5',
+            icon: 'mdi-check-circle'
+          })
         })
         .catch(err => {
           console.warn('error in sending payment to merchant server')

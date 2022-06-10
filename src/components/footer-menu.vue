@@ -3,26 +3,26 @@
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn">
         <router-link :to="{ path: '/' }">
-          <i class="footer-icon mdi mdi-home" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"></i>
+          <i class="footer-icon mdi mdi-home" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}"></i>
         </router-link>
       </button>
       <button class="footer-icon-btn">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
-          <i class="footer-icon mdi mdi-send" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"></i>
+          <i class="footer-icon mdi mdi-send" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}"></i>
         </router-link>
       </button>
       <button class="footer-icon-btn">
         <router-link :to="{ name: 'transaction-receive-select-asset' }">
-          <i class="footer-icon mdi mdi-inbox" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"></i>
+          <i class="footer-icon mdi mdi-inbox" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}"></i>
         </router-link>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse">
         <router-link :to="{ name: 'apps-dashboard' }">
-          <i class="footer-icon mdi mdi-apps" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"></i>
+          <i class="footer-icon mdi mdi-apps" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}"></i>
         </router-link>
       </button>
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
-        <i class="footer-icon mdi mdi-launch" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"></i>
+        <i class="footer-icon mdi mdi-launch" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}"></i>
       </button>
     </div>
   </div>

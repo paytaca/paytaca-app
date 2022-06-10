@@ -17,12 +17,12 @@
       >
         <q-tab
           name="BCH"
-          :class="{'pt-dark-label': darkMode}"
+          :class="{'text-blue-5': darkMode}"
           :label="'BCH' + (ignoredMainchainAssets.length ? ` (${ignoredMainchainAssets.length})` : '')"
         />
         <q-tab
           name="sBCH"
-          :class="{'pt-dark-label': darkMode}"
+          :class="{'text-blue-5': darkMode}"
           :label="'SmartBCH' + (ignoredSmartchainAssets.length ? ` (${ignoredSmartchainAssets.length})` : '')"
         />
       </q-tabs>

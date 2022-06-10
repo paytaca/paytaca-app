@@ -19,7 +19,7 @@
       </q-card>
     </div>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
-      <p style="font-size: 20px; color: gray; text-align: center; margin-top: 50px;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+      <p style="font-size: 18px; color: gray; text-align: center; margin-top: 50px;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
         You don't own any collectibles yet.
       </p>
     </template>

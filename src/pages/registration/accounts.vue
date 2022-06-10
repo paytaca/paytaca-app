@@ -10,13 +10,13 @@
       <div class="col-12 q-mt-md q-px-lg q-py-none">
         <div class="row">
           <div class="col-12 q-py-sm">
-            <q-btn push class="full-width pt-btn-wallet" @click="createWallets" label="Create New Wallet" rounded />
+            <q-btn class="full-width bg-blue-9 text-white" @click="createWallets" label="Create New Wallet" rounded />
           </div>
           <div class="col-12 text-center q-py-sm">
             <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">OR</p>
           </div>
           <div class="col-12 q-py-sm">
-            <q-btn push class="full-width pt-btn-wallet" @click="() => { importSeedPhrase = true }" label="Restore from Seed Phrase" rounded />
+            <q-btn class="full-width bg-blue-9 text-white" @click="() => { importSeedPhrase = true }" label="Restore from Seed Phrase" rounded />
           </div>
         </div>
       </div>
@@ -27,8 +27,8 @@
           style="text-align: center; font-size: 16px; color: #000;"
           :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"
         >Restore your Paytaca wallet from its mnemonic backup phrase.</p>
-        <textarea class="form-textarea q-mt-xs pt-input" rows="4" v-model="seedPhraseBackup"></textarea>
-        <q-btn push class="full-width pt-btn-wallet q-mt-sm" @click="createWallets" label="Restore Wallet" rounded />
+        <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+        <q-btn class="full-width bg-blue-9 text-white q-mt-md" @click="createWallets" label="Restore Wallet" rounded />
       </div>
     </div>
 
@@ -47,10 +47,10 @@
         <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? 'Restoring' : 'Creating' }} your wallet...</p>
 
         <div class="row" id="mnemonic">
-          <div class="col q-mt-sm" v-if="steps === totalSteps">
+          <div class="col q-mb-sm text-caption" v-if="steps === totalSteps">
             <ul>
               <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
-                <pre>{{ index + 1 }}</pre><span>{{ word }}</span>
+                <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
               </li>
             </ul>
           </div>
@@ -59,7 +59,7 @@
           </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <q-btn push class="full-width pt-btn-wallet" @click="choosePreferedSecurity" label="Continue" rounded />
+          <q-btn class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" label="Continue" rounded />
         </div>
       </div>
     </div>
@@ -232,7 +232,7 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss">
 .pt-wallet {
   width: 100%;
   min-height: calc(100vh - 152px);
@@ -266,24 +266,7 @@ li pre {
 .font-lg {
   font-size: 20px;
 }
-.form-textarea {
-  width: 100%;
-  border-radius: 18px;
-  border: 1px solid #008BF1;
-  outline: 0;
-  padding-left: 14px;
-  padding-top: 10px;
-}
-.form-textarea:focus {
-  border-color: #89BFF4;
-  box-shadow: 0px 0px 2px 2px rgba(137, 191, 244, .5);
-}
 .dim-text {
   color: #8F8CB8;
-}
-.pt-btn-wallet {
-  color: #fff;
-  height: 40px;
-  background-color: #2E73D2;
 }
 </style>

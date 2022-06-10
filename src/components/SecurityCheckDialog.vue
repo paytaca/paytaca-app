@@ -1,13 +1,13 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent>
-    <q-card :class="{'pt-dark': darkMode, 'text-black': !darkMode}">
+    <q-card class="br-15" :class="{'pt-dark text-white': darkMode, 'text-black': !darkMode}">
       <q-card-section>
         <div class="text-center q-mb-sm">
           Security check
         </div>
         <div class="row items-center justify-around q-gutter-md">
-          <q-btn label="Log In" :class="darkMode ? 'text-white' : 'text-black'" @click="executeSecurityChecking()" />
-          <q-btn label="Cancel" :class="darkMode ? 'text-white' : 'text-black'" @click="onCancelClick()" />
+          <q-btn rounded label="Log In" color="blue-9" @click="executeSecurityChecking()" />
+          <q-btn rounded label="Cancel" color="blue-9" @click="onCancelClick()" />
         </div>
       </q-card-section>
       <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />

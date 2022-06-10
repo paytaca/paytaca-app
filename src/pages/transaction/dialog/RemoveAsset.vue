@@ -1,9 +1,9 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}">
+    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}">
 
         <q-card-section class="pt-label" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
-            <strong>Confirmation</strong>
+            <span class="text-weight-medium">Confirmation</span>
         </q-card-section>
 
         <q-separator />
@@ -12,11 +12,11 @@
           <label> Do you want to continue removing the asset?</label>
         </q-card-section>
 
-        <q-separator />
+        <q-separator class="q-mb-sm" />
 
         <q-card-actions align="right">
-            <q-btn rounded class="btn-add-payment text-white" padding="0.5em 1.5em 0.5em 1.5em" label="Continue" @click="onOKClick" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[$store.getters['darkmode/getStatus'] ? 'pt-bg-dark' : 'pp-text']" label="cancel" @click="onCancelClick" />
+            <q-btn rounded class="text-white" color="blue-9" padding="0.5em 1.5em 0.5em 1.5em" label="Continue" @click="onOKClick" />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" flat :class="[$store.getters['darkmode/getStatus'] ? 'pt-bg-dark' : 'pp-text']" label="cancel" @click="onCancelClick" />
         </q-card-actions>
     </q-card>
   </q-dialog>
@@ -50,9 +50,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.btn-add-payment {
-  background: radial-gradient(circle, #3C64F6 10%, #2648C3 100%) !important;
-}
-</style>
