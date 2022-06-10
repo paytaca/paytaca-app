@@ -70,7 +70,7 @@
                 push
                 class="pp-key pt-key-num"
                 :class="$store.getters['darkmode/getStatus'] ? 'pt-bg-dark' : 'bg-white'"
-                text-color="#515151"
+                :text-color="$store.getters['darkmode/getStatus'] ? '#515151' : 'black'"
                 :disable="(key === 13)"
                 v-else-if="(key !== 15)" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key"
                 @click="processKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key)" />

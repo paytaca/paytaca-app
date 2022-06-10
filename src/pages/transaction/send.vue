@@ -156,7 +156,7 @@
         </form>
       </div>
 
-      <customKeyboard :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
+      <customKeyboard v-if="!showSlider" :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
 
       <q-list v-if="showSlider" class="absolute-bottom">
         <q-slide-item left-color="blue" @left="slideToSubmit">
@@ -204,7 +204,7 @@
         </div>
       </div>
     -->
-      <template v-if="!showSlider">
+      <template v-if="customKeyboardState !== 'show'">
         <footer-menu v-if="!sendData.sending" />
       </template>
 

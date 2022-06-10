@@ -103,7 +103,7 @@ export default {
   display: flex;
   justify-content: center;
   width: 100%;
-  bottom: 30pt !important;
+  bottom: 0pt !important;
 }
 .pt-keyboard-container {
   height: 300px;
