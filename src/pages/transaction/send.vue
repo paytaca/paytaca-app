@@ -707,34 +707,21 @@ export default {
           }
         }
         if (vm.walletType === 'bch') {
-          if (addressObj.isLegacyAddress()) {
-            addressIsValid = true
-          }
-          if (addressObj.isCashAddress()) {
-            addressIsValid = true
-          }
-          if (addressObj.isMainnetCashAddress()) {
-            addressIsValid = true
+          if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
+            if (addressObj.isMainnetCashAddress()) {
+              addressIsValid = true
+              formattedAddress = addressObj.toCashAddress(address)
+            }
           } else {
             addressIsValid = false
-          }
-          if (addressIsValid) {
-            formattedAddress = addressObj.toCashAddress(address)
           }
         }
         if (vm.walletType === 'slp') {
-          if (addressObj.isSLPAddress()) {
+          if (addressObj.isSLPAddress() && addressObj.isMainnetSLPAddress()) {
             addressIsValid = true
-          } else {
-            addressIsValid = false
-          }
-          if (addressObj.isMainnetSLPAddress()) {
-            addressIsValid = true
-          } else {
-            addressIsValid = false
-          }
-          if (addressIsValid) {
             formattedAddress = addressObj.toSLPAddress(address)
+          } else {
+            addressIsValid = false
           }
         }
       } catch (err) {
