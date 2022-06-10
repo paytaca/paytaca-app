@@ -6,7 +6,7 @@
       :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}"
     >
       <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
-        <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : ''" />
+        <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
       </div>
       <q-card-section v-if="asset">
         <div style="text-align: center; font-size: 20px;">

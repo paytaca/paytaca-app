@@ -364,6 +364,7 @@ export default {
       if (!id) {
         id = vm.selectedAsset.id
       }
+      vm.balanceLoaded = false
       const parsedId = String(id)
 
       if (sep20IdRegexp.test(parsedId)) {
