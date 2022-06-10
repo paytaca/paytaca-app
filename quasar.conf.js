@@ -28,6 +28,8 @@ module.exports = function (/* ctx */) {
       'footer',
       'websocket',
       'walletconnect',
+      'fullscreen',
+      'confetti'
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css

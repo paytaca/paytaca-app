@@ -19,15 +19,17 @@
     <template v-else>
       <div class="row">
         <div class="col qr-code-container">
-            <div class="col col-qr-code bg-grad q-pl-sm q-pr-sm q-pt-md" @click="copyAddress">
+          <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
+            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" :class="{'bg-grad': !fullscreen}" @click="toggleFullScreen">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
                   <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
                   <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
-              <div class="text-white">click to copy</div>
+              <div v-if="!fullscreen" class="text-white">Click to display the QR only</div>
             </div>
+          </fullscreen>
         </div>
       </div>
       <div class="row q-mt-md" v-if="walletType === 'bch'">
@@ -92,13 +94,14 @@ export default {
       legacy: false,
       wallet: null,
       lnsName: '',
-      generatingAddress: false
+      generatingAddress: false,
+      fullscreen: false
     }
   },
   props: {
     network: {
       type: String,
-      defualt: 'BCH',
+      defualt: 'BCH'
     },
     assetId: {
       type: String,
@@ -122,7 +125,7 @@ export default {
     }
   },
   methods: {
-    updateLnsName() {
+    updateLnsName () {
       if (!this.isSep20) return
       if (!this.address) return
 
@@ -196,6 +199,9 @@ export default {
       }
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
+    toggleFullScreen () {
+      this.fullscreen = !this.fullscreen
+    },
     copyAddress () {
       this.$copyText(this.address)
       this.$q.notify({
@@ -223,15 +229,28 @@ export default {
     },
     notifyOnReceive (amount, symbol, logo) {
       const vm = this
+      vm.fullscreen = false
       vm.playSound(true)
+      vm.$confetti.start({
+        particles: [
+          {
+            type: 'heart'
+          }
+        ],
+        size: 3,
+        dropRate: 3
+      })
       vm.$q.notify({
         classes: 'br-15 text-body1',
         message: `${amount} ${symbol} received!`,
         color: 'blue-9',
-        position: 'center',
+        position: 'bottom',
         avatar: logo,
-        timeout: 3000
+        timeout: 4000
       })
+      setTimeout(function () {
+        vm.$confetti.stop()
+      }, 3000)
     },
     convertToLegacyAddress (address) {
       const addressObj = new Address(address)
@@ -317,7 +336,7 @@ export default {
   },
 
   watch: {
-    address() {
+    address () {
       this.lnsName = ''
       this.updateLnsName()
     }
@@ -454,7 +473,12 @@ export default {
       border-radius: 50%;
       padding: 4px;
   }
-.pp-text {
-  color: #000 !important;
-}
+  .pp-text {
+    color: #000 !important;
+  }
+  .img-bg-white {
+    background: white;
+    padding: 100px 20px !important;
+    height: 100vh;
+  }
 </style>
