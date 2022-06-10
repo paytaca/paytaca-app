@@ -1,18 +1,24 @@
 <template>
-  <div>
+  <div :class="darkMode ? 'pt-dark-card-2' : 'bg-grey-4'" class="br-15 q-mt-sm q-pr-sm q-py-sm">
     <q-tree
       :nodes="tree"
       dense
       node-key="hash"
       no-connectors
-      class="text-black json-renderer"
+      class="json-renderer"
     >
       <template v-slot:default-header="{ node }">
         <template v-if="node.label">
           {{ node.label }}
         </template>
         <template v-else>
-          {{ node.property }} : {{ node.value }}
+          <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">
+            {{ node.property }}:
+
+            <span :class="darkMode ? 'text-white' : 'text-black'">
+              {{ node.value }}
+            </span>
+          </div>
         </template>
       </template>
     </q-tree>
@@ -47,7 +53,11 @@ function toNodes(value, prefix="") {
 export default {
   name: 'JSONRenderer',
   props: {
-    value: {}
+    value: {},
+    darkMode: {
+      type: Boolean,
+      default: false
+    }
   },
   computed: {
     tree() {

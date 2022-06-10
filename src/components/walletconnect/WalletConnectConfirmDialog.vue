@@ -1,29 +1,39 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent>
-    <q-card class="q-dialog-plugin" :class="{'pt-dark-card': darkMode }">
+    <q-card class="q-dialog-plugin br-15 q-pb-xs" :class="{'pt-dark-card': darkMode }">
       <q-card-section class="text-black">
-        <div class="text-grey-8">Connect to this site?</div>
+        <div class="text-grad">Connect to this site?</div>
         <div class="row items-start justify-start no-wrap q-gutter-x-sm">
-          <div class="text-h6 q-space" :class="[darkMode ? 'text-white' : 'text-black']">{{ parsedPeerMeta.name }}</div>
+          <div>
+            <div class="row text-h6" :class="[darkMode ? 'text-white' : 'text-black']">
+              {{ parsedPeerMeta.name }}
+            </div>
+            <div v-if="parsedPeerMeta.url" class="row text-caption" :class="[darkMode ? 'text-grey' : 'text-black']">
+              {{ parsedPeerMeta.url }}
+            </div>
+          </div>
+
+          <q-space />
+
           <img
             v-if="parsedPeerMeta.icon"
             width="50"
-            height="auto"
+            style="border-radius: 50%"
             :src="parsedPeerMeta.icon"
           />
-        </div>
-        <div v-if="parsedPeerMeta.url" class="text-caption text-center" :class="[darkMode ? 'text-white' : 'text-black']">
-          {{ parsedPeerMeta.url }}
         </div>
       </q-card-section>
 
       <!-- buttons example -->
-      <q-card-actions align="around">
+      <q-card-actions>
+        <q-space />
         <q-btn
           outline
           padding="xs md"
           color="grey"
           label="Cancel"
+          rounded
+          flat
           @click="onCancelClick"
         />
 
@@ -31,6 +41,7 @@
           padding="xs md"
           color="brandblue"
           label="Connect"
+          rounded
           @click="onOKClick"
         />
       </q-card-actions>

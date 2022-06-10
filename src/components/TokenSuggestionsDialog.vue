@@ -39,12 +39,12 @@
           >
             <q-tab
               name="BCH"
-              :class="{'pt-dark-label': darkMode}"
+              :class="{'text-blue-5': darkMode}"
               :label="'BCH' + (parsedMainchainTokens.length ? ` (${parsedMainchainTokens.length})` : '')"
             />
             <q-tab
               name="sBCH"
-              :class="{'pt-dark-label': darkMode}"
+              :class="{'text-blue-5': darkMode}"
               :label="'SmartBCH' + (parsedSmartchainTokens.length ? ` (${parsedSmartchainTokens.length})` : '')"
             />
           </q-tabs>
@@ -80,7 +80,7 @@
                       round
                       padding="sm"
                       :icon="assetIdExists(token.id) ? 'remove' : 'add'"
-                      :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
+                      :text-color="darkMode ? (assetIdExists(token.id) ? 'red-5' : 'green-5') : (assetIdExists(token.id) ? 'red' : 'green')"
                       @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
                     />
                   </div>
@@ -112,9 +112,10 @@
         <q-btn
           v-if="parsedTokens.length > 0 && !loading"
           no-caps
+          rounded
           :label="`Add all ${parsedTokens.length}`"
-          :text-color="darkMode ? 'black' : 'white'"
-          :color="darkMode ? 'brandlight': 'brandblue'"
+          text-color="white"
+          :color="darkMode ? 'blue-9': 'brandblue'"
           @click="addAllTokens()"          
         />
       </q-card-section>

@@ -11,30 +11,27 @@
       @decode="onScannerDecode"
     />
 
-    <div>
+    <div class="q-mx-md">
       <div v-if="!$walletConnect.connector">
-        <q-form @submit="handShakeFormSubmit()">
-          <q-input
-            label="Input WalletConnect URI"
-            input-class="pp-text"
-            filled
-            :dark="darkMode"
-            v-model="handshakeFormData.walletConnectUri"
-            :disable="handshakeOnProgress"
-            clearable
-          >
-            <template v-slot:append>
-              <q-btn
-                no-caps
-                rounded
-                color="blue-9"
-                label="Connect"
-                type="submit"
-                :disable="handshakeOnProgress"
-              />
-            </template>
-          </q-input>
-        </q-form>
+        <q-input
+          label="Input Wallet Connect URI"
+          filled
+          :dark="darkMode"
+          v-model="handshakeFormData.walletConnectUri"
+          :disable="handshakeOnProgress"
+          clearable
+        >
+          <template v-slot:append>
+            <q-btn
+              no-caps
+              rounded
+              color="blue-9"
+              label="Connect"
+              @click="handShakeFormSubmit()"
+              :disable="handshakeOnProgress"
+            />
+          </template>
+        </q-input>
         <div class="q-mt-md q-pt-md text-center text-grey" style="font-size: 15px;">
           OR
         </div>
@@ -64,21 +61,20 @@
         </template>
       </div>
       <div v-else>
-        <q-card :class="{'pt-dark-card': darkMode }">
+        <q-card style="max-width: 320px;" :class="{'pt-dark-card': darkMode }" class="shadow-2 br-15">
           <q-card-section>
-            <div class="row items-start">
+            <div class="row items-start q-mb-sm">
               <div class="text-grey">
                 Connected to:
               </div>
               <q-space/>
               <q-btn
-                size="sm"
                 padding="none xs"
                 no-caps
                 flat
                 label="Disconnect"
                 @click="disconnectConnector"
-                :text-color="darkMode ? 'white' : 'black'"
+                :text-color="darkMode ? 'blue-5' : 'blue-9'"
               />
             </div>
             <div class="row items-center justify-start no-wrap q-gutter-x-sm">
@@ -86,20 +82,23 @@
                 v-if="parsedPeerMeta.icon"
                 width="50"
                 height="auto"
+                style="border-radius: 50%"
                 :src="parsedPeerMeta.icon"
               />
               <div class="text-h6" :class="[darkMode ? 'text-white' : 'text-black' ]">{{ parsedPeerMeta.name }}</div>
             </div>
-            <div v-if="parsedPeerMeta.url" class="q-mt-sm text-body2">
-              <a :href="parsedPeerMeta.url" target="_blank">{{ parsedPeerMeta.url }}</a>
+            <div v-if="parsedPeerMeta.url" class="q-mt-md text-body2">
+              <a :href="parsedPeerMeta.url" target="_blank" style="text-decoration: none" :class="darkMode ? 'text-blue-5' : 'text-blue-9'">
+                {{ parsedPeerMeta.url }}
+              </a>
             </div>
             <div v-if="parsedPeerMeta.description" class="q-mt-sm" :class="[darkMode ? 'text-white' : 'text-black' ]">
               {{ parsedPeerMeta.description }}
             </div>
           </q-card-section>
           <q-card-section>
-            <div class="text-weight-medium" :class="[darkMode ? 'text-white' : 'text-black' ]">Account</div>
-            <q-list bordered separator style="border-radius: 14px; background: #fff" class="q-mt-sm">
+            <div class="text-weight-medium q-ml-sm" :class="[darkMode ? 'text-grey' : 'text-black' ]">Account</div>
+            <q-list separator class="q-mt-sm">
               <template v-if="Array.isArray(connector.accounts)">
                 <q-item
                   v-for="(account, index) in connector.accounts"
@@ -107,11 +106,15 @@
                   clickable
                   v-ripple
                   @click="copyToClipboard(account)"
+                  class="br-15 bg-grad text-white"
                 >
                   <q-item-section>
-                    <q-item-label class="ellipsis text-black">
+                    <q-item-label class="ellipsis">
                       {{ account | ellipsisText }}
                     </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-icon name="mdi-content-copy" />
                   </q-item-section>
                 </q-item>
               </template>
@@ -119,17 +122,19 @@
           </q-card-section>
 
           <q-card-section v-if="Array.isArray(callRequests) && callRequests.length">
-            <div class="row items-start text-weight-medium text-black">
-              <div class="q-space">Requests</div>
+            <div class="row text-weight-medium">
+              <div :class="darkMode ? 'text-grey' : ''" class="q-ml-sm flex flex-center">Requests</div>
+              <q-space />
               <q-btn
                 no-caps
-                size="sm"
                 flat
+                rounded
+                :color="darkMode ? 'blue-5' : 'blue-9'"
                 label="Clear"
                 @click="confirmClearCallRequests()"
               />
             </div>
-            <q-list bordered separator style="border-radius: 14px; background: #fff" class="q-mt-sm">
+            <q-list separator :class="darkMode ? 'pt-dark-card-2' : ''">
               <q-item
                 v-for="(request, index) in callRequests"
                 :key="index"
@@ -138,14 +143,14 @@
                 @click="showCallRequestInDialog(request)"
               >
                 <q-item-section>
-                  <q-item-label class="row text-black">
-                    {{ request.payload.method }}
+                  <q-item-label class="row" :class="darkMode ? 'text-white' : 'text-black'">
+                    <span class="q-mt-xs">{{ request.payload.method }}</span>
                     <q-space/>
-                    <span class="text-grey">
+                    <span class="text-grey text-caption">
                       {{ request.timestamp | formatDate }}
                     </span>
                   </q-item-label>
-                  <q-item-label caption>
+                  <q-item-label caption :class="darkMode ? 'text-grey-5' : 'text-grey'">
                     #{{ request.payload.id }}
                   </q-item-label>
                   <q-item-label caption>
@@ -154,11 +159,12 @@
                         v-for="(param, paramIndex) in request.payload.params"
                         :key="`${index}-${paramIndex}`"
                         class="ellipsis"
+                        :class="darkMode ? 'text-grey-5' : 'text-grey'"
                       >
                         {{ paramIndex }}: {{ param }}
                       </div>
                     </div>
-                    <div v-else class="ellipsis-3-lines">
+                    <div v-else class="ellipsis-3-lines" :class="darkMode ? 'text-grey-5' : 'text-grey'">
                       {{ request.payload.params }}
                     </div>
                   </q-item-label>
@@ -293,6 +299,7 @@ export default {
     },
 
     handShakeFormSubmit(switchActivity=false) {
+      console.log(this.handshakeFormData.walletConnectUri)
       this.initializeConnector(this.handshakeFormData.walletConnectUri, switchActivity)
     },
 
@@ -518,7 +525,14 @@ export default {
         message: "Removing all call requests. Are you sure?",
         ok: true,
         cancel: true,
-        class: "text-black",
+        ok: {
+          rounded: true,
+        },
+        cancel: {
+          rounded: true,
+          flat: true
+        },
+        class: this.darkMode ? "br-15 text-white pt-dark" : "text-black br-15",
       })
         .onOk(() => {
           if (Array.isArray(this.callRequests)) {

@@ -8,7 +8,7 @@
     transition-hide="slide-down"
     seamless
     >
-      <q-card v-if="loader" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+      <q-card v-if="loader" class="full-height flex flex-center" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
           <q-card-section>
               <div class="row">
                   <div class="col-12 text-center q-mt-lg">
