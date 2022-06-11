@@ -99,6 +99,7 @@ export default {
           vm.assetClickTimer = setTimeout(() => {
             if (vm.assetClickCounter === 1) {
               vm.$parent.getBalance(asset.id)
+              vm.$parent.getTransactions()
             }
             clearTimeout(vm.assetClickTimer)
             vm.assetClickTimer = null
