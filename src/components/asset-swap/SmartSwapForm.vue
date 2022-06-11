@@ -705,7 +705,7 @@ export default {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
-    setAmountToSourceTokenBalance() {
+    setAmountToSourceTokenBalance () {
       if (!this.formData.sourceToken || !typeof this.formData.sourceToken.balance === 'number') return
       if (this.formData.sourceToken.balance === this.formData.amount) return
 
@@ -717,7 +717,7 @@ export default {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
         tokensList: this.tokensList,
-        darkMode: this.darkMode,
+        darkMode: this.darkMode
       })
         .onOk(token => {
           if (!token) return

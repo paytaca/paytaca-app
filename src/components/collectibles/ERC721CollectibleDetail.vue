@@ -1,12 +1,13 @@
 <template>
   <q-dialog v-model="val" full-width persistent seamless>
-    <q-card v-if="collectible" class="pp-text" style="max-width:90vw;">
+    <q-card v-if="collectible" class="pp-text" style="max-width:90vw;" :class="{'pt-dark': darkMode}">
       <q-card-section
-        class="row no-wrap items-start bg-white"
+        class="row no-wrap items-start"
         style="position:sticky;top:0;z-index:1"
+        :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
       >
         <div v-if="collectible.metadata && collectible.metadata.name">
-          <div class="text-h6">{{ collectible.metadata.name }}</div>
+          <div class="text-h6" :class="darkMode ? 'text-grad' : ''">{{ collectible.metadata.name }}</div>
           <div class="text-caption">#{{collectible.id}}</div>
         </div>
         <div class="text-h6" v-else>#{{ collectible.id }}</div>
@@ -14,7 +15,7 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
       <q-img :src="imageUrl" fit="fill" width="75"></q-img>
-      <q-card-section v-if="collectibleAttributes.length">
+      <q-card-section v-if="collectibleAttributes.length" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
         <div class="text-subtitle1">Properties</div>
         <q-separator/>
         <div class="row justify-around items-start">
@@ -24,7 +25,7 @@
           </div>
         </div>
       </q-card-section>
-      <q-card-section v-if="collectible.metadata && collectible.metadata.description">
+      <q-card-section v-if="collectible.metadata && collectible.metadata.description" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
         <div class="text-subtitle1">Description</div>
         <q-separator/>
         <div>{{ collectible.metadata.description }}</div>
@@ -49,7 +50,8 @@ export default {
       type: Boolean,
       default: false
     },
-    collectible: { }
+    collectible: { },
+    darkMode: { type: Boolean, default: false }
   },
   data () {
     return {

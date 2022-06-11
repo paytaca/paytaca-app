@@ -45,7 +45,7 @@
         You don't own any collectibles yet.
       </p>
     </template>
-    <ERC721CollectibleDetail v-model="collectibleDetail.show" :collectible="collectibleDetail.collectible"/>
+    <ERC721CollectibleDetail v-model="collectibleDetail.show" :darkMode="$store.getters['darkmode/getStatus']" :collectible="collectibleDetail.collectible"/>
   </div>
 </template>
 <script>

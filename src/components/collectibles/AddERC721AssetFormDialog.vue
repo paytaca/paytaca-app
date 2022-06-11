@@ -120,7 +120,7 @@ export default {
       const payload = {
         address: this.formData.contractAddress,
         name: this.formData.name,
-        symbol: this.formData.symbol,
+        symbol: this.formData.symbol
       }
       this.$store.commit(commitName, payload)
       this.alertTokenAdded(payload)
@@ -129,7 +129,8 @@ export default {
       this.$q.dialog({
         title: 'Token added',
         message: `Added token ${token.name} with address: ${token.address}`,
-        class: 'pp-text'
+        class: 'pp-text',
+        darkMode: this.darkMode
       }).onDismiss(() => {
         this.val = false
       })
