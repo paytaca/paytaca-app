@@ -573,6 +573,7 @@ class WatchtowerSBCH {
   }
 
   async getTransactions(address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+    console.log('Getting txs...')
     return this._getTransactions('bch', address, { type, before, after, limit})
   }
 

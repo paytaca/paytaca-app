@@ -105,7 +105,7 @@
               <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-received')" id="btn-received">Received</button>
             </div>
             <div class="transaction-list">
-              <template v-if="balanceLoaded && transactionsLoaded">
+              <template v-if="transactionsLoaded">
                 <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
                     <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                       <div class="row" @click="showTransactionDetails(transaction)">
@@ -205,7 +205,6 @@ export default {
       transactionsPage: 1,
       transactionsPageHasNext: false,
       transactionsLoaded: false,
-      balanceLoaded: false,
       wallet: null,
       paymentMethods: null,
       manageAssets: false,
@@ -364,7 +363,6 @@ export default {
       if (!id) {
         id = vm.selectedAsset.id
       }
-      vm.balanceLoaded = false
       const parsedId = String(id)
 
       if (sep20IdRegexp.test(parsedId)) {
@@ -376,7 +374,6 @@ export default {
               id: parsedId,
               balance: balance
             })
-            vm.balanceLoaded = true
           })
       } else {
         vm.wallet.sBCH.getBalance()
@@ -386,7 +383,6 @@ export default {
               id: parsedId,
               balance: balance
             })
-            vm.balanceLoaded = true
           })
       }
     },
@@ -395,12 +391,10 @@ export default {
       if (!id) {
         id = vm.selectedAsset.id
       }
-      vm.balanceLoaded = false
       vm.transactionsPageHasNext = false
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
         vm.wallet.SLP.getBalance(tokenId).then(function (response) {
-          vm.balanceLoaded = true
           vm.$store.commit('assets/updateAssetBalance', {
             id: id,
             balance: response.balance
@@ -408,7 +402,6 @@ export default {
         })
       } else {
         vm.wallet.BCH.getBalance().then(function (response) {
-          vm.balanceLoaded = true
           vm.$store.commit('assets/updateAssetBalance', {
             id: id,
             balance: response.balance
