@@ -1,8 +1,8 @@
 <template>
   <q-dialog v-model="val" full-width persistent seamless>
-    <q-card v-if="collectible" style="max-width:90vw;" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}">
-      <q-card-section class="row no-wrap items-start">
-        <div class="text-h6">{{ collectible.name }}</div>
+    <q-card v-if="collectible" style="max-width:90vw;" :class="{'pt-dark': darkMode}">
+      <q-card-section class="row no-wrap items-start" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <div class="text-h6" :class=" $store.getters['darkmode/getStatus'] ? 'text-grad' : 'text-black'">{{ collectible.name }}</div>
         <q-space/>
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -38,7 +38,8 @@ export default {
   },
   data () {
     return {
-      val: this.value
+      val: this.value,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {

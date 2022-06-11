@@ -28,7 +28,7 @@
 </template>
 <script>
 import ProgressLoader from 'components/ProgressLoader'
-import Collectible from 'components/Collectible'
+import Collectible from 'components/collectibles/SLPCollectibleDetail'
 import Gravatar from 'vue-gravatar'
 
 export default {

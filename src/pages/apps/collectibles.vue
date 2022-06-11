@@ -27,24 +27,39 @@
       <q-tab :class="{'text-blue-5': darkMode}" name="sBCH" label="SmartBCH"/>
     </q-tabs>
     <q-slide-transition>
-      <div v-if="showAddress" @click="copyAddress(receivingAddress)" class="flex flex-center q-py-md">
-        <div class="bg-grad q-pa-md br-15">
-          <qr-code
-            :text="receivingAddress"
-            style="width: 160px; margin-left: auto; margin-right: auto;"
-            color="#253933"
-            :size="160"
-            error-level="H"
-            class="q-mb-sm"
-          />
-          <div class="text-white text-center">click to copy</div>
+      <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
+        <div v-if="showAddress" @click="toggleFullScreen" class="flex flex-center q-py-md q-mt-lg">
+          <div class="q-pa-md br-15" :class="{'bg-grad': !fullscreen}">
+            <qr-code
+              :text="receivingAddress"
+              style="width: 200px; margin-left: auto; margin-right: auto;"
+              color="#253933"
+              :size="200"
+              error-level="H"
+              class="q-mb-sm"
+            />
+            <div v-if="!fullscreen" class="text-white text-center">Click to display the QR only</div>
+          </div>
         </div>
-      </div>
+      </fullscreen>
     </q-slide-transition>
+    <div v-if="showAddress" class="row">
+      <div class="col" style="padding: 20px 40px 20px 40px; overflow-wrap: break-word;">
+        <span class="qr-code-text text-weight-light text-center">
+          <div
+            class="text-nowrap"
+            style="letter-spacing: 1px; font-size: 18px;"
+            @click="copyAddress(receivingAddress)" :class="darkMode ? 'text-white' : 'pp-text'"
+          >
+            {{ receivingAddress }}
+          </div>
+        </span>
+      </div>
+    </div>
     <div style="text-align: center;" :class="darkMode ? 'text-white' : 'text-black'" v-if="showAddress" @click="showAddress = !showAddress">
       <q-btn icon="close" flat round dense />
     </div>
-    <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;">
+    <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;">
       <q-tab-panel name="BCH">
         <SLPCollectibles
           ref="slpCollectibles"
@@ -191,7 +206,8 @@ export default {
       selectedERC721AssetIndex: -1,
       showAddress: false,
       wallet: null,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      fullscreen: false
     }
   },
   computed: {
@@ -217,6 +233,9 @@ export default {
     }
   },
   methods: {
+    toggleFullScreen () {
+      this.fullscreen = !this.fullscreen
+    },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },
@@ -313,5 +332,10 @@ export default {
 }
 .pp-text {
   color: #000 !important;
+}
+.img-bg-white {
+  background: white;
+  padding: 106px 20px !important;
+  height: 100vh;
 }
 </style>

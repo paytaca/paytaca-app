@@ -179,33 +179,8 @@
           </q-item>
         </q-slide-item>
       </q-list>
-
-      <!--
-      <div class="pt-submit-container q-pa-none" :class="[!showSlider ? 'pt-invisible' : '']">
-        <p class="text-h5 q-ma-none q-pa-none text-white pt-send-text">
-          Swipe to send
-        </p>
-        <div class="text-center pt-on-process" :class="[!swiped ? 'animate-process' : '']">
-          <p class="text-h6 text-white q-my-none q-py-none pt-process-text">
-            <span class="q-mr-sm" style="display: flex; align-items: center; height: 100%">{{ submitLabel }}</span>
-            <span class="material-icons pt-check-icon">
-              task_alt
-            </span>
-          </p>
-        </div>
-        <div class="pt-animate-submit text-white text-center" v-touch-pan.horizontal.prevent.mouse="slideToSubmit">
-          <q-icon
-            v-if="swiped"
-            color="white"
-            style="border-radius: 50%"
-            name="mdi-chevron-double-right"
-            size="4em"
-          />
-        </div>
-      </div>
-    -->
-      <template v-if="customKeyboardState !== 'show'">
-        <footer-menu v-if="!sendData.sending" />
+      <template v-if="showFooter">
+        <footer-menu />
       </template>
 
       <div class="row" v-if="sendErrors.length > 0">
@@ -355,6 +330,19 @@ export default {
   },
 
   computed: {
+    showFooter () {
+      if (this.customKeyboardState === 'show') {
+        return false
+      } else {
+        if (this.showSlider) {
+          return false
+        }
+        if (this.sendData.sending) {
+          return false
+        }
+      }
+      return true
+    },
     isSep20 () {
       return this.network === 'sBCH'
     },
