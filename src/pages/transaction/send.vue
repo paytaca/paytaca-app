@@ -3,7 +3,6 @@
     <header-nav
       :title="'SEND ' + asset.symbol"
       backnavpath="/send/select-asset"
-      v-if="!sendData.sent"
     ></header-nav>
     <div class="q-mt-xl">
       <div class="q-pa-md" style="padding-top: 70px;">
