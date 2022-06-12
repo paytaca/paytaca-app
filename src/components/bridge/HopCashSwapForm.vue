@@ -203,8 +203,8 @@
             </div>
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
               <span>
-                Estimated fees:
-                <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/>
+                Estimated fee (0.1%):
+                <!-- <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/> -->
               </span>
               <span v-if="!showSplitFees" class="text-nowrap q-ml-xs">
                 ~{{ (fees.paytaca + fees.hopcash) | formatAmount }} BCH

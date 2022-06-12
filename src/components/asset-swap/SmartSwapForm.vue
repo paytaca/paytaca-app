@@ -41,11 +41,12 @@
           />
         </template>
       </q-banner>
+      <span>Swap from:</span>
       <q-item clickable>
         <q-item-section avatar @click="selectSourceToken()" class="items-center">
           <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" style="border-radius:50%" class="q-mb-sm">
           <q-item-label>
-            {{ formData.sourceToken.symbol }}
+            {{ formData.sourceToken.symbol }} <q-icon name="expand_more"/>
           </q-item-label>
         </q-item-section>
         <q-item-section>
@@ -80,12 +81,12 @@
           @click="reverseSelectedTokens()"
         />
       </div>
-
+      <span>Swap to:</span>
       <q-item clickable>
         <q-item-section avatar @click="selectDestToken()" class="items-center">
           <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" style="border-radius:50%" class="q-mb-sm">
           <q-item-label>
-            {{ formData.destToken.symbol }}
+            {{ formData.destToken.symbol }} <q-icon name="expand_more"/>
           </q-item-label>
         </q-item-section>
         <q-item-section>
