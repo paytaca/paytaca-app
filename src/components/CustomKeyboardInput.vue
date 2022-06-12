@@ -1,6 +1,6 @@
 <template>
   <div>
-    <q-skeleton v-if="fieldProps.disable" type="rect"/>
+    <q-skeleton v-if="fieldProps.wait" type="rect"/>
     <q-field v-else v-model="val" ref="field" v-bind="fieldProps">
       <template v-slot:control="ctx">
         {{ ctx.value }}

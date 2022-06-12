@@ -83,6 +83,7 @@
                 filled: true,
                 dark: darkMode,
                 disable: lockInputs || maxBridgeBalance === 0,
+                wait: maxBridgeBalance === 0,
                 rules: [
                   val => Number(val) >= 0.01 || 'Must be at least 0.01',
                   val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
@@ -119,7 +120,8 @@
                 dense: true,
                 filled: true,
                 dark: darkMode,
-                disable: maxBridgeBalance === 0,
+                disable: lockInputs || maxBridgeBalance === 0,
+                wait: maxBridgeBalance === 0,
                 bottomSlots: true,
               }"
               class="q-space q-my-sm"
@@ -137,7 +139,7 @@
 
           <div class="row no-wrap items-start" style="margin-top: -10px;">
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-              Address
+              Receiving address:
             </div>
             <q-input
               v-if="manualAddress"
