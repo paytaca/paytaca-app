@@ -58,31 +58,31 @@ export default {
           iconName: 'settings',
           path: '/apps/settings',
           active: true
-        },
-        {
-          name: 'Rewards',
-          iconName: 'mdi-trophy',
-          path: '',
-          active: false
-        },
-        {
-          name: 'Connecta',
-          iconName: 'delivery_dining',
-          path: '/apps/connecta/',
-          active: false
-        },
-        {
-          name: 'Bills Payment',
-          iconName: 'receipt_long',
-          path: '',
-          active: false
-        },
-        {
-          name: 'Top Up',
-          iconName: 'system_security_update_good',
-          path: '',
-          active: false
         }
+        // {
+        //   name: 'Rewards',
+        //   iconName: 'mdi-trophy',
+        //   path: '',
+        //   active: false
+        // },
+        // {
+        //   name: 'Connecta',
+        //   iconName: 'delivery_dining',
+        //   path: '/apps/connecta/',
+        //   active: false
+        // },
+        // {
+        //   name: 'Bills Payment',
+        //   iconName: 'receipt_long',
+        //   path: '',
+        //   active: false
+        // },
+        // {
+        //   name: 'Top Up',
+        //   iconName: 'system_security_update_good',
+        //   path: '',
+        //   active: false
+        // }
       ],
       appHeight: null
     }
