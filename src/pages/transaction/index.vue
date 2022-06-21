@@ -205,6 +205,7 @@ export default {
       transactionsPage: 1,
       transactionsPageHasNext: false,
       transactionsLoaded: false,
+      balanceLoaded: false,
       wallet: null,
       paymentMethods: null,
       manageAssets: false,
@@ -355,6 +356,7 @@ export default {
       }, 100)
     },
     getBalance (id) {
+      this.balanceLoaded = false
       if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
       return this.getBchBalance(id)
     },
@@ -374,6 +376,7 @@ export default {
               id: parsedId,
               balance: balance
             })
+            vm.balanceLoaded = true
           })
       } else {
         vm.wallet.sBCH.getBalance()
@@ -383,6 +386,7 @@ export default {
               id: parsedId,
               balance: balance
             })
+            vm.balanceLoaded = true
           })
       }
     },
@@ -399,6 +403,7 @@ export default {
             id: id,
             balance: response.balance
           })
+          vm.balanceLoaded = true
         })
       } else {
         vm.wallet.BCH.getBalance().then(function (response) {
@@ -406,6 +411,7 @@ export default {
             id: id,
             balance: response.balance
           })
+          vm.balanceLoaded = true
         })
       }
     },

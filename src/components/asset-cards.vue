@@ -24,11 +24,14 @@
       </div>
       <div class="row" style="margin-top: -7px;">
         <q-space />
-        <p class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
+        <p v-if="$parent.balanceLoaded" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
           {{ String(asset.balance).substring(0, 10) }}
         </p>
+        <div v-if="!$parent.balanceLoaded && asset.id === $parent.selectedAsset.id" style="width: 100%;">
+          <q-skeleton type="rect"/>
+        </div>
       </div>
-      <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
+      <div v-if="$parent.balanceLoaded && getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
         {{ getAssetMarketBalance(asset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
       </div>
     </div>
@@ -63,9 +66,6 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    marketAssetPrices () {
-      return 
     }
   },
   methods: {
@@ -74,7 +74,7 @@ export default {
 
       const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
       if (!assetPrice) return ''
-  
+
       const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
 
       return computedBalance.toFixed(2)
