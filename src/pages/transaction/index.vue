@@ -7,15 +7,6 @@
 
       <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
         <div class="row q-pt-lg q-pb-xs">
-
-          <!-- <p class="col-12 q-px-lg q-ma-none text-subtitle1" role="button" @click="promptChangeNetwork()">
-            <span
-              class="text-brandblue"
-              style="text-decoration:underline;"
-            >
-              {{ networks[selectedNetwork] && networks[selectedNetwork].name }}
-            </span>
-          </p> -->
           <q-tabs
             active-color="brandblue"
             class="col-12 q-px-sm q-pb-md pp-fcolor"
