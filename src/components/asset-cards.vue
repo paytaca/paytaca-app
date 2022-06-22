@@ -24,15 +24,17 @@
       </div>
       <div class="row" style="margin-top: -7px;">
         <q-space />
-        <p v-if="$parent.balanceLoaded" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
-          {{ String(asset.balance).substring(0, 10) }}
-        </p>
         <div v-if="!$parent.balanceLoaded && asset.id === $parent.selectedAsset.id" style="width: 100%;">
           <q-skeleton type="rect"/>
         </div>
+        <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
+          {{ String(asset.balance).substring(0, 10) }}
+        </p>
       </div>
-      <div v-if="$parent.balanceLoaded && getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
-        {{ getAssetMarketBalance(asset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+      <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
+        <template v-if="!(!$parent.balanceLoaded && asset.id === $parent.selectedAsset.id)">
+          {{ getAssetMarketBalance(asset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+        </template>
       </div>
     </div>
     <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
