@@ -776,7 +776,7 @@ export default {
     margin-bottom: 0px !important;
   }
   .default-text-color {
-    color: rgb(60, 100, 246);
+    color: rgb(60, 100, 246) !important;
   }
   .text-light {
     color: #BAC2C2;

@@ -56,7 +56,7 @@ export default {
     this.$store.dispatch('assets/updateTokenIcons', { all: false })
     this.$store.dispatch('sep20/updateTokenIcons', { all: false })
   },
-  unmounted() {
+  unmounted () {
     if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
   },
   created () {

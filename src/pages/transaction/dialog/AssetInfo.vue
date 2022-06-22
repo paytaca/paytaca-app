@@ -28,8 +28,22 @@
           </a>
         </div>
         <div style="margin-top: 20px; text-align: center;">
-          <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded icon-right="mdi-send" label="Send" no-caps />
-          <q-btn @click="receive" icon-right="mdi-inbox" rounded color="blue-9" label="Receive" no-caps />
+          <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded label="Send" no-caps>
+            &nbsp;&nbsp;&nbsp;
+            <q-icon class="text-white">
+              <svg>
+                <use xlink:href="app-send.svg#icon"></use>
+              </svg>
+            </q-icon>
+          </q-btn>
+          <q-btn @click="receive" rounded color="blue-9" label="Receive" no-caps>
+            &nbsp;&nbsp;&nbsp;
+            <q-icon class="text-white">
+              <svg>
+                <use xlink:href="app-receive.svg#icon"></use>
+              </svg>
+            </q-icon>
+          </q-btn>
         </div>
       </q-card-section>
     </q-card>
