@@ -17,7 +17,7 @@
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Select Asset to be Received</p>
         </div>
       </div>
-      <div ref="assetsList" style="overflow-y: scroll; padding-bottom: 20px;">
+      <div style="overflow-y: scroll;">
         <div
           v-for="(asset, index) in assets"
           :key="index"
@@ -101,10 +101,7 @@ export default {
     },
     changeNetwork (newNetwork='BCH') {
       this.selectedNetwork = newNetwork
-    },
-  },
-  mounted () {
-    this.$refs.assetsList.style.height = (screen.height * 0.7) + 'px'
+    }
   }
 }
 </script>

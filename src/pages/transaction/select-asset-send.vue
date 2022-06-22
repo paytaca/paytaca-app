@@ -17,7 +17,7 @@
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Select Asset to Send</p>
         </div>
       </div>
-      <div ref="assetsList" style="overflow-y: scroll; padding-bottom: 20px;">
+      <div style="overflow-y: scroll;">
         <div
           v-for="(asset, index) in assets"
           :key="index"
@@ -34,12 +34,14 @@
                 </p>
                 <p class="q-ma-none" :class="$store.getters['darkmode/getStatus'] ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
                   {{ String(asset.balance).substring(0, 16) }}
+                  <span>
                     {{ asset.symbol }}
                   </span>
                 </p>
               </div>
             </div>
           </div>
+          <!-- <div role="button" class="row q-pl-lg q-pr-lg token-link"></div> -->
         </div>
       </div>
     </template>
@@ -104,10 +106,7 @@ export default {
     },
     changeNetwork (newNetwork='BCH') {
       this.selectedNetwork = newNetwork
-    },
-  },
-  mounted () {
-    this.$refs.assetsList.style.height = (screen.height * 0.7) + 'px'
+    }
   }
 }
 </script>
