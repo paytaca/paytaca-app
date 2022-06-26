@@ -21,7 +21,7 @@ export function assetPrices (state) {
   return state.assetPrices
 }
 
-export function getAssetPrice(state) {
+export function getAssetPrice (state) {
   return (assetId, currencySymbol) => {
     // 1. check if asset price for assetId exists
     if (!Array.isArray(state.assetPrices)) return null

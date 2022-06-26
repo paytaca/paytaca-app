@@ -1,13 +1,12 @@
 import axios from 'axios'
 
-export function updateCoinsList(context, { force = true }) {
-  if (Array.isArray(context.state.coinsList) && context.state.coinsList.length && !force)
-    return { data: context.state.coinsList, _fromVuexStore: true }
+export function updateCoinsList (context, { force = true }) {
+  if (Array.isArray(context.state.coinsList) && context.state.coinsList.length && !force) { return { data: context.state.coinsList, _fromVuexStore: true } }
 
   return axios
     .get(
       'https://api.coingecko.com/api/v3/coins/list',
-      { params: { include_platform: true } },
+      { params: { include_platform: true } }
     )
     .then(response => {
       // console.log(response)
@@ -19,7 +18,7 @@ export function updateCoinsList(context, { force = true }) {
     })
 }
 
-export async function updateSupportedCurrencies(context, { force = true }) {
+export async function updateSupportedCurrencies (context, { force = true }) {
   if (Array.isArray(context.state.currencyOptions) && context.state.currencyOptions.length >= 1 && !force) return
 
   const { data } = await axios.get('https://api.yadio.io/currencies')
@@ -39,7 +38,7 @@ export async function updateSupportedCurrencies(context, { force = true }) {
  *    smartchain: { asset: { id:String, symbol:String }, coin: { id:String } }[],
  *  }
  */
-export function getAllAssetList(context) {
+export function getAllAssetList (context) {
   const mainchainAssets = context.rootGetters['assets/getAssets']
   const smartchainAssets = context.rootGetters['sep20/getAssets']
   // console.log(mainchainAssets)
@@ -73,14 +72,13 @@ export function getAllAssetList(context) {
     // console.log(asset.name, filteredSymbol, filteredPlatform)
     return { asset, coin }
   })
- 
+
   return { mainchain, smartchain }
 }
 
-
-export async function updateAssetPrices(context, { clearExisting = false }) {
+export async function updateAssetPrices (context, { clearExisting = false }) {
   const assetList = await context.dispatch('getAllAssetList')
-  const coinIds = [] 
+  const coinIds = []
   coinIds.push(
     ...assetList.mainchain
       .map(({ coin }) => coin && coin.id)
@@ -89,7 +87,7 @@ export async function updateAssetPrices(context, { clearExisting = false }) {
     ...assetList.smartchain
       .map(({ coin }) => coin && coin.id)
       .filter(Boolean)
-      .filter((e, i, s) => s.indexOf(e) === i),
+      .filter((e, i, s) => s.indexOf(e) === i)
   )
 
   const { data: prices } = await axios.get(
@@ -97,7 +95,7 @@ export async function updateAssetPrices(context, { clearExisting = false }) {
     {
       params: {
         ids: coinIds.join(','),
-        vs_currencies: 'usd',
+        vs_currencies: 'usd'
       }
     }
   )
@@ -109,7 +107,7 @@ export async function updateAssetPrices(context, { clearExisting = false }) {
       return {
         assetId: asset.id,
         coinId: coin.id,
-        prices: prices[coin.id],
+        prices: prices[coin.id]
       }
     })
 
@@ -120,8 +118,7 @@ export async function updateAssetPrices(context, { clearExisting = false }) {
   context.dispatch('updateUsdRates', { currency: selectedCurrency })
 }
 
-
-export async function updateMainchainAssetPrices(context, { commit=true }) {
+export async function updateMainchainAssetPrices (context, { commit = true }) {
   const mainchainAssets = context.rootGetters['assets/getAssets'].map(asset => {
     const filteredSymbol = context.state.coinsList
       .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
@@ -138,7 +135,7 @@ export async function updateMainchainAssetPrices(context, { commit=true }) {
     {
       params: {
         ids: coinIds.join(','),
-        vs_currencies: 'usd',
+        vs_currencies: 'usd'
       }
     }
   )
@@ -147,7 +144,7 @@ export async function updateMainchainAssetPrices(context, { commit=true }) {
     return {
       assetId: asset.id,
       coinId: coin.id,
-      prices: prices[coin.id],
+      prices: prices[coin.id]
     }
   })
 
@@ -160,7 +157,7 @@ export async function updateMainchainAssetPrices(context, { commit=true }) {
   return marketPrices
 }
 
-export async function updateSmartchainPrices(context, { commit=true }) {
+export async function updateSmartchainPrices (context, { commit = true }) {
   const smartchainAssets = context.rootGetters['sep20/getAssets']
     .map(asset => {
       const match = String(asset.id).match(/^sep20\/(0x[0-9a-fA-F]*)$/)
@@ -169,14 +166,13 @@ export async function updateSmartchainPrices(context, { commit=true }) {
     })
     .filter(Boolean)
   const addresses = smartchainAssets.map(asset => asset.address).filter(Boolean)
-    
 
   const { data: prices } = await axios.get(
     'https://api.coingecko.com/api/v3/simple/token_price/smartbch',
     {
       params: {
         contract_addresses: addresses.join(','),
-        vs_currencies: 'usd',
+        vs_currencies: 'usd'
       }
     }
   )
@@ -189,7 +185,7 @@ export async function updateSmartchainPrices(context, { commit=true }) {
       return {
         assetId: asset.id,
         contractAddress: address,
-        prices: prices[address.toLowerCase()],
+        prices: prices[address.toLowerCase()]
       }
     })
     .filter(Boolean)
@@ -203,15 +199,15 @@ export async function updateSmartchainPrices(context, { commit=true }) {
   return marketPrices
 }
 
-export async function updateAssetPrices2(context, { clearExisting = false }) {
+export async function updateAssetPrices2 (context, { clearExisting = false }) {
   const mainchainMarketPrices = await context.dispatch('updateMainchainAssetPrices', { commit: false })
   const smartchainMarketPrices = await context.dispatch('updateSmartchainPrices', { commit: false })
 
   const newAssetPrices = [
     ...mainchainMarketPrices,
-    ...smartchainMarketPrices,
+    ...smartchainMarketPrices
   ]
-  
+
   if (clearExisting) context.commit('clearAssetPrices')
   context.commit('updateAssetPrices', newAssetPrices)
   let selectedCurrency = null
@@ -219,15 +215,14 @@ export async function updateAssetPrices2(context, { clearExisting = false }) {
   context.dispatch('updateUsdRates', { currency: selectedCurrency })
 }
 
-
-export async function updateUsdRates(context, { currency }) {
+export async function updateUsdRates (context, { currency }) {
   let rates = []
 
   if (currency) {
     const { data } = await axios.get(`https://api.yadio.io/rate/${currency}/USD`)
     if (!data.rate) return Promise.reject()
     rates = [
-      { symbol: String(currency), rate: data.rate}
+      { symbol: String(currency), rate: data.rate }
     ]
   } else {
     const { data } = await axios.get('https://api.yadio.io/exrates/USD')

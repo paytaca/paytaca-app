@@ -35,26 +35,26 @@ export default {
   name: 'SpicebotBridgeTokenSelectDialog',
   props: {
     tokens: {
-      type: Array,
+      type: Array
     },
     darkMode: {
       type: Boolean,
-      defualt: false,
+      defualt: false
     }
   },
 
-  data() {
+  data () {
     return {
-      searchText: '',
+      searchText: ''
     }
   },
 
   computed: {
-    filteredTokensList() {
+    filteredTokensList () {
       if (!this.searchText) return this.tokens
 
       const needle = String(this.searchText).toLowerCase()
-      return this.tokens.filter(token => 
+      return this.tokens.filter(token =>
         String(token.name).toLowerCase().includes(needle)
       )
     }

@@ -29,23 +29,23 @@ export default {
   props: {
     value: {
       type: [Number, String],
-      default: '',
+      default: ''
     },
     fieldProps: {
       type: Object,
       default: Object
     }
   },
-  data() {
+  data () {
     return {
       val: this.value
     }
   },
   watch: {
-    val() {
+    val () {
       this.$emit('input', this.val)
     },
-    value() {
+    value () {
       this.val = this.value
     }
   }

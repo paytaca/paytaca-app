@@ -1,19 +1,19 @@
 import { resolveName as _resolveName, resolveAddress as _resolveAddress } from '../../wallet/lns'
 
 /**
- * 
- * @param {Object} context 
- * @param {{name: String, coinType: Number, ignoreCache: Boolean}} param1 
+ *
+ * @param {Object} context
+ * @param {{name: String, coinType: Number, ignoreCache: Boolean}} param1
  * @returns {{address: String|null, _cache:Boolean }}
  * @see {@link https://eips.ethereum.org/EIPS/eip-2304#address-encoding} for coinType
  */
-export async function resolveName(context, {name, coinType=60, ignoreCache=false}) {
-  if (!coinType && coinType !== 0)  coinType = 60
+export async function resolveName (context, { name, coinType = 60, ignoreCache = false }) {
+  if (!coinType && coinType !== 0) coinType = 60
 
   if (!ignoreCache && context.state.nodeAddressMap && context.state.nodeAddressMap[name] && context.state.nodeAddressMap[name][coinType]) {
     return {
       _cache: true,
-      address: context.state.nodeAddressMap[name][coinType],
+      address: context.state.nodeAddressMap[name][coinType]
     }
   }
 
@@ -21,16 +21,16 @@ export async function resolveName(context, {name, coinType=60, ignoreCache=false
   if (address) context.commit('setNodeAddress', { name, coinType, address })
   return {
     _cache: false,
-    address,
+    address
   }
 }
 
 /**
- * 
- * @param {Object} context 
- * @param {{address: String, ignoreCache: Boolean}} param1 
+ *
+ * @param {Object} context
+ * @param {{address: String, ignoreCache: Boolean}} param1
  */
-export async function resolveAddress(context, { address, ignoreCache=false}) {
+export async function resolveAddress (context, { address, ignoreCache = false }) {
   if (!ignoreCache && context.state.nodeAddressMap) {
     for (var _name in context.state.nodeAddressMap) {
       if (!context.state.nodeAddressMap[_name]) continue

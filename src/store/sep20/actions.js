@@ -1,19 +1,18 @@
 import { axiosInstance } from '../../boot/axios'
 import { getSep20Contract } from '../../wallet/sbch/utils'
 
-function getTokenIdFromAssetId(assetId) {
+function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^sep20\/(0x[0-9a-fA-F]+)$/)
   if (match && match[1]) return match[1]
   return null
 }
 
-
 /**
  * Updates an asset's icon if there is none, can be configured to force update
- * @param {Object} context 
- * @param {{ assetId: String, forceUpdate:Boolean }} param1 
+ * @param {Object} context
+ * @param {{ assetId: String, forceUpdate:Boolean }} param1
  */
- export async function updateTokenIcon(context, { assetId, forceUpdate=false }) {
+export async function updateTokenIcon (context, { assetId, forceUpdate = false }) {
   const assets = context.getters.getAsset(assetId)
   if (assets && assets.length && assets[0] && assets[0].logo && !forceUpdate) {
     return assets[0].logo
@@ -30,14 +29,13 @@ function getTokenIdFromAssetId(assetId) {
 
   return null
 }
-  
 
 /**
- * Fetch assets without icon, can be configured to 
- * @param {Object} context 
- * @param {{all: Boolean}} param1 
+ * Fetch assets without icon, can be configured to
+ * @param {Object} context
+ * @param {{all: Boolean}} param1
  */
-export async function updateTokenIcons(context, { all=false }) {
+export async function updateTokenIcons (context, { all = false }) {
   if (!Array.isArray(context.state.assets)) return []
 
   let tokenAssets = context.state.assets
@@ -77,14 +75,14 @@ export async function updateTokenIcons(context, { all=false }) {
 }
 
 /**
- * 
- * @param {Object} context 
- * @param {{ address: String, filterWithBalance: Boolean, includeIgnoredTokens: Boolean }} param1 
+ *
+ * @param {Object} context
+ * @param {{ address: String, filterWithBalance: Boolean, includeIgnoredTokens: Boolean }} param1
  */
-export async function getMissingAssets(context, { address, filterWithBalance=true, icludeIgnoredTokens=false }) {
+export async function getMissingAssets (context, { address, filterWithBalance = true, icludeIgnoredTokens = false }) {
   const filterParams = {
     token_type: 20,
-    wallet_addresses: address,
+    wallet_addresses: address
   }
 
   if (Array.isArray(context.state.assets) && context.state.assets.length) {
@@ -122,7 +120,6 @@ export async function getMissingAssets(context, { address, filterWithBalance=tru
       const balance = await contract.balanceOf(address)
       if (balance > 0) return contract.address
     } catch (err) { console.error(err) }
-    return
   }))
 
   return data.results.filter(tokenInfo => {

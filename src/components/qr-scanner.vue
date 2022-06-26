@@ -47,30 +47,30 @@
 <script>
 import { QrcodeStream } from 'vue-qrcode-reader'
 export default {
-	name: 'QrScanner',
-	components: { QrcodeStream },
-	props: {
-		value: {
-			type: Boolean,
-			default: false,
-		},
-		frontCamera: {
-			type: Boolean,
-			defualt: false,
-		}
-	},
-	data () {
-		return {
-			val: this.value,
-			error: '',
-		}
-	},
-	methods: {
-    onScannerInit(promise) {
+  name: 'QrScanner',
+  components: { QrcodeStream },
+  props: {
+    value: {
+      type: Boolean,
+      default: false
+    },
+    frontCamera: {
+      type: Boolean,
+      defualt: false
+    }
+  },
+  data () {
+    return {
+      val: this.value,
+      error: ''
+    }
+  },
+  methods: {
+    onScannerInit (promise) {
       promise
-				.then(() => {
-					this.error = ''
-				})
+        .then(() => {
+          this.error = ''
+        })
         .catch(error => {
           if (error.name === 'NotAllowedError') {
             this.error = 'Permission required to access to camera'
@@ -92,18 +92,18 @@ export default {
           }
         })
     },
-    onScannerDecode(content) {
+    onScannerDecode (content) {
       this.$emit('decode', content)
     }
-	},
-	watch: {
-		val () {
-			this.$emit('input', this.val)
-		},
-		value () {
-			this.val = this.value
-		}
-	}
+  },
+  watch: {
+    val () {
+      this.$emit('input', this.val)
+    },
+    value () {
+      this.val = this.value
+    }
+  }
 }
 </script>
 <style scoped lang="scss">
@@ -129,7 +129,7 @@ export default {
 	margin-top: 20%;
 	margin-bottom: auto;
 	margin-left: auto;
-	margin-right: auto;	
+	margin-right: auto;
 	width: 220px;
 	max-width: 90vw;
 }

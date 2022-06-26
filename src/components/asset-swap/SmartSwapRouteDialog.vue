@@ -57,7 +57,7 @@
 
         <div class="row items-center justify-center q-my-sm">
           <q-icon name="arrow_downward" :color="darkMode ? 'grey' : ''" />
-        </div>    
+        </div>
         <div class="column items-center justify-center">
           <img
             :src="outputCurrency.image_url"
@@ -75,7 +75,7 @@
 const routeGroupCurrencyLogoMap = {
   BCH: 'bch-logo.png',
   TANGO: 'tango-logo.png',
-  flexUSD: 'flexusd-logo.png',
+  flexUSD: 'flexusd-logo.png'
 }
 
 export default {
@@ -83,22 +83,22 @@ export default {
   props: {
     value: {
       type: Boolean,
-      default: false,
+      default: false
     },
     steps: {
-      type: Number,
+      type: Number
     },
     groupedRoute: {
-      type: Object,
+      type: Object
     },
     darkMode: {
-      type: Boolean,
+      type: Boolean
     },
     inputCurrency: {
       default: () => {
         return {
           symbol: '',
-          image_url: '',
+          image_url: ''
         }
       }
     },
@@ -107,20 +107,20 @@ export default {
       default: () => {
         return {
           symbol: '',
-          image_url: '',
+          image_url: ''
         }
       }
-    },
+    }
   },
-  data() {
+  data () {
     return {
       val: this.value
     }
   },
   computed: {
-    parsedGroupedRoute() {
+    parsedGroupedRoute () {
       if (!this.groupedRoute) return []
-      
+
       return Object.entries(this.groupedRoute)
         .map(entry => {
           if (!Array.isArray(entry)) return
@@ -140,15 +140,15 @@ export default {
           }
         })
         .filter(Boolean)
-    },
-  },
-  watch: {
-    val() {
-      this.$emit('input', this.val)
-    },
-    value() {
-      this.val = this.value
     }
   },
+  watch: {
+    val () {
+      this.$emit('input', this.val)
+    },
+    value () {
+      this.val = this.value
+    }
+  }
 }
 </script>

@@ -1,6 +1,6 @@
 import { axiosInstance } from '../../boot/axios'
 
-function getTokenIdFromAssetId(assetId) {
+function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^slp\/([0-9a-fA-F]+)$/)
   if (match && match[1]) return match[1]
   return null
@@ -24,13 +24,12 @@ export async function getSLPTokenStats ({ getters, commit }, { tokenId }) {
   return assetStats
 }
 
-
 /**
  * Updates an asset's icon if there is none, can be configured to force update
- * @param {Object} context 
- * @param {{ assetId: String, forceUpdate:Boolean }} param1 
+ * @param {Object} context
+ * @param {{ assetId: String, forceUpdate:Boolean }} param1
  */
-export async function updateTokenIcon(context, { assetId, forceUpdate=false }) {
+export async function updateTokenIcon (context, { assetId, forceUpdate = false }) {
   const assets = context.getters.getAsset(assetId)
   if (assets && assets.length && assets[0] && assets[0].logo && !forceUpdate) {
     return assets[0].logo
@@ -48,13 +47,12 @@ export async function updateTokenIcon(context, { assetId, forceUpdate=false }) {
   return null
 }
 
-
 /**
- * Fetch assets without icon, can be configured to 
- * @param {Object} context 
- * @param {{all: Boolean}} param1 
+ * Fetch assets without icon, can be configured to
+ * @param {Object} context
+ * @param {{all: Boolean}} param1
  */
-  export async function updateTokenIcons(context, { all=false }) {
+export async function updateTokenIcons (context, { all = false }) {
   if (!Array.isArray(context.state.assets)) return []
 
   let slpAssets = context.state.assets
@@ -69,7 +67,7 @@ export async function updateTokenIcon(context, { assetId, forceUpdate=false }) {
         .then(imageUrl => {
           updatedAssets.push({
             assetId: asset.id,
-            imageUrl: imageUrl,
+            imageUrl: imageUrl
           })
         })
     })
@@ -78,17 +76,16 @@ export async function updateTokenIcon(context, { assetId, forceUpdate=false }) {
   return updatedAssets
 }
 
-
 /**
- * 
- * @param {Object} context 
+ *
+ * @param {Object} context
  * @param {{ walletHash:String, includeIgnoredTokens: Boolean }} param1
  */
-export async function getMissingAssets(context, { walletHash, icludeIgnoredTokens=false }) {
+export async function getMissingAssets (context, { walletHash, icludeIgnoredTokens = false }) {
   const filterParams = {
     has_balance: true,
     token_type: 1,
-    wallet_hash: walletHash,
+    wallet_hash: walletHash
   }
 
   if (Array.isArray(context.state.assets) && context.state.assets.length) {

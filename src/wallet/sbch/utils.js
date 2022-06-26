@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { BigNumber, ethers, utils } from 'ethers'
+import { ethers, utils } from 'ethers'
 
 import { sep20Abi, erc721Abi } from './abi'
 
@@ -12,7 +12,7 @@ export function getProvider (test = false) {
   return new ethers.providers.JsonRpcBatchProvider(test ? rpcUrls.test : rpcUrls.main)
 }
 
-export function toChecksumAddress(address='') {
+export function toChecksumAddress (address = '') {
   if (!utils.isAddress(address)) return address
 
   return utils.getAddress(address)
@@ -28,7 +28,7 @@ export function getERC721Contract (contractAddress, test = false) {
   )
 }
 
-export function getSep20Contract(contractAddress, test=false) {
+export function getSep20Contract (contractAddress, test = false) {
   if (!utils.isAddress(contractAddress)) return
 
   return new ethers.Contract(
@@ -45,13 +45,10 @@ export async function getERC721ContractDetails (contractAddress, test = false) {
       error: 'Invalid token address'
     }
   }
-  console.log('gettin details for:', contractAddress)
   const tokenContract = getERC721Contract(contractAddress, test)
 
   const tokenName = await tokenContract.name()
-  console.log('got name:', tokenName)
   const tokenSymbol = await tokenContract.symbol()
-  console.log('got symbol:', tokenSymbol)
 
   return {
     success: true,
@@ -62,7 +59,6 @@ export async function getERC721ContractDetails (contractAddress, test = false) {
     }
   }
 }
-
 
 export async function getSep20ContractDetails (contractAddress, test) {
   const parsedAddress = utils.getAddress(String(contractAddress).toLowerCase())
@@ -78,7 +74,7 @@ export async function getSep20ContractDetails (contractAddress, test) {
     name: '',
     symbol: '',
     decimals: 0,
-    image_url: '',
+    image_url: ''
   }
   try {
     const { data } = await axios.get(`https://watchtower.cash/api/smartbch/token-contracts/${parsedAddress}/`)
@@ -92,11 +88,11 @@ export async function getSep20ContractDetails (contractAddress, test) {
 
   if (!token.name && !token.symbol) {
     const tokenContract = getSep20Contract(parsedAddress, test)
-    tokenContract // necessary for not getting reference error
+    // tokenContract // necessary for not getting reference error
     const data = await Promise.all([
       tokenContract.name(),
       tokenContract.symbol(),
-      tokenContract.decimals(),
+      tokenContract.decimals()
     ])
     token.name = data[0]
     token.symbol = data[1]
@@ -105,7 +101,7 @@ export async function getSep20ContractDetails (contractAddress, test) {
 
   return {
     success: true,
-    token: token,
+    token: token
   }
 }
 
@@ -185,7 +181,7 @@ export async function watchTransactions (address, { type = null, tokensOnly = fa
       tokensWatched.push({
         address: contract.address,
         name: tokenName,
-        symbol: tokenSymbol,
+        symbol: tokenSymbol
       })
 
       cancelWatchFunctions.push(function () {
@@ -198,7 +194,7 @@ export async function watchTransactions (address, { type = null, tokensOnly = fa
     const provider = getProvider(test)
     const event = 'block'
     const eventCallback = async (blockNumber) => {
-      const block = await provider.getBlockWithTransactions(blockNumber);
+      const block = await provider.getBlockWithTransactions(blockNumber)
       for (const tx of block.transactions) {
         const incoming = String(tx.to).toLowerCase() === address.toLowerCase()
         const outgoing = String(tx.from).toLowerCase() === address.toLowerCase()
@@ -207,6 +203,7 @@ export async function watchTransactions (address, { type = null, tokensOnly = fa
         if (type === 'outgoing') emit = outgoing
 
         if (emit) {
+          // eslint-disable-next-line standard/no-callback-literal
           callback({
             tx: {
               hash: tx.hash,
@@ -214,8 +211,8 @@ export async function watchTransactions (address, { type = null, tokensOnly = fa
               from: tx.from,
               value: tx.value,
               amount: utils.formatEther(tx.value),
-              _raw: tx,
-            },
+              _raw: tx
+            }
           })
         }
       }

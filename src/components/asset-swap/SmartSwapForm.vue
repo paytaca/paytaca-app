@@ -154,7 +154,7 @@
                 />
             </template>
             <template v-else>
-              &nbsp
+              &nbsp;
             </template>
           </q-item-label>
           <q-item-label>
@@ -263,7 +263,7 @@
                 />
             </template>
             <template v-else>
-              &nbsp
+              &nbsp;
             </template>
           </q-item-label>
         </q-item-section>
@@ -364,7 +364,7 @@
             <!-- <q-input
               dense
               outlined
-              suffix="%" 
+              suffix="%"
               v-model.number="formData.slippageTolerance"
               :input-class="darkMode ? 'text-white' : 'text-black'"
             /> -->
@@ -414,18 +414,17 @@ import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SmartSwapTokenSelectorDialog from './SmartSwapTokenSelectorDialog.vue'
 import SmartSwapRouteDialog from './SmartSwapRouteDialog.vue'
 
-
 export default {
   name: 'SmartSwapForm',
   components: {
     ProgressLoader,
     DragSlide,
-    SmartSwapRouteDialog,
+    SmartSwapRouteDialog
   },
   props: {
     darkMode: {
       type: Boolean,
-      default: false,
+      default: false
     }
   },
   data () {
@@ -440,7 +439,7 @@ export default {
         destToken: tokensList[3],
         amount: 0,
         slippageTolerance: 1,
-        transactionDeadline: 20,
+        transactionDeadline: 20
       },
       showSettingsDialogForm: false,
       showRouteDialog: false,
@@ -474,14 +473,14 @@ export default {
           name: 'Bitcoin Cash',
           symbol: 'BCH',
           decimals: 18,
-          image_url: 'bch-logo.png',
+          image_url: 'bch-logo.png'
         },
         destToken: {
           address: '0x0000000000000000000000000000000000000000',
           name: 'Bitcoin Cash',
           symbol: 'BCH',
           decimals: 18,
-          image_url: 'bch-logo.png',
+          image_url: 'bch-logo.png'
         },
         slippageTolerance: 1,
         transactionDeadline: 20,
@@ -496,11 +495,11 @@ export default {
       },
 
       tokensList: [bchToken, ...tokensList],
-      updatingTokenBalances: false,
+      updatingTokenBalances: false
     }
   },
   computed: {
-    insufficientBalance() {
+    insufficientBalance () {
       const hasValidBalance = this.formData.sourceToken.balance >= 0
       if (!hasValidBalance) return true
 
@@ -542,7 +541,7 @@ export default {
         destTokenAddress: this.formData.destToken.address,
         amount: Math.round(this.formData.amount * (10 ** this.formData.sourceToken.decimals)),
         minReturn: Math.round(this.computedFormData.minimumReturn * (10 ** this.formData.destToken.decimals)),
-        distribution: this.networkData.distribution,
+        distribution: this.networkData.distribution
       }
 
       return params
@@ -561,9 +560,9 @@ export default {
         ),
         minReturn: minReturn,
         formattedMinReturn: formattedMinReturn,
-        parsedDistribution: parseDistribution(this.stagedSwapDetails.distribution),
+        parsedDistribution: parseDistribution(this.stagedSwapDetails.distribution)
       }
-    },
+    }
   },
   methods: {
     formatNumber (value = 0, decimals = 6) {
@@ -574,12 +573,11 @@ export default {
 
       const tokenInfo = {
         name: this.formData.sourceToken.name,
-        address: this.formData.sourceToken.address,
+        address: this.formData.sourceToken.address
       }
       this.$q.dialog({
         title: 'Approve token',
         message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
-        ok: true,
         persistent: true,
         ok: {
           rounded: true
@@ -587,8 +585,7 @@ export default {
         cancel: {
           rounded: true
         },
-        cancel: true,
-        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black'
       })
         .onOk(() => {
           this.approveSourceToken()
@@ -599,7 +596,7 @@ export default {
 
       const tokenInfo = {
         name: this.formData.sourceToken.name,
-        address: this.formData.sourceToken.address,
+        address: this.formData.sourceToken.address
       }
 
       this.approvingToken = true
@@ -609,14 +606,14 @@ export default {
         progress: true,
         persistent: false,
         ok: false, // we want the user to not be able to close it
-        class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black',
+        class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
       })
 
       const onApproveSuccess = () => {
         dialog.update({
           message: 'Token approved!',
           progress: false,
-          ok: true,
+          ok: true
         })
         this.approvingToken = false
         this.networkData.isApproved = true
@@ -635,7 +632,7 @@ export default {
           dialog.update({
             message: 'Failed to approve token' + ((error && error.error) ? `. ${error.error}` : ''),
             progress: false,
-            ok: true,
+            ok: true
           })
         })
         .finally(() => {
@@ -753,7 +750,7 @@ export default {
       this.stagedSwapDetails.showConfirmSwipe = false
       this.$q.dialog({
         component: SecurityCheckDialog,
-        root: this.$root, // necessary for the dialog to work since it accesses $store
+        root: this.$root // necessary for the dialog to work since it accesses $store
       })
         .onOk(() => {
           this.commitStagedSwapDetails()
@@ -813,7 +810,7 @@ export default {
           minReturn: this.computedStagedSwapDetails.minReturn,
           distribution: this.stagedSwapDetails.distribution,
           deadline: Math.round(Date.now() / 1000) + this.stagedSwapDetails.transactionDeadline * 60, // 20 minutes from timestamp
-          feePercent: 500000000000000, // taken from tango swap
+          feePercent: 500000000000000 // taken from tango swap
         }
         const txParams = await getSwapDetails(params)
         console.log(decodeSwapHexData(txParams.data))
@@ -825,23 +822,21 @@ export default {
         this.$q.dialog({
           title: 'Swap success',
           message: 'Assets swapped succesfully!',
-          ok: true,
           ok: {
             rounded: true
           },
           persisted: true,
-          class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black',
+          class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
         })
-      } catch(err) {
+      } catch (err) {
         console.error(err)
         if (err.error) this.stagedSwapDetails.error = err.error
         else this.stagedSwapDetails.error = 'Unknown error occurred'
       } finally {
-        console.log('Finally')
         this.stagedSwapDetails.loading = false
       }
     },
-    updateSourceTokenBalance: throttle(async function() {
+    updateSourceTokenBalance: throttle(async function () {
       const sourceTokenAddress = this.formData.sourceToken.address
       const sourceTokenDecimals = this.formData.sourceToken.decimals
       if (sourceTokenAddress === '0x0000000000000000000000000000000000000000') {
@@ -849,7 +844,7 @@ export default {
 
         // Estimate swap gas is around 1.5 million gas
         const gas = await this.wallet.sBCH._wallet.getGasPrice()
-        const estimateGas =  gas.mul(1.5 * 10 ** 6)
+        const estimateGas = gas.mul(1.5 * 10 ** 6)
         const estimateGasBCH = bigNumberToCurrency(estimateGas, 18)
 
         // sourceToken changes while balance is being updated on some instances
@@ -870,20 +865,20 @@ export default {
       }
       this.$forceUpdate()
     }, 500),
-    updateBchTokenBalance: throttle(async function() {
+    updateBchTokenBalance: throttle(async function () {
       const bchToken = this.tokensList.find(tokenInfo => tokenInfo && tokenInfo.address === '0x0000000000000000000000000000000000000000')
       if (bchToken) {
         const bchBalance = await this.wallet.sBCH.getBalance()
 
         // Estimate swap gas is around 1.5 million gas
         const gas = await this.wallet.sBCH._wallet.getGasPrice()
-        const estimateGas =  gas.mul(1.5 * 10 ** 6)
+        const estimateGas = gas.mul(1.5 * 10 ** 6)
         const estimateGasBCH = bigNumberToCurrency(estimateGas, 18)
         bchToken.balance = Number(bchBalance) - estimateGasBCH
         this.$forceUpdate()
       }
     }, 500),
-    updateTokenListBalances: throttle(async function() {
+    updateTokenListBalances: throttle(async function () {
       this.updatingTokenBalances = true
       try {
         this.updateBchTokenBalance()
@@ -899,7 +894,6 @@ export default {
           if (!balance) return
           tokenInfo.balance = bigNumberToCurrency(balance, tokenInfo.decimals)
         })
-
       } finally {
         this.updatingTokenBalances = false
       }
@@ -907,7 +901,7 @@ export default {
     fetchTokensList (updateBalances = true) {
       return this.$axios
         .get(
-          'https://raw.githubusercontent.com/zh/sep20tokens/main/smartbch.tokenlist.json',
+          'https://raw.githubusercontent.com/zh/sep20tokens/main/smartbch.tokenlist.json'
         )
         .then(response => {
           if (Array.isArray(response.data.tokens)) {
@@ -923,7 +917,7 @@ export default {
                     name: token.name,
                     symbol: token.symbol,
                     decimals: token.decimals,
-                    image_url: token.logoURI,
+                    image_url: token.logoURI
                   }
                 })
                 .filter(Boolean)
@@ -937,31 +931,31 @@ export default {
       this.wallet = new Wallet(mnemonic)
       await this.wallet.sBCH.getOrInitWallet()
       return this.wallet
-    },
+    }
   },
   watch: {
-    "formData.sourceToken.address": {
-      handler() {
+    'formData.sourceToken.address': {
+      handler () {
         this.updateNetworkData()
         this.updateSourceTokenBalance()
       }
     },
-    "formData.destToken.address": {
-      handler() {
+    'formData.destToken.address': {
+      handler () {
         this.updateNetworkData()
       }
     }
   },
-  unmounted() {
+  unmounted () {
     this.stopNetworkDataUpdater()
   },
-  beforeDestroy() {
+  beforeDestroy () {
     this.stopNetworkDataUpdater()
   },
-  mounted() {
+  mounted () {
     Promise.all([
       this.loadWallet(),
-      this.fetchTokensList(false),
+      this.fetchTokensList(false)
     ])
       .then(() => {
         this.updateTokenListBalances()

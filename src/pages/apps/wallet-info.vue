@@ -104,7 +104,7 @@
                 <span class="text-weight-medium">
                   Warning: Do not copy this to clipboard!
                 </span>
-                <br>Some malicious apps installed in your device may be able 
+                <br>Some malicious apps installed in your device may be able
                 to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.
               </div>
             </div>
@@ -188,7 +188,6 @@ export default {
     }
   },
   mounted () {
-    console.log(this.getWallet('sbch'))
     const divHeight = screen.availHeight - 120
     this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
     this.updateSbchLnsName()

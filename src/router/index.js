@@ -57,13 +57,13 @@ export default function ({ store }) {
       else if (url.searchParams.has('orderId')) query.orderId = url.searchParams.get('orderId')
 
       Router.push({ name: 'connecta', query: query })
-    } else if(parseWalletConnectUri(url)) {
+    } else if (parseWalletConnectUri(url)) {
       Router.push({
         name: 'app-wallet-connect',
         query: {
           uri: String(url),
-          openCallRequest: true,
-        },
+          openCallRequest: true
+        }
       })
     }
   })

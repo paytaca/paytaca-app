@@ -26,17 +26,19 @@
 </template>
 <script>
 
-function toNodes(value, prefix="") {
-  if (typeof value !== 'object') return [ {
-    hash: [prefix, String(value)].filter(Boolean).join('-'),
-    label: String(value)
-  } ]
+function toNodes (value, prefix = '') {
+  if (typeof value !== 'object') {
+    return [{
+      hash: [prefix, String(value)].filter(Boolean).join('-'),
+      label: String(value)
+    }]
+  }
 
   const nodes = []
-  for (let property in value) {
+  for (const property in value) {
     const children = toNodes(value[property])
     const node = {
-      hash: [prefix, String(property)].filter(Boolean).join('-'),
+      hash: [prefix, String(property)].filter(Boolean).join('-')
     }
     if (children.length === 1) {
       node.property = property
@@ -60,14 +62,14 @@ export default {
     }
   },
   computed: {
-    tree() {
+    tree () {
       try {
         return toNodes(JSON.parse(this.value))
-      } catch (err){
+      } catch (err) {
         return toNodes(this.value)
       }
     }
-  },
+  }
 }
 </script>
 <style scoped>

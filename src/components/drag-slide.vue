@@ -26,7 +26,7 @@ export default {
   name: 'drag-slide',
   data () {
     return {
-      swiped: false,
+      swiped: false
     }
   },
   methods: {

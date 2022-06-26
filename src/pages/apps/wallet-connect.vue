@@ -190,7 +190,7 @@
 <script>
 import { Plugins } from '@capacitor/core'
 import { getMnemonic, Wallet } from '../../wallet'
-import { createConnector, getPreviousConnector, callRequestHandler, parseWalletConnectUri } from '../../wallet/walletconnect'
+import { createConnector, callRequestHandler, parseWalletConnectUri } from '../../wallet/walletconnect'
 import QrScanner from '../../components/qr-scanner.vue'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader.vue'
@@ -250,10 +250,10 @@ export default {
   },
   computed: {
     connector: {
-      get() {
+      get () {
         return this.$walletConnect.connector
       },
-      set(value) {
+      set (value) {
         this.$walletConnect.connector = value
       }
     },
@@ -262,7 +262,7 @@ export default {
         name: '',
         icon: '',
         description: '',
-        url: '',
+        url: ''
       }
 
       if (this.connector && this.connector._peerMeta) {
@@ -276,7 +276,7 @@ export default {
 
       return meta
     },
-    callRequests() {
+    callRequests () {
       return this.$store.getters['walletconnect/callRequests']
     }
   },
@@ -298,16 +298,15 @@ export default {
       this.handShakeFormSubmit()
     },
 
-    handShakeFormSubmit(switchActivity=false) {
-      console.log(this.handshakeFormData.walletConnectUri)
+    handShakeFormSubmit (switchActivity = false) {
       this.initializeConnector(this.handshakeFormData.walletConnectUri, switchActivity)
     },
 
-    forceUpdateConnector() {
+    forceUpdateConnector () {
       this._connector = this.$walletConnect.connector
     },
 
-    async initializeConnector (uri, switchActivity=false) {
+    async initializeConnector (uri, switchActivity = false) {
       const uriData = parseWalletConnectUri(uri)
       if (!uriData || !uriData.bridge) return
 
@@ -323,9 +322,8 @@ export default {
       const connector = createConnector(uri)
       this.pendingConnector = connector
       connector.on('session_request', (error, payload) => {
-        console.log('session_request:', error, payload)
         if (error) {
-          throw error;
+          throw error
         }
 
         if (payload.params[0].chainId !== null && payload.params[0].chainId !== chainId) {
@@ -352,31 +350,30 @@ export default {
           this.connector = connector
           this.forceUpdateConnector()
           this.attachEventsToConnector()
-          console.log(this.connector)
 
           connector.approveSession({
             accounts: accounts,
-            chainId: chainId,
+            chainId: chainId
           })
           this.$store.commit('walletconnect/clearCallRequests')
         })
-        .onCancel(() => {
-          connector.rejectSession({
-            message: 'User rejected'
+          .onCancel(() => {
+            connector.rejectSession({
+              message: 'User rejected'
+            })
           })
-        })
-        .onDismiss(() => {
-          if (switchActivity) {
-            Plugins.DeepLinkHelperPlugin.finishActivity()
-          }
-        })
+          .onDismiss(() => {
+            if (switchActivity) {
+              Plugins.DeepLinkHelperPlugin.finishActivity()
+            }
+          })
 
         connector.off('session_request')
         this.handshakeOnProgress = false
       })
     },
 
-    stopPendingConnector() {
+    stopPendingConnector () {
       if (this.pendingConnector && this.pendingConnector.off && this.pendingConnector.off.call) {
         this.pendingConnector.off('session_request')
       }
@@ -385,7 +382,7 @@ export default {
       this.handshakeFormData.walletConnectUri = ''
     },
 
-    disconnectConnector() {
+    disconnectConnector () {
       if (!this.connector) return
 
       this.detachEventstToConnector()
@@ -396,7 +393,7 @@ export default {
       this.$store.commit('walletconnect/clearCallRequests')
     },
 
-    detachEventstToConnector() {
+    detachEventstToConnector () {
       if (!this.connector) return
 
       this.$walletConnect.removeEventListener('session_request')
@@ -411,9 +408,8 @@ export default {
       if (!this.connector) return
 
       const onDisconnectListener = (error, payload) => {
-        console.log('disconnect:', error, payload)
         if (error) {
-          throw error;
+          throw error
         }
 
         this.$q.dialog({
@@ -428,14 +424,13 @@ export default {
       this.onDisconnectListener = onDisconnectListener
 
       const onCallRequestListener = (error, payload) => {
-        console.log('call_request:', error, payload)
         if (error) {
-          throw error;
+          throw error
         }
 
         this.$store.commit('walletconnect/addCallRequest', {
           timestamp: Date.now(),
-          payload: payload,
+          payload: payload
         })
 
         if (!this.callRequestDialog.show) this.showCallRequestInDialog(this.callRequests[0])
@@ -445,7 +440,7 @@ export default {
       this.onCallRequestListener = onCallRequestListener
     },
 
-    respondToCallRequestInDialog(accept) {
+    respondToCallRequestInDialog (accept) {
       if (!this.callRequestDialog.callRequest) return
 
       if (!accept) {
@@ -454,7 +449,7 @@ export default {
         this.$q.notify({
           color: 'blue-9',
           icon: 'mdi-information',
-          message: 'Rejected call request',
+          message: 'Rejected call request'
         })
         return
       }
@@ -466,13 +461,13 @@ export default {
             this.$q.notify({
               color: 'green-5',
               icon: 'mdi-check-circle',
-              message: 'Call request accepted',
+              message: 'Call request accepted'
             })
           } else {
             this.$q.notify({
               color: 'red-5',
               icon: 'mdi-close-circle',
-              message: 'Error accepting call request',
+              message: 'Error accepting call request'
             })
           }
         })
@@ -482,21 +477,21 @@ export default {
         })
     },
 
-    showCallRequestInDialog(callRequest) {
+    showCallRequestInDialog (callRequest) {
       this.callRequestDialog.callRequest = callRequest
       this.callRequestDialog.show = true
     },
-    
-    hideCallRequestDialog() {
+
+    hideCallRequestDialog () {
       this.callRequestDialog.callRequest = null
       this.callRequestDialog.show = false
     },
 
-    removeCallRequest(callRequest) {
+    removeCallRequest (callRequest) {
       this.$store.commit('walletconnect/removeCallRequest', callRequest?.payload?.id)
     },
 
-    acceptCallRequest(callRequest) {
+    acceptCallRequest (callRequest) {
       if (!callRequest || !callRequest.payload) return Promise.reject()
 
       return callRequestHandler(this.connector, callRequest.payload, this.wallet.sBCH._wallet)
@@ -506,7 +501,7 @@ export default {
         })
     },
 
-    rejectCallRequest(callRequest) {
+    rejectCallRequest (callRequest) {
       if (!callRequest || !callRequest.payload) return
 
       this.connector.rejectRequest({
@@ -519,26 +514,24 @@ export default {
       this.removeCallRequest(callRequest)
     },
 
-    confirmClearCallRequests() {
+    confirmClearCallRequests () {
       this.$q.dialog({
-        title: "Clear call requests",
-        message: "Removing all call requests. Are you sure?",
-        ok: true,
-        cancel: true,
+        title: 'Clear call requests',
+        message: 'Removing all call requests. Are you sure?',
         ok: {
-          rounded: true,
+          rounded: true
         },
         cancel: {
           rounded: true,
           flat: true
         },
-        class: this.darkMode ? "br-15 text-white pt-dark" : "text-black br-15",
+        class: this.darkMode ? 'br-15 text-white pt-dark' : 'text-black br-15'
       })
         .onOk(() => {
           if (Array.isArray(this.callRequests)) {
             this.callRequests.forEach(this.rejectCallRequest)
           }
-          this.$store.commit('walletconnect/clearCallRequests');
+          this.$store.commit('walletconnect/clearCallRequests')
         })
     },
 
@@ -548,10 +541,10 @@ export default {
         .then(function (mnemonic) {
           vm.wallet = new Wallet(mnemonic, vm.isTestnet)
         })
-    },
+    }
   },
 
-  beforeDestroy() {
+  beforeDestroy () {
     this.detachEventstToConnector()
   },
 

@@ -1,14 +1,12 @@
-import WalletConnect from "@walletconnect/client";
-import { ethers } from "ethers";
+import WalletConnect from '@walletconnect/client'
+// import { ethers } from 'ethers'
 
 // TODO: refactor
-export function getPreviousConnector() {
+export function getPreviousConnector () {
   const wcInfoString = localStorage.getItem('walletconnect')
-  console.log('got prev info:', wcInfoString)
   if (!wcInfoString) return
-  const wcInfo = JSON.parse(wcInfoString) 
+  const wcInfo = JSON.parse(wcInfoString)
   console.log(wcInfo)
-  
   return new WalletConnect(wcInfo)
 }
 
@@ -20,12 +18,12 @@ export function createConnector (uri) {
       uri: uri,
       // Required
       clientMeta: {
-        description: "Paytaca App",
-        url: "https://paytaca.com",
-        icons: ["https://walletconnect.org/walletconnect-logo.png"],
-        name: "Paytaca",
-      },
-    },
+        description: 'Paytaca App',
+        url: 'https://paytaca.com',
+        icons: ['https://walletconnect.org/walletconnect-logo.png'],
+        name: 'Paytaca'
+      }
+    }
     // {
     //   // Optional
     //   url: "<YOUR_PUSH_SERVER_URL>",
@@ -87,39 +85,43 @@ export function createConnector (uri) {
   return connector
 }
 
-
 /**
-  * @param {object}         payload a JSON-RPC request 
+  * @param {object}         payload a JSON-RPC request
   * @param {ethers.Wallet}  wallet  a Wallet instance
 */
-export async function callRequestHandler(connector, payload, wallet) {
+export async function callRequestHandler (connector, payload, wallet) {
   let result = null
   let error = null
   try {
-    switch(payload.method) {
-      case('personal_sign'):
-      case('eth_sign'):
+    switch (payload.method) {
+      case ('personal_sign'):
+      case ('eth_sign'):
+        // eslint-disable-next-line no-case-declarations
         const signedMessage = await wallet.signMessage(payload.params[0])
         result = signedMessage
         break
-      case('eth_signTypedData'):
+      case ('eth_signTypedData'):
+        // eslint-disable-next-line no-case-declarations
         const parsedSignTypedDataParams = JSON.parse(payload.params[1])
         if (parsedSignTypedDataParams.types.EIP712Domain) delete parsedSignTypedDataParams.types.EIP712Domain
+        // eslint-disable-next-line no-case-declarations
         const signedTypedData = await wallet._signTypedData(
           parsedSignTypedDataParams.domain,
           parsedSignTypedDataParams.types,
-          parsedSignTypedDataParams.message,
+          parsedSignTypedDataParams.message
         )
         result = signedTypedData
-        break;
-      case('eth_sendTransaction'):
+        break
+      case ('eth_sendTransaction'):
+        // eslint-disable-next-line no-case-declarations
         const tx = await wallet.sendTransaction(serializeTransactionRequest(payload.params[0]))
         result = tx.hash
-        break;
+        break
       case ('eth_signTransaction'):
+        // eslint-disable-next-line no-case-declarations
         const signedTx = await wallet.signTransaction(serializeTransactionRequest(payload.params[0]))
         result = signedTx
-        break;
+        break
       default:
         error = { message: 'Unknown method' }
     }
@@ -129,7 +131,7 @@ export async function callRequestHandler(connector, payload, wallet) {
 
   const response = {
     success: false,
-    requestPayload: payload,
+    requestPayload: payload
   }
 
   console.log(payload, result, error)
@@ -146,8 +148,7 @@ export async function callRequestHandler(connector, payload, wallet) {
   return response
 }
 
-
-function serializeTransactionRequest(payload) {
+function serializeTransactionRequest (payload) {
   if (!payload) return payload
   const data = {
     from: payload.from,
@@ -156,20 +157,19 @@ function serializeTransactionRequest(payload) {
     data: payload.data,
     gasLimit: payload.gas,
     gasPrice: payload.gasPrice,
-    nonce: payload.nonce,
+    nonce: payload.nonce
   }
 
   return data
 }
 
-
-export function isValidWalletConnectUri(uri) {
+export function isValidWalletConnectUri (uri) {
   if (!uri) return false
 
   return /wc:[0-9a-f-]*@\d*\?(bridge=.*|key=[0-9a-f]*)/i.test(uri)
 }
 
-export function parseWalletConnectUri(uri) {
+export function parseWalletConnectUri (uri) {
   if (!uri) return
 
   const data = {
@@ -177,7 +177,7 @@ export function parseWalletConnectUri(uri) {
     handshakeTopic: '',
     version: '',
     bridge: '',
-    key: '',
+    key: ''
   }
 
   const match = String(uri).match(/^wc:([0-9a-f-]{36})@(\d*)(\?(bridge=.*)|(key=[0-9a-f]*))?$/i)
@@ -190,13 +190,10 @@ export function parseWalletConnectUri(uri) {
   data.key = url.searchParams.get('key')
 
   return data
-  
 }
 
-
 export class WalletConnectManager {
-
-  constructor(app) {
+  constructor (app) {
     this.app = app
     this._listeners = {}
     this._subscribedListeners = []
@@ -218,14 +215,14 @@ export class WalletConnectManager {
     if (this._connector) this._attachEventsToConnector()
   }
 
-  _attachEventsToConnector() {
+  _attachEventsToConnector () {
     if (!this.connector) return
     this._attachEventToConnector('session_request')
     this._attachEventToConnector('call_request')
     this._attachEventToConnector('disconnect')
   }
 
-  _attachEventToConnector(eventName) {
+  _attachEventToConnector (eventName) {
     if (!this.connector) return
     const _eventName = String(eventName)
     if (this._isSubscribedTo(_eventName)) return
@@ -237,22 +234,22 @@ export class WalletConnectManager {
     this._listeners[_eventName] = callback
   }
 
-  _isSubscribedTo(eventName='') {
+  _isSubscribedTo (eventName = '') {
     if (!this.connector) return false
 
     const listener = this._listeners[eventName]
     if (!listener) return false
 
-    if(!Array.isArray(this.connector?._eventManager?._eventEmmiters)) return false
+    if (!Array.isArray(this.connector?._eventManager?._eventEmmiters)) return false
     return this.connector._eventManager._eventEmmiters.some(eventEmmiter => eventEmmiter?.callback === listener)
   }
 
-  _connectorEventHandler(eventName, error, payload) {
+  _connectorEventHandler (eventName, error, payload) {
     console.log('walletconnect event:', eventName, error, payload)
     if (eventName === 'call_request' && payload) {
       this.app.store.commit('walletconnect/addCallRequest', {
         timestamp: Date.now(),
-        payload: payload,
+        payload: payload
       })
     } else if (eventName === 'disconnect' && !error) {
       this.app.store.commit('walletconnect/clearCallRequests')
@@ -265,7 +262,7 @@ export class WalletConnectManager {
     })
   }
 
-  _disconnectConnectorEvents() {
+  _disconnectConnectorEvents () {
     if (!this.connector) return
     ['session_request', 'call_request', 'disconnect'].forEach(eventName => {
       if (this._isSubscribedTo(eventName)) {
@@ -277,7 +274,7 @@ export class WalletConnectManager {
     })
   }
 
-  disconnectConnector() {
+  disconnectConnector () {
     if (!this.connector) return
     this.connector.killSession()
     this.connector = null
@@ -285,24 +282,26 @@ export class WalletConnectManager {
 
   /**
    * Add a listener to an event
-   * @param {String} eventName 
-   * @param {Function} callback 
+   * @param {String} eventName
+   * @param {Function} callback
    */
-  addEventListener(eventName, callback) {
+  addEventListener (eventName, callback) {
     const _eventName = String(eventName)
     const exists = this._subscribedListeners.some(listener => listener.event === _eventName && listener.callback === callback)
-    if (!exists) this._subscribedListeners.push({
-      event: _eventName,
-      callback: callback,
-    })
+    if (!exists) {
+      this._subscribedListeners.push({
+        event: _eventName,
+        callback: callback
+      })
+    }
   }
 
   /**
    * Removes a listener to an event. If callback is not specified, all listeners are removed
-   * @param {String} eventName 
-   * @param {Function} callback 
+   * @param {String} eventName
+   * @param {Function} callback
    */
-  removeEventListener(eventName, callback) {
+  removeEventListener (eventName, callback) {
     const _eventName = String(eventName)
     if (callback === undefined) {
       this._subscribedListeners = this._subscribedListeners.filter(listener => listener.event !== _eventName)

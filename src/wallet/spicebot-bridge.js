@@ -3,23 +3,22 @@ import { BigNumber } from 'ethers'
 import { getProvider } from './sbch/utils'
 import { bigNumberToCurrency } from './smartswap'
 
-
 // const SPICEBOT_API_BASE_URL = 'http:localhost:8080/api'
 const SPICEBOT_API_BASE_URL = 'https:spicebot.scibizinformatics.com/api'
 
 /**
- * 
- * @typedef {Object} SpicebotBridgeToken bridge token info from spicebot, some properties might not be documented 
- * @property {String}  name 
- * @property {Boolean} active 
- * @property {String}  slp_token_id 
- * @property {Number}  slp_decimals 
- * @property {String}  slp_source_address 
- * @property {String}  slp_to_sep20_ratio 
+ *
+ * @typedef {Object} SpicebotBridgeToken bridge token info from spicebot, some properties might not be documented
+ * @property {String}  name
+ * @property {Boolean} active
+ * @property {String}  slp_token_id
+ * @property {Number}  slp_decimals
+ * @property {String}  slp_source_address
+ * @property {String}  slp_to_sep20_ratio
  * @property {String}  sep20_contract
- * @property {Number}  sep20_decimals  
- * @property {String}  sep20_source_address 
- * @returns {{success: Boolean, tokens?: SpicebotBridgeToken[], error?: undefined }} 
+ * @property {Number}  sep20_decimals
+ * @property {String}  sep20_source_address
+ * @returns {{success: Boolean, tokens?: SpicebotBridgeToken[], error?: undefined }}
  */
 export async function fetchTokensList () {
   try {
@@ -30,7 +29,7 @@ export async function fetchTokensList () {
 
     return {
       success: true,
-      tokens: Array.isArray(data.results) ? data.results : [],
+      tokens: Array.isArray(data.results) ? data.results : []
     }
   } catch (err) {
     return { success: false, error: err }
@@ -61,7 +60,7 @@ export async function batchFetchSep20TokenBalances (tokenWalletPairs) {
       })
     })
   )
-  
+
   // resolve token contract decimals
   const contractAddresses = balances.map(info => info && info.token)
     .filter(Boolean)
@@ -83,12 +82,12 @@ export async function batchFetchSep20TokenBalances (tokenWalletPairs) {
 
   const parsedBalances = balances.map(info => {
     const decimals = decimalsList.find(decimalInfo => decimalInfo.token.toLowerCase() === info.token.toLowerCase())?.decimals
-    let parsedBalance = undefined
-    if(decimals) parsedBalance = bigNumberToCurrency(info.rawBalance, decimals)
+    let parsedBalance
+    if (decimals) parsedBalance = bigNumberToCurrency(info.rawBalance, decimals)
     return {
       token: info.token,
       wallet: info.wallet,
-      balance: parsedBalance,
+      balance: parsedBalance
     }
   })
 
@@ -96,12 +95,12 @@ export async function batchFetchSep20TokenBalances (tokenWalletPairs) {
 }
 
 /**
- * 
- * @param {String} slpTokenId 
- * @param {Number} amount 
- * @param {String} recipientSep20Address 
+ *
+ * @param {String} slpTokenId
+ * @param {Number} amount
+ * @param {String} recipientSep20Address
  */
-export async function getOrCreateSwapRequest(slpTokenId, amount, recipientSep20Address) {
+export async function getOrCreateSwapRequest (slpTokenId, amount, recipientSep20Address) {
   try {
     const { data } = await axios.get(
       `${SPICEBOT_API_BASE_URL}/bridge/swap-requests/`,
@@ -110,9 +109,9 @@ export async function getOrCreateSwapRequest(slpTokenId, amount, recipientSep20A
           fulfilled: false,
           slp_token_id: slpTokenId,
           to_address: recipientSep20Address,
-          amount: amount,
+          amount: amount
         }
-      },
+      }
     )
     if (Array.isArray(data?.results) && data.results.length) {
       return {
@@ -126,39 +125,39 @@ export async function getOrCreateSwapRequest(slpTokenId, amount, recipientSep20A
       {
         amount: amount,
         slp_token_id: slpTokenId,
-        to_address: recipientSep20Address,
+        to_address: recipientSep20Address
       }
     )
 
     if (swapRequest?.id) {
       return {
         success: true,
-        swapRequest: swapRequest,
+        swapRequest: swapRequest
       }
     }
-  } catch(err) {
+  } catch (err) {
     return {
       success: false,
-      error: err,
+      error: err
     }
   }
 }
 
 /**
- * 
- * @param {Number} swapRequestId 
+ *
+ * @param {Number} swapRequestId
  */
-export async function getSwapRequestDetails(swapRequestId) {
+export async function getSwapRequestDetails (swapRequestId) {
   try {
     const { data } = await axios.get(`${SPICEBOT_API_BASE_URL}/bridge/swap-requests/${swapRequestId}/`)
     return {
       success: true,
       swapRequest: data
     }
-  } catch(err) {
+  } catch (err) {
     return {
       success: false,
-      error: err,
+      error: err
     }
   }
 }

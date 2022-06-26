@@ -260,24 +260,24 @@ export default {
         success: false,
         showSuccessDialog: false,
 
-        errors: [],
+        errors: []
       },
 
       showDragSlide: false,
 
       verification: {
         type: '',
-        warningAttemptsStatus: 'dismiss',
+        warningAttemptsStatus: 'dismiss'
       },
 
       orderNameForm: {
         errors: [],
-        orderName: '',
+        orderName: ''
       }
     }
   },
   computed: {
-    paymentRequest() {
+    paymentRequest () {
       if (!this.rawPaymentRequest) return
 
       return new PaymentRequest(this.rawPaymentRequest)
@@ -286,27 +286,25 @@ export default {
     merchantData () {
       const merchantData = {
         order: { id: '', name: '' },
-        shop: { id: '', name: '' },
+        shop: { id: '', name: '' }
       }
 
       if (!this.paymentRequest ||
           !this.paymentRequest.paymentDetails ||
           !this.paymentRequest.paymentDetails.merchantData ||
           !this.paymentRequest.paymentDetails.merchantData.order
-      )
-        return merchantData
+      ) { return merchantData }
 
       merchantData.order.id = this.paymentRequest.paymentDetails.merchantData.order.id
       merchantData.order.name = this.paymentRequest.paymentDetails.merchantData.order.name
 
-      if (!this.paymentRequest.paymentDetails.merchantData.order.shop)
-        return merchantData
+      if (!this.paymentRequest.paymentDetails.merchantData.order.shop) { return merchantData }
 
       merchantData.shop.id = this.paymentRequest.paymentDetails.merchantData.order.shop.id
       merchantData.shop.name = this.paymentRequest.paymentDetails.merchantData.order.shop.name
 
       return merchantData
-    },
+    }
   },
   methods: {
     playSound (success) {
@@ -317,7 +315,6 @@ export default {
     },
 
     swiped () {
-      console.log('swiped')
       this.executeSecurityChecking()
       setTimeout(() => {
         this.showDragSlide = false
@@ -336,7 +333,7 @@ export default {
       const outputs = this.paymentRequest.paymentDetails.outputs.map(output => {
         return {
           address: output.toCashAddress(),
-          amount: output.toBCH(),
+          amount: output.toBCH()
         }
       })
 
@@ -359,9 +356,8 @@ export default {
           return Promise.resolve(result)
         })
         .catch(err => {
-          console.log('error encountered')
           console.log(err)
-          let errors = []
+          const errors = []
 
           if (err.error) {
             if (err.error.indexOf('not enough balance in sender') > -1) {
@@ -385,7 +381,7 @@ export default {
 
       const data = {
         payment_invoice_id: this.paymentRequest.paymentDetails.merchantData.payment_invoice_id,
-        transaction_ids: txids,
+        transaction_ids: txids
       }
 
       const headers = {}
@@ -456,14 +452,14 @@ export default {
         })
     },
 
-    getPaymentRequestFromOrderNumber() {
-      return this.fetchPaymentRequest({orderName: `#${this.orderNameForm.orderName}`})
+    getPaymentRequestFromOrderNumber () {
+      return this.fetchPaymentRequest({ orderName: `#${this.orderNameForm.orderName}` })
     },
 
-    fetchPaymentRequest({orderId = '', orderName = ''}) {
+    fetchPaymentRequest ({ orderId = '', orderName = '' }) {
       const params = {}
       if (orderId) params.order_id = orderId
-      else if(orderName) params.order_name = orderName
+      else if (orderName) params.order_name = orderName
 
       this.paymentRequestStatus.fetching = true
       this.$connectaAxios
@@ -488,12 +484,9 @@ export default {
         })
         .catch(err => {
           let errors = []
-          if (err && err.response && err.response.status) errors = ["Order not found"]
+          if (err && err.response && err.response.status) errors = ['Order not found']
           if (err && err.response && err.response.data && err.response.data.detail) {
-            if (Array.isArray(err.response.data.detail) && err.response.data.detail.length)
-              errors = err.response.data.detail
-            else
-              errors = [err.response.data.detail]
+            if (Array.isArray(err.response.data.detail) && err.response.data.detail.length) { errors = err.response.data.detail } else { errors = [err.response.data.detail] }
           }
 
           if (!Array.isArray(errors) || !errors.length) errors = ['Unknown exception occured']

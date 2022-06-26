@@ -87,28 +87,28 @@ export default {
   components: {
     HeaderNav
   },
-  data() {
+  data () {
     return {
-      selectedNetwork: this.$store.getters['global/network'],
+      selectedNetwork: this.$store.getters['global/network']
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
-    ignoredAssets() {
+    ignoredAssets () {
       if (this.selectedNetwork === 'BCH') return this.ignoredMainchainAssets
       if (this.selectedNetwork === 'sBCH') return this.ignoredSmartchainAssets
 
       return []
     },
-    ignoredMainchainAssets() {
+    ignoredMainchainAssets () {
       return this.$store.getters['assets/ignoredAssets']
     },
-    ignoredSmartchainAssets() {
+    ignoredSmartchainAssets () {
       return this.$store.getters['sep20/ignoredAssets']
     },
-    hasIgnoredAssetsAdded() {
+    hasIgnoredAssetsAdded () {
       const hasMainchainAssetsAdded = this.ignoredMainchainAssets
         .map(asset => asset && asset.id)
         .filter(Boolean)
@@ -122,73 +122,73 @@ export default {
     }
   },
   methods: {
-    isMainchainAsset(assetId) {
+    isMainchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['assets/getAssets'])) {
         return this.$store.getters['assets/getAssets'].some(asset => asset && asset.id === assetId)
       }
-      return false  
+      return false
     },
-    isSmartchainAsset(assetId) {
+    isSmartchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['sep20/getAssets'])) {
         return this.$store.getters['sep20/getAssets'].some(asset => asset && asset.id === assetId)
       }
-      return false  
+      return false
     },
-    assetIdExists(assetId) {
+    assetIdExists (assetId) {
       return this.isMainchainAsset(assetId) || this.isSmartchainAsset(assetId)
     },
-    addToken(tokenInfo) {
+    addToken (tokenInfo) {
       if (!tokenInfo) return
 
       if (tokenInfo.isSep20) this.$store.commit('sep20/addNewAsset', tokenInfo)
       else this.$store.commit('assets/addNewAsset', tokenInfo)
     },
-    removeToken(tokenInfo) {
+    removeToken (tokenInfo) {
       if (!tokenInfo || !tokenInfo.id) return
 
       if (tokenInfo.isSep20) this.$store.commit('sep20/removeAsset', tokenInfo.id)
       else this.$store.commit('assets/removeAsset', tokenInfo.id)
     },
-    removeAddedIgnoredAssets() {
+    removeAddedIgnoredAssets () {
       const addedMainchainAssets = this.ignoredMainchainAssets
         .map(asset => asset && asset.id)
         .filter(this.isMainchainAsset)
       const addedSmartchainAssets = this.ignoredSmartchainAssets
         .map(asset => asset && asset.id)
         .filter(this.isSmartchainAsset)
-      
+
       addedMainchainAssets.forEach(assetId => this.$store.commit('assets/removeIgnoredAsset', assetId))
       addedSmartchainAssets.forEach(assetId => this.$store.commit('sep20/removeIgnoredAsset', assetId))
     },
-    confirmRemoveIgnoredAsset(tokenInfo) {
+    confirmRemoveIgnoredAsset (tokenInfo) {
       this.$q.dialog({
         title: 'Remove ignored token',
         message: `Remove ignored token, '${tokenInfo.name}(${tokenInfo.symbol})'?`,
         cancel: true,
         persistent: true,
-        class: this.darkMode ? 'pt-dark text-white' : 'text-black',
+        class: this.darkMode ? 'pt-dark text-white' : 'text-black'
       })
-      .onOk(() => {
-        if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
-        else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
-      })
-    },
+        .onOk(() => {
+          if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
+          else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
+        })
+    }
   },
-  beforeRouteLeave(to, from, next) {
+  beforeRouteLeave (to, from, next) {
     if (this.hasIgnoredAssetsAdded) {
       this.$q.dialog({
         message: 'You have added assets from ignored list. Remove them from the ignored list?',
         ok: {
           noCaps: true,
-          label: 'Remove',
+          label: 'Remove'
         },
         cancel: {
           noCaps: true,
           label: 'Keep',
-          flat: true,
+          flat: true
         },
         persistent: true,
-        class: this.darkMode ? 'pt-dark text-white' : 'text-black',
+        class: this.darkMode ? 'pt-dark text-white' : 'text-black'
       })
         .onOk(() => this.removeAddedIgnoredAssets())
         .onDismiss(next)

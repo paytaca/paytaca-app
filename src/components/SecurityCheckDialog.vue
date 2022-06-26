@@ -27,25 +27,25 @@ export default {
   /**
    * Used with dialog plugin, must pass this.$root as props when using this dialog since;
    * it accesses $store.
-   * 
+   *
    * Example:
    *  vm.$q.dialog({ component: SecurityCheckDialog, root: vm.$root }).onOk(() => console.log('Success!'))
   */
   name: 'SecurityCheckDialog',
   components: {
     pinDialog,
-    biometricWarningAttmepts,
+    biometricWarningAttmepts
   },
   props: {
     darkMode: {
       type: Boolean,
-      default: false,
+      default: false
     }
   },
-  data() {
+  data () {
     return {
       pinDialogAction: '',
-      warningAttemptsStatus: 'dismiss',
+      warningAttemptsStatus: 'dismiss'
     }
   },
   methods: {
@@ -67,7 +67,7 @@ export default {
           }, 500)
         })
     },
-    pinDialogNextAction(action) {
+    pinDialogNextAction (action) {
       if (action === 'send') this.onOKClick()
       else this.hide()
     },

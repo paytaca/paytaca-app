@@ -21,7 +21,7 @@
       <q-card-section>
         <q-banner rounded :class="'text-white bg-red-4'">
           You can close this dialog and the swap will proceed.
-          However you might not be able to see the progress. 
+          However you might not be able to see the progress.
         </q-banner>
         <q-item class="q-px-none">
           <q-item-section avatar>
@@ -72,44 +72,44 @@ import ProgressLoader from '../ProgressLoader.vue'
 export default {
   name: 'SpicebotBridgeSwapListenerDialog',
   components: {
-    ProgressLoader,
+    ProgressLoader
   },
   props: {
     swapRequestId: {
       type: Number,
-      required: true,
+      required: true
     },
     tokenImagesMap: {
-      type: Object, // Map(<slp_token_id>: <image_url>)
+      type: Object // Map(<slp_token_id>: <image_url>)
     },
     darkMode: {
       type: Boolean,
-      defualt: false,
+      defualt: false
     }
   },
-  data() {
+  data () {
     return {
       updatingSwapRequest: false,
       tokenImgUrl: '',
       swapRequest: { id: 0 }, // for watchter reactivity
       pollerId: null,
-      pollInterval: 5000,
+      pollInterval: 5000
     }
   },
   computed: {
-    waiting() {
+    waiting () {
       return Boolean(this.pollerId)
     },
-    fulfillmentTxDetails() {
+    fulfillmentTxDetails () {
       return {
         hash: this.swapRequest?.fulfillment?.send_transaction_hash || '',
         success: this.swapRequest?.fulfillment?.success || false,
-        dateFulfilled: this.swapRequest?.date_fulfilled || null,
+        dateFulfilled: this.swapRequest?.date_fulfilled || null
       }
     }
   },
   methods: {
-    async updateTokenImgUrl() {
+    async updateTokenImgUrl () {
       if (this.tokenImagesMap?.[this.swapRequest?.token?.slp_token_id]) {
         this.tokenImgUrl = this.tokenImagesMap?.[this.swapRequest?.token?.slp_token_id]
         return
@@ -123,7 +123,7 @@ export default {
             this.tokenImgUrl = token?.image_url
             return
           }
-        } catch (err){ console.error(err) }
+        } catch (err) { console.error(err) }
       }
 
       if (this.swapRequest?.token?.sep20_contract) {
@@ -134,22 +134,22 @@ export default {
             this.tokenImgUrl = token.image_url
             return
           }
-        } catch (err){ console.error(err) }
+        } catch (err) { console.error(err) }
       }
     },
-    stopPoller() {
+    stopPoller () {
       clearInterval(this.pollerId)
       this.pollerId = null
     },
-    startPoller() {
+    startPoller () {
       this.stopPoller()
 
       this.pollerId = setInterval(() => {
-        this.updateSwapRequest(false)  
+        this.updateSwapRequest(false)
       }, this.pollInterval)
     },
-    updateSwapRequest(silent=false) {
-      if(!this.swapRequestId) return
+    updateSwapRequest (silent = false) {
+      if (!this.swapRequestId) return
 
       this.updatingSwapRequest = Boolean(silent)
       getSwapRequestDetails(this.swapRequestId)
@@ -202,7 +202,7 @@ export default {
   },
   watch: {
     'swapRequest.id': {
-      handler() {
+      handler () {
         this.updateTokenImgUrl()
       }
     }

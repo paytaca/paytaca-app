@@ -77,7 +77,7 @@
         class="call-request-body q-mt-md"
       >
         <div class="text-subtitle2 q-mb-md">
-          <template v-if="parsedCallRequest.payload.method === 'eth_signTransaction'"> 
+          <template v-if="parsedCallRequest.payload.method === 'eth_signTransaction'">
             Sign Transaction
           </template>
           <template v-else-if="parsedCallRequest.payload.method === 'eth_sendTransaction'">
@@ -170,22 +170,22 @@ export default {
   props: {
     value: {
       type: Boolean,
-      default: false,
+      default: false
     },
     persistent: {
       type: Boolean,
-      default: false,
+      default: false
     },
     loading: {
       type: Boolean,
-      default: false,
+      default: false
     },
     callRequest: {
       type: Object,
       default: () => {
         return {
           timestamp: null,
-          payload: { id: null, jsonrpc: '2.0', method: '', params: []}
+          payload: { id: null, jsonrpc: '2.0', method: '', params: [] }
         }
       }
     },
@@ -194,17 +194,17 @@ export default {
   data () {
     return {
       val: this.value,
-      showDecoded: true,
+      showDecoded: true
     }
   },
   computed: {
-    hasDecoded() {
+    hasDecoded () {
       if (!this.parsedCallRequest.payload.method) return false
 
       return ['eth_sign', 'personal_sign', 'eth_signTransaction', 'eth_sendTransaction']
         .indexOf(this.parsedCallRequest.payload.method) >= 0
     },
-    parsedCallRequest() {
+    parsedCallRequest () {
       const data = {
         timestamp: null,
         payload: { id: null, jsonrpc: '2.0', method: '', params: [] }
@@ -224,25 +224,25 @@ export default {
     }
   },
   methods: {
-    decodeHex(value) {
+    decodeHex (value) {
       if (!/(0x)?[0-9a-f]*/i.test(value)) return ''
       return Buffer.from(value.replace('0x', ''), 'hex').toString('utf8')
     },
-    hexToNumber(value) {
+    hexToNumber (value) {
       if (!/(0x)?[0-9a-f]*/i.test(value)) return null
 
       return BigNumber.from(value).toBigInt()
     }
   },
   watch: {
-    value() {
+    value () {
       this.val = this.value
     },
-    val() {
+    val () {
       this.$emit('input', this.val)
     },
     'parsedCallRequest.payload.id': {
-      handler() {
+      handler () {
         this.showDecoded = this.hasDecoded
       }
     }

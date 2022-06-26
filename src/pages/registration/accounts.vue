@@ -120,7 +120,6 @@ export default {
       console.log('New address: ', wallet.BCH.getNewAddressSet)
 
       wallet.BCH.getNewAddressSet(0).then(function (addresses) {
-        console.log('Addresses: ', addresses)
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
           walletHash: wallet.BCH.walletHash,
@@ -165,7 +164,7 @@ export default {
           type: 'sbch',
           derivationPath: wallet.sBCH.derivationPath,
           walletHash: wallet.sBCH.walletHash,
-          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address: '',
+          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
         })
       })
     },
@@ -205,7 +204,6 @@ export default {
           // Failed to authenticate
           console.log('Verification error: ', error)
           if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled')) {
-            console.log('Ignore')
           } else {
             this.verifyBiometric()
           }

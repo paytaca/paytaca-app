@@ -1,9 +1,9 @@
-export function ignoredAssets(state) {
+export function ignoredAssets (state) {
   if (!Array.isArray(state.ignoredAssets)) return []
   return state.ignoredAssets
 }
 
-export function ignoredTokenIds(state) {
+export function ignoredTokenIds (state) {
   if (!Array.isArray(state.ignoredAssets)) return []
   return state.ignoredAssets
     .map(asset => asset && asset.id)

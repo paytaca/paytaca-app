@@ -298,12 +298,12 @@ const { SecureStoragePlugin } = Plugins
 
 const hopCashFee = {
   pctg: 0.001,
-  fixed: 0,
+  fixed: 0
 }
 
 const paytacaFee = {
   pctg: 0,
-  fixed: 0,
+  fixed: 0
 }
 
 export default {
@@ -342,7 +342,7 @@ export default {
       loading: false,
       verification: {
         type: '',
-        warningAttemptsStatus: 'dismiss',
+        warningAttemptsStatus: 'dismiss'
       }
     }
   },
@@ -356,7 +356,7 @@ export default {
       if (isNaN(balance)) return 0
       return Number(balance.toFixed(6))
     },
-    sourceTransferBalance() {
+    sourceTransferBalance () {
       let balance = 0
       if (this.transferType === 'c2s') balance = this.bchBalance
       if (this.transferType === 's2c') balance = this.sbchBalance
@@ -370,7 +370,7 @@ export default {
     sbchBalance () {
       return this.$store.getters['sep20/getAsset']('bch')[0].balance
     },
-    fees() {
+    fees () {
       const parsedNum = Number(this.amount)
       if (isNaN(parsedNum)) return 0
 
@@ -379,11 +379,11 @@ export default {
 
       return {
         paytaca: Number((parsedNum - paytacaDeducted).toFixed(16)),
-        hopcash: Number((paytacaDeducted - hopCashDeducted).toFixed(16)),
+        hopcash: Number((paytacaDeducted - hopCashDeducted).toFixed(16))
       }
     },
     transferredAmount: {
-      get() {
+      get () {
         const parsedNum = Number(this.amount)
         if (isNaN(parsedNum)) return 0
 
@@ -392,39 +392,39 @@ export default {
 
         return Number(hopCashDeducted.toFixed(8))
       },
-      set(value) {
+      set (value) {
         const parsedNum = Number(value)
         if (isNaN(parsedNum)) this.amount = ''
 
         const reverseHopCashDeducted = deductFromFee(
           parsedNum,
           {
-            pctg: 1 - 1/(1-hopCashFee.pctg),
-            fixed: -hopCashFee.fixed / (1-hopCashFee.pctg),
+            pctg: 1 - 1 / (1 - hopCashFee.pctg),
+            fixed: -hopCashFee.fixed / (1 - hopCashFee.pctg)
           }
         )
 
         const reversePaytacaDeducted = deductFromFee(
           reverseHopCashDeducted,
           {
-            pctg: 1 - 1/(1-paytacaFee.pctg),
-            fixed: -paytacaFee.fixed / (1-paytacaFee.pctg),
+            pctg: 1 - 1 / (1 - paytacaFee.pctg),
+            fixed: -paytacaFee.fixed / (1 - paytacaFee.pctg)
           }
         )
 
         this.amount = Number(reversePaytacaDeducted.toFixed(8))
       }
     },
-    defaultRecipientAddress() {
+    defaultRecipientAddress () {
       if (!this.wallet) return ''
-      if(this.transferType === 'c2s') {
+      if (this.transferType === 'c2s') {
         return this.wallet.sBCH._wallet.address
       }
       return this.$store.getters['global/getAddress']('bch')
-    },
+    }
   },
   methods: {
-    validateAddress(address) {
+    validateAddress (address) {
       const addressObj = new Address(address)
       let valid = false
       if (this.transferType === 'c2s') valid = addressObj.isSep20Address()
@@ -440,7 +440,7 @@ export default {
     getChangeAddress () {
       return this.$store.getters['global/getChangeAddress']('bch')
     },
-    onScannerDecode(content) {
+    onScannerDecode (content) {
       this.showQrScanner = false
       if (!this.validateAddress(content)) {
         this.$q.notify({
@@ -453,7 +453,7 @@ export default {
         this.recipientAddress = content
       }
     },
-    updateBridgeBalances: throttle(function(all=false) {
+    updateBridgeBalances: throttle(function (all = false) {
       if (this.transferType === 'c2s' || all) {
         cash2smartMax()
           .then(({ balance, success }) => {
@@ -469,7 +469,7 @@ export default {
           })
       }
     }, 5000),
-    updateWalletBalance: throttle(function(all=false) {
+    updateWalletBalance: throttle(function (all = false) {
       const id = 'bch'
       if (this.transferType === 'c2s' || all) {
         this.wallet.BCH.getBalance().then((response) => {
@@ -504,8 +504,7 @@ export default {
       this.lockInputs = true
     },
 
-    swiped() {
-      console.log('swiped')
+    swiped () {
       this.executeSecurityChecking()
       setTimeout(() => {
         this.showDragSlide = false
@@ -563,17 +562,15 @@ export default {
     },
 
     executeSwap () {
-      console.log('swapping')
       let func = null
       if (this.transferType === 'c2s') func = c2s
       if (this.transferType === 's2c') func = s2c
 
       if (!func) return
 
-      console.log('swapping')
       this.loading = true
       this.lockInputs = true
-      let recipientAddress = this.manualAddress
+      const recipientAddress = this.manualAddress
         ? this.recipientAddress
         : this.defaultRecipientAddress
       func(this.wallet, this.amount, recipientAddress, 0, this.getChangeAddress())
@@ -594,7 +591,7 @@ export default {
         })
         .catch(err => {
           console.log(err)
-          let errors = []
+          const errors = []
           if (err && err.error) {
             if (err.error.indexOf('not enough balance in sender') > -1) {
               errors.push('Not enough balance to cover the send amount and transaction fee')
@@ -616,7 +613,7 @@ export default {
         transferType: this.transferType,
         incomingTxid: txid,
         amount: this.amount,
-        expectedAmount: this.transferredAmount,
+        expectedAmount: this.transferredAmount
       })
     },
 
@@ -634,7 +631,7 @@ export default {
   },
 
   watch: {
-    transferType() {
+    transferType () {
       this.updateBridgeBalances()
     }
   },

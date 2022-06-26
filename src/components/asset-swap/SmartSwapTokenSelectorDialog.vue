@@ -94,7 +94,7 @@
             <div v-if="customToken.fetchingInfo" class="row items-center justify-center">
               <ProgressLoader/>
             </div>
-            
+
             <q-item
               v-if="customToken.address && customToken.info.address.toLowerCase() === customToken.address.toLowerCase()"
               clickable
@@ -135,28 +135,28 @@ import ProgressLoader from '../ProgressLoader.vue'
 const _customTokenInfoCache = {}
 
 export default {
-	name: 'SmartSwapTokenSelectorDialog',
+  name: 'SmartSwapTokenSelectorDialog',
   components: {
-    ProgressLoader,
+    ProgressLoader
   },
   props: {
     title: {
       type: String,
-      default: 'Select Token',
+      default: 'Select Token'
     },
     tokensList: {
-      type: Array,
+      type: Array
     },
     disableToken: {
       type: String,
-      defalt: '',
+      defalt: ''
     },
     darkMode: {
       type: Boolean,
-      default: false,
+      default: false
     }
   },
-  data() {
+  data () {
     return {
       searchText: '',
       showHasBalance: false,
@@ -169,13 +169,13 @@ export default {
           name: '',
           symbol: '',
           decimals: 0,
-          image_url: '',
-        },
-      },
+          image_url: ''
+        }
+      }
     }
   },
   computed: {
-    filteredTokensList() {
+    filteredTokensList () {
       if (!Array.isArray(this.tokensList)) return []
       if (!this.searchText && !this.showHasBalance) return this.tokensList
 
@@ -195,7 +195,7 @@ export default {
           return token.balance > 0
         })
     },
-    matchedTokensListFromCustomAddress() {
+    matchedTokensListFromCustomAddress () {
       return this.tokensList
         .filter(token => {
           if (!token) return
@@ -207,7 +207,7 @@ export default {
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },
-    updateCustomTokenInfo: debounce(function() {
+    updateCustomTokenInfo: debounce(function () {
       if (!this.customToken.address) return
       if (_customTokenInfoCache[this.customToken.address.toLowerCase()]) {
         this.customToken.info = Object.assign({
@@ -215,7 +215,7 @@ export default {
           name: '',
           symbol: '',
           decimals: 0,
-          image_url: '',
+          image_url: ''
         }, _customTokenInfoCache[this.customToken.address.toLowerCase()])
         return
       }

@@ -400,7 +400,8 @@ export default {
         vm.wallet.BCH.getBalance().then(function (response) {
           vm.$store.commit('assets/updateAssetBalance', {
             id: id,
-            balance: response.balance
+            balance: response.balance,
+            spendable: response.spendable
           })
           vm.balanceLoaded = true
         })
@@ -642,7 +643,7 @@ export default {
       return this.$store.getters['global/getWallet'](type)
     },
 
-    async checkMissingAssets(opts={ autoOpen: false }) {
+    async checkMissingAssets (opts = { autoOpen: false }) {
       if (!this.$refs.tokenSuggestionsDialog) return Promise.reject()
       this.showTokenSuggestionsDialog = Boolean(opts && opts.autoOpen)
       return this.$refs.tokenSuggestionsDialog.updateList(opts)

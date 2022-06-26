@@ -14,10 +14,10 @@ class Paytaca {
     })
   }
 
-  payToConnecta(paymentRequestData, orderId) {
+  payToConnecta (paymentRequestData, orderId) {
     this.bridge.send('window.paytaca.connecta', {
       paymentRequestData,
-      orderId,
+      orderId
     })
   }
 }
@@ -31,7 +31,7 @@ export default function attachDomHooks (bridge) {
     const url = new URL(location.href)
     window.paytaca.payToConnecta(
       url.searchParams.get('d'),
-      url.searchParams.get('orderId'),
+      url.searchParams.get('orderId')
     )
     location.replace(location.origin)
   }

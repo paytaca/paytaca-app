@@ -1,9 +1,9 @@
-export function resolveAddress(state) {
-  return (address, coinType=60) => {
+export function resolveAddress (state) {
+  return (address, coinType = 60) => {
     if (!address) return ''
     if (!state.nodeAddressMap) return ''
     const parsedAddress = String(address).toLowerCase()
-    for (let name in state.nodeAddressMap) {
+    for (const name in state.nodeAddressMap) {
       if (!name.nodeAddressMap[name]) continue
       if (String(name.nodeAddressMap[name][coinType]).toLowerCase() !== parsedAddress) return ''
 

@@ -68,7 +68,7 @@ export default {
     return {
       networks: {
         BCH: { name: 'BCH' },
-        sBCH: { name: 'SmartBCH' },
+        sBCH: { name: 'SmartBCH' }
       },
       activeBtn: 'btn-bch',
       result: '',
@@ -100,11 +100,11 @@ export default {
     }
   },
   methods: {
-    getFallbackAssetLogo(asset) {
+    getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
-    changeNetwork (newNetwork='BCH') {
+    changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     }
   }

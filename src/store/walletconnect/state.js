@@ -1,6 +1,6 @@
 export default function () {
   return {
-    sessionKeyPeerId: '<key>:<peer-id>', 
+    sessionKeyPeerId: '<key>:<peer-id>',
     callRequests: [
       /*
       {
@@ -17,7 +17,6 @@ export default function () {
         }
       }
       */
-    ],
+    ]
   }
 }
-

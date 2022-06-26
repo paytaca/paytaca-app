@@ -116,7 +116,7 @@
           :label="`Add all ${parsedTokens.length}`"
           text-color="white"
           :color="darkMode ? 'blue-9': 'brandblue'"
-          @click="addAllTokens()"          
+          @click="addAllTokens()"
         />
       </q-card-section>
     </q-card>
@@ -131,26 +131,26 @@ export default {
   props: {
     value: {
       type: Boolean,
-      default: false,
+      default: false
     },
     slpWalletHash: {
-      type: String,
+      type: String
     },
     sbchAddress: {
-      type: String,
+      type: String
     }
   },
-  data() {
+  data () {
     return {
       val: this.value,
       selectedNetwork: 'BCH',
       mainchainTokens: [],
       smartchainTokens: [],
-      loading: false,
+      loading: false
     }
   },
   computed: {
-    darkMode() {
+    darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
     parsedTokens () {
@@ -170,7 +170,7 @@ export default {
             symbol: token.symbol || '',
             logo: token.image_url || '',
             balance: token.balance || 0,
-            isSep20: false,
+            isSep20: false
           }
         })
         .filter(Boolean)
@@ -187,84 +187,84 @@ export default {
             symbol: token.symbol || '',
             logo: token.image_url || '',
             balance: token.balance || 0,
-            isSep20: true,
+            isSep20: true
           }
         })
         .filter(Boolean)
     },
-    darkMode() {
+    darkMode () {
       return this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
-    isMainchainAsset(assetId) {
+    isMainchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['assets/getAssets'])) {
         return this.$store.getters['assets/getAssets'].some(asset => asset && asset.id === assetId)
       }
-      return false  
+      return false
     },
-    isSmartchainAsset(assetId) {
+    isSmartchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['sep20/getAssets'])) {
         return this.$store.getters['sep20/getAssets'].some(asset => asset && asset.id === assetId)
       }
-      return false  
+      return false
     },
-    isAssetInIgnoredList(assetId) {
+    isAssetInIgnoredList (assetId) {
       return this.$store.getters['assets/ignoredAssets'].some(asset => asset && asset.id === assetId) ||
-              this.$store.getters['sep20/ignoredAssets'].some(asset => asset && asset.id === assetId) 
+              this.$store.getters['sep20/ignoredAssets'].some(asset => asset && asset.id === assetId)
     },
-    assetIdExists(assetId) {
+    assetIdExists (assetId) {
       return this.isMainchainAsset(assetId) || this.isSmartchainAsset(assetId)
     },
-    addToken(tokenInfo) {
+    addToken (tokenInfo) {
       if (!tokenInfo) return
 
       if (tokenInfo.isSep20) this.$store.commit('sep20/addNewAsset', tokenInfo)
       else this.$store.commit('assets/addNewAsset', tokenInfo)
     },
-    removeToken(tokenInfo) {
+    removeToken (tokenInfo) {
       if (!tokenInfo || !tokenInfo.id) return
 
       if (tokenInfo.isSep20) this.$store.commit('sep20/removeAsset', tokenInfo.id)
       else this.$store.commit('assets/removeAsset', tokenInfo.id)
     },
-    addTokenToIgnoredList(tokenInfo) {
+    addTokenToIgnoredList (tokenInfo) {
       if (!tokenInfo) return
 
       if (tokenInfo.isSep20) this.$store.commit('sep20/addIgnoredAsset', tokenInfo)
       else this.$store.commit('assets/addIgnoredAsset', tokenInfo)
     },
-    removeTokenFromIgnoredList(tokenInfo) {
+    removeTokenFromIgnoredList (tokenInfo) {
       if (!tokenInfo || !tokenInfo.id) return
 
       if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
       else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
     },
-    addAllTokens() {
+    addAllTokens () {
       this.parsedTokens.forEach(this.addToken)
     },
-    async updateMainchainList(opts={ includeIgnored: false }) {
+    async updateMainchainList (opts = { includeIgnored: false }) {
       this.mainchainTokens = await this.$store.dispatch(
         'assets/getMissingAssets',
         {
           walletHash: this.slpWalletHash,
-          icludeIgnoredTokens: opts.includeIgnored,
+          icludeIgnoredTokens: opts.includeIgnored
         }
       )
     },
-    async updateSmartchainList(opts={ includeIgnored: false }) {
+    async updateSmartchainList (opts = { includeIgnored: false }) {
       this.smartchainTokens = await this.$store.dispatch(
         'sep20/getMissingAssets',
         {
           address: this.sbchAddress,
-          icludeIgnoredTokens: opts.includeIgnored,
+          icludeIgnoredTokens: opts.includeIgnored
         }
       )
     },
-    async updateList(opts={ includeIgnored: false, autoOpen: false }) {
+    async updateList (opts = { includeIgnored: false, autoOpen: false }) {
       this.loading = true
 
-      await Promise.all([this.updateMainchainList(opts),  this.updateSmartchainList(opts)])  
+      await Promise.all([this.updateMainchainList(opts), this.updateSmartchainList(opts)])
       this.loading = false
 
       const count = this.parsedMainchainTokens.length + this.parsedSmartchainTokens.length
@@ -289,23 +289,23 @@ export default {
               color: 'white',
               handler: () => {
                 this.val = true
-              },
+              }
             }
           ]
         })
       }
     },
-    onClose() {
+    onClose () {
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
     }
   },
   watch: {
-    value() {
+    value () {
       this.val = this.value
     },
-    val() {
+    val () {
       this.$emit('input', this.val)
     }
   }

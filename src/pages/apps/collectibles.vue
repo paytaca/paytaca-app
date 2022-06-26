@@ -240,7 +240,7 @@ export default {
       this.selectedNetwork = newNetwork
     },
     toggleManageAssets () {
-      this.enableManageAssets = !Boolean(this.enableManageAssets)
+      this.enableManageAssets = !this.enableManageAssets
       this.selectERC721AssetExpanded = this.enableManageAssets
     },
     showERC721Asset (asset) {
@@ -256,7 +256,6 @@ export default {
       this.$q.dialog({
         title: title,
         message: message,
-        cancel: true,
         persistent: true,
         class: dialogStyleClass,
         ok: {
@@ -267,7 +266,6 @@ export default {
           flat: true
         }
       }).onOk(() => {
-        console.log('removing asset', asset)
         const commitName = 'sep20/removeNftAsset'
         this.$store.commit(commitName, asset.address)
       })

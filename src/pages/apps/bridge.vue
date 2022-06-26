@@ -78,7 +78,7 @@ export default {
         active: 'main',
         opts: {
           main: 'main',
-          spicebotSlp2Sep20: 'spicebot-slp-2-sep20',
+          spicebotSlp2Sep20: 'spicebot-slp-2-sep20'
         }
       },
       waitInfo: {

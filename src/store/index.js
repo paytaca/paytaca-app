@@ -31,7 +31,7 @@ export default function (/* { ssrContext } */) {
       market,
       lns,
       sep20,
-      walletconnect,
+      walletconnect
     },
 
     // enable strict mode (adds overhead!)

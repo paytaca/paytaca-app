@@ -31,8 +31,8 @@ export default {
     customKeyboardState: {},
     value: {
       type: [String, Number],
-      default: '',
-    },
+      default: ''
+    }
   },
   data () {
     return {
@@ -54,7 +54,7 @@ export default {
       this.$emit('makeKeyAction', action)
       this.updateValueOnAction(action)
     },
-    updateValueOnKeyEnter(num) {
+    updateValueOnKeyEnter (num) {
       let val = isNaN(Number(this.val)) ? '' : String(this.val)
       const hasPeriod = val.indexOf('.') >= 0
 
@@ -67,7 +67,7 @@ export default {
       // Set the new val
       this.val = val
     },
-    updateValueOnAction(action) {
+    updateValueOnAction (action) {
       if (action === 'backspace') {
         // Backspace
         if (this.val && typeof this.val === 'string') this.val = this.val.slice(0, -1)

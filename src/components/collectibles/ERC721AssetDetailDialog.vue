@@ -47,7 +47,7 @@ export default {
 
   data () {
     return {
-      val: this.value,
+      val: this.value
     }
   },
 
@@ -69,7 +69,7 @@ export default {
     },
     value () {
       this.val = this.value
-    },
+    }
   }
 }
 </script>

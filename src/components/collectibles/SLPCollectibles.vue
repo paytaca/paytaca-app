@@ -44,10 +44,10 @@ export default {
     return {
       collectibleDetail: {
         show: false,
-        collectible: null,
+        collectible: null
       },
       fetchingCollectibles: false,
-      collectibles: [],
+      collectibles: []
     }
   },
 
@@ -78,7 +78,7 @@ export default {
   },
 
   watch: {
-    wallet() {
+    wallet () {
       this.fetchCollectibles()
     }
   },

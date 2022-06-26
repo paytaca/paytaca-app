@@ -4,16 +4,14 @@ import smartswapAbi from './abi'
 
 export { BigNumber }
 
-
 // Token address is from TangoSwap
 const contract = new ethers.Contract(
   // "0x3718e9c405d0bc779870355c34fb5624196a1caa",
-  "0xEd2E356C00A555DDdd7663BDA822C6acB34Ce614",
+  '0xEd2E356C00A555DDdd7663BDA822C6acB34Ce614',
   smartswapAbi,
   getProvider(false)
 )
 const ROUTE_PARTS = 10
-
 
 /**
  * Parse a token value from currency to BigNumber, e.g. 1 BCH -> BigNumber(1 * 10^18)
@@ -21,7 +19,7 @@ const ROUTE_PARTS = 10
  * @param {Number} value value to convert
  * @param {Number} decimals number of decimals to shift when converting
 */
-export function currencyToBigNumber(value, decimals=0) {
+export function currencyToBigNumber (value, decimals = 0) {
   if (decimals < 0) decimals = 0
 
   // Removes the excess decimals since ethers.BigNumber does not handle floating point
@@ -35,36 +33,35 @@ export function currencyToBigNumber(value, decimals=0) {
  * @param {ethers.BigNumber} value value to convert
  * @param {Number} decimals number of decimals to shift when converting
  */
-export function bigNumberToCurrency(value, decimals=0) {
+export function bigNumberToCurrency (value, decimals = 0) {
   if (decimals < 0) decimals = 0
 
   return Number(utils.formatUnits(value, decimals))
 }
 
-
 /**
- * 
+ *
  * @param {String} sourceTokenAddress SEP20 token contract address
  * @param {String} destTokenAddress SEP20 token contract address
  * @param {Number|String} amount can be number, number as string, or hex string
  * @returns {{ amount: ethers.BigNumber, gasAmount: ethers.BigNumber }}
  */
-export async function getExpectedReturnWithGas(sourceTokenAddress, destTokenAddress, amount) {
+export async function getExpectedReturnWithGas (sourceTokenAddress, destTokenAddress, amount) {
   const parsedAmount = BigNumber.from(amount)
   const response = await contract.getExpectedReturnWithGas(sourceTokenAddress, destTokenAddress, parsedAmount, ROUTE_PARTS, 0, 0)
   return {
     amount: response.returnAmount,
     gasAmount: response.gasAmount,
-    distribution: response.distribution,
+    distribution: response.distribution
   }
 }
 
 /**
- * 
+ *
  * @param {String} sourceTokenAddress SEP20 token contract address
- * @param {String} walletAddress 
+ * @param {String} walletAddress
  */
-export async function hasApprovedSmartswap(sourceTokenAddress, walletAddress) {
+export async function hasApprovedSmartswap (sourceTokenAddress, walletAddress) {
   const tokenContract = getSep20Contract(sourceTokenAddress, false)
   if (!tokenContract) return false
 
@@ -76,29 +73,31 @@ export async function hasApprovedSmartswap(sourceTokenAddress, walletAddress) {
       eventFilter.topics,
       'latest',
       '0x0',
-      '0x1',
+      '0x1'
     ]
   )
   return Array.isArray(logs) && logs.length > 0
 }
 
 /**
- * 
+ *
  * @param {String} sourceTokenAddress SEP20 token contract address
- * @param {ethers.Signer} signer 
+ * @param {ethers.Signer} signer
  * @returns {{ success:Boolean, error:String|undefined, transaction: ethers.providers.TransactionReceipt }}
 */
-export async function approveTokenOnSmartswap(sourceTokenAddress, signer) {
+export async function approveTokenOnSmartswap (sourceTokenAddress, signer) {
   const tokenContract = getSep20Contract(sourceTokenAddress, false)
-  if (!tokenContract) return {
-    success: false,
-    error: 'Invalid token address',
+  if (!tokenContract) {
+    return {
+      success: false,
+      error: 'Invalid token address'
+    }
   }
   const contractWithSigner = tokenContract.connect(signer)
   try {
     const tx = await contractWithSigner.approve(
       contract.address,
-      BigNumber.from('0x' + 'f'.repeat(64)), // hex for 2 ^ 256
+      BigNumber.from('0x' + 'f'.repeat(64)) // hex for 2 ^ 256
     )
     const minedTx = await tx.wait()
     return {
@@ -111,17 +110,16 @@ export async function approveTokenOnSmartswap(sourceTokenAddress, signer) {
       error: e.reason
     }
   }
-
 }
 
 /**
  * Returns balance of token addresses in raw units
  * doesn't provide & convert balances to their corresponding decimals
- * @param {String[]} tokenAddresses 
- * @param {String} walletAddress 
+ * @param {String[]} tokenAddresses
+ * @param {String} walletAddress
  * @param {Map<String, ethers.BigNumber>}
  */
-export async function batchFetchBalance(tokenAddresses, walletAddress) {
+export async function batchFetchBalance (tokenAddresses, walletAddress) {
   if (!utils.isAddress(walletAddress)) return {}
 
   const addresses = tokenAddresses
@@ -169,7 +167,7 @@ export async function batchFetchBalance(tokenAddresses, walletAddress) {
  * @param {Number|String|ethers.BigNumber} swapInfo.deadline can be number, number as string, or hex string
  * @param {Number|String|ethers.BigNumber} swapInfo.feePercent can be number, number as string, or hex string
 */
-export async function getSwapDetails({sourceTokenAddress, destTokenAddress, amount, minReturn=0, distribution=[], flags=0, deadline=0, feePercent=0}) {
+export async function getSwapDetails ({ sourceTokenAddress, destTokenAddress, amount, minReturn = 0, distribution = [], flags = 0, deadline = 0, feePercent = 0 }) {
   const data = {
     sourceTokenAddress,
     destTokenAddress,
@@ -179,7 +177,7 @@ export async function getSwapDetails({sourceTokenAddress, destTokenAddress, amou
     flags: BigNumber.from(flags),
     deadline: BigNumber.from(deadline),
     feePercent: BigNumber.from(feePercent),
-    overrides: {},
+    overrides: {}
   }
 
   if (Array.isArray(distribution)) data.distribution = distribution
@@ -194,16 +192,16 @@ export async function getSwapDetails({sourceTokenAddress, destTokenAddress, amou
     data.flags,
     data.deadline,
     data.feePercent,
-    data.overrides,
+    data.overrides
   )
 }
 
 /**
  * Decodes a hex string of swap tx data
- * @param {String} dataHex 
+ * @param {String} dataHex
  * @returns {{ fromToken: String, destToken: String, amount: ethers.BigNumber, minReturn: ethers.BigNumber, distribution: ethers.BigNumber[], flags: ethers.BigNumber, deadline: ethers.BigNumber, feePercent: ethers.BigNumber }}
 */
-export function decodeSwapHexData(dataHex) {
+export function decodeSwapHexData (dataHex) {
   const swapAbi = contract.interface.fragments.find(fragment => fragment.name === 'swap' && fragment.type === 'function')
   const data = contract.interface.decodeFunctionData(swapAbi, dataHex)
   return {
@@ -214,74 +212,73 @@ export function decodeSwapHexData(dataHex) {
     distribution: data.distribution,
     flags: data.flags,
     deadline: data.deadline,
-    feePercent: data.feePercent,
+    feePercent: data.feePercent
   }
 }
 
-
 /**
  * Parses SmartSwap distribution to human readable route. Taken from TangoSwap's SmartSwap interface code
- * @param {ethers.BigNumber[]} distribution 
- * @param {Number} parts 
+ * @param {ethers.BigNumber[]} distribution
+ * @param {Number} parts
  * @returns {{ steps:Number, grouped:Map<String,{percentage:Number, exhange:String, currency:String}> }}
  * @see {@link https://github.com/tangoswap-cash/tangoswap-interface/blob/v3.0.0/src/features/exchange-v1/swap/SmartSwapRouting.tsx}
  */
-export function parseDistribution(distribution, parts=ROUTE_PARTS) {
+export function parseDistribution (distribution, parts = ROUTE_PARTS) {
   const swapOptions = [
-    {exchange: "1BCH", currency: "DIRECT_SWAP"},
-    {exchange: "1BCH", currency: "BCH"},
-    {exchange: "1BCH", currency: "flexUSD"},
-    {exchange: "BenSwap", currency: "DIRECT_SWAP"},
-    {exchange: "BenSwap", currency: "BCH"},
-    {exchange: "BenSwap", currency: "flexUSD"},
-    {exchange: "MistSwap", currency: "DIRECT_SWAP"},
-    {exchange: "MistSwap", currency: "BCH"},
-    {exchange: "MistSwap", currency: "flexUSD"},
-    {exchange: "CowSwap", currency: "DIRECT_SWAP"},
-    {exchange: "CowSwap", currency: "BCH"},
-    {exchange: "CowSwap", currency: "flexUSD"},
-    {exchange: "TangoSwap", currency: "DIRECT_SWAP"},
-    {exchange: "TangoSwap", currency: "BCH"},
-    {exchange: "TangoSwap", currency: "flexUSD"},
-    {exchange: "Tropical", currency: "DIRECT_SWAP"},
-    {exchange: "Tropical", currency: "BCH"},
-    {exchange: "Tropical", currency: "flexUSD"},
-    {exchange: "EmberSwap", currency: "DIRECT_SWAP"},
-    {exchange: "EmberSwap", currency: "BCH"},
-    {exchange: "EmberSwap", currency: "flexUSD"},
+    { exchange: '1BCH', currency: 'DIRECT_SWAP' },
+    { exchange: '1BCH', currency: 'BCH' },
+    { exchange: '1BCH', currency: 'flexUSD' },
+    { exchange: 'BenSwap', currency: 'DIRECT_SWAP' },
+    { exchange: 'BenSwap', currency: 'BCH' },
+    { exchange: 'BenSwap', currency: 'flexUSD' },
+    { exchange: 'MistSwap', currency: 'DIRECT_SWAP' },
+    { exchange: 'MistSwap', currency: 'BCH' },
+    { exchange: 'MistSwap', currency: 'flexUSD' },
+    { exchange: 'CowSwap', currency: 'DIRECT_SWAP' },
+    { exchange: 'CowSwap', currency: 'BCH' },
+    { exchange: 'CowSwap', currency: 'flexUSD' },
+    { exchange: 'TangoSwap', currency: 'DIRECT_SWAP' },
+    { exchange: 'TangoSwap', currency: 'BCH' },
+    { exchange: 'TangoSwap', currency: 'flexUSD' },
+    { exchange: 'Tropical', currency: 'DIRECT_SWAP' },
+    { exchange: 'Tropical', currency: 'BCH' },
+    { exchange: 'Tropical', currency: 'flexUSD' },
+    { exchange: 'EmberSwap', currency: 'DIRECT_SWAP' },
+    { exchange: 'EmberSwap', currency: 'BCH' },
+    { exchange: 'EmberSwap', currency: 'flexUSD' },
 
-    {exchange: "1BCH", currency: "TANGO"},
-    {exchange: "BenSwap", currency: "TANGO"},
-    {exchange: "MistSwap", currency: "TANGO"},
-    {exchange: "CowSwap", currency: "TANGO"},
-    {exchange: "TangoSwap", currency: "TANGO"},
-    {exchange: "Tropical", currency: "TANGO"},
-    {exchange: "EmberSwap", currency: "TANGO"},
+    { exchange: '1BCH', currency: 'TANGO' },
+    { exchange: 'BenSwap', currency: 'TANGO' },
+    { exchange: 'MistSwap', currency: 'TANGO' },
+    { exchange: 'CowSwap', currency: 'TANGO' },
+    { exchange: 'TangoSwap', currency: 'TANGO' },
+    { exchange: 'Tropical', currency: 'TANGO' },
+    { exchange: 'EmberSwap', currency: 'TANGO' },
 
-    {exchange: "LawSwap", currency: "DIRECT_SWAP"},
-    {exchange: "LawSwap", currency: "BCH"},
-    {exchange: "LawSwap", currency: "flexUSD"},
-    {exchange: "LawSwap", currency: "TANGO"},
+    { exchange: 'LawSwap', currency: 'DIRECT_SWAP' },
+    { exchange: 'LawSwap', currency: 'BCH' },
+    { exchange: 'LawSwap', currency: 'flexUSD' },
+    { exchange: 'LawSwap', currency: 'TANGO' },
 
-    {exchange: "KoingFu", currency: "DIRECT_SWAP"},
-    {exchange: "KoingFu", currency: "BCH"},
-    {exchange: "KoingFu", currency: "flexUSD"},
-    {exchange: "KoingFu", currency: "TANGO"},
+    { exchange: 'KoingFu', currency: 'DIRECT_SWAP' },
+    { exchange: 'KoingFu', currency: 'BCH' },
+    { exchange: 'KoingFu', currency: 'flexUSD' },
+    { exchange: 'KoingFu', currency: 'TANGO' }
   ]
 
   const returnData = {
     steps: 0,
-    grouped: {},
+    grouped: {}
   }
 
   distribution.forEach((value, index) => {
-    if(value.toString() !== "0") {
-      const route = {percentage: parseInt(value) * 100 / parts, ...swapOptions[index] }
+    if (value.toString() !== '0') {
+      const route = { percentage: parseInt(value) * 100 / parts, ...swapOptions[index] }
       returnData.steps += 1
       if (Array.isArray(returnData.grouped[route.currency])) {
         returnData.grouped[route.currency].push(route)
       } else {
-        returnData.grouped[route.currency] = [ route ]
+        returnData.grouped[route.currency] = [route]
       }
     }
   })

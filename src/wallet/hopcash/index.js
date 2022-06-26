@@ -5,12 +5,12 @@ import { provider, bridgeContract, addresses } from './config'
 
 const bchjs = new BCHJS()
 
-function toBigNumber(value) {
-  return BigNumber.from('0x' + BigInt(value).toString(16)) 
+function toBigNumber (value) {
+  return BigNumber.from('0x' + BigInt(value).toString(16))
 }
 
-function isValidMainchainAddress(address) {
-  try{
+function isValidMainchainAddress (address) {
+  try {
     return bchjs.Address.isCashAddress(address) || bchjs.Address.isLegacyAddress(address)
   } catch {}
   return false
@@ -19,52 +19,52 @@ function isValidMainchainAddress(address) {
 /**
  * To reverse value set feeInfo:
  * nf = -f/(1-p), np = 1 - 1/(1-p), Where:
- *  nf: new fixed, f = prev fixed, np = new pctg, p = prev pctg     
- *  
+ *  nf: new fixed, f = prev fixed, np = new pctg, p = prev pctg
+ *
  * @param {number} amount
  * @param {Object} feeInfo ex: { pctg: 0.001, fixed: 1 }
  * @returns {number}
  */
-export function deductFromFee(amount, feeInfo={pctg: 0.0, fixed: 0}) {
-  return amount * (1-feeInfo.pctg) - feeInfo.fixed
+export function deductFromFee (amount, feeInfo = { pctg: 0.0, fixed: 0 }) {
+  return amount * (1 - feeInfo.pctg) - feeInfo.fixed
 }
 
-export async function smart2cashMax() {
-  const response = await bchjs.Electrumx.balance(addresses.smart2cash.sender);
+export async function smart2cashMax () {
+  const response = await bchjs.Electrumx.balance(addresses.smart2cash.sender)
   if (response.success) {
     return {
       success: true,
-      balance: response.balance.confirmed * (10 ** -8 ),
+      balance: response.balance.confirmed * (10 ** -8)
     }
   }
   return {
     success: false,
-    error: response,
+    error: response
   }
 }
 
-export async function cash2smartMax() {
+export async function cash2smartMax () {
   const balance = await provider.getBalance(addresses.cash2smart.sender)
   return {
     success: true,
-    balance: Number(utils.formatEther(balance)),
+    balance: Number(utils.formatEther(balance))
   }
 }
 
 /**
  * Sends a cash to smart,incoming type transaction
- * @param {number} amount in BCH 
+ * @param {number} amount in BCH
  * @param {string} recipientAddress address of sbch wallet
  * @param {number} fee in BCH that is sent to paytaca's fee receiver,
  *                      the value of fee is inclusive to the value specified in amount parameter
- * @param {string} changeAddress bch address 
- * @returns 
+ * @param {string} changeAddress bch address
+ * @returns
  */
-export async function c2s(wallet, amount, recipientAddress, fee=0, changeAddress) {
+export async function c2s (wallet, amount, recipientAddress, fee = 0, changeAddress) {
   if (!utils.isAddress(recipientAddress)) {
     return {
       success: false,
-      error: 'Recipient address must be a valid SmartBCH address',
+      error: 'Recipient address must be a valid SmartBCH address'
     }
   }
 
@@ -75,7 +75,7 @@ export async function c2s(wallet, amount, recipientAddress, fee=0, changeAddress
   if (!isValidMainchainAddress(addresses.cash2smart.paytacaFeeReceiver) && fee > 0) {
     recipients.push({
       address: addresses.cash2smart.paytacaFeeReceiver,
-      amount: fee,
+      amount: fee
     })
     recipients[0].amount = Number(amount) - fee
   }
@@ -102,19 +102,18 @@ export async function c2s(wallet, amount, recipientAddress, fee=0, changeAddress
 
 /**
  * Sends a smart to cash,incoming type transaction
- * @param {Wallet} amount in sBCH 
- * @param {number} amount in sBCH 
+ * @param {Wallet} amount in sBCH
+ * @param {number} amount in sBCH
  * @param {number} fee in BCH that is sent to paytaca's fee receiver,
  *                      the value of fee is inclusive to the value specified in amount parameter
  * @param {string} recipientAddress address of bch wallet
- * @returns 
+ * @returns
  */
-export async function s2c(wallet, amount, recipientAddress, fee=0) {
-
+export async function s2c (wallet, amount, recipientAddress, fee = 0) {
   if (!isValidMainchainAddress(recipientAddress)) {
     return {
       success: false,
-      error: 'Recipient address must be a valid cash/legacy address',
+      error: 'Recipient address must be a valid cash/legacy address'
     }
   }
 
@@ -124,7 +123,7 @@ export async function s2c(wallet, amount, recipientAddress, fee=0) {
     hasFee = true
     parsedAmount = Number(amount) - fee
   }
-  
+
   const response = await wallet.sBCH.sendBchWithData(
     String(parsedAmount),
     addresses.smart2cash.receiver,
@@ -143,7 +142,7 @@ export async function s2c(wallet, amount, recipientAddress, fee=0) {
   return response
 }
 
-export async function findC2SOutgoingTx(txId='') {
+export async function findC2SOutgoingTx (txId = '') {
   if (!txId.startsWith('0x')) txId = '0x' + txId
 
   const eventFilter = bridgeContract.filters.Bridged(txId)
@@ -154,18 +153,22 @@ export async function findC2SOutgoingTx(txId='') {
       eventFilter.topics,
       'latest', // before block
       '0x0', // after block
-      '0x1', // limit
+      '0x1' // limit
     ]
   )
 
-  if (!Array.isArray(logs)) return {
-    success: false,
-    error: 'Unable to find logs'
+  if (!Array.isArray(logs)) {
+    return {
+      success: false,
+      error: 'Unable to find logs'
+    }
   }
 
-  if (!logs.length) return {
-    success: false,
-    error: 'Not found'
+  if (!logs.length) {
+    return {
+      success: false,
+      error: 'Not found'
+    }
   }
 
   const log = logs[0]
@@ -182,11 +185,11 @@ export async function findC2SOutgoingTx(txId='') {
       outputAmount: utils.formatEther(parsedLog.args.outputAmount),
 
       _raw: parsedLog
-    },
+    }
   }
 }
 
-export async function findS2COutgoingTx(txId='') {
+export async function findS2COutgoingTx (txId = '') {
   // return {
   //   success: false,
   // }
@@ -210,10 +213,10 @@ export async function findS2COutgoingTx(txId='') {
   let response = null
   try {
     response = await axios.get(url)
-  } catch(err) {
+  } catch (err) {
     return {
       success: false,
-      error: err,
+      error: err
     }
   }
 
@@ -232,30 +235,30 @@ export async function findS2COutgoingTx(txId='') {
       success: true,
       tx: {
         hash: txHash,
-        confirmed: confirmed,
+        confirmed: confirmed
       }
     }
   } else {
     return {
       success: false,
-      error: 'Not found',
+      error: 'Not found'
     }
   }
 }
 
 /**
- * 
+ *
  * @param {String} txId transaction id from the BCH chain
  * @param {function} callback callback function when bridge transfer for the source tx is made
  * @returns {function} function to call to stop the listener
  */
- export function c2sOutgoingListener(txId='', callback=() =>{}) {
+export function c2sOutgoingListener (txId = '', callback = () => {}) {
   if (!txId.startsWith('0x')) txId = '0x' + txId
 
   const contract = bridgeContract
   const filter = contract.filters.Bridged(txId)
   const eventCallback = (...args) => {
-    const tx = args[args.length-1]
+    const tx = args[args.length - 1]
     callback({
       hash: tx.transactionHash,
 
@@ -264,23 +267,22 @@ export async function findS2COutgoingTx(txId='') {
       outputAddress: tx.args.outputAddress,
       outputAmount: utils.formatEther(tx.args.outputAmount),
 
-      _raw: tx,
+      _raw: tx
     })
   }
 
   contract.on(filter, eventCallback)
   return () => {
-    contract.removeListener(filter, eventCallback) 
+    contract.removeListener(filter, eventCallback)
   }
 }
 
-
-function matchOpReturn(txId, txData) {
+function matchOpReturn (txId, txData) {
   const asmRegex = /^OP_RETURN ([0-9a-f]{64})$/
   const outputs = txData?.vout
   if (!Array.isArray(outputs)) return false
 
-  for(var i = 0; i < outputs.length; i++) {
+  for (var i = 0; i < outputs.length; i++) {
     const match = String(outputs[i]?.scriptPubKey?.asm).match(asmRegex)
     if (!match) continue
     if (String(txId).substring(2) === match[1]) {
@@ -290,37 +292,36 @@ function matchOpReturn(txId, txData) {
   return false
 }
 
-async function matchOpReturnFromHash(txId, txHash) {
+async function matchOpReturnFromHash (txId, txHash) {
   try {
     const { details: txData } = await bchjs.Electrumx.txData(txHash)
     return {
       success: true,
       match: matchOpReturn(txId, txData),
-      tx: txData,
+      tx: txData
     }
-  } catch(err) {
+  } catch (err) {
     return {
       success: false,
-      error: err,
+      error: err
     }
   }
 }
 
-
 /**
- * 
+ *
  * @param {String} txId transaction id from the Smart BCH chain
  * @param {function} callback callback function when bridge transfer for the source tx is made
  * @returns {function} function to call to stop the listener
  */
-export function s2cOutgoingListener(txId='', callback=() => {}) {
+export function s2cOutgoingListener (txId = '', callback = () => {}) {
   const txHashRegex = /[0-9a-f]{64}/
   const websocket = new WebSocket(`wss://watchtower.cash/ws/watch/bch/${addresses.smart2cash.sender}/`)
   websocket.onmessage = async (message) => {
     let data
     try {
       data = JSON.parse(message.data)
-    } catch(error) {
+    } catch (error) {
       console.log(error)
       return
     }
@@ -337,8 +338,7 @@ export function s2cOutgoingListener(txId='', callback=() => {}) {
   }
 }
 
-
-export function waitC2SOutgoing(txId) {
+export function waitC2SOutgoing (txId) {
   const promise = new Promise(resolve => {
     const stopListener = c2sOutgoingListener(txId, (tx) => {
       stopListener()
@@ -352,8 +352,7 @@ export function waitC2SOutgoing(txId) {
   return promise
 }
 
-
-export function waitS2COutgoing(txId) {
+export function waitS2COutgoing (txId) {
   const promise = new Promise(resolve => {
     const stopListener = s2cOutgoingListener(txId, (tx) => {
       stopListener()

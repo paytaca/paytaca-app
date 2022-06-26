@@ -12,7 +12,7 @@ export const sep20Abi = [
   'function decreaseAllowance(address _spender, uint256 _delta) external returns (bool success)',
 
   'event Transfer(address indexed _from, address indexed _to, uint256 _value)',
-  'event Approval(address indexed _owner, address indexed _spender, uint256 _value)',
+  'event Approval(address indexed _owner, address indexed _spender, uint256 _value)'
 ]
 
 export const erc721Abi = [
@@ -29,5 +29,5 @@ export const erc721Abi = [
   // erc721 enumerable
   'function totalSupply() external view returns (uint256)',
   'function tokenByIndex(uint256 _index) external view returns (uint256)',
-  'function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256)',
+  'function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256)'
 ]

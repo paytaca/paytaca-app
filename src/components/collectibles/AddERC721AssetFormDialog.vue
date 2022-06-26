@@ -80,8 +80,8 @@ export default {
       formData: {
         contractAddress: '',
         name: '',
-        symbol: '',
-      },
+        symbol: ''
+      }
     }
   },
   computed: {
@@ -90,10 +90,10 @@ export default {
     }
   },
   methods: {
-    isValidAddress(address) {
+    isValidAddress (address) {
       return utils.isAddress(address)
     },
-    isAddressInAssets(address) {
+    isAddressInAssets (address) {
       return this.erc721Assets.some(asset => asset && asset.address === address)
     },
     resetForm () {
@@ -134,7 +134,7 @@ export default {
       }).onDismiss(() => {
         this.val = false
       })
-    },
+    }
   },
 
   watch: {

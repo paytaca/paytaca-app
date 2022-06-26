@@ -154,15 +154,15 @@ export default {
     marketAssetPrice () {
       return this.$store.getters['market/getAssetPrice'](this.transaction.asset.id, this.selectedMarketCurrency)
     },
-    transactionAmountMarketValue() {
+    transactionAmountMarketValue () {
       if (!this.transaction) return ''
       if (!this.marketAssetPrice) return ''
       return (Number(this.transaction.amount) * Number(this.marketAssetPrice)).toFixed(5)
     },
     txFeeMarketValue () {
       const bchMarketValue = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
-      if (!bchMarketValue)  return ''
-      const gas = this.transaction && ( this.isSep20Tx ? this.transaction.gas : this.transaction.tx_fee / (10**8) )
+      if (!bchMarketValue) return ''
+      const gas = this.transaction && (this.isSep20Tx ? this.transaction.gas : this.transaction.tx_fee / (10 ** 8))
       if (!gas) return ''
       return (Number(gas) * Number(bchMarketValue)).toFixed(8)
     }

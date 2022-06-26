@@ -307,7 +307,7 @@ export default {
         show: false,
         loading: false,
         name: '',
-        address: '',
+        address: ''
       },
       sendErrors: [],
       online: true,
@@ -353,16 +353,16 @@ export default {
 
       return this.tokenType === 65
     },
-    selectedAssetMarketPrice() {
+    selectedAssetMarketPrice () {
       if (!this.assetId) return
 
       return this.$store.getters['market/getAssetPrice'](this.assetId, this.selectedMarketCurrency)
     },
-    selectedMarketCurrency() {
+    selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    sendAmountMarketValue() {
+    sendAmountMarketValue () {
       const parsedAmount = Number(this.sendData.amount)
       if (!parsedAmount) return ''
       if (!this.selectedAssetMarketPrice) return ''
@@ -371,7 +371,7 @@ export default {
 
       return computedBalance.toFixed(2)
     },
-    canUseLNS() {
+    canUseLNS () {
       if (this.isSep20) return true // if smartchain
       if (this.assetId === 'bch') return true // if not smartchain but BCH only (EIP2304 doesnt seem to support SLP addresses)
 
@@ -637,7 +637,11 @@ export default {
       }
     },
     setMaximumSendAmount () {
-      this.sendData.amount = this.asset.balance
+      if (this.asset.id.indexOf('bch') > -1) {
+        this.sendData.amount = this.asset.spendable
+      } else {
+        this.sendData.amount = this.asset.balance
+      }
       this.sliderStatus = true
     },
     checkAddress (address) {
@@ -800,7 +804,7 @@ export default {
           if (sep20IdRegexp.test(vm.assetId)) {
             const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
             promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
-          } else if(this.isNFT && erc721IdRegexp.test(vm.assetId)) {
+          } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
             console.log('sending erc721')
             const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
             const tokenId = vm.assetId.match(erc721IdRegexp)[2]
@@ -857,7 +861,6 @@ export default {
         } else if (vm.walletType === 'bch') {
           address = addressObj.toCashAddress()
           const changeAddress = vm.getChangeAddress('bch')
-          console.log('jihyo')
           vm.wallet.BCH.sendBch(vm.sendData.amount, address, changeAddress).then(function (result) {
             vm.sendData.sending = false
             if (result.success) {

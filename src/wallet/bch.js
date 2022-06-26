@@ -97,6 +97,7 @@ export class BchWallet {
       broadcast: true
     }
     const result = await this.watchtower.BCH.send(data)
+    console.log(result)
     return result
   }
 

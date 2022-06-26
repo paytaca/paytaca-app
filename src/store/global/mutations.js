@@ -1,5 +1,5 @@
-export function setNetwork(state, network) {
-  switch(network) {
+export function setNetwork (state, network) {
+  switch (network) {
     case 'BCH':
       state.network = 'BCH'
       break
@@ -19,7 +19,7 @@ export function updateWallet (state, details) {
   state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
 }
 
-export function setWalletSubscribed(state, details) {
+export function setWalletSubscribed (state, details) {
   state.wallets[details.type].subscribed = details.subscribed
 }
 

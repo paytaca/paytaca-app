@@ -117,7 +117,7 @@
             </q-item-section>
             <q-item-section class="text-right">
               <q-item-label>
-                {{ computedFormData.ratio.from }} : 
+                {{ computedFormData.ratio.from }} :
                 {{ computedFormData.ratio.to }}
               </q-item-label>
               <q-item-label>
@@ -198,7 +198,7 @@
             <q-item-label class="text-grey">
               <template v-if="stagedSwapInfo.spiceBotSwapRequest && stagedSwapInfo.spiceBotSwapRequest.from_address">
                 {{ shortenSlpAddress(stagedSwapInfo.spiceBotSwapRequest.from_address) }}
-                
+
                 <q-popup-proxy :breakpoint="0">
                   <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
                     {{ stagedSwapInfo.spiceBotSwapRequest.from_address }}
@@ -254,7 +254,7 @@
           </q-item-section>
           <q-item-section class="text-right">
             <q-item-label>
-              {{ computedStagedSwapInfo.ratio.from }} : 
+              {{ computedStagedSwapInfo.ratio.from }} :
               {{ computedStagedSwapInfo.ratio.to }}
             </q-item-label>
           </q-item-section>
@@ -294,7 +294,7 @@ import { getMnemonic, Wallet, Address } from '../../wallet'
 import {
   fetchTokensList,
   batchFetchSep20TokenBalances,
-  getOrCreateSwapRequest,
+  getOrCreateSwapRequest
 } from '../../wallet/spicebot-bridge'
 import DragSlide from '../drag-slide.vue'
 import ProgressLoader from '../ProgressLoader.vue'
@@ -307,9 +307,9 @@ export default {
   components: {
     DragSlide,
     ProgressLoader,
-    SpicebotBridgeTokenSelectDialog,
+    SpicebotBridgeTokenSelectDialog
   },
-  data() {
+  data () {
     return {
       wallet: null,
       slpTokenBalances: [],
@@ -317,7 +317,7 @@ export default {
       errors: [],
       formData: {
         token: null,
-        amount: 0,
+        amount: 0
       },
 
       stagedSwapInfo: {
@@ -332,7 +332,7 @@ export default {
         recipientAddress: '',
 
         updatingSwapRequest: false,
-        spiceBotSwapRequest: null,
+        spiceBotSwapRequest: null
       },
 
       swapFulfillmentListener: {
@@ -340,34 +340,34 @@ export default {
         swapRequestId: null,
         swapRequest: null,
 
-        sentTxid: '',
-      },
+        sentTxid: ''
+      }
     }
   },
   computed: {
-    lockInputs() {
+    lockInputs () {
       if (!this.formData || !this.formData.token) return true
       if (this.stagedSwapInfo && this.stagedSwapInfo.show) return true
 
       return false
     },
-    senderAddress(){
+    senderAddress () {
       return this.$store.getters['global/getAddress']('slp')
     },
-    computedFormData() {
+    computedFormData () {
       const data = {
         expectedAmount: 0,
         ratio: {
           from: 1,
-          to: 1,
+          to: 1
         },
         maxAllowed: 0,
         recipientAddress: '',
-        selectedTokenBalance: null,
+        selectedTokenBalance: null
       }
       if (this.formData?.token?.slp_to_sep20_ratio) {
         data.expectedAmount = this.formData.amount / (this.formData?.token?.slp_to_sep20_ratio)
-        if (this.formData?.token?.slp_to_sep20_ratio < 1)  data.ratio.to =  1 / this.formData?.token?.slp_to_sep20_ratio
+        if (this.formData?.token?.slp_to_sep20_ratio < 1) data.ratio.to = 1 / this.formData?.token?.slp_to_sep20_ratio
         else data.ratio.from = this.formData?.token?.slp_to_sep20_ratio
       }
 
@@ -387,25 +387,25 @@ export default {
 
       return data
     },
-    computedStagedSwapInfo() {
+    computedStagedSwapInfo () {
       const data = {
         expectedAmount: 0,
         ratio: {
           from: 1,
-          to: 1,
+          to: 1
         },
         spicebotSwapRequestValid: false,
-        errors: [],
+        errors: []
       }
       if (this.stagedSwapInfo?.token?.slp_to_sep20_ratio) {
         data.expectedAmount = this.stagedSwapInfo.amount / (this.stagedSwapInfo?.token?.slp_to_sep20_ratio)
-        if (this.stagedSwapInfo?.token?.slp_to_sep20_ratio < 1)  data.ratio.to =  1 / this.stagedSwapInfo?.token?.slp_to_sep20_ratio
+        if (this.stagedSwapInfo?.token?.slp_to_sep20_ratio < 1) data.ratio.to = 1 / this.stagedSwapInfo?.token?.slp_to_sep20_ratio
         else data.ratio.from = this.stagedSwapInfo?.token?.slp_to_sep20_ratio
       }
 
       if (this.stagedSwapInfo.spiceBotSwapRequest) {
         const swapRequest = this.stagedSwapInfo.spiceBotSwapRequest
-        
+
         data.spicebotSwapRequestValid = true &&
           String(this.stagedSwapInfo.token.slp_token_id).toLowerCase() === String(swapRequest?.token?.slp_token_id).toLowerCase() &&
           String(this.stagedSwapInfo.recipientAddress).toLowerCase() === String(swapRequest?.to_address).toLowerCase() &&
@@ -427,7 +427,7 @@ export default {
 
       return data
     },
-    stagedSwapSlpSendParams() {
+    stagedSwapSlpSendParams () {
       const bchWallet = this.$store.getters['global/getWallet']('bch')
       const params = {
         amount: this.stagedSwapInfo?.amount,
@@ -443,7 +443,7 @@ export default {
           slp: this.$store.getters['global/getChangeAddress']('slp')
         },
         sendToAddress: this.stagedSwapInfo?.spiceBotSwapRequest?.from_address,
-        valid: this.computedStagedSwapInfo.spicebotSwapRequestValid,
+        valid: this.computedStagedSwapInfo.spicebotSwapRequestValid
       }
 
       const addressValidator = new Address(params.sendToAddress)
@@ -451,13 +451,13 @@ export default {
 
       return params
     },
-    darkMode() {
+    darkMode () {
       return this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
-    shortenSlpAddress(value='', keepPrefix=false) {
-      if (!value) return value 
+    shortenSlpAddress (value = '', keepPrefix = false) {
+      if (!value) return value
       let prefix = ''
       let substring = String(value)
       if (substring.indexOf('simpleledger:') === 0) {
@@ -470,15 +470,15 @@ export default {
       }
       return (keepPrefix ? prefix : '') + substring
     },
-    resetForm() {
+    resetForm () {
       this.resetStagedFormData()
       this.resetFormData()
     },
-    resetFormData() {
+    resetFormData () {
       this.formData.token = null
       this.formData.amount = 0
     },
-    resetStagedFormData() {
+    resetStagedFormData () {
       this.stagedSwapInfo.show = false
       this.stagedSwapInfo.showConfirmSwipe = false
       this.stagedSwapInfo.loading = false
@@ -487,7 +487,7 @@ export default {
       this.stagedSwapInfo.recipientAddress = ''
       this.stagedSwapInfo.spiceBotSwapRequest = null
     },
-    stageFormData() {
+    stageFormData () {
       this.stagedSwapInfo.token = this.formData.token
       this.stagedSwapInfo.amount = this.formData.amount
       this.stagedSwapInfo.recipientAddress = this.computedFormData.recipientAddress
@@ -496,11 +496,11 @@ export default {
       this.stagedSwapInfo.show = true
       // this.stagedSwapInfo.showConfirmSwipe = true
     },
-    confirmSwiped() {
+    confirmSwiped () {
       this.stagedSwapInfo.showConfirmSwipe = false
       this.$q.dialog({
         component: SecurityCheckDialog,
-        root: this.$root,
+        root: this.$root
       })
         .onOk(() => {
           this.commitStagedSwapInfo()
@@ -509,12 +509,12 @@ export default {
           this.stagedSwapInfo.showConfirmSwipe = true
         })
     },
-    updateStagedSwapRequest() {
+    updateStagedSwapRequest () {
       this.stagedSwapInfo.updatingSwapRequest = true
       getOrCreateSwapRequest(
         this.stagedSwapInfo.token.slp_token_id,
         this.stagedSwapInfo.amount,
-        this.stagedSwapInfo.recipientAddress,
+        this.stagedSwapInfo.recipientAddress
       )
         .then(response => {
           if (response && response.swapRequest) {
@@ -528,12 +528,12 @@ export default {
           this.stagedSwapInfo.updatingSwapRequest = false
         })
     },
-    commitStagedSwapInfo() {
+    commitStagedSwapInfo () {
       // was here
       this.stagedSwapInfo.loading = true
       if (!this.stagedSwapSlpSendParams.valid) {
         this.stagedSwapInfo.errors = [
-          'Incorrect Swap Info',
+          'Incorrect Swap Info'
         ]
         return
       }
@@ -544,7 +544,7 @@ export default {
         this.stagedSwapSlpSendParams.tokenType,
         this.stagedSwapSlpSendParams.sendToAddress,
         this.stagedSwapSlpSendParams.feeFunder,
-        this.stagedSwapSlpSendParams.changeAddresses,
+        this.stagedSwapSlpSendParams.changeAddresses
       )
         .finally(() => {
           this.stagedSwapInfo.loading = false
@@ -558,7 +558,7 @@ export default {
             this.$q.dialog({
               title: 'Transaction sent!',
               message: 'Waiting for SEP20 token to be sent.',
-              class: dialogStyleClass,
+              class: dialogStyleClass
             })
               .onDismiss(() => {
                 this.$q.dialog({
@@ -569,10 +569,10 @@ export default {
                   .onDismiss(() => {
                     this.resetForm()
                   })
-              }) 
+              })
             return Promise.resolve(result)
-          } 
-          
+          }
+
           return Promise.reject(result)
         })
         .catch(error => {
@@ -581,14 +581,14 @@ export default {
             this.stagedSwapInfo.errors.push('Not enough balance to cover the send amount')
           } else if (error?.error?.indexOf('not enough balance in fee funder') > -1) {
             this.stagedSwapInfo.errors.push('Not enough BCH to cover for transaction fee')
-          } else if (error?.error){
+          } else if (error?.error) {
             this.stagedSwapInfo.errors.push(error.error)
           } else {
             this.stagedSwapInfo.errors.push('Unknown error occurred')
           }
         })
     },
-    async resolveTokenImage(slpTokenId, sep20ContractAddress) {
+    async resolveTokenImage (slpTokenId, sep20ContractAddress) {
       try {
         const urlFromAssets = this.$store.getters['assets/getAssets']
           .filter(Boolean)
@@ -597,7 +597,7 @@ export default {
           .find(Boolean)
 
         if (urlFromAssets) return urlFromAssets
-      } catch (err){ console.error(err) }
+      } catch (err) { console.error(err) }
 
       try {
         const urlFromSep20Assets = this.$store.getters['assets/getAssets']
@@ -607,19 +607,19 @@ export default {
           .find(Boolean)
 
         if (urlFromSep20Assets) return urlFromSep20Assets
-      } catch (err){ console.error(err) }
+      } catch (err) { console.error(err) }
 
       try {
         const { data: token } = await this.$axios.get(`https://watchtower.cash/api/tokens/${slpTokenId}/`)
         if (token?.image_url) return token.image_url
-      } catch (err){ console.error(err) }
+      } catch (err) { console.error(err) }
 
       try {
         const { data: token } = await this.$axios.get(`https://watchtower.cash/api/smartbch/token-contracts/${sep20ContractAddress}/`)
         if (token?.image_url) return token.image_url
-      } catch (err){ console.error(err) }
+      } catch (err) { console.error(err) }
     },
-    updateWalletSlpTokenBalances(slp_token_id='') {
+    updateWalletSlpTokenBalances (slp_token_id = '') {
       var tokens = []
       if (slp_token_id) tokens = [{ slp_token_id }]
       else tokens = this.tokens
@@ -637,14 +637,14 @@ export default {
         })
       })
     },
-    async updateTokenSourceBalances() {
+    async updateTokenSourceBalances () {
       const tokenVaultPairs = this.tokens.map(token => {
         return [token.sep20_contract, token.sep20_source_address]
       })
 
       const tokenVaultBalances = await batchFetchSep20TokenBalances(tokenVaultPairs)
       this.tokens.forEach(token => {
-        const tokenVault = tokenVaultBalances.find(tv => 
+        const tokenVault = tokenVaultBalances.find(tv =>
           tv.token.toLowerCase() === token.sep20_contract.toLowerCase() &&
           tv.wallet.toLowerCase() === token.sep20_source_address.toLowerCase()
         )
@@ -652,17 +652,17 @@ export default {
         token.sep20_balance = tokenVault.balance
       })
     },
-    selectToken() {
+    selectToken () {
       this.$q.dialog({
         component: SpicebotBridgeTokenSelectDialog,
         darkMode: this.darkMode,
-        tokens: this.tokens,
+        tokens: this.tokens
       })
         .onOk(token => {
           this.formData.token = token
         })
     },
-    async fetchTokens() {
+    async fetchTokens () {
       const { tokens } = await fetchTokensList()
       if (!Array.isArray(tokens)) return
       this.tokens = tokens
@@ -692,12 +692,12 @@ export default {
   },
   watch: {
     'formData.token.slp_token_id': {
-      handler() {
-        if(this.formData?.token?.slp_token_id) this.updateWalletSlpTokenBalances(this.formData.token.slp_token_id)
+      handler () {
+        if (this.formData?.token?.slp_token_id) this.updateWalletSlpTokenBalances(this.formData.token.slp_token_id)
       }
     }
   },
-  mounted() {
+  mounted () {
     this.loadWallet()
     this.fetchTokens()
   }

@@ -1,17 +1,17 @@
 function satoshiToBCHString (amount = 0) {
-  const bchAmount = amount * (10**-8)
+  const bchAmount = amount * (10 ** -8)
   return `${bchAmount.toFixed(8)} BCH`
 }
 
 export class PaymentRequestOutput {
-  constructor(address, amountBCHStr) {
+  constructor (address, amountBCHStr) {
     this.address = address
 
     // turn bch into satoshi to prevent problems with floating point precision
-    this.amount = Math.round(Number(amountBCHStr) * 10**8)
+    this.amount = Math.round(Number(amountBCHStr) * 10 ** 8)
   }
 
-  isAddressValid() {
+  isAddressValid () {
     // validate address here
     try {
       const BCHJS = require('@psf/bch-js')
@@ -25,7 +25,7 @@ export class PaymentRequestOutput {
     return true
   }
 
-  toCashAddress() {
+  toCashAddress () {
     if (!this.isAddressValid()) return ''
     try {
       const BCHJS = require('@psf/bch-js')
@@ -40,7 +40,7 @@ export class PaymentRequestOutput {
   }
 
   toBCH () {
-    return this.amount * (10**-8)
+    return this.amount * (10 ** -8)
   }
 
   toBCHString () {
@@ -49,15 +49,15 @@ export class PaymentRequestOutput {
 }
 
 export class PaymentDetails {
-  constructor(paymentDetails) {
+  constructor (paymentDetails) {
     if (!paymentDetails) return
 
     this.network = paymentDetails['1'] || 'main'
 
     if (paymentDetails['2']) {
       this.outputs = []
-      for (let address in paymentDetails['2']) {
-        let output = new PaymentRequestOutput(address, paymentDetails['2'][address])
+      for (const address in paymentDetails['2']) {
+        const output = new PaymentRequestOutput(address, paymentDetails['2'][address])
         if (!output.isAddressValid()) continue
 
         this.outputs.push(output)
@@ -66,15 +66,11 @@ export class PaymentDetails {
 
     this.time = new Date(paymentDetails['3'] * 1000)
 
-    if (paymentDetails['4'])
-      this.expires = new Date(paymentDetails['4'] * 1000)
+    if (paymentDetails['4']) { this.expires = new Date(paymentDetails['4'] * 1000) }
 
-    if (paymentDetails['5'])
-      this.memo = paymentDetails['5']
+    if (paymentDetails['5']) { this.memo = paymentDetails['5'] }
 
-    
-    if (paymentDetails['6'])
-      this.paymentUrl = paymentDetails['6']
+    if (paymentDetails['6']) { this.paymentUrl = paymentDetails['6'] }
 
     this.merchantData = paymentDetails['7']
   }
@@ -100,7 +96,7 @@ export class PaymentDetails {
 
 export class PaymentRequest {
   // https://github.com/bitcoin/bips/blob/master/bip-0070.mediawiki
-  constructor(paymentRequestBase64='') {
+  constructor (paymentRequestBase64 = '') {
     this.__raw = paymentRequestBase64
 
     try {

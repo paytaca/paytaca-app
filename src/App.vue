@@ -8,7 +8,7 @@
 export default {
   name: 'App',
 
-  data() {
+  data () {
     return {
       assetPricesUpdateIntervalId: null
     }
@@ -39,7 +39,7 @@ export default {
         else if (event.data.orderId) query.orderId = event.data.orderId
         vm.$router.push({
           name: 'connecta',
-          query: query,
+          query: query
         })
       })
     }

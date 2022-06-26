@@ -201,7 +201,6 @@ export default {
           this.fetchingOutgoingTx = false
         })
         .then(response => {
-          console.log(response)
           if (response.success) {
             console.log(response)
             this.tx = response.tx
@@ -237,7 +236,7 @@ export default {
       if (typeof this?.waitPromiseObj?.cancelWatch === 'function') this.waitPromiseObj.cancelWatch()
     },
 
-    findAndOrWaitOutgoingTx() {
+    findAndOrWaitOutgoingTx () {
       this.findOutgoingTx()
         .catch(() => {
           this.waitOutgoingTx()
@@ -245,14 +244,14 @@ export default {
     }
   },
   watch: {
-    incomingTxid() {
+    incomingTxid () {
       this.findAndOrWaitOutgoingTx()
     }
   },
-  beforeDestroy() {
+  beforeDestroy () {
     this.cancelWaitOutgoingTx()
   },
-  mounted() {
+  mounted () {
     this.findAndOrWaitOutgoingTx()
   }
 }

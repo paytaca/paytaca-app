@@ -2,7 +2,7 @@ import Watchtower from 'watchtower-cash-js'
 import axios from 'axios'
 import sha256 from 'js-sha256'
 import * as Bip39 from 'bip39'
-import { hdkey } from 'ethereumjs-wallet';
+import { hdkey } from 'ethereumjs-wallet'
 import { BigNumber, ethers, utils } from 'ethers'
 
 import { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
@@ -34,23 +34,23 @@ export class SmartBchWallet {
     this.getOrInitWallet()
   }
 
-  async initWallet() {
+  async initWallet () {
     // Changed from using ethers.Wallet.fromMnemonic for faster initialization time
     // https://stackoverflow.com/a/71065135
-    const seed = await Bip39.mnemonicToSeed(this.mnemonic);
-    const hdNode = hdkey.fromMasterSeed(seed);
+    const seed = await Bip39.mnemonicToSeed(this.mnemonic)
+    const hdNode = hdkey.fromMasterSeed(seed)
     const node = hdNode.derivePath(this.derivationPath)
-    const childNode = node.deriveChild(0);
-    const childWallet = childNode.getWallet();
+    const childNode = node.deriveChild(0)
+    const childWallet = childNode.getWallet()
     this._wallet = new ethers.Wallet(childWallet.getPrivateKey().toString('hex')).connect(this.provider)
   }
 
-  async getOrInitWallet() {
+  async getOrInitWallet () {
     if (!this._wallet) await this.initWallet()
     return this._wallet
   }
 
-  async subscribeWallet() {
+  async subscribeWallet () {
     await this.getOrInitWallet()
     const data = {
       address: this._wallet.address,
@@ -270,7 +270,7 @@ export class SmartBchWallet {
     return this.sendBchWithData(amount, recipientAddress)
   }
 
-  async sendBchWithData (amount, recipientAddress, data='') {
+  async sendBchWithData (amount, recipientAddress, data = '') {
     if (!utils.isAddress(recipientAddress)) {
       return {
         success: false,
@@ -281,7 +281,7 @@ export class SmartBchWallet {
     if (data && !/0x[0-9a-f]+/i.test(data)) {
       return {
         success: false,
-        error: 'Data must be a valid hex string',
+        error: 'Data must be a valid hex string'
       }
     }
 
@@ -307,7 +307,7 @@ export class SmartBchWallet {
         transaction: tx
       }
     } catch (e) {
-      if (e && e.message === "insufficient-balance") {
+      if (e && e.message === 'insufficient-balance') {
         return { success: false, error: 'Not enough balance for gas' }
       }
 
@@ -318,7 +318,7 @@ export class SmartBchWallet {
     }
   }
 
-  async sendTransaction(txParams, wait=true) {
+  async sendTransaction (txParams, wait = true) {
     try {
       const tx = await this._wallet.sendTransaction(txParams)
       if (wait) await tx.wait()
@@ -328,7 +328,7 @@ export class SmartBchWallet {
         transaction: tx
       }
     } catch (e) {
-      if (e && e.message === "insufficient-balance") {
+      if (e && e.message === 'insufficient-balance') {
         return { success: false, error: 'Not enough balance for gas' }
       }
 
@@ -488,7 +488,7 @@ export class SmartBchWallet {
         limit,
         offset,
         includeMetadata,
-        address: this._wallet.address,
+        address: this._wallet.address
       }
     )
   }
@@ -562,9 +562,8 @@ export class SmartBchWallet {
   }
 }
 
-
 class WatchtowerSBCH {
-  constructor(projectId) {
+  constructor (projectId) {
     this.TX_INCOMING = 'incoming'
     this.TX_OUTGOING = 'outgoing'
 
@@ -572,12 +571,11 @@ class WatchtowerSBCH {
     this.projectId = projectId
   }
 
-  async getTransactions(address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
-    return this._getTransactions('bch', address, { type, before, after, limit})
+  async getTransactions (address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+    return this._getTransactions('bch', address, { type, before, after, limit })
   }
 
-  async getSep20Transactions(contractAddress, address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
-    console.log(contractAddress)
+  async getSep20Transactions (contractAddress, address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
     if (!utils.isAddress(contractAddress) && contractAddress !== 'bch') {
       return {
         success: false,
@@ -588,17 +586,17 @@ class WatchtowerSBCH {
     return this._getTransactions(
       contractAddress,
       address,
-      { type, before, after, limit },
+      { type, before, after, limit }
     )
   }
 
-  async _getTransactions(contractAddress, address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
+  async _getTransactions (contractAddress, address, { type = null, before = 'latest', after = '0x0', limit = 10 }) {
     const queryParams = {
       offset: 0,
       limit: limit,
       tokens: toChecksumAddress(contractAddress),
       addresses: toChecksumAddress(address),
-      record_type: undefined,
+      record_type: undefined
     }
 
     if (type === this.TX_INCOMING) queryParams.record_type = this.TX_INCOMING
@@ -615,13 +613,12 @@ class WatchtowerSBCH {
     let unparsedTxs = []
     try {
       const response = await this._watchtower.Wallet._api('smartbch/transactions/transfers/', { params: queryParams })
-      console.log(response)
       if (Array.isArray(response?.data?.results)) unparsedTxs = response?.data?.results
       else if (Array.isArray(response?.data)) unparsedTxs = response.data
     } catch (err) {
       return {
         success: false,
-        error: err?.response?.detail,
+        error: err?.response?.detail
       }
     }
 
