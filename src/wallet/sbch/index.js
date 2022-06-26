@@ -266,6 +266,19 @@ export class SmartBchWallet {
     }
   }
 
+  async getMaxSpendableBch (amount, recipientAddress) {
+    const parsedAmount = utils.parseEther(amount)
+    const txParams = {
+      data: '',
+      to: recipientAddress,
+      value: parsedAmount
+    }
+    const estGas = await this._wallet.estimateGas(txParams)
+    let spendableBch = parsedAmount - estGas
+    spendableBch = utils.formatEther(String(spendableBch))
+    return spendableBch
+  }
+
   async sendBch (amount, recipientAddress) {
     return this.sendBchWithData(amount, recipientAddress)
   }

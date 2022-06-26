@@ -636,9 +636,17 @@ export default {
         }
       }
     },
-    setMaximumSendAmount () {
-      if (this.asset.id.indexOf('bch') > -1) {
-        this.sendData.amount = this.asset.spendable
+    async setMaximumSendAmount () {
+      if (this.asset.id === 'bch') {
+        if (this.isSep20) {
+          const spendable = await this.wallet.sBCH.getMaxSpendableBch(
+            String(this.asset.balance),
+            this.sendData.recipient
+          )
+          this.sendData.amount = spendable
+        } else {
+          this.sendData.amount = this.asset.spendable
+        }
       } else {
         this.sendData.amount = this.asset.balance
       }
