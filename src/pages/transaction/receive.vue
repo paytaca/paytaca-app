@@ -20,14 +20,14 @@
       <div class="row">
         <div class="col qr-code-container">
           <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
-            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" :class="{'bg-grad': !fullscreen}" @click="toggleFullScreen">
+            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="toggleFullScreen">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
                   <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
                   <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
-              <div v-if="!fullscreen" class="text-white">Click to display the QR only</div>
+              <div v-if="!fullscreen" class="text-black">Click to display the QR only</div>
             </div>
           </fullscreen>
         </div>
@@ -47,6 +47,7 @@
           <span class="qr-code-text text-weight-light text-center">
             <div class="text-nowrap" style="letter-spacing: 1px" @click="copyAddress" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
               {{ address }}
+              <p style="font-size: 12px; margin-top: 7px;">Click to copy address</p>
             </div>
             <div v-if="lnsName" class="text-center text-caption pp-text">
               {{ lnsName }}
@@ -402,8 +403,9 @@ export default {
     text-align: center;
     width: 300px;
     border-radius: 16px;
+    border: 4px solid #ed5f59;
     padding: 25px 10px 32px 10px;
-    // background: white;
+    background: white;
   }
   .receive-add-amount {
     color: #3992EA;

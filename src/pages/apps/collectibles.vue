@@ -29,7 +29,7 @@
     <q-slide-transition>
       <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
         <div v-if="showAddress" @click="toggleFullScreen" class="flex flex-center q-py-md q-mt-lg">
-          <div class="q-pa-md br-15" :class="{'bg-grad': !fullscreen}">
+          <div class="q-pa-md br-15 col-qr-code">
             <qr-code
               :text="receivingAddress"
               style="width: 200px; margin-left: auto; margin-right: auto;"
@@ -38,7 +38,7 @@
               error-level="H"
               class="q-mb-sm"
             />
-            <div v-if="!fullscreen" class="text-white text-center">Click to display the QR only</div>
+            <div v-if="!fullscreen" class="text-black text-center">Click to display the QR only</div>
           </div>
         </div>
       </fullscreen>
@@ -335,5 +335,9 @@ export default {
   background: white;
   padding: 106px 20px !important;
   height: 100vh;
+}
+.col-qr-code {
+  background: white;
+  border: 4px solid #ed5f59;
 }
 </style>
