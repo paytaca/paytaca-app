@@ -274,7 +274,8 @@ export class SmartBchWallet {
       value: parsedAmount
     }
     const estGas = await this._wallet.estimateGas(txParams)
-    let spendableBch = parsedAmount - estGas
+    const gasPrice = await this._wallet.getGasPrice()
+    let spendableBch = parsedAmount - (estGas * gasPrice)
     spendableBch = utils.formatEther(String(spendableBch))
     return spendableBch
   }
@@ -314,6 +315,7 @@ export class SmartBchWallet {
         // txParams.value = txParams.value.sub(estGas)
         return { success: false, error: 'Not enough balance for gas' }
       }
+      txParams.gasLimit = estGas
       const tx = await this._wallet.sendTransaction(txParams)
       return {
         success: true,
