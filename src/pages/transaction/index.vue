@@ -12,7 +12,7 @@
             class="col-12 q-px-sm q-pb-md pp-fcolor"
             :value="selectedNetwork"
             @input="changeNetwork"
-            style="margin-top: -20px; padding-bottom: 16px;"
+            :style="{'margin-top': $q.platform.is.ios ? '10px' : '-20px', 'padding-bottom': '16px'}"
           >
             <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
             <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>

@@ -33,7 +33,6 @@ export default {
   margin-right: auto;
   padding-top: 20px;
   position: fixed;
-  top: 0;
   background: #ECF3F3;
   width: 100%;
   z-index: 100;
