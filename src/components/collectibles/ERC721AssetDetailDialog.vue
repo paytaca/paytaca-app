@@ -28,8 +28,8 @@
           </div>
           <q-separator class="q-my-md" />
 
-          <a :href="`https://smartscan.cash/address/${asset.address}`" target="_blank" style="text-decoration: none" :class="darkMode ? 'text-blue-5' : 'text-blue-9'">
-            View in smartscan
+          <a :href="`https://sonar.cash/tx/${asset.address}`" target="_blank" style="text-decoration: none" :class="darkMode ? 'text-blue-5' : 'text-blue-9'">
+            View in explorer
           </a>
         </div>
       </q-card-section>

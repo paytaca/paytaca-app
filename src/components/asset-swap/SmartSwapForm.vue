@@ -281,10 +281,10 @@
         />
       </div>
       <div v-if="stagedSwapDetails.txid" class="q-mx-md q-mt-sm">
-        <div>View transaction in smartscan:</div>
+        <div>View transaction in explorer:</div>
         <div class="ellipsis">
           <a
-            :href="`https://www.smartscan.cash/transaction/${stagedSwapDetails.txid}`"
+            :href="`https://sonar.cash/tx/${stagedSwapDetails.txid}`"
             target="_blank"
             style="text-decoration: none;"
             :class="darkMode ? 'text-blue-5' : 'text-blue-9'"

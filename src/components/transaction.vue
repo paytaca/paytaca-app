@@ -98,8 +98,8 @@
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>Explorer Link</q-item-label>
                 <q-item-label>
-                  <a :href="'https://smartscan.cash/transaction/' + transaction.hash" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
-                    View in SmartScan
+                  <a :href="'https://sonar.cash/tx/' + transaction.hash" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
+                    View in explorer
                   </a>
                 </q-item-label>
               </q-item-section>
@@ -107,7 +107,7 @@
                 <q-item-label class="text-gray" caption>Explorer Link</q-item-label>
                 <q-item-label>
                   <a :href="'https://blockchair.com/bitcoin-cash/transaction/' + transaction.txid" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
-                    View in block explorer
+                    View in explorer
                   </a>
                 </q-item-label>
               </q-item-section>

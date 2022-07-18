@@ -74,7 +74,7 @@ export default {
   },
   methods: {
     verify () {
-      const url = 'https://smartscan.cash/address/' + this.collectible.contractAddress
+      const url = 'https://sonar.cash/address/' + this.collectible.contractAddress
       openURL(url)
     },
     send () {
