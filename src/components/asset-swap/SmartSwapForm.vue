@@ -901,13 +901,14 @@ export default {
     fetchTokensList (updateBalances = true) {
       return this.$axios
         .get(
-          'https://raw.githubusercontent.com/zh/sep20tokens/main/smartbch.tokenlist.json'
+          'https://raw.githubusercontent.com/tangoswap-cash/default-token-list/master/tokens/smartbch.json'
+          // 'https://raw.githubusercontent.com/zh/sep20tokens/main/smartbch.tokenlist.json'
         )
         .then(response => {
-          if (Array.isArray(response.data.tokens)) {
+          if (Array.isArray(response.data)) {
             this.tokensList = [
               bchToken,
-              ...response.data.tokens
+              ...response.data
                 .map(token => {
                   if (!token || !token.address) return
                   if (token.chainId !== 10000) return
