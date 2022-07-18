@@ -36,7 +36,7 @@
       <div class="pt-get-started q-mt-sm q-pa-lg">
 
         <template v-if="steps === totalSteps">
-          <h5 class="q-ma-none get-started-text">Mnemonic Backup Phrase</h5>
+          <h5 class="q-ma-none get-started-text text-black">Mnemonic Backup Phrase</h5>
           <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
             Double check if this matches your mnemonic backup phrase.
           </p>
