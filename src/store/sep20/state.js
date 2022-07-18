@@ -9,13 +9,6 @@ export default function () {
         balance: 0
       },
       {
-        id: 'sep20/0x7b2B3C5308ab5b2a1d9a94d20D35CCDf61e05b72',
-        symbol: 'FLEXUSD',
-        name: 'flexUSD',
-        logo: 'flexusd-logo.png',
-        balance: 0
-      },
-      {
         id: 'sep20/0xe11829a7d5d8806bb36e118461a1012588fafd89',
         symbol: 'SPICE',
         name: 'Spice',
