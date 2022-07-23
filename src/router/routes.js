@@ -48,6 +48,7 @@ const routes = [
       { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
       { path: 'bridge', component: () => import('src/pages/apps/bridge.vue'), name: 'app-bridge' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
+      { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep' },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
       { path: 'settings/ignored-tokens', component: () => import('src/pages/apps/ignored-tokens-list.vue'), name: 'ignored-tokens-list' },

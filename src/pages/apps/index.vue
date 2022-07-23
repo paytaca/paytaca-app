@@ -24,12 +24,6 @@ export default {
     return {
       apps: [
         {
-          name: 'Collectibles',
-          iconName: 'burst_mode',
-          path: '/apps/collectibles',
-          active: true
-        },
-        {
           name: 'Bridge',
           iconName: 'mdi-bridge',
           path: '/apps/bridge',
@@ -45,6 +39,18 @@ export default {
           name: 'Wallet Connect',
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
+          active: true
+        },
+        {
+          name: 'Collectibles',
+          iconName: 'burst_mode',
+          path: '/apps/collectibles',
+          active: true
+        },
+        {
+          name: 'Sweep',
+          iconName: 'burst_mode',
+          path: '/apps/sweep',
           active: true
         },
         {
