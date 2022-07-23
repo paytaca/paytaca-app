@@ -11,6 +11,11 @@ export class SweepPrivateKey {
     this.slpAddress = bchjs.SLP.Address.toSLPAddress(this.bchAddress)
   }
 
+  async getBchBalance () {
+    const resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
+    return resp.data
+  }
+
   async getTokensList () {
     const respSlp = await axios.post('https://watchtower.cash/api/subscription/', {
       address: this.slpAddress
@@ -58,6 +63,7 @@ export class SweepPrivateKey {
 
     watchtower.SLP.Type1.send(data).then(function (result) {
       console.log(result)
+      return result
     })
   }
 
@@ -79,6 +85,7 @@ export class SweepPrivateKey {
 
     watchtower.BCH.send(data).then(function (result) {
       console.log(result)
+      return result
     })
   }
 }

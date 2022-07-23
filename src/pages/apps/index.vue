@@ -49,7 +49,7 @@ export default {
         },
         {
           name: 'Sweep',
-          iconName: 'burst_mode',
+          iconName: 'mop',
           path: '/apps/sweep',
           active: true
         },
