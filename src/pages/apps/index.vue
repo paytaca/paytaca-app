@@ -49,7 +49,7 @@ export default {
         },
         {
           name: 'Sweep',
-          iconName: 'mop',
+          iconName: 'mdi-broom',
           path: '/apps/sweep',
           active: true
         },

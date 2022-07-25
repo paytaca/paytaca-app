@@ -109,7 +109,7 @@
                   class="br-15 bg-grad text-white"
                 >
                   <q-item-section>
-                    <q-item-label class="ellipsis">
+                    <q-item-label>
                       {{ account | ellipsisText }}
                     </q-item-label>
                   </q-item-section>
@@ -235,7 +235,7 @@ export default {
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value
-      return value.substr(0, 13) + '...' + value.substr(value.length - 13, value.length)
+      return value.substr(0, 15) + '...' + value.substr(value.length - 10, value.length)
     },
     formatDate (date) {
       return ago(new Date(date))

@@ -4,15 +4,30 @@
       <header-nav title="Sweep" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
       <div style="margin-top: 60px;">
         <div id="app" ref="app" :class="{'text-black': !darkMode}">
-          <progress-loader v-if="fetching && tokens.length === 0" />
-          <q-form v-if="!submitted">
-            <textarea v-if="tokens.length === 0" v-model="wif" style="width: 100%;" /><br>
-            <button v-if="tokens.length === 0" @click.prevent="getTokens">Submit</button>
+          <div v-if="fetching && tokens.length === 0" style="text-align: center; margin-top: 25px;">
+            <p>Scanning...</p>
+            <progress-loader />
+          </div>
+          <q-form v-if="!submitted" class="text-center" style="margin-top: 25px;">
+            <textarea
+              v-if="tokens.length === 0" v-model="wif"
+              style="width: 100%; font-size: 18px; color: black; background: white;" rows="2"
+              placeholder="Paste here the private key in WIF format"
+            >
+            </textarea>
+            <br>
+            <template v-if="!wif">
+              <div style="margin-top: 20px; margin-bottom: 20px; font-size: 15px; color: grey;">
+                OR
+              </div>
+              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+            </template>
+            <button v-if="tokens.length === 0 && wif" @click.prevent="getTokens">Scan</button>
           </q-form>
           <div>
             <div v-if="sweeper && bchBalance">
               <p><strong>BCH</strong></p>
-              <p>BCH Address: {{ sweeper.bchAddress }}</p>
+              <p>BCH Address: {{ sweeper.bchAddress | ellipsisText }}</p>
               <div style="border: 1px solid black; padding: 10px;">
               <p>BCH Balance: {{ bchBalance }}</p>
               <button @click.prevent="sweepBch" :disabled="tokens.length > 0">Sweep</button>
@@ -21,10 +36,10 @@
             </div>
             <div v-if="tokens.length > 0" style="margin-top: 15px">
               <p><strong>Tokens ({{ tokens.length }})</strong></p>
-              <p>SLP Address: {{ sweeper.slpAddress }}</p>
+              <p>SLP Address: {{ sweeper.slpAddress | ellipsisText }}</p>
               <div v-for="(token, index) in tokens" :key="index">
                 <div style="border: 1px solid black; padding: 10px; margin-top: 10px;">
-                  <p>Token ID: {{ token.token_id }}</p>
+                  <p>Token ID: {{ token.token_id | ellipsisText }}</p>
                   <p>Symbol: {{ token.symbol }}</p>
                   <img v-if="token.image_url.length > 0" :src="token.image_url" height="50" />
                   <p>Amount: {{ token.spendable }}</p>
@@ -39,6 +54,11 @@
         </div>
       </div>
     </div>
+
+    <QrScanner
+      v-model="showQrScanner"
+      @decode="onScannerDecode"
+    />
   </div>
 </template>
 
@@ -46,12 +66,14 @@
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
 import SweepPrivateKey from '../../wallet/sweep'
+import QrScanner from '../../components/qr-scanner.vue'
 
 export default {
   name: 'sweep',
   components: {
     HeaderNav,
-    ProgressLoader
+    ProgressLoader,
+    QrScanner
   },
   data () {
     return {
@@ -64,6 +86,7 @@ export default {
       fetching: false,
       sweeping: false,
       selectedToken: null,
+      showQrScanner: false,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -111,6 +134,17 @@ export default {
         this.$store.getters['global/getAddress']('bch')
       )
       this.sweeping = false
+    },
+    onScannerDecode (content) {
+      this.showQrScanner = false
+      this.wif = content
+    }
+  },
+  filters: {
+    ellipsisText (value) {
+      if (typeof value !== 'string') return ''
+      if (value.length <= 20) return value
+      return value.substr(0, 18) + '...' + value.substr(value.length - 10, value.length)
     }
   },
   mounted () {
@@ -126,5 +160,9 @@ export default {
     overflow-y: auto;
     z-index: 1 !important;
     min-height: 100vh;
+  }
+  .btn-scan {
+    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    color: white;
   }
 </style>
