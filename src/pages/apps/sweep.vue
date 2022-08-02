@@ -23,6 +23,9 @@
               <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
             </template>
             <button v-if="tokens.length === 0 && wif" @click.prevent="getTokens">Scan</button>
+            <p v-if="error" style="margin-top: 20px; color: red;">
+              {{ error }}
+            </p>
           </q-form>
           <div>
             <div v-if="sweeper && bchBalance">
@@ -31,7 +34,7 @@
               <div style="border: 1px solid black; padding: 10px;">
               <p>BCH Balance: {{ bchBalance }}</p>
               <button @click.prevent="sweepBch" :disabled="tokens.length > 0">Sweep</button>
-              <span><i> Sweep tokens first</i></span>
+              <span v-if="tokens.length > 0"><i> Sweep tokens first</i></span>
               </div>
             </div>
             <div v-if="tokens.length > 0" style="margin-top: 15px">
@@ -87,28 +90,36 @@ export default {
       sweeping: false,
       selectedToken: null,
       showQrScanner: false,
+      error: null,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
+    validatePrivateKey (value) {
+      return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(String(value))
+    },
     getTokens () {
       const vm = this
-      vm.submitted = true
-      vm.fetching = true
-      if (vm.wif.length > 0) {
-        vm.sweeper = new SweepPrivateKey(this.wif)
-        vm.sweeper.getTokensList().then(function (tokens) {
-          vm.tokens = tokens.filter(function (token) {
-            if (token.spendable > 0) {
-              return token
-            }
+      if (vm.validatePrivateKey(vm.wif)) {
+        vm.submitted = true
+        vm.fetching = true
+        if (vm.wif.length > 0) {
+          vm.sweeper = new SweepPrivateKey(this.wif)
+          vm.sweeper.getTokensList().then(function (tokens) {
+            vm.tokens = tokens.filter(function (token) {
+              if (token.spendable > 0) {
+                return token
+              }
+            })
+            vm.sweeper.getBchBalance().then(function (data) {
+              vm.bchBalance = data.balance || 0
+              vm.fetching = false
+              vm.sweeping = false
+            })
           })
-          vm.sweeper.getBchBalance().then(function (data) {
-            vm.bchBalance = data.balance || 0
-            vm.fetching = false
-            vm.sweeping = false
-          })
-        })
+        }
+      } else {
+        vm.error = 'Invalid private key!'
       }
     },
     sweepToken (token) {
