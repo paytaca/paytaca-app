@@ -22,10 +22,12 @@
               </div>
               <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
             </template>
-            <button v-if="tokens.length === 0 && wif" @click.prevent="getTokens">Scan</button>
-            <p v-if="wif && error" style="margin-top: 20px; color: red;">
-              {{ error }}
-            </p>
+            <div style="margin-top: 20px; ">
+              <q-btn color="primary" v-if="tokens.length === 0 && wif" @click.prevent="getTokens">Scan</q-btn>
+              <p v-if="wif && error" style="color: red;">
+                {{ error }}
+              </p>
+            </div>
           </q-form>
           <div>
             <div v-if="sweeper && bchBalance">
@@ -36,8 +38,8 @@
               </p>
               <div style="border: 1px solid black; padding: 10px;">
                 <p>BCH Balance: {{ bchBalance }}</p>
-                <button v-if="selectedToken !== 'bch'" @click.prevent="sweepBch" :disabled="tokens.length > 0">Sweep</button>
-                <span v-if="tokens.length > 0" style="color: red;"><i> Sweep the tokens first</i></span>
+                <q-btn color="primary" v-if="selectedToken !== 'bch'" @click.prevent="sweepBch" :disabled="(tokens.length - skippedTokens.length) > 0">Sweep</q-btn>
+                <span v-if="(tokens.length - skippedTokens.length) > 0" style="color: red;"><i> Sweep the tokens first</i></span>
                 <div v-if="sweeping && selectedToken === 'bch'">
                   <progress-loader />
                 </div>
@@ -74,7 +76,11 @@
                   <p>Symbol: {{ token.symbol }}</p>
                   <img v-if="token.image_url.length > 0" :src="token.image_url" height="50" />
                   <p>Amount: {{ token.spendable }}</p>
-                  <button v-if="selectedToken !== token.token_id" @click.prevent="sweepToken(token)" :disabled="sweeping">Sweep</button>
+                  <template v-if="selectedToken !== token.token_id">
+                    <q-btn color="primary" @click.prevent="sweepToken(token)" :disabled="sweeping || skippedTokens.includes(token.token_id)">
+                      Sweep
+                    </q-btn>&nbsp;&nbsp;&nbsp; OR <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" label="Skip" />
+                  </template>
                   <div v-if="sweeping && selectedToken === token.token_id">
                     <progress-loader />
                   </div>
@@ -111,6 +117,7 @@ export default {
       mnemonic: '',
       wif: '',
       tokens: [],
+      skippedTokens: [],
       bchBalance: null,
       sweeper: null,
       submitted: false,
@@ -152,6 +159,7 @@ export default {
           vm.sweeper.getTokensList().then(function (tokens) {
             vm.tokens = tokens.filter(function (token) {
               if (token.spendable > 0) {
+                // vm.skippedTokens[token.token_id] = false
                 return token
               }
             })

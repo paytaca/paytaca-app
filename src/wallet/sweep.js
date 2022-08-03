@@ -91,9 +91,6 @@ export class SweepPrivateKey {
 
     watchtower.BCH.send(data).then(function (result) {
       console.log(result)
-      if (!result.success) {
-        console.log(data)
-      }
       return result
     })
   }
