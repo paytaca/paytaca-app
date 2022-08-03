@@ -117,7 +117,6 @@ export default {
       vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
-      console.log('New address: ', wallet.BCH.getNewAddressSet)
 
       wallet.BCH.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {

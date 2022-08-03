@@ -126,7 +126,7 @@ export class PaymentRequest {
 }
 
 if (require.main === module) {
-  paymentRequestBase64 = 'eyI0IjogIntcIjJcIjoge1wiMUdTRDVYY2JORXVYdUJlNFRtUEtKVEdGcFJjYTh0SzdWelwiOiBcIjAuMDE0MDA0NDIxMDY1ODY0ODM1NDgyMDU2NjYyMjlcIn0sIFwiM1wiOiAxNjQyNTYzNDg2LCBcIjRcIjogMTY0MjU2MzYwNiwgXCI1XCI6IFwiUmFuZG9tIHN0cmluZ1wiLCBcIjdcIjoge1wicGF5bWVudF9pbnZvaWNlX2lkXCI6IDF9fSJ9'
+  const paymentRequestBase64 = 'eyI0IjogIntcIjJcIjoge1wiMUdTRDVYY2JORXVYdUJlNFRtUEtKVEdGcFJjYTh0SzdWelwiOiBcIjAuMDE0MDA0NDIxMDY1ODY0ODM1NDgyMDU2NjYyMjlcIn0sIFwiM1wiOiAxNjQyNTYzNDg2LCBcIjRcIjogMTY0MjU2MzYwNiwgXCI1XCI6IFwiUmFuZG9tIHN0cmluZ1wiLCBcIjdcIjoge1wicGF5bWVudF9pbnZvaWNlX2lkXCI6IDF9fSJ9'
   const paymentRequest = new PaymentRequest(paymentRequestBase64)
   console.log(paymentRequest)
   console.log(`Total: ${paymentRequest.paymentDetails.getTotalAmount()}`)

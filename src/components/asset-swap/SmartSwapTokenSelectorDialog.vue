@@ -226,7 +226,6 @@ export default {
           this.customToken.fetchingInfo = false
         })
         .then(response => {
-          console.log(response)
           if (response.success) {
             this.customToken.info.address = response.token.address
             this.customToken.info.name = response.token.name

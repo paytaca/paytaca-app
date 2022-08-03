@@ -274,7 +274,6 @@ export default {
       vm.$connect(url)
       vm.$options.sockets.onmessage = function (message) {
         const data = JSON.parse(message.data)
-        console.log(data)
         if (assetType === 'slp') {
           const tokenId = vm.assetId.split('/')[1]
           if (data.token_id.split('/')[1] === tokenId) {
