@@ -2,13 +2,13 @@
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
     <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}">
 
-        <q-card-section class="pt-label" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+        <q-card-section class="pt-label text-black" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
             <span class="text-weight-medium">Confirmation</span>
         </q-card-section>
 
         <q-separator />
 
-        <q-card-section class="pt-label" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+        <q-card-section class="pt-label text-black" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
           <label> Do you want to continue removing the asset?</label>
         </q-card-section>
 
