@@ -241,7 +241,7 @@
           v-else
           no-caps
           rounded
-          :disable="lockInputs"
+          :disable="maxBridgeBalance === 0 || lockInputs || !amount"
           label="Swap"
           color="brandblue"
           class="full-width"
