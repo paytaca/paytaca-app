@@ -667,7 +667,6 @@ export default {
       }
     },
     onDecode (content) {
-      console.log('Got content:', content)
       let address = content
       let amount = null
       try {
@@ -813,7 +812,6 @@ export default {
             const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
             promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
           } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
-            console.log('sending erc721')
             const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
             const tokenId = vm.assetId.match(erc721IdRegexp)[2]
             promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)

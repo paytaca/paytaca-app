@@ -9,7 +9,6 @@ export function updateCoinsList (context, { force = true }) {
       { params: { include_platform: true } }
     )
     .then(response => {
-      // console.log(response)
       if (Array.isArray(response.data)) {
         context.commit('updateCoinsList', response.data)
         return response
@@ -41,8 +40,6 @@ export async function updateSupportedCurrencies (context, { force = true }) {
 export function getAllAssetList (context) {
   const mainchainAssets = context.rootGetters['assets/getAssets']
   const smartchainAssets = context.rootGetters['sep20/getAssets']
-  // console.log(mainchainAssets)
-  // console.log(smartchainAssets)
 
   const mainchain = mainchainAssets.map(asset => {
     const isSpice = String(asset.id).toLowerCase() === 'slp/4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf'
@@ -52,7 +49,6 @@ export function getAllAssetList (context) {
     const filteredPlatform = filteredSymbol
       .filter(coin => !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1)
     const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
-    // console.log(asset.name, filteredSymbol, filteredPlatform)
     return { asset, coin }
   })
 
@@ -69,7 +65,6 @@ export function getAllAssetList (context) {
       })
 
     const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
-    // console.log(asset.name, filteredSymbol, filteredPlatform)
     return { asset, coin }
   })
 
@@ -125,7 +120,6 @@ export async function updateMainchainAssetPrices (context, { commit = true }) {
     const filteredPlatform = filteredSymbol
       .filter(coin => !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1)
     const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
-    // console.log(asset.name, filteredSymbol, filteredPlatform)
     return { asset, coin }
   })
 

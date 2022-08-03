@@ -30,7 +30,6 @@ export function getWallet (state) {
 
 export function getDefaultAssetLogo () {
   return function (val = '') {
-    // console.log('making image for: ', val)
     const string = sha256(String(val))
 
     const canvas = document.createElement('canvas')
@@ -57,7 +56,6 @@ export function getDefaultAssetLogo () {
     }
 
     function drawEquilateralTriangle (ctx, x, y, length, angle) {
-      // console.log(x, y, length, angle)
       // degrees to radians
       const radian = Math.PI / 180
       angle = Math.abs(angle)
@@ -102,8 +100,6 @@ export function getDefaultAssetLogo () {
       if (quadrant === 1) startAngle = 270
 
       const angle = startAngle + (parseInt(string.substring(i * 8, (i + 1) * 8), 16) % 90)
-      // console.log(x, y)
-      // console.log(quadrant, up, left, startAngle, angle)
 
       drawEquilateralTriangle(
         ctx,

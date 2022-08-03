@@ -202,7 +202,6 @@ export default {
         })
         .then(response => {
           if (response.success) {
-            console.log(response)
             this.tx = response.tx
             return Promise.resolve(response)
           }

@@ -1,5 +1,4 @@
 export function updateAssetBalance (state, data) {
-  console.log('Balance update:', data)
   for (let i = 0; i < state.assets.length; i++) {
     const asset = state.assets[i]
     if (asset && asset.id === data.id) {
