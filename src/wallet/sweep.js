@@ -12,8 +12,14 @@ export class SweepPrivateKey {
   }
 
   async getBchBalance () {
-    const resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
-    return resp.data
+    const respBch = await axios.post('https://watchtower.cash/api/subscription/', {
+      address: this.bchAddress
+    })
+    if (respBch.data.success) {
+      const resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
+      console.log(resp)
+      return resp.data
+    }
   }
 
   async getTokensList () {
@@ -77,7 +83,7 @@ export class SweepPrivateKey {
       recipients: [
         {
           address: recipient,
-          amount: spendableBalance - (10 / (10 ** 8))
+          amount: spendableBalance
         }
       ],
       broadcast: true
@@ -85,6 +91,9 @@ export class SweepPrivateKey {
 
     watchtower.BCH.send(data).then(function (result) {
       console.log(result)
+      if (!result.success) {
+        console.log(data)
+      }
       return result
     })
   }

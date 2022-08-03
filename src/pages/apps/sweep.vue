@@ -23,26 +23,54 @@
               <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
             </template>
             <button v-if="tokens.length === 0 && wif" @click.prevent="getTokens">Scan</button>
-            <p v-if="error" style="margin-top: 20px; color: red;">
+            <p v-if="wif && error" style="margin-top: 20px; color: red;">
               {{ error }}
             </p>
           </q-form>
           <div>
             <div v-if="sweeper && bchBalance">
               <p><strong>BCH</strong></p>
-              <p>BCH Address: {{ sweeper.bchAddress | ellipsisText }}</p>
+              <p>
+                BCH Address: {{ sweeper.bchAddress | ellipsisText }}
+                <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.bchAddress)" />
+              </p>
               <div style="border: 1px solid black; padding: 10px;">
-              <p>BCH Balance: {{ bchBalance }}</p>
-              <button @click.prevent="sweepBch" :disabled="tokens.length > 0">Sweep</button>
-              <span v-if="tokens.length > 0"><i> Sweep tokens first</i></span>
+                <p>BCH Balance: {{ bchBalance }}</p>
+                <button v-if="selectedToken !== 'bch'" @click.prevent="sweepBch" :disabled="tokens.length > 0">Sweep</button>
+                <span v-if="tokens.length > 0" style="color: red;"><i> Sweep the tokens first</i></span>
+                <div v-if="sweeping && selectedToken === 'bch'">
+                  <progress-loader />
+                </div>
+              </div>
+            </div>
+            <div v-if="sweeper && (bchBalance === 0 || bchBalance < 0)">
+              <p><strong>BCH</strong></p>
+              <p>
+                BCH Address: {{ sweeper.bchAddress | ellipsisText }}
+                <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.bchAddress)" />
+              </p>
+              <div style="border: 1px solid black; padding: 10px;">
+                <p>BCH Balance: {{ bchBalance }}</p>
+                <template v-if="tokens.length === 0">
+                  <span style="color: red;">This address is empty</span>
+                </template>
+                <template v-else>
+                  <span style="color: red;"><i>You will need sufficient BCH balance to be able to sweep the token(s) below</i></span>
+                </template>
               </div>
             </div>
             <div v-if="tokens.length > 0" style="margin-top: 15px">
               <p><strong>Tokens ({{ tokens.length }})</strong></p>
-              <p>SLP Address: {{ sweeper.slpAddress | ellipsisText }}</p>
+              <p>
+                SLP Address: {{ sweeper.slpAddress | ellipsisText }}
+                <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.slpAddress)" />
+              </p>
               <div v-for="(token, index) in tokens" :key="index">
                 <div style="border: 1px solid black; padding: 10px; margin-top: 10px;">
-                  <p>Token ID: {{ token.token_id | ellipsisText }}</p>
+                  <p>
+                    Token ID: {{ token.token_id | ellipsisText }}
+                    <q-icon name="mdi-content-copy" @click="copyToClipboard(token.token_id)" />
+                  </p>
                   <p>Symbol: {{ token.symbol }}</p>
                   <img v-if="token.image_url.length > 0" :src="token.image_url" height="50" />
                   <p>Amount: {{ token.spendable }}</p>
@@ -94,7 +122,23 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
+  watch: {
+    wif (value) {
+      if (value.length === 0) {
+        this.error = null
+      }
+    }
+  },
   methods: {
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: 'Copied to clipboard',
+        timeout: 200,
+        icon: 'mdi-clipboard-check',
+        color: 'blue-9'
+      })
+    },
     validatePrivateKey (value) {
       return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(String(value))
     },
@@ -112,7 +156,7 @@ export default {
               }
             })
             vm.sweeper.getBchBalance().then(function (data) {
-              vm.bchBalance = data.balance || 0
+              vm.bchBalance = data.spendable || 0
               vm.fetching = false
               vm.sweeping = false
             })
@@ -138,13 +182,14 @@ export default {
     },
     sweepBch () {
       this.sweeping = true
+      this.selectedToken = 'bch'
       this.sweeper.sweepBch(
         this.sweeper.bchAddress,
         this.wif,
         this.bchBalance,
         this.$store.getters['global/getAddress']('bch')
       )
-      this.sweeping = false
+      this.getTokens()
     },
     onScannerDecode (content) {
       this.showQrScanner = false
