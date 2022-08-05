@@ -149,11 +149,13 @@ export default {
     validatePrivateKey (value) {
       return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(String(value))
     },
-    getTokens () {
+    getTokens (signalFetch) {
       const vm = this
       if (vm.validatePrivateKey(vm.wif)) {
         vm.submitted = true
-        vm.fetching = true
+        if (signalFetch) {
+          vm.fetching = true
+        }
         if (vm.wif.length > 0) {
           vm.sweeper = new SweepPrivateKey(this.wif)
           vm.sweeper.getTokensList().then(function (tokens) {
@@ -197,7 +199,7 @@ export default {
         this.bchBalance,
         this.$store.getters['global/getAddress']('bch')
       )
-      this.getTokens()
+      this.getTokens(false)
     },
     onScannerDecode (content) {
       this.showQrScanner = false
