@@ -62,24 +62,20 @@
         <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
         <!-- Cards without drag scroll on mobile -->
         <template v-if="$q.platform.is.mobile">
-          <div class="tokens-container">
-            <asset-cards
-              :assets="assets"
-              :network="selectedNetwork"
-            >
-            </asset-cards>
-          </div>
+          <asset-cards
+            :assets="assets"
+            :network="selectedNetwork"
+          >
+          </asset-cards>
         </template>
         <!-- Cards with drag scroll on other platforms -->
         <template v-else>
-          <div class="tokens-container">
-            <asset-cards
-              :assets="assets"
-              v-dragscroll.x="true"
-              :network="selectedNetwork"
-            >
-            </asset-cards>
-          </div>
+          <asset-cards
+            :assets="assets"
+            v-dragscroll.x="true"
+            :network="selectedNetwork"
+          >
+          </asset-cards>
         </template>
       </div>
       <div ref="transactionSection" class="row transaction-row">
@@ -330,7 +326,7 @@ export default {
       vm.getBalance(this.bchAsset.id)
       vm.getTransactions()
       vm.assetClickCounter += 1
-      if (vm.assetClickCounter === 2) {
+      if (vm.assetClickCounter >= 2) {
         vm.showAssetInfo(this.bchAsset)
         vm.assetClickTimer = setTimeout(() => {
           clearTimeout(vm.assetClickTimer)
@@ -929,15 +925,5 @@ export default {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-  }
-  .tokens-container {
-    margin-right: 20px;
-    margin-left: 20px;
-    overflow: hidden;
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
-  }
-  #tokens-container::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
   }
 </style>

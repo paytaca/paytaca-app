@@ -9,7 +9,7 @@
       @click="(event) => {
         selectAsset(event, asset)
       }"
-      :style="{ 'margin-left': index === 0 ? '-7px' : '12px' }"
+      :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
     >
       <div
         v-if="$parent.manageAssets && asset.symbol !== 'BCH'"
@@ -28,7 +28,7 @@
         <div v-if="!$parent.balanceLoaded && asset.id === $parent.selectedAsset.id" style="width: 100%;">
           <q-skeleton type="rect"/>
         </div>
-        <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
+        <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
           {{ String(asset.balance).substring(0, 10) }}
         </p>
       </div>
@@ -90,7 +90,7 @@ export default {
       const vm = this
       vm.assetClickCounter += 1
       if (vm.$parent.selectedAsset.id === asset.id) {
-        if (vm.assetClickCounter === 2) {
+        if (vm.assetClickCounter >= 2) {
           vm.$parent.showAssetInfo(asset)
           vm.assetClickTimer = setTimeout(() => {
             clearTimeout(vm.assetClickTimer)
@@ -200,6 +200,9 @@ export default {
     overflow: hidden;
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
+    margin-left: 20px;
+    margin-right: 20px;
+    padding-left: 0px;
   }
   #asset-container::-webkit-scrollbar {
     display: none;  /* Safari and Chrome */
@@ -213,8 +216,8 @@ export default {
     margin-left: 15px;
   }
   .method-cards {
-    height: 100px;
-    min-width: 160px;
+    height: 97px;
+    min-width: 150px;
     border-radius: 16px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
     box-shadow: 2px 2px 2px 2px #f2f2fc;
