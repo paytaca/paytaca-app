@@ -9,6 +9,7 @@
       @click="(event) => {
         selectAsset(event, asset)
       }"
+      :style="{ 'margin-left': index === 0 ? '-7px' : '12px' }"
     >
       <div
         v-if="$parent.manageAssets && asset.symbol !== 'BCH'"
@@ -196,7 +197,7 @@ export default {
 
 <style lang="scss">
   #asset-container {
-    overflow: scroll;
+    overflow: hidden;
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
   }

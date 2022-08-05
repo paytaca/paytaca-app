@@ -19,9 +19,9 @@
           </q-tabs>
         </div>
         <div class="row q-mt-sm">
-          <div class="col text-white" :class="{'text-white': darkMode}">
+          <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
             <img src="../../assets/bch-logo.png" style="height: 90px; position: absolute; right: 40px; margin-top: 20px; z-index: 10; opacity: 0.8;"/>
-            <q-card id="bch-card" @click="selectBch">
+            <q-card id="bch-card">
               <q-card-section>
                 <div class="text-h6">Bitcoin Cash</div>
                 <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 63px;">
@@ -62,20 +62,24 @@
         <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
         <!-- Cards without drag scroll on mobile -->
         <template v-if="$q.platform.is.mobile">
-          <asset-cards
-            :assets="assets"
-            :network="selectedNetwork"
-          >
-          </asset-cards>
+          <div class="tokens-container">
+            <asset-cards
+              :assets="assets"
+              :network="selectedNetwork"
+            >
+            </asset-cards>
+          </div>
         </template>
         <!-- Cards with drag scroll on other platforms -->
         <template v-else>
-          <asset-cards
-            :assets="assets"
-            v-dragscroll.x="true"
-            :network="selectedNetwork"
-          >
-          </asset-cards>
+          <div class="tokens-container">
+            <asset-cards
+              :assets="assets"
+              v-dragscroll.x="true"
+              :network="selectedNetwork"
+            >
+            </asset-cards>
+          </div>
         </template>
       </div>
       <div ref="transactionSection" class="row transaction-row">
@@ -922,8 +926,18 @@ export default {
     padding-right: 2px;
   }
   #bch-card {
-    margin: 0px 25px 10px 25px;
+    margin: 0px 20px 10px 20px;
     border-radius: 15px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
+  }
+  .tokens-container {
+    margin-right: 20px;
+    margin-left: 20px;
+    overflow: hidden;
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  #tokens-container::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
   }
 </style>
