@@ -17,7 +17,7 @@
         <q-btn icon="close" color="white" flat round dense v-close-popup />
       </div>
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
-        <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
+        <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs" style="opacity: 0.8;">
         <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
           {{ asset.symbol }}
         </p>

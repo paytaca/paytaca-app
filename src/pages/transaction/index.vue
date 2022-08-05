@@ -17,36 +17,28 @@
             <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
             <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
           </q-tabs>
-          <div class="col q-pl-lg">
-            <p class="text-light p-label" style="color: #ABA9BB;">
-              Your {{ selectedAsset.symbol }} balance
-            </p>
-            <p class="text-number-balance q-mb-none default-text-color">
-              <span v-if="hideBalances" style="color: transparent;">
-                {{ String(selectedAsset.balance).substring(0, 10) }}
-              </span>
-              <span v-else>{{ String(selectedAsset.balance).substring(0, 10) }}</span>
-            </p>
-            <div class="text-caption pp-text" style="margin-top: -15px;">
-              <template v-if="selectedAssetMarketBalance">
-                <span :class="{'pt-dark-label': darkMode}">
-                  {{ selectedAssetMarketBalance }} {{ String(selectedMarketCurrency).toUpperCase() }}
-                </span>
-              </template>
-              <template v-else>
-                <span style="color: transparent;">NA</span>
-              </template>
-            </div>
-          </div>
-          <div class="q-space q-pr-lg">
-            <p class="text-right text-light p-label" style="color: #ABA9BB;">{{ today }}</p>
-            <img class="float-right q-mt-sm" :src="selectedAsset.logo || getFallbackAssetLogo(selectedAsset)" height="50">
+        </div>
+        <div class="row q-mt-sm">
+          <div class="col text-white" :class="{'text-white': darkMode}">
+            <img src="../../assets/bch-logo.png" style="height: 90px; position: absolute; right: 40px; margin-top: 20px; z-index: 10; opacity: 0.8;"/>
+            <q-card id="bch-card" @click="selectBch">
+              <q-card-section>
+                <div class="text-h6">Bitcoin Cash</div>
+                <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 63px;">
+                  <q-skeleton style="font-size: 24px;" type="rect"/>
+                </div>
+                <template v-else>
+                  <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} BCH</p>
+                  <div style="padding: 0; margin-top: -10px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
+                </template>
+              </q-card-section>
+            </q-card>
           </div>
         </div>
         <div class="row q-mt-sm">
           <div class="col">
             <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
-              Assets
+              Tokens
               <q-btn
                 flat
                 padding="none"
@@ -216,6 +208,9 @@ export default {
         const sectionHeight = this.$refs.fixedSection.clientHeight
         this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
       }, 100)
+    },
+    selectedAsset () {
+      this.transactions = []
     }
   },
 
@@ -228,13 +223,24 @@ export default {
         return this.$store.commit('global/setNetwork', value)
       }
     },
+    bchAsset () {
+      if (this.selectedNetwork === 'sBCH') {
+        return this.$store.getters['sep20/getAssets'][0]
+      }
+
+      return this.$store.getters['assets/getAssets'][0]
+    },
     assets () {
       if (this.selectedNetwork === 'sBCH') {
-        return this.$store.getters['sep20/getAssets'].filter(Boolean)
+        return this.$store.getters['sep20/getAssets'].filter(function (item) {
+          if (item && item.id !== 'bch') {
+            return item
+          }
+        })
       }
 
       return this.$store.getters['assets/getAssets'].filter(function (item) {
-        if (item) {
+        if (item && item.id !== 'bch') {
           return item
         }
       })
@@ -306,7 +312,7 @@ export default {
       const prevNetwork = this.selectedNetwork
       this.selectedNetwork = newNetwork
       if (prevNetwork !== this.selectedNetwork) {
-        this.selectedAsset = this.assets[0]
+        this.selectedAsset = this.bchAsset
         this.transactions = []
         this.transactionsPage = 1
         this.transactionsLoaded = false
@@ -314,8 +320,59 @@ export default {
         if (this.selectedAsset) this.getBalance(this.selectedAsset.id)
       }
     },
+    selectBch () {
+      const vm = this
+      vm.selectedAsset = this.bchAsset
+      vm.getBalance(this.bchAsset.id)
+      vm.getTransactions()
+      vm.assetClickCounter += 1
+      if (vm.assetClickCounter === 2) {
+        vm.showAssetInfo(this.bchAsset)
+        vm.assetClickTimer = setTimeout(() => {
+          clearTimeout(vm.assetClickTimer)
+          vm.assetClickTimer = null
+          vm.assetClickCounter = 0
+        }, 600)
+      } else {
+        vm.hideAssetInfo()
+        vm.assetClickTimer = setTimeout(() => {
+          clearTimeout(vm.assetClickTimer)
+          vm.assetClickTimer = null
+          vm.assetClickCounter = 0
+        }, 600)
+      }
+    },
+    sendBch () {
+      this.$router.push({
+        name: 'transaction-send',
+        params: {
+          network: this.selectedNetwork,
+          assetId: 'bch',
+          fixed: false
+        }
+      })
+    },
+    receiveBch () {
+      this.$router.push({
+        name: 'transaction-receive',
+        params: {
+          network: this.selectedNetwork,
+          assetId: 'bch'
+        }
+      })
+    },
     toggleManageAssets () {
       this.manageAssets = !this.manageAssets
+    },
+    getAssetMarketBalance (asset) {
+      if (!asset || !asset.id) return ''
+
+      const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
+      if (!assetPrice) return ''
+
+      const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
+
+      return computedBalance.toFixed(2)
     },
     showAssetInfo (asset) {
       const vm = this
@@ -726,7 +783,7 @@ export default {
   async mounted () {
     const vm = this
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
-      vm.selectedAsset = vm.assets[0]
+      vm.selectedAsset = this.bchAsset
     }
 
     // Load wallets
@@ -863,5 +920,10 @@ export default {
     padding: 4px;
     padding-left: 2px;
     padding-right: 2px;
+  }
+  #bch-card {
+    margin: 0px 25px 10px 25px;
+    border-radius: 15px;
+    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }
 </style>
