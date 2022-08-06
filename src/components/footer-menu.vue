@@ -1,7 +1,7 @@
 <template>
-  <div class="row justify-center fixed-footer" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+  <div class="row justify-center fixed-footer" :class="{'pt-dark-card': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <button class="footer-icon-btn">
+      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ path: '/' }">
           <q-icon class="default-text-color" size="30px">
             <svg>
@@ -9,8 +9,9 @@
             </svg>
           </q-icon>
         </router-link>
+        Home
       </button>
-      <button class="footer-icon-btn">
+      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
           <q-icon class="default-text-color" size="30px">
             <svg>
@@ -18,8 +19,9 @@
             </svg>
           </q-icon>
         </router-link>
+        Send
       </button>
-      <button class="footer-icon-btn">
+      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'transaction-receive-select-asset' }">
           <q-icon class="default-text-color" size="30px">
             <svg>
@@ -27,8 +29,9 @@
             </svg>
           </q-icon>
         </router-link>
+        Receive
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'apps-dashboard' }">
           <q-icon class="default-text-color" size="30px">
             <svg>
@@ -36,6 +39,7 @@
             </svg>
           </q-icon>
         </router-link>
+        Apps
       </button>
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>
@@ -47,6 +51,11 @@
 <script>
 export default {
   name: 'footer-menu',
+  data () {
+    return {
+      darkMode: this.$store.getters['darkmode/getStatus']
+    }
+  },
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')
@@ -58,7 +67,8 @@ export default {
 <style lang="scss">
   .fixed-footer {
     position: fixed;
-    height: 60px;
+    height: 67px;
+    padding-top: 5px;
     width: 100%;
     background-color: #fff;
     border-top-right-radius: 20px;
@@ -77,38 +87,15 @@ export default {
       height: 50px;
       outline: none;
       background-color: transparent;
+      font-size: 12px;
+      color: black;
+      line-height: 20px;
     }
     .footer-btn-container {
       margin-top: 1px !important;
     }
     .active-switch {
       color: #69CB51;
-    }
-    .account-options {
-      position: absolute;
-      display: none !important;
-      line-height: 40px;
-      top: -100px;
-      right: 30px;
-      width: 80px;
-      text-align: center;
-      background-color: #fff;
-      border-radius: 10px;
-      box-shadow: 1px 1px 2px 1px rgba(99, 103, 103, .2);
-      border-radius: 10px;
-      vertical-align: middle;
-      padding: 8px 0px 8px 0px;
-      transition: .3s;
-      a {
-        display: block;
-        text-decoration: none;
-        width: 100%;
-        padding: 4px 0px 4px 0px;
-        color: #000;
-      }
-    }
-    .btn-ellipse:focus .account-options {
-      display: block !important;
     }
     .pt-dark-label {
       color: #fff !important;
