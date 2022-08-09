@@ -213,7 +213,8 @@ export default {
     border-radius: 16px;
     font-size: 20px;
     height: 100px;
-    margin-left: 15px;
+    margin-left: 2px;
+    margin-right: 12px;
   }
   .method-cards {
     height: 97px;
