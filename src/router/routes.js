@@ -1,5 +1,9 @@
 const routes = [
   {
+    path: '/barcode',
+    component: () => import('layouts/Barcode.vue')
+  },
+  {
     path: '/',
     component: () => import('layouts/Transaction.vue'),
     children: [
