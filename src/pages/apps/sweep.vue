@@ -61,7 +61,7 @@
                 </template>
               </div>
             </div>
-            <div v-if="tokens.length > 0" style="margin-top: 15px">
+            <div v-if="sweeper && !fetching" style="margin-top: 15px">
               <p><strong>Tokens ({{ tokens.length }})</strong></p>
               <p>
                 SLP Address: {{ sweeper.slpAddress | ellipsisText }}

@@ -206,7 +206,7 @@ export default {
     startPageStatus (n, o) {
       setTimeout(() => {
         const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 34}px; z-index: 1`)
+        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 25}px; z-index: 1`)
       }, 100)
     },
     selectedAsset () {
