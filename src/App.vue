@@ -1,32 +1,18 @@
 <template>
   <div id="q-app" ref="container">
-    <div id="app-container" style="width: 100%;">
-      <router-view />
-    </div>
-
-    <div id="x-barcode-scanner" class="hide-app-container">
-      <div class="row">
-        <div id="enable-scanner" class="col-12 q-px-md q-mt-md">
-          <q-btn class="full-width bg-blue-9 text-white" label="Scan QR code" rounded @click="cancelScanner" />
-        </div>
-      </div>
-    </div>
-    <!-- <router-view /> -->
+    <router-view />
   </div>
 </template>
 
 <script>
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner'
 
 export default {
   name: 'App',
-
   data () {
     return {
       assetPricesUpdateIntervalId: null
     }
   },
-
   mounted () {
     const vm = this
     if (vm.$q.platform.is.bex) {
@@ -77,23 +63,6 @@ export default {
     setTimeout(function () {
       vm.$refs.container.style.display = 'block'
     }, 500)
-  },
-  methods: {
-    stopScan () {
-      BarcodeScanner.showBackground()
-      BarcodeScanner.stopScan()
-      this.scanning = false
-      document.getElementById('app-container').classList.add('hide-app-container')
-      document.body.classList.remove('transparent-body')
-      document.getElementById('q-app').classList.remove('transparent-body')
-      document.getElementById('x-barcode-scanner').classList.remove('hide-app-container')
-    }
-  },
-  deactivated () {
-    this.stopScan()
-  },
-  beforeDestroy () {
-    this.stopScan()
   }
 }
 </script>
@@ -101,11 +70,5 @@ export default {
 <style>
 #q-app {
   overflow: auto;
-}
-.hide-app-container {
-  display: none !important;
-}
-.transparent-body {
-  background: transparent !important;
 }
 </style>

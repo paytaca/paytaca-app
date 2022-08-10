@@ -1,9 +1,4 @@
-const routes = [
-  {
-    path: '/barcode',
-    component: () => import('layouts/Barcode.vue')
-  },
-  {
+const routes = [{
     path: '/',
     component: () => import('layouts/Transaction.vue'),
     children: [

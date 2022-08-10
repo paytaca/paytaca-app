@@ -36,12 +36,10 @@ export default function ({ store }) {
         if (mnemonic) {
           next()
         } else {
-          next('/barcode')
-          // next('/accounts')
+          next('/accounts')
         }
       } catch (err) {
-        next('/barcode')
-        // next('/accounts')
+        next('/accounts')
       }
     } else {
       next()
