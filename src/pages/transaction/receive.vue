@@ -11,7 +11,14 @@
             <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">Generate new address</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="copyPrivateKey">Copy private key</q-item-section>
+            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="copyPrivateKey">
+              <template v-if="copying">
+                Copying...
+              </template>
+              <template v-else>
+                Copy private key
+              </template>
+            </q-item-section>
           </q-item>
         </q-list>
       </q-menu>
@@ -99,7 +106,8 @@ export default {
       wallet: null,
       lnsName: '',
       generatingAddress: false,
-      fullscreen: false
+      fullscreen: false,
+      copying: false
     }
   },
   props: {
@@ -185,6 +193,7 @@ export default {
       }
     },
     async copyPrivateKey () {
+      this.copying = true
       const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
       let privateKey
       if (this.walletType === 'bch') {
@@ -192,6 +201,7 @@ export default {
       } else {
         privateKey = await this.wallet.SLP.getPrivateKey('0/' + String(lastAddressIndex))
       }
+      this.copying = false
       this.copyToClipboard(privateKey)
     },
     getAddress () {
