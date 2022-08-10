@@ -204,17 +204,27 @@ export default {
       }
     },
     sweepToken (token) {
-      this.sweeping = true
-      this.selectedToken = token.token_id
-      this.sweeper.sweepToken(
+      const vm = this
+      vm.sweeping = true
+      vm.selectedToken = token.token_id
+      vm.sweeper.sweepToken(
         token.address,
-        this.wif,
+        vm.wif,
         token.token_id,
         token.spendable,
-        this.feeFunder,
-        this.$store.getters['global/getAddress']('slp')
-      )
-      this.getTokens()
+        vm.feeFunder,
+        vm.$store.getters['global/getAddress']('slp')
+      ).then(function (result) {
+        if (!result.success) {
+          vm.$q.notify({
+            message: result.error,
+            icon: 'mdi-close-circle',
+            color: 'red-5'
+          })
+          vm.selectedToken = null
+        }
+        vm.getTokens()
+      })
     },
     sweepBch () {
       this.sweeping = true

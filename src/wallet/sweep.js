@@ -64,10 +64,7 @@ export class SweepPrivateKey {
       broadcast: true
     }
 
-    watchtower.SLP.Type1.send(data).then(function (result) {
-      console.log(result)
-      return result
-    })
+    return watchtower.SLP.Type1.send(data)
   }
 
   sweepBch (bchAddress, bchWif, spendableBalance, recipient) {
@@ -86,10 +83,7 @@ export class SweepPrivateKey {
       broadcast: true
     }
 
-    watchtower.BCH.send(data).then(function (result) {
-      console.log(result)
-      return result
-    })
+    return watchtower.BCH.send(data)
   }
 }
 
