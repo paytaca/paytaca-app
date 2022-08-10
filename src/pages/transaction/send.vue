@@ -489,62 +489,6 @@ export default {
       setTimeout(() => { reset() }, 2000)
       this.executeSecurityChecking()
     },
-    // slideToSubmit ({ evt, ...newInfo }) {
-    //   const vm = this
-    //   const htmlTag = document.querySelector('.pt-animate-submit')
-    //   const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
-
-    //   let screenX, clientX
-    //   if (evt.changedTouches === undefined) {
-    //     screenX = evt.screenX
-    //     clientX = evt.clientX
-    //   } else {
-    //     screenX = evt.changedTouches[0].screenX
-    //     clientX = evt.changedTouches[0].clientX
-    //   }
-
-    //   if (vm.counter === 0) {
-    //     vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
-    //     vm.leftX = Math.round(screenX)
-    //   }
-
-    //   if (!newInfo.isFinal) {
-    //     vm.counter++
-    //     if (window.innerWidth <= (clientX + 100) && right <= 90) {
-    //       vm.swiped = false
-    //       htmlTag.classList.add('animate-full-width')
-    //       document.querySelector('.pt-send-text').style.opacity = 0
-    //       vm.submitLabel = 'Security check'
-    //       vm.submitStatus = true
-    //     } else {
-    //       const htmlTag = document.querySelector('.pt-animate-submit')
-    //       const newPadding = vm.slider + screenX - vm.leftX
-
-    //       if (newPadding >= 0) {
-    //         htmlTag.style.left = newPadding + 'px'
-    //         document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
-    //         vm.opacity += 0.005
-    //       }
-    //     }
-    //   } else {
-    //     vm.counter = 0
-    //     vm.opacity = 0.1
-    //     const htmlTag = document.querySelector('.pt-animate-submit')
-    //     const htmlTag2 = document.querySelector('.pt-send-text')
-    //     if (vm.submitStatus !== true) {
-    //       htmlTag.classList.add('animate-left')
-    //       htmlTag2.classList.add('animate-opacity')
-    //       setTimeout(() => {
-    //         htmlTag.style.left = '30px'
-    //         htmlTag2.style.opacity = '10'
-    //         htmlTag.classList.remove('animate-left')
-    //         htmlTag2.classList.remove('animate-opacity')
-    //       }, 500)
-    //     } else {
-    //       vm.executeSecurityChecking()
-    //     }
-    //   }
-    // },
 
     executeSecurityChecking () {
       const vm = this
@@ -609,15 +553,9 @@ export default {
     },
 
     resetSubmit () {
-      // const htmlTag = document.querySelector('.animate-full-width')
-      // const htmlTag2 = document.querySelector('.pt-animate-submit')
-      // htmlTag.classList.add('pt-animate-submit')
-      // htmlTag2.classList.remove('animate-full-width')
-      // htmlTag2.style.left = '30px'
       this.swiped = true
       this.submitStatus = false
       this.submitLabel = 'Processing'
-      // document.querySelector('.pt-send-text').style.opacity = 10
       this.pinDialogAction = ''
     },
 
