@@ -336,8 +336,20 @@ export class SmartBchWallet {
   async sendTransaction (txParams, wait = true) {
     try {
       const tx = await this._wallet.sendTransaction(txParams)
-      if (wait) await tx.wait()
-
+      if (wait) {
+        const minedTx = await tx.wait()
+        if (minedTx.status === 1) {
+          return {
+            success: true,
+            transaction: minedTx
+          }
+        } else if (minedTx.status === 0) {
+          return {
+            success: false,
+            transaction: 'transaction reverted'
+          }
+        }
+      }
       return {
         success: true,
         transaction: tx
@@ -376,9 +388,16 @@ export class SmartBchWallet {
     try {
       const tx = await contractWithSigner.transfer(recipientAddress, parsedAmount)
       const minedTx = await tx.wait()
-      return {
-        success: true,
-        transaction: minedTx
+      if (minedTx.status === 1) {
+        return {
+          success: true,
+          transaction: minedTx
+        }
+      } else if (minedTx.status === 0) {
+        return {
+          success: false,
+          transaction: 'transaction reverted'
+        }
       }
     } catch (e) {
       return {
@@ -423,9 +442,16 @@ export class SmartBchWallet {
     try {
       const tx = await contractWithSigner.safeTransferFrom(this._wallet.address, recipientAddress, parsedTokenId)
       const minedTx = await tx.wait()
-      return {
-        success: true,
-        transaction: minedTx
+      if (minedTx.status === 1) {
+        return {
+          success: true,
+          transaction: minedTx
+        }
+      } else if (minedTx.status === 0) {
+        return {
+          success: false,
+          transaction: 'transaction reverted'
+        }
       }
     } catch (e) {
       return {
