@@ -521,62 +521,6 @@ export default {
       setTimeout(() => { reset() }, 2000)
       this.executeSecurityChecking()
     },
-    // slideToSubmit ({ evt, ...newInfo }) {
-    //   const vm = this
-    //   const htmlTag = document.querySelector('.pt-animate-submit')
-    //   const right = parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10)
-
-    //   let screenX, clientX
-    //   if (evt.changedTouches === undefined) {
-    //     screenX = evt.screenX
-    //     clientX = evt.clientX
-    //   } else {
-    //     screenX = evt.changedTouches[0].screenX
-    //     clientX = evt.changedTouches[0].clientX
-    //   }
-
-    //   if (vm.counter === 0) {
-    //     vm.slider = parseInt(document.defaultView.getComputedStyle(htmlTag).left, 10)
-    //     vm.leftX = Math.round(screenX)
-    //   }
-
-    //   if (!newInfo.isFinal) {
-    //     vm.counter++
-    //     if (window.innerWidth <= (clientX + 100) && right <= 90) {
-    //       vm.swiped = false
-    //       htmlTag.classList.add('animate-full-width')
-    //       document.querySelector('.pt-send-text').style.opacity = 0
-    //       vm.submitLabel = 'Security check'
-    //       vm.submitStatus = true
-    //     } else {
-    //       const htmlTag = document.querySelector('.pt-animate-submit')
-    //       const newPadding = vm.slider + screenX - vm.leftX
-
-    //       if (newPadding >= 0) {
-    //         htmlTag.style.left = newPadding + 'px'
-    //         document.querySelector('.pt-send-text').style.opacity = (parseInt(document.defaultView.getComputedStyle(htmlTag).right, 10) / vm.rightOffset) - vm.opacity
-    //         vm.opacity += 0.005
-    //       }
-    //     }
-    //   } else {
-    //     vm.counter = 0
-    //     vm.opacity = 0.1
-    //     const htmlTag = document.querySelector('.pt-animate-submit')
-    //     const htmlTag2 = document.querySelector('.pt-send-text')
-    //     if (vm.submitStatus !== true) {
-    //       htmlTag.classList.add('animate-left')
-    //       htmlTag2.classList.add('animate-opacity')
-    //       setTimeout(() => {
-    //         htmlTag.style.left = '30px'
-    //         htmlTag2.style.opacity = '10'
-    //         htmlTag.classList.remove('animate-left')
-    //         htmlTag2.classList.remove('animate-opacity')
-    //       }, 500)
-    //     } else {
-    //       vm.executeSecurityChecking()
-    //     }
-    //   }
-    // },
 
     executeSecurityChecking () {
       const vm = this
@@ -697,71 +641,6 @@ export default {
         this.sendErrors.push('Invalid address')
         return false
       }
-    },
-    onDecode (content) {
-      let address = content
-      let amount = null
-      try {
-        console.log('Parsing content as eip681')
-        const eip6821data = decodeEIP681URI(content)
-        address = eip6821data.target_address
-        amount = eip6821data.parsedValue
-      } catch (err) {
-        console.log('Failed to parse as eip681 uri')
-        console.log(err)
-      }
-      const valid = this.checkAddress(address)
-      if (valid) {
-        this.sendData.recipientAddress = address
-        this.scannedRecipientAddress = true
-
-        if (amount !== null) {
-          this.sendData.amount = amount
-        }
-      }
-      this.scanner.show = !this.scanner.show
-    },
-    onInit (promise) {
-      const bodyBounds = document.body.getBoundingClientRect()
-      const screenWidth = bodyBounds.width
-      const screenHeight = screen.height
-      this.$refs.scanner.setAttribute('style', 'height: ' + screenHeight + 'px !important; width: 100% !important;')
-
-      const leftLoc = (screenWidth - (screenWidth / 2) - 110) // 110 is half the scanner box width
-      const topLoc = screenHeight * 0.3
-      this.$refs.box.setAttribute('style', 'top: ' + topLoc + 'px; ' + 'left: ' + leftLoc + 'px;')
-      promise
-        .then(() => {
-          console.log('Successfully initilized! Ready for scanning now!')
-          this.scanner.error = ''
-        })
-        .catch(error => {
-          this.scanner.show = false
-          if (error.name === 'NotAllowedError') {
-            this.scanner.error = 'Permission required to access to camera'
-            // this.scanner.error = 'Hey! I need access to your camera'
-          } else if (error.name === 'NotFoundError') {
-            this.scanner.error = 'No camera found on this device'
-            // this.scanner.error = 'Do you even have a camera on your device?'
-          } else if (error.name === 'NotSupportedError') {
-            this.scanner.error = 'Unable to acccess camera in non-secure context'
-            // this.scanner.error = 'Seems like this page is served in non-secure context (HTTPS, localhost or file://)'
-          } else if (error.name === 'NotReadableError') {
-            this.scanner.error = 'Unable to access camera.'
-            // this.scanner.error = 'Couldn\'t access your camera. Is it already in use?'
-          } else if (error.name === 'OverconstrainedError') {
-            this.scanner.frontCamera = false
-            this.scanner.error = 'Constraints don\'t match any installed camera. Did you ask for the front camera although there is none?'
-          } else {
-            this.scanner.error = 'Unknown error: ' + error.message
-          }
-        })
-    },
-
-    closeQrScanner () {
-      this.$router.push({
-        path: '/'
-      })
     },
 
     getWallet (type) {
