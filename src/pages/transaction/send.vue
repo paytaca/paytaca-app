@@ -1,209 +1,215 @@
 <template>
-  <div style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
-    <header-nav
-      :title="'SEND ' + asset.symbol"
-      backnavpath="/send/select-asset"
-    ></header-nav>
-    <div class="q-mt-xl">
-      <div class="q-pa-md" style="padding-top: 70px;">
-        <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
-          <img :src="image" width="150" />
-        </div>
-        <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
-          <q-icon name="error" left/>
-          {{ scanner.error }}
-        </div>
-        <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendData.recipientAddress === ''">
-          <div class="col-12" style="text-align: center;">
-            <q-input
-              bottom-slots
-              filled
-              :dark="darkMode"
-              v-model="manualAddress"
-              :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
-              @input="resolveLnsName"
-            >
-              <template v-slot:append>
-                <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
-              </template>
-              <q-menu v-model="lns.show" fit :no-parent-event="!isValidLNSName(manualAddress) && (!lns.name || lns.name !== manualAddress) && !lns.loading" no-focus>
-                <q-item v-if="lns.loading">
-                  <q-item-section class="items-center">
-                    <q-spinner color="black"/>
-                    <q-item-label caption>Resolving LNS name address</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
-                  <q-item-section>
-                    <q-item-label :class="darkMode ? '' : 'text-black'" caption>{{ lns.name }}</q-item-label>
-                    <q-item-label style="word-break:break-all;" :class="darkMode ? '' : 'text-black'">{{ lns.address }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item v-else :class="[darkMode ? 'pt-dark-label' : 'text-grey']">
-                  <q-item-section side>
-                    <q-icon name="error"/>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label caption>
-                      Unable to resolve LNS name address
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-menu>
-            </q-input>
+  <div class="static-container">
+    <QrScanner
+      v-model="showQrScanner"
+      @decode="onScannerDecode"
+    />
+    <div id="app-container" style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
+      <header-nav
+        :title="'SEND ' + asset.symbol"
+        backnavpath="/send/select-asset"
+      ></header-nav>
+      <div class="q-mt-xl">
+        <div class="q-pa-md" style="padding-top: 70px;">
+          <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
+            <img :src="image" width="150" />
           </div>
-          <div class="col-12" style="text-align: center; font-size: 15px; color: grey;">
-            OR
+          <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
+            <q-icon name="error" left/>
+            {{ scanner.error }}
           </div>
-          <div class="col-12 q-mt-lg text-center">
-            <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="scanner.show = !scanner.show" />
-          </div>
-        </div>
-        <div class="row justify-center q-pt-lg" v-show="scanner.show">
-          <div ref="scanner" class="q-pa-none qrcode-scanner">
-            <q-btn
-              icon="close"
-              round
-              padding="sm"
-              unelevated
-              class="scanner-close-btn"
-              style="z-index:2022;"
-              @click="closeQrScanner"
-            />
-            <div :class="{'scanner-box' : scanner.show}" ref="box">
-              <div class="scan-layout-design" v-if="scanner.show">
-                <div class="scan-design1">
-                  <div class="line-design1"></div>
-                </div>
-                <div class="scan-design2">
-                  <div class="line-design2"></div>
-                </div>
-                <div class="scan-design3">
-                  <div class="line-design3"></div>
-                </div>
-                <div class="scan-design4">
-                  <div class="line-design4"></div>
-                </div>
-              </div>
-              <span class="scanner-text text-center full-width">Scan QR code</span>
-            </div>
-            <qrcode-stream v-if="scanner.show" :camera="scanner.frontCamera ? 'front': 'auto'" @decode="onDecode" @init="onInit"></qrcode-stream>
-          </div>
-        </div>
-        <div class="q-pa-md text-center text-weight-medium">
-          {{ scanner.decodedContent }}
-        </div>
-      </div>
-      <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
-        <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
-          <div class="row">
-            <div class="col q-mt-sm se">
+          <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendData.recipientAddress === ''">
+            <div class="col-12" style="text-align: center;">
               <q-input
+                bottom-slots
                 filled
-                v-model="sendData.recipientAddress"
-                label-slot
-                :disabled="disableRecipientInput"
-                :readonly="disableRecipientInput"
                 :dark="darkMode"
+                v-model="manualAddress"
+                :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
+                @input="resolveLnsName"
               >
-                <template v-slot:label>
-                  Recipient
-                  <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
-                    ({{ sendData.lnsName }})
-                  </template>
+                <template v-slot:append>
+                  <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
                 </template>
+                <q-menu v-model="lns.show" fit :no-parent-event="!isValidLNSName(manualAddress) && (!lns.name || lns.name !== manualAddress) && !lns.loading" no-focus>
+                  <q-item v-if="lns.loading">
+                    <q-item-section class="items-center">
+                      <q-spinner color="black"/>
+                      <q-item-label caption>Resolving LNS name address</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
+                    <q-item-section>
+                      <q-item-label :class="darkMode ? '' : 'text-black'" caption>{{ lns.name }}</q-item-label>
+                      <q-item-label style="word-break:break-all;" :class="darkMode ? '' : 'text-black'">{{ lns.address }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item v-else :class="[darkMode ? 'pt-dark-label' : 'text-grey']">
+                    <q-item-section side>
+                      <q-icon name="error"/>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label caption>
+                        Unable to resolve LNS name address
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-menu>
               </q-input>
             </div>
+            <div class="col-12" style="text-align: center; font-size: 15px; color: grey;">
+              OR
+            </div>
+            <div class="col-12 q-mt-lg text-center">
+              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+            </div>
           </div>
-          <div class="row" v-if="!isNFT">
-            <div class="col q-mt-md">
-              <q-input
-                type="text"
-                inputmode="tel"
-                ref="amount"
-                @focus="readonlyState(true)"
-                @blur="readonlyState(false)"
-                filled
-                v-model="sendData.amount"
-                label="Amount"
-                :disabled="disableAmountInput"
-                :readonly="disableAmountInput"
-                :dark="darkMode"
-              ></q-input>
-              <div v-if="sendAmountMarketValue" class="text-body2 text-grey q-mt-sm q-px-sm">
-                ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          <!-- <div class="row justify-center q-pt-lg" v-show="scanner.show">
+            <div ref="scanner" class="q-pa-none qrcode-scanner">
+              <q-btn
+                icon="close"
+                round
+                padding="sm"
+                unelevated
+                class="scanner-close-btn"
+                style="z-index:2022;"
+                @click="closeQrScanner"
+              />
+              <div :class="{'scanner-box' : scanner.show}" ref="box">
+                <div class="scan-layout-design" v-if="scanner.show">
+                  <div class="scan-design1">
+                    <div class="line-design1"></div>
+                  </div>
+                  <div class="scan-design2">
+                    <div class="line-design2"></div>
+                  </div>
+                  <div class="scan-design3">
+                    <div class="line-design3"></div>
+                  </div>
+                  <div class="scan-design4">
+                    <div class="line-design4"></div>
+                  </div>
+                </div>
+                <span class="scanner-text text-center full-width">Scan QR code</span>
+              </div>
+              <qrcode-stream v-if="scanner.show" :camera="scanner.frontCamera ? 'front': 'auto'" @decode="onDecode" @init="onInit"></qrcode-stream>
+            </div>
+          </div> -->
+          <div class="q-pa-md text-center text-weight-medium">
+            {{ scanner.decodedContent }}
+          </div>
+        </div>
+        <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
+          <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
+            <div class="row">
+              <div class="col q-mt-sm se">
+                <q-input
+                  filled
+                  v-model="sendData.recipientAddress"
+                  label-slot
+                  :disabled="disableRecipientInput"
+                  :readonly="disableRecipientInput"
+                  :dark="darkMode"
+                >
+                  <template v-slot:label>
+                    Recipient
+                    <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
+                      ({{ sendData.lnsName }})
+                    </template>
+                  </template>
+                </q-input>
               </div>
             </div>
-          </div>
-          <div class="row" v-if="!isNFT">
-            <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-              Balance: {{ asset.balance }} {{ asset.symbol }}
-              <a
-                href="#"
-                @click.prevent="setMaximumSendAmount"
-                style="float: right; text-decoration: none; color: #3b7bf6;"
-              >
-                MAX
-              </a>
+            <div class="row" v-if="!isNFT">
+              <div class="col q-mt-md">
+                <q-input
+                  type="text"
+                  inputmode="tel"
+                  ref="amount"
+                  @focus="readonlyState(true)"
+                  @blur="readonlyState(false)"
+                  filled
+                  v-model="sendData.amount"
+                  label="Amount"
+                  :disabled="disableAmountInput"
+                  :readonly="disableAmountInput"
+                  :dark="darkMode"
+                ></q-input>
+                <div v-if="sendAmountMarketValue" class="text-body2 text-grey q-mt-sm q-px-sm">
+                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="row" v-if="sendData.sending">
-            <div class="col-12 text-center">
-              <ProgressLoader/>
+            <div class="row" v-if="!isNFT">
+              <div class="col q-mt-md" style="font-size: 18px; color: gray;">
+                Balance: {{ asset.balance }} {{ asset.symbol }}
+                <a
+                  href="#"
+                  @click.prevent="setMaximumSendAmount"
+                  style="float: right; text-decoration: none; color: #3b7bf6;"
+                >
+                  MAX
+                </a>
+              </div>
             </div>
-          </div>
-        </form>
-      </div>
-
-      <customKeyboard v-if="!showSlider" :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
-
-      <q-list v-if="showSlider" class="absolute-bottom">
-        <q-slide-item left-color="blue" @left="slideToSubmit">
-          <template v-slot:left>
-            <div style="font-size: 15px" class="text-body1">
-            <q-icon class="material-icons q-mr-md" size="lg">
-              task_alt
-            </q-icon>
-            Security Check
+            <div class="row" v-if="sendData.sending">
+              <div class="col-12 text-center">
+                <ProgressLoader/>
+              </div>
             </div>
-          </template>
+          </form>
+        </div>
 
-          <q-item class="bg-grad text-white q-py-md">
-            <q-item-section avatar>
-              <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
-            </q-item-section>
-            <q-item-section class="text-right">
-              <h5 class="q-my-sm text-grey-4">SWIPE TO SEND</h5>
-            </q-item-section>
-          </q-item>
-        </q-slide-item>
-      </q-list>
-      <template v-if="showFooter">
-        <footer-menu />
-      </template>
+        <customKeyboard v-if="!showSlider" :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
 
-      <div class="row" v-if="sendErrors.length > 0">
-        <div class="col">
-          <ul style="margin-left: -40px; list-style: none;">
-            <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
-              <q-icon name="error" left/>
-              {{ error }}
-            </li>
-          </ul>
+        <q-list v-if="showSlider" class="absolute-bottom">
+          <q-slide-item left-color="blue" @left="slideToSubmit">
+            <template v-slot:left>
+              <div style="font-size: 15px" class="text-body1">
+              <q-icon class="material-icons q-mr-md" size="lg">
+                task_alt
+              </q-icon>
+              Security Check
+              </div>
+            </template>
+
+            <q-item class="bg-grad text-white q-py-md">
+              <q-item-section avatar>
+                <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+              </q-item-section>
+              <q-item-section class="text-right">
+                <h5 class="q-my-sm text-grey-4">SWIPE TO SEND</h5>
+              </q-item-section>
+            </q-item>
+          </q-slide-item>
+        </q-list>
+        <template v-if="showFooter">
+          <footer-menu />
+        </template>
+
+        <div class="row" v-if="sendErrors.length > 0">
+          <div class="col">
+            <ul style="margin-left: -40px; list-style: none;">
+              <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
+                <q-icon name="error" left/>
+                {{ error }}
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="q-px-lg" v-if="sendData.sent" style="text-align: center;">
+          <q-icon size="120px" name="check_circle" color="green-5"></q-icon>
+          <div style="margin-top: 20px;">
+            <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 30px;">Successfully sent</p>
+            <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+          </div>
         </div>
       </div>
-      <div class="q-px-lg" v-if="sendData.sent" style="text-align: center;">
-        <q-icon size="120px" name="check_circle" color="green-5"></q-icon>
-        <div style="margin-top: 20px;">
-          <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 30px;">Successfully sent</p>
-          <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
-        </div>
-      </div>
+
+      <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
+      <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
+
     </div>
-
-    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
-    <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
-
   </div>
 </template>
 
@@ -220,6 +226,7 @@ import biometricWarningAttmepts from '../../components/authOption/biometric-warn
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import QrScanner from '../../components/qr-scanner.vue'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -235,7 +242,8 @@ export default {
     HeaderNav,
     pinDialog,
     biometricWarningAttmepts,
-    customKeyboard
+    customKeyboard,
+    QrScanner
   },
   props: {
     network: {
@@ -324,7 +332,8 @@ export default {
       amountInputState: false,
       customKeyboardState: 'dismiss',
       sliderStatus: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      showQrScanner: false
     }
   },
 
@@ -411,6 +420,29 @@ export default {
   },
 
   methods: {
+    onScannerDecode (content) {
+      this.showQrScanner = false
+      let address = content
+      let amount = null
+      try {
+        console.log('Parsing content as eip681')
+        const eip6821data = decodeEIP681URI(content)
+        address = eip6821data.target_address
+        amount = eip6821data.parsedValue
+      } catch (err) {
+        console.log('Failed to parse as eip681 uri')
+        console.log(err)
+      }
+      const valid = this.checkAddress(address)
+      if (valid) {
+        this.sendData.recipientAddress = address
+        this.scannedRecipientAddress = true
+
+        if (amount !== null) {
+          this.sendData.amount = amount
+        }
+      }
+    },
     isValidLNSName: isNameLike,
     readonlyState (state) {
       this.amountInputState = state
@@ -961,7 +993,8 @@ export default {
     left: 0;
     right: 0;
     z-index: 100;
-    background: lightcoral;
+    // background: lightcoral;
+    background: transparent;
     display: flex;
     flex-flow: column nowrap;
     justify-content: center;
