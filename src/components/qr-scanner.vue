@@ -1,56 +1,123 @@
 <template>
-  <div id="qr-scanner-ui" class="qrcode-scanner hide-section">
-		<q-btn
-			icon="close"
-			rounded
-			padding="xs"
-			flat
-			class="scanner-close-btn"
-			style="z-index:2022;"
-			@click="stopScan"
-		/>
-    
-    <div class="scanner-box" ref="box">
-      <div class="scan-layout-design">
-        <div class="scan-design1">
-          <div class="line-design1"></div>
+  <div>
+    <div v-if="$q.platform.is.mobile" id="qr-scanner-ui" class="qrcode-scanner hide-section">
+      <q-btn
+        icon="close"
+        rounded
+        padding="xs"
+        flat
+        class="scanner-close-btn"
+        style="z-index:2022;"
+        @click="stopScan"
+      />
+      <div class="scanner-box" ref="box">
+        <div class="scan-layout-design">
+          <div class="scan-design1">
+            <div class="line-design1"></div>
+          </div>
+          <div class="scan-design2">
+            <div class="line-design2"></div>
+          </div>
+          <div class="scan-design3">
+            <div class="line-design3"></div>
+          </div>
+          <div class="scan-design4">
+            <div class="line-design4"></div>
+          </div>
         </div>
-        <div class="scan-design2">
-          <div class="line-design2"></div>
-        </div>
-        <div class="scan-design3">
-          <div class="line-design3"></div>
-        </div>
-        <div class="scan-design4">
-          <div class="line-design4"></div>
-        </div>
+        <span class="scanner-text text-center full-width">Scan QR code</span>
       </div>
-      <span class="scanner-text text-center full-width">Scan QR code</span>
+    </div>
+  
+    <div v-show="val && isBrowser()" class="scanner-container">
+      <q-btn
+        icon="close"
+        rounded
+        padding="xs"
+        flat
+        class="scanner-close-btn"
+        style="z-index:2022;"
+        @click="val = false"
+      />
+      <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
+        <q-icon name="error" left/>
+        {{ error }}
+      </div>
+      <template v-else>
+        <qrcode-stream
+          v-if="val"
+          :camera="frontCamera ? 'front': 'auto'"
+          @decode="onScannerDecode"
+          @init="onScannerInit"
+          :style="{
+            position: 'absolute',
+            inset: 0,
+          }"
+        />
+        <div class="scanner-box" ref="box">
+          <div class="scan-layout-design" v-if="val">
+            <div class="scan-design1">
+              <div class="line-design1"></div>
+            </div>
+            <div class="scan-design2">
+              <div class="line-design2"></div>
+            </div>
+            <div class="scan-design3">
+              <div class="line-design3"></div>
+            </div>
+            <div class="scan-design4">
+              <div class="line-design4"></div>
+            </div>
+          </div>
+          <span class="scanner-text text-center full-width">Scan QR code</span>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
+import { QrcodeStream } from 'vue-qrcode-reader'
 
 export default {
+  components: { QrcodeStream },
   data () {
-    return {}
+    return {
+      val: this.value,
+      error: ''
+    }
   },
   props: {
     value: {
       type: Boolean,
       default: false
+    },
+    frontCamera: {
+      type: Boolean,
+      defualt: false
     }
+
   },
-  watch: {	
+  watch: {
+    val () {
+      this.$emit('input', this.val)
+    },
     value (bool) {
-      if (bool) {
-				this.prepareScanner()
-			}
+      console.log('PLATFORM: ', this.isBrowser())
+      if (this.isBrowser()) {
+        this.val = bool
+      } else {
+        if (bool) {
+          this.prepareScanner()
+        }
+      }
     }
   },
   methods: {
+    isBrowser () {
+      return this.$q.platform.is.chrome || this.$q.platform.is.opera || this.$q.platform.is.safari || this.$q.platform.is.edge || this.$q.platform.is.ie || this.$q.platform.is.silk
+    },
 		stopScan () {
 			this.$emit('input', false)
       BarcodeScanner.showBackground()
@@ -155,6 +222,10 @@ export default {
 
       // user did not grant the permission, so he must have declined the request
       return false
+    },
+    // DESKTOP
+    onScannerDecode (content) {
+      this.$emit('decode', content)
     }
   },
   deactivated () {
@@ -162,11 +233,65 @@ export default {
   },
   beforeDestroy () {
     this.stopScan()
-  }
+  },
+  onScannerInit (promise) {
+      promise
+        .then(() => {
+          this.error = ''
+        })
+        .catch(error => {
+          if (error.name === 'NotAllowedError') {
+            this.error = 'Permission required to access to camera'
+            // this.error = 'Hey! I need access to your camera'
+          } else if (error.name === 'NotFoundError') {
+            this.error = 'No camera found on this device'
+            // this.error = 'Do you even have a camera on your device?'
+          } else if (error.name === 'NotSupportedError') {
+            this.error = 'Unable to acccess camera in non-secure context'
+            // this.error = 'Seems like this page is served in non-secure context (HTTPS, localhost or file://)'
+          } else if (error.name === 'NotReadableError') {
+            this.error = 'Unable to access camera.'
+            // this.error = 'Couldn\'t access your camera. Is it already in use?'
+          } else if (error.name === 'OverconstrainedError') {
+            this.frontCamera = false
+            this.error = 'Constraints don\'t match any installed camera. Did you ask for the front camera although there is none?'
+          } else {
+            this.error = 'Unknown error: ' + error.message
+          }
+        })
+    }
 }
 </script>
 
 <style>
+/* DESKTOP */
+.scanner-container {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: lightcoral;
+  z-index: 999;
+  display: flex;
+}
+.scanner-container > .scanner-close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 10px;
+  color: #ef4f84;
+}
+.scanner-container > .scanner-error-dialog {
+	border-radius: 15px;
+	margin-top: 20%;
+	margin-bottom: auto;
+	margin-left: auto;
+	margin-right: auto;
+	width: 220px;
+	max-width: 90vw;
+}
+/* MOBILE */
 .static-container {
   position: static;
   height: 100% !important;
