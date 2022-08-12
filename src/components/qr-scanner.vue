@@ -104,7 +104,6 @@ export default {
       this.$emit('input', this.val)
     },
     value (bool) {
-      console.log('PLATFORM: ', this.isBrowser())
       if (this.isBrowser()) {
         this.val = bool
       } else {
@@ -226,15 +225,8 @@ export default {
     // DESKTOP
     onScannerDecode (content) {
       this.$emit('decode', content)
-    }
-  },
-  deactivated () {
-    this.stopScan()
-  },
-  beforeDestroy () {
-    this.stopScan()
-  },
-  onScannerInit (promise) {
+    },
+    onScannerInit (promise) {
       promise
         .then(() => {
           this.error = ''
@@ -260,6 +252,13 @@ export default {
           }
         })
     }
+  },
+  deactivated () {
+    this.stopScan()
+  },
+  beforeDestroy () {
+    this.stopScan()
+  }
 }
 </script>
 
