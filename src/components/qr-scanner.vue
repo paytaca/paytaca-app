@@ -29,7 +29,7 @@
       </div>
     </div>
   
-    <div v-show="val && isBrowser()" class="scanner-container">
+    <div v-show="val && (this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios)" class="scanner-container">
       <q-btn
         icon="close"
         rounded
@@ -104,19 +104,16 @@ export default {
       this.$emit('input', this.val)
     },
     value (bool) {
-      if (this.isBrowser()) {
-        this.val = bool
-      } else {
+      if (this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios) {
         if (bool) {
           this.prepareScanner()
         }
+      } else {
+        this.val = bool
       }
     }
   },
   methods: {
-    isBrowser () {
-      return this.$q.platform.is.chrome || this.$q.platform.is.opera || this.$q.platform.is.safari || this.$q.platform.is.edge || this.$q.platform.is.ie || this.$q.platform.is.silk
-    },
 		stopScan () {
 			this.$emit('input', false)
       BarcodeScanner.showBackground()
