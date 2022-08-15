@@ -1,54 +1,62 @@
 <template>
-	<div v-show="val" class="scanner-container">
-		<q-btn
-			icon="close"
-			rounded
-			padding="xs"
-			flat
-			class="scanner-close-btn"
-			style="z-index:2022;"
-			@click="val = false"
-		/>
-		<div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
-			<q-icon name="error" left/>
-			{{ error }}
-		</div>
-		<template v-else>
-			<QrcodeStream
-				v-if="val"
-				:camera="frontCamera ? 'front': 'auto'"
-				@decode="onScannerDecode"
-				@init="onScannerInit"
-				:style="{
-					position: 'absolute',
-					inset: 0,
-				}"
-			/>
-			<div class="scanner-box" ref="box">
-				<div class="scan-layout-design" v-if="val">
-					<div class="scan-design1">
-						<div class="line-design1"></div>
-					</div>
-					<div class="scan-design2">
-						<div class="line-design2"></div>
-					</div>
-					<div class="scan-design3">
-						<div class="line-design3"></div>
-					</div>
-					<div class="scan-design4">
-						<div class="line-design4"></div>
-					</div>
-				</div>
-				<span class="scanner-text text-center full-width">Scan QR code</span>
-			</div>
-		</template>
-	</div>
+  <div>
+    <div v-if="$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios" id="qr-scanner-ui" class="qrcode-scanner hide-section">
+      <q-btn
+        icon="close"
+        rounded
+        padding="xs"
+        flat
+        class="scanner-close-btn"
+        style="z-index:2022;"
+        @click="stopScan"
+      />
+      <ScannerUI />
+    </div>
+
+    <div v-show="val && !(this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios)" class="scanner-container">
+      <q-btn
+        icon="close"
+        rounded
+        padding="xs"
+        flat
+        class="scanner-close-btn"
+        style="z-index:2022;"
+        @click="val = false"
+      />
+      <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
+        <q-icon name="error" left/>
+        {{ error }}
+      </div>
+      <template v-else>
+        <qrcode-stream
+          v-if="val"
+          :camera="frontCamera ? 'front': 'auto'"
+          @decode="onScannerDecode"
+          @init="onScannerInit"
+          :style="{
+            position: 'absolute',
+            inset: 0,
+          }"
+        />
+        <ScannerUI />
+      </template>
+    </div>
+  </div>
 </template>
+
 <script>
+import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
 import { QrcodeStream } from 'vue-qrcode-reader'
+import ScannerUI from 'components/scanner-ui/scanner.vue'
+
 export default {
-  name: 'QrScanner',
-  components: { QrcodeStream },
+  components: { QrcodeStream, ScannerUI },
+  data () {
+    return {
+      val: this.value,
+      error: ''
+    }
+  },
   props: {
     value: {
       type: Boolean,
@@ -58,14 +66,136 @@ export default {
       type: Boolean,
       defualt: false
     }
+
   },
-  data () {
-    return {
-      val: this.value,
-      error: ''
+  watch: {
+    val () {
+      this.$emit('input', this.val)
+    },
+    value (bool) {
+      if (this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios) {
+        if (bool) {
+          this.prepareScanner()
+        }
+      } else {
+        this.val = bool
+      }
     }
   },
   methods: {
+    stopScan () {
+      this.$emit('input', false)
+      BarcodeScanner.showBackground()
+      BarcodeScanner.stopScan()
+      try {
+        document.getElementById('app-container').classList.remove('hide-section')
+        document.body.classList.remove('transparent-body')
+        document.getElementById('qr-scanner-ui').classList.add('hide-section')
+      } catch (err) {
+        // console.log(err)
+      }
+
+      if (this.$router.currentRoute.path === '/send') {
+        this.$router.push({ path: '/' })
+      }
+    },
+    async prepareScanner () {
+      BarcodeScanner.prepare()
+      const status = await this.checkPermission()
+      if (status) {
+        this.scanBarcode()
+      } else {
+        this.$emit('input', false)
+      }
+    },
+    async scanBarcode () {
+      BarcodeScanner.hideBackground()
+      const appContainer = document.getElementById('app-container')
+      const scannerUI = document.getElementById('qr-scanner-ui')
+      const hide = 'hide-section'
+      const transparent = 'transparent-body'
+
+      appContainer.classList.add(hide)
+      document.body.classList.add(transparent)
+      scannerUI.classList.remove(hide)
+
+      const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
+
+      if (res.content) {
+        BarcodeScanner.showBackground()
+        appContainer.classList.remove(hide)
+        document.body.classList.remove(transparent)
+        scannerUI.classList.add(hide)
+        this.$emit('decode', res.content)
+      } else {
+        appContainer.classList.remove(hide)
+        document.body.classList.remove(transparent)
+        scannerUI.classList.add(hide)
+        this.$emit('input', false)
+      }
+    },
+    async checkPermission () {
+      const status = await BarcodeScanner.checkPermission({ force: false })
+      // console.log('PERMISSION STATUS: ', JSON.stringify(status))
+
+      if (status.granted) {
+        // user granted permission
+        return true
+      }
+
+      if (status.denied) {
+        // user denied permission
+        return false
+      }
+
+      if (status.asked) {
+        // system requested the user for permission during this call
+        // only possible when force set to true
+        BarcodeScanner.openAppSettings()
+      }
+
+      if (status.neverAsked) {
+        // user has not been requested this permission before
+        // it is advised to show the user some sort of prompt
+        // this way you will not waste your only chance to ask for the permission
+        // const c = confirm('We need your permission to use your camera to be able to scan QR codes')
+        BarcodeScanner.openAppSettings()
+      }
+
+      if (status.restricted || status.unknown) {
+        // ios only
+        // probably means the permission has been denied
+        return false
+      }
+
+      // user has not denied permission
+      // but the user also has not yet granted the permission
+      // so request it
+      const statusRequest = await BarcodeScanner.checkPermission({ force: true })
+      // console.log('PERMISSION STATUS 2: ', JSON.stringify(statusRequest))
+
+      if (statusRequest.asked) {
+        // system requested the user for permission during this call
+        // only possible when force set to true
+        if (statusRequest.granted) {
+          return true
+        } else {
+          return false
+        }
+      }
+
+      if (statusRequest.granted) {
+        // the user did grant the permission now
+        return true
+      }
+
+      // user did not grant the permission, so he must have declined the request
+      return false
+    },
+    // DESKTOP
+    onScannerDecode (content) {
+      this.$emit('decode', content)
+    },
     onScannerInit (promise) {
       promise
         .then(() => {
@@ -91,22 +221,19 @@ export default {
             this.error = 'Unknown error: ' + error.message
           }
         })
-    },
-    onScannerDecode (content) {
-      this.$emit('decode', content)
     }
   },
-  watch: {
-    val () {
-      this.$emit('input', this.val)
-    },
-    value () {
-      this.val = this.value
-    }
+  deactivated () {
+    this.stopScan()
+  },
+  beforeDestroy () {
+    this.stopScan()
   }
 }
 </script>
-<style scoped lang="scss">
+
+<style>
+/* DESKTOP */
 .scanner-container {
   position: fixed;
   top: 0;
@@ -125,96 +252,27 @@ export default {
   color: #ef4f84;
 }
 .scanner-container > .scanner-error-dialog {
-	border-radius: 15px;
-	margin-top: 20%;
-	margin-bottom: auto;
-	margin-left: auto;
-	margin-right: auto;
-	width: 220px;
-	max-width: 90vw;
+  border-radius: 15px;
+  margin-top: 20%;
+  margin-bottom: auto;
+  margin-left: auto;
+  margin-right: auto;
+  width: 220px;
+  max-width: 90vw;
 }
-.scanner-text {
-	position: absolute;
-	bottom: -30px;
-	color: white;
-	z-index: 1000;
+/* MOBILE */
+.static-container {
+  position: static;
+  height: 100% !important;
+  width: 100% !important;
 }
-.scanner-box {
-	position: relative !important;
-	display: flex !important;
-	height: 220px !important;
-	width: 220px !important;
-	border-radius: 16% !important;
-	box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
-	vertical-align: middle;
-	z-index: 2000 !important;
-	align-self: center;
-	margin-left: auto;
-	margin-right: auto;
+.hide-section {
+  display: none !important;
 }
-.scan-design1 {
-	position: absolute;
-	height: 24px;
-	width: 24px;
-	left: 10px;
-	top: 10px;
-	overflow: hidden;
+.transparent-body {
+  background: transparent !important;
 }
-.line-design1 {
-	height: 150px;
-	width: 150px;
-	border: 3px solid #3b7bf6;
-	border-radius: 15%;
-}
-.scan-design2 {
-	position: absolute;
-	height: 24px;
-	width: 24px;
-	right: 10px;
-	top: 10px;
-	overflow: hidden;
-}
-.line-design2 {
-	position: absolute;
-	height: 150px;
-	width: 150px;
-	right: 0px;
-	top: 0px;
-	border: 3px solid #3b7bf6;
-	border-radius: 15%;
-}
-.scan-design3 {
-	position: absolute;
-	height: 24px;
-	width: 24px;
-	right: 10px;
-	bottom: 10px;
-	overflow: hidden;
-}
-.line-design3 {
-	position: absolute;
-	height: 150px;
-	width: 150px;
-	right: 0px;
-	bottom: 0px;
-	border: 3px solid #3b7bf6;
-	border-radius: 15%;
-}
-.scan-design4 {
-	position: absolute;
-	height: 24px;
-	width: 24px;
-	left: 10px;
-	bottom: 10px;
-	overflow: hidden;
-}
-.line-design4 {
-	position: absolute;
-	height: 150px;
-	width: 150px;
-	left: 0px;
-	bottom: 0px;
-	border: 3px solid #3b7bf6;
-	border-radius: 15%;
+.cancel-barcode-button {
+  display: block !important;
 }
 </style>
