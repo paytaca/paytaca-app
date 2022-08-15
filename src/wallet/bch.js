@@ -57,9 +57,9 @@ export class BchWallet {
     }
   }
 
-  async getPrivateKey (path) {
+  async getPrivateKey (addressPath) {
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(path)
+    const childNode = masterHDNode.derivePath(this.derivationPath + '/' + String(addressPath))
     return bchjs.HDNode.toWIF(childNode)
   }
 

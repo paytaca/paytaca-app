@@ -12,7 +12,7 @@
       />
       <ScannerUI />
     </div>
-  
+
     <div v-show="val && !(this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios)" class="scanner-container">
       <q-btn
         icon="close"
@@ -83,18 +83,22 @@ export default {
     }
   },
   methods: {
-		stopScan () {
-			this.$emit('input', false)
+    stopScan () {
+      this.$emit('input', false)
       BarcodeScanner.showBackground()
       BarcodeScanner.stopScan()
-      document.getElementById('app-container').classList.remove('hide-section')
-      document.body.classList.remove('transparent-body')
-      document.getElementById('qr-scanner-ui').classList.add('hide-section')
+      try {
+        document.getElementById('app-container').classList.remove('hide-section')
+        document.body.classList.remove('transparent-body')
+        document.getElementById('qr-scanner-ui').classList.add('hide-section')
+      } catch (err) {
+        // console.log(err)
+      }
 
       if (this.$router.currentRoute.path === '/send') {
         this.$router.push({ path: '/' })
       }
-		},
+    },
     async prepareScanner () {
       BarcodeScanner.prepare()
       const status = await this.checkPermission()
@@ -116,7 +120,7 @@ export default {
       scannerUI.classList.remove(hide)
 
       const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
-      
+
       if (res.content) {
         BarcodeScanner.showBackground()
         appContainer.classList.remove(hide)
@@ -127,7 +131,7 @@ export default {
         appContainer.classList.remove(hide)
         document.body.classList.remove(transparent)
         scannerUI.classList.add(hide)
-				this.$emit('input', false)
+        this.$emit('input', false)
       }
     },
     async checkPermission () {
@@ -160,7 +164,7 @@ export default {
 
       if (status.restricted || status.unknown) {
         // ios only
-        // probably means the permission has been denied  
+        // probably means the permission has been denied
         return false
       }
 
@@ -248,13 +252,13 @@ export default {
   color: #ef4f84;
 }
 .scanner-container > .scanner-error-dialog {
-	border-radius: 15px;
-	margin-top: 20%;
-	margin-bottom: auto;
-	margin-left: auto;
-	margin-right: auto;
-	width: 220px;
-	max-width: 90vw;
+  border-radius: 15px;
+  margin-top: 20%;
+  margin-bottom: auto;
+  margin-left: auto;
+  margin-right: auto;
+  width: 220px;
+  max-width: 90vw;
 }
 /* MOBILE */
 .static-container {

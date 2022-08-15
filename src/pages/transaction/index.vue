@@ -20,11 +20,11 @@
         </div>
         <div class="row q-mt-sm">
           <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-            <img src="../../assets/bch-logo.png" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+            <img src="../../assets/bch-logo.png" style="height: 75px; position: absolute; right: 34px; margin-top: 5px; z-index: 1;"/>
             <q-card id="bch-card">
-              <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
+              <q-card-section style="margin-top: -10px; padding-top: 10px; padding-bottom: 12px;">
                 <div class="text-h6">Bitcoin Cash</div>
-                <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 63px;">
+                <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
                   <q-skeleton style="font-size: 22px;" type="rect"/>
                 </div>
                 <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
@@ -206,7 +206,7 @@ export default {
     startPageStatus (n, o) {
       setTimeout(() => {
         const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
+        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 25}px; z-index: 1`)
       }, 100)
     },
     selectedAsset () {
@@ -845,6 +845,7 @@ export default {
   .payment-methods {
     color: #000;
     font-size: 20px;
+    margin-top: -5px;
   }
   .pp-fcolor {
     color: #000 !important;

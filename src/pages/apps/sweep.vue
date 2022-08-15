@@ -72,6 +72,9 @@
                   SLP Address: {{ sweeper.slpAddress | ellipsisText }}
                   <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.slpAddress)" />
                 </p>
+                <div v-if="tokens.length > 0" class="p-lg" style="margin-bottom: 20px;">
+                  <q-select filled v-model="payFeeFrom" :options="feeOptions" label="Pay for transaction fee from" :dark="darkMode" />
+                </div>
                 <div v-for="(token, index) in tokens" :key="index">
                   <div style="border: 1px solid black; padding: 10px; margin-top: 10px;">
                     <p>
@@ -105,6 +108,7 @@ import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
 import SweepPrivateKey from '../../wallet/sweep'
 import QrScanner from '../../components/qr-scanner.vue'
+import { getMnemonic, Wallet } from '../../wallet'
 
 export default {
   name: 'sweep',
@@ -115,7 +119,7 @@ export default {
   },
   data () {
     return {
-      mnemonic: '',
+      wallet: null,
       wif: '',
       tokens: [],
       skippedTokens: [],
@@ -127,6 +131,11 @@ export default {
       selectedToken: null,
       showQrScanner: false,
       error: null,
+      feeOptions: [
+        { label: 'Wallet', value: 'wallet' },
+        { label: 'Address', value: 'address' }
+      ],
+      payFeeFrom: { label: 'Wallet', value: 'wallet' },
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -135,6 +144,24 @@ export default {
       if (value.length === 0) {
         this.error = null
       }
+    }
+  },
+  computed: {
+    feeFunder () {
+      let funder
+      if (this.payFeeFrom.value === 'address') {
+        funder = {
+          address: this.sweeper.bchAddress,
+          wif: this.wif
+        }
+      } else if (this.payFeeFrom.value === 'wallet') {
+        funder = {
+          walletHash: this.wallet.BCH.walletHash,
+          mnemonic: this.wallet.mnemonic,
+          derivationPath: this.wallet.BCH.derivationPath
+        }
+      }
+      return funder
     }
   },
   methods: {
@@ -178,18 +205,27 @@ export default {
       }
     },
     sweepToken (token) {
-      this.sweeping = true
-      this.selectedToken = token.token_id
-      this.sweeper.sweepToken(
+      const vm = this
+      vm.sweeping = true
+      vm.selectedToken = token.token_id
+      vm.sweeper.sweepToken(
         token.address,
-        this.wif,
+        vm.wif,
         token.token_id,
         token.spendable,
-        this.sweeper.bchAddress,
-        this.wif,
-        this.$store.getters['global/getAddress']('slp')
-      )
-      this.getTokens()
+        vm.feeFunder,
+        vm.$store.getters['global/getAddress']('slp')
+      ).then(function (result) {
+        if (!result.success) {
+          vm.$q.notify({
+            message: result.error,
+            icon: 'mdi-close-circle',
+            color: 'red-5'
+          })
+          vm.selectedToken = null
+        }
+        vm.getTokens()
+      })
     },
     sweepBch () {
       this.sweeping = true
@@ -215,8 +251,13 @@ export default {
     }
   },
   mounted () {
+    const vm = this
     const divHeight = screen.availHeight - 120
-    this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
+    vm.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
+
+    getMnemonic().then(function (mnemonic) {
+      vm.wallet = new Wallet(mnemonic)
+    })
   }
 }
 </script>

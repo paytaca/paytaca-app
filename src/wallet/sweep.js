@@ -46,7 +46,7 @@ export class SweepPrivateKey {
     }
   }
 
-  sweepToken (slpAddress, slpWif, tokenId, balance, bchFundingAddress, bchFundingWif, recipient) {
+  sweepToken (slpAddress, slpWif, tokenId, balance, feeFunder, recipient) {
     const watchtower = new Watchtower()
     const data = {
       sender: {
@@ -54,23 +54,17 @@ export class SweepPrivateKey {
         wif: slpWif
       },
       tokenId: tokenId,
-      feeFunder: {
-        address: bchFundingAddress,
-        wif: bchFundingWif
-      },
       recipients: [
         {
           address: recipient,
           amount: balance
         }
       ],
+      feeFunder: feeFunder,
       broadcast: true
     }
 
-    watchtower.SLP.Type1.send(data).then(function (result) {
-      console.log(result)
-      return result
-    })
+    return watchtower.SLP.Type1.send(data)
   }
 
   sweepBch (bchAddress, bchWif, spendableBalance, recipient) {
@@ -89,10 +83,7 @@ export class SweepPrivateKey {
       broadcast: true
     }
 
-    watchtower.BCH.send(data).then(function (result) {
-      console.log(result)
-      return result
-    })
+    return watchtower.BCH.send(data)
   }
 }
 

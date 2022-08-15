@@ -10,6 +10,16 @@
           <q-item clickable v-close-popup>
             <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">Generate new address</q-item-section>
           </q-item>
+          <q-item clickable v-close-popup>
+            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="copyPrivateKey">
+              <template v-if="copying">
+                Copying...
+              </template>
+              <template v-else>
+                Copy private key
+              </template>
+            </q-item-section>
+          </q-item>
         </q-list>
       </q-menu>
     </q-icon>
@@ -45,7 +55,7 @@
       <div class="row">
         <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
           <span class="qr-code-text text-weight-light text-center">
-            <div class="text-nowrap" style="letter-spacing: 1px" @click="copyAddress" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+            <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
               {{ address }}
               <p style="font-size: 12px; margin-top: 7px;">Click to copy address</p>
             </div>
@@ -96,7 +106,8 @@ export default {
       wallet: null,
       lnsName: '',
       generatingAddress: false,
-      fullscreen: false
+      fullscreen: false,
+      copying: false
     }
   },
   props: {
@@ -151,13 +162,14 @@ export default {
       const vm = this
       vm.generatingAddress = true
       const lastAddressIndex = vm.getLastAddressIndex()
+      const newAddressIndex = lastAddressIndex + 1
       if (vm.walletType === 'bch') {
         vm.wallet.BCH.getNewAddressSet(lastAddressIndex).then(function (addresses) {
           vm.$store.commit('global/generateNewAddressSet', {
             type: 'bch',
             lastAddress: addresses.receiving,
             lastChangeAddress: addresses.change,
-            lastAddressIndex: lastAddressIndex + 1
+            lastAddressIndex: newAddressIndex
           })
           vm.generatingAddress = false
           vm.setupListener()
@@ -169,7 +181,7 @@ export default {
             type: 'slp',
             lastAddress: addresses.receiving,
             lastChangeAddress: addresses.change,
-            lastAddressIndex: lastAddressIndex + 1
+            lastAddressIndex: newAddressIndex
           })
           vm.generatingAddress = false
           vm.setupListener()
@@ -179,6 +191,18 @@ export default {
       if (vm.walletType === sBCHWalletType) {
         vm.wallet.sBCH.subscribeWallet()
       }
+    },
+    async copyPrivateKey () {
+      this.copying = true
+      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+      let privateKey
+      if (this.walletType === 'bch') {
+        privateKey = await this.wallet.BCH.getPrivateKey('0/' + String(lastAddressIndex))
+      } else {
+        privateKey = await this.wallet.SLP.getPrivateKey('0/' + String(lastAddressIndex))
+      }
+      this.copying = false
+      this.copyToClipboard(privateKey)
     },
     getAddress () {
       if (this.isSep20) {
@@ -203,10 +227,10 @@ export default {
     toggleFullScreen () {
       this.fullscreen = !this.fullscreen
     },
-    copyAddress () {
-      this.$copyText(this.address)
+    copyToClipboard (value) {
+      this.$copyText(value)
       this.$q.notify({
-        message: 'Copied address',
+        message: 'Copied to clipboard',
         timeout: 800,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'

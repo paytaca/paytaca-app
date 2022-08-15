@@ -585,15 +585,9 @@ export default {
     },
 
     resetSubmit () {
-      // const htmlTag = document.querySelector('.animate-full-width')
-      // const htmlTag2 = document.querySelector('.pt-animate-submit')
-      // htmlTag.classList.add('pt-animate-submit')
-      // htmlTag2.classList.remove('animate-full-width')
-      // htmlTag2.style.left = '30px'
       this.swiped = true
       this.submitStatus = false
       this.submitLabel = 'Processing'
-      // document.querySelector('.pt-send-text').style.opacity = 10
       this.pinDialogAction = ''
     },
 
