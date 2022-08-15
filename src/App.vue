@@ -5,15 +5,14 @@
 </template>
 
 <script>
+
 export default {
   name: 'App',
-
   data () {
     return {
       assetPricesUpdateIntervalId: null
     }
   },
-
   mounted () {
     const vm = this
     if (vm.$q.platform.is.bex) {

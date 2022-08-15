@@ -34,3 +34,6 @@ yarn-error.log*
 *.ntvs*
 *.njsproj
 *.sln
+
+# Temporarily exclude ios files
+src-capacitor/ios/

@@ -71,7 +71,7 @@ export default {
     },
     assetLink () {
       const tokenId = this.asset && this.asset.id.split('/')[1]
-      if (this.isSep20) return `https://www.smartscan.cash/address/${tokenId}`
+      if (this.isSep20) return `https://sonar.cash/address/${tokenId}`
       return `https://simpleledger.info/#token/${tokenId}`
     },
     fallbackAssetLogo () {

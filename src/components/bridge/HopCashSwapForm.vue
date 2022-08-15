@@ -1,283 +1,285 @@
 <template>
-  <div>
-    <div
-      v-if="Array.isArray(errors) && errors.length"
-      class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
-    >
-      <ul class="q-my-sm q-pl-lg">
-        <li :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-for="(error, index) in errors" :key="index">
-          {{ error }}
-        </li>
-      </ul>
-    </div>
-    <div class="row no-wrap justify-around items-baseline">
-      <div class="col-5 column items-center">
-        <img
-          height="40"
-          src="bch-logo.png"
-        />
-        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">from</div>
-        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-          <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
-          <template v-else>Smart Bitcoin Cash</template>
-        </div>
-      </div>
-
-      <q-btn
-        rounded
-        flat
-        padding="sm"
-        icon="arrow_forward"
-        :disable="lockInputs"
-        :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
-        @click="transferType = transferType === 'c2s' ? 's2c': 'c2s'"
-      />
-
-      <div class="col-5 column items-center">
-        <img height="40" src="bch-logo.png"/>
-        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">to</div>
-        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-          <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
-          <template v-else>Bitcoin Cash</template>
-        </div>
-      </div>
-    </div>
-
-    <q-form ref="form" @submit="onSwapSubmit()">
-      <q-card class="q-mt-sm br-15" :class="{'pt-dark-card': darkMode}">
-        <q-card-section>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-            <span>Bridge balance:</span>
-            <q-btn
-              padding="xs sm"
-              flat
-              :disable="lockInputs"
-              :label="maxBridgeBalance + ' BCH'"
-              :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
-              @click="amount = maxBridgeBalance"
-            />
-          </div>
-          <div>
-            <span :class="[darkMode ? 'pt-dark-label' : 'pp-text']">Wallet balance:</span>
-            <q-btn
-              padding="xs sm"
-              flat
-              :disable="lockInputs"
-              :label="sourceTransferBalance + ' BCH'"
-              :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
-              @click="amount = sourceTransferBalance"
-            />
-          </div>
-          <div class="row no-wrap items-start">
-            <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-              <img height="40" src="bch-logo.png"/>
-              <div class="q-ml-sm">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You send:</div>
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
-              </div>
-            </div>
-            <CustomKeyboardInput
-              v-model="amount"
-              :fieldProps="{
-                dense: true,
-                filled: true,
-                dark: darkMode,
-                disable: lockInputs || maxBridgeBalance === 0,
-                wait: maxBridgeBalance === 0,
-                rules: [
-                  val => Number(val) >= 0.01 || 'Must be at least 0.01',
-                  val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
-                ],
-              }"
-              class="q-space q-my-sm"
-            />
-            <!-- <q-input
-              dense
-              outlined
-              :disable="lockInputs"
-              v-model="amount"
-              placeholder="0.0"
-              class="q-space q-my-sm"
-              :rules="[
-                val => Number(val) > 0.01 || 'Must be greater than 0.01',
-                val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
-              ]"
-              bottom-slots
-            /> -->
-          </div>
-
-          <div class="row no-wrap items-start" style="margin-top: -10px;">
-            <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-              <img height="40" src="bch-logo.png"/>
-              <div class="q-ml-sm">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You receive:</div>
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
-              </div>
-            </div>
-            <CustomKeyboardInput
-              v-model="transferredAmount"
-              :fieldProps="{
-                dense: true,
-                filled: true,
-                dark: darkMode,
-                disable: lockInputs || maxBridgeBalance === 0,
-                wait: maxBridgeBalance === 0,
-                bottomSlots: true,
-              }"
-              class="q-space q-my-sm"
-            />
-            <!-- <q-input
-              dense
-              outlined
-              :disable="lockInputs"
-              v-model="transferredAmount"
-              placeholder="0.0"
-              class="q-space q-my-sm"
-              bottom-slots
-            /> -->
-          </div>
-
-          <div class="row no-wrap items-start" style="margin-top: -10px;">
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-              Receiving address:
-            </div>
-            <q-input
-              v-if="manualAddress"
-              key="manualRecipient"
-              autogrow
-              clearable
-              filled
-              dense
-              :disable="lockInputs"
-              v-model="recipientAddress"
-              class="q-space q-my-sm"
-              :dark="darkMode"
-              :rules="[
-                val => validateAddress(val) || 'Invalid address',
-              ]"
-            />
-            <q-input
-              v-else
-              key="defaultRecipient"
-              autogrow
-              dense
-              outlined
-              readonly
-              :input-class="darkMode ? 'text-blue-5' : 'text-blue-9'"
-              :dark="darkMode"
-              :value="defaultRecipientAddress"
-              class="q-space q-my-sm"
-              bottom-slots
-            />
-          </div>
-          <div v-if="!loading" class="row justify-end items-start">
-            <q-space />
-            <q-toggle
-              dense
-              v-model="manualAddress"
-              :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
-              class="q-mb-md"
-              keep-color
-              color="blue-9"
-              label="Send to another address"
-            />
-          </div>
-
-          <div v-if="!loading" class="row justify-end items-start">
-            <q-btn
-              v-if="manualAddress"
-              no-caps
-              padding="xs md"
-              label="Scan QR code"
-              rounded
-              class="q-mb-sm"
-              color="blue-9"
-              :disable="lockInputs"
-              @click="showQrScanner = true"
-            />
-          </div>
-
-          <q-separator spaced/>
-          <div v-if="!loading" class="q-pa-sm rounded-borders">
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-              <span>BCH to send:</span>
-              <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
-            </div>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-              <span>
-                Estimated fee (0.1%):
-                <!-- <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/> -->
-              </span>
-              <span v-if="!showSplitFees" class="text-nowrap q-ml-xs">
-                ~{{ (fees.paytaca + fees.hopcash) | formatAmount }} BCH
-              </span>
-            </div>
-            <q-slide-transition>
-              <div v-if="showSplitFees">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
-                  <span>Paytaca:</span>
-                  <span class="text-nowrap q-ml-xs">~{{ fees.paytaca | formatAmount }} BCH</span>
-                </div>
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
-                  <span>Hopcash:</span>
-                  <span class="text-nowrap q-ml-xs">~{{ fees.hopcash | formatAmount }} BCH</span>
-                </div>
-              </div>
-            </q-slide-transition>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-              <span>BCH to receive:</span>
-              <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
-            </div>
-          </div>
-          <div class="row justify-center q-mt-sm" style="color: gray;">Powered by hop.cash</div>
-        </q-card-section>
-      </q-card>
-
-      <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
-        <ProgressLoader
-          v-if="loading"
-        />
-        <q-btn
-          v-else
-          no-caps
-          rounded
-          :disable="lockInputs"
-          label="Swap"
-          color="brandblue"
-          class="full-width"
-          type="submit"
-        />
-      </div>
-    </q-form>
-
-    <DragSlide
-      v-if="showDragSlide"
-      :style="{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1500,
-      }"
-      @swiped="swiped"
-    />
-
-    <Pin
-      :pin-dialog-action="verification.type"
-      @nextAction="actionType => {
-        verification.type = ''
-        actionType === 'send' ? executeSwap(): null
-      }"
-    />
+  <div class="static-container">
     <QrScanner
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
+    <div id="app-container">
+      <div
+        v-if="Array.isArray(errors) && errors.length"
+        class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
+      >
+        <ul class="q-my-sm q-pl-lg">
+          <li :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-for="(error, index) in errors" :key="index">
+            {{ error }}
+          </li>
+        </ul>
+      </div>
+      <div class="row no-wrap justify-around items-baseline">
+        <div class="col-5 column items-center">
+          <img
+            height="40"
+            src="bch-logo.png"
+          />
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">from</div>
+          <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+            <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
+            <template v-else>Smart Bitcoin Cash</template>
+          </div>
+        </div>
 
-    <BiometricWarningAttempt
-      :warning-attempts="verification.warningAttemptsStatus"
-      @closeBiometricWarningAttempts="verifyBiometric()"
-    />
+        <q-btn
+          rounded
+          flat
+          padding="sm"
+          icon="arrow_forward"
+          :disable="lockInputs"
+          :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
+          @click="transferType = transferType === 'c2s' ? 's2c': 'c2s'"
+        />
+
+        <div class="col-5 column items-center">
+          <img height="40" src="bch-logo.png"/>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">to</div>
+          <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+            <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
+            <template v-else>Bitcoin Cash</template>
+          </div>
+        </div>
+      </div>
+
+      <q-form ref="form" @submit="onSwapSubmit()">
+        <q-card class="q-mt-sm br-15" :class="{'pt-dark-card': darkMode}">
+          <q-card-section>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+              <span>Bridge balance:</span>
+              <q-btn
+                padding="xs sm"
+                flat
+                :disable="lockInputs"
+                :label="maxBridgeBalance + ' BCH'"
+                :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                @click="amount = maxBridgeBalance"
+              />
+            </div>
+            <div>
+              <span :class="[darkMode ? 'pt-dark-label' : 'pp-text']">Wallet balance:</span>
+              <q-btn
+                padding="xs sm"
+                flat
+                :disable="lockInputs"
+                :label="sourceTransferBalance + ' BCH'"
+                :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                @click="amount = sourceTransferBalance"
+              />
+            </div>
+            <div class="row no-wrap items-start">
+              <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+                <img height="40" src="bch-logo.png"/>
+                <div class="q-ml-sm">
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You send:</div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
+                </div>
+              </div>
+              <CustomKeyboardInput
+                v-model="amount"
+                :fieldProps="{
+                  dense: true,
+                  filled: true,
+                  dark: darkMode,
+                  disable: lockInputs || maxBridgeBalance === 0,
+                  wait: maxBridgeBalance === 0,
+                  rules: [
+                    val => Number(val) >= 0.01 || 'Must be at least 0.01',
+                    val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
+                  ],
+                }"
+                class="q-space q-my-sm"
+              />
+              <!-- <q-input
+                dense
+                outlined
+                :disable="lockInputs"
+                v-model="amount"
+                placeholder="0.0"
+                class="q-space q-my-sm"
+                :rules="[
+                  val => Number(val) > 0.01 || 'Must be greater than 0.01',
+                  val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
+                ]"
+                bottom-slots
+              /> -->
+            </div>
+
+            <div class="row no-wrap items-start" style="margin-top: -10px;">
+              <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+                <img height="40" src="bch-logo.png"/>
+                <div class="q-ml-sm">
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You receive:</div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
+                </div>
+              </div>
+              <CustomKeyboardInput
+                v-model="transferredAmount"
+                :fieldProps="{
+                  dense: true,
+                  filled: true,
+                  dark: darkMode,
+                  disable: lockInputs || maxBridgeBalance === 0,
+                  wait: maxBridgeBalance === 0,
+                  bottomSlots: true,
+                }"
+                class="q-space q-my-sm"
+              />
+              <!-- <q-input
+                dense
+                outlined
+                :disable="lockInputs"
+                v-model="transferredAmount"
+                placeholder="0.0"
+                class="q-space q-my-sm"
+                bottom-slots
+              /> -->
+            </div>
+
+            <div class="row no-wrap items-start" style="margin-top: -10px;">
+              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+                Receiving address:
+              </div>
+              <q-input
+                v-if="manualAddress"
+                key="manualRecipient"
+                autogrow
+                clearable
+                filled
+                dense
+                :disable="lockInputs"
+                v-model="recipientAddress"
+                class="q-space q-my-sm"
+                :dark="darkMode"
+                :rules="[
+                  val => validateAddress(val) || 'Invalid address',
+                ]"
+              />
+              <q-input
+                v-else
+                key="defaultRecipient"
+                autogrow
+                dense
+                outlined
+                readonly
+                :input-class="darkMode ? 'text-blue-5' : 'text-blue-9'"
+                :dark="darkMode"
+                :value="defaultRecipientAddress"
+                class="q-space q-my-sm"
+                bottom-slots
+              />
+            </div>
+            <div v-if="!loading" class="row justify-end items-start">
+              <q-space />
+              <q-toggle
+                dense
+                v-model="manualAddress"
+                :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                class="q-mb-md"
+                keep-color
+                color="blue-9"
+                label="Send to another address"
+              />
+            </div>
+
+            <div v-if="!loading" class="row justify-end items-start">
+              <q-btn
+                v-if="manualAddress"
+                no-caps
+                padding="xs md"
+                label="Scan QR code"
+                rounded
+                class="q-mb-sm"
+                color="blue-9"
+                :disable="lockInputs"
+                @click="showQrScanner = true"
+              />
+            </div>
+
+            <q-separator spaced/>
+            <div v-if="!loading" class="q-pa-sm rounded-borders">
+              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                <span>BCH to send:</span>
+                <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
+              </div>
+              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                <span>
+                  Estimated fee (0.1%):
+                  <!-- <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/> -->
+                </span>
+                <span v-if="!showSplitFees" class="text-nowrap q-ml-xs">
+                  ~{{ (fees.paytaca + fees.hopcash) | formatAmount }} BCH
+                </span>
+              </div>
+              <q-slide-transition>
+                <div v-if="showSplitFees">
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
+                    <span>Paytaca:</span>
+                    <span class="text-nowrap q-ml-xs">~{{ fees.paytaca | formatAmount }} BCH</span>
+                  </div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
+                    <span>Hopcash:</span>
+                    <span class="text-nowrap q-ml-xs">~{{ fees.hopcash | formatAmount }} BCH</span>
+                  </div>
+                </div>
+              </q-slide-transition>
+              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                <span>BCH to receive:</span>
+                <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
+              </div>
+            </div>
+            <div class="row justify-center q-mt-sm" style="color: gray;">Powered by hop.cash</div>
+          </q-card-section>
+        </q-card>
+
+        <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
+          <ProgressLoader
+            v-if="loading"
+          />
+          <q-btn
+            v-else
+            no-caps
+            rounded
+            :disable="maxBridgeBalance === 0 || lockInputs || !amount"
+            label="Swap"
+            color="brandblue"
+            class="full-width"
+            type="submit"
+          />
+        </div>
+      </q-form>
+
+      <DragSlide
+        v-if="showDragSlide"
+        :style="{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1500,
+        }"
+        @swiped="swiped"
+      />
+
+      <Pin
+        :pin-dialog-action="verification.type"
+        @nextAction="actionType => {
+          verification.type = ''
+          actionType === 'send' ? executeSwap(): null
+        }"
+      />
+
+      <BiometricWarningAttempt
+        :warning-attempts="verification.warningAttemptsStatus"
+        @closeBiometricWarningAttempts="verifyBiometric()"
+      />
+    </div>
   </div>
 </template>
 <script>

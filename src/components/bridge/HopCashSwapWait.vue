@@ -147,7 +147,7 @@ export default {
       return Boolean(this.waitPromiseObj)
     },
     incomingTxUrl () {
-      if (this.transferType === 's2c') return this.smartScanUrl(this.incomingTxid)
+      if (this.transferType === 's2c') return this.sonarUrl(this.incomingTxid)
       if (this.transferType === 'c2s') return this.blockChairUrl(this.incomingTxid)
       return ''
     },
@@ -167,7 +167,7 @@ export default {
       } else if (this.transferType === 'c2s') {
         data.chainName = 'Smart BCH'
         data.hash = this.tx && this.tx.hash
-        data.url = this.smartScanUrl(data.hash)
+        data.url = this.sonarUrl(data.hash)
       }
 
       return data
@@ -186,8 +186,8 @@ export default {
     blockChairUrl (txid) {
       return `https://blockchair.com/bitcoin-cash/transaction/${txid}`
     },
-    smartScanUrl (txid) {
-      return `https://www.smartscan.cash/transaction/${txid}`
+    sonarUrl (txid) {
+      return `https://sonar.cash/tx/${txid}`
     },
     findOutgoingTx () {
       let func = null
@@ -202,7 +202,6 @@ export default {
         })
         .then(response => {
           if (response.success) {
-            console.log(response)
             this.tx = response.tx
             return Promise.resolve(response)
           }

@@ -43,7 +43,7 @@
         <div v-else-if="fulfillmentTxDetails.hash" class="q-mt-md">
           <div class="ellipsis">
             <a
-              :href="`https://www.smartscan.cash/transaction/${fulfillmentTxDetails.hash}`"
+              :href="`https://sonar.cash/tx/${fulfillmentTxDetails.hash}`"
               target="_blank"
             >
               {{ fulfillmentTxDetails.hash }}
