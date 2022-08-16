@@ -4,7 +4,7 @@
     <q-tabs
       dense
       active-color="brandblue"
-      :style="{ 'margin-top': this.$q.platform.is.ios ? '70px' : '0px'}"
+      style="margin-top: 70px;"
       class="col-12 q-px-lg pp-fcolor"
       :value="selectedNetwork"
       @input="changeNetwork"

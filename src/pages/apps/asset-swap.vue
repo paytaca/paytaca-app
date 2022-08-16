@@ -14,7 +14,7 @@
       class="col-12 q-px-sm q-pb-md pp-fcolor q-mx-md"
       v-model="selectedNetwork"
       style="padding-bottom: 16px;"
-      :style="{ 'margin-top': this.$q.platform.is.ios ? '0px' : '-10px;'}"
+      :style="{ 'margin-top': this.$q.platform.is.ios ? '0px' : '-35px'}"
     >
       <q-tab
         name="BCH"
