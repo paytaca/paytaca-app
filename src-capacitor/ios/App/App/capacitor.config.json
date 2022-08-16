@@ -16,8 +16,5 @@
 	},
 	"ios": {
 		"scheme": "Paytaca"
-	},
-	"server": {
-		"url": "http://10.10.126.225:9000"
 	}
 }
