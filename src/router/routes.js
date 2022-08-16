@@ -1,4 +1,5 @@
-const routes = [{
+const routes = [
+  {
     path: '/',
     component: () => import('layouts/Transaction.vue'),
     children: [

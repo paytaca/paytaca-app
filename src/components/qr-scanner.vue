@@ -7,7 +7,7 @@
         padding="xs"
         flat
         class="scanner-close-btn"
-        style="z-index:2022;"
+        :style="{'margin-top': $q.platform.is.ios ? '30px' : '0px'}"
         @click="stopScan"
       />
       <ScannerUI />
@@ -20,7 +20,7 @@
         padding="xs"
         flat
         class="scanner-close-btn"
-        style="z-index:2022;"
+        style=""
         @click="val = false"
       />
       <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
@@ -250,6 +250,7 @@ export default {
   right: 0;
   margin: 10px;
   color: #ef4f84;
+  z-index: 2022;
 }
 .scanner-container > .scanner-error-dialog {
   border-radius: 15px;

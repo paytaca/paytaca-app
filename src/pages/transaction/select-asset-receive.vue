@@ -1,9 +1,10 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top: 75px;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div id="app-container" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
     <header-nav title="RECEIVE" backnavpath="/"></header-nav>
     <q-tabs
       dense
       active-color="brandblue"
+      style="margin-top: 70px;"
       class="col-12 q-px-lg pp-fcolor"
       :value="selectedNetwork"
       @input="changeNetwork"
@@ -107,6 +108,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  #app-container {
+    position: relative !important;
+    background-color: #ECF3F3;
+    min-height: 100vh;
+  }
   .group-currency {
     width: 100%;
     border-radius: 7px;

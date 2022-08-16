@@ -4,7 +4,7 @@
     :class="{'pt-dark': darkMode}"
   >
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
       <q-menu>
         <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -20,6 +20,7 @@
       dense
       active-color="brandblue"
       class="col-12 q-px-lg pp-fcolor"
+      :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}"
       :value="selectedNetwork"
       @input="changeNetwork"
     >

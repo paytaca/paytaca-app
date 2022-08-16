@@ -1,10 +1,7 @@
 <template>
   <div style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
-
     <startPage v-if="startPageStatus" v-on:logIn="logIn" />
-
     <div v-else>
-
       <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
         <div class="row q-pt-lg q-pb-xs">
           <q-tabs
@@ -12,7 +9,7 @@
             class="col-12 q-px-sm q-pb-md pp-fcolor"
             :value="selectedNetwork"
             @input="changeNetwork"
-            style="margin-top: -20px; padding-bottom: 16px;"
+            :style="{'margin-top': $q.platform.is.ios ? '10px' : '-20px', 'padding-bottom': '16px'}"
           >
             <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
             <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
@@ -407,6 +404,12 @@ export default {
       this.balanceLoaded = false
       if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
       return this.getBchBalance(id)
+    },
+    refresh (done) {
+      console.log('refreshing...')
+      this.getBalance(this.selectedAsset.id)
+      this.getTransactions()
+      done()
     },
     getSbchBalance (id) {
       const vm = this

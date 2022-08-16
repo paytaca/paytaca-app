@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" style="position: relative !important; background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="{'pt-dark': darkMode}">
       <header-nav
         :title="'SEND ' + asset.symbol"
         backnavpath="/send/select-asset"
@@ -64,37 +64,6 @@
               <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
             </div>
           </div>
-          <!-- <div class="row justify-center q-pt-lg" v-show="scanner.show">
-            <div ref="scanner" class="q-pa-none qrcode-scanner">
-              <q-btn
-                icon="close"
-                round
-                padding="sm"
-                unelevated
-                class="scanner-close-btn"
-                style="z-index:2022;"
-                @click="closeQrScanner"
-              />
-              <div :class="{'scanner-box' : scanner.show}" ref="box">
-                <div class="scan-layout-design" v-if="scanner.show">
-                  <div class="scan-design1">
-                    <div class="line-design1"></div>
-                  </div>
-                  <div class="scan-design2">
-                    <div class="line-design2"></div>
-                  </div>
-                  <div class="scan-design3">
-                    <div class="line-design3"></div>
-                  </div>
-                  <div class="scan-design4">
-                    <div class="line-design4"></div>
-                  </div>
-                </div>
-                <span class="scanner-text text-center full-width">Scan QR code</span>
-              </div>
-              <qrcode-stream v-if="scanner.show" :camera="scanner.frontCamera ? 'front': 'auto'" @decode="onDecode" @init="onInit"></qrcode-stream>
-            </div>
-          </div> -->
           <div class="q-pa-md text-center text-weight-medium">
             {{ scanner.decodedContent }}
           </div>
@@ -218,7 +187,6 @@ import { debounce } from 'quasar'
 import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { decodeEIP681URI } from '../../wallet/sbch'
-import { QrcodeStream } from 'vue-qrcode-reader'
 import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
@@ -237,7 +205,6 @@ const sBCHWalletType = 'SmartBCH'
 export default {
   name: 'Send-page',
   components: {
-    QrcodeStream,
     ProgressLoader,
     HeaderNav,
     pinDialog,
@@ -846,6 +813,11 @@ export default {
 </script>
 
 <style lang="scss">
+  #app-container {
+    position: relative !important;
+    background-color: #ECF3F3;
+    min-height: 100vh;
+  }
   .q-field--outlined .q-field__control:before {
     border: 2px solid #3b7bf6;
   }

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="row">
-      <div class="col 12">
+      <div class="col 12" :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
         <div class="pt-header" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
           <router-link :to="{ path: backnavpath }" class="pt-arrow-left-link" :class="{'text-grad': $store.getters['darkmode/getStatus']}" :style="{width: $q.platform.is.bex ? '375px' : '100%'}">
             <span class="material-icons" @click="!backnavpath ? $router.go(-1) : null">
@@ -33,7 +33,6 @@ export default {
   margin-right: auto;
   padding-top: 20px;
   position: fixed;
-  top: 0;
   background: #ECF3F3;
   width: 100%;
   z-index: 100;
