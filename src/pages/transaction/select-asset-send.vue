@@ -1,9 +1,10 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;padding-top: 75px;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div id="app-container" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
     <header-nav title="SEND" backnavpath="/"></header-nav>
     <q-tabs
       dense
       active-color="brandblue"
+      :style="{ 'margin-top': this.$q.platform.is.ios ? '70px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :value="selectedNetwork"
       @input="changeNetwork"
@@ -41,7 +42,6 @@
               </div>
             </div>
           </div>
-          <!-- <div role="button" class="row q-pl-lg q-pr-lg token-link"></div> -->
         </div>
       </div>
     </template>
@@ -112,6 +112,11 @@ export default {
 </script>
 
 <style scoped>
+  #app-container {
+    position: relative !important;
+    background-color: #ECF3F3;
+    min-height: 100vh;
+  }
   .group-currency {
     width: 100%;
     border-radius: 7px;

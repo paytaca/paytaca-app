@@ -1,5 +1,5 @@
 <template>
-  <div id="q-app" ref="container" :style="{'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
+  <div id="q-app" ref="container">
     <router-view />
   </div>
 </template>

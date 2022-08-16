@@ -1,14 +1,15 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
     <div id="apps" ref="apps" class="text-center">
-      <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">Applications</p>
-
-      <div class="row q-px-xs">
-        <div v-for="(app, index) in apps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
-          <div class="pt-app bg-grad" @click="openApp(app)">
-            <q-icon class="app-icon" :color="iconColorClass(app)" size="xl" :name="app.iconName" />
+      <div :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
+        <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">Applications</p>
+        <div class="row q-px-xs">
+          <div v-for="(app, index) in apps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
+            <div class="pt-app bg-grad" @click="openApp(app)">
+              <q-icon class="app-icon" :color="iconColorClass(app)" size="xl" :name="app.iconName" />
+            </div>
+            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
           </div>
-          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
         </div>
       </div>
     </div>
