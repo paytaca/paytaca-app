@@ -1,18 +1,18 @@
 <template>
-  <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-if="assets">
-    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
+  <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-show="assets">
+    <button v-show="manageAssets" class="btn-add-payment-method q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
       :key="index"
       class="method-cards q-pa-md q-mr-none"
-      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow': darkMode}]"
+      :class="[{ selected: asset ? asset.id === selectedAsset.id : null }, {'pt-dark-box-shadow': darkMode}]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
     >
       <div
-        v-if="$parent.manageAssets && asset.symbol !== 'BCH'"
+        v-if="manageAssets && asset.symbol !== 'BCH'"
         @click="() => removeAsset(asset)"
         style="float: right; width: 20px; margin-top: -10px;">
         <q-btn icon="close" color="white" flat round dense v-close-popup />
@@ -25,7 +25,7 @@
       </div>
       <div class="row" style="margin-top: -7px;">
         <q-space />
-        <div v-if="!$parent.balanceLoaded && asset.id === $parent.selectedAsset.id" style="width: 100%;">
+        <div v-if="!balanceLoaded && asset.id === selectedAsset.id" style="width: 100%;">
           <q-skeleton type="rect"/>
         </div>
         <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
@@ -33,7 +33,7 @@
         </p>
       </div>
       <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
-        <template v-if="!(!$parent.balanceLoaded && asset.id === $parent.selectedAsset.id)">
+        <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
           {{ getAssetMarketBalance(asset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
         </template>
       </div>
@@ -53,7 +53,10 @@ export default {
       type: String,
       default: 'BCH'
     },
-    assets: { type: Array }
+    assets: { type: Array },
+    manageAssets: { type: Boolean },
+    selectedAsset: { type: Object },
+    balanceLoaded: { type: Boolean }
   },
   data () {
     return {

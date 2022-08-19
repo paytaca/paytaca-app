@@ -1,7 +1,12 @@
 <template>
-  <div style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
+  <div class="scroll-y" style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
+
+    <q-pull-to-refresh>
+
     <startPage v-if="startPageStatus" v-on:logIn="logIn" />
+
     <div v-else>
+
       <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
         <div class="row q-pt-lg q-pb-xs">
           <q-tabs
@@ -9,7 +14,7 @@
             class="col-12 q-px-sm q-pb-md pp-fcolor"
             :value="selectedNetwork"
             @input="changeNetwork"
-            :style="{'margin-top': $q.platform.is.ios ? '10px' : '-20px', 'padding-bottom': '16px'}"
+            style="margin-top: -20px; padding-bottom: 16px;"
           >
             <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
             <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
@@ -17,11 +22,11 @@
         </div>
         <div class="row q-mt-sm">
           <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-            <img src="../../assets/bch-logo.png" style="height: 75px; position: absolute; right: 34px; margin-top: 5px; z-index: 1;"/>
+            <img src="../../assets/bch-logo.png" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
             <q-card id="bch-card">
-              <q-card-section style="margin-top: -10px; padding-top: 10px; padding-bottom: 12px;">
+              <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
                 <div class="text-h6">Bitcoin Cash</div>
-                <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
+                <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 63px;">
                   <q-skeleton style="font-size: 22px;" type="rect"/>
                 </div>
                 <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
@@ -61,6 +66,9 @@
         <template v-if="$q.platform.is.mobile">
           <asset-cards
             :assets="assets"
+            :manage-assets="manageAssets"
+            :selected-asset="selectedAsset"
+            :balance-loaded="balanceLoaded"
             :network="selectedNetwork"
           >
           </asset-cards>
@@ -69,6 +77,9 @@
         <template v-else>
           <asset-cards
             :assets="assets"
+            :manage-assets="manageAssets"
+            :selected-asset="selectedAsset"
+            :balance-loaded="balanceLoaded"
             v-dragscroll.x="true"
             :network="selectedNetwork"
           >
@@ -127,6 +138,7 @@
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="wallet && wallet.sBCH && wallet.sBCH._wallet && wallet.sBCH._wallet.address"
     />
+    </q-pull-to-refresh>
   </div>
 </template>
 
@@ -203,7 +215,7 @@ export default {
     startPageStatus (n, o) {
       setTimeout(() => {
         const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 25}px; z-index: 1`)
+        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
       }, 100)
     },
     selectedAsset () {
@@ -404,12 +416,6 @@ export default {
       this.balanceLoaded = false
       if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
       return this.getBchBalance(id)
-    },
-    refresh (done) {
-      console.log('refreshing...')
-      this.getBalance(this.selectedAsset.id)
-      this.getTransactions()
-      done()
     },
     getSbchBalance (id) {
       const vm = this
@@ -848,7 +854,6 @@ export default {
   .payment-methods {
     color: #000;
     font-size: 20px;
-    margin-top: -5px;
   }
   .pp-fcolor {
     color: #000 !important;
