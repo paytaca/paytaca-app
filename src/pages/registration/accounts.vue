@@ -6,11 +6,11 @@
         <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false">
+    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
       <div class="col-12 q-mt-md q-px-lg q-py-none">
         <div class="row">
           <div class="col-12 q-py-sm">
-            <q-btn class="full-width bg-blue-9 text-white" @click="createWallets" label="Create New Wallet" rounded />
+            <q-btn class="full-width bg-blue-9 text-white" @click="() => { if (steps === -1) { steps = 0 }; $forceUpdate(); }" label="Create New Wallet" rounded />
           </div>
           <div class="col-12 text-center q-py-sm">
             <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">OR</p>
@@ -20,6 +20,9 @@
           </div>
         </div>
       </div>
+    </div>
+    <div class="col pt-wallet q-mt-sm" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
+      <ProgressLoader/>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">
@@ -54,9 +57,6 @@
               </li>
             </ul>
           </div>
-          <div class="col q-mt-sm" v-if="steps < totalSteps" style="text-align: center;">
-            <ProgressLoader/>
-          </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
           <q-btn class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" label="Continue" rounded />
@@ -85,7 +85,7 @@ export default {
       importSeedPhrase: false,
       seedPhraseBackup: null,
       mnemonic: '',
-      steps: 0,
+      steps: -1,
       totalSteps: 5,
       seedInput: true,
       pinDialogAction: '',
@@ -95,6 +95,13 @@ export default {
       pinKeys: [{ key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }],
       countKeys: 0,
       securityOptionDialogStatus: 'dismiss'
+    }
+  },
+  watch: {
+    steps (val) {
+      if (val === 0) {
+        this.createWallets()
+      }
     }
   },
   methods: {
@@ -110,9 +117,9 @@ export default {
 
       // Create mnemonic seed, encrypt, and store
       if (vm.importSeedPhrase) {
-        this.mnemonic = await storeMnemonic(this.seedPhraseBackup)
+        vm.mnemonic = await storeMnemonic(this.seedPhraseBackup)
       } else {
-        this.mnemonic = await generateMnemonic()
+        vm.mnemonic = await generateMnemonic()
       }
       vm.steps += 1
 

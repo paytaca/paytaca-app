@@ -26,25 +26,25 @@ export class Wallet {
 
 export async function generateMnemonic () {
   const mnemonic = bchjs.Mnemonic.generate(128)
-  const secretKey = randomBytes(128).toString('hex')
-  const encryptedMnemonic = aes256.encrypt(secretKey, mnemonic)
-  await SecureStoragePlugin.set({ key: 'mn', value: encryptedMnemonic })
-  await SecureStoragePlugin.set({ key: 'sk', value: secretKey })
+  await SecureStoragePlugin.set({ key: 'mn', value: mnemonic })
   return mnemonic
 }
 
 export async function storeMnemonic (mnemonic) {
-  const secretKey = randomBytes(128).toString('hex')
-  const encryptedMnemonic = aes256.encrypt(secretKey, mnemonic)
-  await SecureStoragePlugin.set({ key: 'mn', value: encryptedMnemonic })
-  await SecureStoragePlugin.set({ key: 'sk', value: secretKey })
+  await SecureStoragePlugin.set({ key: 'mn', value: mnemonic })
   return mnemonic
 }
 
 export async function getMnemonic () {
-  const encryptedMnemonic = await SecureStoragePlugin.get({ key: 'mn' })
-  const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
-  const mnemonic = aes256.decrypt(secretKey.value, encryptedMnemonic.value)
+  let mnemonic
+  try {
+    // For versions up to v0.9.1 that used to have aes256-encrypted mnemonic
+    const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
+    const encryptedMnemonic = await SecureStoragePlugin.get({ key: 'mn' })
+    mnemonic = aes256.decrypt(secretKey.value, encryptedMnemonic.value)
+  } catch (err) {
+    mnemonic = await SecureStoragePlugin.get({ key: 'mn' })
+  }
   return mnemonic
 }
 
