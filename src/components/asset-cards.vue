@@ -1,18 +1,18 @@
 <template>
-  <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-if="assets">
-    <button v-if="$parent.manageAssets" class="btn-add-payment-method q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
+  <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-show="assets">
+    <button v-show="manageAssets" class="btn-add-payment-method q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
       :key="index"
       class="method-cards q-pa-md q-mr-none"
-      :class="[{ selected: asset.id === $parent.selectedAsset.id }, {'pt-dark-box-shadow': darkMode}]"
+      :class="[{ selected: asset ? asset.id === selectedAsset.id : null }, {'pt-dark-box-shadow': darkMode}]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
     >
       <div
-        v-if="$parent.manageAssets && asset.symbol !== 'BCH'"
+        v-if="manageAssets && asset.symbol !== 'BCH'"
         @click="() => removeAsset(asset)"
         style="float: right; width: 20px; margin-top: -10px;">
         <q-btn icon="close" color="white" flat round dense v-close-popup />
@@ -25,7 +25,7 @@
       </div>
       <div class="row" style="margin-top: -7px;">
         <q-space />
-        <div v-if="!$parent.balanceLoaded && asset.id === $parent.selectedAsset.id" style="width: 100%;">
+        <div v-if="!balanceLoaded && asset.id === selectedAsset.id" style="width: 100%;">
           <q-skeleton type="rect"/>
         </div>
         <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
@@ -33,7 +33,7 @@
         </p>
       </div>
       <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
-        <template v-if="!(!$parent.balanceLoaded && asset.id === $parent.selectedAsset.id)">
+        <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
           {{ getAssetMarketBalance(asset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
         </template>
       </div>
@@ -53,7 +53,10 @@ export default {
       type: String,
       default: 'BCH'
     },
-    assets: { type: Array }
+    assets: { type: Array },
+    manageAssets: { type: Boolean },
+    selectedAsset: { type: Object },
+    balanceLoaded: { type: Boolean }
   },
   data () {
     return {
@@ -88,21 +91,22 @@ export default {
     },
     selectAsset (event, asset) {
       const vm = this
+      const home = vm.$parent.$parent
       vm.assetClickCounter += 1
-      if (vm.$parent.selectedAsset.id === asset.id) {
+      if (home.selectedAsset.id === asset.id) {
         if (vm.assetClickCounter >= 2) {
-          vm.$parent.showAssetInfo(asset)
+          home.showAssetInfo(asset)
           vm.assetClickTimer = setTimeout(() => {
             clearTimeout(vm.assetClickTimer)
             vm.assetClickTimer = null
             vm.assetClickCounter = 0
           }, 600)
         } else {
-          vm.$parent.hideAssetInfo()
+          home.hideAssetInfo()
           vm.assetClickTimer = setTimeout(() => {
             if (vm.assetClickCounter === 1) {
-              vm.$parent.getBalance(asset.id)
-              vm.$parent.getTransactions()
+              home.getBalance(asset.id)
+              home.getTransactions()
             }
             clearTimeout(vm.assetClickTimer)
             vm.assetClickTimer = null
@@ -115,18 +119,19 @@ export default {
           vm.assetClickTimer = null
           vm.assetClickCounter = 0
         }, 600)
-        vm.$parent.$refs['asset-info'].hide()
-        vm.$parent.selectedAsset = asset
-        vm.$parent.transactions = []
-        vm.$parent.transactionsPage = 1
-        vm.$parent.transactionsPageHasNext = false
-        vm.$parent.getBalance()
-        vm.$parent.getTransactions()
+        home.$refs['asset-info'].hide()
+        home.selectedAsset = asset
+        home.transactions = []
+        home.transactionsPage = 1
+        home.transactionsPageHasNext = false
+        home.getBalance()
+        home.getTransactions()
       }
     },
     addAsset (tokenId) {
       const vm = this
-      this.$parent.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
+      const home = vm.$parent.$parent
+      home.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
         const asset = {
           id: details.id,
           symbol: details.symbol,
@@ -143,7 +148,8 @@ export default {
     },
     addSep20Asset (contractAddress) {
       const vm = this
-      this.$parent.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
+      const home = vm.$parent.$parent
+      home.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
         if (response.success && response.token) {
           const commitName = 'sep20/addNewAsset'
           const asset = {
