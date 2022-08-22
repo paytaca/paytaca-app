@@ -1,7 +1,7 @@
 <template>
   <div class="scroll-y" style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
 
-    <q-pull-to-refresh>
+    <q-pull-to-refresh @refresh="refresh">
 
     <startPage v-if="startPageStatus" v-on:logIn="logIn" />
 
@@ -576,7 +576,12 @@ export default {
         })
       }
     },
-
+    refresh (done) {
+      console.log(this.selectedAsset)
+      this.getBalance(this.selectedAsset.id)
+      this.getTransactions()
+      done()
+    },
     switchActiveBtn (btn) {
       var customBtn = document.getElementById(this.activeBtn)
       customBtn.classList.remove('active-transaction-btn')
