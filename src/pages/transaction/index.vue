@@ -577,7 +577,7 @@ export default {
       }
     },
     refresh (done) {
-      console.log(this.selectedAsset)
+      this.getBalance(this.bchAsset.id)
       this.getBalance(this.selectedAsset.id)
       this.getTransactions()
       done()
