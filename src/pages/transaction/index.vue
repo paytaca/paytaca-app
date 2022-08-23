@@ -1,80 +1,90 @@
 <template>
-  <div style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
+  <div class="scroll-y" style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
+
     <startPage v-if="startPageStatus" v-on:logIn="logIn" />
+
     <div v-else>
-      <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-        <div class="row q-pt-lg q-pb-xs">
-          <q-tabs
-            active-color="brandblue"
-            class="col-12 q-px-sm q-pb-md pp-fcolor"
-            :value="selectedNetwork"
-            @input="changeNetwork"
-            :style="{'margin-top': $q.platform.is.ios ? '10px' : '-20px', 'padding-bottom': '16px'}"
-          >
-            <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-            <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
-          </q-tabs>
-        </div>
-        <div class="row q-mt-sm">
-          <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-            <img src="../../assets/bch-logo.png" style="height: 75px; position: absolute; right: 34px; margin-top: 5px; z-index: 1;"/>
-            <q-card id="bch-card">
-              <q-card-section style="margin-top: -10px; padding-top: 10px; padding-bottom: 12px;">
-                <div class="text-h6">Bitcoin Cash</div>
-                <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
-                  <q-skeleton style="font-size: 22px;" type="rect"/>
-                </div>
-                <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                  <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} BCH</p>
-                  <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
-                </div>
-              </q-card-section>
-            </q-card>
+      <q-pull-to-refresh @refresh="refresh">
+        <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+          <div class="row q-pt-lg q-pb-xs">
+            <q-tabs
+              active-color="brandblue"
+              class="col-12 q-px-sm q-pb-md pp-fcolor"
+              :value="selectedNetwork"
+              @input="changeNetwork"
+              style="margin-top: -20px; padding-bottom: 16px;"
+            >
+              <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
+              <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
+            </q-tabs>
           </div>
-        </div>
-        <div class="row q-mt-sm">
-          <div class="col">
-            <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
-              Tokens
-              <q-btn
-                flat
-                padding="none"
-                size="sm"
-                icon="app_registration"
-                style="color: #3B7BF6;"
-                @click="toggleManageAssets"
-              />
-              <q-btn
-                v-if="manageAssets"
-                flat
-                padding="none"
-                size="sm"
-                icon="search"
-                style="color: #3B7BF6;"
-                @click="checkMissingAssets({autoOpen: true})"
-              />
-            </p>
+          <div class="row q-mt-sm">
+            <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
+              <img src="../../assets/bch-logo.png" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+              <q-card id="bch-card">
+                <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
+                  <div class="text-h6">Bitcoin Cash</div>
+                  <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 63px;">
+                    <q-skeleton style="font-size: 22px;" type="rect"/>
+                  </div>
+                  <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
+                    <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} BCH</p>
+                    <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
           </div>
+          <div class="row q-mt-sm">
+            <div class="col">
+              <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
+                Tokens
+                <q-btn
+                  flat
+                  padding="none"
+                  size="sm"
+                  icon="app_registration"
+                  style="color: #3B7BF6;"
+                  @click="toggleManageAssets"
+                />
+                <q-btn
+                  v-if="manageAssets"
+                  flat
+                  padding="none"
+                  size="sm"
+                  icon="search"
+                  style="color: #3B7BF6;"
+                  @click="checkMissingAssets({autoOpen: true})"
+                />
+              </p>
+            </div>
+          </div>
+          <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
+          <!-- Cards without drag scroll on mobile -->
+          <template v-if="$q.platform.is.mobile">
+            <asset-cards
+              :assets="assets"
+              :manage-assets="manageAssets"
+              :selected-asset="selectedAsset"
+              :balance-loaded="balanceLoaded"
+              :network="selectedNetwork"
+            >
+            </asset-cards>
+          </template>
+          <!-- Cards with drag scroll on other platforms -->
+          <template v-else>
+            <asset-cards
+              :assets="assets"
+              :manage-assets="manageAssets"
+              :selected-asset="selectedAsset"
+              :balance-loaded="balanceLoaded"
+              v-dragscroll.x="true"
+              :network="selectedNetwork"
+            >
+            </asset-cards>
+          </template>
         </div>
-        <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
-        <!-- Cards without drag scroll on mobile -->
-        <template v-if="$q.platform.is.mobile">
-          <asset-cards
-            :assets="assets"
-            :network="selectedNetwork"
-          >
-          </asset-cards>
-        </template>
-        <!-- Cards with drag scroll on other platforms -->
-        <template v-else>
-          <asset-cards
-            :assets="assets"
-            v-dragscroll.x="true"
-            :network="selectedNetwork"
-          >
-          </asset-cards>
-        </template>
-      </div>
+      </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
         <transaction ref="transaction"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
@@ -203,7 +213,7 @@ export default {
     startPageStatus (n, o) {
       setTimeout(() => {
         const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 25}px; z-index: 1`)
+        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
       }, 100)
     },
     selectedAsset () {
@@ -405,12 +415,6 @@ export default {
       if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
       return this.getBchBalance(id)
     },
-    refresh (done) {
-      console.log('refreshing...')
-      this.getBalance(this.selectedAsset.id)
-      this.getTransactions()
-      done()
-    },
     getSbchBalance (id) {
       const vm = this
       if (!id) {
@@ -570,7 +574,12 @@ export default {
         })
       }
     },
-
+    refresh (done) {
+      this.getBalance(this.bchAsset.id)
+      this.getBalance(this.selectedAsset.id)
+      this.getTransactions()
+      done()
+    },
     switchActiveBtn (btn) {
       var customBtn = document.getElementById(this.activeBtn)
       customBtn.classList.remove('active-transaction-btn')
@@ -848,7 +857,6 @@ export default {
   .payment-methods {
     color: #000;
     font-size: 20px;
-    margin-top: -5px;
   }
   .pp-fcolor {
     color: #000 !important;
