@@ -1,7 +1,6 @@
 import { SlpWallet } from './slp'
 import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
-import randomBytes from 'randombytes'
 import aes256 from 'aes256'
 import { utils } from 'ethers'
 
@@ -16,11 +15,14 @@ const bchjs = new BCHJS()
 const projectId = process.env.WATCHTOWER_PROJECT_ID
 
 export class Wallet {
-  constructor (mnemonic) {
+  constructor (mnemonic, network = 'BCH') {
     this.mnemonic = mnemonic
-    this.BCH = new BchWallet(projectId, mnemonic, "m/44'/145'/0'") // Main BCH wallet
-    this.sBCH = new SmartBchWallet(projectId, mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
-    this.SLP = new SlpWallet(projectId, mnemonic, "m/44'/245'/0'") // SLP wallet
+    if (network === 'BCH') {
+      this.BCH = new BchWallet(projectId, mnemonic, "m/44'/145'/0'") // Main BCH wallet
+      this.SLP = new SlpWallet(projectId, mnemonic, "m/44'/245'/0'") // SLP wallet
+    } else if (network === 'sBCH') {
+      this.sBCH = new SmartBchWallet(projectId, mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
+    }
   }
 }
 
@@ -44,6 +46,7 @@ export async function getMnemonic () {
     mnemonic = aes256.decrypt(secretKey.value, encryptedMnemonic.value)
   } catch (err) {
     mnemonic = await SecureStoragePlugin.get({ key: 'mn' })
+    mnemonic = mnemonic.value
   }
   return mnemonic
 }

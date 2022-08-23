@@ -1,6 +1,7 @@
 export default function () {
   return {
     network: 'BCH', // BCH || sBCH
+    wallet: null,
     wallets: {
       bch: {
         walletHash: '',

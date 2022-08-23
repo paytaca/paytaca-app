@@ -12,7 +12,7 @@
               class="col-12 q-px-sm q-pb-md pp-fcolor"
               :value="selectedNetwork"
               @input="changeNetwork"
-              style="margin-top: -20px; padding-bottom: 16px;"
+              :style="{'margin-top': $q.platform.is.ios ? '10px' : '-20px', 'padding-bottom': '16px'}"
             >
               <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
               <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
@@ -24,7 +24,7 @@
               <q-card id="bch-card">
                 <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
                   <div class="text-h6">Bitcoin Cash</div>
-                  <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 63px;">
+                  <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
                     <q-skeleton style="font-size: 22px;" type="rect"/>
                   </div>
                   <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
@@ -323,8 +323,9 @@ export default {
         this.transactions = []
         this.transactionsPage = 1
         this.transactionsLoaded = false
-        this.getTransactions()
-        if (this.selectedAsset) this.getBalance(this.selectedAsset.id)
+        this.loadWallets()
+        // this.getTransactions()
+        // if (this.selectedAsset) this.getBalance(this.selectedAsset.id)
       }
     },
     selectBch () {
@@ -720,68 +721,71 @@ export default {
 
     async loadWallets () {
       const vm = this
+      // 'west ordinary steak lift dry among meadow pistol pair flock flip weasel'
       const mnemonic = await getMnemonic()
 
-      const wallet = new Wallet(mnemonic)
-      await wallet.sBCH.getOrInitWallet()
+      const wallet = new Wallet(mnemonic, vm.selectedNetwork)
+      // await wallet.sBCH.getOrInitWallet()
       vm.wallet = wallet
       vm.assets.map(function (asset) {
         vm.getBalance(asset.id)
       })
       vm.getTransactions()
 
-      // Create change addresses if nothing is set yet
-      // This is to make sure that v1 wallets auto-upgrades to v2 wallets
-      const bchChangeAddress = vm.getChangeAddress('bch')
-      if (bchChangeAddress.length === 0) {
-        vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+      if (vm.selectedNetwork === 'BCH') {
+        // Create change addresses if nothing is set yet
+        // This is to make sure that v1 wallets auto-upgrades to v2 wallets
+        const bchChangeAddress = vm.getChangeAddress('bch')
+        if (bchChangeAddress.length === 0) {
+          vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+            vm.$store.commit('global/updateWallet', {
+              type: 'bch',
+              walletHash: vm.wallet.BCH.walletHash,
+              derivationPath: vm.wallet.BCH.derivationPath,
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: 0
+            })
+          })
+        }
+        const slpChangeAddress = vm.getChangeAddress('slp')
+        if (slpChangeAddress.length === 0) {
+          vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
+            vm.$store.commit('global/updateWallet', {
+              type: 'slp',
+              walletHash: vm.wallet.SLP.walletHash,
+              derivationPath: vm.wallet.SLP.derivationPath,
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: 0
+            })
+          })
+        }
+      } else if (vm.selectedNetwork === 'sBCH') {
+        const sBchDerivationPath = vm.getWallet('sbch').derivationPath
+        const lastAddress = vm.getWallet('sbch').lastAddress
+        let subscribeSbchAddress = !vm.getWallet('sbch').subscribed
+        if (sBchDerivationPath.length !== 14 || lastAddress !== wallet.sBCH._wallet.address) {
+          subscribeSbchAddress = true
           vm.$store.commit('global/updateWallet', {
-            type: 'bch',
-            walletHash: vm.wallet.BCH.walletHash,
-            derivationPath: vm.wallet.BCH.derivationPath,
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: 0
+            type: 'sbch',
+            derivationPath: vm.wallet.sBCH.derivationPath,
+            walletHash: vm.wallet.sBCH.walletHash,
+            lastAddress: vm.wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
           })
-        })
-      }
-      const slpChangeAddress = vm.getChangeAddress('slp')
-      if (slpChangeAddress.length === 0) {
-        vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            type: 'slp',
-            walletHash: vm.wallet.SLP.walletHash,
-            derivationPath: vm.wallet.SLP.derivationPath,
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: 0
-          })
-        })
-      }
+        }
 
-      const sBchDerivationPath = vm.getWallet('sbch').derivationPath
-      const lastAddress = vm.getWallet('sbch').lastAddress
-      let subscribeSbchAddress = !vm.getWallet('sbch').subscribed
-      if (sBchDerivationPath.length !== 14 || lastAddress !== wallet.sBCH._wallet.address) {
-        subscribeSbchAddress = true
-        vm.$store.commit('global/updateWallet', {
-          type: 'sbch',
-          derivationPath: vm.wallet.sBCH.derivationPath,
-          walletHash: vm.wallet.sBCH.walletHash,
-          lastAddress: vm.wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
-        })
-      }
-
-      if (subscribeSbchAddress) {
-        wallet.sBCH.subscribeWallet()
-          .then(response => {
-            if (response && response.success) {
-              vm.$store.commit('global/setWalletSubscribed', {
-                type: 'sbch',
-                subscribed: true
-              })
-            }
-          })
+        if (subscribeSbchAddress) {
+          wallet.sBCH.subscribeWallet()
+            .then(response => {
+              if (response && response.success) {
+                vm.$store.commit('global/setWalletSubscribed', {
+                  type: 'sbch',
+                  subscribed: true
+                })
+              }
+            })
+        } 
       }
     }
   },
@@ -799,15 +803,14 @@ export default {
     }
 
     // Load wallets
-    this.loadWallets()
-      .then(() => {
-        console.log('Notified suggestions: ', this.$root.hasSuggestedAssets)
-        if (this.$root.hasSuggestedAssets) return
-        this.checkMissingAssets()
-          .then(() => {
-            this.$root.hasSuggestedAssets = true
-          })
-      })
+    this.loadWallets().then(() => {
+      console.log('Notified suggestions: ', this.$root.hasSuggestedAssets)
+      if (this.$root.hasSuggestedAssets) return
+      this.checkMissingAssets()
+        .then(() => {
+          this.$root.hasSuggestedAssets = true
+        })
+    })
 
     if (vm.prevPath === '/') {
       vm.logIn()
