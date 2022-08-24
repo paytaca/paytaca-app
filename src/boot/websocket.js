@@ -1,6 +1,8 @@
-import Vue from 'vue'
-import VueNativeSock from 'vue-native-websocket'
+import { boot } from 'quasar/wrappers'
+import VueNativeSock from 'vue-native-websocket-vue3'
 
-Vue.use(VueNativeSock, 'wss://watchtower.cash', {
-  connectManually: true
+export default boot(({ app }) => {
+  app.use(VueNativeSock, 'wss://watchtower.cash', {
+    connectManually: true
+  })
 })

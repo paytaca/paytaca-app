@@ -1,4 +1,6 @@
-import Vue from 'vue'
+import { boot } from 'quasar/wrappers'
 import VueConfetti from 'vue-confetti'
 
-Vue.use(VueConfetti)
+export default boot(({ app }) => {
+    app.use(VueConfetti)
+})

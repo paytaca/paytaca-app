@@ -1,7 +1,5 @@
 <template>
-  <div id="q-app" ref="container">
     <router-view />
-  </div>
 </template>
 
 <script>
@@ -16,7 +14,7 @@ export default {
   mounted () {
     const vm = this
     if (vm.$q.platform.is.bex) {
-      vm.$refs.container.style.display = 'none'
+      if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'
       document.body.style.minHeight = '650px'
       document.body.style.margin = '0 auto'
@@ -61,7 +59,7 @@ export default {
   created () {
     const vm = this
     setTimeout(function () {
-      vm.$refs.container.style.display = 'block'
+      if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
     }, 500)
   }
 }
