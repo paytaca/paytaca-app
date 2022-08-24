@@ -97,7 +97,7 @@
             dense
             filled
             :dark="darkMode"
-            :value="formatNumber(networkData.expectedReturn, 6)"
+            :modelValue="formatNumber(networkData.expectedReturn, 6)"
           />
           <q-item-label
             v-if="networkData.exchangeRate"

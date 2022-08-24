@@ -170,7 +170,7 @@
                 readonly
                 :input-class="darkMode ? 'text-blue-5' : 'text-blue-9'"
                 :dark="darkMode"
-                :value="defaultRecipientAddress"
+                :modelValue="defaultRecipientAddress"
                 class="q-space q-my-sm"
                 bottom-slots
               />

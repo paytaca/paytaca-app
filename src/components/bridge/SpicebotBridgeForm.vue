@@ -86,7 +86,7 @@
               dense
               outlined
               disable
-              :value="computedFormData.expectedAmount"
+              :modelValue="computedFormData.expectedAmount"
               placeholder="0.0"
               class="q-space q-my-sm"
               bottom-slots
@@ -104,7 +104,7 @@
               outlined
               readonly
               :dark="darkMode"
-              :value="computedFormData.recipientAddress"
+              :modelValue="computedFormData.recipientAddress"
               class="q-space q-my-sm"
               bottom-slots
             />
@@ -655,8 +655,10 @@ export default {
     selectToken () {
       this.$q.dialog({
         component: SpicebotBridgeTokenSelectDialog,
-        darkMode: this.darkMode,
-        tokens: this.tokens
+        componentProps: {
+          darkMode: this.darkMode,
+          tokens: this.tokens
+        }
       })
         .onOk(token => {
           this.formData.token = token

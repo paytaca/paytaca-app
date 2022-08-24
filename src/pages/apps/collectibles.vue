@@ -21,8 +21,8 @@
       active-color="brandblue"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}"
-      :value="selectedNetwork"
-      @input="changeNetwork"
+      :modelValue="selectedNetwork"
+      @update:modelValue="changeNetwork"
     >
       <q-tab :class="{'text-blue-5': darkMode}" name="BCH" label="BCH"/>
       <q-tab :class="{'text-blue-5': darkMode}" name="sBCH" label="SmartBCH"/>

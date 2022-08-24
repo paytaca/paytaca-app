@@ -10,8 +10,8 @@
             <q-tabs
               active-color="brandblue"
               class="col-12 q-px-sm q-pb-md pp-fcolor"
-              :value="selectedNetwork"
-              @input="changeNetwork"
+              :modelValue="selectedNetwork"
+              @update:modelValue="changeNetwork"
               style="margin-top: -20px; padding-bottom: 16px;"
             >
               <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>

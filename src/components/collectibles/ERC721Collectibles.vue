@@ -23,7 +23,7 @@
           v-if="
             pageNumberPaginationData && pageNumberPaginationData.pageCount > 1
           "
-          :value="pageNumberPaginationData.currentPage"
+          :modelValue="pageNumberPaginationData.currentPage"
           :max="pageNumberPaginationData.pageCount"
           :max-pages="6"
           unelevated

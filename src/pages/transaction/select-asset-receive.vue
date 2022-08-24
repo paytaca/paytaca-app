@@ -6,8 +6,8 @@
       active-color="brandblue"
       style="margin-top: 70px;"
       class="col-12 q-px-lg pp-fcolor"
-      :value="selectedNetwork"
-      @input="changeNetwork"
+      :modelValue="selectedNetwork"
+      @update:modelValue="changeNetwork"
     >
       <q-tab name="BCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.BCH.name"/>
       <q-tab name="sBCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name"/>

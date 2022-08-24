@@ -5,9 +5,9 @@
       <template v-slot:control="ctx">
         {{ ctx.modelValue }}
         <CustomKeyboard
-          :value="ctx.modelValue"
+          :modelValue="ctx.modelValue"
           :customKeyboardState="ctx.focused ? 'show': ''"
-          @input="ctx.emitValue"
+          @update:modelValue="ctx.emitValue"
           @makeKeyAction="action => action === 'ready to submit' ? $refs.field.blur(): null"
           :style="{
             left:0,
