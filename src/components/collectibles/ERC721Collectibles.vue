@@ -30,7 +30,7 @@
           padding="xs sm"
           input
           boundary-numbers
-          @input="
+          @update:modelValue="
             (val) =>
               fetchCollectibles({
                 limit: pageNumberPaginationData.pageSize,

@@ -55,7 +55,7 @@
             filled
             v-model.number="formData.amount"
             :dark="darkMode"
-            @input="function(){
+            @update:modelValue="function(){
               updateExcptectedReturn()
               updateNetworkData()
             }"

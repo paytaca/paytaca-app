@@ -14,7 +14,7 @@
               type="text"
               lazy-rules
               v-model="formData.contractAddress"
-              @input="autoFillFromAddress()"
+              @update:modelValue="autoFillFromAddress()"
               :dark="darkMode"
               :rules="[
                 val => Boolean(val) || 'Required',

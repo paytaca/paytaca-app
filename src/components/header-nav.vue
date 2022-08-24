@@ -20,7 +20,16 @@
 <script>
 export default {
   name: 'header-nav',
-  props: ['title', 'backnavpath']
+  props: {
+    title: {
+      type: String,
+      default: '',
+    },
+    backnavpath: {
+      type: String,
+      default: '',
+    }
+  },
 }
 </script>
 
