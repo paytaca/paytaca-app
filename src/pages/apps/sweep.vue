@@ -38,7 +38,7 @@
               <div v-if="sweeper && bchBalance">
                 <p><strong>BCH</strong></p>
                 <p>
-                  BCH Address: {{ sweeper.bchAddress | ellipsisText }}
+                  BCH Address: {{ ellipsisText(sweeper.bchAddress) }}
                   <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.bchAddress)" />
                 </p>
                 <div style="border: 1px solid black; padding: 10px;">
@@ -53,7 +53,7 @@
               <div v-if="sweeper && (bchBalance === 0 || bchBalance < 0)">
                 <p><strong>BCH</strong></p>
                 <p>
-                  BCH Address: {{ sweeper.bchAddress | ellipsisText }}
+                  BCH Address: {{ ellipsisText(sweeper.bchAddress) }}
                   <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.bchAddress)" />
                 </p>
                 <div style="border: 1px solid black; padding: 10px;">
@@ -69,7 +69,7 @@
               <div v-if="tokens.length > 0" style="margin-top: 15px">
                 <p><strong>Tokens ({{ tokens.length }})</strong></p>
                 <p>
-                  SLP Address: {{ sweeper.slpAddress | ellipsisText }}
+                  SLP Address: {{ ellipsisText(sweeper.slpAddress) }}
                   <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.slpAddress)" />
                 </p>
                 <div v-if="tokens.length > 0" class="p-lg" style="margin-bottom: 20px;">
@@ -78,7 +78,7 @@
                 <div v-for="(token, index) in tokens" :key="index">
                   <div style="border: 1px solid black; padding: 10px; margin-top: 10px;">
                     <p>
-                      Token ID: {{ token.token_id | ellipsisText }}
+                      Token ID: {{ ellipsisText(token.token_id) }}
                       <q-icon name="mdi-content-copy" @click="copyToClipboard(token.token_id)" />
                     </p>
                     <p>Symbol: {{ token.symbol }}</p>
@@ -104,6 +104,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
 import SweepPrivateKey from '../../wallet/sweep'
@@ -165,6 +166,11 @@ export default {
     }
   },
   methods: {
+    ellipsisText (value) {
+      if (typeof value !== 'string') return ''
+      if (value.length <= 20) return value
+      return value.substr(0, 18) + '...' + value.substr(value.length - 10, value.length)
+    },
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
@@ -243,20 +249,13 @@ export default {
       this.wif = content
     }
   },
-  filters: {
-    ellipsisText (value) {
-      if (typeof value !== 'string') return ''
-      if (value.length <= 20) return value
-      return value.substr(0, 18) + '...' + value.substr(value.length - 10, value.length)
-    }
-  },
   mounted () {
     const vm = this
     const divHeight = screen.availHeight - 120
     vm.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
 
     getMnemonic().then(function (mnemonic) {
-      vm.wallet = new Wallet(mnemonic)
+      vm.wallet = markRaw(new Wallet(mnemonic))
     })
   }
 }

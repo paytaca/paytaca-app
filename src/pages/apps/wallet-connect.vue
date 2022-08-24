@@ -110,7 +110,7 @@
                   >
                     <q-item-section>
                       <q-item-label>
-                        {{ account | ellipsisText }}
+                        {{ ellipsisText(account) }}
                       </q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
@@ -232,13 +232,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
-  filters: {
-    ellipsisText (value) {
-      if (typeof value !== 'string') return ''
-      if (value.length <= 20) return value
-      return value.substr(0, 15) + '...' + value.substr(value.length - 10, value.length)
-    },
-  },
   computed: {
     connector: {
       get () {
@@ -273,6 +266,11 @@ export default {
   },
 
   methods: {
+    ellipsisText (value) {
+      if (typeof value !== 'string') return ''
+      if (value.length <= 20) return value
+      return value.substr(0, 15) + '...' + value.substr(value.length - 10, value.length)
+    },
     formatDate (date) {
       return ago(new Date(date))
     },
