@@ -135,9 +135,9 @@ export function parseWalletConnectUri (uri) {
 }
 
 export class WalletConnectManager {
-  constructor (app) {
-    console.log(app)
-    this.app = app
+  // store is the vuex instance of the app
+  constructor (store) {
+    this.store = store
     this._listeners = {}
     this._subscribedListeners = []
 
@@ -189,12 +189,12 @@ export class WalletConnectManager {
 
   _connectorEventHandler (eventName, error, payload) {
     if (eventName === 'call_request' && payload) {
-      this.app.store.commit('walletconnect/addCallRequest', {
+      this.store.commit('walletconnect/addCallRequest', {
         timestamp: Date.now(),
         payload: payload
       })
     } else if (eventName === 'disconnect' && !error) {
-      this.app.store.commit('walletconnect/clearCallRequests')
+      this.store.commit('walletconnect/clearCallRequests')
       this.connector = null
     }
 

@@ -12,7 +12,7 @@
       />
 
       <div class="q-mx-md">
-        <div v-if="!$walletConnect.connector">
+        <div v-if="!connector">
           <q-input
             label="Input Wallet Connect URI"
             filled
@@ -236,10 +236,10 @@ export default {
   computed: {
     connector: {
       get () {
-        return this.$walletConnect.connector
+        return this.walletConnect.connector
       },
       set (value) {
-        this.$walletConnect.connector = value
+        this.walletConnect.connector = value
       }
     },
     parsedPeerMeta () {
@@ -295,10 +295,6 @@ export default {
       this.initializeConnector(this.handshakeFormData.walletConnectUri, switchActivity)
     },
 
-    forceUpdateConnector () {
-      this._connector = this.$walletConnect.connector
-    },
-
     async initializeConnector (uri, switchActivity = false) {
       const uriData = parseWalletConnectUri(uri)
       if (!uriData || !uriData.bridge) return
@@ -341,8 +337,8 @@ export default {
           }
         }).onOk(() => {
           this.disconnectConnector()
-          this.connector = markRaw(connector)
-          this.forceUpdateConnector()
+          this.connector = connector
+          this.$forceUpdate()
           this.attachEventsToConnector()
 
           connector.approveSession({
@@ -382,7 +378,7 @@ export default {
       this.detachEventstToConnector()
       this.connector.killSession()
       this.connector = null
-      this.forceUpdateConnector()
+      this.$forceUpdate()
       this.handshakeFormData.walletConnectUri = ''
       this.$store.commit('walletconnect/clearCallRequests')
     },
@@ -390,9 +386,9 @@ export default {
     detachEventstToConnector () {
       if (!this.connector) return
 
-      this.$walletConnect.removeEventListener('session_request')
-      this.$walletConnect.removeEventListener('disconnect', this.onDisconnectListener || undefined)
-      this.$walletConnect.removeEventListener('call_request', this.onCallRequestListener || undefined)
+      this.walletConnect.removeEventListener('session_request')
+      this.walletConnect.removeEventListener('disconnect', this.onDisconnectListener || undefined)
+      this.walletConnect.removeEventListener('call_request', this.onCallRequestListener || undefined)
 
       this.onDisconnectListener = undefined
       this.onCallRequestListener = undefined
@@ -414,7 +410,7 @@ export default {
 
         this.disconnectConnector()
       }
-      this.$walletConnect.addEventListener('disconnect', onDisconnectListener)
+      this.walletConnect.addEventListener('disconnect', onDisconnectListener)
       this.onDisconnectListener = onDisconnectListener
 
       const onCallRequestListener = (error, payload) => {
@@ -430,7 +426,7 @@ export default {
         if (!this.callRequestDialog.show) this.showCallRequestInDialog(this.callRequests[0])
       }
 
-      this.$walletConnect.addEventListener('call_request', onCallRequestListener)
+      this.walletConnect.addEventListener('call_request', onCallRequestListener)
       this.onCallRequestListener = onCallRequestListener
     },
 
