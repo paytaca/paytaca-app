@@ -290,6 +290,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import {
   fetchTokensList,
@@ -688,7 +689,7 @@ export default {
         const wallet = new Wallet(mnemonic)
         return wallet.sBCH.getOrInitWallet()
           .then(() => {
-            vm.wallet = wallet
+            vm.wallet = markRaw(wallet)
           })
       })
     }

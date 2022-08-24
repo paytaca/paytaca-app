@@ -189,6 +189,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { Plugins } from '@capacitor/core'
 import { getMnemonic, Wallet } from '../../wallet'
 import { createConnector, callRequestHandler, parseWalletConnectUri } from '../../wallet/walletconnect'
@@ -340,7 +341,7 @@ export default {
           }
         }).onOk(() => {
           this.disconnectConnector()
-          this.connector = connector
+          this.connector = markRaw(connector)
           this.forceUpdateConnector()
           this.attachEventsToConnector()
 
@@ -532,7 +533,7 @@ export default {
       const vm = this
       return getMnemonic()
         .then(function (mnemonic) {
-          vm.wallet = new Wallet(mnemonic, vm.isTestnet)
+          vm.wallet = markRaw(new Wallet(mnemonic, vm.isTestnet))
         })
     }
   },

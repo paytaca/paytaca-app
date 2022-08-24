@@ -181,6 +181,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
 import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetFormDialog.vue'
@@ -299,7 +300,7 @@ export default {
         const wallet = new Wallet(mnemonic)
         wallet.sBCH.getOrInitWallet()
           .then(() => {
-            vm.wallet = wallet
+            vm.wallet = markRaw(wallet)
           })
       })
     }

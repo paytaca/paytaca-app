@@ -283,6 +283,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { throttle } from 'quasar'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { deductFromFee, s2c, c2s, smart2cashMax, cash2smartMax } from '../../wallet/hopcash'
@@ -624,7 +625,7 @@ export default {
         const wallet = new Wallet(mnemonic)
         return wallet.sBCH.getOrInitWallet()
           .then(() => {
-            vm.wallet = wallet
+            vm.wallet = markRaw(wallet)
           })
       })
     }

@@ -393,6 +393,7 @@
   </q-card>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { debounce, throttle } from 'quasar'
 import { getMnemonic, Wallet } from '../../wallet'
 import {
@@ -933,7 +934,7 @@ export default {
     },
     async loadWallet () {
       const mnemonic = await getMnemonic()
-      this.wallet = new Wallet(mnemonic)
+      this.wallet = markRaw(new Wallet(mnemonic))
       await this.wallet.sBCH.getOrInitWallet()
       return this.wallet
     }

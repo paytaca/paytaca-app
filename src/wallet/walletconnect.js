@@ -136,6 +136,7 @@ export function parseWalletConnectUri (uri) {
 
 export class WalletConnectManager {
   constructor (app) {
+    console.log(app)
     this.app = app
     this._listeners = {}
     this._subscribedListeners = []

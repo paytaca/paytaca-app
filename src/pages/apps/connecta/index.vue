@@ -218,6 +218,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import createHmac from 'create-hmac'
 import { getMnemonic, Wallet } from '../../../wallet'
 import HeaderNav from 'components/header-nav'
@@ -499,7 +500,7 @@ export default {
         const wallet = new Wallet(mnemonic)
         wallet.sBCH.getOrInitWallet()
           .then(() => {
-            this.wallet = wallet
+            this.wallet = markRaw(wallet)
           })
       })
     }

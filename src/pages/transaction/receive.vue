@@ -80,6 +80,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
@@ -376,7 +377,7 @@ export default {
       const wallet = new Wallet(mnemonic)
       wallet.sBCH.getOrInitWallet()
         .then(() => {
-          vm.wallet = wallet
+          vm.wallet = markRaw(wallet)
           vm.setupListener()
         })
     })

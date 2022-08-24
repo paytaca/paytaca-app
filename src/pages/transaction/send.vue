@@ -183,6 +183,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import { debounce } from 'quasar'
 import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
@@ -789,7 +790,7 @@ export default {
       const wallet = new Wallet(mnemonic)
       wallet.sBCH.getOrInitWallet()
         .then(() => {
-          vm.wallet = wallet
+          vm.wallet = markRaw(wallet)
         })
     })
   },

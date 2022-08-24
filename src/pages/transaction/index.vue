@@ -141,6 +141,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
@@ -678,7 +679,7 @@ export default {
 
       const wallet = new Wallet(mnemonic)
       await wallet.sBCH.getOrInitWallet()
-      vm.wallet = wallet
+      vm.wallet = markRaw(wallet)
       vm.assets.map(function (asset) {
         vm.getBalance(asset.id)
       })
