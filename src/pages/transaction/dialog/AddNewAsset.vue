@@ -14,7 +14,7 @@
               dense
               filled
               color="input-color"
-              :label="$t(`Enter ${isSep20 ? 'SEP20 contract address': 'SLP token ID'}`)"
+              :label="`Enter ${isSep20 ? 'SEP20 contract address': 'SLP token ID'}`"
               type="text"
               lazy-rules
               v-model="asset"
@@ -38,6 +38,10 @@
 
 <script>
 export default {
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   props: {
     network: {
       type: String,

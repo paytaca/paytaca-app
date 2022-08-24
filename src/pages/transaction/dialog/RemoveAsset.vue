@@ -24,6 +24,10 @@
 
 <script>
 export default {
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   data () {
     return {
       assets: null

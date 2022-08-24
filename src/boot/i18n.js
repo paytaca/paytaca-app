@@ -10,7 +10,7 @@ const i18n = createI18n({
 
 export default boot(({ app }) => {  
   // Set i18n instance on app
-  app.i18n = i18n
+  app.use(i18n)
 })
 
 export { i18n }

@@ -32,6 +32,10 @@ export default {
    *  vm.$q.dialog({ component: SecurityCheckDialog, root: vm.$root }).onOk(() => console.log('Success!'))
   */
   name: 'SecurityCheckDialog',
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   components: {
     pinDialog,
     biometricWarningAttmepts

@@ -335,10 +335,11 @@ export default {
 
         this.$q.dialog({
           component: WalletConnectConfirmDialog,
-
-          peerId: payload.params[0].peerId,
-          peerMeta: payload.params[0].peerMeta,
-          darkMode: this.darkMode
+          componentProps: {
+            peerId: payload.params[0].peerId,
+            peerMeta: payload.params[0].peerMeta,
+            darkMode: this.darkMode
+          }
         }).onOk(() => {
           this.disconnectConnector()
           this.connector = connector

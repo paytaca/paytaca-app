@@ -499,8 +499,7 @@ export default {
     confirmSwiped () {
       this.stagedSwapInfo.showConfirmSwipe = false
       this.$q.dialog({
-        component: SecurityCheckDialog,
-        root: this.$root
+        component: SecurityCheckDialog
       })
         .onOk(() => {
           this.commitStagedSwapInfo()
@@ -563,8 +562,10 @@ export default {
               .onDismiss(() => {
                 this.$q.dialog({
                   component: SpicebotBridgeSwapListenerDialog,
-                  swapRequestId: this.stagedSwapInfo.spiceBotSwapRequest.id,
-                  darkMode: this.darkMode
+                  componentProps: {
+                    swapRequestId: this.stagedSwapInfo.spiceBotSwapRequest.id,
+                    darkMode: this.darkMode
+                  }
                 })
                   .onDismiss(() => {
                     this.resetForm()

@@ -288,25 +288,6 @@ export default {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
-    promptChangeNetwork () {
-      this.$q.dialog({
-        title: 'Select network',
-        message: 'Select network',
-        options: {
-          type: 'radio',
-          model: this.selectedNetwork,
-          items: [
-            { value: 'BCH', label: this.networks.BCH.name },
-            { value: 'sBCH', label: this.networks.sBCH.name }
-          ]
-        },
-        cancel: true,
-        persistent: true,
-        class: 'pp-text'
-      }).onOk(data => {
-        this.changeNetwork(data)
-      })
-    },
     changeNetwork (newNetwork = 'BCH') {
       const prevNetwork = this.selectedNetwork
       this.selectedNetwork = newNetwork

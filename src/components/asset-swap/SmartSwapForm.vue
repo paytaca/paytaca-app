@@ -714,8 +714,10 @@ export default {
     selectSourceToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
-        tokensList: this.tokensList,
-        darkMode: this.darkMode
+        componentProps: {
+          tokensList: this.tokensList,
+          darkMode: this.darkMode
+        }
       })
         .onOk(token => {
           if (!token) return
@@ -729,8 +731,10 @@ export default {
     selectDestToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
-        tokensList: this.tokensList,
-        darkMode: this.darkMode
+        componentProps: {
+          tokensList: this.tokensList,
+          darkMode: this.darkMode
+        }
       })
         .onOk(token => {
           if (!token) return

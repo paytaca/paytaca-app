@@ -136,6 +136,10 @@ const _customTokenInfoCache = {}
 
 export default {
   name: 'SmartSwapTokenSelectorDialog',
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   components: {
     ProgressLoader
   },
