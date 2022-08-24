@@ -71,6 +71,10 @@ import ProgressLoader from '../ProgressLoader.vue'
 
 export default {
   name: 'SpicebotBridgeSwapListenerDialog',
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   components: {
     ProgressLoader
   },

@@ -53,6 +53,10 @@
 <script>
 export default {
   name: 'AssetInfo',
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   props: {
     network: {
       type: String,
