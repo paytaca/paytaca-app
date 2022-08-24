@@ -147,7 +147,7 @@
                       <span class="q-mt-xs">{{ request.payload.method }}</span>
                       <q-space/>
                       <span class="text-grey text-caption">
-                        {{ request.timestamp | formatDate }}
+                        {{ formatDate(request.timestamp) }}
                       </span>
                     </q-item-label>
                     <q-item-label caption :class="darkMode ? 'text-grey-5' : 'text-grey'">
@@ -238,16 +238,6 @@ export default {
       if (value.length <= 20) return value
       return value.substr(0, 15) + '...' + value.substr(value.length - 10, value.length)
     },
-    formatDate (date) {
-      return ago(new Date(date))
-    },
-    formatJSON (value) {
-      try {
-        return JSON.stringify(JSON.parse(value), undefined, 1)
-      } catch {
-        return value
-      }
-    }
   },
   computed: {
     connector: {
@@ -283,6 +273,9 @@ export default {
   },
 
   methods: {
+    formatDate (date) {
+      return ago(new Date(date))
+    },
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({

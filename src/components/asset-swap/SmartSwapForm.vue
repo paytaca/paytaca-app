@@ -13,10 +13,10 @@
           padding="xs"
           icon="refresh"
           class="q-ml-md"
-          @click="
+          @click="function(){
             updateNetworkData()
             updateTokenListBalances()
-          "
+          }"
         />
         <q-btn
           round
@@ -55,10 +55,10 @@
             filled
             v-model.number="formData.amount"
             :dark="darkMode"
-            @input="
+            @input="function(){
               updateExcptectedReturn()
               updateNetworkData()
-            "
+            }"
           />
           <q-item-label
             v-if="formData.sourceToken.balance > 0 || formData.sourceToken.balance === 0"
@@ -322,10 +322,10 @@
               icon="refresh"
               round
               padding="sm"
-              @click="
+              @click="function(){
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
-              "
+              }"
             />
           <q-btn
             flat

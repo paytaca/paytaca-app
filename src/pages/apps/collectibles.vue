@@ -126,10 +126,10 @@
               :key="index"
               clickable
               :active="index === selectedERC721AssetIndex"
-              @click="
+              @click="function() {
                 selectedERC721AssetIndex = index
                 selectERC721AssetExpanded = false
-              "
+              }"
             >
               <q-item-section side>
                 <q-btn

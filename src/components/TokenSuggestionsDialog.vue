@@ -49,9 +49,8 @@
             />
           </q-tabs>
           <q-list style="max-height:45vh;overflow-y:auto;">
-            <template v-for="(token, index) in parsedTokens">
+            <template v-for="(token, index) in parsedTokens"  :key="index">
               <q-item
-                :key="index"
                 :class="[
                   isAssetInIgnoredList(token.id) ? 'text-grey' : (darkMode ? 'text-white' : 'text-black'),
                 ]"

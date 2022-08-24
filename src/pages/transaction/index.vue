@@ -108,7 +108,7 @@
                             <p :class="{'text-grey': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
                           </div>
                           <div class="col">
-                              <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">{{ transaction.date_created | formatDate }}</span>
+                              <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">{{ formatDate(transaction.date_created) }}</span>
                               <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                           </div>
                         </div>
@@ -279,19 +279,11 @@ export default {
     }
   },
 
-  filters: {
-    titleCase (str) {
-      return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase())
-    },
-    truncateTxid (str) {
-      return str.substring(0, 30)
-    },
-    formatDate (date) {
-      return ago(new Date(date))
-    }
-  },
 
   methods: {
+    formatDate (date) {
+      return ago(new Date(date))
+    },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))

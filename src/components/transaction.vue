@@ -58,7 +58,7 @@
                   <span v-if="transaction.senders.length === 1">Sender</span>
                   <span v-if="transaction.senders.length > 1">Senders</span>
                 </q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.senders | concatenate }}</q-item-label>
+                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ concatenate(transaction.senders) }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
@@ -73,7 +73,7 @@
                   <span v-if="transaction.recipients.length === 1">Recipient</span>
                   <span v-if="transaction.recipients.length > 1">Recipients</span>
                 </q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.recipients | concatenate }}</q-item-label>
+                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ concatenate(transaction.recipients) }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item>
@@ -167,10 +167,7 @@ export default {
       return (Number(gas) * Number(bchMarketValue)).toFixed(8)
     }
   },
-  filters: {
-    truncateTxid (str) {
-      return str.substring(0, 30)
-    },
+  methods: {
     concatenate (array) {
       let addresses = array.map(function (item) {
         return item[0]
@@ -181,9 +178,7 @@ export default {
       } else {
         return addresses.join(', ')
       }
-    }
-  },
-  methods: {
+    },
     show (transaction, darkMode) {
       this.darkMode = darkMode
       try {

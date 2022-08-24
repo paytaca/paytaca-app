@@ -2,10 +2,10 @@
   <q-dialog
     ref="dialog"
     @hide="onDialogHide"
-    @before-show="
+    @before-show="function(){
       startPoller()
       updateSwapRequest()
-    "
+    }"
     full-width
     persistent>
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
