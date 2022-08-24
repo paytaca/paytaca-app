@@ -46,7 +46,7 @@ import { openURL } from 'quasar'
 export default {
   name: 'ERC721CollectibleDetail',
   props: {
-    value: {
+    modelValue: {
       type: Boolean,
       default: false
     },
@@ -55,7 +55,7 @@ export default {
   },
   data () {
     return {
-      val: this.value
+      val: this.modelValue
     }
   },
   computed: {
@@ -92,10 +92,10 @@ export default {
   },
   watch: {
     val () {
-      this.$emit('input', this.val)
+      this.$emit('update:modelValue', this.val)
     },
-    value () {
-      this.val = this.value
+    modelValue () {
+      this.val = this.modelValue
     }
   }
 }

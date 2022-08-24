@@ -168,7 +168,7 @@ export default {
   name: 'WalletConnectCallRequestDialog',
   components: { JSONRenderer },
   props: {
-    value: {
+    modelValue: {
       type: Boolean,
       default: false
     },
@@ -193,7 +193,7 @@ export default {
   },
   data () {
     return {
-      val: this.value,
+      val: this.modelValue,
       showDecoded: true
     }
   },
@@ -235,11 +235,11 @@ export default {
     }
   },
   watch: {
-    value () {
-      this.val = this.value
+    modelValue () {
+      this.val = this.modelValue
     },
     val () {
-      this.$emit('input', this.val)
+      this.$emit('update:modelValue', this.val)
     },
     'parsedCallRequest.payload.id': {
       handler () {
