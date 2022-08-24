@@ -22,7 +22,7 @@
         <div
           v-for="(asset, index) in assets"
           :key="index"
-          @click="$router.push({ name: 'transaction-receive', params: { assetId: asset.id, network: selectedNetwork } })"
+          @click="$router.push({ name: 'transaction-receive', query: { assetId: asset.id, network: selectedNetwork } })"
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >

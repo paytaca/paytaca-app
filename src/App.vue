@@ -22,7 +22,7 @@ export default {
       vm.$q.bex.on('bex.paytaca.send', event => {
         vm.$router.push({
           name: 'transaction-send',
-          params: {
+          query: {
             assetId: event.data.assetId,
             amount: event.data.amount,
             recipient: event.data.recipient

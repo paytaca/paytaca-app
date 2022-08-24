@@ -341,25 +341,6 @@ export default {
         }, 600)
       }
     },
-    sendBch () {
-      this.$router.push({
-        name: 'transaction-send',
-        params: {
-          network: this.selectedNetwork,
-          assetId: 'bch',
-          fixed: false
-        }
-      })
-    },
-    receiveBch () {
-      this.$router.push({
-        name: 'transaction-receive',
-        params: {
-          network: this.selectedNetwork,
-          assetId: 'bch'
-        }
-      })
-    },
     toggleManageAssets () {
       this.manageAssets = !this.manageAssets
     },

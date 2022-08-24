@@ -80,7 +80,7 @@ export default {
     send () {
       this.$router.push({
         name: 'transaction-send',
-        params: {
+        query: {
           network: 'sBCH',
           assetId: 'erc721/' + this.collectible.contractAddress + ':' + this.collectible.id,
           amount: 1,

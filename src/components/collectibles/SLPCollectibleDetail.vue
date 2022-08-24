@@ -64,7 +64,7 @@ export default {
     send () {
       this.$router.push({
         name: 'transaction-send',
-        params: {
+        query: {
           assetId: 'slp/' + this.collectible.token_id,
           tokenType: 65,
           amount: 1,

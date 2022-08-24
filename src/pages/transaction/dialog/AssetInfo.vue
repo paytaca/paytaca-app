@@ -102,7 +102,7 @@ export default {
     send () {
       this.$router.push({
         name: 'transaction-send',
-        params: {
+        query: {
           network: this.network,
           assetId: this.asset.id,
           fixed: false
@@ -112,7 +112,7 @@ export default {
     receive () {
       this.$router.push({
         name: 'transaction-receive',
-        params: {
+        query: {
           network: this.network,
           assetId: this.asset.id
         }
