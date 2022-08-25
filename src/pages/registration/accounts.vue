@@ -65,7 +65,7 @@
     </div>
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
-    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
   </div>
 </template>

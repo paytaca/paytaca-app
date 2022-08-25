@@ -32,7 +32,9 @@ export default {
   methods: {
     slide ({ reset }) {
       setTimeout(() => {
-        reset()
+        try{
+          reset()
+        } catch {}
       }, 2000)
       this.swiped = true
       this.$emit('swiped')

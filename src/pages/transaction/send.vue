@@ -175,7 +175,7 @@
         </div>
       </div>
 
-      <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
       <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
 
     </div>

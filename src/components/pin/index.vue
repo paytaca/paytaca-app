@@ -99,6 +99,15 @@ import { Plugins } from '@capacitor/core'
 const { SecureStoragePlugin } = Plugins
 
 export default {
+  /**
+   * Note: quasar upgrade from v1 to v2 requires 'pinDialogAction' prop to be used with v-model instead of v-bind
+   * 
+   *
+   * Before:
+   *  <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
+   * Recommended:
+   *  <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
+  */
   data () {
     return {
       dialog: false,
@@ -249,7 +258,12 @@ export default {
         vm.loader = false
         vm.removeKey('reset')
         vm.$emit('nextAction')
-        vm.pinDialogAction = ''
+        try{
+          vm.pinDialogAction = ''
+        } catch {}
+        finally {
+          vm.$emit('update:pinDialogAction')
+        }
       }
     },
     cancelPin () {
