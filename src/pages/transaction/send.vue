@@ -786,11 +786,14 @@ export default {
 
     // Load wallets
     getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic)
-      wallet.sBCH.getOrInitWallet()
-        .then(() => {
+      const wallet = new Wallet(mnemonic, vm.network)
+      if (vm.network === 'sBCH') {
+        wallet.sBCH.getOrInitWallet().then(() => {
           vm.wallet = wallet
         })
+      } else {
+        vm.wallet = wallet
+      }
     })
   },
 

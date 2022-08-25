@@ -123,7 +123,7 @@ export default {
       }
       vm.steps += 1
 
-      const wallet = new Wallet(this.mnemonic)
+      let wallet = new Wallet(this.mnemonic, 'BCH')
 
       wallet.BCH.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {
@@ -164,6 +164,8 @@ export default {
         })
         vm.steps += 1
       })
+
+      wallet = new Wallet(this.mnemonic, 'sBCH')
       wallet.sBCH.getOrInitWallet().then(function () {
         wallet.sBCH.subscribeWallet()
         vm.$store.commit('global/updateWallet', {

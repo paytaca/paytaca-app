@@ -72,6 +72,7 @@
               />
             </div>
           </span>
+          <p @click="copyToClipboard(wallet.sBCH.privateKey)">{{ wallet.sBCH.privateKey }}</p>
         </div>
       </div>
     </template>
@@ -373,12 +374,15 @@ export default {
   mounted () {
     const vm = this
     getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic)
-      wallet.sBCH.getOrInitWallet()
-        .then(() => {
-          vm.wallet = wallet
-          vm.setupListener()
-        })
+      const wallet = new Wallet(mnemonic, vm.network)
+      if (vm.network === 'sBCH') {
+        wallet.sBCH.getOrInitWallet()
+        wallet.sBCH.getOrInitWallet()
+          .then(() => {
+            vm.wallet = wallet
+            vm.setupListener()
+          })
+      }
     })
     this.updateLnsName()
   },

@@ -929,7 +929,7 @@ export default {
     },
     async loadWallet () {
       const mnemonic = await getMnemonic()
-      this.wallet = new Wallet(mnemonic)
+      this.wallet = new Wallet(mnemonic, 'sBCH')
       await this.wallet.sBCH.getOrInitWallet()
       return this.wallet
     }

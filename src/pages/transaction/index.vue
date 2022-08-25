@@ -316,16 +316,21 @@ export default {
       })
     },
     changeNetwork (newNetwork = 'BCH') {
-      const prevNetwork = this.selectedNetwork
-      this.selectedNetwork = newNetwork
-      if (prevNetwork !== this.selectedNetwork) {
-        this.selectedAsset = this.bchAsset
-        this.transactions = []
-        this.transactionsPage = 1
-        this.transactionsLoaded = false
-        this.loadWallets()
-        // this.getTransactions()
-        // if (this.selectedAsset) this.getBalance(this.selectedAsset.id)
+      const vm = this
+      const prevNetwork = vm.selectedNetwork
+      vm.selectedNetwork = newNetwork
+      if (prevNetwork !== vm.selectedNetwork) {
+        vm.selectedAsset = vm.bchAsset
+        vm.transactions = []
+        vm.transactionsPage = 1
+        vm.transactionsLoaded = false
+        vm.wallet = null
+        vm.loadWallets().then(() => {
+          vm.assets.map(function (asset) {
+            vm.getBalance(asset.id)
+          })
+          vm.getTransactions()
+        })
       }
     },
     selectBch () {
@@ -725,12 +730,7 @@ export default {
       const mnemonic = await getMnemonic()
 
       const wallet = new Wallet(mnemonic, vm.selectedNetwork)
-      // await wallet.sBCH.getOrInitWallet()
       vm.wallet = wallet
-      vm.assets.map(function (asset) {
-        vm.getBalance(asset.id)
-      })
-      vm.getTransactions()
 
       if (vm.selectedNetwork === 'BCH') {
         // Create change addresses if nothing is set yet
@@ -762,10 +762,11 @@ export default {
           })
         }
       } else if (vm.selectedNetwork === 'sBCH') {
+        await vm.wallet.sBCH.getOrInitWallet()
         const sBchDerivationPath = vm.getWallet('sbch').derivationPath
         const lastAddress = vm.getWallet('sbch').lastAddress
         let subscribeSbchAddress = !vm.getWallet('sbch').subscribed
-        if (sBchDerivationPath.length !== 14 || lastAddress !== wallet.sBCH._wallet.address) {
+        if (sBchDerivationPath.length !== 14 || lastAddress !== vm.wallet.sBCH._wallet.address) {
           subscribeSbchAddress = true
           vm.$store.commit('global/updateWallet', {
             type: 'sbch',
@@ -785,7 +786,7 @@ export default {
                 })
               }
             })
-        } 
+        }
       }
     }
   },
@@ -804,7 +805,11 @@ export default {
 
     // Load wallets
     this.loadWallets().then(() => {
-      console.log('Notified suggestions: ', this.$root.hasSuggestedAssets)
+      vm.assets.map(function (asset) {
+        vm.getBalance(asset.id)
+      })
+      vm.getTransactions()
+
       if (this.$root.hasSuggestedAssets) return
       this.checkMissingAssets()
         .then(() => {

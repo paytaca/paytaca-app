@@ -1,13 +1,16 @@
 import Watchtower from 'watchtower-cash-js'
 import axios from 'axios'
 import sha256 from 'js-sha256'
-import * as Bip39 from 'bip39'
-import { hdkey } from 'ethereumjs-wallet'
+// import * as Bip39 from 'bip39'
+// import { hdkey } from 'ethereumjs-wallet'
+import BCHJS from '@psf/bch-js'
 import { BigNumber, ethers, utils } from 'ethers'
 
 import { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
 
 export { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions }
+
+const bchjs = new BCHJS()
 
 export class SmartBchWallet {
   static TX_INCOMING = 'incoming'
@@ -37,12 +40,19 @@ export class SmartBchWallet {
   async initWallet () {
     // Changed from using ethers.Wallet.fromMnemonic for faster initialization time
     // https://stackoverflow.com/a/71065135
-    const seed = await Bip39.mnemonicToSeed(this.mnemonic)
-    const hdNode = hdkey.fromMasterSeed(seed)
-    const node = hdNode.derivePath(this.derivationPath)
-    const childNode = node.deriveChild(0)
-    const childWallet = childNode.getWallet()
-    this._wallet = new ethers.Wallet(childWallet.getPrivateKey().toString('hex')).connect(this.provider)
+    // const seed = await Bip39.mnemonicToSeed(this.mnemonic)
+    // const hdNode = hdkey.fromMasterSeed(seed)
+    // const node = hdNode.derivePath(this.derivationPath)
+    // const childNode = node.deriveChild(0)
+    // const childWallet = childNode.getWallet()
+    // const privateKey = childWallet.getPrivateKey().toString('hex')
+
+    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
+    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    const childNode = masterHDNode.derivePath(this.derivationPath)
+    const childWallet = childNode.derivePath('0')
+    const privateKey = bchjs.HDNode.toKeyPair(childWallet).d.toBuffer().toString('hex')
+    this._wallet = new ethers.Wallet(privateKey).connect(this.provider)
   }
 
   async getOrInitWallet () {
