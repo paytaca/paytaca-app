@@ -420,7 +420,7 @@ export default {
     defaultRecipientAddress () {
       if (!this.wallet) return ''
       if (this.transferType === 'c2s') {
-        return this.wallet.sBCH._wallet.address
+        return this.$store.getters['global/getAddress']('sbch')
       }
       return this.$store.getters['global/getAddress']('bch')
     }
@@ -482,7 +482,8 @@ export default {
         })
       }
       if (this.transferType === 's2c') {
-        this.wallet.sBCH.getBalance()
+        const address = this.$store.getters['global/getWallet']('sbch').lastAddress
+        this.wallet.sBCH.getBalance(address)
           .then(balance => {
             const commitName = 'sep20/updateAssetBalance'
             this.$store.commit(commitName, {
@@ -563,7 +564,9 @@ export default {
         )
     },
 
-    executeSwap () {
+    async executeSwap () {
+      await this.wallet.sBCH.getOrInitWallet()
+
       let func = null
       if (this.transferType === 'c2s') func = c2s
       if (this.transferType === 's2c') func = s2c
@@ -619,27 +622,26 @@ export default {
       })
     },
 
-    loadWallet () {
+    loadWallet (transferType) {
       const vm = this
+      const network = transferType === 'c2s' ? 'BCH' : 'sBCH'
       // Load wallets
       return getMnemonic().then(function (mnemonic) {
-        const wallet = new Wallet(mnemonic, 'sBCH')
-        return wallet.sBCH.getOrInitWallet()
-          .then(() => {
-            vm.wallet = wallet
-          })
+        const wallet = new Wallet(mnemonic, network)
+        vm.wallet = wallet
       })
     }
   },
 
   watch: {
-    transferType () {
+    transferType (val) {
+      this.loadWallet(val)
       this.updateBridgeBalances()
     }
   },
 
   mounted () {
-    this.loadWallet()
+    this.loadWallet('c2s')
       .then(() => {
         this.updateWalletBalance(true)
       })

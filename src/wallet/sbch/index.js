@@ -284,8 +284,8 @@ export class SmartBchWallet {
       to: recipientAddress,
       value: parsedAmount
     }
-    const estGas = await this._wallet.estimateGas(txParams)
-    const gasPrice = await this._wallet.getGasPrice()
+    const estGas = await this.provider.estimateGas(txParams)
+    const gasPrice = await this.provider.getGasPrice()
     let spendableBch = parsedAmount - (estGas * gasPrice)
     spendableBch = utils.formatEther(String(spendableBch))
     return spendableBch
