@@ -296,11 +296,8 @@ export default {
     loadWallet () {
       const vm = this
       getMnemonic().then(function (mnemonic) {
-        const wallet = new Wallet(mnemonic, 'sBCH')
-        wallet.sBCH.getOrInitWallet()
-          .then(() => {
-            vm.wallet = wallet
-          })
+        const wallet = new Wallet(mnemonic, vm.selectedNetwork)
+        vm.wallet = wallet
       })
     }
   },
