@@ -533,14 +533,15 @@ export class SmartBchWallet {
     }
   }
 
-  async getOwnedNFTs (contractAddress, { limit = 10, offset = 0, includeMetadata = false }) {
+  async getOwnedNFTs (contractAddress, ownerAddress, { limit = 10, offset = 0, includeMetadata = false }) {
     return this.getNFTs(
       contractAddress,
+      ownerAddress,
       {
         limit,
         offset,
         includeMetadata,
-        address: this._wallet.address
+        address: ownerAddress
       }
     )
   }
@@ -558,7 +559,7 @@ export class SmartBchWallet {
    * - Metadata is not fetched by default as it can get costly
    * - Added fetching metadata asynchronously to allow partial response with less response time
    */
-  async getNFTs (contractAddress, { limit = 10, offset = 0, includeMetadata = false, asyncMetadata = false, metadataCallback = () => {}, address = '' }) {
+  async getNFTs (contractAddress, ownerAddress, { limit = 10, offset = 0, includeMetadata = false, asyncMetadata = false, metadataCallback = () => {}, address = '' }) {
     if (!utils.isAddress(contractAddress)) {
       return {
         success: false,
@@ -568,7 +569,7 @@ export class SmartBchWallet {
 
     const contract = getERC721Contract(contractAddress)
     var balance
-    if (address) balance = await contract.balanceOf(this._wallet.address)
+    if (address) balance = await contract.balanceOf(ownerAddress)
     else balance = await contract.totalSupply()
 
     const startIndex = Math.min(offset, balance)
@@ -576,7 +577,7 @@ export class SmartBchWallet {
 
     const promises = []
     for (var i = startIndex; i < endIndex; i++) {
-      if (address) promises.push(contract.tokenOfOwnerByIndex(this._wallet.address, i))
+      if (address) promises.push(contract.tokenOfOwnerByIndex(ownerAddress, i))
       else promises.push(contract.tokenByIndex(i))
     }
 

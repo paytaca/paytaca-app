@@ -430,7 +430,7 @@ export default {
   data () {
     return {
       wallet: null,
-      address: this.$store.getters['global/getWallet']('sbch').lastAddress,
+      address: this.$store.getters['global/getAddress']('sbch'),
 
       // info that the user can update
       formData: {

@@ -229,7 +229,7 @@ export default {
     receivingAddress () {
       if (!this.wallet) return ''
 
-      if (this.isSep20) return this.wallet.sBCH._wallet.address
+      if (this.isSep20) return this.$store.getters['global/getAddress']('sbch')
       return this.$store.getters['global/getAddress']('slp')
     }
   },

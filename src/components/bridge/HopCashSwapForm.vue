@@ -482,7 +482,7 @@ export default {
         })
       }
       if (this.transferType === 's2c') {
-        const address = this.$store.getters['global/getWallet']('sbch').lastAddress
+        const address = this.$store.getters['global/getAddress']('sbch')
         this.wallet.sBCH.getBalance(address)
           .then(balance => {
             const commitName = 'sep20/updateAssetBalance'
@@ -565,7 +565,9 @@ export default {
     },
 
     async executeSwap () {
-      await this.wallet.sBCH.getOrInitWallet()
+      if (this.transferType === 's2c') {
+        await this.wallet.sBCH.getOrInitWallet()
+      }
 
       let func = null
       if (this.transferType === 'c2s') func = c2s
