@@ -123,13 +123,13 @@ export default {
       }
       vm.steps += 1
 
-      let wallet = new Wallet(this.mnemonic, 'BCH')
+      const bchWallet = new Wallet(this.mnemonic, 'BCH')
 
-      wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+      bchWallet.BCH.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
-          walletHash: wallet.BCH.walletHash,
-          derivationPath: wallet.BCH.derivationPath,
+          walletHash: bchWallet.BCH.walletHash,
+          derivationPath: bchWallet.BCH.derivationPath,
           lastAddress: addresses !== null ? addresses.receiving : '',
           lastChangeAddress: addresses !== null ? addresses.change : '',
           lastAddressIndex: 0
@@ -137,7 +137,7 @@ export default {
         vm.steps += 1
       })
 
-      wallet.BCH.getXPubKey().then(function (xpub) {
+      bchWallet.BCH.getXPubKey().then(function (xpub) {
         vm.$store.commit('global/updateXPubKey', {
           type: 'bch',
           xPubKey: xpub
@@ -145,11 +145,11 @@ export default {
         vm.steps += 1
       })
 
-      wallet.SLP.getNewAddressSet(0).then(function (addresses) {
+      bchWallet.SLP.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {
           type: 'slp',
-          walletHash: wallet.SLP.walletHash,
-          derivationPath: wallet.SLP.derivationPath,
+          walletHash: bchWallet.SLP.walletHash,
+          derivationPath: bchWallet.SLP.derivationPath,
           lastAddress: addresses !== null ? addresses.receiving : '',
           lastChangeAddress: addresses !== null ? addresses.change : '',
           lastAddressIndex: 0
@@ -157,7 +157,7 @@ export default {
         vm.steps += 1
       })
 
-      wallet.SLP.getXPubKey().then(function (xpub) {
+      bchWallet.SLP.getXPubKey().then(function (xpub) {
         vm.$store.commit('global/updateXPubKey', {
           type: 'slp',
           xPubKey: xpub
@@ -165,14 +165,14 @@ export default {
         vm.steps += 1
       })
 
-      wallet = new Wallet(this.mnemonic, 'sBCH')
-      wallet.sBCH.getOrInitWallet().then(function () {
-        wallet.sBCH.subscribeWallet()
+      const sbchWallet = new Wallet(this.mnemonic, 'sBCH')
+      sbchWallet.sBCH.getOrInitWallet().then(function () {
+        sbchWallet.sBCH.subscribeWallet()
         vm.$store.commit('global/updateWallet', {
           type: 'sbch',
-          derivationPath: wallet.sBCH.derivationPath,
-          walletHash: wallet.sBCH.walletHash,
-          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
+          derivationPath: sbchWallet.sBCH.derivationPath,
+          walletHash: sbchWallet.sBCH.walletHash,
+          lastAddress: sbchWallet.sBCH._wallet ? sbchWallet.sBCH._wallet.address : ''
         })
       })
     },

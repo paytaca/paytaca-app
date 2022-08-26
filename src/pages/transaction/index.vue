@@ -135,7 +135,7 @@
       ref="tokenSuggestionsDialog"
       v-model="showTokenSuggestionsDialog"
       :slp-wallet-hash="getWallet('slp').walletHash"
-      :sbch-address="wallet && wallet.sBCH && wallet.sBCH._wallet && wallet.sBCH._wallet.address"
+      :sbch-address="getWallet('sbch').lastAddress"
     />
   </div>
 </template>
@@ -428,9 +428,10 @@ export default {
       }
       const parsedId = String(id)
 
+      const address = vm.$store.getters['global/getAddress']('sbch')
       if (sep20IdRegexp.test(parsedId)) {
         const contractAddress = parsedId.match(sep20IdRegexp)[1]
-        vm.wallet.sBCH.getSep20TokenBalance(contractAddress)
+        vm.wallet.sBCH.getSep20TokenBalance(contractAddress, address)
           .then(balance => {
             const commitName = 'sep20/updateAssetBalance'
             vm.$store.commit(commitName, {
@@ -440,7 +441,7 @@ export default {
             vm.balanceLoaded = true
           })
       } else {
-        vm.wallet.sBCH.getBalance()
+        vm.wallet.sBCH.getBalance(address)
           .then(balance => {
             const commitName = 'sep20/updateAssetBalance'
             vm.$store.commit(commitName, {
@@ -479,10 +480,13 @@ export default {
     },
 
     getTransactions () {
-      if (this.selectedNetwork === 'sBCH') return this.getSbchTransactions()
+      if (this.selectedNetwork === 'sBCH') {
+        const address = this.$store.getters['global/getAddress']('sbch')
+        return this.getSbchTransactions(address)
+      }
       return this.getBchTransactions()
     },
-    getSbchTransactions () {
+    getSbchTransactions (address) {
       const vm = this
       const id = String(vm.selectedAsset.id)
       vm.transactionsLoaded = false
@@ -505,12 +509,12 @@ export default {
         const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
         requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
           contractAddress,
-          vm.wallet.sBCH._wallet.address,
+          address,
           opts
         )
       } else {
         requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
-          vm.wallet.sBCH._wallet.address,
+          address,
           opts
         )
       }
@@ -762,30 +766,29 @@ export default {
           })
         }
       } else if (vm.selectedNetwork === 'sBCH') {
-        await vm.wallet.sBCH.getOrInitWallet()
-        const sBchDerivationPath = vm.getWallet('sbch').derivationPath
         const lastAddress = vm.getWallet('sbch').lastAddress
         let subscribeSbchAddress = !vm.getWallet('sbch').subscribed
-        if (sBchDerivationPath.length !== 14 || lastAddress !== vm.wallet.sBCH._wallet.address) {
+        if (lastAddress.length === 0) {
+          await vm.wallet.sBCH.getOrInitWallet()
           subscribeSbchAddress = true
           vm.$store.commit('global/updateWallet', {
             type: 'sbch',
             derivationPath: vm.wallet.sBCH.derivationPath,
             walletHash: vm.wallet.sBCH.walletHash,
-            lastAddress: vm.wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
+            lastAddress: vm.wallet.sBCH._wallet ? vm.wallet.sBCH._wallet.address : ''
           })
-        }
 
-        if (subscribeSbchAddress) {
-          wallet.sBCH.subscribeWallet()
-            .then(response => {
-              if (response && response.success) {
-                vm.$store.commit('global/setWalletSubscribed', {
-                  type: 'sbch',
-                  subscribed: true
-                })
-              }
-            })
+          if (subscribeSbchAddress) {
+            wallet.sBCH.subscribeWallet()
+              .then(response => {
+                if (response && response.success) {
+                  vm.$store.commit('global/setWalletSubscribed', {
+                    type: 'sbch',
+                    subscribed: true
+                  })
+                }
+              })
+          }
         }
       }
     }

@@ -191,9 +191,6 @@ export default {
           }
         })
         .filter(Boolean)
-    },
-    darkMode () {
-      return this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
@@ -253,10 +250,11 @@ export default {
       )
     },
     async updateSmartchainList (opts = { includeIgnored: false }) {
-      this.smartchainTokens = await this.$store.dispatch(
+      const vm = this
+      vm.smartchainTokens = await vm.$store.dispatch(
         'sep20/getMissingAssets',
         {
-          address: this.sbchAddress,
+          address: vm.sbchAddress,
           icludeIgnoredTokens: opts.includeIgnored
         }
       )

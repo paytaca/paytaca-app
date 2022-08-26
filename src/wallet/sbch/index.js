@@ -79,16 +79,17 @@ export class SmartBchWallet {
     return walletHash
   }
 
-  async getBalance () {
-    await this.getOrInitWallet()
-    const balance = await this._wallet.getBalance()
+  async getBalance (address) {
+    // await this.getOrInitWallet()
+    // const balance = await this._wallet.getBalance()
+    const balance = await this.provider.getBalance(address)
     return utils.formatEther(balance)
   }
 
-  async getSep20TokenBalance (contractAddress) {
+  async getSep20TokenBalance (contractAddress, address) {
     if (!utils.isAddress(contractAddress)) return 0
     const tokenContract = getSep20Contract(contractAddress)
-    const balance = await tokenContract.balanceOf(this._wallet.address)
+    const balance = await tokenContract.balanceOf(address)
     const decimals = await tokenContract.decimals()
     return utils.formatUnits(balance, decimals)
   }
