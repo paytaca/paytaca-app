@@ -55,6 +55,12 @@ export default {
           active: true
         },
         {
+          name: 'Gifts',
+          iconName: 'mdi-gift',
+          path: '/apps/gifts',
+          active: true
+        },
+        {
           name: 'Wallet Info',
           iconName: 'info',
           path: '/apps/wallet-info',
@@ -66,6 +72,7 @@ export default {
           path: '/apps/settings',
           active: true
         }
+
         // {
         //   name: 'Rewards',
         //   iconName: 'mdi-trophy',
@@ -144,7 +151,7 @@ export default {
     border-radius: 10px;
   }
   .pt-light-app {
-    // background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
+     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }
   .pt-dark-app {
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
