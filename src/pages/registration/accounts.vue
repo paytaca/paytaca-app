@@ -7,16 +7,30 @@
       </div>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
-      <div class="col-12 q-mt-md q-px-lg q-py-none">
-        <div class="row">
-          <div class="col-12 q-py-sm">
-            <q-btn class="full-width bg-blue-9 text-white" @click="() => { if (steps === -1) { steps = 0 }; $forceUpdate(); }" label="Create New Wallet" rounded />
+      <div v-if="show" v-cloak>
+        <div class="col-12 q-mt-md q-px-lg q-py-none">
+          <div class="row">
+            <div class="col-12 q-py-sm">
+              <q-btn class="full-width bg-blue-9 text-white" @click="() => { if (steps === -1) { steps = 0 }; $forceUpdate(); }" label="Create New Wallet" rounded />
+            </div>
+            <div class="col-12 text-center q-py-sm">
+              <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">OR</p>
+            </div>
+            <div class="col-12 q-py-sm">
+              <q-btn class="full-width bg-blue-9 text-white" @click="() => { importSeedPhrase = true }" label="Restore from Seed Phrase" rounded />
+            </div>
           </div>
-          <div class="col-12 text-center q-py-sm">
-            <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">OR</p>
+        </div>
+      </div>
+      <div class="row" v-else style="margin-top: 60px;">
+        <div class="col" v-if="error">
+          <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+            Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down. &#128533;
           </div>
-          <div class="col-12 q-py-sm">
-            <q-btn class="full-width bg-blue-9 text-white" @click="() => { importSeedPhrase = true }" label="Restore from Seed Phrase" rounded />
+        </div>
+        <div class="col transparent" v-else>
+          <div class="col q-mt-sm text-center">
+            <ProgressLoader color="white" />
           </div>
         </div>
       </div>
@@ -82,6 +96,8 @@ export default {
   components: { ProgressLoader, pinDialog, securityOptionDialog },
   data () {
     return {
+      show: false,
+      error: false,
       importSeedPhrase: false,
       seedPhraseBackup: null,
       mnemonic: '',
@@ -234,11 +250,24 @@ export default {
         vm.pinDialogAction = ''
       }
     }
+  },
+  mounted () {
+    const vm = this
+    vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {
+      if (response.status === 200) {
+        vm.show = true
+      }
+    }).catch(function () {
+      vm.error = true
+    })
   }
 }
 </script>
 
 <style lang="scss">
+[v-cloak] {
+  display: none;
+}
 .pt-wallet {
   width: 100%;
   min-height: calc(100vh - 152px);
@@ -274,5 +303,12 @@ li pre {
 }
 .dim-text {
   color: #8F8CB8;
+}
+.pt-internet-required {
+  text-align: center;
+  width: 100%;
+  font-size: 24px;
+  padding: 30px;
+  color: gray;
 }
 </style>
