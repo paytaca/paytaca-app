@@ -540,7 +540,7 @@ export default {
       const vm = this
       return getMnemonic()
         .then(function (mnemonic) {
-          vm.wallet = new Wallet(mnemonic, vm.isTestnet)
+          vm.wallet = new Wallet(mnemonic, 'sBCH')
         })
     }
   },

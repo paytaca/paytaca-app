@@ -229,7 +229,7 @@ export default {
     receivingAddress () {
       if (!this.wallet) return ''
 
-      if (this.isSep20) return this.wallet.sBCH._wallet.address
+      if (this.isSep20) return this.$store.getters['global/getAddress']('sbch')
       return this.$store.getters['global/getAddress']('slp')
     }
   },
@@ -296,11 +296,8 @@ export default {
     loadWallet () {
       const vm = this
       getMnemonic().then(function (mnemonic) {
-        const wallet = new Wallet(mnemonic)
-        wallet.sBCH.getOrInitWallet()
-          .then(() => {
-            vm.wallet = wallet
-          })
+        const wallet = new Wallet(mnemonic, vm.selectedNetwork)
+        vm.wallet = wallet
       })
     }
   },

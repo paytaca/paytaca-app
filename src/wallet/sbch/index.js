@@ -1,13 +1,16 @@
 import Watchtower from 'watchtower-cash-js'
 import axios from 'axios'
 import sha256 from 'js-sha256'
-import * as Bip39 from 'bip39'
-import { hdkey } from 'ethereumjs-wallet'
+// import * as Bip39 from 'bip39'
+// import { hdkey } from 'ethereumjs-wallet'
+import BCHJS from '@psf/bch-js'
 import { BigNumber, ethers, utils } from 'ethers'
 
 import { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
 
 export { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions }
+
+const bchjs = new BCHJS()
 
 export class SmartBchWallet {
   static TX_INCOMING = 'incoming'
@@ -31,18 +34,25 @@ export class SmartBchWallet {
     // TODO: Add support for multiple addresses in the future
 
     // this._wallet = ethers.Wallet.fromMnemonic(mnemonic, addressPath).connect(this.provider)
-    this.getOrInitWallet()
+    // this.getOrInitWallet()
   }
 
   async initWallet () {
     // Changed from using ethers.Wallet.fromMnemonic for faster initialization time
     // https://stackoverflow.com/a/71065135
-    const seed = await Bip39.mnemonicToSeed(this.mnemonic)
-    const hdNode = hdkey.fromMasterSeed(seed)
-    const node = hdNode.derivePath(this.derivationPath)
-    const childNode = node.deriveChild(0)
-    const childWallet = childNode.getWallet()
-    this._wallet = new ethers.Wallet(childWallet.getPrivateKey().toString('hex')).connect(this.provider)
+    // const seed = await Bip39.mnemonicToSeed(this.mnemonic)
+    // const hdNode = hdkey.fromMasterSeed(seed)
+    // const node = hdNode.derivePath(this.derivationPath)
+    // const childNode = node.deriveChild(0)
+    // const childWallet = childNode.getWallet()
+    // const privateKey = childWallet.getPrivateKey().toString('hex')
+
+    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
+    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    const childNode = masterHDNode.derivePath(this.derivationPath)
+    const childWallet = childNode.derivePath('0')
+    const privateKey = bchjs.HDNode.toKeyPair(childWallet).d.toBuffer().toString('hex')
+    this._wallet = new ethers.Wallet(privateKey).connect(this.provider)
   }
 
   async getOrInitWallet () {
@@ -69,16 +79,17 @@ export class SmartBchWallet {
     return walletHash
   }
 
-  async getBalance () {
-    await this.getOrInitWallet()
-    const balance = await this._wallet.getBalance()
+  async getBalance (address) {
+    // await this.getOrInitWallet()
+    // const balance = await this._wallet.getBalance()
+    const balance = await this.provider.getBalance(address)
     return utils.formatEther(balance)
   }
 
-  async getSep20TokenBalance (contractAddress) {
+  async getSep20TokenBalance (contractAddress, address) {
     if (!utils.isAddress(contractAddress)) return 0
     const tokenContract = getSep20Contract(contractAddress)
-    const balance = await tokenContract.balanceOf(this._wallet.address)
+    const balance = await tokenContract.balanceOf(address)
     const decimals = await tokenContract.decimals()
     return utils.formatUnits(balance, decimals)
   }
@@ -273,8 +284,8 @@ export class SmartBchWallet {
       to: recipientAddress,
       value: parsedAmount
     }
-    const estGas = await this._wallet.estimateGas(txParams)
-    const gasPrice = await this._wallet.getGasPrice()
+    const estGas = await this.provider.estimateGas(txParams)
+    const gasPrice = await this.provider.getGasPrice()
     let spendableBch = parsedAmount - (estGas * gasPrice)
     spendableBch = utils.formatEther(String(spendableBch))
     return spendableBch
@@ -522,14 +533,15 @@ export class SmartBchWallet {
     }
   }
 
-  async getOwnedNFTs (contractAddress, { limit = 10, offset = 0, includeMetadata = false }) {
+  async getOwnedNFTs (contractAddress, ownerAddress, { limit = 10, offset = 0, includeMetadata = false }) {
     return this.getNFTs(
       contractAddress,
+      ownerAddress,
       {
         limit,
         offset,
         includeMetadata,
-        address: this._wallet.address
+        address: ownerAddress
       }
     )
   }
@@ -547,7 +559,7 @@ export class SmartBchWallet {
    * - Metadata is not fetched by default as it can get costly
    * - Added fetching metadata asynchronously to allow partial response with less response time
    */
-  async getNFTs (contractAddress, { limit = 10, offset = 0, includeMetadata = false, asyncMetadata = false, metadataCallback = () => {}, address = '' }) {
+  async getNFTs (contractAddress, ownerAddress, { limit = 10, offset = 0, includeMetadata = false, asyncMetadata = false, metadataCallback = () => {}, address = '' }) {
     if (!utils.isAddress(contractAddress)) {
       return {
         success: false,
@@ -557,7 +569,7 @@ export class SmartBchWallet {
 
     const contract = getERC721Contract(contractAddress)
     var balance
-    if (address) balance = await contract.balanceOf(this._wallet.address)
+    if (address) balance = await contract.balanceOf(ownerAddress)
     else balance = await contract.totalSupply()
 
     const startIndex = Math.min(offset, balance)
@@ -565,7 +577,7 @@ export class SmartBchWallet {
 
     const promises = []
     for (var i = startIndex; i < endIndex; i++) {
-      if (address) promises.push(contract.tokenOfOwnerByIndex(this._wallet.address, i))
+      if (address) promises.push(contract.tokenOfOwnerByIndex(ownerAddress, i))
       else promises.push(contract.tokenByIndex(i))
     }
 
