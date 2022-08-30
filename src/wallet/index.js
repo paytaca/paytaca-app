@@ -18,11 +18,34 @@ export class Wallet {
   constructor (mnemonic, network = 'BCH') {
     this.mnemonic = mnemonic
     if (network === 'BCH') {
-      this.BCH = new BchWallet(projectId, mnemonic, "m/44'/145'/0'") // Main BCH wallet
-      this.SLP = new SlpWallet(projectId, mnemonic, "m/44'/245'/0'") // SLP wallet
+      this.loadBCH()
     } else if (network === 'sBCH') {
-      this.sBCH = new SmartBchWallet(projectId, mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
+      this.loadSBCH()
     }
+  }
+
+  get BCH() {
+    if (!this._BCH) this.loadBCH()
+    return this._BCH
+  }
+
+  get SLP() {
+    if (!this._SLP) this.loadBCH()
+    return this._SLP
+  }
+
+  get sBCH() {
+    if (!this._sBCH) this.loadSBCH()
+    return this._sBCH
+  }
+
+  loadBCH() {
+    this._BCH = new BchWallet(projectId, this.mnemonic, "m/44'/145'/0'") // Main BCH wallet
+    this._SLP = new SlpWallet(projectId, this.mnemonic, "m/44'/245'/0'") // SLP wallet
+  }
+
+  loadSBCH() {
+    this._sBCH = new SmartBchWallet(projectId, this.mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
   }
 }
 
