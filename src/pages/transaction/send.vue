@@ -670,7 +670,7 @@ export default {
       return this.$store.getters['global/getChangeAddress'](walletType)
     },
 
-    handleSubmit () {
+    async handleSubmit () {
       const vm = this
       let address = this.sendData.recipientAddress
       const addressObj = new Address(address)
@@ -680,6 +680,7 @@ export default {
       if (addressIsValid && amountIsValid) {
         vm.sendData.sending = true
         if (vm.walletType === sBCHWalletType) {
+          await vm.wallet.sBCH.getOrInitWallet()
           let promise = null
           if (sep20IdRegexp.test(vm.assetId)) {
             const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
@@ -782,16 +783,11 @@ export default {
       vm.walletType = 'bch'
     }
 
-    // const sendTag = document.querySelector('.pt-animate-submit')
-    // vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
-
     // Load wallets
     getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic)
-      wallet.sBCH.getOrInitWallet()
-        .then(() => {
-          vm.wallet = markRaw(wallet)
-        })
+      const wallet = new Wallet(mnemonic, vm.network)
+      vm.wallet = markRaw(wallet)
+      if (vm.network === 'sBCH') vm.wallet.sBCH.getOrInitWallet()
     })
   },
 

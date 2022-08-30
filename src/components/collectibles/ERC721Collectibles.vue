@@ -120,7 +120,8 @@ export default {
       }
       this.fetchingCollectibles = true
       // this.wallet.sBCH.getNFTs(this.contractAddress, _opts)
-      this.wallet.sBCH.getOwnedNFTs(this.contractAddress, _opts)
+      const address = this.$store.getters['global/getAddress']('sbch')
+      this.wallet.sBCH.getOwnedNFTs(this.contractAddress, address, _opts)
         .finally(() => {
           this.fetchingCollectibles = false
         })

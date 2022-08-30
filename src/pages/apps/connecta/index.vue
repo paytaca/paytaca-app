@@ -497,7 +497,7 @@ export default {
 
     loadWallet () {
       getMnemonic().then((mnemonic) => {
-        const wallet = new Wallet(mnemonic)
+        const wallet = new Wallet(mnemonic, 'BCH')
         wallet.sBCH.getOrInitWallet()
           .then(() => {
             this.wallet = markRaw(wallet)

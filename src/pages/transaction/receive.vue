@@ -82,11 +82,12 @@
 </template>
 
 <script>
-import { markRaw } from '@vue/reactivity'
+// import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
-import { getMnemonic, Wallet, Address } from '../../wallet'
+// import { getMnemonic, Wallet, Address } from '../../wallet'
+import { Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 
 const sep20IdRegexp = /sep20\/(.*)/
@@ -209,9 +210,9 @@ export default {
     },
     getAddress () {
       if (this.isSep20) {
-        this.walletType = sBCHWalletType
-        if (this.wallet) return this.wallet.sBCH._wallet.address
-        else return ''
+        this.walletType = 'sbch'
+        // if (this.wallet) return this.wallet.sBCH._wallet.address
+        // else return ''
       } else if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
       } else {
@@ -375,14 +376,17 @@ export default {
 
   mounted () {
     const vm = this
-    getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic)
-      wallet.sBCH.getOrInitWallet()
-        .then(() => {
-          vm.wallet = markRaw(wallet)
-          vm.setupListener()
-        })
-    })
+    vm.setupListener()
+    // getMnemonic().then(function (mnemonic) {
+    //   const wallet = new Wallet(mnemonic, vm.network)
+    //   if (vm.network === 'sBCH') {
+    //     wallet.sBCH.getOrInitWallet()
+    //       .then(() => {
+    //         vm.wallet = markRaw(wallet)
+    //         vm.setupListener()
+    //       })
+    //   }
+    // })
     this.updateLnsName()
   },
 
