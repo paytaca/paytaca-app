@@ -141,7 +141,8 @@ export default {
 
       // Create mnemonic seed, encrypt, and store
       if (vm.importSeedPhrase) {
-        vm.mnemonic = await storeMnemonic(this.seedPhraseBackup)
+        const parsedSeedPhraseBackup = this.seedPhraseBackup.toLowerCase().trim()
+        vm.mnemonic = await storeMnemonic(parsedSeedPhraseBackup)
       } else {
         vm.mnemonic = await generateMnemonic()
       }
