@@ -92,8 +92,20 @@
                 label="Generate"
                 type="submit"
                 :disable="handshakeOnProgress"
+                @click="recoverSecret()"
               >
               </q-btn>
+<!-- <q-btn
+  no-caps
+  rounded
+  color="blue-9"
+  label="wallet"
+  type="submit"
+  :disable="handshakeOnProgress"
+  @click="createWallets"
+  >
+  </q-btn
+> -->
             <div>
           </div>
           </div>
@@ -103,9 +115,12 @@
   </div>
 </template>
 <script>
+
 import HeaderNav from '../../components/header-nav'
-// import { split, combine } from 'shamirs-secret-sharing-ts'
-// const sBCHWalletType = 'Smart BCH'
+import { Notify } from 'quasar'
+// import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
+// import { addresses } from 'src/wallet/hopcash/config'
+// import { mnemonicToSeed } from '@ethersproject/hdnode'
 
 export default {
   name: 'Gift',
@@ -127,6 +142,24 @@ export default {
       },
       generatingAddress: false,
       walletType: ''
+    }
+  },
+  methods: {
+    splitSecret () {
+      const sss = require('shamirs-secret-sharing')
+      const secret = Buffer.from('qz7xc0vl85nck65ffrsx5wvewjznp9lflgktxc5878')
+      const shares = sss.split(secret, { shares: 3, threshold: 2 })
+      return shares
+    /*     Notify.create({
+        message: shares[0].toString()
+      }) */
+    },
+    recoverSecret () {
+      const sss = require('shamirs-secret-sharing')
+      const recovery = sss.combine(this.splitSecret())
+      Notify.create({
+        message: recovery.toString()
+      })
     }
   }
 }
