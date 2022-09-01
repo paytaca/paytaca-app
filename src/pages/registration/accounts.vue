@@ -40,7 +40,7 @@
           :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"
         >Restore your Paytaca wallet from its mnemonic backup phrase.</p>
         <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
-        <q-btn class="full-width bg-blue-9 text-white q-mt-md" @click="initCreateWallet()" label="Restore Wallet" rounded />
+        <q-btn class="full-width bg-blue-9 text-white q-mt-md" @click="initCreateWallet()" :disable="!validateSeedPhrase()" label="Restore Wallet" rounded />
       </div>
     </div>
 
@@ -85,6 +85,7 @@ import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
 import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { utils } from 'ethers'
 
 export default {
   name: 'registration-accounts',
@@ -113,9 +114,22 @@ export default {
       if (val === 0) {
         this.createWallets()
       }
+    },
+    seedPhraseBackup (val) {
+      this.seedPhraseBackup = this.cleanUpSeedPhrase(val)
     }
   },
   methods: {
+    validateSeedPhrase () {
+      return utils.isValidMnemonic(this.seedPhraseBackup)
+    },
+    cleanUpSeedPhrase (seedPhrase) {
+      return seedPhrase.toLowerCase().trim()
+        .replace(/\s{2,}/g, ' ') // Remove extra internal whitespaces
+        .replace(/[^\x00-\x7F]/g, '') // Remove non-ascii characters
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuations
+        .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
+    },
     continueToDashboard () {
       const vm = this
 
@@ -134,8 +148,7 @@ export default {
 
       // Create mnemonic seed, encrypt, and store
       if (vm.importSeedPhrase) {
-        const parsedSeedPhraseBackup = this.seedPhraseBackup.toLowerCase().trim()
-        vm.mnemonic = await storeMnemonic(parsedSeedPhraseBackup)
+        vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup))
       } else {
         vm.mnemonic = await generateMnemonic()
       }
