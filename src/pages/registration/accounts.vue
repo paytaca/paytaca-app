@@ -28,9 +28,6 @@
             Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down. &#128533;
           </div>
         </div>
-        <div class="col pt-wallet q-mt-sm" style="text-align: center;" v-else>
-          <ProgressLoader />
-        </div>
       </div>
     </div>
     <div class="col pt-wallet q-mt-sm" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
