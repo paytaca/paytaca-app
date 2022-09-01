@@ -28,10 +28,8 @@
             Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down. &#128533;
           </div>
         </div>
-        <div class="col transparent" v-else>
-          <div class="col q-mt-sm text-center">
-            <ProgressLoader color="white" />
-          </div>
+        <div class="col pt-wallet q-mt-sm" style="text-align: center;" v-else>
+          <ProgressLoader />
         </div>
       </div>
     </div>

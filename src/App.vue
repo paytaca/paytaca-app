@@ -40,18 +40,6 @@ export default {
         })
       })
     }
-
-    this.$store.dispatch('market/updateCoinsList', { force: false })
-      .finally(() => {
-        this.$store.dispatch('market/updateAssetPrices', {})
-        this.assetPricesUpdateIntervalId = setInterval(() => {
-          this.$store.dispatch('market/updateAssetPrices', {})
-        }, 60 * 1000)
-      })
-
-    this.$store.dispatch('market/updateSupportedCurrencies', {})
-    this.$store.dispatch('assets/updateTokenIcons', { all: false })
-    this.$store.dispatch('sep20/updateTokenIcons', { all: false })
   },
   unmounted () {
     if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
