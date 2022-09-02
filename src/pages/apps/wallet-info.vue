@@ -142,7 +142,7 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic } from '../../wallet'
-import { version } from '../../../package.json'
+import packageInfo from '../../../package.json'
 
 export default {
   name: 'app-wallet-info',
@@ -151,7 +151,7 @@ export default {
     return {
       mnemonic: '',
       showMnemonic: false,
-      appVersion: version,
+      appVersion: packageInfo.version,
       sbchLnsName: '',
       darkMode: this.$store.getters['darkmode/getStatus']
     }

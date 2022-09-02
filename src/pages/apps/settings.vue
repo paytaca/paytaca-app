@@ -97,7 +97,7 @@
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
-      <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
 
   </div>
 </template>

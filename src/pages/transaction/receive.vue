@@ -29,15 +29,17 @@
     <template v-else>
       <div class="row">
         <div class="col qr-code-container">
-          <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
-            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="toggleFullScreen">
-              <div class="row text-center">
-                <div class="col row justify-center q-pt-md">
-                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
-                  <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+          <fullscreen v-model="fullscreen" :teleport="true" :page-only="true">
+            <div :class="{'img-bg-white': fullscreen}">
+              <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="toggleFullScreen">
+                <div class="row text-center">
+                  <div class="col row justify-center q-pt-md">
+                    <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
+                    <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+                  </div>
                 </div>
+                <div v-if="!fullscreen" class="text-black">Click to display the QR only</div>
               </div>
-              <div v-if="!fullscreen" class="text-black">Click to display the QR only</div>
             </div>
           </fullscreen>
         </div>
@@ -80,6 +82,7 @@
 </template>
 
 <script>
+// import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
@@ -379,7 +382,7 @@ export default {
     //   if (vm.network === 'sBCH') {
     //     wallet.sBCH.getOrInitWallet()
     //       .then(() => {
-    //         vm.wallet = wallet
+    //         vm.wallet = markRaw(wallet)
     //         vm.setupListener()
     //       })
     //   }

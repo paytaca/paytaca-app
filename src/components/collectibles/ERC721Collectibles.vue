@@ -23,14 +23,14 @@
           v-if="
             pageNumberPaginationData && pageNumberPaginationData.pageCount > 1
           "
-          :value="pageNumberPaginationData.currentPage"
+          :modelValue="pageNumberPaginationData.currentPage"
           :max="pageNumberPaginationData.pageCount"
           :max-pages="6"
           unelevated
           padding="xs sm"
           input
           boundary-numbers
-          @input="
+          @update:modelValue="
             (val) =>
               fetchCollectibles({
                 limit: pageNumberPaginationData.pageSize,

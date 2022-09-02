@@ -16,7 +16,7 @@ const routes = [
       {
         path: 'receive',
         name: 'transaction-receive',
-        props: true,
+        props: route => route.query,
         component: () => import('pages/transaction/receive.vue')
       },
       {
@@ -25,9 +25,16 @@ const routes = [
         component: () => import('pages/transaction/select-asset-send.vue')
       },
       {
-        path: 'send',
+        path: 'send/',
         name: 'transaction-send',
-        props: true,
+        props: route => {
+          const props = Object.assign({}, route.query)
+          if (!isNaN(props.tokenType)) props.tokenType = Number(props.tokenType)
+          if (!isNaN(props.amount)) props.amount = Number(props.amount)
+          if (props.fixed === 'true') props.fixed = true
+          else if(props.fixed === 'false') props.fixed = false
+          return props
+        },
         component: () => import('pages/transaction/send.vue')
       }
     ]
@@ -58,7 +65,7 @@ const routes = [
   // Always leave this as last one,
   // but you can also remove it
   {
-    path: '*',
+    path: '/:catchAll(.*)*',
     component: () => import('pages/Error404.vue')
   }
 ]

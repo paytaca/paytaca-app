@@ -175,7 +175,7 @@
         </div>
       </div>
 
-      <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
       <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
 
     </div>
@@ -183,6 +183,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import { debounce } from 'quasar'
 import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
@@ -785,7 +786,8 @@ export default {
     // Load wallets
     getMnemonic().then(function (mnemonic) {
       const wallet = new Wallet(mnemonic, vm.network)
-      vm.wallet = wallet
+      vm.wallet = markRaw(wallet)
+      if (vm.network === 'sBCH') vm.wallet.sBCH.getOrInitWallet()
     })
   },
 

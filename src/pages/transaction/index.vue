@@ -10,8 +10,8 @@
             <q-tabs
               active-color="brandblue"
               class="col-12 q-px-sm q-pb-md pp-fcolor"
-              :value="selectedNetwork"
-              @input="changeNetwork"
+              :modelValue="selectedNetwork"
+              @update:modelValue="changeNetwork"
               :style="{'margin-top': $q.platform.is.ios ? '10px' : '-20px', 'padding-bottom': '16px'}"
             >
               <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
@@ -108,7 +108,7 @@
                             <p :class="{'text-grey': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
                           </div>
                           <div class="col">
-                              <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">{{ transaction.date_created | formatDate }}</span>
+                              <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">{{ formatDate(transaction.date_created) }}</span>
                               <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                           </div>
                         </div>
@@ -129,7 +129,7 @@
     </div>
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
-    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
     <TokenSuggestionsDialog
       ref="tokenSuggestionsDialog"
@@ -141,6 +141,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
@@ -279,41 +280,14 @@ export default {
     }
   },
 
-  filters: {
-    titleCase (str) {
-      return str.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase())
-    },
-    truncateTxid (str) {
-      return str.substring(0, 30)
-    },
-    formatDate (date) {
-      return ago(new Date(date))
-    }
-  },
 
   methods: {
+    formatDate (date) {
+      return ago(new Date(date))
+    },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
-    },
-    promptChangeNetwork () {
-      this.$q.dialog({
-        title: 'Select network',
-        message: 'Select network',
-        options: {
-          type: 'radio',
-          model: this.selectedNetwork,
-          items: [
-            { value: 'BCH', label: this.networks.BCH.name },
-            { value: 'sBCH', label: this.networks.sBCH.name }
-          ]
-        },
-        cancel: true,
-        persistent: true,
-        class: 'pp-text'
-      }).onOk(data => {
-        this.changeNetwork(data)
-      })
     },
     changeNetwork (newNetwork = 'BCH') {
       const vm = this
@@ -354,25 +328,6 @@ export default {
           vm.assetClickCounter = 0
         }, 600)
       }
-    },
-    sendBch () {
-      this.$router.push({
-        name: 'transaction-send',
-        params: {
-          network: this.selectedNetwork,
-          assetId: 'bch',
-          fixed: false
-        }
-      })
-    },
-    receiveBch () {
-      this.$router.push({
-        name: 'transaction-receive',
-        params: {
-          network: this.selectedNetwork,
-          assetId: 'bch'
-        }
-      })
     },
     toggleManageAssets () {
       this.manageAssets = !this.manageAssets
@@ -734,7 +689,7 @@ export default {
       const mnemonic = await getMnemonic()
 
       const wallet = new Wallet(mnemonic, vm.selectedNetwork)
-      vm.wallet = wallet
+      vm.wallet = markRaw(wallet)
 
       if (vm.selectedNetwork === 'BCH') {
         // Create change addresses if nothing is set yet
@@ -798,6 +753,20 @@ export default {
     next(vm => {
       vm.prevPath = from.path
     })
+  },
+
+  created () {
+    this.$store.dispatch('market/updateCoinsList', { force: false })
+      .finally(() => {
+        this.$store.dispatch('market/updateAssetPrices', {})
+        this.assetPricesUpdateIntervalId = setInterval(() => {
+          this.$store.dispatch('market/updateAssetPrices', {})
+        }, 60 * 1000)
+      })
+
+    this.$store.dispatch('market/updateSupportedCurrencies', {})
+    this.$store.dispatch('assets/updateTokenIcons', { all: false })
+    this.$store.dispatch('sep20/updateTokenIcons', { all: false })
   },
 
   async mounted () {

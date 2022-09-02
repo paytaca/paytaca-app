@@ -21,8 +21,8 @@
       active-color="brandblue"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}"
-      :value="selectedNetwork"
-      @input="changeNetwork"
+      :modelValue="selectedNetwork"
+      @update:modelValue="changeNetwork"
     >
       <q-tab :class="{'text-blue-5': darkMode}" name="BCH" label="BCH"/>
       <q-tab :class="{'text-blue-5': darkMode}" name="sBCH" label="SmartBCH"/>
@@ -126,10 +126,10 @@
               :key="index"
               clickable
               :active="index === selectedERC721AssetIndex"
-              @click="
+              @click="function() {
                 selectedERC721AssetIndex = index
                 selectERC721AssetExpanded = false
-              "
+              }"
             >
               <q-item-section side>
                 <q-btn
@@ -181,6 +181,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
 import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetFormDialog.vue'
@@ -297,7 +298,7 @@ export default {
       const vm = this
       getMnemonic().then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.selectedNetwork)
-        vm.wallet = wallet
+        vm.wallet = markRaw(wallet)
       })
     }
   },

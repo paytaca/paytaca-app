@@ -12,7 +12,7 @@
       />
 
       <div class="q-mx-md">
-        <div v-if="!$walletConnect.connector">
+        <div v-if="!connector">
           <q-input
             label="Input Wallet Connect URI"
             filled
@@ -110,7 +110,7 @@
                   >
                     <q-item-section>
                       <q-item-label>
-                        {{ account | ellipsisText }}
+                        {{ ellipsisText(account) }}
                       </q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
@@ -147,7 +147,7 @@
                       <span class="q-mt-xs">{{ request.payload.method }}</span>
                       <q-space/>
                       <span class="text-grey text-caption">
-                        {{ request.timestamp | formatDate }}
+                        {{ formatDate(request.timestamp) }}
                       </span>
                     </q-item-label>
                     <q-item-label caption :class="darkMode ? 'text-grey-5' : 'text-grey'">
@@ -189,6 +189,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { Plugins } from '@capacitor/core'
 import { getMnemonic, Wallet } from '../../wallet'
 import { createConnector, callRequestHandler, parseWalletConnectUri } from '../../wallet/walletconnect'
@@ -232,30 +233,13 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
-  filters: {
-    ellipsisText (value) {
-      if (typeof value !== 'string') return ''
-      if (value.length <= 20) return value
-      return value.substr(0, 15) + '...' + value.substr(value.length - 10, value.length)
-    },
-    formatDate (date) {
-      return ago(new Date(date))
-    },
-    formatJSON (value) {
-      try {
-        return JSON.stringify(JSON.parse(value), undefined, 1)
-      } catch {
-        return value
-      }
-    }
-  },
   computed: {
     connector: {
       get () {
-        return this.$walletConnect.connector
+        return this.walletConnect.connector
       },
       set (value) {
-        this.$walletConnect.connector = value
+        this.walletConnect.connector = value
       }
     },
     parsedPeerMeta () {
@@ -283,6 +267,14 @@ export default {
   },
 
   methods: {
+    ellipsisText (value) {
+      if (typeof value !== 'string') return ''
+      if (value.length <= 20) return value
+      return value.substr(0, 15) + '...' + value.substr(value.length - 10, value.length)
+    },
+    formatDate (date) {
+      return ago(new Date(date))
+    },
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
@@ -301,10 +293,6 @@ export default {
 
     handShakeFormSubmit (switchActivity = false) {
       this.initializeConnector(this.handshakeFormData.walletConnectUri, switchActivity)
-    },
-
-    forceUpdateConnector () {
-      this._connector = this.$walletConnect.connector
     },
 
     async initializeConnector (uri, switchActivity = false) {
@@ -342,14 +330,15 @@ export default {
 
         this.$q.dialog({
           component: WalletConnectConfirmDialog,
-
-          peerId: payload.params[0].peerId,
-          peerMeta: payload.params[0].peerMeta,
-          darkMode: this.darkMode
+          componentProps: {
+            peerId: payload.params[0].peerId,
+            peerMeta: payload.params[0].peerMeta,
+            darkMode: this.darkMode
+          }
         }).onOk(() => {
           this.disconnectConnector()
           this.connector = connector
-          this.forceUpdateConnector()
+          this.$forceUpdate()
           this.attachEventsToConnector()
 
           connector.approveSession({
@@ -389,7 +378,7 @@ export default {
       this.detachEventstToConnector()
       this.connector.killSession()
       this.connector = null
-      this.forceUpdateConnector()
+      this.$forceUpdate()
       this.handshakeFormData.walletConnectUri = ''
       this.$store.commit('walletconnect/clearCallRequests')
     },
@@ -397,9 +386,9 @@ export default {
     detachEventstToConnector () {
       if (!this.connector) return
 
-      this.$walletConnect.removeEventListener('session_request')
-      this.$walletConnect.removeEventListener('disconnect', this.onDisconnectListener || undefined)
-      this.$walletConnect.removeEventListener('call_request', this.onCallRequestListener || undefined)
+      this.walletConnect.removeEventListener('session_request')
+      this.walletConnect.removeEventListener('disconnect', this.onDisconnectListener || undefined)
+      this.walletConnect.removeEventListener('call_request', this.onCallRequestListener || undefined)
 
       this.onDisconnectListener = undefined
       this.onCallRequestListener = undefined
@@ -421,7 +410,7 @@ export default {
 
         this.disconnectConnector()
       }
-      this.$walletConnect.addEventListener('disconnect', onDisconnectListener)
+      this.walletConnect.addEventListener('disconnect', onDisconnectListener)
       this.onDisconnectListener = onDisconnectListener
 
       const onCallRequestListener = (error, payload) => {
@@ -437,7 +426,7 @@ export default {
         if (!this.callRequestDialog.show) this.showCallRequestInDialog(this.callRequests[0])
       }
 
-      this.$walletConnect.addEventListener('call_request', onCallRequestListener)
+      this.walletConnect.addEventListener('call_request', onCallRequestListener)
       this.onCallRequestListener = onCallRequestListener
     },
 
@@ -540,7 +529,7 @@ export default {
       const vm = this
       return getMnemonic()
         .then(function (mnemonic) {
-          vm.wallet = new Wallet(mnemonic, 'sBCH')
+          vm.wallet = markRaw(new Wallet(mnemonic, 'sBCH'))
         })
     }
   },

@@ -1,4 +1,6 @@
+import { boot } from 'quasar/wrappers'
 import VueFullscreen from 'vue-fullscreen'
-import Vue from 'vue'
 
-Vue.use(VueFullscreen)
+export default boot(({ app }) => {
+    app.use(VueFullscreen)
+})

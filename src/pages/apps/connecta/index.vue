@@ -122,8 +122,8 @@
             <q-item-label header class="q-pa-xs pp-text">
               Recipient/s
             </q-item-label>
-            <template v-for="(output, index) in paymentRequest.paymentDetails.outputs">
-              <q-item :key="index">
+            <template v-for="(output, index) in paymentRequest.paymentDetails.outputs" :key="index"> 
+              <q-item>
                 <q-item-section>
                   <q-item-label class="pp-text" caption>Address</q-item-label>
                   <q-item-label class="pp-text" style="word-break:break-word">{{ output.toCashAddress() }}</q-item-label>
@@ -218,6 +218,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import createHmac from 'create-hmac'
 import { getMnemonic, Wallet } from '../../../wallet'
 import HeaderNav from 'components/header-nav'
@@ -499,7 +500,7 @@ export default {
         const wallet = new Wallet(mnemonic, 'BCH')
         wallet.sBCH.getOrInitWallet()
           .then(() => {
-            this.wallet = wallet
+            this.wallet = markRaw(wallet)
           })
       })
     }

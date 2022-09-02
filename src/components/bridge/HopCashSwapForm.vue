@@ -170,7 +170,7 @@
                 readonly
                 :input-class="darkMode ? 'text-blue-5' : 'text-blue-9'"
                 :dark="darkMode"
-                :value="defaultRecipientAddress"
+                :modelValue="defaultRecipientAddress"
                 class="q-space q-my-sm"
                 bottom-slots
               />
@@ -214,24 +214,24 @@
                   <!-- <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/> -->
                 </span>
                 <span v-if="!showSplitFees" class="text-nowrap q-ml-xs">
-                  ~{{ (fees.paytaca + fees.hopcash) | formatAmount }} BCH
+                  ~{{ formatAmount(fees.paytaca + fees.hopcash) }} BCH
                 </span>
               </div>
               <q-slide-transition>
                 <div v-if="showSplitFees">
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
                     <span>Paytaca:</span>
-                    <span class="text-nowrap q-ml-xs">~{{ fees.paytaca | formatAmount }} BCH</span>
+                    <span class="text-nowrap q-ml-xs">~{{ formatAmount(fees.paytaca) }} BCH</span>
                   </div>
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
                     <span>Hopcash:</span>
-                    <span class="text-nowrap q-ml-xs">~{{ fees.hopcash | formatAmount }} BCH</span>
+                    <span class="text-nowrap q-ml-xs">~{{ formatAmount(fees.hopcash) }} BCH</span>
                   </div>
                 </div>
               </q-slide-transition>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                 <span>BCH to receive:</span>
-                <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
+                <span class="text-nowrap q-ml-xs">~{{ formatAmount(transferredAmount) }} BCH</span>
               </div>
             </div>
             <div class="row justify-center q-mt-sm" style="color: gray;">Powered by hop.cash</div>
@@ -283,6 +283,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { throttle } from 'quasar'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { deductFromFee, s2c, c2s, smart2cashMax, cash2smartMax } from '../../wallet/hopcash'
@@ -313,13 +314,6 @@ export default {
   components: { CustomKeyboardInput, QrScanner, DragSlide, Pin, BiometricWarningAttempt, ProgressLoader },
   props: {
     darkMode: Boolean
-  },
-  filters: {
-    formatAmount (value) {
-      const parsedNum = Number(value)
-      if (isNaN(parsedNum)) return ''
-      return Number(parsedNum.toFixed(6))
-    }
   },
 
   data () {
@@ -426,6 +420,11 @@ export default {
     }
   },
   methods: {
+    formatAmount (value) {
+      const parsedNum = Number(value)
+      if (isNaN(parsedNum)) return ''
+      return Number(parsedNum.toFixed(6))
+    },
     validateAddress (address) {
       const addressObj = new Address(address)
       let valid = false
@@ -630,7 +629,7 @@ export default {
       // Load wallets
       return getMnemonic().then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, network)
-        vm.wallet = wallet
+        vm.wallet = markRaw(wallet)
       })
     }
   },

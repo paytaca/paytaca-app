@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" persistent>
+  <q-dialog ref="dialog" @hide="onDialogHide" persistent v-show="showDialog">
     <q-card class="br-15" :class="{'pt-dark text-white': darkMode, 'text-black': !darkMode}">
       <q-card-section>
         <div class="text-center q-mb-sm">
@@ -10,7 +10,7 @@
           <q-btn rounded label="Cancel" color="blue-9" @click="onCancelClick()" />
         </div>
       </q-card-section>
-      <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
       <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="verifyBiometric()" />
     </q-card>
   </q-dialog>
@@ -32,6 +32,10 @@ export default {
    *  vm.$q.dialog({ component: SecurityCheckDialog, root: vm.$root }).onOk(() => console.log('Success!'))
   */
   name: 'SecurityCheckDialog',
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   components: {
     pinDialog,
     biometricWarningAttmepts
@@ -40,6 +44,10 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
+    },
+    showDialog: {
+      type: Boolean,
+      default: false,  
     }
   },
   data () {

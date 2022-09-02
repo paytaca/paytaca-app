@@ -27,9 +27,8 @@
         />
       </q-tabs>
       <q-list v-if="ignoredAssets.length">
-        <template v-for="(token, index) in ignoredAssets">
+        <template v-for="(token, index) in ignoredAssets" :key="index">
           <q-item
-            :key="index"
             :class="[
               darkMode ? 'text-white' : 'text-black',
             ]"

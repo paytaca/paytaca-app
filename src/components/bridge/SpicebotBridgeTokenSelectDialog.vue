@@ -33,6 +33,10 @@
 <script>
 export default {
   name: 'SpicebotBridgeTokenSelectDialog',
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   props: {
     tokens: {
       type: Array

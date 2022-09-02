@@ -1,5 +1,4 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
+import { createStore } from 'vuex'
 import createPersistedState from 'vuex-persistedstate'
 
 import global from './global'
@@ -10,7 +9,6 @@ import lns from './lns'
 import sep20 from './sep20'
 import walletconnect from './walletconnect'
 
-Vue.use(Vuex)
 
 /*
  * If not building with SSR mode, you can
@@ -22,7 +20,7 @@ Vue.use(Vuex)
  */
 
 export default function (/* { ssrContext } */) {
-  const Store = new Vuex.Store({
+  const Store = createStore({
     plugins: [createPersistedState()],
     modules: {
       global,

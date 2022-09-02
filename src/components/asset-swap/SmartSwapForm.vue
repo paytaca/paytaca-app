@@ -13,10 +13,10 @@
           padding="xs"
           icon="refresh"
           class="q-ml-md"
-          @click="
+          @click="function(){
             updateNetworkData()
             updateTokenListBalances()
-          "
+          }"
         />
         <q-btn
           round
@@ -55,10 +55,10 @@
             filled
             v-model.number="formData.amount"
             :dark="darkMode"
-            @input="
+            @update:modelValue="function(){
               updateExcptectedReturn()
               updateNetworkData()
-            "
+            }"
           />
           <q-item-label
             v-if="formData.sourceToken.balance > 0 || formData.sourceToken.balance === 0"
@@ -97,7 +97,7 @@
             dense
             filled
             :dark="darkMode"
-            :value="formatNumber(networkData.expectedReturn, 6)"
+            :modelValue="formatNumber(networkData.expectedReturn, 6)"
           />
           <q-item-label
             v-if="networkData.exchangeRate"
@@ -322,10 +322,10 @@
               icon="refresh"
               round
               padding="sm"
-              @click="
+              @click="function(){
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
-              "
+              }"
             />
           <q-btn
             flat
@@ -393,6 +393,7 @@
   </q-card>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { debounce, throttle } from 'quasar'
 import { getMnemonic, Wallet } from '../../wallet'
 import {
@@ -715,8 +716,10 @@ export default {
     selectSourceToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
-        tokensList: this.tokensList,
-        darkMode: this.darkMode
+        componentProps: {
+          tokensList: this.tokensList,
+          darkMode: this.darkMode
+        }
       })
         .onOk(token => {
           if (!token) return
@@ -730,8 +733,10 @@ export default {
     selectDestToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
-        tokensList: this.tokensList,
-        darkMode: this.darkMode
+        componentProps: {
+          tokensList: this.tokensList,
+          darkMode: this.darkMode
+        }
       })
         .onOk(token => {
           if (!token) return
@@ -934,8 +939,8 @@ export default {
     },
     async loadWallet () {
       const mnemonic = await getMnemonic()
-      this.wallet = new Wallet(mnemonic, 'sBCH')
-      // await this.wallet.sBCH.getOrInitWallet()
+      this.wallet = markRaw(new Wallet(mnemonic))
+      this.wallet.sBCH.getOrInitWallet()
       return this.wallet
     }
   },

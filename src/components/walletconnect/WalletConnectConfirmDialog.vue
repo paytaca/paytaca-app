@@ -52,6 +52,10 @@
 export default {
   // Custom Qdialog component
   name: 'WalletConnectConfirmDialog',
+  emits: [
+    // REQUIRED
+    'ok', 'hide'
+  ],
   props: {
     peerMeta: {},
     peerId: String,

@@ -30,7 +30,7 @@ export default {
   name: 'collectible',
   components: { Gravatar },
   props: {
-    value: {
+    modelValue: {
       type: Boolean,
       default: false
     },
@@ -38,7 +38,7 @@ export default {
   },
   data () {
     return {
-      val: this.value,
+      val: this.modelValue,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -64,7 +64,7 @@ export default {
     send () {
       this.$router.push({
         name: 'transaction-send',
-        params: {
+        query: {
           assetId: 'slp/' + this.collectible.token_id,
           tokenType: 65,
           amount: 1,
@@ -76,10 +76,10 @@ export default {
   },
   watch: {
     val () {
-      this.$emit('input', this.val)
+      this.$emit('update:modelValue', this.val)
     },
-    value () {
-      this.val = this.value
+    modelValue () {
+      this.val = this.modelValue
     }
   }
 }

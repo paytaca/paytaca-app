@@ -86,7 +86,7 @@
               dense
               outlined
               disable
-              :value="computedFormData.expectedAmount"
+              :modelValue="computedFormData.expectedAmount"
               placeholder="0.0"
               class="q-space q-my-sm"
               bottom-slots
@@ -104,7 +104,7 @@
               outlined
               readonly
               :dark="darkMode"
-              :value="computedFormData.recipientAddress"
+              :modelValue="computedFormData.recipientAddress"
               class="q-space q-my-sm"
               bottom-slots
             />
@@ -290,6 +290,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import {
   fetchTokensList,
@@ -499,8 +500,7 @@ export default {
     confirmSwiped () {
       this.stagedSwapInfo.showConfirmSwipe = false
       this.$q.dialog({
-        component: SecurityCheckDialog,
-        root: this.$root
+        component: SecurityCheckDialog
       })
         .onOk(() => {
           this.commitStagedSwapInfo()
@@ -563,8 +563,10 @@ export default {
               .onDismiss(() => {
                 this.$q.dialog({
                   component: SpicebotBridgeSwapListenerDialog,
-                  swapRequestId: this.stagedSwapInfo.spiceBotSwapRequest.id,
-                  darkMode: this.darkMode
+                  componentProps: {
+                    swapRequestId: this.stagedSwapInfo.spiceBotSwapRequest.id,
+                    darkMode: this.darkMode
+                  }
                 })
                   .onDismiss(() => {
                     this.resetForm()
@@ -655,8 +657,10 @@ export default {
     selectToken () {
       this.$q.dialog({
         component: SpicebotBridgeTokenSelectDialog,
-        darkMode: this.darkMode,
-        tokens: this.tokens
+        componentProps: {
+          darkMode: this.darkMode,
+          tokens: this.tokens
+        }
       })
         .onOk(token => {
           this.formData.token = token
@@ -685,7 +689,7 @@ export default {
         const wallet = new Wallet(mnemonic, 'sBCH')
         return wallet.sBCH.getOrInitWallet()
           .then(() => {
-            vm.wallet = wallet
+            vm.wallet = markRaw(wallet)
           })
       })
     }

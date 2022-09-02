@@ -11,7 +11,7 @@
         <div class="col-12 q-mt-md q-px-lg q-py-none">
           <div class="row">
             <div class="col-12 q-py-sm">
-              <q-btn class="full-width bg-blue-9 text-white" @click="() => { if (steps === -1) { steps = 0 }; $forceUpdate(); }" label="Create New Wallet" rounded />
+              <q-btn class="full-width bg-blue-9 text-white" @click="initCreateWallet()" label="Create New Wallet" rounded />
             </div>
             <div class="col-12 text-center q-py-sm">
               <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">OR</p>
@@ -28,11 +28,6 @@
             Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down. &#128533;
           </div>
         </div>
-        <div class="col transparent" v-else>
-          <div class="col q-mt-sm text-center">
-            <ProgressLoader color="white" />
-          </div>
-        </div>
       </div>
     </div>
     <div class="col pt-wallet q-mt-sm" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
@@ -45,7 +40,7 @@
           :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"
         >Restore your Paytaca wallet from its mnemonic backup phrase.</p>
         <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
-        <q-btn class="full-width bg-blue-9 text-white q-mt-md" @click="createWallets" label="Restore Wallet" rounded />
+        <q-btn class="full-width bg-blue-9 text-white q-mt-md" @click="initCreateWallet()" :disable="!validateSeedPhrase()" label="Restore Wallet" rounded />
       </div>
     </div>
 
@@ -79,7 +74,7 @@
     </div>
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
-    <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
   </div>
 </template>
@@ -90,6 +85,7 @@ import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
 import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { utils } from 'ethers'
 
 export default {
   name: 'registration-accounts',
@@ -118,9 +114,22 @@ export default {
       if (val === 0) {
         this.createWallets()
       }
+    },
+    seedPhraseBackup (val) {
+      this.seedPhraseBackup = this.cleanUpSeedPhrase(val)
     }
   },
   methods: {
+    validateSeedPhrase () {
+      return utils.isValidMnemonic(this.seedPhraseBackup)
+    },
+    cleanUpSeedPhrase (seedPhrase) {
+      return seedPhrase.toLowerCase().trim()
+        .replace(/\s{2,}/g, ' ') // Remove extra internal whitespaces
+        .replace(/[^\x00-\x7F]/g, '') // Remove non-ascii characters
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuations
+        .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
+    },
     continueToDashboard () {
       const vm = this
 
@@ -128,12 +137,18 @@ export default {
         vm.$router.push('/')
       })
     },
+    initCreateWallet() {
+      if (this.steps === -1) {
+        this.steps = 0
+      }
+      this.$forceUpdate()
+    },
     async createWallets () {
       const vm = this
 
       // Create mnemonic seed, encrypt, and store
       if (vm.importSeedPhrase) {
-        vm.mnemonic = await storeMnemonic(this.seedPhraseBackup)
+        vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup))
       } else {
         vm.mnemonic = await generateMnemonic()
       }
