@@ -31,7 +31,9 @@
             clearable
             v-model="input.amount"
             :disable="handshakeOnProgress"
+            :rules="[val => !!val || 'Field is required']"
             type="text"
+
           >
           </q-input>
           <div class="q-pa-md">
@@ -52,6 +54,7 @@
             maxlength="3"
             :disable="handshakeOnProgress"
             clearable
+            :rules="[val => !!val || 'Field is required']"
           >
           </q-input>
           <div class="q-pa-md">
@@ -89,23 +92,13 @@
                 no-caps
                 rounded
                 color="blue-9"
-                label="Generate"
                 type="submit"
                 :disable="handshakeOnProgress"
-                @click="recoverSecret()"
+                label="Generate"
+                @click="generatePrivateKey()"
               >
               </q-btn>
-<!-- <q-btn
-  no-caps
-  rounded
-  color="blue-9"
-  label="wallet"
-  type="submit"
-  :disable="handshakeOnProgress"
-  @click="createWallets"
-  >
-  </q-btn
-> -->
+
             <div>
           </div>
           </div>
@@ -121,6 +114,8 @@ import { Notify } from 'quasar'
 // import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 // import { addresses } from 'src/wallet/hopcash/config'
 // import { mnemonicToSeed } from '@ethersproject/hdnode'
+import { ECPair } from '@psf/bitcoincashjs-lib'
+// import { ref } from 'vue'
 
 export default {
   name: 'Gift',
@@ -147,7 +142,7 @@ export default {
   methods: {
     splitSecret () {
       const sss = require('shamirs-secret-sharing')
-      const secret = Buffer.from('qz7xc0vl85nck65ffrsx5wvewjznp9lflgktxc5878')
+      const secret = Buffer.from(this.generatePrivateKey())
       const shares = sss.split(secret, { shares: 3, threshold: 2 })
       return shares
     /*     Notify.create({
@@ -159,6 +154,13 @@ export default {
       const recovery = sss.combine(this.splitSecret())
       Notify.create({
         message: recovery.toString()
+      })
+    },
+    generatePrivateKey () {
+      const keyPair = ECPair.makeRandom()
+      // return keyPair.toWIF()
+      Notify.create({
+        message: keyPair.toWIF()
       })
     }
   }
