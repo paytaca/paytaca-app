@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" persistent>
+  <q-dialog ref="dialog" @hide="onDialogHide" persistent v-show="showDialog">
     <q-card class="br-15" :class="{'pt-dark text-white': darkMode, 'text-black': !darkMode}">
       <q-card-section>
         <div class="text-center q-mb-sm">
@@ -44,6 +44,10 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
+    },
+    showDialog: {
+      type: Boolean,
+      default: false,  
     }
   },
   data () {
