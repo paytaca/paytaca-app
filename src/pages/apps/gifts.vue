@@ -36,7 +36,7 @@
 
           >
           </q-input>
-          <div class="q-pa-md">
+          <div class="q-pa-sm">
           </div>
 
           <label>
@@ -57,7 +57,7 @@
             :rules="[val => !!val || 'Field is required']"
           >
           </q-input>
-          <div class="q-pa-md">
+          <div class="q-pa-sm">
           </div>
 
           <label>
@@ -72,7 +72,7 @@
             clearable
           >
           </q-input>
-          <div class="q-pa-md">
+          <div class="q-pa-sm q-pb-lg">
           </div>
 
           <label>
@@ -87,7 +87,8 @@
             clearable
           >
           </q-input>
-            <div class="q-pa-md q-pt-lg flex flex-center" >
+            <div class="q-pa-sm q-pt-lg flex flex-center" >
+              <!-- <qrcode-vue :value="value" color="#253933" :size="10" error-level="H" class="q-mb-sm"></qrcode-vue> -->
               <q-btn
                 no-caps
                 rounded
@@ -95,13 +96,23 @@
                 type="submit"
                 :disable="handshakeOnProgress"
                 label="Generate"
-                @click="generatePrivateKey()"
+                @click="splitSecret"
               >
               </q-btn>
-
             <div>
           </div>
-          </div>
+        </div>
+        <div class="q-pa-sm q-pt-lg flex flex-center" >
+        <q-btn
+                no-caps
+                rounded
+                color="blue-9"
+                type="submit"
+                :disable="handshakeOnProgress"
+                label="recover"
+                @click="recoverSecret"
+              ></q-btn>
+        </div>
         </div>
       </div>
     </div>
@@ -110,12 +121,14 @@
 <script>
 
 import HeaderNav from '../../components/header-nav'
-import { Notify } from 'quasar'
+// import { Notify } from 'quasar'
 // import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 // import { addresses } from 'src/wallet/hopcash/config'
 // import { mnemonicToSeed } from '@ethersproject/hdnode'
 import { ECPair } from '@psf/bitcoincashjs-lib'
-// import { ref } from 'vue'
+import { toHex } from 'hex-my-bytes'
+
+const sBCHWalletType = 'Smart BCH'
 
 export default {
   name: 'Gift',
@@ -133,7 +146,8 @@ export default {
         instance: '',
         campID: '',
         quantity: '100',
-        maxPerAddress: ''
+        maxPerAddress: '',
+        shares: []
       },
       generatingAddress: false,
       walletType: ''
@@ -141,27 +155,44 @@ export default {
   },
   methods: {
     splitSecret () {
+      const pk = this.generatePrivateKey()
       const sss = require('shamirs-secret-sharing')
-      const secret = Buffer.from(this.generatePrivateKey())
+      const secret = Buffer.from(pk)
       const shares = sss.split(secret, { shares: 3, threshold: 2 })
-      return shares
-    /*     Notify.create({
-        message: shares[0].toString()
-      }) */
+      // console.log(toHex(shares[0]))
+      console.log(pk)
+      this.shares = shares.map((share) => { return toHex(share) })
+      console.log(this.shares)
     },
     recoverSecret () {
       const sss = require('shamirs-secret-sharing')
-      const recovery = sss.combine(this.splitSecret())
-      Notify.create({
-        message: recovery.toString()
-      })
+      const recovery = sss.combine([this.shares[0], this.shares[1]])
+      console.log(recovery.toString())
     },
     generatePrivateKey () {
       const keyPair = ECPair.makeRandom()
-      // return keyPair.toWIF()
-      Notify.create({
+      return keyPair.toWIF()
+      /* Notify.create({
         message: keyPair.toWIF()
-      })
+      }) */
+    }
+  },
+  computed: {
+    insufficientBalance () {
+      const hasValidBalance = this.formData.sourceToken.balance >= 0
+      if (!hasValidBalance) return true
+
+      return this.formData.sourceToken.balance < this.formData.amount
+    }
+  },
+  address () {
+    const address = this.getAddress()
+    if (this.walletType === sBCHWalletType) {
+      return address
+    } else if (this.legacy) {
+      return this.convertToLegacyAddress(address)
+    } else {
+      return address
     }
   }
 }
