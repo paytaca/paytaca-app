@@ -31,7 +31,6 @@ module.exports = function (/* ctx */) {
       'footer',
       'websocket',
       'walletconnect',
-      'fullscreen',
       'confetti'
     ],
 

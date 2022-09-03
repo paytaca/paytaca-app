@@ -27,21 +27,18 @@
       <q-tab :class="{'text-blue-5': darkMode}" name="BCH" label="BCH"/>
       <q-tab :class="{'text-blue-5': darkMode}" name="sBCH" label="SmartBCH"/>
     </q-tabs>
-    <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
-      <div v-if="showAddress" @click="toggleFullScreen" class="flex flex-center q-py-md q-mt-lg">
-        <div class="q-pa-md br-15 col-qr-code">
-          <qr-code
-            :text="receivingAddress"
-            style="width: 200px; margin-left: auto; margin-right: auto;"
-            color="#253933"
-            :size="200"
-            error-level="H"
-            class="q-mb-sm"
-          />
-          <div v-if="!fullscreen" class="text-black text-center">Click to display the QR only</div>
-        </div>
+    <div v-if="showAddress" class="flex flex-center" style="padding-top: 30px;">
+      <div class="q-pa-md br-15 col-qr-code">
+        <qr-code
+          :text="receivingAddress"
+          style="width: 200px; margin-left: auto; margin-right: auto;"
+          color="#253933"
+          :size="200"
+          error-level="H"
+          class="q-mb-sm"
+        />
       </div>
-    </fullscreen>
+    </div>
     <div v-if="showAddress" class="row">
       <div class="col" style="padding: 20px 40px 20px 40px; overflow-wrap: break-word;">
         <span class="qr-code-text text-weight-light text-center">
@@ -205,8 +202,7 @@ export default {
       selectedERC721AssetIndex: -1,
       showAddress: false,
       wallet: null,
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      fullscreen: false
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
@@ -232,9 +228,6 @@ export default {
     }
   },
   methods: {
-    toggleFullScreen () {
-      this.fullscreen = !this.fullscreen
-    },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },
@@ -329,11 +322,12 @@ export default {
 }
 .img-bg-white {
   background: white;
-  padding: 106px 20px !important;
+  margin-top: -60px;
   height: 100vh;
 }
 .col-qr-code {
   background: white;
   border: 4px solid #ed5f59;
+  padding: 30px;
 }
 </style>
