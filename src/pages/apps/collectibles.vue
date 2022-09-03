@@ -4,7 +4,7 @@
     :class="{'pt-dark': darkMode}"
   >
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '30px' : '0px'}">
       <q-menu>
         <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -20,30 +20,28 @@
       dense
       active-color="brandblue"
       class="col-12 q-px-lg pp-fcolor"
-      :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}"
+      :style="{ 'margin-top': $q.platform.is.ios ? '25px' : '0px'}"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
       <q-tab :class="{'text-blue-5': darkMode}" name="BCH" label="BCH"/>
       <q-tab :class="{'text-blue-5': darkMode}" name="sBCH" label="SmartBCH"/>
     </q-tabs>
-    <q-slide-transition>
-      <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
-        <div v-if="showAddress" @click="toggleFullScreen" class="flex flex-center q-py-md q-mt-lg">
-          <div class="q-pa-md br-15 col-qr-code">
-            <qr-code
-              :text="receivingAddress"
-              style="width: 200px; margin-left: auto; margin-right: auto;"
-              color="#253933"
-              :size="200"
-              error-level="H"
-              class="q-mb-sm"
-            />
-            <div v-if="!fullscreen" class="text-black text-center">Click to display the QR only</div>
-          </div>
+    <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
+      <div v-if="showAddress" @click="toggleFullScreen" class="flex flex-center q-py-md q-mt-lg">
+        <div class="q-pa-md br-15 col-qr-code">
+          <qr-code
+            :text="receivingAddress"
+            style="width: 200px; margin-left: auto; margin-right: auto;"
+            color="#253933"
+            :size="200"
+            error-level="H"
+            class="q-mb-sm"
+          />
+          <div v-if="!fullscreen" class="text-black text-center">Click to display the QR only</div>
         </div>
-      </fullscreen>
-    </q-slide-transition>
+      </div>
+    </fullscreen>
     <div v-if="showAddress" class="row">
       <div class="col" style="padding: 20px 40px 20px 40px; overflow-wrap: break-word;">
         <span class="qr-code-text text-weight-light text-center">
@@ -176,7 +174,6 @@
       </q-tab-panel>
     </q-tab-panels>
     <div style="padding-bottom:60px;"></div>
-    <footer-menu />
   </div>
 </template>
 
