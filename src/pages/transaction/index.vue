@@ -780,18 +780,6 @@ export default {
           vm.$root.hasSuggestedAssets = true
         })
     })
-
-    vm.$store.dispatch('market/updateCoinsList', { force: false })
-      .finally(() => {
-        vm.$store.dispatch('market/updateAssetPrices', {})
-        vm.assetPricesUpdateIntervalId = setInterval(() => {
-          vm.$store.dispatch('market/updateAssetPrices', {})
-        }, 60 * 1000)
-      })
-
-    vm.$store.dispatch('market/updateSupportedCurrencies', {})
-    vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-    vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
   }
 }
 </script>

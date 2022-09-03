@@ -48,6 +48,18 @@ export default {
     const vm = this
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
+
+      vm.$store.dispatch('market/updateCoinsList', { force: false })
+        .finally(() => {
+          vm.$store.dispatch('market/updateAssetPrices', {})
+          vm.assetPricesUpdateIntervalId = setInterval(() => {
+            vm.$store.dispatch('market/updateAssetPrices', {})
+          }, 60 * 1000)
+        })
+
+      vm.$store.dispatch('market/updateSupportedCurrencies', {})
+      vm.$store.dispatch('assets/updateTokenIcons', { all: false })
+      vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
     }, 500)
   }
 }
