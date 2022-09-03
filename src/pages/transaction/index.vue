@@ -685,7 +685,6 @@ export default {
 
     async loadWallets () {
       const vm = this
-      // 'west ordinary steak lift dry among meadow pistol pair flock flip weasel'
       const mnemonic = await getMnemonic()
 
       const wallet = new Wallet(mnemonic, vm.selectedNetwork)
@@ -755,22 +754,15 @@ export default {
     })
   },
 
-  created () {
-    this.$store.dispatch('market/updateCoinsList', { force: false })
-      .finally(() => {
-        this.$store.dispatch('market/updateAssetPrices', {})
-        this.assetPricesUpdateIntervalId = setInterval(() => {
-          this.$store.dispatch('market/updateAssetPrices', {})
-        }, 60 * 1000)
-      })
-
-    this.$store.dispatch('market/updateSupportedCurrencies', {})
-    this.$store.dispatch('assets/updateTokenIcons', { all: false })
-    this.$store.dispatch('sep20/updateTokenIcons', { all: false })
-  },
-
   async mounted () {
     const vm = this
+
+    if (vm.prevPath === '/') {
+      vm.logIn()
+    } else {
+      vm.startPageStatus = false
+    }
+
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
       vm.selectedAsset = this.bchAsset
     }
@@ -782,18 +774,24 @@ export default {
       })
       vm.getTransactions()
 
-      if (this.$root.hasSuggestedAssets) return
-      this.checkMissingAssets()
+      if (vm.$root.hasSuggestedAssets) return
+      vm.checkMissingAssets()
         .then(() => {
-          this.$root.hasSuggestedAssets = true
+          vm.$root.hasSuggestedAssets = true
         })
     })
 
-    if (vm.prevPath === '/') {
-      vm.logIn()
-    } else {
-      vm.startPageStatus = false
-    }
+    vm.$store.dispatch('market/updateCoinsList', { force: false })
+      .finally(() => {
+        vm.$store.dispatch('market/updateAssetPrices', {})
+        vm.assetPricesUpdateIntervalId = setInterval(() => {
+          vm.$store.dispatch('market/updateAssetPrices', {})
+        }, 60 * 1000)
+      })
+
+    vm.$store.dispatch('market/updateSupportedCurrencies', {})
+    vm.$store.dispatch('assets/updateTokenIcons', { all: false })
+    vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
   }
 }
 </script>

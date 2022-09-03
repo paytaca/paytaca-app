@@ -940,7 +940,6 @@ export default {
     async loadWallet () {
       const mnemonic = await getMnemonic()
       this.wallet = markRaw(new Wallet(mnemonic))
-      this.wallet.sBCH.getOrInitWallet()
       return this.wallet
     }
   },
