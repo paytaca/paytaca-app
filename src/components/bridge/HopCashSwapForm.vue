@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container">
+    <div id="app-container" :class="{'pt-dark': darkMode}">
       <div
         v-if="Array.isArray(errors) && errors.length"
         class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
