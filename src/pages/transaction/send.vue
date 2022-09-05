@@ -114,6 +114,7 @@
                 Balance: {{ asset.balance }} {{ asset.symbol }}
                 <a
                   href="#"
+                  v-if="!disableAmountInput"
                   @click.prevent="setMaximumSendAmount"
                   style="float: right; text-decoration: none; color: #3b7bf6;"
                 >

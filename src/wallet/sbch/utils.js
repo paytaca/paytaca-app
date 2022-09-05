@@ -159,7 +159,7 @@ export async function watchTransactions (address, { type = null, tokensOnly = fa
       if (type === 'outgoing') eventFilter = sendFilter
       const eventCallback = (...args) => {
         const tx = args[args.length - 1]
-        // eslint-disable-next-line standard/no-callback-literal
+        // eslint-disable-next-line node/no-callback-literal
         callback({
           tx: {
             hash: tx.transactionHash,
