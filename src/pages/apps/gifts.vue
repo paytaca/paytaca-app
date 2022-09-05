@@ -110,7 +110,7 @@
                 type="submit"
                 :disable="handshakeOnProgress"
                 label="recover"
-                @click="recoverSecret"
+                @click="generateAddress()"
               ></q-btn>
         </div>
         </div>
@@ -127,8 +127,9 @@ import HeaderNav from '../../components/header-nav'
 // import { mnemonicToSeed } from '@ethersproject/hdnode'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
+import { formatsByName, formatsByCoinType } from '@ensdomains/address-encoder'
 
-const sBCHWalletType = 'Smart BCH'
+// const sBCHWalletType = 'Smart BCH'
 
 export default {
   name: 'Gift',
@@ -154,6 +155,7 @@ export default {
     }
   },
   methods: {
+    // method for splitting private key to 3 shares
     splitSecret () {
       const pk = this.generatePrivateKey()
       const sss = require('shamirs-secret-sharing')
@@ -164,17 +166,55 @@ export default {
       this.shares = shares.map((share) => { return toHex(share) })
       console.log(this.shares)
     },
+    // method for recovering private key from 2 of 3 shares(splitsecret)
     recoverSecret () {
       const sss = require('shamirs-secret-sharing')
       const recovery = sss.combine([this.shares[0], this.shares[1]])
+      // console.log(this.shares[0].toString())
       console.log(recovery.toString())
     },
+
+    // method for generating private key
     generatePrivateKey () {
       const keyPair = ECPair.makeRandom()
       return keyPair.toWIF()
       /* Notify.create({
         message: keyPair.toWIF()
       }) */
+    },
+
+    // method for generating address derived from supposed one share of the private key
+    generateAddress () {
+      // const share = this.generatePrivateKey()
+      const data = formatsByName.BCH.decoder(this.base58())
+      // const data = formatsByName.BCH.decoder(this.generatePrivateKey.toString())
+      // const data = (this.shares[0].toString())
+      console.log(data)
+      const addr = formatsByCoinType[0].encoder(data)
+      console.log(addr)
+      return addr
+    },
+
+    // method for validating if address is of bitcoin cash (legacy address)
+    bchValid () {
+      var bchaddr = require('bchaddrjs')
+      // var isValidAddress = bchaddr.isValidAddress
+      var isLegacyAddress = bchaddr.isLegacyAddress
+      // console.log(this.base58())
+      console.log(isLegacyAddress(this.generateAddress()))
+      // console.log(isValidAddress(this.generateAddress()))
+      // return isValidAddress
+      return isLegacyAddress
+    },
+
+    // method for converting share[0] (hex) to base58 format
+    base58 () {
+      const check = require('base58check')
+      const data = this.shares[0].toString()
+      const done = check.encode(data)
+      // const orig = check.decode(done, 'hex')
+      console.log(done)
+      return done
     }
   },
   computed: {
@@ -183,16 +223,6 @@ export default {
       if (!hasValidBalance) return true
 
       return this.formData.sourceToken.balance < this.formData.amount
-    }
-  },
-  address () {
-    const address = this.getAddress()
-    if (this.walletType === sBCHWalletType) {
-      return address
-    } else if (this.legacy) {
-      return this.convertToLegacyAddress(address)
-    } else {
-      return address
     }
   }
 }
