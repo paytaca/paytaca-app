@@ -33,6 +33,7 @@
             :disable="handshakeOnProgress"
             :rules="[val => !!val || 'Field is required']"
             type="text"
+            id="amount"
 
           >
           </q-input>
@@ -96,7 +97,7 @@
                 type="submit"
                 :disable="handshakeOnProgress"
                 label="Generate"
-                @click="splitSecret"
+                @click="splitSecret()"
               >
               </q-btn>
             <div>
@@ -110,7 +111,7 @@
                 type="submit"
                 :disable="handshakeOnProgress"
                 label="recover"
-                @click="generateAddress()"
+                @click="convertToCashAddress(generatePrivateKey())"
               ></q-btn>
         </div>
         </div>
@@ -122,14 +123,10 @@
 
 import HeaderNav from '../../components/header-nav'
 // import { Notify } from 'quasar'
-// import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
-// import { addresses } from 'src/wallet/hopcash/config'
-// import { mnemonicToSeed } from '@ethersproject/hdnode'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
-import { formatsByName, formatsByCoinType } from '@ensdomains/address-encoder'
-
-// const sBCHWalletType = 'Smart BCH'
+// import { formatsByName, formatsByCoinType } from '@ensdomains/address-encoder'
+import { QRGenerator } from 'dynamic-qr-code-generator'
 
 export default {
   name: 'Gift',
@@ -148,7 +145,8 @@ export default {
         campID: '',
         quantity: '100',
         maxPerAddress: '',
-        shares: []
+        shares: [],
+        pk: ''
       },
       generatingAddress: false,
       walletType: ''
@@ -157,13 +155,17 @@ export default {
   methods: {
     // method for splitting private key to 3 shares
     splitSecret () {
-      const pk = this.generatePrivateKey()
+      this.pk = this.generatePrivateKey()
+      const mamaw = this.convertToCashAddress(this.pk)
+      // this.convertToCashAddress(this.generatePrivateKey())
+      console.log(this.pk)
+      console.log(mamaw)
       const sss = require('shamirs-secret-sharing')
-      const secret = Buffer.from(pk)
+      const secret = Buffer.from(this.pk)
       const shares = sss.split(secret, { shares: 3, threshold: 2 })
       // console.log(toHex(shares[0]))
-      console.log(pk)
       this.shares = shares.map((share) => { return toHex(share) })
+      // console.log(this.convertToCashAddress(pk))
       console.log(this.shares)
     },
     // method for recovering private key from 2 of 3 shares(splitsecret)
@@ -178,43 +180,21 @@ export default {
     generatePrivateKey () {
       const keyPair = ECPair.makeRandom()
       return keyPair.toWIF()
-      /* Notify.create({
-        message: keyPair.toWIF()
-      }) */
     },
 
-    // method for generating address derived from supposed one share of the private key
-    generateAddress () {
-      // const share = this.generatePrivateKey()
-      const data = formatsByName.BCH.decoder(this.base58())
-      // const data = formatsByName.BCH.decoder(this.generatePrivateKey.toString())
-      // const data = (this.shares[0].toString())
-      console.log(data)
-      const addr = formatsByCoinType[0].encoder(data)
-      console.log(addr)
-      return addr
+    convertToCashAddress (wif) {
+      const BCHJS = require('@psf/bch-js')
+      const bchjs = new BCHJS()
+      const pair = bchjs.ECPair.fromWIF(wif)
+      const hotdog = bchjs.ECPair.toCashAddress(pair)
+      // console.log(hotdog)
+      return hotdog
     },
 
-    // method for validating if address is of bitcoin cash (legacy address)
-    bchValid () {
-      var bchaddr = require('bchaddrjs')
-      // var isValidAddress = bchaddr.isValidAddress
-      var isLegacyAddress = bchaddr.isLegacyAddress
-      // console.log(this.base58())
-      console.log(isLegacyAddress(this.generateAddress()))
-      // console.log(isValidAddress(this.generateAddress()))
-      // return isValidAddress
-      return isLegacyAddress
-    },
-
-    // method for converting share[0] (hex) to base58 format
-    base58 () {
-      const check = require('base58check')
-      const data = this.shares[0].toString()
-      const done = check.encode(data)
-      // const orig = check.decode(done, 'hex')
-      console.log(done)
-      return done
+    qrCode () {
+      // var props = { value: 'paytaca.com/gifts/?amount=<amount>&share=<share>&id=<id>' }
+      var props = { value: 'https://google.com' }
+      return QRGenerator(props)
     }
   },
   computed: {
