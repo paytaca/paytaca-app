@@ -360,8 +360,9 @@ export default {
     }
   },
 
-  beforeDestroy () {
+  unmounted () {
     this.stopSbchListener()
+    delete this?.$options?.sockets
   },
 
   mounted () {
