@@ -107,6 +107,9 @@ export default {
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     }
+  },
+  mounted () {
+    this.$store.dispatch('market/updateAssetPrices', {})
   }
 }
 </script>

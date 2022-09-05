@@ -207,6 +207,8 @@ export default {
     } else {
       this.pinStatus = false
     }
+
+    this.$store.dispatch('market/updateSupportedCurrencies', {})
   }
 }
 </script>

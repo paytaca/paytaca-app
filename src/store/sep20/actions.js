@@ -117,7 +117,6 @@ export async function getMissingAssets (context, { address, filterWithBalance = 
 
   const addresses = await Promise.all(contracts.map(async (contract) => {
     try {
-      console.log(contract, address)
       const balance = await contract.balanceOf(address)
       if (balance > 0) return contract.address
     } catch (err) { console.error(err) }

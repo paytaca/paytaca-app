@@ -770,15 +770,17 @@ export default {
     // Load wallets
     this.loadWallets().then(() => {
       vm.assets.map(function (asset) {
-        vm.getBalance(asset.id)
+        return vm.getBalance(asset.id)
       })
       vm.getTransactions()
 
       if (vm.$root.hasSuggestedAssets) return
-      vm.checkMissingAssets()
-        .then(() => {
-          vm.$root.hasSuggestedAssets = true
-        })
+      vm.checkMissingAssets().then(() => {
+        vm.$root.hasSuggestedAssets = true
+      })
+
+      vm.$store.dispatch('assets/updateTokenIcons', { all: false })
+      vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
     })
   }
 }
