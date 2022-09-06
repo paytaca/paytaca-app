@@ -77,12 +77,10 @@
 </template>
 
 <script>
-// import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
-// import { getMnemonic, Wallet, Address } from '../../wallet'
-import { Address } from '../../wallet'
+import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 
 const sep20IdRegexp = /sep20\/(.*)/
@@ -102,7 +100,6 @@ export default {
       asset: {},
       assetLoaded: false,
       legacy: false,
-      wallet: null,
       lnsName: '',
       generatingAddress: false,
       copying: false
@@ -161,34 +158,43 @@ export default {
       vm.generatingAddress = true
       const lastAddressIndex = vm.getLastAddressIndex()
       const newAddressIndex = lastAddressIndex + 1
-      if (vm.walletType === 'bch') {
-        vm.wallet.BCH.getNewAddressSet(lastAddressIndex).then(function (addresses) {
-          vm.$store.commit('global/generateNewAddressSet', {
-            type: 'bch',
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: newAddressIndex
-          })
-          vm.generatingAddress = false
-          vm.setupListener()
-        })
-      }
-      if (vm.walletType === 'slp') {
-        vm.wallet.SLP.getNewAddressSet(lastAddressIndex).then(function (addresses) {
-          vm.$store.commit('global/generateNewAddressSet', {
-            type: 'slp',
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: newAddressIndex
-          })
-          vm.generatingAddress = false
-          vm.setupListener()
-        })
-      }
 
-      if (vm.walletType === sBCHWalletType) {
-        vm.wallet.sBCH.subscribeWallet()
-      }
+      vm.stopSbchListener()
+      delete this?.$options?.sockets
+
+      getMnemonic().then(function (mnemonic) {
+        const wallet = new Wallet(mnemonic, vm.network)
+        if (vm.walletType === 'bch') {
+          wallet.BCH.getNewAddressSet(lastAddressIndex).then(function (addresses) {
+            vm.$store.commit('global/generateNewAddressSet', {
+              type: 'bch',
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: newAddressIndex
+            })
+            vm.generatingAddress = false
+            try { vm.setupListener() } catch {}
+          })
+        }
+        if (vm.walletType === 'slp') {
+          wallet.SLP.getNewAddressSet(lastAddressIndex).then(function (addresses) {
+            vm.$store.commit('global/generateNewAddressSet', {
+              type: 'slp',
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: newAddressIndex
+            })
+            vm.generatingAddress = false
+            try { vm.setupListener() } catch {}
+          })
+        }
+
+        if (vm.walletType === sBCHWalletType) {
+          wallet.sBCH.getOrInitWallet().then(() => {
+            wallet.sBCH.subscribeWallet()
+          })
+        }
+      })
     },
     async copyPrivateKey () {
       this.copying = true
@@ -362,22 +368,13 @@ export default {
 
   unmounted () {
     this.stopSbchListener()
+    this.$disconnect()
     delete this?.$options?.sockets
   },
 
   mounted () {
     const vm = this
     vm.setupListener()
-    // getMnemonic().then(function (mnemonic) {
-    //   const wallet = new Wallet(mnemonic, vm.network)
-    //   if (vm.network === 'sBCH') {
-    //     wallet.sBCH.getOrInitWallet()
-    //       .then(() => {
-    //         vm.wallet = markRaw(wallet)
-    //         vm.setupListener()
-    //       })
-    //   }
-    // })
     this.updateLnsName()
   },
 
