@@ -6,8 +6,8 @@
       active-color="brandblue"
       style="margin-top: 70px;"
       class="col-12 q-px-lg pp-fcolor"
-      :value="selectedNetwork"
-      @input="changeNetwork"
+      :modelValue="selectedNetwork"
+      @update:modelValue="changeNetwork"
     >
       <q-tab name="BCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.BCH.name"/>
       <q-tab name="sBCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name"/>
@@ -22,7 +22,7 @@
         <div
           v-for="(asset, index) in assets"
           :key="index"
-          @click="$router.push({ name: 'transaction-send', params: { assetId: asset.id, tokenType: 1, network: selectedNetwork } })"
+          @click="$router.push({ name: 'transaction-send', query: { assetId: asset.id, tokenType: 1, network: selectedNetwork } })"
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
@@ -107,6 +107,9 @@ export default {
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     }
+  },
+  mounted () {
+    this.$store.dispatch('market/updateAssetPrices', {})
   }
 }
 </script>

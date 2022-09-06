@@ -28,18 +28,15 @@
     </div>
     <template v-else>
       <div class="row">
-        <div class="col qr-code-container">
-          <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
-            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md" @click="toggleFullScreen">
-              <div class="row text-center">
-                <div class="col row justify-center q-pt-md">
-                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
-                  <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
-                </div>
+        <div class="col qr-code-container" @click="copyToClipboard(address)">
+          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+            <div class="row text-center">
+              <div class="col row justify-center q-pt-md">
+                <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
+                <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
               </div>
-              <div v-if="!fullscreen" class="text-black">Click to display the QR only</div>
             </div>
-          </fullscreen>
+          </div>
         </div>
       </div>
       <div class="row q-mt-md" v-if="walletType === 'bch'">
@@ -80,10 +77,12 @@
 </template>
 
 <script>
+// import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
-import { getMnemonic, Wallet, Address } from '../../wallet'
+// import { getMnemonic, Wallet, Address } from '../../wallet'
+import { Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 
 const sep20IdRegexp = /sep20\/(.*)/
@@ -106,7 +105,6 @@ export default {
       wallet: null,
       lnsName: '',
       generatingAddress: false,
-      fullscreen: false,
       copying: false
     }
   },
@@ -206,9 +204,9 @@ export default {
     },
     getAddress () {
       if (this.isSep20) {
-        this.walletType = sBCHWalletType
-        if (this.wallet) return this.wallet.sBCH._wallet.address
-        else return ''
+        this.walletType = 'sbch'
+        // if (this.wallet) return this.wallet.sBCH._wallet.address
+        // else return ''
       } else if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
       } else {
@@ -223,9 +221,6 @@ export default {
         this.walletType = 'bch'
       }
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
-    },
-    toggleFullScreen () {
-      this.fullscreen = !this.fullscreen
     },
     copyToClipboard (value) {
       this.$copyText(value)
@@ -254,7 +249,6 @@ export default {
     },
     notifyOnReceive (amount, symbol, logo) {
       const vm = this
-      vm.fullscreen = false
       vm.playSound(true)
       vm.$confetti.start({
         particles: [
@@ -366,20 +360,24 @@ export default {
     }
   },
 
-  beforeDestroy () {
+  unmounted () {
     this.stopSbchListener()
+    delete this?.$options?.sockets
   },
 
   mounted () {
     const vm = this
-    getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic)
-      wallet.sBCH.getOrInitWallet()
-        .then(() => {
-          vm.wallet = wallet
-          vm.setupListener()
-        })
-    })
+    vm.setupListener()
+    // getMnemonic().then(function (mnemonic) {
+    //   const wallet = new Wallet(mnemonic, vm.network)
+    //   if (vm.network === 'sBCH') {
+    //     wallet.sBCH.getOrInitWallet()
+    //       .then(() => {
+    //         vm.wallet = markRaw(wallet)
+    //         vm.setupListener()
+    //       })
+    //   }
+    // })
     this.updateLnsName()
   },
 
@@ -404,7 +402,7 @@ export default {
     color: #636767;
   }
   .qr-code-container {
-    margin-top: 100px;
+    margin-top: 120px;
     padding-left: 28px;
     padding-right: 28px;
   }
@@ -493,17 +491,12 @@ export default {
   }
   .receive-icon-asset {
     position: absolute;
-      margin-top: 73px;
-      background: white;
-      border-radius: 50%;
-      padding: 4px;
+    margin-top: 73px;
+    background: white;
+    border-radius: 50%;
+    padding: 4px;
   }
   .pp-text {
     color: #000 !important;
-  }
-  .img-bg-white {
-    background: white;
-    padding: 100px 20px !important;
-    height: 100vh;
   }
 </style>

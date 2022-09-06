@@ -13,10 +13,10 @@
           padding="xs"
           icon="refresh"
           class="q-ml-md"
-          @click="
+          @click="function(){
             updateNetworkData()
             updateTokenListBalances()
-          "
+          }"
         />
         <q-btn
           round
@@ -55,10 +55,10 @@
             filled
             v-model.number="formData.amount"
             :dark="darkMode"
-            @input="
+            @update:modelValue="function(){
               updateExcptectedReturn()
               updateNetworkData()
-            "
+            }"
           />
           <q-item-label
             v-if="formData.sourceToken.balance > 0 || formData.sourceToken.balance === 0"
@@ -97,7 +97,7 @@
             dense
             filled
             :dark="darkMode"
-            :value="formatNumber(networkData.expectedReturn, 6)"
+            :modelValue="formatNumber(networkData.expectedReturn, 6)"
           />
           <q-item-label
             v-if="networkData.exchangeRate"
@@ -322,10 +322,10 @@
               icon="refresh"
               round
               padding="sm"
-              @click="
+              @click="function(){
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
-              "
+              }"
             />
           <q-btn
             flat
@@ -393,6 +393,7 @@
   </q-card>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { debounce, throttle } from 'quasar'
 import { getMnemonic, Wallet } from '../../wallet'
 import {
@@ -430,6 +431,7 @@ export default {
   data () {
     return {
       wallet: null,
+      address: this.$store.getters['global/getAddress']('sbch'),
 
       // info that the user can update
       formData: {
@@ -647,7 +649,7 @@ export default {
 
         // zero address implies using the main currency BCH, which doesnt require approval
         if (this.networkDataReqs.sourceToken.address === '0x0000000000000000000000000000000000000000') isApproved = true
-        else isApproved = await hasApprovedSmartswap(this.networkDataReqs.sourceToken.address, this.wallet.sBCH._wallet.address)
+        else isApproved = await hasApprovedSmartswap(this.networkDataReqs.sourceToken.address, this.address)
 
         var parsedExpectedReturn
         var exchangeRate
@@ -714,8 +716,10 @@ export default {
     selectSourceToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
-        tokensList: this.tokensList,
-        darkMode: this.darkMode
+        componentProps: {
+          tokensList: this.tokensList,
+          darkMode: this.darkMode
+        }
       })
         .onOk(token => {
           if (!token) return
@@ -729,8 +733,10 @@ export default {
     selectDestToken () {
       this.$q.dialog({
         component: SmartSwapTokenSelectorDialog,
-        tokensList: this.tokensList,
-        darkMode: this.darkMode
+        componentProps: {
+          tokensList: this.tokensList,
+          darkMode: this.darkMode
+        }
       })
         .onOk(token => {
           if (!token) return
@@ -802,6 +808,8 @@ export default {
       this.stagedSwapDetails.loading = true
       this.stagedSwapDetails.error = null
       this.$forceUpdate()
+
+      await this.wallet.sBCH.getOrInitWallet()
       try {
         const params = {
           sourceTokenAddress: this.stagedSwapDetails.sourceToken.address,
@@ -840,22 +848,23 @@ export default {
       const sourceTokenAddress = this.formData.sourceToken.address
       const sourceTokenDecimals = this.formData.sourceToken.decimals
       if (sourceTokenAddress === '0x0000000000000000000000000000000000000000') {
-        const bchBalance = await this.wallet.sBCH.getBalance()
+        const bchBalance = await this.wallet.sBCH.getBalance(this.address)
 
         // Estimate swap gas is around 1.5 million gas
-        const gas = await this.wallet.sBCH._wallet.getGasPrice()
+        const gas = await this.wallet.sBCH.provider.getGasPrice()
         const estimateGas = gas.mul(1.5 * 10 ** 6)
         const estimateGasBCH = bigNumberToCurrency(estimateGas, 18)
 
         // sourceToken changes while balance is being updated on some instances
         if (sourceTokenAddress === this.formData.sourceToken.address) {
-          this.formData.sourceToken.balance = Number(bchBalance) - estimateGasBCH
+          const diff = Number(bchBalance) - estimateGasBCH
+          this.formData.sourceToken.balance = diff > 0 ? diff : 0
         }
         this.$forceUpdate()
         return
       }
 
-      const balanceMap = await batchFetchBalance([sourceTokenAddress], this.wallet.sBCH._wallet.address)
+      const balanceMap = await batchFetchBalance([sourceTokenAddress], this.address)
       const tokenBalance = balanceMap[sourceTokenAddress.toLowerCase()]
       if (!tokenBalance) return
 
@@ -864,14 +873,15 @@ export default {
         this.formData.sourceToken.balance = bigNumberToCurrency(tokenBalance, sourceTokenDecimals)
       }
       this.$forceUpdate()
+      console.log('Balance:', this.formData.sourceToken.balance)
     }, 500),
     updateBchTokenBalance: throttle(async function () {
       const bchToken = this.tokensList.find(tokenInfo => tokenInfo && tokenInfo.address === '0x0000000000000000000000000000000000000000')
       if (bchToken) {
-        const bchBalance = await this.wallet.sBCH.getBalance()
+        const bchBalance = await this.wallet.sBCH.getBalance(this.address)
 
         // Estimate swap gas is around 1.5 million gas
-        const gas = await this.wallet.sBCH._wallet.getGasPrice()
+        const gas = await this.wallet.sBCH.provider.getGasPrice()
         const estimateGas = gas.mul(1.5 * 10 ** 6)
         const estimateGasBCH = bigNumberToCurrency(estimateGas, 18)
         bchToken.balance = Number(bchBalance) - estimateGasBCH
@@ -887,7 +897,7 @@ export default {
           .map(tokenInfo => tokenInfo && tokenInfo.address)
           .filter(address => address && address !== '0x0000000000000000000000000000000000000000')
 
-        const balanceMap = await batchFetchBalance(tokenAddresses, this.wallet.sBCH._wallet.address)
+        const balanceMap = await batchFetchBalance(tokenAddresses, this.address)
         this.tokensList.forEach(tokenInfo => {
           if (!tokenInfo) return
           const balance = balanceMap[tokenInfo.address.toLowerCase()]
@@ -929,8 +939,7 @@ export default {
     },
     async loadWallet () {
       const mnemonic = await getMnemonic()
-      this.wallet = new Wallet(mnemonic)
-      await this.wallet.sBCH.getOrInitWallet()
+      this.wallet = markRaw(new Wallet(mnemonic))
       return this.wallet
     }
   },

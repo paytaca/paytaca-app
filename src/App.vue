@@ -1,7 +1,5 @@
 <template>
-  <div id="q-app" ref="container">
     <router-view />
-  </div>
 </template>
 
 <script>
@@ -16,7 +14,7 @@ export default {
   mounted () {
     const vm = this
     if (vm.$q.platform.is.bex) {
-      vm.$refs.container.style.display = 'none'
+      if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'
       document.body.style.minHeight = '650px'
       document.body.style.margin = '0 auto'
@@ -24,7 +22,7 @@ export default {
       vm.$q.bex.on('bex.paytaca.send', event => {
         vm.$router.push({
           name: 'transaction-send',
-          params: {
+          query: {
             assetId: event.data.assetId,
             amount: event.data.amount,
             recipient: event.data.recipient
@@ -42,18 +40,6 @@ export default {
         })
       })
     }
-
-    this.$store.dispatch('market/updateCoinsList', { force: false })
-      .finally(() => {
-        this.$store.dispatch('market/updateAssetPrices', {})
-        this.assetPricesUpdateIntervalId = setInterval(() => {
-          this.$store.dispatch('market/updateAssetPrices', {})
-        }, 60 * 1000)
-      })
-
-    this.$store.dispatch('market/updateSupportedCurrencies', {})
-    this.$store.dispatch('assets/updateTokenIcons', { all: false })
-    this.$store.dispatch('sep20/updateTokenIcons', { all: false })
   },
   unmounted () {
     if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
@@ -61,7 +47,14 @@ export default {
   created () {
     const vm = this
     setTimeout(function () {
-      vm.$refs.container.style.display = 'block'
+      if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
+
+      vm.$store.dispatch('market/updateCoinsList', { force: false })
+        .finally(() => {
+          vm.assetPricesUpdateIntervalId = setInterval(() => {
+            vm.$store.dispatch('market/updateAssetPrices', {})
+          }, 60 * 1000)
+        })
     }, 500)
   }
 }

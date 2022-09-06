@@ -53,12 +53,12 @@ export default {
   components: { QrcodeStream, ScannerUI },
   data () {
     return {
-      val: this.value,
+      val: this.modelValue,
       error: ''
     }
   },
   props: {
-    value: {
+    modelValue: {
       type: Boolean,
       default: false
     },
@@ -72,7 +72,7 @@ export default {
     val () {
       this.$emit('input', this.val)
     },
-    value (bool) {
+    modelValue (bool) {
       if (this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios) {
         if (bool) {
           this.prepareScanner()

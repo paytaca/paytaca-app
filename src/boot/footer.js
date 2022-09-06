@@ -1,5 +1,6 @@
-import Vue from 'vue'
-
+import { boot } from 'quasar/wrappers'
 import Footer from '../components/footer-menu'
 
-Vue.component('footer-menu', Footer)
+export default boot(({ app }) => {
+    app.component('footer-menu', Footer)
+})

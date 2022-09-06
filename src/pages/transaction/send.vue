@@ -114,6 +114,7 @@
                 Balance: {{ asset.balance }} {{ asset.symbol }}
                 <a
                   href="#"
+                  v-if="!disableAmountInput"
                   @click.prevent="setMaximumSendAmount"
                   style="float: right; text-decoration: none; color: #3b7bf6;"
                 >
@@ -175,7 +176,7 @@
         </div>
       </div>
 
-      <pinDialog :pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
       <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
 
     </div>
@@ -183,6 +184,7 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import { debounce } from 'quasar'
 import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
@@ -669,7 +671,7 @@ export default {
       return this.$store.getters['global/getChangeAddress'](walletType)
     },
 
-    handleSubmit () {
+    async handleSubmit () {
       const vm = this
       let address = this.sendData.recipientAddress
       const addressObj = new Address(address)
@@ -679,6 +681,7 @@ export default {
       if (addressIsValid && amountIsValid) {
         vm.sendData.sending = true
         if (vm.walletType === sBCHWalletType) {
+          await vm.wallet.sBCH.getOrInitWallet()
           let promise = null
           if (sep20IdRegexp.test(vm.assetId)) {
             const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
@@ -781,16 +784,11 @@ export default {
       vm.walletType = 'bch'
     }
 
-    // const sendTag = document.querySelector('.pt-animate-submit')
-    // vm.rightOffset = parseInt(document.defaultView.getComputedStyle(sendTag).right, 10)
-
     // Load wallets
     getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic)
-      wallet.sBCH.getOrInitWallet()
-        .then(() => {
-          vm.wallet = wallet
-        })
+      const wallet = new Wallet(mnemonic, vm.network)
+      vm.wallet = markRaw(wallet)
+      if (vm.network === 'sBCH') vm.wallet.sBCH.getOrInitWallet()
     })
   },
 

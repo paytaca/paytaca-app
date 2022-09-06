@@ -7,6 +7,9 @@
 // https://quasar.dev/quasar-cli/quasar-conf-js
 /* eslint-env node */
 
+// Added for Quasar v1 to v2 migration
+// const ESLintPlugin = require('eslint-webpack-plugin')
+
 module.exports = function (/* ctx */) {
   return {
     // https://quasar.dev/quasar-cli/supporting-ts
@@ -28,7 +31,6 @@ module.exports = function (/* ctx */) {
       'footer',
       'websocket',
       'walletconnect',
-      'fullscreen',
       'confetti'
     ],
 
@@ -91,6 +93,12 @@ module.exports = function (/* ctx */) {
         const nodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin')
         chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
         chain.resolve.alias.set('fs', require.resolve('browserfs'))
+
+        // Added for Quasar v1 to v2 migration
+        // chain
+        //   .plugin('eslint-webpack-plugin')
+        //   .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }])
+
       },
 
       uglifyOptions: {
@@ -101,7 +109,10 @@ module.exports = function (/* ctx */) {
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer
     devServer: {
-      https: true,
+      // Updated for Quasar v1 to v2 migration
+      server: {
+        type: 'http', // https | http
+      },
       port: 9000,
       open: true // opens browser window automatically
     },
@@ -109,7 +120,9 @@ module.exports = function (/* ctx */) {
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework
     framework: {
       // iconSet: 'mdi', // Quasar icon set
-      lang: 'en-us', // Quasar language pack
+
+      // Updated for Quasar v1 to v2 migration. en-us -> en-US
+      lang: 'en-US', // Quasar language pack
       config: {},
 
       // Possible values for "importStrategy":

@@ -1,5 +1,7 @@
+import { boot } from 'quasar/wrappers'
 import { WalletConnectManager } from '../wallet/walletconnect'
 
-export default ({ Vue, app }) => {
-  Vue.prototype.$walletConnect = new WalletConnectManager(app)
-}
+export default boot((obj) => {
+  const { app, store } = obj
+  app.config.globalProperties.$walletConnect = new WalletConnectManager(store)
+})

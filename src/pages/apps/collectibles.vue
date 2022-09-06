@@ -4,7 +4,7 @@
     :class="{'pt-dark': darkMode}"
   >
     <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '30px' : '0px'}">
       <q-menu>
         <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -20,30 +20,25 @@
       dense
       active-color="brandblue"
       class="col-12 q-px-lg pp-fcolor"
-      :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}"
-      :value="selectedNetwork"
-      @input="changeNetwork"
+      :style="{ 'margin-top': $q.platform.is.ios ? '25px' : '0px'}"
+      :modelValue="selectedNetwork"
+      @update:modelValue="changeNetwork"
     >
       <q-tab :class="{'text-blue-5': darkMode}" name="BCH" label="BCH"/>
       <q-tab :class="{'text-blue-5': darkMode}" name="sBCH" label="SmartBCH"/>
     </q-tabs>
-    <q-slide-transition>
-      <fullscreen v-model="fullscreen" :class="{'img-bg-white': fullscreen}" :teleport="true" :page-only="true">
-        <div v-if="showAddress" @click="toggleFullScreen" class="flex flex-center q-py-md q-mt-lg">
-          <div class="q-pa-md br-15 col-qr-code">
-            <qr-code
-              :text="receivingAddress"
-              style="width: 200px; margin-left: auto; margin-right: auto;"
-              color="#253933"
-              :size="200"
-              error-level="H"
-              class="q-mb-sm"
-            />
-            <div v-if="!fullscreen" class="text-black text-center">Click to display the QR only</div>
-          </div>
-        </div>
-      </fullscreen>
-    </q-slide-transition>
+    <div v-if="showAddress" class="flex flex-center" style="padding-top: 30px;">
+      <div class="q-pa-md br-15 col-qr-code">
+        <qr-code
+          :text="receivingAddress"
+          style="width: 200px; margin-left: auto; margin-right: auto;"
+          color="#253933"
+          :size="200"
+          error-level="H"
+          class="q-mb-sm"
+        />
+      </div>
+    </div>
     <div v-if="showAddress" class="row">
       <div class="col" style="padding: 20px 40px 20px 40px; overflow-wrap: break-word;">
         <span class="qr-code-text text-weight-light text-center">
@@ -126,10 +121,10 @@
               :key="index"
               clickable
               :active="index === selectedERC721AssetIndex"
-              @click="
+              @click="function() {
                 selectedERC721AssetIndex = index
                 selectERC721AssetExpanded = false
-              "
+              }"
             >
               <q-item-section side>
                 <q-btn
@@ -176,11 +171,11 @@
       </q-tab-panel>
     </q-tab-panels>
     <div style="padding-bottom:60px;"></div>
-    <footer-menu />
   </div>
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
 import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetFormDialog.vue'
@@ -207,8 +202,7 @@ export default {
       selectedERC721AssetIndex: -1,
       showAddress: false,
       wallet: null,
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      fullscreen: false
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
@@ -229,14 +223,11 @@ export default {
     receivingAddress () {
       if (!this.wallet) return ''
 
-      if (this.isSep20) return this.wallet.sBCH._wallet.address
+      if (this.isSep20) return this.$store.getters['global/getAddress']('sbch')
       return this.$store.getters['global/getAddress']('slp')
     }
   },
   methods: {
-    toggleFullScreen () {
-      this.fullscreen = !this.fullscreen
-    },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },
@@ -296,11 +287,8 @@ export default {
     loadWallet () {
       const vm = this
       getMnemonic().then(function (mnemonic) {
-        const wallet = new Wallet(mnemonic)
-        wallet.sBCH.getOrInitWallet()
-          .then(() => {
-            vm.wallet = wallet
-          })
+        const wallet = new Wallet(mnemonic, vm.selectedNetwork)
+        vm.wallet = markRaw(wallet)
       })
     }
   },
@@ -334,11 +322,12 @@ export default {
 }
 .img-bg-white {
   background: white;
-  padding: 106px 20px !important;
+  margin-top: -60px;
   height: 100vh;
 }
 .col-qr-code {
   background: white;
   border: 4px solid #ed5f59;
+  padding: 30px;
 }
 </style>

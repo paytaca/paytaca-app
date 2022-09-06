@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container">
+    <div id="app-container" :class="{'pt-dark': darkMode}">
       <div
         v-if="Array.isArray(errors) && errors.length"
         class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
@@ -170,7 +170,7 @@
                 readonly
                 :input-class="darkMode ? 'text-blue-5' : 'text-blue-9'"
                 :dark="darkMode"
-                :value="defaultRecipientAddress"
+                :modelValue="defaultRecipientAddress"
                 class="q-space q-my-sm"
                 bottom-slots
               />
@@ -214,24 +214,24 @@
                   <!-- <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/> -->
                 </span>
                 <span v-if="!showSplitFees" class="text-nowrap q-ml-xs">
-                  ~{{ (fees.paytaca + fees.hopcash) | formatAmount }} BCH
+                  ~{{ formatAmount(fees.paytaca + fees.hopcash) }} BCH
                 </span>
               </div>
               <q-slide-transition>
                 <div v-if="showSplitFees">
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
                     <span>Paytaca:</span>
-                    <span class="text-nowrap q-ml-xs">~{{ fees.paytaca | formatAmount }} BCH</span>
+                    <span class="text-nowrap q-ml-xs">~{{ formatAmount(fees.paytaca) }} BCH</span>
                   </div>
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
                     <span>Hopcash:</span>
-                    <span class="text-nowrap q-ml-xs">~{{ fees.hopcash | formatAmount }} BCH</span>
+                    <span class="text-nowrap q-ml-xs">~{{ formatAmount(fees.hopcash) }} BCH</span>
                   </div>
                 </div>
               </q-slide-transition>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                 <span>BCH to receive:</span>
-                <span class="text-nowrap q-ml-xs">~{{ transferredAmount | formatAmount }} BCH</span>
+                <span class="text-nowrap q-ml-xs">~{{ formatAmount(transferredAmount) }} BCH</span>
               </div>
             </div>
             <div class="row justify-center q-mt-sm" style="color: gray;">Powered by hop.cash</div>
@@ -283,6 +283,7 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import { throttle } from 'quasar'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { deductFromFee, s2c, c2s, smart2cashMax, cash2smartMax } from '../../wallet/hopcash'
@@ -313,13 +314,6 @@ export default {
   components: { CustomKeyboardInput, QrScanner, DragSlide, Pin, BiometricWarningAttempt, ProgressLoader },
   props: {
     darkMode: Boolean
-  },
-  filters: {
-    formatAmount (value) {
-      const parsedNum = Number(value)
-      if (isNaN(parsedNum)) return ''
-      return Number(parsedNum.toFixed(6))
-    }
   },
 
   data () {
@@ -420,12 +414,17 @@ export default {
     defaultRecipientAddress () {
       if (!this.wallet) return ''
       if (this.transferType === 'c2s') {
-        return this.wallet.sBCH._wallet.address
+        return this.$store.getters['global/getAddress']('sbch')
       }
       return this.$store.getters['global/getAddress']('bch')
     }
   },
   methods: {
+    formatAmount (value) {
+      const parsedNum = Number(value)
+      if (isNaN(parsedNum)) return ''
+      return Number(parsedNum.toFixed(6))
+    },
     validateAddress (address) {
       const addressObj = new Address(address)
       let valid = false
@@ -482,7 +481,8 @@ export default {
         })
       }
       if (this.transferType === 's2c') {
-        this.wallet.sBCH.getBalance()
+        const address = this.$store.getters['global/getAddress']('sbch')
+        this.wallet.sBCH.getBalance(address)
           .then(balance => {
             const commitName = 'sep20/updateAssetBalance'
             this.$store.commit(commitName, {
@@ -563,7 +563,11 @@ export default {
         )
     },
 
-    executeSwap () {
+    async executeSwap () {
+      if (this.transferType === 's2c') {
+        await this.wallet.sBCH.getOrInitWallet()
+      }
+
       let func = null
       if (this.transferType === 'c2s') func = c2s
       if (this.transferType === 's2c') func = s2c
@@ -619,27 +623,26 @@ export default {
       })
     },
 
-    loadWallet () {
+    loadWallet (transferType) {
       const vm = this
+      const network = transferType === 'c2s' ? 'BCH' : 'sBCH'
       // Load wallets
       return getMnemonic().then(function (mnemonic) {
-        const wallet = new Wallet(mnemonic)
-        return wallet.sBCH.getOrInitWallet()
-          .then(() => {
-            vm.wallet = wallet
-          })
+        const wallet = new Wallet(mnemonic, network)
+        vm.wallet = markRaw(wallet)
       })
     }
   },
 
   watch: {
-    transferType () {
+    transferType (val) {
+      this.loadWallet(val)
       this.updateBridgeBalances()
     }
   },
 
   mounted () {
-    this.loadWallet()
+    this.loadWallet('c2s')
       .then(() => {
         this.updateWalletBalance(true)
       })

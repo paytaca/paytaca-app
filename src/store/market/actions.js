@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 export function updateCoinsList (context, { force = true }) {
-  if (Array.isArray(context.state.coinsList) && context.state.coinsList.length && !force) { return { data: context.state.coinsList, _fromVuexStore: true } }
+  if (Array.isArray(context.state.coinsList) && context.state.coinsList.length && !force) {
+    return { data: context.state.coinsList, _fromVuexStore: true }
+  }
 
   return axios
     .get(
@@ -9,6 +11,7 @@ export function updateCoinsList (context, { force = true }) {
       { params: { include_platform: true } }
     )
     .then(response => {
+      console.log(response)
       if (Array.isArray(response.data)) {
         context.commit('updateCoinsList', response.data)
         return response

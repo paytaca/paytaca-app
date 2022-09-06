@@ -23,14 +23,14 @@
           v-if="
             pageNumberPaginationData && pageNumberPaginationData.pageCount > 1
           "
-          :value="pageNumberPaginationData.currentPage"
+          :modelValue="pageNumberPaginationData.currentPage"
           :max="pageNumberPaginationData.pageCount"
           :max-pages="6"
           unelevated
           padding="xs sm"
           input
           boundary-numbers
-          @input="
+          @update:modelValue="
             (val) =>
               fetchCollectibles({
                 limit: pageNumberPaginationData.pageSize,
@@ -120,7 +120,8 @@ export default {
       }
       this.fetchingCollectibles = true
       // this.wallet.sBCH.getNFTs(this.contractAddress, _opts)
-      this.wallet.sBCH.getOwnedNFTs(this.contractAddress, _opts)
+      const address = this.$store.getters['global/getAddress']('sbch')
+      this.wallet.sBCH.getOwnedNFTs(this.contractAddress, address, _opts)
         .finally(() => {
           this.fetchingCollectibles = false
         })
