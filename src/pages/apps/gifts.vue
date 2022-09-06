@@ -114,6 +114,7 @@
                 @click="recoverSecret()"
               ></q-btn>
         </div>
+        <canvas id="canvas"> </canvas>
         </div>
       </div>
     </div>
@@ -127,6 +128,7 @@ import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 // import { formatsByName, formatsByCoinType } from '@ensdomains/address-encoder'
 // import { QRGenerator } from 'dynamic-qr-code-generator'
+import { getMnemonic, Wallet } from '../../wallet'
 
 export default {
   name: 'Gift',
@@ -146,7 +148,8 @@ export default {
         quantity: '100',
         maxPerAddress: '',
         shares: [],
-        pk: ''
+        pk: '',
+        wallet: ''
       },
       generatingAddress: false,
       walletType: ''
@@ -191,14 +194,18 @@ export default {
     },
 
     qrCode () {
-      const key = 'paytaca.com/gifts/?amount=<amount>&share=<share>&id=<id>'
+      const key = 'https://gifts.paytaca.com/claim?amount=<amount>&share=<share>&id=<id>'
       const QRCode = require('qrcode')
-      // const canvas = document.getElementById('canvas')
+      const canvas = document.getElementById('canvas')
 
-      QRCode.toCanvas(key, function (error) {
+      QRCode.toCanvas(canvas, key, function (error) {
         if (error) console.error(error)
         console.log('success!')
       })
+      /* QRCode.toDataURL(key, function (err, url) {
+        if (err) console.error(err)
+        console.log('success')
+      }) */
     }
   },
   computed: {
@@ -208,6 +215,16 @@ export default {
 
       return this.formData.sourceToken.balance < this.formData.amount
     }
+  },
+  mounted () {
+    const vm = this
+    getMnemonic().then(function (mnemonic) {
+      const wallet = new Wallet(mnemonic)
+      wallet.sBCH.getOrInitWallet()
+        .then(() => {
+          vm.wallet = wallet
+        })
+    })
   }
 }
 </script>
