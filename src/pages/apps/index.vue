@@ -127,7 +127,6 @@ export default {
       for (var i = 0; i < htmlTag.length; i++) {
         htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
       }
-      htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
     })
   }
 }

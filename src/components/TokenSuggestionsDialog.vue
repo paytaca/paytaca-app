@@ -49,9 +49,8 @@
             />
           </q-tabs>
           <q-list style="max-height:45vh;overflow-y:auto;">
-            <template v-for="(token, index) in parsedTokens">
+            <template v-for="(token, index) in parsedTokens"  :key="index">
               <q-item
-                :key="index"
                 :class="[
                   isAssetInIgnoredList(token.id) ? 'text-grey' : (darkMode ? 'text-white' : 'text-black'),
                 ]"
@@ -129,7 +128,7 @@ export default {
   name: 'TokenSuggestionsDialog',
   components: { ProgressLoader },
   props: {
-    value: {
+    modelValue: {
       type: Boolean,
       default: false
     },
@@ -142,7 +141,7 @@ export default {
   },
   data () {
     return {
-      val: this.value,
+      val: this.modelValue,
       selectedNetwork: 'BCH',
       mainchainTokens: [],
       smartchainTokens: [],
@@ -191,9 +190,6 @@ export default {
           }
         })
         .filter(Boolean)
-    },
-    darkMode () {
-      return this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
@@ -253,10 +249,11 @@ export default {
       )
     },
     async updateSmartchainList (opts = { includeIgnored: false }) {
-      this.smartchainTokens = await this.$store.dispatch(
+      const vm = this
+      vm.smartchainTokens = await vm.$store.dispatch(
         'sep20/getMissingAssets',
         {
-          address: this.sbchAddress,
+          address: vm.sbchAddress,
           icludeIgnoredTokens: opts.includeIgnored
         }
       )
@@ -302,11 +299,11 @@ export default {
     }
   },
   watch: {
-    value () {
-      this.val = this.value
+    modelValue () {
+      this.val = this.modelValue
     },
     val () {
-      this.$emit('input', this.val)
+      this.$emit('update:modelValue', this.val)
     }
   }
 }

@@ -1,4 +1,6 @@
-import Vue from 'vue'
+import { boot } from 'quasar/wrappers'
 import VueQrcodeReader from 'vue-qrcode-reader'
 
-Vue.use(VueQrcodeReader)
+export default boot(({ app }) => {
+    app.use(VueQrcodeReader)
+})

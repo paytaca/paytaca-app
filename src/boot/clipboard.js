@@ -1,4 +1,6 @@
-import Vue from 'vue'
+import { boot } from 'quasar/wrappers'
 import VueClipboard from 'vue-clipboard2'
 
-Vue.use(VueClipboard)
+export default boot(({ app }) => {
+    app.use(VueClipboard)
+})

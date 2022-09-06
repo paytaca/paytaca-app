@@ -169,12 +169,9 @@ export default {
       const vm = this
       vm.$q.dialog({
         // need both in passing props for now for backwards compatibility
-        componentProps: { network: this.network },
-        network: this.network,
-        darkMode: this.darkMode,
+        componentProps: { network: this.network, darkMode: this.darkMode },
 
-        component: AddNewAsset,
-        parent: vm
+        component: AddNewAsset
       }).onOk((asset) => {
         if (this.isSep20) return this.addSep20Asset(asset)
         vm.addAsset(asset)
@@ -186,7 +183,6 @@ export default {
       const assetName = asset.name
       vm.$q.dialog({
         component: RemoveAsset,
-        parent: vm,
         assetName
       }).onOk(() => {
         if (this.isSep20) {

@@ -83,7 +83,7 @@ export default {
     .footer-icon-btn {
       border-radius: 20px;
       border: none;
-      width: 50px;
+      width: 60px;
       height: 50px;
       outline: none;
       background-color: transparent;

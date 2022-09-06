@@ -29,14 +29,14 @@
 export default {
   props: {
     customKeyboardState: {},
-    value: {
+    modelValue: {
       type: [String, Number],
       default: ''
     }
   },
   data () {
     return {
-      val: this.value,
+      val: this.modelValue,
       keyboard: this.customKeyboardState === 'show'
     }
   },
@@ -79,10 +79,10 @@ export default {
   },
   watch: {
     val () {
-      this.$emit('input', this.val)
+      this.$emit('update:modelValue', this.val)
     },
-    value () {
-      this.val = this.value
+    modelValue () {
+      this.val = this.modelValue
     },
     customKeyboardState () {
       if (this.customKeyboardState === 'show') {

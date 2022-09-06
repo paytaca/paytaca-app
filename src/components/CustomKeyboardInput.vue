@@ -3,11 +3,11 @@
     <q-skeleton v-if="fieldProps.wait" type="rect"/>
     <q-field v-else v-model="val" ref="field" v-bind="fieldProps">
       <template v-slot:control="ctx">
-        {{ ctx.value }}
+        {{ ctx.modelValue }}
         <CustomKeyboard
-          :value="ctx.modelValue"
+          :modelValue="ctx.modelValue"
           :customKeyboardState="ctx.focused ? 'show': ''"
-          @input="ctx.emitValue"
+          @update:modelValue="ctx.emitValue"
           @makeKeyAction="action => action === 'ready to submit' ? $refs.field.blur(): null"
           :style="{
             left:0,
@@ -27,7 +27,7 @@ export default {
   name: 'CustomKeyboardInput',
   components: { CustomKeyboard },
   props: {
-    value: {
+    modelValue: {
       type: [Number, String],
       default: ''
     },
@@ -38,15 +38,15 @@ export default {
   },
   data () {
     return {
-      val: this.value
+      val: this.modelValue
     }
   },
   watch: {
     val () {
-      this.$emit('input', this.val)
+      this.$emit('update:model-value', this.val)
     },
-    value () {
-      this.val = this.value
+    modelValue () {
+      this.val = this.modelValue
     }
   }
 }

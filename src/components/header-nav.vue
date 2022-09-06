@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="row">
-      <div class="col 12" :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
-        <div class="pt-header" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+      <div class="col 12">
+        <div class="pt-header" :style="{ 'padding-top': this.$q.platform.is.ios ? '45px' : '18px'}" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
           <router-link :to="{ path: backnavpath }" class="pt-arrow-left-link" :class="{'text-grad': $store.getters['darkmode/getStatus']}" :style="{width: $q.platform.is.bex ? '375px' : '100%'}">
             <span class="material-icons" @click="!backnavpath ? $router.go(-1) : null">
                 arrow_back
@@ -20,7 +20,16 @@
 <script>
 export default {
   name: 'header-nav',
-  props: ['title', 'backnavpath']
+  props: {
+    title: {
+      type: String,
+      default: '',
+    },
+    backnavpath: {
+      type: String,
+      default: '',
+    }
+  },
 }
 </script>
 

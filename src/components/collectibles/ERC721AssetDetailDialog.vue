@@ -40,14 +40,14 @@
 export default {
   name: 'ERC721AssetDetailDialog',
   props: {
-    value: { type: Boolean, default: false },
+    modelValue: { type: Boolean, default: false },
     asset: {},
     darkMode: { type: Boolean, default: false }
   },
 
   data () {
     return {
-      val: this.value
+      val: this.modelValue
     }
   },
 
@@ -65,10 +65,10 @@ export default {
 
   watch: {
     val () {
-      this.$emit('input', this.val)
+      this.$emit('update:modelValue', this.val)
     },
-    value () {
-      this.val = this.value
+    modelValue () {
+      this.val = this.modelValue
     }
   }
 }
