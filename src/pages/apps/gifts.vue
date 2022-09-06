@@ -111,7 +111,7 @@
                 type="submit"
                 :disable="handshakeOnProgress"
                 label="recover"
-                @click="convertToCashAddress(generatePrivateKey())"
+                @click="recoverSecret()"
               ></q-btn>
         </div>
         </div>
@@ -126,7 +126,7 @@ import HeaderNav from '../../components/header-nav'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 // import { formatsByName, formatsByCoinType } from '@ensdomains/address-encoder'
-import { QRGenerator } from 'dynamic-qr-code-generator'
+// import { QRGenerator } from 'dynamic-qr-code-generator'
 
 export default {
   name: 'Gift',
@@ -156,23 +156,21 @@ export default {
     // method for splitting private key to 3 shares
     splitSecret () {
       this.pk = this.generatePrivateKey()
-      const mamaw = this.convertToCashAddress(this.pk)
-      // this.convertToCashAddress(this.generatePrivateKey())
+      const cashAdd = this.convertToCashAddress(this.pk)
       console.log(this.pk)
-      console.log(mamaw)
+      console.log(cashAdd)
       const sss = require('shamirs-secret-sharing')
       const secret = Buffer.from(this.pk)
       const shares = sss.split(secret, { shares: 3, threshold: 2 })
       // console.log(toHex(shares[0]))
       this.shares = shares.map((share) => { return toHex(share) })
-      // console.log(this.convertToCashAddress(pk))
+      this.qrCode()
       console.log(this.shares)
     },
     // method for recovering private key from 2 of 3 shares(splitsecret)
     recoverSecret () {
       const sss = require('shamirs-secret-sharing')
       const recovery = sss.combine([this.shares[0], this.shares[1]])
-      // console.log(this.shares[0].toString())
       console.log(recovery.toString())
     },
 
@@ -182,19 +180,25 @@ export default {
       return keyPair.toWIF()
     },
 
+    // method for converting private key to cash address
     convertToCashAddress (wif) {
       const BCHJS = require('@psf/bch-js')
       const bchjs = new BCHJS()
       const pair = bchjs.ECPair.fromWIF(wif)
-      const hotdog = bchjs.ECPair.toCashAddress(pair)
+      const cAddress = bchjs.ECPair.toCashAddress(pair)
       // console.log(hotdog)
-      return hotdog
+      return cAddress
     },
 
     qrCode () {
-      // var props = { value: 'paytaca.com/gifts/?amount=<amount>&share=<share>&id=<id>' }
-      var props = { value: 'https://google.com' }
-      return QRGenerator(props)
+      const key = 'paytaca.com/gifts/?amount=<amount>&share=<share>&id=<id>'
+      const QRCode = require('qrcode')
+      // const canvas = document.getElementById('canvas')
+
+      QRCode.toCanvas(key, function (error) {
+        if (error) console.error(error)
+        console.log('success!')
+      })
     }
   },
   computed: {
