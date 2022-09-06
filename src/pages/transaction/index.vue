@@ -774,10 +774,11 @@ export default {
       })
       vm.getTransactions()
 
-      if (vm.$root.hasSuggestedAssets) return
-      vm.checkMissingAssets().then(() => {
-        vm.$root.hasSuggestedAssets = true
-      })
+      // Temporarily disable automated checking of unlisted assets
+      // if (vm.$root.hasSuggestedAssets) return
+      // vm.checkMissingAssets().then(() => {
+      //   vm.$root.hasSuggestedAssets = true
+      // })
 
       vm.$store.dispatch('assets/updateTokenIcons', { all: false })
       vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
