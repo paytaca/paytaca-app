@@ -114,7 +114,10 @@
                 @click="recoverSecret()"
               ></q-btn>
         </div>
+<<<<<<< HEAD
         <canvas id="canvas"> </canvas>
+=======
+>>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
         </div>
       </div>
     </div>
@@ -128,7 +131,10 @@ import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 // import { formatsByName, formatsByCoinType } from '@ensdomains/address-encoder'
 // import { QRGenerator } from 'dynamic-qr-code-generator'
+<<<<<<< HEAD
 import { getMnemonic, Wallet } from '../../wallet'
+=======
+>>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
 
 export default {
   name: 'Gift',
@@ -148,8 +154,12 @@ export default {
         quantity: '100',
         maxPerAddress: '',
         shares: [],
+<<<<<<< HEAD
         pk: '',
         wallet: ''
+=======
+        pk: ''
+>>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
       },
       generatingAddress: false,
       walletType: ''
@@ -194,6 +204,7 @@ export default {
     },
 
     qrCode () {
+<<<<<<< HEAD
       const key = 'https://gifts.paytaca.com/claim?amount=<amount>&share=<share>&id=<id>'
       const QRCode = require('qrcode')
       const canvas = document.getElementById('canvas')
@@ -206,6 +217,16 @@ export default {
         if (err) console.error(err)
         console.log('success')
       }) */
+=======
+      const key = 'paytaca.com/gifts/?amount=<amount>&share=<share>&id=<id>'
+      const QRCode = require('qrcode')
+      // const canvas = document.getElementById('canvas')
+
+      QRCode.toCanvas(key, function (error) {
+        if (error) console.error(error)
+        console.log('success!')
+      })
+>>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
     }
   },
   computed: {
@@ -215,6 +236,7 @@ export default {
 
       return this.formData.sourceToken.balance < this.formData.amount
     }
+<<<<<<< HEAD
   },
   mounted () {
     const vm = this
@@ -225,6 +247,8 @@ export default {
           vm.wallet = wallet
         })
     })
+=======
+>>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
   }
 }
 </script>
