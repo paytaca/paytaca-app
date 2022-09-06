@@ -88,7 +88,9 @@
       <div ref="transactionSection" class="row transaction-row">
         <transaction ref="transaction"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
-            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">Transactions</p>
+            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
+              {{ selectedAsset.symbol }} Transactions
+            </p>
             <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
               <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-all')" id="btn-all">All</button>
               <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-sent')" id="btn-sent">Sent</button>
