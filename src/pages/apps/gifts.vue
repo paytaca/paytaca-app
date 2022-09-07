@@ -18,8 +18,8 @@
         class="q-px-sm"
       />
 
-      <div class="q-mx-sm">
-        <div class="q-pt-sm">
+      <div class="q-mx-sm q-pt-xl" style="width:20%">
+        <div class="q-pt-xl">
           <label>
             Enter Amount:
           </label>
@@ -95,29 +95,25 @@
                 rounded
                 color="blue-9"
                 type="submit"
-                :disable="handshakeOnProgress"
                 label="Generate"
                 @click="splitSecret()"
               >
               </q-btn>
-            <div>
-          </div>
-        </div>
-        <div class="q-pa-sm q-pt-lg flex flex-center" >
-        <q-btn
+              <div class="q-pa-sm q-pb-lg"></div>
+              <q-btn
                 no-caps
                 rounded
                 color="blue-9"
                 type="submit"
-                :disable="handshakeOnProgress"
                 label="recover"
                 @click="recoverSecret()"
-              ></q-btn>
+              >
+              </q-btn>
         </div>
-<<<<<<< HEAD
-        <canvas id="canvas"> </canvas>
-=======
->>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
+        <div class="flex flex-center">
+        <canvas id="canvas" class="flex flex-center"></canvas>
+          <div><p> {{ input.cashAdd }} </p></div>
+        </div>
         </div>
       </div>
     </div>
@@ -131,10 +127,7 @@ import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 // import { formatsByName, formatsByCoinType } from '@ensdomains/address-encoder'
 // import { QRGenerator } from 'dynamic-qr-code-generator'
-<<<<<<< HEAD
 import { getMnemonic, Wallet } from '../../wallet'
-=======
->>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
 
 export default {
   name: 'Gift',
@@ -154,12 +147,10 @@ export default {
         quantity: '100',
         maxPerAddress: '',
         shares: [],
-<<<<<<< HEAD
         pk: '',
-        wallet: ''
-=======
-        pk: ''
->>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
+        wallet: '',
+        cashAdd: '',
+        txid: ''
       },
       generatingAddress: false,
       walletType: ''
@@ -167,16 +158,16 @@ export default {
   },
   methods: {
     // method for splitting private key to 3 shares
-    splitSecret () {
+    async splitSecret () {
       this.pk = this.generatePrivateKey()
-      const cashAdd = this.convertToCashAddress(this.pk)
+      this.cashAdd = this.convertToCashAddress(this.pk)
       console.log(this.pk)
-      console.log(cashAdd)
+      console.log(this.cashAdd)
       const sss = require('shamirs-secret-sharing')
       const secret = Buffer.from(this.pk)
       const shares = sss.split(secret, { shares: 3, threshold: 2 })
-      // console.log(toHex(shares[0]))
       this.shares = shares.map((share) => { return toHex(share) })
+      this.handleSubmit(this.cashAdd)
       this.qrCode()
       console.log(this.shares)
     },
@@ -199,13 +190,13 @@ export default {
       const bchjs = new BCHJS()
       const pair = bchjs.ECPair.fromWIF(wif)
       const cAddress = bchjs.ECPair.toCashAddress(pair)
-      // console.log(hotdog)
+      // console.log(cAddress)
       return cAddress
     },
 
+    // generate qr code
     qrCode () {
-<<<<<<< HEAD
-      const key = 'https://gifts.paytaca.com/claim?amount=<amount>&share=<share>&id=<id>'
+      const key = this.pk
       const QRCode = require('qrcode')
       const canvas = document.getElementById('canvas')
 
@@ -213,20 +204,18 @@ export default {
         if (error) console.error(error)
         console.log('success!')
       })
-      /* QRCode.toDataURL(key, function (err, url) {
-        if (err) console.error(err)
-        console.log('success')
-      }) */
-=======
-      const key = 'paytaca.com/gifts/?amount=<amount>&share=<share>&id=<id>'
-      const QRCode = require('qrcode')
-      // const canvas = document.getElementById('canvas')
-
-      QRCode.toCanvas(key, function (error) {
-        if (error) console.error(error)
-        console.log('success!')
+    },
+    // send bch to generated wallet
+    async handleSubmit (cAdd) {
+      const vm = this
+      const address = cAdd
+      vm.wallet.BCH.sendBch(vm.input.amount, address).then(function (result, err) {
+        if (result.success) {
+          vm.input.txid = result.txid
+        } else {
+          console.error(err)
+        }
       })
->>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
     }
   },
   computed: {
@@ -236,8 +225,9 @@ export default {
 
       return this.formData.sourceToken.balance < this.formData.amount
     }
-<<<<<<< HEAD
   },
+
+  // wallet call function when mounted
   mounted () {
     const vm = this
     getMnemonic().then(function (mnemonic) {
@@ -247,8 +237,6 @@ export default {
           vm.wallet = wallet
         })
     })
-=======
->>>>>>> aac25a82912560e62e78cb0c375c308a1a4f166f
   }
 }
 </script>
