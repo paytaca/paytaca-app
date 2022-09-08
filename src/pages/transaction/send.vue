@@ -167,11 +167,15 @@
             </ul>
           </div>
         </div>
-        <div class="q-px-lg" v-if="sendData.sent" style="text-align: center;">
+        <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -30px;">
           <q-icon size="120px" name="check_circle" color="green-5"></q-icon>
-          <div style="margin-top: 20px;">
-            <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 30px;">Successfully sent</p>
-            <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+          <div :class="darkMode ? 'text-white' : 'pp-text'" style="margin-top: 20px;">
+            <p style="font-size: 30px;">Successfully sent</p>
+            <p style="font-size: 28px; margin-top: -15px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+            <p style="font-size: 24px;">to</p>
+            <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
+              {{ this.sendData.recipientAddress }}
+            </div>
           </div>
         </div>
       </div>
