@@ -310,6 +310,7 @@ export default {
       const vm = this
       vm.selectedAsset = this.bchAsset
       vm.getBalance(this.bchAsset.id)
+      vm.transactionsPage = 0
       vm.getTransactions()
       vm.assetClickCounter += 1
       if (vm.assetClickCounter >= 2) {
