@@ -214,10 +214,7 @@ export default {
 
   watch: {
     startPageStatus (n, o) {
-      setTimeout(() => {
-        const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
-      }, 100)
+      this.adjustTransactionsDivHeight()
     },
     selectedAsset () {
       this.transactions = []
@@ -282,6 +279,12 @@ export default {
     }
   },
   methods: {
+    adjustTransactionsDivHeight () {
+      setTimeout(() => {
+        const sectionHeight = this.$refs.fixedSection.clientHeight
+        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
+      }, 500)
+    },
     formatDate (date) {
       return ago(new Date(date))
     },
@@ -771,6 +774,8 @@ export default {
     } else {
       vm.startPageStatus = false
     }
+
+    vm.adjustTransactionsDivHeight()
 
     if (Array.isArray(vm.assets) && this.assets.length > 0) {
       vm.selectedAsset = this.bchAsset
