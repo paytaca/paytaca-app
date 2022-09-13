@@ -20,6 +20,11 @@ const routes = [
         component: () => import('pages/transaction/receive.vue')
       },
       {
+        path: 'chooseGift/',
+        name: 'createGift',
+        component: () => import('src/pages/apps/gift/createGift.vue')
+      },
+      {
         path: 'send/select-asset',
         name: 'transaction-send-select-asset',
         component: () => import('pages/transaction/select-asset-send.vue')
@@ -32,7 +37,7 @@ const routes = [
           if (!isNaN(props.tokenType)) props.tokenType = Number(props.tokenType)
           if (!isNaN(props.amount)) props.amount = Number(props.amount)
           if (props.fixed === 'true') props.fixed = true
-          else if(props.fixed === 'false') props.fixed = false
+          else if (props.fixed === 'false') props.fixed = false
           return props
         },
         component: () => import('pages/transaction/send.vue')
@@ -60,7 +65,8 @@ const routes = [
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
       { path: 'settings/ignored-tokens', component: () => import('src/pages/apps/ignored-tokens-list.vue'), name: 'ignored-tokens-list' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
-      { path: 'gifts', component: () => import('src/pages/apps/gifts.vue'), name: 'Gifts' }
+      // { path: 'gifts', component: () => import('src/pages/apps/gifts.vue'), name: 'Gifts' },
+      { path: 'chooseGift', component: () => import('src/pages/apps/chooseGift.vue'), name: 'Gifts' }
     ]
   },
   // Always leave this as last one,

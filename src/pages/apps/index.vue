@@ -55,9 +55,9 @@ export default {
           active: true
         },
         {
-          name: 'Gifts',
+          name: 'Gift',
           iconName: 'mdi-gift',
-          path: '/apps/gifts',
+          path: '/apps/chooseGift',
           active: true
         },
         {
@@ -118,13 +118,13 @@ export default {
     const htmlTag1 = document.querySelector('.pt-app')
     const htmlTag = document.getElementsByClassName('pt-app')
     this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    for (var i = 0; i < htmlTag.length; i++) {
+    for (let i = 0; i < htmlTag.length; i++) {
       htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
     }
 
     window.addEventListener('resize', function () {
       this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-      for (var i = 0; i < htmlTag.length; i++) {
+      for (let i = 0; i < htmlTag.length; i++) {
         htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
       }
     })
