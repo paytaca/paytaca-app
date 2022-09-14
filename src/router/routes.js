@@ -20,9 +20,14 @@ const routes = [
         component: () => import('pages/transaction/receive.vue')
       },
       {
-        path: 'chooseGift/',
+        path: 'chooseGift/create',
         name: 'createGift',
         component: () => import('src/pages/apps/gift/createGift.vue')
+      },
+      {
+        path: 'chooseGift/claim',
+        name: 'claimGift',
+        component: () => import('src/pages/apps/gift/claimGift.vue')
       },
       {
         path: 'send/select-asset',

@@ -26,7 +26,7 @@
               </div>
             </div>
           </div>
-          <div @click="$router.push({ name: 'Gift'})" role="button" class="row q-pl-lg q-pr-lg q-mt-sm" style="height: 50px">
+          <div @click="$router.push({ name: 'claimGift'})" role="button" class="row q-pl-lg q-pr-lg q-mt-sm" style="height: 50px">
             <div class="col row q-mb-sm flex flex-center" style="font-size: 22px" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-card' : 'bg-white'">
               <div class="q-pl-md flex flex-center" style="user-select:none" >Claim gift</div>
               <div class="col row q-mb-sm" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-card' : 'bg-white'">

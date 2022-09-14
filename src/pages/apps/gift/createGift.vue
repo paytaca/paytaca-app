@@ -89,11 +89,12 @@
                 color="blue-9"
                 type="submit"
                 label="Generate"
-                @click="splitSecret()"
+                @click="splitSecret(), card = true"
+                class="flex flex-center"
               >
               </q-btn>
               <div class="q-pa-sm q-pb-lg"></div>
-              <q-btn
+<!--               <q-btn
                 no-caps
                 rounded
                 color="blue-9"
@@ -101,14 +102,26 @@
                 label="recover"
                 @click="recoverSecret()"
               >
-              </q-btn>
+              </q-btn> -->
         </div>
-        <div class="flex flex-center">
-        <canvas id="canvas" class="flex flex-center "></canvas>
-        </div>
-        </div>
-      </div>
+        <q-dialog v-model="card" no-backdrop-dismiss full-height>
+          <q-card class="my-card" >
+            <q-card-section>
+              <div class="flex flex-center">
+                <canvas id="canvas" class="flex flex-center"></canvas>
+                </div>
+              </q-card-section>
+              <q-card-section>
+                <div>
+                  <div @click="copyToClipboard(this.cashAdd)"> {{ this.cashAdd }}</div>
+                </div>
+              <!-- </div> -->
+            </q-card-section>
+          </q-card>
+        </q-dialog>
     </div>
+  </div>
+  </div>
   </div>
 </template>
 <script>
@@ -121,6 +134,7 @@ import { toHex } from 'hex-my-bytes'
 // import { formatsByName, formatsByCoinType } from '@ensdomains/address-encoder'
 // import { QRGenerator } from 'dynamic-qr-code-generator'
 import { getMnemonic, Wallet } from '../../../wallet'
+import { ref } from 'vue'
 
 export default {
   name: 'Gifts',
@@ -142,11 +156,12 @@ export default {
         shares: [],
         pk: '',
         wallet: '',
-        cashAdd: '',
         txid: ''
       },
       generatingAddress: false,
-      walletType: ''
+      walletType: '',
+      card: ref(false),
+      cashAdd: null
     }
   },
   methods: {
@@ -192,10 +207,18 @@ export default {
       const key = this.pk
       const QRCode = require('qrcode')
       const canvas = document.getElementById('canvas')
-
       QRCode.toCanvas(canvas, key, function (error) {
         if (error) console.error(error)
         console.log('success!')
+      })
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: 'Copied to clipboard',
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
       })
     },
     // send bch to generated wallet
