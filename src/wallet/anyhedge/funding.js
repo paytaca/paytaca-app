@@ -223,21 +223,34 @@ export async function searchUtxo(amount, walletHash) {
   return utxos.utxos.find(utxo => utxo.value == amount)
 }
 
+/**
+ * 
+ * @param {Object} contractData 
+ * @param {'hedge' || 'long'} position
+ * @param {*} liquidityProviderFeeInSatoshis 
+ * @returns 
+ */
+function calculateFundingAmounts(contractData, position, liquidityProviderFeeInSatoshis=0) {
+  const localContractMetadata = contractData.metadata
+  const makerInputSats = position === 'long' ? localContractMetadata.hedgeInputSats : localContractMetadata.longInputSats;
+  const takerInputSats = position === 'long' ? localContractMetadata.longInputSats : localContractMetadata.hedgeInputSats;
 
-function calculateFundingAmounts(contractData) {
-  // Extract relevant data from contract metadata.
-  const { hedgeInputSats, longInputSats, minerCost, dustCost } = contractData.metadata;
-  const { fee } = contractData;
-
-  const INPUT_SIZE = 148;
-	const OUTPUT_SIZE = 34;
-  const fixedFee = 10 + (4 * OUTPUT_SIZE);
-
+  const manager = new AnyHedgeManager()
+  const totalRequiredFundingSatoshis = manager.calculateTotalRequiredFundingSatoshis(contractData)
+  const takerRequiredFundingSatoshis = totalRequiredFundingSatoshis - makerInputSats + liquidityProviderFeeInSatoshis;
 
   // Calculate the amounts necessary to fund the contract.
   const contractAmount = {
-    hedge: hedgeInputSats + (fee?.satoshis | 0) + INPUT_SIZE + (fixedFee / 2),
-    long: longInputSats + minerCost + dustCost + INPUT_SIZE + (fixedFee / 2),
+    hedge: 0,
+    long: 0,
+  }
+  
+  if (position == 'hedge') {
+    contractAmount.hedge = takerRequiredFundingSatoshis
+    contractAmount.long = totalRequiredFundingSatoshis - takerRequiredFundingSatoshis
+  } else if (position == 'long') {
+    contractAmount.hedge = totalRequiredFundingSatoshis - takerRequiredFundingSatoshis
+    contractAmount.long = takerRequiredFundingSatoshis
   }
 
   return contractAmount
@@ -252,15 +265,14 @@ function calculateFundingAmounts(contractData) {
  * @param {String} addressSet.receiving
  * @param {String} addressSet.change
  * @param {Number} addressSet.index
- * @param {Number} additionalFees
+ * @param {Number} liquidityProviderFeeInSatoshis
  */
-export async function createFundingProposal(contractData, position, wallet, addressSet, additionalFees=0) {
-  const { hedge, long } = calculateFundingAmounts(contractData)
+export async function createFundingProposal(contractData, position, wallet, addressSet, liquidityProviderFeeInSatoshis=0) {
+  const { hedge, long } = calculateFundingAmounts(contractData, position, liquidityProviderFeeInSatoshis)
   let amount
   if (position === 'hedge') amount = hedge
   else if (position === 'long') amount = long
 
-  amount = amount + additionalFees
   const fundingUtxo = await getOrFindUtxo(amount, wallet, addressSet)
 
   const manager = new AnyHedgeManager()
