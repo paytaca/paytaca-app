@@ -138,3 +138,7 @@ a {
 .bex.q-body--prevent-scroll {
   position: unset !important;
 }
+
+.pp-fcolor {
+  color: #000 !important;
+}
