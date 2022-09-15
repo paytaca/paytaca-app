@@ -25,6 +25,12 @@ export default {
     return {
       apps: [
         {
+          name: 'Anyhedge',
+          iconName: '',
+          path: '/apps/anyhedge',
+          active: true
+        },
+        {
           name: 'Bridge',
           iconName: 'mdi-bridge',
           path: '/apps/bridge',
