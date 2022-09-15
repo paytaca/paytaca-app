@@ -116,6 +116,19 @@
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
           <HedgeOffersList v-else :hedge-offers="hedgeOffers"/>
+          <div class="row justify-center">
+            <LimitOffsetPagination
+              :pagination-props="{
+                unelevated: true,
+                padding: 'sm md',
+                boundaryNumbers: true
+              }"
+              class="q-mb-md"
+              :hide-below-pages="2"
+              :modelValue="hedgeOffersPaginationState"
+              @update:modelValue="fetchHedgeOffers"
+            />
+          </div>
         </q-expansion-item>
         <q-separator/>
         <q-expansion-item label="Hedge Positions">
@@ -123,6 +136,19 @@
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
           <HedgeContractsList v-else :contracts="contracts" view-as="hedge"/>
+          <div class="row justify-center">
+            <LimitOffsetPagination
+              :pagination-props="{
+                unelevated: true,
+                padding: 'sm md',
+                boundaryNumbers: true
+              }"
+              class="q-mb-md"
+              :hide-below-pages="2"
+              :modelValue="contractsPaginationState"
+              @update:modelValue="fetchHedgeContracts"
+            />
+          </div>
         </q-expansion-item>
       </template>
       <template v-else-if="selectedAccountType === 'long'">
@@ -131,6 +157,19 @@
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
           <HedgeContractsList v-else :contracts="longPositions" view-as="long"/>
+          <div class="row justify-center">
+            <LimitOffsetPagination
+              :pagination-props="{
+                unelevated: true,
+                padding: 'sm md',
+                boundaryNumbers: true
+              }"
+              class="q-mb-md"
+              :hide-below-pages="2"
+              :modelValue="longPositionsPaginationState"
+              @update:modelValue="fetchLongPositions"
+            />
+          </div>
         </q-expansion-item>
       </template>
     </q-card>
@@ -143,12 +182,14 @@ import { formatCentsToUSD, parseHedgePositionData } from '../../wallet/anyhedge/
 import { ref, computed, markRaw, onMounted, inject, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import HeaderNav from '../../components/header-nav'
+import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import AddLiquidityForm from 'src/components/anyhedge/AddLiquidityForm.vue'
 import CreateHedgeForm from 'src/components/anyhedge/CreateHedgeForm.vue'
 import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 
 // misc
+const DEFAULT_PAGE_SIZE = 10
 const $copyText = inject('$copyText')
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -227,18 +268,28 @@ onUnmounted(() => {
 // hedge offers
 const showCreateHedgeForm = ref(false)
 const hedgeOffers = ref([])
+const hedgeOffersPaginationState = ref({ count: 0, limit: 1, offset: 0 })
 const fetchingHedgeOffers = ref(false)
-function fetchHedgeOffers() {
+function fetchHedgeOffers(pagination) {
   const walletHash = wallet.value.BCH.getWalletHash()
   fetchingHedgeOffers.value = true
   anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
     {
-      params: { wallet_hash: walletHash }
+      params: {
+        wallet_hash: walletHash,
+        limit: pagination?.limit || DEFAULT_PAGE_SIZE,
+        offset: pagination?.offset || 0,
+      }
     }
   )
     .then(response => {
-      hedgeOffers.value = response.data.results
+      if (Array.isArray(response?.data?.results))  hedgeOffers.value = response.data.results
+      if (response?.data?.count >= 0 && response?.data?.limit >= 0 && response?.data?.offset >= 0) {
+        contractsPaginationState.value.count = response.data.count
+        contractsPaginationState.value.limit = response.data.limit
+        contractsPaginationState.value.offset = response.data.offset
+      }
     })
     .finally(() => {
       fetchingHedgeOffers.value = false
@@ -247,18 +298,30 @@ function fetchHedgeOffers() {
 
 // anyhedge contracts
 const contracts = ref([])
+const contractsPaginationState = ref({ count: 0, limit: 1, offset: 0 })
 const fetchingContracts = ref(false)
-function fetchHedgeContracts() {
+function fetchHedgeContracts(pagination) {
   fetchingContracts.value = true
   const walletHash = wallet.value.BCH.getWalletHash()
   anyhedgeBackend.get(
     '/anyhedge/hedge-positions/',
-    { params: { hedge_wallet_hash: walletHash } }
+    { 
+      params: {
+        hedge_wallet_hash: walletHash,
+        limit: pagination?.limit || DEFAULT_PAGE_SIZE,
+        offset: pagination?.offset || 0,
+      }
+    }
   )
     .then(response => {
       if (response?.data?.results) {
         Promise.all(response.data.results.map(parseHedgePositionData))
           .then(parsedContracts => contracts.value = parsedContracts)
+        if (response?.data?.count >= 0 && response?.data?.limit >= 0 && response?.data?.offset >= 0) {
+          contractsPaginationState.value.count = response.data.count
+          contractsPaginationState.value.limit = response.data.limit
+          contractsPaginationState.value.offset = response.data.offset
+        }
       }
     })
     .finally(() => {
@@ -301,23 +364,36 @@ function fetchLongAccounts() {
 }
 
 const longPositions = ref([])
+const longPositionsPaginationState = ref({ count: 0, limit: 1, offset: 0 })
 const fetchingLongPositions = ref(false)
 const totalLongValue = computed(() => {
   if (!Array.isArray(contracts.value)) return 0
   const total = longPositions.value.reduce((subtotal, contract) => subtotal + (contract?.metadata?.nominalUnits || 0), 0)
   return formatCentsToUSD(total)
 })
-function fetchLongPositions() {
+function fetchLongPositions(pagination) {
   fetchingLongPositions.value = true
   const walletHash = wallet.value.BCH.getWalletHash()
   anyhedgeBackend.get(
     '/anyhedge/hedge-positions/',
-    { params: { long_wallet_hash: walletHash } }
+    {
+      params: {
+        long_wallet_hash: walletHash,
+        limit: pagination?.limit || DEFAULT_PAGE_SIZE,
+        offset: pagination?.offset || 0,
+      }
+    }
   )
     .then(response => {
       if (response?.data?.results) {
         Promise.all(response.data.results.map(parseHedgePositionData))
           .then(parsedContracts => longPositions.value = parsedContracts)
+
+        if (response?.data?.count >= 0 && response?.data?.limit >= 0 && response?.data?.offset >= 0) {
+          longPositionsPaginationState.value.count = response.data.count
+          longPositionsPaginationState.value.limit = response.data.limit
+          longPositionsPaginationState.value.offset = response.data.offset
+        }
       }
     })
     .finally(() => {
