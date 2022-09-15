@@ -40,7 +40,9 @@
         <div>
           <div class="text-grey">Funding</div>
           <div v-if="contract.fundingTxHash" class="row items-center">
-            <div class="text-body1">{{ ellipsisText(contract.fundingTxHash) }}</div>
+            <div @click="copyText(contract.fundingTxHash)" v-ripple style="position:relative;" class="text-body1">
+              {{ ellipsisText(contract.fundingTxHash, {start: 5, end: 10}) }}
+            </div>
             <q-btn
               flat
               icon="launch"
