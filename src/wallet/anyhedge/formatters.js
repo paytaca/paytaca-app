@@ -1,4 +1,4 @@
-import { AnyHedgeManager } from '@generalprotocols/anyhedge'
+import { AnyHedgeManager, SettlementType } from '@generalprotocols/anyhedge'
 import ago from 's-ago'
 
 export function formatTimestampToText(timestamp) {
@@ -40,6 +40,17 @@ export function ellipsisText (value, config) {
  * @property {Number} tx_index
  * @property {Number} tx_value
  * @property {String} script_sig
+ * 
+ * @typedef {Object} SettlementAPI
+ * @property {String} spending_transaction
+ * @property {SettlementType} settlement_type
+ * @property {Number} hedge_satoshis
+ * @property {Number} long_satoshis
+ * @property {String} oracle_pubkey
+ * @property {Number} settlement_price
+ * @property {Number} settlement_price_sequence
+ * @property {Number} settlement_message_sequence
+ * @property {Number} settlement_message_timestamp
 */
 
 /**
@@ -62,6 +73,7 @@ export function ellipsisText (value, config) {
  * @param {{ address: String, satoshis: Number }} data.fee
  * @param {FundingProposalAPI|null} data.hedge_funding_proposal
  * @param {FundingProposalAPI|null} data.long_funding_proposal
+ * @param {SettlementAPI|null} data.settlement
  * 
  * @returns 
  */
@@ -104,6 +116,13 @@ export async function parseHedgePositionData(data) {
 
   contractData.fundingTxHash = data.funding_tx_hash
   // contractData.fundingTxHash = 'bb743a47d81e8da85e2a0aebd03fd1be29d9703f23c0f431caf714c3e8588498'
+  if (data?.funding_tx_hash) {
+    contractData.funding = [{
+      fundingTransaction: data.funding_tx_hash,
+      // some data is actually missing here
+    }]
+  }
+
 
   // const fundingProposal = {
   //   tx_hash: 'bb743a47d81e8da85e2a0aebd03fd1be29d9703f23c0f431caf714c3e8588498',
@@ -122,6 +141,23 @@ export async function parseHedgePositionData(data) {
       satoshis: data.fee.satoshis,
     }
   }
+
+  if (data?.settlement) {
+    contractData.settlement = [{
+      spendingTransaction: data.settlement.spending_transaction,
+      settlementType: data.settlement.settlement_type,
+      hedgeSatoshis: data.settlement.hedge_satoshis,
+      longSatoshis: data.settlement.long_satoshis,
+      oraclePublicKey: data.settlement.oracle_pubkey,
+      settlementPrice: data.settlement.settlement_price,
+
+      // Not actually part of ContractDataV1's settlement interface in anyhedge
+      settlementPriceSequence: data.settlement.settlement_price_sequence,
+      settlementMessageSequence: data.settlement.settlement_message_sequence,
+      settlementMessageTimestamp: data.settlement.settlement_message_timestamp,
+    }]
+  }
+
   return contractData
 }
 
