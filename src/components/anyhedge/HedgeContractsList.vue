@@ -1,7 +1,7 @@
 <template>  
   <div>
     <HedgeContractsListItem
-      v-for="(contract, index) in contracts" :key="index"
+      v-for="(contract, index) in contracts" :key="contract?.address || index"
       :contract="contract"
       @click="displayContractInDialog(contract)"
       v-ripple

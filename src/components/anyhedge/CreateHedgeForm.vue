@@ -474,7 +474,7 @@ async function createHedgePosition() {
       funding.contractData = contractData
     } catch(error) {
       console.error(error)
-      error.value = ['Encountered error in preparing funding transaction']
+      errors.value = ['Encountered error in preparing funding transaction']
       return
 
     } finally {
