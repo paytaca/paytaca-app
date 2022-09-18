@@ -18,6 +18,7 @@
             <q-icon name="error" left/>
             {{ scanner.error }}
           </div>
+          Can use LNS: {{ canUseLNS }}
           <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendData.recipientAddress === ''">
             <div class="col-12" style="text-align: center;">
               <q-input
@@ -26,7 +27,7 @@
                 :dark="darkMode"
                 v-model="manualAddress"
                 :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
-                @input="resolveLnsName"
+                @update:model-value="resolveLnsName"
               >
                 <template v-slot:append>
                   <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
