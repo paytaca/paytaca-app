@@ -87,7 +87,7 @@
               placeholder="Input token address"
               v-model="customToken.address"
               :input-class="darkMode ? 'text-white' : 'text-black'"
-              @input="!matchedTokensListFromCustomAddress.length ? updateCustomTokenInfo() : null"
+              @update:model-value="!matchedTokensListFromCustomAddress.length ? updateCustomTokenInfo() : null"
             />
           </q-card-section>
           <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
