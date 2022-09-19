@@ -50,6 +50,10 @@
         :disable="loading"
         v-model="createHedgeForm.selectedAsset"
         :popup-content-class="darkMode ? '': 'text-black'"
+        reactive-rules
+        :rules="[
+          val => Boolean(!createHedgeForm.autoMatch || createHedgeForm.autoMatchPoolTarget !== 'anyhedge_LP' || val?.oraclePubkey ) || 'Required'
+        ]"
       />
     </div>
     <DurationField
@@ -213,11 +217,11 @@ const oracles = computed(() => {
 })
 
 const createHedgeForm = ref({
-  amount: 0.01,
+  amount: 0.0,
   duration: 4 * 3600,
   lowLiquidationMultiplierPctg: 0.8 * 100,
   highLiquidationMultiplierPctg: 10 * 100,
-  selectedAsset: oracles.value[oracles.value.length-1],
+  selectedAsset: oracles.value[0],
 
   autoMatch: true,
   autoMatchPoolTarget: 'anyhedge_LP',
