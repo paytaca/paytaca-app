@@ -92,8 +92,8 @@ const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.ma
 const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
 const funding = computed(() => {
   if (props.contract?.funding?.[0]?.fundingTransaction) return 'complete'
-  else if (props.contract?.hedgeFundingProposal && props.contract?.hedgeFundingProposal) return 'ready'
-  else if (props.contract?.hedgeFundingProposal || props.contract?.hedgeFundingProposal) return 'partial'
+  else if (props.contract?.hedgeFundingProposal && props.contract?.longFundingProposal) return 'ready'
+  else if (props.contract?.hedgeFundingProposal || props.contract?.longFundingProposal) return 'partial'
 
   return 'pending'
 })

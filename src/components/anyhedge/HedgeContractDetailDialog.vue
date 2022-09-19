@@ -60,7 +60,7 @@
               <div class="col-3 text-body1">Hedge</div>
               <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
               <template v-else>
-                <q-btn v-if="viewAsHedge" no-caps label="Submit funding proposal" color="brandblue" padding="none sm"/>
+                <q-btn v-if="viewAsHedge" no-caps label="Submit funding proposal" color="brandblue" padding="none sm" @click="fundHedgeProposal('hedge')"/>
                 <q-badge v-else color="grey-7">Not yet submitted</q-badge>
               </template>
               <q-space/>
@@ -77,7 +77,7 @@
                       <q-item-label>Verify Validity</q-item-label>
                     </q-item-section>
                   </q-item>
-                  <q-item clickable v-ripple v-close-popup disable>
+                  <q-item clickable v-ripple v-close-popup @click="fundHedgeProposal('hedge')">
                     <q-item-section>
                       <q-item-label>Resubmit</q-item-label>
                     </q-item-section>
@@ -90,7 +90,7 @@
               <div class="col-3 text-body1">Long</div>
               <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
               <template v-else>
-                <q-btn v-if="viewAsLong" no-caps label="Submit funding proposal" color="brandblue" padding="none sm"/>
+                <q-btn v-if="viewAsLong" no-caps label="Submit funding proposal" color="brandblue" padding="none sm" @click="fundHedgeProposal('long')"/>
                 <q-badge v-else color="grey-7">Not yet submitted</q-badge>
               </template>
               <q-space/>
@@ -107,7 +107,7 @@
                       <q-item-label>Verify Validity</q-item-label>
                     </q-item-section>
                   </q-item>
-                  <q-item clickable v-ripple v-close-popup disable>
+                  <q-item clickable v-ripple v-close-popup @click="fundHedgeProposal('long')">
                     <q-item-section>
                       <q-item-label>Resubmit</q-item-label>
                     </q-item-section>
@@ -237,7 +237,9 @@
   </q-dialog>
 </template>
 <script setup>
-import { formatUnits, formatTimestampToText, ellipsisText } from 'src/wallet/anyhedge/formatters';
+import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
+import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/formatters';
+import { calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
 import { computed, inject } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
@@ -324,5 +326,133 @@ function resolveColor(changePctg) {
   if (changePctg > 0) return 'green'
   else if (changePctg < 0) return 'red'
   return 'grey-7'
+}
+
+async function getAddressesFromStore() {
+  const response = { success: false, addressSet: { change: '', receiving: '', pubkey: '', index: 0 } }
+  try {
+    const bchWalletInfo = store.getters['global/getWallet']('bch')
+    if (bchWalletInfo) {
+      const { lastAddress, lastChangeAddress, lastAddressIndex } = bchWalletInfo
+      if (lastAddress && lastChangeAddress && lastAddressIndex >= 0 ) {
+        response.addressSet.receiving = lastAddress
+        response.addressSet.change = lastChangeAddress
+        response.addressSet.pubkey = await props.wallet.BCH.getPublicKey(`0/${lastAddressIndex}`)
+        response.addressSet.index = lastAddressIndex
+        response.success = true
+      }
+    }
+  } catch(error) {
+    console.error(error)
+  }
+
+  return response
+}
+
+async function getAddresses() {
+  const response = { success: false, error: null, addressSet: { change: '', receiving: '', pubkey: '', index: 0 } }
+  try {
+    const getAddressesFromStoreResponse = await getAddressesFromStore()
+    if (getAddressesFromStoreResponse.success) {
+      response.addressSet = getAddressesFromStoreResponse.addressSet
+      response.success = true
+      return response
+    }
+
+    const addressIndex = 0
+    let addressSet = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    if (!addressSet?.receiving) throw new Error('Expected receiving address')
+    response.addressSet = addressSet
+    response.addressSet.index = addressIndex
+    response.addressSet.pubkey = await props.wallet.BCH.getPublicKey(`0/${addressIndex}`)
+    response.success = true
+    return response
+  } catch(error) {
+    response.error = error
+    response.success = false
+    return response
+  }
+}
+
+
+async function fundHedgeProposal(position) {
+  console.log(props)
+  const dialog = $q.dialog({
+    title: 'Submitting funding proposal',
+    message: 'Retrieving addresses',
+    progress: true, // we enable default settings
+    persistent: true, // we want the user to not be able to close it
+    ok: false, // we want the user to not be able to close it
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+  })
+
+  const getAddressesResponse = await getAddresses()
+  if (!getAddressesResponse?.success) {
+    dialog.update({
+      persistent: false,
+      ok: true,
+      progress: false,
+      title: 'Error',
+      message: 'Encountered error in retrieving addresses',
+    })
+    return
+  }
+  const { addressSet } = getAddressesResponse
+
+  let fundingUtxo, signedFundingProposal
+  try {
+    dialog.update({ message: 'Creating funding proposal' })
+    const createFundingProposalResponse = await createFundingProposal(props.contract, position, props.wallet, addressSet, 0, 'hedge')
+    fundingUtxo = createFundingProposalResponse.fundingUtxo
+    signedFundingProposal = createFundingProposalResponse.signedFundingProposal
+  } catch(error) {
+    console.error(error)
+    dialog.update({
+      persistent: false,
+      ok: true,
+      progress: false,
+      title: 'Error',
+      message: 'Encountered error in creating funding utxo'
+    })
+  }
+
+  const data = {
+    hedge_address: props.contract.address,
+    position: position,
+    tx_hash: fundingUtxo?.txid,
+    tx_index: fundingUtxo?.vout,
+    tx_value: fundingUtxo?.amount,
+    pubkey: signedFundingProposal?.publicKey,
+    script_sig: signedFundingProposal?.signature,
+    input_tx_hashes: fundingUtxo?.dependencyTxids,
+  }
+
+  dialog.update({ message: 'Submitting funding proposal' })
+  anyhedgeBackend.post('anyhedge/hedge-positions/submit_funding_proposal/', data)
+    .then(response => {
+      dialog.update({
+        persistent: false,
+        ok: true,
+        progress: false,
+        title: 'Success',
+        message: 'Funding proposal submitted!',
+      })
+      parseHedgePositionData(response?.data)
+        .then(contractData => Object.assign(props.contract, contractData))
+      return Promise.resolve(response)
+    })
+    .catch(error => {
+      console.error(error)
+      dialog.update({
+        persistent: false,
+        ok: true,
+        progress: false,
+        title: 'Error',
+        message: 'Error in submitting funding proposal!',
+      })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, ok: true, progress: false })
+    })
 }
 </script>
