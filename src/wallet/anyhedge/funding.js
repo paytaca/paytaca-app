@@ -230,7 +230,7 @@ export async function searchUtxo(amount, walletHash) {
  * @param {*} liquidityProviderFeeInSatoshis 
  * @returns 
  */
-function calculateFundingAmounts(contractData, position, liquidityProviderFeeInSatoshis=0) {
+export function calculateFundingAmounts(contractData, position, liquidityProviderFeeInSatoshis=0) {
   const localContractMetadata = contractData.metadata
   const makerInputSats = position === 'long' ? localContractMetadata.hedgeInputSats : localContractMetadata.longInputSats;
   const takerInputSats = position === 'long' ? localContractMetadata.longInputSats : localContractMetadata.hedgeInputSats;
@@ -266,9 +266,10 @@ function calculateFundingAmounts(contractData, position, liquidityProviderFeeInS
  * @param {String} addressSet.change
  * @param {Number} addressSet.index
  * @param {Number} liquidityProviderFeeInSatoshis
+ * @param {'hedge' | 'long'} taker
  */
-export async function createFundingProposal(contractData, position, wallet, addressSet, liquidityProviderFeeInSatoshis=0) {
-  const { hedge, long } = calculateFundingAmounts(contractData, position, liquidityProviderFeeInSatoshis)
+export async function createFundingProposal(contractData, position, wallet, addressSet, liquidityProviderFeeInSatoshis=0, taker='hedge') {
+  const { hedge, long } = calculateFundingAmounts(contractData, taker, liquidityProviderFeeInSatoshis)
   let amount
   if (position === 'hedge') amount = hedge
   else if (position === 'long') amount = long

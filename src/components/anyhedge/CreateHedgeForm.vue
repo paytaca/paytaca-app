@@ -468,7 +468,7 @@ async function createHedgePosition() {
       contractData.fee.satoshis = funding.fee.satoshis
       contractData.fee.address = funding.fee.address
       const { fundingUtxo, signedFundingProposal } = await createFundingProposal(
-        contractData, "hedge", props.wallet, addressSet, funding.liquidityFee)
+        contractData, "hedge", props.wallet, addressSet, funding.liquidityFee, 'hedge')
       funding.fundingProposal.txHash = fundingUtxo.txid
       funding.fundingProposal.txIndex = fundingUtxo.vout
       funding.fundingProposal.txValue = fundingUtxo.amount
