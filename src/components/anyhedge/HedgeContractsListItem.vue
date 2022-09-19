@@ -27,6 +27,10 @@
         <div class="text-grey">{{ contract.metadata.hedgeInputSats / (10**8) }} BCH</div>
       </div>
       <div class="col">
+        <div v-if="settled" style="text-align:right">
+          {{ formatUnits(settlementMetadata.settlementPriceValue, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
+        </div>
+        <template v-else>
         <div style="text-align:right">
           {{ formatUnits(contract.parameters.lowLiquidationPrice, oracleInfo.assetDecimals) }}
           - 
@@ -35,6 +39,7 @@
         <div style="text-align:right">
           {{ formatUnits(contract.metadata.startPrice, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
         </div>
+        </template>
       </div>
     </div>
     <div v-if="settled">
@@ -83,7 +88,7 @@ const oracleInfo = computed(() => {
   return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
 })
 
-const matured = computed(() => Date.now() >= props.contract?.parameters?.maturityTimestamp)
+const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.maturityTimestamp)
 const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
 const funding = computed(() => {
   if (props.contract?.funding?.[0]?.fundingTransaction) return 'complete'
@@ -113,11 +118,13 @@ const fundingIconTooltip = computed(() => {
 
 const settlementMetadata = computed(() => {
   const data = {
+    settlementPriceValue: 0,
     hedge: { assetChangePctg: 0, bchChangePctg: 0 },
     long: { assetChangePctg: 0, bchChangePctg: 0 },
   }
   const settlement = props.contract?.settlement?.[0]
   if (settlement?.hedgeSatoshis >= 0 && settlement?.longSatoshis >= 0 && settlement?.settlementPrice) {
+    data.settlementPriceValue = settlement.settlementPrice
     const { hedgeSatoshis, longSatoshis } = settlement
     const hedgeUnits = (hedgeSatoshis * settlement.settlementPrice) / 10 ** 8
     const longUnits = (longSatoshis * settlement.settlementPrice) / 10 ** 8
@@ -127,10 +134,10 @@ const settlementMetadata = computed(() => {
     data.long.assetChangePctg = Math.round((longUnits / props.contract?.metadata?.longInputUnits) * 10000)
     data.long.bchChangePctg = Math.round((longSatoshis / props.contract?.metadata?.longInputSats) * 10000)
 
-    data.hedge.assetChangePctg = (10000 - data.hedge.assetChangePctg) / 100
-    data.hedge.bchChangePctg = (10000 - data.hedge.bchChangePctg) / 100
-    data.long.assetChangePctg = (10000 - data.long.assetChangePctg) / 100
-    data.long.bchChangePctg = (10000 - data.long.bchChangePctg) / 100
+    data.hedge.assetChangePctg = -(10000 - data.hedge.assetChangePctg) / 100
+    data.hedge.bchChangePctg = -(10000 - data.hedge.bchChangePctg) / 100
+    data.long.assetChangePctg = -(10000 - data.long.assetChangePctg) / 100
+    data.long.bchChangePctg = -(10000 - data.long.bchChangePctg) / 100
   }
   return data
 })

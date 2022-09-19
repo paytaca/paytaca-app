@@ -37,8 +37,8 @@
           </div>
         </div>
 
-        <div>
-          <div class="text-grey">Funding</div>
+        <div v-if="!settled">
+          <div class="text-grey text-subtitle1">Funding</div>
           <div v-if="contract.fundingTxHash" class="row items-center">
             <div @click="copyText(contract.fundingTxHash)" v-ripple style="position:relative;" class="text-body1">
               {{ ellipsisText(contract.fundingTxHash, {start: 5, end: 10}) }}
@@ -131,8 +131,8 @@
           </div>
         </div>
         
-        <div class="text-body1">
-          <div class="text-grey">Liquidation</div>
+        <div v-if="!settled" class="text-body1">
+          <div class="text-grey text-subtitle1">Liquidation</div>
           <div>
             Start: {{ formatUnits(contract.metadata.startPrice, oracleInfo.assetDecimals) }}
             <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
@@ -150,9 +150,9 @@
         </div>
 
         <div>
-          <div class="text-grey">Payout Addresses</div>
+          <div class="text-grey text-subtitle1">Payout Addresses</div>
           <div class="row q-gutter-x-xs no-wrap">
-            <div @click="copyText(contract.metadata.hedgeAddress)" v-ripple style="position:relative;">
+            <div @click="copyText(contract.metadata.hedgeAddress)" v-ripple style="position:relative;" class="text-body2">
               Hedge: {{ ellipsisText(contract.metadata.hedgeAddress) }}
             </div>
             <q-btn
@@ -165,7 +165,7 @@
             />
           </div>
           <div class="row q-gutter-x-xs no-wrap">
-            <div @click="copyText(contract.metadata.longAddress)" v-ripple style="position:relative;">
+            <div @click="copyText(contract.metadata.longAddress)" v-ripple style="position:relative;" class="text-body2">
               Long: {{ ellipsisText(contract.metadata.longAddress) }}
             </div>
             <q-btn
@@ -179,11 +179,57 @@
           </div>
         </div>
 
-        <div>
-          <div class="text-grey">Duration</div>
+        <div v-if="!settled">
+          <div class="text-grey text-subtitle1">Duration</div>
           <div class="row q-gutter-x-sm">
             <div class="q-space">{{ formatTimestampToText(contract.parameters.startTimestamp * 1000) }}</div>
             <div>{{ formatTimestampToText(contract.parameters.maturityTimestamp * 1000) }}</div>
+          </div>
+        </div>
+
+        <div v-if="settled">
+          <div class="text-grey text-subtitle1">Settlement</div>
+
+          <div v-if="settlementMetadata.txid" class="row items-center now-wrap">
+            <div @click="copyText(settlementMetadata.txid)" v-ripple style="position:relative;" class="text-body2">
+              Transaction: {{ ellipsisText(settlementMetadata.txid, {start: 5, end: 10}) }}
+            </div>
+            <q-btn
+              flat
+              icon="launch"
+              size="xs" padding="xs"
+              class="q-ml-sm"
+              :href="'https://blockchair.com/bitcoin-cash/transaction/' + settlementMetadata.txid"
+              target="_blank"
+            />
+          </div>
+          <div class="text-body2">
+            Settlement Price: {{ formatUnits(settlementMetadata.priceValue, oracleInfo.assetDecimals) }}
+            <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+          </div>
+          <div class="row">
+            <div class="col">
+              <div class="text-grey-7">Hedge</div>
+              <div :class="`text-${resolveColor(settlementMetadata.hedge.assetChangePctg)}` + ' text-weight-medium'">
+                {{ formatUnits(contract?.metadata?.nominalUnits, oracleInfo.assetDecimals) }} -
+                {{ formatUnits(settlementMetadata.hedge.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
+              </div>
+              <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
+                {{ contract?.metadata?.hedgeInputSats / 10 ** 8 }} -
+                {{ settlementMetadata.hedge.satoshis / 10 ** 8 }} BCH
+              </div>
+            </div>
+            <div class="col">
+              <div class="text-grey-7">Long</div>
+              <div :class="`text-${resolveColor(settlementMetadata.long.assetChangePctg)}` + ' text-weight-medium'">
+                {{ formatUnits(contract?.metadata?.longInputUnits, oracleInfo.assetDecimals) }} -
+                {{ formatUnits(settlementMetadata.long.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
+              </div>
+              <div :class="`text-${resolveColor(settlementMetadata.long.bchChangePctg)}` + ' text-weight-medium'">
+                {{ contract?.metadata?.longInputSats / 10 ** 8 }} -
+                {{ settlementMetadata.long.satoshis / 10 ** 8 }} BCH
+              </div>
+            </div>
           </div>
         </div>
       </q-card-section>
@@ -237,4 +283,46 @@ const oracleInfo = computed(() => {
   const oracles = store.getters['anyhedge/oracles']
   return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
 })
+
+const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
+const settlementMetadata = computed(() => {
+  const data = {
+    priceValue: 0,
+    txid: '',
+    hedge: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 },
+    long: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 }
+  }
+
+  const settlement = props.contract?.settlement?.[0]
+  if (settlement?.hedgeSatoshis >= 0 && settlement?.longSatoshis >= 0 && settlement?.settlementPrice) {
+    data.txid = settlement?.spendingTransaction || ''
+    const { hedgeSatoshis, longSatoshis } = settlement
+    const hedgeUnits = (hedgeSatoshis * settlement.settlementPrice) / 10 ** 8
+    const longUnits = (longSatoshis * settlement.settlementPrice) / 10 ** 8
+
+    data.hedge.nominalUnits = hedgeUnits
+    data.hedge.satoshis = hedgeSatoshis
+    data.long.nominalUnits = longUnits
+    data.long.satoshis = longSatoshis
+
+    data.hedge.assetChangePctg = Math.round((hedgeUnits / props.contract?.metadata?.nominalUnits) * 10000)
+    data.hedge.bchChangePctg = Math.round((hedgeSatoshis / props.contract?.metadata?.hedgeInputSats) * 10000)
+    data.long.assetChangePctg = Math.round((longUnits / props.contract?.metadata?.longInputUnits) * 10000)
+    data.long.bchChangePctg = Math.round((longSatoshis / props.contract?.metadata?.longInputSats) * 10000)
+
+    data.hedge.assetChangePctg = -(10000 - data.hedge.assetChangePctg) / 100
+    data.hedge.bchChangePctg = -(10000 - data.hedge.bchChangePctg) / 100
+    data.long.assetChangePctg = -(10000 - data.long.assetChangePctg) / 100
+    data.long.bchChangePctg = -(10000 - data.long.bchChangePctg) / 100
+
+    data.priceValue = settlement?.settlementPrice
+  }
+  return data
+})
+
+function resolveColor(changePctg) {
+  if (changePctg > 0) return 'green'
+  else if (changePctg < 0) return 'red'
+  return 'grey-7'
+}
 </script>
