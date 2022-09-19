@@ -20,11 +20,13 @@ const props = defineProps({
   viewAs: String,
   wallet: Object,
 })
-
 function displayContractInDialog(contractData) {
   $q.dialog({
     component: HedgeContractDetailDialog,
     componentProps: { contract: contractData, viewAs: props.viewAs, wallet: props.wallet }
   })
 }
+defineExpose({
+  displayContractInDialog,
+})
 </script>
