@@ -34,7 +34,32 @@
             <div class="row items-center">
               <div class="q-space">
                 <q-skeleton v-if="fetchingContracts" class="q-mr-sm"/>
-                <span v-else>$ {{ totalHedgeValue }}</span>
+                <template v-else>
+                  <div v-if="hedgeSummaries.length === 0" class="text-grey-7 text-body1">
+                    No ongoing contract
+                  </div>
+                  <div v-for="(summary, index) in hedgeSummaries" :key="index" class="row items-center q-gutter-x-xs q-ml-xs">
+                    {{ formatUnits(summary.totalHedgeUnits, summary?.oracle?.assetDecimals || 0) }}
+                    <template v-if="summary?.oracle?.assetCurrency">
+                      {{ summary?.oracle?.assetCurrency }}
+                    </template>
+                    <template v-else>
+                      Asset {{ ellipsisText(summary.oraclePubkey, {start: 5, end: 0}) }}
+                      <q-icon
+                        :color="darkMode ? 'grey-7' : 'black'"
+                        size="sm"
+                        name="help"
+                      >
+                        <q-popup-proxy :breakpoint="0">
+                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption" style="word-break:break-all;">
+                            <div class="text-subtitle1">Unknown asset</div>
+                            Oracle pubkey: {{ summary.oraclePubkey }}
+                          </div>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </div>
+                </template>
               </div>
               <q-btn
                 v-if="!showCreateHedgeForm"
@@ -61,11 +86,11 @@
       <template v-else-if="selectedAccountType === 'long'">
         <q-card-section class="text-h5">
           <div>
-            <div class="text-caption text-grey">Total Hedge Position Value</div>
+            <div class="text-caption text-grey">Total Long Positions</div>
             <div class="row items-center">
               <div class="q-space">
                 <q-skeleton v-if="fetchingLongPositions" class="q-mr-sm"/>
-                <span v-else>$ {{ totalLongValue }}</span>
+                <span v-else>{{ totalLongSats / 10 ** 8 }} BCH</span>
               </div>
             </div>
           </div>
@@ -178,7 +203,7 @@
 <script setup>
 import { getMnemonic, Wallet } from '../../wallet'
 import { anyhedgeBackend, connectWebsocketUpdates, generalProtocolLPBackend } from '../../wallet/anyhedge/backend'
-import { formatCentsToUSD, parseHedgePositionData } from '../../wallet/anyhedge/formatters'
+import { formatUnits, ellipsisText, formatCentsToUSD, parseHedgePositionData } from '../../wallet/anyhedge/formatters'
 import { ref, computed, markRaw, onMounted, inject, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import HeaderNav from '../../components/header-nav'
@@ -200,6 +225,8 @@ onMounted(async () => {
   const mnemonic = await getMnemonic()
   wallet.value = markRaw(new Wallet(mnemonic))
 
+  fetchSummary('hedge')
+  fetchSummary('long')
   fetchHedgeOffers()
   fetchHedgeContracts()
   fetchLongAccounts()
@@ -220,11 +247,17 @@ const websocketMessageHandler = (message) => {
   if (data?.resource === 'hedge_position_offer') {
     if (data?.action === 'settlement') {
       if (data?.meta?.position === 'hedge') {
+        fetchSummary('hedge')
         fetchHedgeOffers()
         fetchHedgeContracts()
       } else if (data?.meta?.position === 'long') {
+        fetchSummary('long')
         fetchLongPositions()
       }
+    } else if (data?.action === 'funding_proposal') {
+      fetchSummary('hedge')
+      fetchSummary('long')
+      refetchContract(data?.meta?.address)
     }
   }
 }
@@ -263,6 +296,53 @@ onUnmounted(() => {
   console.log('Closing websocket')
   socketReconnection.value.enable = false
   socket.value?.close?.()
+})
+
+
+// summary
+function parseAssetSummaries(assetSummaries) {
+  const data = []
+  if (Array.isArray(assetSummaries)) {
+    const oracles = $store.getters['anyhedge/oracles']
+    const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
+    assetSummaries.forEach(summary => {
+      const oraclePubkey = summary?.oracle_pubkey || ''
+      const parsedSummary = {
+        oraclePubkey: oraclePubkey, 
+        oracle: oracles?.[oraclePubkey] || defaultOracleInfo,
+        totalHedgeUnits: (summary?.total_hedge_unit_sats || 0)/ 10 ** 8,
+        totalLongSats: summary?.total_long_sats || 0,
+      }
+
+      data.push(parsedSummary)
+    })
+  }
+  return data
+
+}
+const hedgeSummaryData = ref(null)
+const longSummaryData = ref(null)
+function fetchSummary(position='hedge') {
+  const walletHash = wallet.value.BCH.getWalletHash()
+  const params = {
+    [position === 'hedge' ? 'hedge_wallet_hash' : 'long_wallet_hash']: walletHash,
+    settled: false, funding: 'complete',
+  }
+  const summaryRef = position === 'hedge' ? hedgeSummaryData : longSummaryData
+  anyhedgeBackend.get('anyhedge/hedge-positions/summary/', { params })
+    .then(response => {
+      summaryRef.value = response?.data
+    })
+}
+const hedgeSummaries = computed(() => parseAssetSummaries(hedgeSummaryData.value))
+const longSummaries = computed(() => parseAssetSummaries(longSummaryData.value))
+const totalLongSats = computed(() => {
+  let subtotal = 0
+  if (Array.isArray(longSummaries.value)) {
+    longSummaries.value.forEach(summary => subtotal += (summary?.totalLongSats || 0))
+  }
+
+  return subtotal
 })
 
 // hedge offers
@@ -427,6 +507,27 @@ watch(showCreateHedgeForm, () => {
       })
   }
 })
+
+
+function refetchContract(contractAddress) {
+  if (!contractAddress) return
+  anyhedgeBackend.get(`/anyhedge/hedge-position/${contractAddress}`)
+    .then(async (response) => {
+      if (response?.data?.address) {
+        const contractData = await parseHedgePositionData(response?.data)
+        return Promise.resolve(contractData)
+      }
+      return Promise.reject(response)
+    })
+    .then(contractData => {
+      const index = contracts.value.findIndex(contract => contract?.address === contractData.address)
+      if (index >= 0) contracts.value[index] = contractData
+    })
+    .then(contractData => {
+      const index = longPositions.value.findIndex(contract => contract?.address === contractData.address)
+      if (index >= 0) longPositions.value[index] = contractData
+    })
+}
 
 
 function fetchLiquidityServiceInfo() {
