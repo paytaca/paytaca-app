@@ -160,7 +160,7 @@
           <q-card-section v-if="fetchingContracts" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeContractsList v-else ref="hedgesListRef" :contracts="contracts" view-as="hedge"/>
+          <HedgeContractsList v-else ref="hedgesListRef" :contracts="contracts" view-as="hedge" :wallet="wallet"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -181,7 +181,7 @@
           <q-card-section v-if="fetchingLongPositions" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeContractsList v-else :contracts="longPositions" view-as="long"/>
+          <HedgeContractsList v-else :contracts="longPositions" view-as="long" :wallet="wallet"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -250,6 +250,7 @@ const socketReconnection = ref({
 })
 const websocketMessageHandler = (message) => {
   const data = JSON.parse(message.data)
+  console.log(data)
   if (data?.resource === 'long_account') fetchLongAccounts()
   if (data?.resource === 'hedge_position_offer') {
     if (data?.action === 'settlement') {
@@ -261,7 +262,10 @@ const websocketMessageHandler = (message) => {
         fetchSummary('long')
         fetchLongPositions()
       }
-    } else if (data?.action === 'funding_proposal') {
+    }
+  }
+  if (data?.resource === 'hedge_position') {
+    if (data?.action === 'funding_proposal') {
       fetchSummary('hedge')
       fetchSummary('long')
       refetchContract(data?.meta?.address)
@@ -528,7 +532,7 @@ watch(showCreateHedgeForm, () => {
 
 function refetchContract(contractAddress) {
   if (!contractAddress) return
-  anyhedgeBackend.get(`/anyhedge/hedge-position/${contractAddress}`)
+  anyhedgeBackend.get(`/anyhedge/hedge-positions/${contractAddress}`)
     .then(async (response) => {
       if (response?.data?.address) {
         const contractData = await parseHedgePositionData(response?.data)
@@ -539,10 +543,12 @@ function refetchContract(contractAddress) {
     .then(contractData => {
       const index = contracts.value.findIndex(contract => contract?.address === contractData.address)
       if (index >= 0) contracts.value[index] = contractData
+      return contractData
     })
     .then(contractData => {
       const index = longPositions.value.findIndex(contract => contract?.address === contractData.address)
       if (index >= 0) longPositions.value[index] = contractData
+      return contractData
     })
 }
 
