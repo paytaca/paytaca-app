@@ -156,11 +156,11 @@
           </div>
         </q-expansion-item>
         <q-separator/>
-        <q-expansion-item label="Hedge Positions">
+        <q-expansion-item ref="hedgesDrawerRef" label="Hedge Positions">
           <q-card-section v-if="fetchingContracts" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeContractsList v-else :contracts="contracts" view-as="hedge"/>
+          <HedgeContractsList v-else ref="hedgesListRef" :contracts="contracts" view-as="hedge"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -203,9 +203,10 @@
 <script setup>
 import { getMnemonic, Wallet } from '../../wallet'
 import { anyhedgeBackend, connectWebsocketUpdates, generalProtocolLPBackend } from '../../wallet/anyhedge/backend'
-import { formatUnits, ellipsisText, formatCentsToUSD, parseHedgePositionData } from '../../wallet/anyhedge/formatters'
+import { formatUnits, ellipsisText, parseHedgePositionData } from '../../wallet/anyhedge/formatters'
 import { ref, computed, markRaw, onMounted, inject, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
+import { useQuasar, scroll } from 'quasar'
 import HeaderNav from '../../components/header-nav'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import AddLiquidityForm from 'src/components/anyhedge/AddLiquidityForm.vue'
@@ -213,12 +214,18 @@ import CreateHedgeForm from 'src/components/anyhedge/CreateHedgeForm.vue'
 import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 
+const { getScrollTarget, setVerticalScrollPosition } = scroll
+
 // misc
 const DEFAULT_PAGE_SIZE = 10
 const $copyText = inject('$copyText')
+const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const selectedAccountType = ref('hedge')
+
+const hedgesDrawerRef = ref()
+const hedgesListRef = ref()
 
 const wallet = ref(null)
 onMounted(async () => {
@@ -353,7 +360,7 @@ const fetchingHedgeOffers = ref(false)
 function fetchHedgeOffers(pagination) {
   const walletHash = wallet.value.BCH.getWalletHash()
   fetchingHedgeOffers.value = true
-  anyhedgeBackend.get(
+  return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
     {
       params: {
@@ -370,6 +377,7 @@ function fetchHedgeOffers(pagination) {
         contractsPaginationState.value.limit = response.data.limit
         contractsPaginationState.value.offset = response.data.offset
       }
+      return Promise.resolve(response)
     })
     .finally(() => {
       fetchingHedgeOffers.value = false
@@ -383,7 +391,7 @@ const fetchingContracts = ref(false)
 function fetchHedgeContracts(pagination) {
   fetchingContracts.value = true
   const walletHash = wallet.value.BCH.getWalletHash()
-  anyhedgeBackend.get(
+  return anyhedgeBackend.get(
     '/anyhedge/hedge-positions/',
     { 
       params: {
@@ -402,21 +410,35 @@ function fetchHedgeContracts(pagination) {
           contractsPaginationState.value.limit = response.data.limit
           contractsPaginationState.value.offset = response.data.offset
         }
+        return Promise.resolve(response)
       }
+      return Promise.reject({ response })
     })
     .finally(() => {
       fetchingContracts.value = false
     })
 }
-const totalHedgeValue = computed(() => {
-  if (!Array.isArray(contracts.value)) return 0
-  const total = contracts.value.reduce((subtotal, contract) => subtotal + (contract?.metadata?.nominalUnits || 0), 0)
-  return formatCentsToUSD(total)
-})
 
 function onHedgeFormCreate(data) {
-  if (data.hedgePositionOffer) fetchHedgeOffers()
-  if (data.hedgePosition) fetchHedgeContracts()
+  if (data.hedgePositionOffer?.id) fetchHedgeOffers()
+  if (data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address) {
+    const contractAddress = data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address
+    const fetchHedgeContractsResponse = fetchHedgeContracts()
+    $q.dialog({
+      title: 'Hedge Position',
+      message: 'Hedge position created.<br/>Address: ' + contractAddress,
+      html: true,
+      class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+      style: 'word-break:break-all;',
+    }).onDismiss(() => {
+      fetchHedgeContractsResponse.then(() => {
+        const contract = contracts.value.find(contract => contract?.address == contractAddress)
+        showCreateHedgeForm.value = false
+        hedgesDrawerRef.value?.show?.()
+        hedgesListRef?.value?.displayContractInDialog?.(contract)
+      })
+    })
+  }
 }
 
 // long positions
@@ -446,11 +468,6 @@ function fetchLongAccounts() {
 const longPositions = ref([])
 const longPositionsPaginationState = ref({ count: 0, limit: 1, offset: 0 })
 const fetchingLongPositions = ref(false)
-const totalLongValue = computed(() => {
-  if (!Array.isArray(contracts.value)) return 0
-  const total = longPositions.value.reduce((subtotal, contract) => subtotal + (contract?.metadata?.nominalUnits || 0), 0)
-  return formatCentsToUSD(total)
-})
 function fetchLongPositions(pagination) {
   fetchingLongPositions.value = true
   const walletHash = wallet.value.BCH.getWalletHash()
