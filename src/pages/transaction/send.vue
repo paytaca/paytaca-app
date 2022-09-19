@@ -18,7 +18,6 @@
             <q-icon name="error" left/>
             {{ scanner.error }}
           </div>
-          Can use LNS: {{ canUseLNS }}
           <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendData.recipientAddress === ''">
             <div class="col-12" style="text-align: center;">
               <q-input
