@@ -29,9 +29,10 @@
             clearable
             :rules="[val => !!val || 'Field is required']"
             type="number"
-            @input="this.amount"
-            v-model="amount"
+            v-model="amountBCH"
+            @input="this.amountBCH"
           >
+          <!-- @input="amountBCH" -->
           </q-input>
           <div class="q-pa-sm">
           </div>
@@ -48,6 +49,8 @@
             maxlength="3"
             clearable
             :rules="[val => !!val || 'Field is required']"
+            v-model="instances"
+            @input="this.instances"
           >
           </q-input>
           <div class="q-pa-sm">
@@ -76,7 +79,7 @@
             clearable
           >
           </q-input>
-            <div class="q-pa-sm q-pt-lg flex flex-center" >
+            <div class="q-pa-sm q-pt-lg flex flex-center">
               <q-btn
                 no-caps
                 rounded
@@ -101,18 +104,37 @@
               </q-btn>
               </div> -->
         </div>
+        <div>
+          {{ this.$store.state.gift.giftingAmount }}
+        </div>
       <div>
           <div class="flex flex-center" >
             <div class="flex flex-center col-qr-code">
                 <canvas id="canvas" class="flex flex-center"></canvas>
+                <!-- {{ this.$store.state.gift.gAmount }} -->
             </div>
             <div class="flex flex-center myStyle">
               <!-- <h5>{{ $store.state.gift.cashAddress }}</h5> -->
             </div>
           </div>
-          <div class="flex flex-center" @click="copyToClipboard(this.$store.state.gift.cashAddress)">
+          <!-- <div class="flex flex-center" @click="copyToClipboard(this.$store.state.gift.cashAddress)">
+            <div class="flex flex-center" v-if="$store.state.gift.cashAddress !== 0">
           <p class="fontStyle">{{ $store.state.gift.cashAddress }}</p>
-          </div>
+          <p class="fontStyle">Click to Copy Address</p>
+            </div>
+            <div class="flex flex-center" v-else>
+              <p class="fontStyle">{{ $store.state.gift.cashAddress }}</p>
+
+            </div> -->
+            <ul>
+              <li v-for="instance in this.$store.state.gift.apKeyStore" :key="instance">
+                {{ instance }}
+              </li>
+              <li v-for="instance in this.$store.state.gift.acAddressStore" :key="instance">
+                    {{ instance }}
+              </li>
+            </ul>
+        <!-- </div> -->
       </div>
         </div>
       </div>
@@ -137,16 +159,26 @@ export default {
     return {
       wallet: '',
       txid: '',
-      amount: ''
+      amountBCH: '',
+      instances: 0,
+      shareDict: {
+        privateAddress: [],
+        shares: []
+      }
     }
+  },
+  computed: {
   },
 
   methods: {
+    insertToDict () {
+      this.shareDict.set()
+    },
     recoverSecret () {
       this.$store.dispatch('gift/recoverSecret')
     },
     pkToCashAdd () {
-      this.$store.dispatch('gift/changeAmount')
+    /*       // this.$store.dispatch('gift/changeAmount')
       this.$store.dispatch('gift/generatePrivateKey')
       this.$store.dispatch('gift/convertToCashAddress')
       this.$store.dispatch('gift/splitSecret')
@@ -155,7 +187,17 @@ export default {
       const cAdd = this.$store.state.gift.cashAddress
       this.handleSubmit(cAdd)
       this.qrCode()
-      // console.log(this.updateAmount())
+      // console.log(this.updateAmount()) */
+      for (let i = 0; i < this.instances; i++) {
+        // this.$store.dispatch('gift/aPrivateKey')
+        this.$store.dispatch('gift/aCashAddress')
+        this.$store.dispatch('gift/storeShare')
+        const cAdd = this.$store.state.gift.acAddress[i]
+        this.handleSubmit(cAdd)
+      }
+      this.$store.dispatch('gift/changeBchAmount', this.amountBCH)
+      this.$store.dispatch('gift/spliceKey')
+      this.$store.dispatch('gift/spliceAddress')
     },
     qrCode () {
       const key = this.$store.state.gift.share[0]
@@ -169,7 +211,7 @@ export default {
     async handleSubmit (cAdd) {
       const vm = this
       const address = cAdd
-      vm.wallet.BCH.sendBch(this.amount, address).then(function (result, err) {
+      vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
         if (result.success) {
           vm.txid = result.txid
         } else {
@@ -177,6 +219,7 @@ export default {
         }
       })
     },
+    // function to copy text via click
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
@@ -186,7 +229,6 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     }
-
   },
   // wallet call function when mounted
   mounted () {
