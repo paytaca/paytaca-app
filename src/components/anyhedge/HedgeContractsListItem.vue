@@ -65,6 +65,7 @@
       </div>
     </div>
     <div v-else>
+      <span v-show="false">{{ updateTickCtr }}</span>
       <q-icon name="mdi-timer-sand"/>
       {{ formatDate(contract.parameters.startTimestamp * 1000) }} ->
       {{ formatDate(contract.parameters.maturityTimestamp * 1000) }}
@@ -75,12 +76,38 @@
 <script setup>
 import { useQuasar } from 'quasar';
 import { formatUnits, formatDate, ellipsisText } from 'src/wallet/anyhedge/formatters';
-import { computed, inject } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useStore } from 'vuex';
 
 const props = defineProps({ contract: Object })
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const durationUpdateTimeout = ref(null)
+const updateTickCtr = ref(0)
+function updateTick() {
+  const maturityTimestamp = props?.contract?.parameters?.maturityTimestamp
+  const maturityDelta = Math.abs((Date.now() / 1000) - maturityTimestamp)
+  let nextTickInMs = -1
+  if (maturityTimestamp && maturityDelta) {
+    if (maturityDelta > 3600) {
+      nextTickInMs = (maturityDelta % 3600) * 1000
+    } else if (maturityDelta <= 3600) {
+      nextTickInMs = (maturityDelta % 60) * 1000
+    }
+  }
+
+  if (nextTickInMs >= 0) {
+    clearTimeout(durationUpdateTimeout.value)
+    durationUpdateTimeout.value = setTimeout(() => {
+      updateTickCtr.value++
+      updateTick()
+    }, nextTickInMs)
+  }
+}
+watch(() => props?.contract?.parameters?.maturityTimestamp, () => updateTick())
+onMounted(() => updateTick())
+onUnmounted(() => clearTimeout(durationUpdateTimeout.value))
 
 const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
 const oracleInfo = computed(() => {
