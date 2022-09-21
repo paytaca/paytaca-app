@@ -19,7 +19,7 @@ export function generatePrivateKey ({ commit }) {
   // console.log('generatePrivateKey (action)')
   const v = ECPair.makeRandom()
   const vWif = v.toWIF()
-  // console.log(vWif)
+  console.log(vWif)
   commit('generatePrivateKey', vWif)
 }
 export function convertToCashAddress ({ commit }) {
@@ -28,6 +28,7 @@ export function convertToCashAddress ({ commit }) {
   const bchjs = new BCHJS()
   const pk = this.state.gift.privateKey
   const pair = bchjs.ECPair.fromWIF(pk)
+  // console.log(bchjs.ECPair.toCashAddress(pair))
   commit('convertToCashAddress', bchjs.ECPair.toCashAddress(pair))
 }
 export function splitSecret ({ commit }) {
@@ -71,4 +72,42 @@ export function handleSubmit ({ commit }) {
     }
     commit('handleSubmit', vm.state.gift.submit)
   })
+}
+// testing 9 19 2022
+
+export function aCashAddress ({ commit }) {
+  // #generate private key
+  const v = ECPair.makeRandom()
+  const vWif = v.toWIF()
+  console.log(vWif)
+  commit('aPrivateKey', vWif)
+  commit('apKeyStore', vWif)
+  // #generate cashAddress from private key
+  const BCHJS = require('@psf/bch-js')
+  const bchjs = new BCHJS()
+  const pk = vWif
+  const pair = bchjs.ECPair.fromWIF(pk)
+  const str = bchjs.ECPair.toCashAddress(pair)
+  console.log(str)
+  commit('aCashAddress', str)
+  commit('acAddressStore', str)
+  // #split private key into 3 shares
+  const sss = require('shamirs-secret-sharing')
+  const secret = Buffer.from(pk)
+  const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
+  this.shares = stateShare.map((share) => { return toHex(share) })
+  // this.handleSubmit(this.cashAdd)
+  // // this.qrCode()
+  commit('splitSecret', this.shares)
+  console.log(this.shares)
+}
+export function spliceAddress ({ commit }) {
+  // const v = 0
+  commit('spliceAddress')
+}
+export function spliceKey ({ commit }) {
+  commit('spliceKey')
+}
+export function changeBchAmount ({ commit }, amount) {
+  commit('NEW_AMOUNT', amount)
 }

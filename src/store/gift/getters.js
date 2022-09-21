@@ -13,3 +13,6 @@ export function getAmount (state) {
 export function share (state) {
   return state.share
 }
+export function getByIndex (state) {
+  return (index) => state.gift.apKey.find(apKey => apKey.index === index)
+}
