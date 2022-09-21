@@ -118,7 +118,7 @@
           </div>
 
           <div
-            v-if="contract.hedgeFundingProposal && contract.longFundingProposal && (viewAsHedge || viewAsLong)"
+            v-if="contract.hedgeFundingProposal && contract.longFundingProposal && (viewAsHedge || viewAsLong) && !contract?.fundingTxHash"
             class="q-mt-sm"
           >
             <q-btn
@@ -127,6 +127,7 @@
               label="Complete Funding Proposal"
               color="brandblue"
               class="full-width"
+              @click="completeFunding()"
             />
           </div>
         </div>
@@ -376,7 +377,6 @@ async function getAddresses() {
 
 
 async function fundHedgeProposal(position) {
-  console.log(props)
   const dialog = $q.dialog({
     title: 'Submitting funding proposal',
     message: 'Retrieving addresses',
@@ -449,6 +449,56 @@ async function fundHedgeProposal(position) {
         progress: false,
         title: 'Error',
         message: 'Error in submitting funding proposal!',
+      })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, ok: true, progress: false })
+    })
+}
+
+async function completeFunding() {
+  if (!props.contract?.address) return
+
+  const dialog = $q.dialog({
+    title: 'Completing contract funding',
+    message: '',
+    progress: true, // we enable default settings
+    persistent: true, // we want the user to not be able to close it
+    ok: false, // we want the user to not be able to close it
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+  })
+  anyhedgeBackend.post(`anyhedge/hedge-positions/${props.contract.address}/complete_funding/`)
+    .then(response => {
+      if (response?.data?.address) {
+        dialog.update({
+          persistent: false,
+          ok: true,
+          progress: false,
+          title: 'Success',
+          message: 'Funding transaction submitted!',
+        })
+        parseHedgePositionData(response?.data)
+          .then(contractData => Object.assign(props.contract, contractData))
+        return Promise.resolve(response)
+      }
+      return Promise.reject(response)
+    })
+    .catch(error => {
+      console.error(error)
+      message = 'Error in submitting funding proposal'
+      if (error?.message) message = error.message
+      if (error?.response?.data) {
+        if (typeof error.response.data === 'string') message = error.response.data
+        else if (Array.isArray(error.response.data) && error.response.data) message = error.response.data.join('<br/>')
+      }
+
+      dialog.update({
+        persistent: false,
+        ok: true,
+        progress: false,
+        html: true,
+        title: 'Error in completing funding proposal',
+        message: message,
       })
     })
     .finally(() => {
