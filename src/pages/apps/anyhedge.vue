@@ -269,6 +269,10 @@ const websocketMessageHandler = (message) => {
       fetchSummary('hedge')
       fetchSummary('long')
       refetchContract(data?.meta?.address)
+    } else if (data?.action === 'settlement') {
+      fetchSummary('hedge')
+      fetchSummary('long')
+      refetchContract(data?.meta?.address)
     }
   }
 }
