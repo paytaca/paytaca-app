@@ -51,6 +51,13 @@ export function ellipsisText (value, config) {
  * @property {Number} settlement_price_sequence
  * @property {Number} settlement_message_sequence
  * @property {Number} settlement_message_timestamp
+ * 
+ * @typedef {Object} FundingAPI
+ * @property {String} tx_hash
+ * @property {Number} funding_satoshis
+ * @property {Number} funding_output
+ * @property {Number|undefined|null} fee_satoshis
+ * @property {Number|undefined|null} fee_output
 */
 
 /**
@@ -70,10 +77,12 @@ export function ellipsisText (value, config) {
  * @param {Number} data.low_liquidation_multiplier
  * @param {Number} data.high_liquidation_multiplier
  * @param {String|null} data.funding_tx_hash
+ * @param {Boolean|null} data.funding_tx_hash_validated
  * @param {{ address: String, satoshis: Number }} data.fee
  * @param {FundingProposalAPI|null} data.hedge_funding_proposal
  * @param {FundingProposalAPI|null} data.long_funding_proposal
  * @param {SettlementAPI|null} data.settlement
+ * @param {FundingAPI|null} data.funding
  * 
  * @returns 
  */
@@ -140,6 +149,16 @@ export async function parseHedgePositionData(data) {
       address: data.fee.address,
       satoshis: data.fee.satoshis,
     }
+  }
+
+  if (data?.funding?.tx_hash && data?.funding?.funding_satoshis) {
+    contractData.funding = [{
+      fundingTransaction: data.funding.tx_hash,
+      fundingSatoshis: data.funding.funding_satoshis,
+      fundingOutput: data.funding.funding_output,
+      feeSatoshis: data.funding.fee_satoshis || undefined,
+      feeOutput: data.funding.fee_output || undefined,
+    }]
   }
 
   if (data?.settlement) {
