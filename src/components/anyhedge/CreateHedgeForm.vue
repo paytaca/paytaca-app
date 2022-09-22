@@ -116,7 +116,7 @@
       <q-toggle
         :dark="darkMode"
         label="Match to liquidity pool"
-        :disable="loading"
+        disable
         v-model="createHedgeForm.autoMatch"
       />
       <q-icon
@@ -142,7 +142,7 @@
           v-model="createHedgeForm.autoMatchPoolTarget"
           :options="[
             {label: 'General Protocol LP', value: 'anyhedge_LP'},
-            {label: 'Paytaca (P2P)', value: 'watchtower_P2P', disable: true },
+            {label: 'Paytaca (P2P)', value: 'watchtower_P2P' },
           ]"
         />
       </div>
