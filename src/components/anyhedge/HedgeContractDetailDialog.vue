@@ -72,7 +72,7 @@
                     'text-black': !darkMode,
                   }"
                 >
-                  <q-item clickable v-ripple v-close-popup disable>
+                  <q-item clickable v-ripple v-close-popup @click="verifyFundingProposalUtxo('hedge')">
                     <q-item-section>
                       <q-item-label>Verify Validity</q-item-label>
                     </q-item-section>
@@ -102,7 +102,7 @@
                     'text-black': !darkMode,
                   }"
                 >
-                  <q-item clickable v-ripple v-close-popup disable>
+                  <q-item clickable v-ripple v-close-popup @click="verifyFundingProposalUtxo('long')">
                     <q-item-section>
                       <q-item-label>Verify Validity</q-item-label>
                     </q-item-section>
@@ -244,6 +244,7 @@ import { calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhe
 import { computed, inject } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
 
 // dialog plugins requirement
 defineEmits([
@@ -443,12 +444,14 @@ async function fundHedgeProposal(position) {
     })
     .catch(error => {
       console.error(error)
+      let errorMessage = 'Error in submitting funding proposal'
+      if (error?.response?.data?.hedge_address?.[0]) errorMessage = error?.response?.data?.hedge_address?.[0]
       dialog.update({
         persistent: false,
         ok: true,
         progress: false,
         title: 'Error',
-        message: 'Error in submitting funding proposal!',
+        message: errorMessage,
       })
     })
     .finally(() => {
@@ -485,7 +488,7 @@ async function completeFunding() {
     })
     .catch(error => {
       console.error(error)
-      message = 'Error in submitting funding proposal'
+      let message = 'Error in submitting funding proposal'
       if (error?.message) message = error.message
       if (error?.response?.data) {
         if (typeof error.response.data === 'string') message = error.response.data
@@ -504,5 +507,24 @@ async function completeFunding() {
     .finally(() => {
       dialog.update({ persistent: false, ok: true, progress: false })
     })
+}
+
+async function verifyFundingProposalUtxo(position) {
+  if (position !== 'hedge' && position !== 'long') return
+  const fundingProposal = position === 'hedge' ? props?.contract?.hedgeFundingProposal : props?.contract?.longFundingProposal
+  $q.dialog({
+    component: VerifyFundingProposalDialog,
+    componentProps: { position, fundingProposal }
+  })
+  .onDismiss(data => {
+    if (data?.spendingTx && !data?.error) {
+      $q.dialog({
+        message: 'Resubmit funding proposal?',
+        cancel: true,
+        class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      })
+        .onOk(() => fundHedgeProposal(position))
+    }
+  })
 }
 </script>
