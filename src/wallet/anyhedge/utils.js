@@ -1,8 +1,11 @@
 import axios from 'axios'
+import BCHJS from '@psf/bch-js'
 import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256 } from '@bitauth/libauth';
 import { IncorrectWIFError } from '@generalprotocols/anyhedge'
 import { ContractData } from '@generalprotocols/anyhedge';
+import { Wallet } from '../index'
 
+const bchjs = new BCHJS()
 /**
  * Generate signature and pubkey needed to access the contract in a settlement service
  * @see {@link https://gitlab.com/GeneralProtocols/anyhedge/library/-/blob/v0.14.2/lib/anyhedge.ts#L399} for reference
@@ -43,4 +46,34 @@ export async function getContractStatus(contractAddress, signature, publicKey, m
         }
     )
     return data
+}
+
+export function derivePubkey(privkey) {
+    const ecpair = bchjs.ECPair.fromWIF(privkey)
+    return bchjs.ECPair.toPublicKey(ecpair).toString('hex')
+}
+
+export function checkPrivAndPubkey(privkey, pubkey) {
+    return derivePubkey(privkey) == pubkey
+}
+
+/**
+ * 
+ * @param {ContractData} contractData 
+ * @param {'hedge' | 'long'} position 
+ * @param {Wallet} wallet
+ */
+export async function getPrivateKey(contractData, position, wallet) {
+    // accessed properties are from when 
+    const addressPath = position === 'hedge' ? contractData.hedgeAddressPath : contractData.longAddressPath
+    const pubkey = position === 'hedge'
+        ? contractData.metadata.hedgePublicKey
+        : contractData.metadata.longPublicKey
+    
+    if (addressPath) {
+        const privkey = await wallet.BCH.getPrivateKey(addressPath)
+        if (checkPrivAndPubkey(privkey, pubkey)) return privkey
+    }
+    const defaultPathPrivkey = await wallet.BCH.getPrivateKey(`0/0`)
+    if (checkPrivAndPubkey(defaultPathPrivkey, pubkey)) return defaultPathPrivkey
 }
