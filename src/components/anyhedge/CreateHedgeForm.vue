@@ -369,7 +369,7 @@ async function createHedgePosition() {
     highPriceMult: createHedgeForm.value.highLiquidationMultiplierPctg / 100,
     duration: createHedgeForm.value.duration,
   }
-  const pubkeys = { hedgeAddress: addressSet.receiving, hedgePubkey: addressSet.pubkey }
+  const pubkeys = { hedgeAddress: addressSet.receiving, hedgePubkey: addressSet.pubkey, hedgeAddressPath: `0/${addressSet.index}` }
   const misc = {
     walletHash: props.wallet.BCH.getWalletHash(),
     autoMatch: createHedgeForm.value.autoMatch,
@@ -497,6 +497,7 @@ async function createHedgePosition() {
 
     hedge_address: pubkeys.hedgeAddress,
     hedge_pubkey: pubkeys.hedgePubkey,
+    hedge_address_path: pubkeys.hedgeAddressPath,
 
     oracle_pubkey: priceData.oraclePubkey || undefined,
     price_oracle_message_sequence: priceData.messageSequence || undefined,
@@ -510,6 +511,7 @@ async function createHedgePosition() {
     contract_address: funding.contractData.address,
     hedge_wallet_hash: misc.walletHash,
     hedge_pubkey: misc.accessKeys.publicKey,
+    hedge_address_path: pubkeys.hedgeAddressPath,
     oracle_message_sequence: priceData.messageSequence || undefined,
     settlement_service: {
       domain: liquidityServiceInfo.value?.settlementService?.host,

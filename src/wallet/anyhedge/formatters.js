@@ -70,8 +70,10 @@ export function ellipsisText (value, config) {
  * @param {Number} data.maturity_timestamp
  * @param {String} data.hedge_address
  * @param {String} data.hedge_pubkey
+ * @param {String} [data.hedge_address_path]
  * @param {String} data.long_address
  * @param {String} data.long_pubkey
+ * @param {String} [data.long_address_path]
  * @param {String} data.oracle_pubkey
  * @param {Number} data.start_price
  * @param {Number} data.low_liquidation_multiplier
@@ -123,6 +125,8 @@ export async function parseHedgePositionData(data) {
     )
   }
 
+  contractData.hedgeAddressPath = data.hedge_address_path
+  contractData.longAddressPath = data.long_address_path
   contractData.fundingTxHash = data.funding_tx_hash
   // contractData.fundingTxHash = 'bb743a47d81e8da85e2a0aebd03fd1be29d9703f23c0f431caf714c3e8588498'
   if (data?.funding_tx_hash) {
