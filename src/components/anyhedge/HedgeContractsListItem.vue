@@ -87,13 +87,16 @@ const durationUpdateTimeout = ref(null)
 const updateTickCtr = ref(0)
 function updateTick() {
   const maturityTimestamp = props?.contract?.parameters?.maturityTimestamp
+  const startTimestamp = props?.contract?.parameters?.startTimestamp
   const maturityDelta = Math.abs((Date.now() / 1000) - maturityTimestamp)
+  const startDelta = Math.abs((Date.now() / 1000) - startTimestamp)
+  const tickDelta = Math.min(maturityDelta, startDelta)
   let nextTickInMs = -1
-  if (maturityTimestamp && maturityDelta) {
-    if (maturityDelta > 3600) {
-      nextTickInMs = (maturityDelta % 3600) * 1000
-    } else if (maturityDelta <= 3600) {
-      nextTickInMs = (maturityDelta % 60) * 1000
+  if (tickDelta) {
+    if (tickDelta > 3600) {
+      nextTickInMs = (tickDelta % 3600) * 1000
+    } else if (tickDelta <= 3600) {
+      nextTickInMs = (tickDelta % 60) * 1000
     }
   }
 
