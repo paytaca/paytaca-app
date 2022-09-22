@@ -152,7 +152,7 @@ async function createNewLongAccount() {
 
   const data = {
     wallet_hash: props.wallet.BCH.getWalletHash(),
-    address_path: response.addressIndex,
+    address_path: `0/${response.addressIndex}`,
     address: response.addressSet.receiving,
     pubkey: response.addressSet.pubkey,
     min_auto_accept_duration: addLiquidityForm.value.minAutoAcceptDuration,
