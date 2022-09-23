@@ -233,6 +233,111 @@
             </div>
           </div>
         </div>
+        <div v-if="!settled && funding === 'complete'">
+          <div class="text-grey text-subtitle1">Mutual Redemption</div>
+          <div v-if="mutualRedemptionData.txHash" class="row items-center">
+            <div @click="copyText(mutualRedemptionData.txHash)" v-ripple style="position:relative;" class="text-body1">
+              Tx: {{ ellipsisText(mutualRedemptionData.txHash, {start: 5, end: 10}) }}
+            </div>
+            <q-btn
+              flat
+              icon="launch"
+              size="xs" padding="xs"
+              class="q-ml-sm"
+              :href="'https://blockchair.com/bitcoin-cash/transaction/' + mutualRedemptionData.txHash"
+              target="_blank"
+            />
+          </div>
+          <div v-if="mutualRedemptionData.exists" class="text-body1 q-gutter-y-xs">
+            <div>Type: {{ mutualRedemptionData.redemptionTypeLabel }}</div>
+            <div v-if="mutualRedemptionData.redemptionType === 'early_maturation'">
+              Settlement price: {{ formatUnits(mutualRedemptionData.settlementPrice, oracleInfo.assetDecimals) }}
+              <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+            </div>
+            <div class="row q-gutter-x-xs items-center">
+              <div>Hedge:</div>
+              <div class="row q-gutter-x-xs items-center q-space no-wrap">
+                <div>{{ mutualRedemptionData.hedgeSatoshis / 10 ** 8 }} BCH</div>
+                <template v-if="mutualRedemptionData.hedgeSchnorrSig">
+                  <div class="q-space">
+                    <q-badge color="brandblue">Signed</q-badge>
+                  </div>
+                  <q-btn v-if="viewAsHedge && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
+                    <q-menu
+                      anchor="bottom right" self="top right"
+                      :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
+                    >
+                      <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('hedge')">
+                        <q-item-section>
+                          <q-item-label>Resubmit</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-menu>
+                  </q-btn>
+                </template>
+                <template v-else>
+                  <q-btn
+                    v-if="viewAsHedge && !mutualRedemptionData.txHash"
+                    no-caps label="Approve"
+                    color="brandblue" padding="none sm"
+                    @click="signMutualRedemptionConfirm('hedge')"
+                  />
+                  <q-badge v-else color="grey-7">Pending</q-badge>
+                </template>
+              </div>
+            </div>
+            <div class="row q-gutter-x-xs items-center">
+              <div>Long:</div>
+              <div class="row q-gutter-x-xs items-center q-space no-wrap">
+                <div>{{ mutualRedemptionData.longSatoshis / 10 ** 8 }} BCH</div>
+                <template v-if="mutualRedemptionData.longSchnorrSig">
+                  <div class="q-space">
+                    <q-badge color="brandblue">Signed</q-badge>
+                  </div>
+                  <q-btn v-if="viewAsLong && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
+                    <q-menu
+                      anchor="bottom right" self="top right"
+                      :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
+                    >
+                      <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('long')">
+                        <q-item-section>
+                          <q-item-label>Resubmit</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-menu>
+                  </q-btn>
+                </template>
+                <template v-else>
+                  <q-btn
+                    v-if="viewAsLong && !mutualRedemptionData.txHash"
+                    no-caps label="Approve"
+                    color="brandblue" padding="none sm"
+                    @click="signMutualRedemptionConfirm('long')"
+                  />
+                  <q-badge v-else color="grey-7">Pending</q-badge>
+                </template>
+              </div>
+            </div>
+            <div>
+              <q-btn
+                v-if="!mutualRedemptionData.txHash"
+                no-caps
+                color="brandblue"
+                label="Propose Another Redemption"
+                class="full-width"
+                @click="openCreateMutualRedemptionFormDialog()"
+              />
+            </div>
+          </div>
+          <q-btn
+            v-else
+            no-caps
+            color="brandblue"
+            label="Propose Mutual Redemption"
+            class="full-width"
+            @click="openCreateMutualRedemptionFormDialog()"
+          />
+        </div>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -241,10 +346,13 @@
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/formatters';
 import { calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
+import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
+import { getPrivateKey } from 'src/wallet/anyhedge/utils'
 import { computed, inject } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
+import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog.vue'
 
 // dialog plugins requirement
 defineEmits([
@@ -288,6 +396,13 @@ const oracleInfo = computed(() => {
   return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
 })
 
+const funding = computed(() => {
+  if (props.contract?.funding?.[0]?.fundingTransaction) return 'complete'
+  else if (props.contract?.hedgeFundingProposal && props.contract?.longFundingProposal) return 'ready'
+  else if (props.contract?.hedgeFundingProposal || props.contract?.longFundingProposal) return 'partial'
+
+  return 'pending'
+})
 const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
 const settlementMetadata = computed(() => {
   const data = {
@@ -526,5 +641,233 @@ async function verifyFundingProposalUtxo(position) {
         .onOk(() => fundHedgeProposal(position))
     }
   })
+}
+
+function openCreateMutualRedemptionFormDialog() {
+  $q.dialog({
+    component: CreateMutualRedemptionFormDialog,
+    componentProps: props,
+  })
+}
+const mutualRedemptionData = computed(() => {
+  const data = {
+    exists: false,
+    redemptionType: 'arbitrary',
+    redemptionTypeLabel: 'Arbitrary',
+    hedgeSatoshis: 0,
+    longSatoshis: 0,
+    hedgeSchnorrSig: '',
+    longSchnorrSig: '',
+    txHash: '',
+    settlementPrice: undefined,
+  }
+
+  if (props?.contract?.mutualRedemption) data.exists = true
+
+  data.hedgeSatoshis = props?.contract?.mutualRedemption?.hedge_satoshis || 0
+  data.longSatoshis = props?.contract?.mutualRedemption?.long_satoshis || 0
+  data.txHash = props?.contract?.mutualRedemption?.tx_hash || ''
+  data.settlementPrice = props?.contract?.mutualRedemption?.settlement_price || 0
+
+  if (typeof props?.contract?.mutualRedemption?.redemption_type === 'string') {
+    data.redemptionType = props.contract.mutualRedemption.redemption_type
+    data.redemptionTypeLabel = (data.redemptionType.charAt(0).toUpperCase() + data.redemptionType.substring(1)).replace('_', ' ')
+  }
+  if (typeof props?.contract?.mutualRedemption?.hedge_schnorr_sig === 'string') {
+    data.hedgeSchnorrSig = props.contract.mutualRedemption.hedge_schnorr_sig
+  }
+
+  if (typeof props?.contract?.mutualRedemption?.long_schnorr_sig === 'string') {
+    data.longSchnorrSig = props.contract.mutualRedemption.long_schnorr_sig
+  }
+  return data
+})
+
+
+async function validateContractFunding() {
+  if (!props?.contract?.funding?.[0]?.fundingTransaction) throw new Exception('No funding transaction found')
+  const contractAddress = props?.contract?.address
+
+  if (!contractAddress) throw new Exception('Contract address not found')
+  const { data } = await anyhedgeBackend.post(`anyhedge/hedge-positions/${contractAddress}/validate_contract_funding/`)
+  return data
+}
+async function signMutualRedemption(position) {
+  const dialog = $q.dialog({
+    title: 'Signing mutual redemption proposal',
+    persistent: true,
+    progress: true,
+    html: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+  })
+
+  if (!props?.contract?.funding?.[0]?.fundingSatoshis) {
+    try {
+      dialog.update({message: 'Verifying contract funding'})
+      const contractDataApi = await validateContractFunding()
+      const contractData = await parseHedgePositionData(contractDataApi)
+      Object.assign(props.contract, contractData)
+    } catch(error) {
+      console.error(error)
+      let errors = ['Encountered error in validating contract funding']
+      if (typeof error?.response?.data === 'string') errors = [error.response.data]
+      else if (Array.isArray(error?.response?.data)) errors = error?.response?.data
+      else if (typeof error?.message === 'string') errors = [error.message]
+      dialog.update({
+        title: 'Mutual redemption signing error',
+        message: errors.join('<br/>'),
+        progress: false, persistent: false, ok: true,
+      })
+      return
+    } finally {
+      dialog.update({progress: false, persistent: false, ok: true})
+    }
+  }
+
+  let privkey
+  try {
+    dialog.update({message: 'Retrieving private key', progress: true, persistent: true, ok: false})
+    privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
+    if (!privkey) throw new Error('Unable to find resolve private key for contract')
+  } catch(error) {
+    console.error(error)
+    let errors = ['Failed to retrieve private key']
+    if (typeof error?.message === 'string') errors = [error.message]
+    dialog.update({
+      title: 'Mutual redemption signing error',
+      message: errors.join('<br/>'),
+      progress: false, persistent: false, ok: true,
+    })
+    return
+  } finally {
+    dialog.update({progress: false, persistent: false, ok: true})
+  }
+
+  let transactionProposal
+  try{
+    let signMutualPayoutResponse
+    dialog.update({message: 'Signing proposal', progress: true, persistent: true, ok: false})
+    switch(mutualRedemptionData.value.redemptionType) {
+      case 'refund':
+        signMutualPayoutResponse = await signMutualRefund(props?.contract, privkey)
+        break;
+      case 'early_maturation':
+        signMutualPayoutResponse = await signMutualEarlyMaturation(
+          props?.contract, privkey, mutualRedemptionData.value.settlementPrice)
+        break;
+      case 'arbitrary':
+        signMutualPayoutResponse = await signArbitraryPayout(
+          props?.contract, privkey, mutualRedemptionData.value.hedgeSatoshis, mutualRedemptionData.value.longSatoshis)
+        break;
+      default:
+        throw new Error('Invalid redemption type')
+    }
+
+    if (!signMutualPayoutResponse.success) throw signMutualPayoutResponse.error
+    transactionProposal = signMutualPayoutResponse.proposal
+  }catch(error) {
+    console.error(error)
+    let errors = ['Encountered error in creating data']
+    if (typeof error?.message === 'string') errors = [error.message]
+    dialog.update({
+      title: 'Mutual redemption signing error',
+      message: errors.join('<br/>'),
+      progress: false, persistent: false, ok: true,
+    })
+    return
+  } finally {
+    dialog.update({progress: false, persistent: false, ok: true})
+  }
+
+  if (!transactionProposal) {
+    dialog.update({
+      title: 'Mutual redemption signing error',
+      message: 'Unresolved transaction proposal',
+      progress: false, persistent: false, ok: true
+    })
+    return
+  }
+
+  const hedgeAddress = props?.contract?.metadata?.hedgeAddress
+  const longAddress = props?.contract?.metadata?.longAddress
+  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgeAddress)?.amount
+  const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longAddress)?.amount
+
+  if (signedHedgeSats !== mutualRedemptionData.value.hedgeSatoshis) {
+    dialog.update({
+      title: 'Mutual redemption signing error',
+      message: `Invalid hedge satoshis, expected ${signedHedgeSats}`,
+      progress: false, persistent: false, ok: true
+    })
+    return
+  }
+
+  if (signedLongSats !== mutualRedemptionData.value.longSatoshis) {
+    dialog.update({
+      title: 'Mutual redemption signing error',
+      message: `Invalid hedge satoshis, expected ${signedLongSats}`,
+      progress: false, persistent: false, ok: true,
+    })
+    return
+  }
+
+  const hedgeSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['hedge_key.schnorr_signature.all_outputs'])?.['hedge_key.schnorr_signature.all_outputs']
+  const longSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['long_key.schnorr_signature.all_outputs'])?.['long_key.schnorr_signature.all_outputs']
+  const data = {
+    redemption_type: mutualRedemptionData.value.redemptionType,
+    hedge_satoshis: mutualRedemptionData.value.hedgeSatoshis,
+    long_satoshis: mutualRedemptionData.value.longSatoshis,
+    hedge_schnorr_sig: hedgeSchnorrSig || undefined,
+    long_schnorr_sig: longSchnorrSig || undefined,
+    settlement_price: undefined,
+  }
+
+  if (data.redemption_type === 'early_maturation') {
+    data.settlement_price = mutualRedemptionData.value.settlementPrice || undefined
+  }
+
+  dialog.update({message: 'Submitting mutual redemption', progress: true, persistent: true, ok: false})
+  const contractAddress = props?.contract?.address
+  anyhedgeBackend.post(`/anyhedge/hedge-positions/${contractAddress}/mutual_redemption/`, data)
+    .then(response => {
+      if (response?.data?.address) {
+        parseHedgePositionData(response?.data).then(contractData => Object.assign(props.contract, contractData))
+        dialog.update({
+          message: 'Mutual redemption submitted',
+          ok: true,
+          progress: false,
+        })
+        return Promise.resolve(response)
+      }
+      return Promise.reject(response)
+    })
+    .catch(error => {
+      console.error(error)
+      let errors = ['Encountered error in submitting mutual redemption']
+      if (typeof error?.response?.data === 'string') errors = [error.response.data]
+      else if (Array.isArray(error?.response?.data)) errors = error.response.data
+      dialog.update({
+        title: 'Mutual redemption signing error',
+        message: errors.join('<br/>'),
+        progress: false, persistent: false, ok: true })
+    })
+    .finally(() => {
+      dialog.update({progress: false, persistent: false, ok: true})
+    })
+}
+
+function signMutualRedemptionConfirm(position) {
+  const message = `Hedge payout: ${mutualRedemptionData.value.hedgeSatoshis / 10 ** 8} BCH<br/>` +
+                  `Long payout: ${mutualRedemptionData.value.longSatoshis / 10 ** 8} BCH<br/>` +
+                  'Are you sure?'
+  $q.dialog({
+    title: 'Sign mutual redemption',
+    message: message,
+    html: true,
+    ok: true,
+    cancel: true,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  }).onOk(() => signMutualRedemption(position))
 }
 </script>
