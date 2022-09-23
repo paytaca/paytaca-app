@@ -1,150 +1,153 @@
 <template>
-<div class="static-container">
-  <div
-    dense
-    id="app-container"
-    style="background-color: #ECF3F3; min-height: 100vh;"
-    class="flex flex-center"
-    >
-    <HeaderNav
-      title="Gifts"
-      backnavpath="/apps/chooseGift"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-      class="q-px-sm"
-      @click="this.$store.dispatch('gift/retAddress')"
-    />
-<!--       <div>
-        {{ $store.getters['gift/getAmount'] }}
-        {{ $store.getters['gift/getTitle'] }}s
-      </div> -->
-      <div class="q-pa-lg" style="width: 32%">
-      <div class="q-pt-xl">
-          <label>
-            Enter Amount:
-          </label>
-          <q-input
-            required
-            placeholder="Amount"
-            filled
-            clearable
-            :rules="[val => !!val || 'Field is required']"
-            type="number"
-            v-model="amountBCH"
-            @input="this.amountBCH"
-          >
-          <!-- @input="amountBCH" -->
-          </q-input>
-          <div class="q-pa-sm">
+  <div class="static-container">
+    <div
+      dense
+      id="app-container"
+      style="background-color: #ECF3F3; min-height: 100vh;"
+      class="flex flex-center"
+      >
+      <HeaderNav
+        title="Gifts"
+        backnavpath="/apps/chooseGift"
+        style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
+        class="q-px-sm"
+        @click="this.$store.dispatch('gift/retAddress')"
+      />
+  <!--       <div>
+          {{ $store.getters['gift/getAmount'] }}
+          {{ $store.getters['gift/getTitle'] }}s
+        </div> -->
+        <div class="q-pa-lg" style="width: 32%">
+        <div class="q-pt-xl">
+            <label>
+              Enter Amount:
+            </label>
+            <q-input
+              required
+              placeholder="Amount"
+              filled
+              clearable
+              :rules="[val => !!val || 'Field is required']"
+              type="number"
+              v-model="amountBCH"
+              @input="this.amountBCH"
+            >
+            <!-- @input="amountBCH" -->
+            </q-input>
+            <div class="q-pa-sm">
+            </div>
+
+            <label>
+              Enter number of Gift Items
+            </label>
+            <q-input
+              required
+              placeholder="Instances"
+              filled
+              type="number"
+              oninput="javascript: if (this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
+              maxlength="3"
+              clearable
+              :rules="[val => !!val || 'Field is required']"
+              v-model="instances"
+              @input="this.instances"
+            >
+            </q-input>
+            <div class="q-pa-sm">
+            </div>
+
+            <label>
+              Enter Campaign ID
+            </label>
+            <q-input
+              placeholder="Campaign ID"
+              filled
+              type="string"
+              clearable
+            >
+            </q-input>
+            <div class="q-pa-sm q-pb-lg">
+            </div>
+
+            <label>
+              Max Amount per Address
+            </label>
+            <q-input
+              placeholder="Amount"
+              filled
+              type="text"
+              clearable
+              @input="this.text"
+              v-model="text"
+            >
+            </q-input>
+              <div class="q-pa-sm q-pt-lg flex flex-center">
+                <q-btn
+                  no-caps
+                  rounded
+                  color="blue-9"
+                  type="submit"
+                  label="Generate"
+                  class="flex flex-center"
+                  @click="clickMe()"
+                >
+                </q-btn>
+                <div class="q-pa-sm q-pb-lg"></div>
+               <div class="q-pa-sm q-pt-lg flex flex-center" >
+                <q-btn
+                  no-caps
+                  rounded
+                  color="blue-9"
+                  type="submit"
+                  label="cash address"
+                  class="flex flex-center"
+                  @click="spliceAll()"
+                >
+                </q-btn>
+                </div>
           </div>
 
-          <label>
-            Enter number of Gift Items
-          </label>
-          <q-input
-            required
-            placeholder="Instances"
-            filled
-            type="number"
-            oninput="javascript: if (this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-            maxlength="3"
-            clearable
-            :rules="[val => !!val || 'Field is required']"
-            v-model="instances"
-            @input="this.instances"
-          >
-          </q-input>
-          <div class="q-pa-sm">
-          </div>
+          <div>
+          {{ this.$store.state.gift.privKey }}
+          {{this.$store.state.gift.cashAdd}}
+          {{ this.$store.state.gift.storeShare }}
+          <!-- {{ this.$store.state.gift.recShare }} -->
+          {{ this.$store.state.gift.genGifts }}
+          <!-- {{ this.shares }} -->
 
-          <label>
-            Enter Campaign ID
-          </label>
-          <q-input
-            placeholder="Campaign ID"
-            filled
-            type="string"
-            clearable
-          >
-          </q-input>
-          <div class="q-pa-sm q-pb-lg">
+          <!-- {{ this.$store.state.gift.apKeyStore }} -->
           </div>
-
-          <label>
-            Max Amount per Address
-          </label>
-          <q-input
-            placeholder="Amount"
-            filled
-            type="number"
-            clearable
-          >
-          </q-input>
-            <div class="q-pa-sm q-pt-lg flex flex-center">
-              <q-btn
-                no-caps
-                rounded
-                color="blue-9"
-                type="submit"
-                label="Generate"
-                class="flex flex-center"
-                @click="this.pkToCashAdd()"
-              >
-              </q-btn>
-              <div class="q-pa-sm q-pb-lg"></div>
-<!--             <div class="q-pa-sm q-pt-lg flex flex-center" >
-              <q-btn
-                no-caps
-                rounded
-                color="blue-9"
-                type="submit"
-                label="cash address"
-                class="flex flex-center"
-                @click="recoverSecret()"
-              >
-              </q-btn>
-              </div> -->
-        </div>
         <div>
-          {{ this.$store.state.gift.giftingAmount }}
+            <div class="flex flex-center" >
+              <div class="flex flex-center col-qr-code">
+                  <canvas id="canvas" class="flex flex-center"></canvas>
+                  <!-- {{ this.$store.state.gift.gAmount }} -->
+              </div>
+              <div class="flex flex-center myStyle">
+                <!-- <h5>{{ $store.state.gift.cashAddress }}</h5> -->
+              </div>
+            </div>
+            <!-- <div class="flex flex-center" @click="copyToClipboard(this.$store.state.gift.cashAddress)">
+              <div class="flex flex-center" v-if="$store.state.gift.cashAddress !== 0">
+            <p class="fontStyle">{{ $store.state.gift.cashAddress }}</p>
+            <p class="fontStyle">Click to Copy Address</p>
+              </div>
+              <div class="flex flex-center" v-else>
+                <p class="fontStyle">{{ $store.state.gift.cashAddress }}</p>
+              </div> -->
+          <!-- </div> -->
         </div>
-      <div>
-          <div class="flex flex-center" >
-            <div class="flex flex-center col-qr-code">
-                <canvas id="canvas" class="flex flex-center"></canvas>
-                <!-- {{ this.$store.state.gift.gAmount }} -->
-            </div>
-            <div class="flex flex-center myStyle">
-              <!-- <h5>{{ $store.state.gift.cashAddress }}</h5> -->
-            </div>
           </div>
-          <!-- <div class="flex flex-center" @click="copyToClipboard(this.$store.state.gift.cashAddress)">
-            <div class="flex flex-center" v-if="$store.state.gift.cashAddress !== 0">
-          <p class="fontStyle">{{ $store.state.gift.cashAddress }}</p>
-          <p class="fontStyle">Click to Copy Address</p>
-            </div>
-            <div class="flex flex-center" v-else>
-              <p class="fontStyle">{{ $store.state.gift.cashAddress }}</p>
-
-            </div> -->
-            <ul>
-              <li v-for="instance in this.$store.state.gift.apKeyStore" :key="instance">
-                {{ instance }}
-              </li>
-              <li v-for="instance in this.$store.state.gift.acAddressStore" :key="instance">
-                    {{ instance }}
-              </li>
-            </ul>
-        <!-- </div> -->
-      </div>
         </div>
-      </div>
+    </div>
   </div>
-</div>
-</template>
+  </template>
 <script>
 import HeaderNav from '../../../components/header-nav'
-// import { mapState } from 'vuex'
 import { getMnemonic, Wallet } from '../../../wallet'
+import { v4 as uuidv4 } from 'uuid'
+import { ECPair } from '@psf/bitcoincashjs-lib'
+import { toHex } from 'hex-my-bytes'
 
 export default {
   name: 'Gifts',
@@ -161,43 +164,75 @@ export default {
       txid: '',
       amountBCH: '',
       instances: 0,
-      shareDict: {
-        privateAddress: [],
-        shares: []
-      }
+      text: ['hot', 'dog', 'chili'],
+      id: 1,
+      gift: {},
+      // test
+      vWif: '',
+      str: '',
+      localShare: [],
+      uid: '',
+      gifts: {}
     }
   },
   computed: {
+    getData () {
+      return this.$store.state.gift.gifts
+    }
   },
 
   methods: {
-    insertToDict () {
-      this.shareDict.set()
+    // test 9 22 2022
+
+    // test 9 23 2022
+    clickMe () {
+      this.genPrivKey()
+      this.genCashAddress()
+      this.genShares()
+      // this.recoverSec()
+      this.toDict()
     },
+    genPrivKey () {
+      const v = ECPair.makeRandom()
+      this.vWif = v.toWIF()
+      console.log(this.vWif)
+      this.$store.dispatch('gift/genPrivKey', this.vWif)
+    },
+    genCashAddress () {
+      const BCHJS = require('@psf/bch-js')
+      const bchjs = new BCHJS()
+      // const pk = this.vWif
+      const pair = bchjs.ECPair.fromWIF(this.vWif)
+      this.str = bchjs.ECPair.toCashAddress(pair)
+      console.log(this.str)
+      this.$store.dispatch('gift/genCashAdd', this.str)
+    },
+    genShares () {
+      const sss = require('shamirs-secret-sharing')
+      const secret = Buffer.from(this.vWif)
+      const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
+      this.shares = stateShare.map((share) => { return toHex(share) })
+      this.localShares = this.shares
+      // commit('aSplitSecret', this.shares)
+      this.$store.dispatch('gift/genShares', this.shares)
+      console.log(this.shares)
+    },
+    toDict () {
+      console.log('xxx', this.localShares)
+      // this.gifts[uuidv4()] = this.text
+      this.uid = uuidv4()
+      this.gifts[this.uid] = this.localShares
+      this.$store.dispatch('gift/storeGift', this.uid, this.localShares)
+    },
+    recoverSec () {
+      const sss = require('shamirs-secret-sharing')
+      const recovery = sss.combine([this.shares[0], this.shares[1]])
+      console.log(recovery.toString())
+      this.$store.dispatch('gift/recoverSec', recovery.toString())
+    },
+    // /end test
     recoverSecret () {
       this.$store.dispatch('gift/recoverSecret')
-    },
-    pkToCashAdd () {
-    /*       // this.$store.dispatch('gift/changeAmount')
-      this.$store.dispatch('gift/generatePrivateKey')
-      this.$store.dispatch('gift/convertToCashAddress')
-      this.$store.dispatch('gift/splitSecret')
-      this.$store.dispatch('gift/storeShare')
-      // this.$store.dispatch('gift/handleSubmit')
-      const cAdd = this.$store.state.gift.cashAddress
-      this.handleSubmit(cAdd)
-      this.qrCode()
-      // console.log(this.updateAmount()) */
-      for (let i = 0; i < this.instances; i++) {
-        // this.$store.dispatch('gift/aPrivateKey')
-        this.$store.dispatch('gift/aCashAddress')
-        this.$store.dispatch('gift/storeShare')
-        const cAdd = this.$store.state.gift.acAddress[i]
-        this.handleSubmit(cAdd)
-      }
-      this.$store.dispatch('gift/changeBchAmount', this.amountBCH)
-      this.$store.dispatch('gift/spliceKey')
-      this.$store.dispatch('gift/spliceAddress')
     },
     qrCode () {
       const key = this.$store.state.gift.share[0]
@@ -243,20 +278,20 @@ export default {
   }
 }
 </script>
-<style lang="scss" scoped>
-    .col-qr-code {
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 10px;
-    text-align: center;
-    width: 500px;
-    height: 300px;
-    border-radius: 16px;
-    border: 4px solid #ed5f59;
-    padding: 10px 10px 32px 10px;
-    background: white;
-  }
-  .fontStyle {
-    font-size:medium;
-  }
-</style>
+  <style lang="scss" scoped>
+      .col-qr-code {
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 10px;
+      text-align: center;
+      width: 500px;
+      height: 300px;
+      border-radius: 16px;
+      border: 4px solid #ed5f59;
+      padding: 10px 10px 32px 10px;
+      background: white;
+    }
+    .fontStyle {
+      font-size:medium;
+    }
+  </style>
