@@ -55,9 +55,9 @@ export default {
           active: true
         },
         {
-          name: 'Gift',
+          name: 'Gifts',
           iconName: 'mdi-gift',
-          path: '/apps/chooseGift',
+          path: '/apps/gifts/',
           active: true
         },
         {

@@ -20,16 +20,6 @@ const routes = [
         component: () => import('pages/transaction/receive.vue')
       },
       {
-        path: 'chooseGift/create',
-        name: 'createGift',
-        component: () => import('src/pages/apps/gift/createGift.vue')
-      },
-      {
-        path: 'chooseGift/claim',
-        name: 'claimGift',
-        component: () => import('src/pages/apps/gift/claimGift.vue')
-      },
-      {
         path: 'send/select-asset',
         name: 'transaction-send-select-asset',
         component: () => import('pages/transaction/select-asset-send.vue')
@@ -70,8 +60,9 @@ const routes = [
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
       { path: 'settings/ignored-tokens', component: () => import('src/pages/apps/ignored-tokens-list.vue'), name: 'ignored-tokens-list' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
-      // { path: 'gifts', component: () => import('src/pages/apps/gifts.vue'), name: 'Gifts' },
-      { path: 'chooseGift', component: () => import('src/pages/apps/chooseGift.vue'), name: 'Gifts' }
+      { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
+      { path: 'gifts/create', component: () => import('src/pages/apps/gifts/createGift.vue'), name: 'create-gift' },
+      { path: 'gifts/claim', component: () => import('src/pages/apps/gifts/claimGift.vue'), name: 'claim-gift' }
     ]
   },
   // Always leave this as last one,

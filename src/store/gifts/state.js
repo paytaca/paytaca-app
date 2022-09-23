@@ -8,7 +8,6 @@ export default function () {
     storeShare: [],
     recShare: [],
     genUid: '',
-    genGifts: {
-    }
+    genGifts: {}
   }
 }

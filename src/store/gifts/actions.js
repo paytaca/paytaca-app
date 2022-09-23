@@ -61,7 +61,6 @@ export function genShares ({ commit }, key) {
 export function recoverSec ({ commit }, key) {
   commit('RECOVERSEC', key)
 }
-export function storeGift ({ commit }, id, shares) {
-  // state.genGift[id] = value
-  commit('storeGift', id, shares)
+export function storeGift ({ commit }, data) {
+  commit('storeGift', data)
 }

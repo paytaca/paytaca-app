@@ -8,7 +8,7 @@ import assets from './assets'
 import lns from './lns'
 import sep20 from './sep20'
 import walletconnect from './walletconnect'
-import gift from './gift'
+import gifts from './gifts'
 
 /*
  * If not building with SSR mode, you can
@@ -30,7 +30,7 @@ export default function (/* { ssrContext } */) {
       lns,
       sep20,
       walletconnect,
-      gift
+      gifts
     },
 
     // enable strict mode (adds overhead!)

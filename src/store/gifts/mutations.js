@@ -29,6 +29,6 @@ export function RECOVERSEC (state, key) {
   state.recShare.push(key)
   // state.recShare.splice(key, 5)
 }
-export function storeGift (state, id, shares) {
-  state.genGifts[id] = shares
+export function storeGift (state, data) {
+  state.genGifts[data.uid] = data.shares
 }
