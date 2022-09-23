@@ -65,7 +65,7 @@ export async function signMutualEarlyMaturation(contractData,  privateKey, settl
  * @param {Number} hedgeSatoshis 
  * @param {Number} longSatoshis 
  */
- export async function signArbitraryPayout(contractData,  privateKey, hedgeSatoshis, longSatoshis) {
+ export async function signArbitraryPayout(contractData, privateKey, hedgeSatoshis, longSatoshis) {
   const response = { success: false, error: undefined, proposal: undefined }
   const manager = new AnyHedgeManager()
 
@@ -82,7 +82,7 @@ export async function signMutualEarlyMaturation(contractData,  privateKey, settl
   }
 
   try {
-    response.proposal = await manager.signMutualEarlyMaturation(
+    response.proposal = await manager.signMutualArbitraryPayout(
       privateKey,
       transactionProposal,
       contractData?.parameters,

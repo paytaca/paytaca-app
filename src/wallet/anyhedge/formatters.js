@@ -58,6 +58,15 @@ export function ellipsisText (value, config) {
  * @property {Number} funding_output
  * @property {Number|undefined|null} fee_satoshis
  * @property {Number|undefined|null} fee_output
+ * 
+ * @typedef {Object} MutualRedemptionAPI
+ * @property {'refund' | 'early_maturation' | 'arbitrary'} redemption_type
+ * @property {Number} hedge_satoshis
+ * @property {Number} long_satoshis
+ * @property {String|undefined|null} hedge_schnorr_sig
+ * @property {String|undefined|null} long_schnorr_sig
+ * @property {Number|undefined|null} settlement_price
+ * @property {String|undefined|null} tx_hash
 */
 
 /**
@@ -85,6 +94,7 @@ export function ellipsisText (value, config) {
  * @param {FundingProposalAPI|null} data.long_funding_proposal
  * @param {SettlementAPI|null} data.settlement
  * @param {FundingAPI|null} data.funding
+ * @param {MutualRedemptionAPI|null} data.mutual_redemption
  * 
  * @returns 
  */
@@ -179,6 +189,10 @@ export async function parseHedgePositionData(data) {
       settlementMessageSequence: data.settlement.settlement_message_sequence,
       settlementMessageTimestamp: data.settlement.settlement_message_timestamp,
     }]
+  }
+
+  if (data?.mutual_redemption) {
+    contractData.mutualRedemption = data.mutual_redemption
   }
 
   return contractData

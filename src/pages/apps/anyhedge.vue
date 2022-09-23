@@ -275,6 +275,9 @@ const websocketMessageHandler = (message) => {
       refetchContract(data?.meta?.address)
     }
   }
+  if (data?.resource === 'mutual_redemption') {
+    refetchContract(data?.meta?.address)
+  }
 }
 function initWebsocket(fromReconAttempt=false) {
   if (socketReconnection.value.attempts >= socketReconnection.value.max && fromReconAttempt) {
