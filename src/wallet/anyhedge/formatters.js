@@ -1,5 +1,6 @@
-import { AnyHedgeManager, SettlementType } from '@generalprotocols/anyhedge'
+import { AnyHedgeManager, SettlementType, ContractData } from '@generalprotocols/anyhedge'
 import ago from 's-ago'
+import { capitalize } from 'vue'
 
 export function formatTimestampToText(timestamp) {
   const dateObj = new Date(timestamp)
@@ -202,4 +203,59 @@ export async function compileContract(contractCreationParameters, contractVersio
   const manager = new AnyHedgeManager({ contractVersion: contractVersion })
   const contractData = await manager.createContract(contractCreationParameters)
   return contractData
+}
+
+/**
+ * 
+ * @param {ContractData} contract 
+ */
+export function parseSettlementMetadata(contract) {
+  const data = {
+    settlementType: '',
+    settlementTypeText: '',
+    mutualRedemptionTypeText: '',
+
+    settlementPriceValue: 0,
+    txid: '',
+    hedge: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 },
+    long: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 }
+  }
+
+  const settlement = contract?.settlement?.[0]
+  if (settlement?.hedgeSatoshis >= 0 && settlement?.longSatoshis >= 0) {
+    data.txid = settlement?.spendingTransaction || ''
+    data.settlementPriceValue = settlement?.settlementPrice
+
+    data.settlementType = settlement?.settlementType || ''
+    data.settlementTypeText = capitalize(data.settlementType).replace('_', ' ').trim()
+
+    if (data.settlementType === 'mutual' && settlement?.spendingTransaction === contract?.mutualRedemption?.tx_hash) {
+      data.mutualRedemptionTypeText = contract?.mutualRedemption?.redemption_type || ''
+      data.mutualRedemptionTypeText = capitalize(data.mutualRedemptionTypeText).replace('_', ' ').trim()
+      if (!data.settlementPriceValue && contract?.mutualRedemption?.settlement_price) {
+        data.settlementPriceValue = contract?.mutualRedemption?.settlement_price
+      }
+    }
+
+    const { hedgeSatoshis, longSatoshis } = settlement
+    const hedgeUnits = (hedgeSatoshis * data.settlementPriceValue) / 10 ** 8
+    const longUnits = (longSatoshis * data.settlementPriceValue) / 10 ** 8
+
+    data.hedge.nominalUnits = hedgeUnits
+    data.hedge.satoshis = hedgeSatoshis
+    data.long.nominalUnits = longUnits
+    data.long.satoshis = longSatoshis
+
+    data.hedge.assetChangePctg = Math.round((hedgeUnits / contract?.metadata?.nominalUnits) * 10000)
+    data.hedge.bchChangePctg = Math.round((hedgeSatoshis / contract?.metadata?.hedgeInputSats) * 10000)
+    data.long.assetChangePctg = Math.round((longUnits / contract?.metadata?.longInputUnits) * 10000)
+    data.long.bchChangePctg = Math.round((longSatoshis / contract?.metadata?.longInputSats) * 10000)
+
+    data.hedge.assetChangePctg = -(10000 - data.hedge.assetChangePctg) / 100
+    data.hedge.bchChangePctg = -(10000 - data.hedge.bchChangePctg) / 100
+    data.long.assetChangePctg = -(10000 - data.long.assetChangePctg) / 100
+    data.long.bchChangePctg = -(10000 - data.long.bchChangePctg) / 100
+
+  }
+  return data
 }

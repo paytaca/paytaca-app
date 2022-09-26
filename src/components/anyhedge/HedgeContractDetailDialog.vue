@@ -37,7 +37,7 @@
           </div>
         </div>
 
-        <div v-if="!settled">
+        <div v-if="(!settled || contract.fundingTxHash)">
           <div class="text-grey text-subtitle1">Funding</div>
           <div v-if="contract.fundingTxHash" class="row items-center">
             <div @click="copyText(contract.fundingTxHash)" v-ripple style="position:relative;" class="text-body1">
@@ -344,7 +344,7 @@
 </template>
 <script setup>
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
-import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/formatters';
+import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
 import { calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
 import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
 import { getPrivateKey } from 'src/wallet/anyhedge/utils'
@@ -404,40 +404,7 @@ const funding = computed(() => {
   return 'pending'
 })
 const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
-const settlementMetadata = computed(() => {
-  const data = {
-    priceValue: 0,
-    txid: '',
-    hedge: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 },
-    long: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 }
-  }
-
-  const settlement = props.contract?.settlement?.[0]
-  if (settlement?.hedgeSatoshis >= 0 && settlement?.longSatoshis >= 0 && settlement?.settlementPrice) {
-    data.txid = settlement?.spendingTransaction || ''
-    const { hedgeSatoshis, longSatoshis } = settlement
-    const hedgeUnits = (hedgeSatoshis * settlement.settlementPrice) / 10 ** 8
-    const longUnits = (longSatoshis * settlement.settlementPrice) / 10 ** 8
-
-    data.hedge.nominalUnits = hedgeUnits
-    data.hedge.satoshis = hedgeSatoshis
-    data.long.nominalUnits = longUnits
-    data.long.satoshis = longSatoshis
-
-    data.hedge.assetChangePctg = Math.round((hedgeUnits / props.contract?.metadata?.nominalUnits) * 10000)
-    data.hedge.bchChangePctg = Math.round((hedgeSatoshis / props.contract?.metadata?.hedgeInputSats) * 10000)
-    data.long.assetChangePctg = Math.round((longUnits / props.contract?.metadata?.longInputUnits) * 10000)
-    data.long.bchChangePctg = Math.round((longSatoshis / props.contract?.metadata?.longInputSats) * 10000)
-
-    data.hedge.assetChangePctg = -(10000 - data.hedge.assetChangePctg) / 100
-    data.hedge.bchChangePctg = -(10000 - data.hedge.bchChangePctg) / 100
-    data.long.assetChangePctg = -(10000 - data.long.assetChangePctg) / 100
-    data.long.bchChangePctg = -(10000 - data.long.bchChangePctg) / 100
-
-    data.priceValue = settlement?.settlementPrice
-  }
-  return data
-})
+const settlementMetadata = computed(() => parseSettlementMetadata(props?.contract))
 
 function resolveColor(changePctg) {
   if (changePctg > 0) return 'green'
