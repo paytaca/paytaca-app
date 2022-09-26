@@ -39,8 +39,10 @@ export function calculateHedgePositionOfferInputs(satoshis, lowLiquidationMultip
  * @param {Number} intent.highPriceMult - The USD/BCH price increase percentage to trigger liquidation
  * @param {Number} intent.duration - The number of seconds from the starting time of the hedge position
  * @param {Object} pubkeys - Necessary credentials for hedge and short
- * @param {String} pubkeys.hedgeAddress - Destination address of hedger's funds on maturity/liquidation
- * @param {String} pubkeys.hedgePubkey - Public key of hedger
+ * @param {String} [pubkeys.hedgeAddress] - Destination address of hedger's funds on maturity/liquidation
+ * @param {String} [pubkeys.hedgePubkey] - Public key of hedger
+ * @param {String} [pubkeys.longAddress] - Destination address of long's funds on maturity/liquidation
+ * @param {String} [pubkeys.longPubkey] - Public key of long
  * @param {Object} priceData
  * @param {Number} priceData.messageSequence
  * @param {Number} priceData.priceValue
@@ -48,8 +50,9 @@ export function calculateHedgePositionOfferInputs(satoshis, lowLiquidationMultip
  * @param {Number} priceData.oraclePubkey
  * @param {Object} liquidityServiceInfo
  * @param {String} privateKey
+ * @param {'hedge' | 'long'} position - Position that the user will take
  */
-export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData, liquidityServiceInfo, privateKey) {
+export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData, liquidityServiceInfo, privateKey, position='hedge') {
   const response = {
     success: false,
     contractData: {},
@@ -71,7 +74,10 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
     if (!generalProtocolLPBackend.defaults.headers) generalProtocolLPBackend.defaults.headers = {}
     generalProtocolLPBackend.defaults.headers.Authentication = _managerConfig.authenticationToken
 
-    const prepareContractPositionData = { oraclePublicKey: priceData.oraclePubkey, poolSide: 'hedge' }
+    const prepareContractPositionData = {
+      oraclePublicKey: priceData.oraclePubkey,
+      poolSide: position === 'hedge' ? 'long': 'hedge',
+    }
     const contractPosition = await generalProtocolLPBackend.post('/api/v1/prepareContractPosition', prepareContractPositionData)
 
     const hasLiquidity = contractInputs?.longSats < contractPosition?.data?.availableLiquidityInSatoshis
@@ -90,17 +96,13 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       longPublicKey: contractPosition?.data?.liquidityProvidersMutualRedemptionPublicKey,
       hedgeAddress: pubkeys.hedgeAddress,
       longAddress: contractPosition?.data?.liquidityProvidersPayoutAddress,
+    }
 
-      // oraclePublicKey: priceData.oraclePubkey,
-      // hedgePublicKey: pubkeys.hedgePubkey,
-      // longPublicKey: contractPosition?.data?.liquidityProvidersMutualRedemptionPublicKey,
-      // hedgeUnits: nominalUnits,
-      // startPrice: priceData.priceValue,
-      // startTimestamp: priceData.messageTimestamp,
-      // earliestLiquidationModifier: 0,
-      // maturityModifier: intent.duration,
-      // highLiquidationPriceMultiplier: intent.highPriceMult,
-      // lowLiquidationPriceMultiplier: intent.lowPriceMult,
+    if (position === 'long') {
+      contractCreationParameters.hedgePublicKey = contractPosition?.data?.liquidityProvidersMutualRedemptionPublicKey
+      contractCreationParameters.hedgeAddress = contractPosition?.data?.liquidityProvidersPayoutAddress
+      contractCreationParameters.longPublicKey = pubkeys.longPubkey
+      contractCreationParameters.longAddress = pubkeys.longAddress
     }
     const localContractData = await manager.createContract(contractCreationParameters)
 
