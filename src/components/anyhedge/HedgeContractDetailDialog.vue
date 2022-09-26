@@ -240,7 +240,7 @@
             </div>
           </div>
         </div>
-        <div v-if="!settled && funding === 'complete'">
+        <div v-if="!settled && funding === 'complete' && (mutualRedemptionAllowed || mutualRedemptionData.exists || mutualRedemptionData.txHash)">
           <div class="text-grey text-subtitle1">Mutual Redemption</div>
           <div v-if="mutualRedemptionData.txHash" class="row items-center">
             <div @click="copyText(mutualRedemptionData.txHash)" v-ripple style="position:relative;" class="text-body1">
@@ -337,7 +337,7 @@
             </div>
           </div>
           <q-btn
-            v-else
+            v-else-if="mutualRedemptionAllowed"
             no-caps
             color="brandblue"
             label="Propose Mutual Redemption"
@@ -617,6 +617,9 @@ async function verifyFundingProposalUtxo(position) {
   })
 }
 
+const mutualRedemptionAllowed = computed(() => {
+  return props.contract?.metadata?.enableMutualRedemption && props.contract?.hedgeWalletHash && props.contract?.longWalletHash
+})
 function openCreateMutualRedemptionFormDialog() {
   $q.dialog({
     component: CreateMutualRedemptionFormDialog,
