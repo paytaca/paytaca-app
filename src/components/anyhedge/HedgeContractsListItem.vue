@@ -75,7 +75,7 @@
 </template>
 <script setup>
 import { useQuasar } from 'quasar';
-import { formatUnits, formatDate, ellipsisText } from 'src/wallet/anyhedge/formatters';
+import { formatUnits, formatDate, ellipsisText, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useStore } from 'vuex';
 
@@ -146,31 +146,7 @@ const fundingIconTooltip = computed(() => {
   return ''
 })
 
-const settlementMetadata = computed(() => {
-  const data = {
-    settlementPriceValue: 0,
-    hedge: { assetChangePctg: 0, bchChangePctg: 0 },
-    long: { assetChangePctg: 0, bchChangePctg: 0 },
-  }
-  const settlement = props.contract?.settlement?.[0]
-  if (settlement?.hedgeSatoshis >= 0 && settlement?.longSatoshis >= 0 && settlement?.settlementPrice) {
-    data.settlementPriceValue = settlement.settlementPrice
-    const { hedgeSatoshis, longSatoshis } = settlement
-    const hedgeUnits = (hedgeSatoshis * settlement.settlementPrice) / 10 ** 8
-    const longUnits = (longSatoshis * settlement.settlementPrice) / 10 ** 8
-  
-    data.hedge.assetChangePctg = Math.round((hedgeUnits / props.contract?.metadata?.nominalUnits) * 10000)
-    data.hedge.bchChangePctg = Math.round((hedgeSatoshis / props.contract?.metadata?.hedgeInputSats) * 10000)
-    data.long.assetChangePctg = Math.round((longUnits / props.contract?.metadata?.longInputUnits) * 10000)
-    data.long.bchChangePctg = Math.round((longSatoshis / props.contract?.metadata?.longInputSats) * 10000)
-
-    data.hedge.assetChangePctg = -(10000 - data.hedge.assetChangePctg) / 100
-    data.hedge.bchChangePctg = -(10000 - data.hedge.bchChangePctg) / 100
-    data.long.assetChangePctg = -(10000 - data.long.assetChangePctg) / 100
-    data.long.bchChangePctg = -(10000 - data.long.bchChangePctg) / 100
-  }
-  return data
-})
+const settlementMetadata = computed(() => parseSettlementMetadata(props?.contract))
 
 function resolveColor(changePctg) {
   if (changePctg > 0) return 'green'
