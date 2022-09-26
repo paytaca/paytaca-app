@@ -43,10 +43,16 @@
       </div>
     </div>
     <div v-if="settled">
+      <div>
+        Settlement type: {{ settlementMetadata.settlementTypeText }}
+        <template v-if="settlementMetadata.mutualRedemptionTypeText">
+          ({{settlementMetadata.mutualRedemptionTypeText}})
+        </template>
+      </div>
       <div class="row">
         <div class="col">
           <div>Hedge</div>
-          <div :class="`text-${resolveColor(settlementMetadata.hedge.assetChangePctg)}` + ' text-weight-medium'">
+          <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.hedge.assetChangePctg)}` + ' text-weight-medium'">
             {{ oracleInfo?.assetCurrency || 'Asset' }}: {{ settlementMetadata.hedge.assetChangePctg }}%
           </div>
           <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
@@ -55,7 +61,7 @@
         </div>
         <div class="col">
           <div>Long</div>
-          <div :class="`text-${resolveColor(settlementMetadata.long.assetChangePctg)}` + ' text-weight-medium'">
+          <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.long.assetChangePctg)}` + ' text-weight-medium'">
             {{ oracleInfo?.assetCurrency || 'Asset' }}: {{ settlementMetadata.long.assetChangePctg }}%
           </div>
           <div :class="`text-${resolveColor(settlementMetadata.long.bchChangePctg)}` + ' text-weight-medium'">
