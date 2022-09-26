@@ -560,7 +560,7 @@ async function createHedgePosition() {
   const hedgePositionOfferData = {
     wallet_hash: misc.walletHash,
 
-    satoshis: intent.amount * 10 ** 8,
+    satoshis: Math.round(intent.amount * 10 ** 8),
     duration_seconds: intent.duration,
     high_liquidation_multiplier: intent.highPriceMult,
     low_liquidation_multiplier: intent.lowPriceMult,
