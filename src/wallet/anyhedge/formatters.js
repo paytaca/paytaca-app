@@ -78,9 +78,11 @@ export function ellipsisText (value, config) {
  * @param {Number} data.satoshis - Hedge value in satoshis
  * @param {Number} data.start_timestamp
  * @param {Number} data.maturity_timestamp
+ * @param {String} [data.hedge_wallet_hash]
  * @param {String} data.hedge_address
  * @param {String} data.hedge_pubkey
  * @param {String} [data.hedge_address_path]
+ * @param {String} [data.long_wallet_hash]
  * @param {String} data.long_address
  * @param {String} data.long_pubkey
  * @param {String} [data.long_address_path]
@@ -136,7 +138,9 @@ export async function parseHedgePositionData(data) {
     )
   }
 
+  contractData.hedgeWalletHash = data.hedge_wallet_hash
   contractData.hedgeAddressPath = data.hedge_address_path
+  contractData.longWalletHash = data.long_wallet_hash
   contractData.longAddressPath = data.long_address_path
   contractData.fundingTxHash = data.funding_tx_hash
   // contractData.fundingTxHash = 'bb743a47d81e8da85e2a0aebd03fd1be29d9703f23c0f431caf714c3e8588498'
