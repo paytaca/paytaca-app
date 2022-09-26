@@ -406,7 +406,9 @@ async function createHedgePosition() {
     try {
       loading.value = true
       loadingMsg.value = 'Calculating contract fees'
-      const generalProtocolsLPFeeResponse = await calculateGeneralProtocolsLPFee(intent, pubkeys, priceData, liquidityServiceInfo.value, addressSet.privateKey)
+      const generalProtocolsLPFeeResponse = await calculateGeneralProtocolsLPFee(
+        intent, pubkeys, priceData, liquidityServiceInfo.value, addressSet.privateKey, 'hedge'
+      )
       if(!generalProtocolsLPFeeResponse?.success) throw generalProtocolsLPFeeResponse
 
       misc.accessKeys.publicKey = generalProtocolsLPFeeResponse.accessKeys.publicKey
@@ -509,6 +511,7 @@ async function createHedgePosition() {
 
   const fungGPLPContractData = {
     contract_address: funding.contractData.address,
+    position: 'hedge',
     hedge_wallet_hash: misc.walletHash,
     hedge_pubkey: misc.accessKeys.publicKey,
     hedge_address_path: pubkeys.hedgeAddressPath,
