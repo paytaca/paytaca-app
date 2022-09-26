@@ -191,6 +191,12 @@
         <div v-if="settled">
           <div class="text-grey text-subtitle1">Settlement</div>
 
+          <div class="text-body2">
+            Settlement type: {{ settlementMetadata.settlementTypeText }}
+            <template v-if="settlementMetadata.mutualRedemptionTypeText">
+              ({{settlementMetadata.mutualRedemptionTypeText}})
+            </template>
+          </div>
           <div v-if="settlementMetadata.txid" class="row items-center now-wrap">
             <div @click="copyText(settlementMetadata.txid)" v-ripple style="position:relative;" class="text-body2">
               Transaction: {{ ellipsisText(settlementMetadata.txid, {start: 5, end: 10}) }}
@@ -204,14 +210,15 @@
               target="_blank"
             />
           </div>
-          <div class="text-body2">
-            Settlement Price: {{ formatUnits(settlementMetadata.priceValue, oracleInfo.assetDecimals) }}
+          <div v-else>Settlement transaction not found</div>
+          <div v-if="settlementMetadata.settlementPriceValue" class="text-body2">
+            Settlement Price: {{ formatUnits(settlementMetadata.settlementPriceValue, oracleInfo.assetDecimals) }}
             <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
           </div>
           <div class="row">
             <div class="col">
               <div class="text-grey-7">Hedge</div>
-              <div :class="`text-${resolveColor(settlementMetadata.hedge.assetChangePctg)}` + ' text-weight-medium'">
+              <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.hedge.assetChangePctg)}` + ' text-weight-medium'">
                 {{ formatUnits(contract?.metadata?.nominalUnits, oracleInfo.assetDecimals) }} -
                 {{ formatUnits(settlementMetadata.hedge.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
@@ -222,7 +229,7 @@
             </div>
             <div class="col">
               <div class="text-grey-7">Long</div>
-              <div :class="`text-${resolveColor(settlementMetadata.long.assetChangePctg)}` + ' text-weight-medium'">
+              <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.long.assetChangePctg)}` + ' text-weight-medium'">
                 {{ formatUnits(contract?.metadata?.longInputUnits, oracleInfo.assetDecimals) }} -
                 {{ formatUnits(settlementMetadata.long.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
