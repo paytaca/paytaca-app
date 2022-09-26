@@ -84,7 +84,7 @@
         </q-slide-transition>
       </template>
       <template v-else-if="selectedAccountType === 'long'">
-        <q-card-section class="text-h5">
+        <q-card-section class="text-h5 q-pb-none">
           <div>
             <div class="text-caption text-grey">Total Long Positions</div>
             <div class="row items-center">
@@ -92,9 +92,29 @@
                 <q-skeleton v-if="fetchingLongPositions" class="q-mr-sm"/>
                 <span v-else>{{ totalLongSats / 10 ** 8 }} BCH</span>
               </div>
+              <q-btn
+                v-if="!showCreateLongForm"
+                icon="add"
+                padding="xs"
+                round
+                :color="darkMode ? 'grad' : 'brandblue'"
+                @click="showCreateLongForm = !showCreateLongForm"
+              />
             </div>
           </div>
           <q-separator :color="darkMode ? 'white' : 'grey'" spaced/>
+        </q-card-section>
+        <q-slide-transition>
+          <q-card-section v-if="showCreateLongForm">
+            <CreateHedgeForm
+              position="long"
+              :wallet="wallet"
+              @created="emitData => onHedgeFormCreate(emitData)"
+              @cancel="() => showCreateLongForm = false"
+            />
+          </q-card-section>
+        </q-slide-transition>
+        <q-card-section class="text-h5 q-pt-none">
           <div>
             <div class="text-caption text-grey">Liquidity Allowance</div>
             <div class="row items-center">
@@ -177,11 +197,11 @@
         </q-expansion-item>
       </template>
       <template v-else-if="selectedAccountType === 'long'">
-        <q-expansion-item label="Long Positions">
+        <q-expansion-item ref="hedgesDrawerRef" label="Long Positions">
           <q-card-section v-if="fetchingLongPositions" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeContractsList v-else :contracts="longPositions" view-as="long" :wallet="wallet"/>
+          <HedgeContractsList ref="hedgesListRef" v-else :contracts="longPositions" view-as="long" :wallet="wallet"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -434,17 +454,19 @@ function onHedgeFormCreate(data) {
   if (data.hedgePositionOffer?.id) fetchHedgeOffers()
   if (data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address) {
     const contractAddress = data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address
-    const fetchHedgeContractsResponse = fetchHedgeContracts()
+    const fetchHedgeContractsResponse = data?.position === 'long' ? fetchLongPositions() : fetchHedgeContracts()
     $q.dialog({
-      title: 'Hedge Position',
-      message: 'Hedge position created.<br/>Address: ' + contractAddress,
+      title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position`,
+      message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position created.<br/>Address: ` + contractAddress,
       html: true,
       class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
       style: 'word-break:break-all;',
     }).onDismiss(() => {
       fetchHedgeContractsResponse.then(() => {
-        const contract = contracts.value.find(contract => contract?.address == contractAddress)
-        showCreateHedgeForm.value = false
+        const contractsList = data?.position === 'long' ? longPositions.value : contracts.value
+        const contract = contractsList.find(contract => contract?.address == contractAddress)
+        if (data?.position === 'long') showCreateLongForm.value = false
+        else showCreateHedgeForm.value = false
         hedgesDrawerRef.value?.show?.()
         hedgesListRef?.value?.displayContractInDialog?.(contract)
       })
@@ -453,6 +475,7 @@ function onHedgeFormCreate(data) {
 }
 
 // long positions
+const showCreateLongForm = ref(false)
 const longAccount = ref({ wallet_hash: '' })
 const fetchingLongAccount = ref(false)
 const showAddLiquidityForm = ref(false)
@@ -482,7 +505,7 @@ const fetchingLongPositions = ref(false)
 function fetchLongPositions(pagination) {
   fetchingLongPositions.value = true
   const walletHash = wallet.value.BCH.getWalletHash()
-  anyhedgeBackend.get(
+  return anyhedgeBackend.get(
     '/anyhedge/hedge-positions/',
     {
       params: {

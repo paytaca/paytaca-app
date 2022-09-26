@@ -15,6 +15,20 @@
         {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
       </template>
     </div>
+    <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
+      <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }}</span>
+      <q-icon
+        :color="darkMode ? 'grey-7' : 'black'"
+        size="sm"
+        name="help"
+      >
+        <q-popup-proxy :breakpoint="0">
+          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+            Hedge amount is calculated from long amount below & low liquidation percentage below
+          </div>
+        </q-popup-proxy>
+      </q-icon>
+    </div>
     <div class="row no-wrap q-gutter-x-sm">
       <q-input
         :dark="darkMode"
@@ -183,6 +197,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import DurationField from './DurationField.vue';
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
+import { emit } from 'process';
 
 function alertError(...args) {
   console.error('form error', args)
@@ -196,6 +211,14 @@ const $emit = defineEmits(['created', 'cancel'])
 
 const props = defineProps({
   wallet: Wallet,
+  position: {
+    type: String,
+    default: 'hedge',
+    validator(value) {
+      // The value must match one of these strings
+      return ['hedge', 'long'].includes(value)
+    }
+  }
 })
 
 const oracles = computed(() => {
@@ -227,7 +250,11 @@ const createHedgeForm = ref({
   autoMatchPoolTarget: 'anyhedge_LP',
 })
 const createHedgeFormMetadata = computed(() => {
-  const data = { nominalAmount: 0, longNominalAmount: 0, lowLiquidationPrice: 0, highLiquidationPrice: 0 }
+  const data = {
+    nominalAmount: 0, longNominalAmount: 0,
+    lowLiquidationPrice: 0, highLiquidationPrice: 0,
+    intentAmountBCH: 0,
+  }
 
   // const priceValue = 13049
   const priceValue = createHedgeForm.value?.selectedAsset?.latestPrice?.priceValue
@@ -246,6 +273,15 @@ const createHedgeFormMetadata = computed(() => {
     // const totalNominalAmountMult = 100 / createHedgeForm.value.lowLiquidationMultiplierPctg
     // const totalNominalAmount = data.nominalAmount * totalNominalAmountMult
     data.couterPartyNominalAmount = longNominalUnits
+  }
+
+  if (props?.position === 'long') {
+    const lowPriceMult = createHedgeForm.value.lowLiquidationMultiplierPctg / 100
+    const amount = createHedgeForm.value.amount
+    data.intentAmountBCH = amount / (1/lowPriceMult - 1)
+    data.intentAmountBCH = Math.round(data.intentAmountBCH * 10 ** 8) / 10 ** 8
+  } else {
+    data.intentAmountBCH = createHedgeForm.value.amount
   }
 
   return data
@@ -280,7 +316,7 @@ const createHedgeFormConstraints = computed(() => {
 
   const { autoMatch, autoMatchPoolTarget, selectedAsset } = createHedgeForm.value
   if (autoMatch && autoMatchPoolTarget === 'anyhedge_LP' && selectedAsset) {
-    const constraints = liquidityServiceInfo.value?.liquidityParameters?.[selectedAsset?.oraclePubkey]?.hedge
+    const constraints = liquidityServiceInfo.value?.liquidityParameters?.[selectedAsset?.oraclePubkey]?.[props.position == 'hedge' ? 'long' : 'hedge']
     if (constraints) Object.assign(data, constraints)
 
     const priceValue = selectedAsset?.latestPrice?.priceValue
@@ -362,14 +398,27 @@ async function createHedgePosition() {
 
   // return console.log(getAddressesResponse)
 
+  // hold data in case the source value changes while the whole process ingoing
+  const position = props.position
+   
   // grouping data
   const intent = {
-    amount: createHedgeForm.value.amount,
+    amount: createHedgeFormMetadata.value.intentAmountBCH,
     lowPriceMult: createHedgeForm.value.lowLiquidationMultiplierPctg / 100,
     highPriceMult: createHedgeForm.value.highLiquidationMultiplierPctg / 100,
     duration: createHedgeForm.value.duration,
   }
-  const pubkeys = { hedgeAddress: addressSet.receiving, hedgePubkey: addressSet.pubkey, hedgeAddressPath: `0/${addressSet.index}` }
+
+  const pubkeys = {
+    hedgeAddress:     position === 'hedge' ? addressSet.receiving : undefined,
+    hedgePubkey:      position === 'hedge' ? addressSet.pubkey : undefined,
+    hedgeAddressPath: position === 'hedge' ? `0/${addressSet.index}` : undefined,
+
+    longAddress:      position === 'long' ? addressSet.receiving : undefined,
+    longPubkey:       position === 'long' ? addressSet.pubkey : undefined,
+    longAddressPath:  position === 'long' ? `0/${addressSet.index}` : undefined,
+  }
+
   const misc = {
     walletHash: props.wallet.BCH.getWalletHash(),
     autoMatch: createHedgeForm.value.autoMatch,
@@ -401,21 +450,36 @@ async function createHedgePosition() {
     contractData: {},
   }
 
+  // limit long positions to GP LP for now
+  if (position === 'long' && (!misc.autoMatch || misc.autoMatchPoolTarget !== 'anyhedge_LP')) {
+    errors.value = ['Creating long positions are only available for General Protocol LP']
+    loading.value = false
+    loadingMsg.value = ''
+    return
+  }
+
   // calculating fees
   if (misc.autoMatchPoolTarget === 'anyhedge_LP') {
     try {
       loading.value = true
       loadingMsg.value = 'Calculating contract fees'
       const generalProtocolsLPFeeResponse = await calculateGeneralProtocolsLPFee(
-        intent, pubkeys, priceData, liquidityServiceInfo.value, addressSet.privateKey, 'hedge'
+        intent, pubkeys, priceData, liquidityServiceInfo.value, addressSet.privateKey, position,
       )
       if(!generalProtocolsLPFeeResponse?.success) throw generalProtocolsLPFeeResponse
 
       misc.accessKeys.publicKey = generalProtocolsLPFeeResponse.accessKeys.publicKey
       misc.accessKeys.signature = generalProtocolsLPFeeResponse.accessKeys.signature
-      pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longAddress
-      pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.metadata.longPublicKey
-      if (generalProtocolsLPFeeResponse.contractData?.fee?.satoshis) {
+      if (position === 'hedge') {
+        pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longAddress
+        pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.metadata.longPublicKey
+      } else if (position === 'long') {
+        pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgeAddress
+        pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.metadata.hedgePublicKey
+      }
+
+      const fee = generalProtocolsLPFeeResponse.contractData?.fee
+      if (fee?.satoshis && fee?.address) {
         funding.fee.satoshis = generalProtocolsLPFeeResponse.contractData.fee.satoshis
         funding.fee.address = generalProtocolsLPFeeResponse.contractData.fee.address
       }
@@ -452,7 +516,7 @@ async function createHedgePosition() {
 
       loading.value = true
       loadingMsg.value = 'Creating utxo for funding proposal'
-      const contractData = await parseHedgePositionData({
+      const contractCreationParameters = {
         satoshis: intent.amount * 10 ** 8,
         start_timestamp: priceData.messageTimestamp,
         maturity_timestamp: priceData.messageTimestamp + intent.duration,
@@ -464,13 +528,17 @@ async function createHedgePosition() {
         start_price: priceData.priceValue,
         low_liquidation_multiplier: intent.lowPriceMult,
         high_liquidation_multiplier: intent.highPriceMult,
-      })
+      }
+      console.log(contractCreationParameters)
+      const contractData = await parseHedgePositionData(contractCreationParameters)
 
-      if (!contractData.fee) contractData.fee = {}
-      contractData.fee.satoshis = funding.fee.satoshis
-      contractData.fee.address = funding.fee.address
+      if (funding.fee.satoshis && funding.fee.address) {
+        if (!contractData.fee) contractData.fee = {}
+        contractData.fee.satoshis = funding.fee.satoshis
+        contractData.fee.address = funding.fee.address
+      }
       const { fundingUtxo, signedFundingProposal } = await createFundingProposal(
-        contractData, "hedge", props.wallet, addressSet, funding.liquidityFee, 'hedge')
+        contractData, position, props.wallet, addressSet, funding.liquidityFee, position)
       funding.fundingProposal.txHash = fundingUtxo.txid
       funding.fundingProposal.txIndex = fundingUtxo.vout
       funding.fundingProposal.txValue = fundingUtxo.amount
@@ -501,6 +569,10 @@ async function createHedgePosition() {
     hedge_pubkey: pubkeys.hedgePubkey,
     hedge_address_path: pubkeys.hedgeAddressPath,
 
+    long_address: pubkeys.longAddress,
+    long_pubkey: pubkeys.longPubkey,
+    long_address_path: pubkeys.longAddressPath,
+
     oracle_pubkey: priceData.oraclePubkey || undefined,
     price_oracle_message_sequence: priceData.messageSequence || undefined,
 
@@ -510,17 +582,21 @@ async function createHedgePosition() {
   }
 
   const fungGPLPContractData = {
-    contract_address: funding.contractData.address,
-    position: 'hedge',
-    hedge_wallet_hash: misc.walletHash,
-    hedge_pubkey: misc.accessKeys.publicKey,
-    hedge_address_path: pubkeys.hedgeAddressPath,
-    oracle_message_sequence: priceData.messageSequence || undefined,
+    contract_address:         funding.contractData.address,
+    position:                 position,
+    hedge_wallet_hash:        position === 'hedge' ? misc.walletHash : undefined,
+    hedge_pubkey:             position === 'hedge' ? misc.accessKeys.publicKey : undefined,
+    hedge_address_path:       position === 'hedge' ? pubkeys.hedgeAddressPath : undefined,
+    long_wallet_hash:         position === 'long' ? misc.walletHash : undefined,
+    long_pubkey:              position === 'long' ? misc.accessKeys.publicKey : undefined,
+    long_address_path:        position === 'long' ? pubkeys.longAddressPath : undefined,
+    oracle_message_sequence:  priceData.messageSequence || undefined,
     settlement_service: {
       domain: liquidityServiceInfo.value?.settlementService?.host,
       scheme: liquidityServiceInfo.value?.settlementService?.scheme,
       port: liquidityServiceInfo.value?.settlementService?.port,
-      hedge_signature: misc.accessKeys.signature,
+      hedge_signature: position === 'hedge' ? misc.accessKeys.signature : undefined,
+      long_signature: position === 'long' ? misc.accessKeys.signature : undefined,
     },
     funding_proposal: {
       tx_hash: funding.fundingProposal.txHash,
@@ -551,12 +627,19 @@ async function createHedgePosition() {
 
   loading.value = true
   loadingMsg.value = isResponseOffer ? 'Creating hedge position offer' : 'Finalizing hedge position'
+  if (isResponseOffer) {
+    if (position === 'hedge') loadingMsg.value = 'Creating hedge position offer'
+    if (position === 'long') loadingMsg.value = 'Creating long position offer'
+  } else {
+    if (position === 'hedge') loadingMsg.value = 'Finalizing hedge position'
+    if (position === 'long') loadingMsg.value = 'Finalizing long position'
+  }
 
   anyhedgeBackend.post(path, data)  
     .then(response => {
       console.log(response)
       if(response?.data?.id || response?.data?.hedge_position?.id) {
-        const emitData = {}
+        const emitData = { position: position }
         if (isResponseOffer) emitData.hedgePositionOffer = response.data
         else emitData.hedgePosition = response.data
         $emit('created', emitData)
@@ -568,9 +651,11 @@ async function createHedgePosition() {
     })
     .catch(error => {
       console.log(error)
-      errors.value = [
-        isResponseOffer ? 'Encountered error in creating hedge position offer' : 'Encountered error in creating hedge position'
-      ]
+      let errorMsg = 'Encountered Msg creating contract'
+      if (position === 'hedge') errorMsg = 'Encountered error in creating hedge position'
+      if (position === 'long') errorMsg = 'Encountered error in creating hedge position'
+      if (isResponseOffer) errorMsg += ' offer'
+      errors.value = [errorMsg]
     })
     .finally(() => {
       loading.value = false
