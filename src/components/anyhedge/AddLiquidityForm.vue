@@ -14,6 +14,7 @@
       label="Allowance"
       suffix="BCH"
       :disable="loading"
+      inputmode="numeric"
       v-model="addLiquidityForm.approvedAmount"
       :rules="[
         val => val >= 0 || 'Invalid amount',

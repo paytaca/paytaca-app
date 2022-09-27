@@ -7,6 +7,7 @@
       :label="label"
       class="q-space"
       :disable="disable"
+      inputmode="numeric"
       v-model="innerModelValue.amount"
       :error="hasErrors"
       :error-message="errors?.[0]"

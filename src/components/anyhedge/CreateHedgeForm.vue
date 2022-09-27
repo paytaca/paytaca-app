@@ -37,6 +37,7 @@
         label="Amount"
         suffix="BCH"
         :disable="loading"
+        inputmode="numeric"
         v-model="createHedgeForm.amount"
         reactive-rules
         :rules="[
@@ -92,6 +93,7 @@
         label="Low"
         suffix="%"
         :disable="loading"
+        inputmode="numeric"
         v-model="createHedgeForm.lowLiquidationMultiplierPctg"
         reactive-rules
         :rules="[
@@ -113,6 +115,7 @@
         label="High"
         suffix="%"
         :disable="loading"
+        inputmode="numeric"
         v-model="createHedgeForm.highLiquidationMultiplierPctg"
         :rules="[
           val => (val > 100) || 'Invalid'
