@@ -16,7 +16,7 @@
       </template>
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
-      <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }}</span>
+      <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }} BCH</span>
       <q-icon
         :color="darkMode ? 'grey-7' : 'black'"
         size="sm"
@@ -156,7 +156,7 @@
           v-model="createHedgeForm.autoMatchPoolTarget"
           :options="[
             {label: 'General Protocol LP', value: 'anyhedge_LP'},
-            {label: 'Paytaca (P2P)', value: 'watchtower_P2P' },
+            {label: 'Paytaca (P2P)', value: 'watchtower_P2P', disable: true },
           ]"
         />
       </div>
