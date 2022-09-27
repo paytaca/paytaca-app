@@ -84,7 +84,7 @@
         </q-slide-transition>
       </template>
       <template v-else-if="selectedAccountType === 'long'">
-        <q-card-section class="text-h5 q-pb-none">
+        <q-card-section class="text-h5">
           <div>
             <div class="text-caption text-grey">Total Long Positions</div>
             <div class="row items-center">
@@ -102,10 +102,9 @@
               />
             </div>
           </div>
-          <q-separator :color="darkMode ? 'white' : 'grey'" spaced/>
         </q-card-section>
         <q-slide-transition>
-          <q-card-section v-if="showCreateLongForm">
+          <q-card-section v-if="showCreateLongForm" style="border-top: 1px solid gray">
             <CreateHedgeForm
               position="long"
               :wallet="wallet"
@@ -114,7 +113,8 @@
             />
           </q-card-section>
         </q-slide-transition>
-        <q-card-section class="text-h5 q-pt-none">
+        <!-- <q-separator :color="darkMode ? 'white' : 'grey'" inset/>
+        <q-card-section class="text-h5">
           <div>
             <div class="text-caption text-grey">Liquidity Allowance</div>
             <div class="row items-center">
@@ -145,7 +145,7 @@
               @update-long-account="updateLongAccount"
             />
           </q-card-section>
-        </q-slide-transition>
+        </q-slide-transition> -->
       </template>
     </q-card>
 
