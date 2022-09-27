@@ -26,7 +26,7 @@
                 :dark="darkMode"
                 v-model="manualAddress"
                 :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
-                @input="resolveLnsName"
+                @update:model-value="resolveLnsName"
               >
                 <template v-slot:append>
                   <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />

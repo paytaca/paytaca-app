@@ -300,6 +300,7 @@ export default {
         vm.selectedAsset = vm.bchAsset
         vm.transactions = []
         vm.transactionsLoaded = false
+        vm.transactionsPage = 0
         vm.wallet = null
         vm.loadWallets().then(() => {
           vm.assets.map(function (asset) {
