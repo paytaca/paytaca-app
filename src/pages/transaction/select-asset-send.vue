@@ -44,6 +44,7 @@
           </div>
         </div>
       </div>
+      <div style="height: 90px;" v-if="assets.length > 5"></div>
     </template>
     <div
       v-else
