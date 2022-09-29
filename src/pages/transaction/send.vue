@@ -103,8 +103,34 @@
                   :disabled="disableAmountInput"
                   :readonly="disableAmountInput"
                   :dark="darkMode"
-                ></q-input>
-                <div v-if="sendAmountMarketValue" class="text-body2 text-grey q-mt-sm q-px-sm">
+                >
+                  <template v-slot:append>
+                    {{ asset.symbol }}
+                  </template>
+                </q-input>
+                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </div>
+              </div>
+            </div>
+            <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
+              <div class="col q-mt-md">
+                <q-input
+                  type="text"
+                  inputmode="none"
+                  ref="amount"
+                  @focus="readonlyState(true)"
+                  @blur="readonlyState(false)"
+                  filled
+                  v-model="sendAmountInFiat"
+                  label="Amount"
+                  :dark="darkMode"
+                >
+                  <template v-slot:append>
+                    {{ String(selectedMarketCurrency).toUpperCase() }}
+                  </template>
+                </q-input>
+                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
                   ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
                 </div>
               </div>
@@ -112,13 +138,27 @@
             <div class="row" v-if="!isNFT">
               <div class="col q-mt-md" style="font-size: 18px; color: gray;">
                 Balance: {{ asset.balance }} {{ asset.symbol }}
+                <template v-if="asset.id === 'bch' && setAmountInFiat">
+                  = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </template>
                 <a
                   href="#"
-                  v-if="!disableAmountInput"
+                  v-if="!disableAmountInput || (setAmountInFiat && !sendData.sending)"
                   @click.prevent="setMaximumSendAmount"
                   style="float: right; text-decoration: none; color: #3b7bf6;"
                 >
                   MAX
+                </a>
+              </div>
+            </div>
+            <div class="row" v-if="!isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+              <div class="col q-mt-md">
+                <a
+                  style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
+                  href="#"
+                  @click.prevent="() => {setAmountInFiat = true}"
+                >
+                  Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
                 </a>
               </div>
             </div>
@@ -167,14 +207,26 @@
             </ul>
           </div>
         </div>
-        <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -30px;">
-          <q-icon size="120px" name="check_circle" color="green-5"></q-icon>
+        <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -50px;">
+          <q-icon size="100px" name="check_circle" color="green-5"></q-icon>
           <div :class="darkMode ? 'text-white' : 'pp-text'" style="margin-top: 20px;">
             <p style="font-size: 30px;">Successfully sent</p>
             <p style="font-size: 28px; margin-top: -15px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+            <p v-if="asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
+              ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
+            </p>
             <p style="font-size: 24px;">to</p>
             <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
               {{ this.sendData.recipientAddress }}
+            </div>
+            <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
+              txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
+              <a
+                style="text-decoration: none; color: #3b7bf6;"
+                :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
+              >
+                View in explorer
+              </a>
             </div>
           </div>
         </div>
@@ -306,7 +358,9 @@ export default {
       customKeyboardState: 'dismiss',
       sliderStatus: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      showQrScanner: false
+      showQrScanner: false,
+      setAmountInFiat: false,
+      sendAmountInFiat: null
     }
   },
 
@@ -363,7 +417,7 @@ export default {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     },
     disableAmountInput () {
-      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
+      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState || this.setAmountInFiat
     },
     showSlider () {
       return this.sendData.sending !== true && this.sendData.sent !== true && this.sendErrors.length === 0 && this.sliderStatus === true
@@ -389,6 +443,9 @@ export default {
       if (address && this.isNFT) {
         this.sliderStatus = true
       }
+    },
+    sendAmountInFiat: function (amount) {
+      this.sendData.amount = this.convertFiatToSelectedAsset(amount)
     }
   },
 
@@ -453,12 +510,34 @@ export default {
       this.lns.name = ''
       this.lns.address = ''
     },
+    convertToFiatAmount (amount) {
+      const parsedAmount = Number(amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
+      if (!computedBalance) return ''
+
+      return computedBalance.toFixed(2)
+    },
+    convertFiatToSelectedAsset (amount) {
+      const parsedAmount = Number(amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
+      return computedBalance.toFixed(8)
+    },
     setAmount (key) {
-      this.sendData.amount = this.sendData.amount === null ? '' : this.sendData.amount
-      if (key === '.' && this.sendData.amount === '') {
-        this.sendData.amount = 0 + key
+      let sendAmount
+      if (this.setAmountInFiat) {
+        sendAmount = this.sendAmountInFiat
       } else {
-        let amount = this.sendData.amount.toString()
+        sendAmount = this.sendData.amount
+      }
+      sendAmount = sendAmount === null ? '' : sendAmount
+      if (key === '.' && sendAmount === '') {
+        sendAmount = 0 + key
+      } else {
+        let amount = sendAmount.toString()
         const hasPeriod = amount.indexOf('.')
         if (hasPeriod < 1) {
           if (Number(amount) === 0 && Number(key) > 0) {
@@ -475,16 +554,28 @@ export default {
           amount += key !== '.' ? key.toString() : ''
         }
         // Set the new amount
-        this.sendData.amount = amount
+        if (this.setAmountInFiat) {
+          this.sendAmountInFiat = amount
+        } else {
+          this.sendData.amount = amount
+        }
       }
     },
     makeKeyAction (action) {
       if (action === 'backspace') {
         // Backspace
-        this.sendData.amount = this.sendData.amount.slice(0, -1)
+        if (this.setAmountInFiat) {
+          this.sendAmountInFiat = this.sendAmountInFiat.slice(0, -1)
+        } else {
+          this.sendData.amount = this.sendData.amount.slice(0, -1)
+        }
       } else if (action === 'delete') {
         // Delete
-        this.sendData.amount = ''
+        if (this.setAmountInFiat) {
+          this.sendAmountInFiat = ''
+        } else {
+          this.sendData.amount = ''
+        }
       } else {
         // Enabled submit slider
         this.sliderStatus = true
