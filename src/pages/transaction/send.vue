@@ -69,7 +69,7 @@
           </div>
         </div>
         <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
-          <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
+          <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
             <div class="row">
               <div class="col q-mt-sm se">
                 <q-input
