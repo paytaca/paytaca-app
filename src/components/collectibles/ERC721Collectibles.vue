@@ -26,6 +26,7 @@
           :modelValue="pageNumberPaginationData.currentPage"
           :max="pageNumberPaginationData.pageCount"
           :max-pages="6"
+          :dark="$store.getters['darkmode/getStatus']"
           unelevated
           padding="xs sm"
           input

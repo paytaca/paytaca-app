@@ -778,17 +778,19 @@ export default {
 
     vm.adjustTransactionsDivHeight()
 
-    if (Array.isArray(vm.assets) && this.assets.length > 0) {
-      vm.selectedAsset = this.bchAsset
-    }
-
     // Load wallets
     this.loadWallets().then(() => {
       vm.assets.map(function (asset) {
         return vm.getBalance(asset.id)
       })
-      vm.getTransactions()
 
+      if (Array.isArray(vm.assets) && vm.assets.length > 0) {
+        vm.selectedAsset = vm.bchAsset
+        vm.getBalance(vm.selectedAsset.id)
+        vm.getTransactions()
+      }
+
+      // vm.getTransactions()
       // Temporarily disable automated checking of unlisted assets
       // if (vm.$root.hasSuggestedAssets) return
       // vm.checkMissingAssets().then(() => {
