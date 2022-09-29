@@ -74,7 +74,7 @@ export default {
   },
   methods: {
     verify () {
-      const url = 'https://sonar.cash/address/' + this.collectible.contractAddress
+      const url = 'https://sonar.cash/token/' + this.collectible.contractAddress + '/instance/' + this.collectible.id
       openURL(url)
     },
     send () {
