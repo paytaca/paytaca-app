@@ -93,7 +93,7 @@
               <div class="col q-mt-md">
                 <q-input
                   type="text"
-                  inputmode="tel"
+                  inputmode="none"
                   ref="amount"
                   @focus="readonlyState(true)"
                   @blur="readonlyState(false)"
