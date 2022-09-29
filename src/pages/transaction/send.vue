@@ -565,9 +565,9 @@ export default {
       if (action === 'backspace') {
         // Backspace
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = this.sendAmountInFiat.slice(0, -1)
+          this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
         } else {
-          this.sendData.amount = this.sendData.amount.slice(0, -1)
+          this.sendData.amount = String(this.sendData.amount).slice(0, -1)
         }
       } else if (action === 'delete') {
         // Delete
@@ -681,6 +681,7 @@ export default {
         } else {
           this.sendData.amount = this.asset.spendable
         }
+        this.sendAmountInFiat = this.convertToFiatAmount(this.sendData.amount)
       } else {
         this.sendData.amount = this.asset.balance
       }
