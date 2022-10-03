@@ -360,6 +360,7 @@ import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
 import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog.vue'
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 
 // dialog plugins requirement
 defineEmits([
@@ -393,6 +394,12 @@ const props = defineProps({
   viewAs: String,
   wallet: Object,
 })
+
+async function dialogPromise(qDialogOptions) {
+  return new Promise((resolve, reject) => {
+    $q.dialog(qDialogOptions).onOk(resolve).onDismiss(reject)
+  })
+}
 
 const viewAsHedge = computed(() => props.viewAs === 'hedge')
 const viewAsLong = computed(() => props.viewAs === 'long')
@@ -489,8 +496,30 @@ async function fundHedgeProposal(position) {
   }
   const { addressSet } = getAddressesResponse
 
+  try {
+    dialog.update({ message: 'Calculating funding amount' })
+    const { hedge, long } = calculateFundingAmounts(props.contract, 'hedge', 0)
+    let amount
+    if (position === 'hedge') amount = Math.round(hedge)/10**8
+    else if (position === 'long') amount = Math.round(long)/10**8
+    await dialogPromise({
+      title: `Fund ${position} position`,
+      message: `Prepare utxo amounting to ${amount} BCH`,
+      cancel: true,
+      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    })
+    await dialogPromise({component: SecurityCheckDialog})
+  } catch(error) {
+    console.error(error)
+    dialog.update({ message: 'User rejected' })
+    return
+  } finally {
+    dialog.update({ persistent: false, ok: true, progress: false })
+  }
+
   let fundingUtxo, signedFundingProposal
   try {
+    dialog.update({ persistent: true, ok: false, progress: true })
     dialog.update({ message: 'Creating funding proposal' })
     const createFundingProposalResponse = await createFundingProposal(props.contract, position, props.wallet, addressSet, 0, 'hedge')
     fundingUtxo = createFundingProposalResponse.fundingUtxo
@@ -834,17 +863,19 @@ async function signMutualRedemption(position) {
     })
 }
 
-function signMutualRedemptionConfirm(position) {
+async function signMutualRedemptionConfirm(position) {
   const message = `Hedge payout: ${mutualRedemptionData.value.hedgeSatoshis / 10 ** 8} BCH<br/>` +
                   `Long payout: ${mutualRedemptionData.value.longSatoshis / 10 ** 8} BCH<br/>` +
                   'Are you sure?'
-  $q.dialog({
+  await dialogPromise({
     title: 'Sign mutual redemption',
     message: message,
     html: true,
     ok: true,
     cancel: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
-  }).onOk(() => signMutualRedemption(position))
+  })
+  await dialogPromise({component: SecurityCheckDialog})
+  signMutualRedemption(position)
 }
 </script>

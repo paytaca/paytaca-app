@@ -102,6 +102,7 @@ import { useStore } from 'vuex'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 
 // dialog plugins requirement
 defineEmits([
@@ -125,6 +126,12 @@ const props = defineProps({
   viewAs: String,
   wallet: Object,
 })
+
+async function dialogPromise(qDialogOptions) {
+  return new Promise((resolve, reject) => {
+    $q.dialog(qDialogOptions).onOk(resolve).onDismiss(reject)
+  })
+}
 
 const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
 const oracleInfo = computed(() => {
@@ -174,20 +181,19 @@ watch(() => mutualRedemptionProposal.value.longBch, () => {
   }
 })
 
-function confirmMutualRedemption(data) {
-  return new Promise((resolve, reject) => {
-    const message = `Hedge payout: ${data.hedge_satoshis / 10 ** 8} BCH<br/>` +
+async function confirmMutualRedemption(data) {
+  const message = `Hedge payout: ${data.hedge_satoshis / 10 ** 8} BCH<br/>` +
                     `Long payout: ${data.long_satoshis / 10 ** 8} BCH<br/>` +
                     'Are you sure?'
-    $q.dialog({
-      title: 'Confirm mutual redemption proposal',
-      message: message,
-      html: true,
-      ok: true,
-      cancel: true,
-      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
-    }).onOk(resolve).onDismiss(reject)
+  await dialogPromise({
+    title: 'Confirm mutual redemption proposal',
+    message: message,
+    html: true,
+    ok: true,
+    cancel: true,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
+  await dialogPromise({component: SecurityCheckDialog})
 }
 
 const loading = ref(false)

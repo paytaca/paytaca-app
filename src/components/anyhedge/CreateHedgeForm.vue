@@ -193,14 +193,15 @@
   </q-form>
 </template>
 <script setup>
+import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
 import { parseHedgePositionData } from '../../wallet/anyhedge/formatters'
 import { calculateGeneralProtocolsLPFee, createFundingProposal } from '../../wallet/anyhedge/funding'
 import { Wallet } from 'src/wallet';
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
+import { useQuasar } from 'quasar';
+import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
-import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
-import { emit } from 'process';
 
 function alertError(...args) {
   console.error('form error', args)
@@ -208,6 +209,7 @@ function alertError(...args) {
 
 // misc
 const $store = useStore()
+const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const $emit = defineEmits(['created', 'cancel'])
@@ -223,6 +225,12 @@ const props = defineProps({
     }
   }
 })
+
+async function dialogPromise(qDialogOptions) {
+  return new Promise((resolve, reject) => {
+    $q.dialog(qDialogOptions).onOk(resolve).onDismiss(reject)
+  })
+}
 
 const oracles = computed(() => {
   const oracles = $store.getters['anyhedge/oracles']
@@ -505,6 +513,19 @@ async function createHedgePosition() {
     funding.fee.address = ''
   }
 
+  try {
+    loading.value = true
+    loadingMsg.value = 'Security check'
+    await dialogPromise({component: SecurityCheckDialog})
+  } catch(error) {
+    console.error(error)
+    errors.value = ['Security check failed']
+    return
+  } finally {
+    loading.value = false
+    loadingMsg.value = ''
+  }
+
   // creating utxo phase
   if (funding.prepareFunding) {
     try {
@@ -532,7 +553,6 @@ async function createHedgePosition() {
         low_liquidation_multiplier: intent.lowPriceMult,
         high_liquidation_multiplier: intent.highPriceMult,
       }
-      console.log(contractCreationParameters)
       const contractData = await parseHedgePositionData(contractCreationParameters)
 
       if (funding.fee.satoshis && funding.fee.address) {
@@ -611,8 +631,8 @@ async function createHedgePosition() {
     }
   }
 
-  console.log(hedgePositionOfferData)
-  console.log(fungGPLPContractData)
+  // console.log(hedgePositionOfferData)
+  // console.log(fungGPLPContractData)
   // return
 
   let data
@@ -640,7 +660,7 @@ async function createHedgePosition() {
 
   anyhedgeBackend.post(path, data)  
     .then(response => {
-      console.log(response)
+      // console.log(response)
       if(response?.data?.id || response?.data?.hedge_position?.id) {
         const emitData = { position: position }
         if (isResponseOffer) emitData.hedgePositionOffer = response.data
