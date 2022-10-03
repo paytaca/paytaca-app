@@ -572,12 +572,12 @@ function refetchContract(contractAddress) {
     })
     .then(contractData => {
       const index = contracts.value.findIndex(contract => contract?.address === contractData.address)
-      if (index >= 0) contracts.value[index] = contractData
+      if (index >= 0) Object.assign(contracts.value[index], contractData)
       return contractData
     })
     .then(contractData => {
       const index = longPositions.value.findIndex(contract => contract?.address === contractData.address)
-      if (index >= 0) longPositions.value[index] = contractData
+      if (index >= 0) Object.assign(longPositions.value[index], contractData)
       return contractData
     })
 }
