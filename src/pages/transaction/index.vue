@@ -120,6 +120,10 @@
                 <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
                   <p @click="() => { getTransactions(transactionsPage + 1) }">Show More</p>
                 </div>
+                <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
+                  <q-img class="absolute-center vertical-top" src="empty-wallet.svg" style="width: 70px; margin-top: -50px; fill: gray;" />
+                  <p :class="{ 'text-black': !darkMode }">No transactions to display</p>
+                </div>
               </template>
               <div style="text-align: center;" v-else>
                 <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
