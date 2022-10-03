@@ -94,15 +94,16 @@
                 <q-input
                   type="text"
                   inputmode="none"
-                  ref="amount"
                   @focus="readonlyState(true)"
                   @blur="readonlyState(false)"
                   filled
                   v-model="sendData.amount"
                   label="Amount"
-                  :disabled="disableAmountInput"
-                  :readonly="disableAmountInput"
+                  :disabled="disableAmountInput || setAmountInFiat"
+                  :readonly="disableAmountInput || setAmountInFiat"
                   :dark="darkMode"
+                  :error="balanceExceeded"
+                  :error-message="balanceExceeded ? 'Balance exceeded' : ''"
                 >
                   <template v-slot:append>
                     {{ asset.symbol }}
@@ -118,12 +119,13 @@
                 <q-input
                   type="text"
                   inputmode="none"
-                  ref="amount"
                   @focus="readonlyState(true)"
                   @blur="readonlyState(false)"
                   filled
                   v-model="sendAmountInFiat"
                   label="Amount"
+                  :disabled="disableAmountInput"
+                  :readonly="disableAmountInput"
                   :dark="darkMode"
                 >
                   <template v-slot:append>
@@ -360,7 +362,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       showQrScanner: false,
       setAmountInFiat: false,
-      sendAmountInFiat: null
+      sendAmountInFiat: null,
+      balanceExceeded: false
     }
   },
 
@@ -417,7 +420,7 @@ export default {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
     },
     disableAmountInput () {
-      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState || this.setAmountInFiat
+      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
     },
     showSlider () {
       return this.sendData.sending !== true && this.sendData.sent !== true && this.sendErrors.length === 0 && this.sliderStatus === true
@@ -442,6 +445,19 @@ export default {
 
       if (address && this.isNFT) {
         this.sliderStatus = true
+      }
+    },
+    'sendData.amount': function (amount) {
+      if (amount > this.asset.balance) {
+        this.balanceExceeded = true
+      } else {
+        this.balanceExceeded = false
+      }
+    },
+    setAmountInFiat: function (value) {
+      if (value === true) {
+        this.balanceExceeded = false
+        this.sendData.amount = 0
       }
     },
     sendAmountInFiat: function (amount) {
