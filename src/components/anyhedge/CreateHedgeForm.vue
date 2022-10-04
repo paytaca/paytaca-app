@@ -129,7 +129,7 @@
       </q-input>
     </div>
 
-    <div class="row q-gutter-x-md items-center">
+    <!-- <div class="row q-gutter-x-md items-center">
       <q-toggle
         :dark="darkMode"
         label="Match to liquidity pool"
@@ -163,7 +163,7 @@
           ]"
         />
       </div>
-    </q-slide-transition>
+    </q-slide-transition> -->
 
     <div class="q-gutter-y-md">
       <div v-if="loading" class="text-center">
@@ -242,10 +242,10 @@ const oracles = computed(() => {
     })
     .filter(Boolean)
     .filter(oracle => oracle?.oraclePubkey)
-    parsedOracles.unshift({
-      oraclePubkey: '',
-      assetName: 'Auto',
-    })
+    // parsedOracles.unshift({
+    //   oraclePubkey: '',
+    //   assetName: 'Auto',
+    // })
 
     return parsedOracles
 })
