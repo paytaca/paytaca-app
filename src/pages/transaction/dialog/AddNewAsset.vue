@@ -3,7 +3,7 @@
     <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': darkMode}">
         <q-card-section class="pt-label text-weight-medium" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
             <span v-if="isSep20">Add SEP20 Token</span>
-            <span v-else>Add SLP Token</span>
+            <span v-else>Add SLP Type 1 Token</span>
         </q-card-section>
 
         <q-separator />

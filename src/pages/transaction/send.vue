@@ -26,7 +26,7 @@
                 :dark="darkMode"
                 v-model="manualAddress"
                 :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
-                @input="resolveLnsName"
+                @update:model-value="resolveLnsName"
               >
                 <template v-slot:append>
                   <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
@@ -69,7 +69,7 @@
           </div>
         </div>
         <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
-          <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important;">
+          <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
             <div class="row">
               <div class="col q-mt-sm se">
                 <q-input
@@ -93,18 +93,46 @@
               <div class="col q-mt-md">
                 <q-input
                   type="text"
-                  inputmode="tel"
-                  ref="amount"
+                  inputmode="none"
                   @focus="readonlyState(true)"
                   @blur="readonlyState(false)"
                   filled
                   v-model="sendData.amount"
                   label="Amount"
+                  :disabled="disableAmountInput || setAmountInFiat"
+                  :readonly="disableAmountInput || setAmountInFiat"
+                  :dark="darkMode"
+                  :error="balanceExceeded"
+                  :error-message="balanceExceeded ? 'Balance exceeded' : ''"
+                >
+                  <template v-slot:append>
+                    {{ asset.symbol }}
+                  </template>
+                </q-input>
+                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </div>
+              </div>
+            </div>
+            <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
+              <div class="col q-mt-md">
+                <q-input
+                  type="text"
+                  inputmode="none"
+                  @focus="readonlyState(true)"
+                  @blur="readonlyState(false)"
+                  filled
+                  v-model="sendAmountInFiat"
+                  label="Amount"
                   :disabled="disableAmountInput"
                   :readonly="disableAmountInput"
                   :dark="darkMode"
-                ></q-input>
-                <div v-if="sendAmountMarketValue" class="text-body2 text-grey q-mt-sm q-px-sm">
+                >
+                  <template v-slot:append>
+                    {{ String(selectedMarketCurrency).toUpperCase() }}
+                  </template>
+                </q-input>
+                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
                   ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
                 </div>
               </div>
@@ -112,13 +140,27 @@
             <div class="row" v-if="!isNFT">
               <div class="col q-mt-md" style="font-size: 18px; color: gray;">
                 Balance: {{ asset.balance }} {{ asset.symbol }}
+                <template v-if="asset.id === 'bch' && setAmountInFiat">
+                  = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </template>
                 <a
                   href="#"
-                  v-if="!disableAmountInput"
+                  v-if="!disableAmountInput || (setAmountInFiat && !sendData.sending)"
                   @click.prevent="setMaximumSendAmount"
                   style="float: right; text-decoration: none; color: #3b7bf6;"
                 >
                   MAX
+                </a>
+              </div>
+            </div>
+            <div class="row" v-if="!isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+              <div class="col q-mt-md">
+                <a
+                  style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
+                  href="#"
+                  @click.prevent="() => {setAmountInFiat = true}"
+                >
+                  Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
                 </a>
               </div>
             </div>
@@ -167,11 +209,27 @@
             </ul>
           </div>
         </div>
-        <div class="q-px-lg" v-if="sendData.sent" style="text-align: center;">
-          <q-icon size="120px" name="check_circle" color="green-5"></q-icon>
-          <div style="margin-top: 20px;">
-            <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 30px;">Successfully sent</p>
-            <p :class="darkMode ? 'text-white' : 'pp-text'" style="font-size: 28px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+        <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -50px;">
+          <q-icon size="100px" name="check_circle" color="green-5"></q-icon>
+          <div :class="darkMode ? 'text-white' : 'pp-text'" style="margin-top: 20px;">
+            <p style="font-size: 30px;">Successfully sent</p>
+            <p style="font-size: 28px; margin-top: -15px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+            <p v-if="asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
+              ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
+            </p>
+            <p style="font-size: 24px;">to</p>
+            <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
+              {{ this.sendData.recipientAddress }}
+            </div>
+            <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
+              txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
+              <a
+                style="text-decoration: none; color: #3b7bf6;"
+                :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
+              >
+                View in explorer
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -302,7 +360,10 @@ export default {
       customKeyboardState: 'dismiss',
       sliderStatus: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      showQrScanner: false
+      showQrScanner: false,
+      setAmountInFiat: false,
+      sendAmountInFiat: null,
+      balanceExceeded: false
     }
   },
 
@@ -385,6 +446,22 @@ export default {
       if (address && this.isNFT) {
         this.sliderStatus = true
       }
+    },
+    'sendData.amount': function (amount) {
+      if (amount > this.asset.balance) {
+        this.balanceExceeded = true
+      } else {
+        this.balanceExceeded = false
+      }
+    },
+    setAmountInFiat: function (value) {
+      if (value === true) {
+        this.balanceExceeded = false
+        this.sendData.amount = 0
+      }
+    },
+    sendAmountInFiat: function (amount) {
+      this.sendData.amount = this.convertFiatToSelectedAsset(amount)
     }
   },
 
@@ -449,12 +526,38 @@ export default {
       this.lns.name = ''
       this.lns.address = ''
     },
-    setAmount (key) {
-      this.sendData.amount = this.sendData.amount === null ? '' : this.sendData.amount
-      if (key === '.' && this.sendData.amount === '') {
-        this.sendData.amount = 0 + key
+    convertToFiatAmount (amount) {
+      const parsedAmount = Number(amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
+      if (!computedBalance) return ''
+
+      if (computedBalance > 0.01) {
+        return computedBalance.toFixed(2)
       } else {
-        let amount = this.sendData.amount.toString()
+        return computedBalance.toFixed(4)
+      }
+    },
+    convertFiatToSelectedAsset (amount) {
+      const parsedAmount = Number(amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
+      return computedBalance.toFixed(8)
+    },
+    setAmount (key) {
+      let sendAmount
+      if (this.setAmountInFiat) {
+        sendAmount = this.sendAmountInFiat
+      } else {
+        sendAmount = this.sendData.amount
+      }
+      sendAmount = sendAmount === null ? '' : sendAmount
+      if (key === '.' && sendAmount === '') {
+        sendAmount = 0 + key
+      } else {
+        let amount = sendAmount.toString()
         const hasPeriod = amount.indexOf('.')
         if (hasPeriod < 1) {
           if (Number(amount) === 0 && Number(key) > 0) {
@@ -471,16 +574,28 @@ export default {
           amount += key !== '.' ? key.toString() : ''
         }
         // Set the new amount
-        this.sendData.amount = amount
+        if (this.setAmountInFiat) {
+          this.sendAmountInFiat = amount
+        } else {
+          this.sendData.amount = amount
+        }
       }
     },
     makeKeyAction (action) {
       if (action === 'backspace') {
         // Backspace
-        this.sendData.amount = this.sendData.amount.slice(0, -1)
+        if (this.setAmountInFiat) {
+          this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
+        } else {
+          this.sendData.amount = String(this.sendData.amount).slice(0, -1)
+        }
       } else if (action === 'delete') {
         // Delete
-        this.sendData.amount = ''
+        if (this.setAmountInFiat) {
+          this.sendAmountInFiat = ''
+        } else {
+          this.sendData.amount = ''
+        }
       } else {
         // Enabled submit slider
         this.sliderStatus = true
@@ -586,6 +701,7 @@ export default {
         } else {
           this.sendData.amount = this.asset.spendable
         }
+        this.sendAmountInFiat = this.convertToFiatAmount(this.sendData.amount)
       } else {
         this.sendData.amount = this.asset.balance
       }
@@ -749,6 +865,9 @@ export default {
               vm.playSound(true)
               vm.sendData.sending = false
               vm.sendData.sent = true
+              if (!vm.sendAmountInFiat) {
+                vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+              }
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
                 vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')

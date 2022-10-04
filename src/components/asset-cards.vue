@@ -122,7 +122,7 @@ export default {
         home.$refs['asset-info'].hide()
         home.selectedAsset = asset
         home.transactions = []
-        home.transactionsPage = 1
+        home.transactionsPage = 0
         home.transactionsPageHasNext = false
         home.getBalance()
         home.getTransactions()

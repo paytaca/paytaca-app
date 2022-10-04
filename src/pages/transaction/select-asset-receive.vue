@@ -34,7 +34,7 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none" :class="$store.getters['darkmode/getStatus'] ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  {{ String(asset.balance).substring(0, 16) }}
+                  <span v-if="asset.balance">{{ String(asset.balance).substring(0, 16) }}</span>
                   {{ asset.symbol }}
                 </p>
               </div>
@@ -42,6 +42,7 @@
           </div>
         </div>
       </div>
+      <div style="height: 90px;" v-if="assets.length > 5"></div>
     </template>
     <div
       v-else
@@ -84,15 +85,32 @@ export default {
       }
     },
     assets () {
+      let _assets
       if (this.selectedNetwork === 'sBCH') {
-        return this.$store.getters['sep20/getAssets'].filter(Boolean)
+        _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
+        const unlistedAsset = {
+          id: 'sep20/unlisted',
+          name: 'New / Unlisted',
+          symbol: 'SEP20 token',
+          logo: 'sep20-logo.png'
+        }
+        _assets.push(unlistedAsset)
+        return _assets
       }
 
-      return this.$store.getters['assets/getAssets'].filter(function (item) {
+      _assets = this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           return item
         }
       })
+      const unlistedAsset = {
+        id: 'slp/unlisted',
+        name: 'New / Unlisted',
+        symbol: 'SLP token',
+        logo: 'slp-logo.png'
+      }
+      _assets.push(unlistedAsset)
+      return _assets
     }
   },
   methods: {
