@@ -533,7 +533,11 @@ export default {
       const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
       if (!computedBalance) return ''
 
-      return computedBalance.toFixed(2)
+      if (computedBalance > 0.01) {
+        return computedBalance.toFixed(2)
+      } else {
+        return computedBalance.toFixed(4)
+      }
     },
     convertFiatToSelectedAsset (amount) {
       const parsedAmount = Number(amount)
@@ -861,6 +865,9 @@ export default {
               vm.playSound(true)
               vm.sendData.sending = false
               vm.sendData.sent = true
+              if (!vm.sendAmountInFiat) {
+                vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+              }
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
                 vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
