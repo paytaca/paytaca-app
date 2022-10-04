@@ -267,6 +267,7 @@ const socketReconnection = ref({
   attempts: 0,
   max: 10,
   interval: 15 * 1000,
+  timeoutId: null,
 })
 const websocketMessageHandler = (message) => {
   const data = JSON.parse(message.data)
@@ -313,20 +314,20 @@ function initWebsocket(fromReconAttempt=false) {
     _socket.onclose = () => {
       if (socketReconnection.value.enable) {
         console.log('Websocket closed, reconnecting in', socketReconnection.value.interval, 'ms')
-        setTimeout(() => initWebsocket(true), socketReconnection.value.interval)
+        socketReconnection.value.timeoutId = setTimeout(() => initWebsocket(true), socketReconnection.value.interval)
       }
     }
     socket.value?.close?.()
+    console.log('Websocket connected')
   } catch(err) {
     console.error('Error in connecting websocket:', err)
     if (socketReconnection.value.enable) {
       socketReconnection.value.attempts++
       console.log('Attempting websocket reconnection in', socketReconnection.value.interval, 'ms')
-      setTimeout(() => initWebsocket(true), socketReconnection.value.interval)
+      socketReconnection.value.timeoutId = setTimeout(() => initWebsocket(true), socketReconnection.value.interval)
     }
   }
 
-  console.log('Websocket connected')
   socket.value = _socket
   socketReconnection.value.attempts = 0
 }
@@ -334,6 +335,7 @@ onUnmounted(() => {
   console.log('Closing websocket')
   socketReconnection.value.enable = false
   socket.value?.close?.()
+  clearTimeout(socketReconnection.value.timeoutId)
 })
 
 
