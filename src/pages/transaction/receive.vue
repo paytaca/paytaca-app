@@ -2,7 +2,7 @@
   <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
     <header-nav
       :title="'RECEIVE ' + asset.symbol"
-      backnavpath="/"
+      backnavpath="/receive/select-asset"
     ></header-nav>
     <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
       <q-menu anchor="bottom right" self="top end">
@@ -367,20 +367,33 @@ export default {
   },
 
   unmounted () {
-    this.stopSbchListener()
-    this.$disconnect()
-    delete this?.$options?.sockets
+    if (!this.assetId.endsWith('unlisted')) {
+      this.stopSbchListener()
+      this.$disconnect()
+      delete this?.$options?.sockets
+    }
   },
 
   mounted () {
     const vm = this
-    vm.setupListener()
+    if (!vm.assetId.endsWith('unlisted')) {
+      vm.setupListener()
+    }
     this.updateLnsName()
   },
 
   created () {
     const vm = this
-    vm.asset = vm.getAsset(vm.assetId)
+    if (vm.assetId.endsWith('unlisted')) {
+      vm.asset = {
+        id: vm.assetId,
+        name: 'New / Unlisted',
+        symbol: vm.assetId.split('/')[0].toUpperCase() + ' Token',
+        logo: vm.assetId.split('/')[0] + '-logo.png'
+      }
+    } else {
+      vm.asset = vm.getAsset(vm.assetId)
+    }
   }
 }
 </script>

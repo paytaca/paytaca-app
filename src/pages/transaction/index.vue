@@ -118,7 +118,11 @@
                     </div>
                 </div>
                 <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
-                  <p @click="() => { transactionsPage += 1; getTransactions() }">Show More</p>
+                  <p @click="() => { getTransactions(transactionsPage + 1) }">Show More</p>
+                </div>
+                <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
+                  <q-img class="absolute-center vertical-top" src="empty-wallet.svg" style="width: 70px; margin-top: -50px; fill: gray;" />
+                  <p :class="{ 'text-black': !darkMode }">No transactions to display</p>
                 </div>
               </template>
               <div style="text-align: center;" v-else>
@@ -195,7 +199,7 @@ export default {
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       transactions: [],
-      transactionsPage: 1,
+      transactionsPage: 0,
       transactionsPageHasNext: false,
       transactionsLoaded: false,
       balanceLoaded: false,
@@ -214,10 +218,7 @@ export default {
 
   watch: {
     startPageStatus (n, o) {
-      setTimeout(() => {
-        const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
-      }, 100)
+      this.adjustTransactionsDivHeight()
     },
     selectedAsset () {
       this.transactions = []
@@ -281,9 +282,13 @@ export default {
       )
     }
   },
-
-
   methods: {
+    adjustTransactionsDivHeight () {
+      setTimeout(() => {
+        const sectionHeight = this.$refs.fixedSection.clientHeight
+        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
+      }, 500)
+    },
     formatDate (date) {
       return ago(new Date(date))
     },
@@ -298,12 +303,12 @@ export default {
       if (prevNetwork !== vm.selectedNetwork) {
         vm.selectedAsset = vm.bchAsset
         vm.transactions = []
-        vm.transactionsPage = 1
         vm.transactionsLoaded = false
+        vm.transactionsPage = 0
         vm.wallet = null
         vm.loadWallets().then(() => {
           vm.assets.map(function (asset) {
-            vm.getBalance(asset.id)
+            return vm.getBalance(asset.id)
           })
           vm.getTransactions()
         })
@@ -313,6 +318,7 @@ export default {
       const vm = this
       vm.selectedAsset = this.bchAsset
       vm.getBalance(this.bchAsset.id)
+      vm.transactionsPage = 0
       vm.getTransactions()
       vm.assetClickCounter += 1
       if (vm.assetClickCounter >= 2) {
@@ -436,12 +442,12 @@ export default {
       }
     },
 
-    getTransactions () {
+    getTransactions (page = 1) {
       if (this.selectedNetwork === 'sBCH') {
         const address = this.$store.getters['global/getAddress']('sbch')
         return this.getSbchTransactions(address)
       }
-      return this.getBchTransactions()
+      return this.getBchTransactions(page)
     },
     getSbchTransactions (address) {
       const vm = this
@@ -496,7 +502,7 @@ export default {
           vm.transactionsLoaded = true
         })
     },
-    getBchTransactions () {
+    getBchTransactions (page) {
       const vm = this
       const id = vm.selectedAsset.id
       vm.transactionsLoaded = false
@@ -508,14 +514,18 @@ export default {
       }
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getTransactions(tokenId, vm.transactionsPage, recordType).then(function (transactions) {
+        vm.wallet.SLP.getTransactions(tokenId, page, recordType).then(function (transactions) {
           if (transactions.history) {
-            transactions.history.map(function (item) {
-              vm.transactions.push(item)
-            })
+            if (Number(transactions.page) > vm.transactionsPage) {
+              vm.transactionsPage = Number(transactions.page)
+
+              transactions.history.map(function (item) {
+                return vm.transactions.push(item)
+              })
+            }
           } else {
             transactions.map(function (item) {
-              vm.transactions.push(item)
+              return vm.transactions.push(item)
             })
           }
           vm.transactionsLoaded = true
@@ -524,14 +534,18 @@ export default {
           }, 1000)
         })
       } else {
-        vm.wallet.BCH.getTransactions(vm.transactionsPage, recordType).then(function (transactions) {
+        vm.wallet.BCH.getTransactions(page, recordType).then(function (transactions) {
           if (transactions.history) {
-            transactions.history.map(function (item) {
-              vm.transactions.push(item)
-            })
+            if (Number(transactions.page) > vm.transactionsPage) {
+              vm.transactionsPage = Number(transactions.page)
+
+              transactions.history.map(function (item) {
+                return vm.transactions.push(item)
+              })
+            }
           } else {
             transactions.map(function (item) {
-              vm.transactions.push(item)
+              return vm.transactions.push(item)
             })
           }
           vm.transactionsLoaded = true
@@ -548,12 +562,12 @@ export default {
       done()
     },
     switchActiveBtn (btn) {
-      var customBtn = document.getElementById(this.activeBtn)
+      const customBtn = document.getElementById(this.activeBtn)
       customBtn.classList.remove('active-transaction-btn')
 
-      var element = document.getElementById(btn)
-      var name = 'active-transaction-btn'
-      var arr = element.className.split(' ')
+      const element = document.getElementById(btn)
+      const name = 'active-transaction-btn'
+      const arr = element.className.split(' ')
       if (arr.indexOf(name) === -1) {
         element.className += ' ' + name
       }
@@ -562,7 +576,7 @@ export default {
       // change transactions filter
       this.transactionsFilter = btn.split('-')[1]
       this.transactions = []
-      this.transactionsPage = 1
+      this.transactionsPage = 0
       this.transactionsLoaded = false
       this.getTransactions()
     },
@@ -590,6 +604,7 @@ export default {
         (error) => {
           // Failed to authenticate
           console.log('Verification error: ', error)
+          // eslint-disable-next-line no-empty
           if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled')) {
           } else {
             this.verifyBiometric()
@@ -765,17 +780,21 @@ export default {
       vm.startPageStatus = false
     }
 
-    if (Array.isArray(vm.assets) && this.assets.length > 0) {
-      vm.selectedAsset = this.bchAsset
-    }
+    vm.adjustTransactionsDivHeight()
 
     // Load wallets
     this.loadWallets().then(() => {
       vm.assets.map(function (asset) {
         return vm.getBalance(asset.id)
       })
-      vm.getTransactions()
 
+      if (Array.isArray(vm.assets) && vm.assets.length > 0) {
+        vm.selectedAsset = vm.bchAsset
+        vm.getBalance(vm.selectedAsset.id)
+        vm.getTransactions()
+      }
+
+      // vm.getTransactions()
       // Temporarily disable automated checking of unlisted assets
       // if (vm.$root.hasSuggestedAssets) return
       // vm.checkMissingAssets().then(() => {
