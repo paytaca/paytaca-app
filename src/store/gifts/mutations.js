@@ -12,11 +12,6 @@ export function NEW_AMOUNT (state, amount) {
   state.giftingAmount.push(amount)
 }
 
-// test 9 23 2022
-export function GENPRIVKEY (state, key) {
-  state.privKey.push(key)
-  // state.privKey.splice(key, 5)
-}
 export function GENCASHADD (state, key) {
   state.cashAdd.push(key)
   // state.cashAdd.splice(key, 5)

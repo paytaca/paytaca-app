@@ -8,14 +8,14 @@
       >
       <HeaderNav
         title="Gifts"
-        backnavpath="/apps/chooseGift"
+        backnavpath="/apps/gifts"
         style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
         class="q-px-sm"
       />
       <div class="q-pa-lg" style="width: 100%; color: black;">
         <div class="q-pt-xl">
           <label>
-            Enter Amount:
+            Enter Amount Per Gift:
           </label>
           <q-input
             required
@@ -70,7 +70,7 @@
           <q-input
             placeholder="Amount"
             filled
-            type="text"
+            type="number"
             clearable
             @input="this.text"
             v-model="text"
@@ -84,10 +84,10 @@
                 type="submit"
                 label="Generate"
                 class="flex flex-center"
-                @click="clickMe()"
+                @click="generate()"
               >
               </q-btn>
-              <div class="q-pa-sm q-pb-lg"></div>
+              <!-- <div class="q-pa-sm q-pb-lg"></div>
               <div class="q-pa-sm q-pt-lg flex flex-center" >
               <q-btn
                 no-caps
@@ -99,15 +99,14 @@
                 @click="spliceAll()"
               >
               </q-btn>
-              </div>
+              </div> -->
         </div>
 
         <div>
-        {{ this.$store.state.gifts.privKey }}
-        {{this.$store.state.gifts.cashAdd}}
-        {{ this.$store.state.gifts.storeShare }}
+        <!-- {{this.$store.state.gifts.cashAdd}}
+        {{ this.$store.state.gifts.storeShare }} -->
         <!-- {{ this.$store.state.gift.recShare }} -->
-        {{ this.$store.state.gifts.genGifts }}
+        <!-- {{ this.$store.state.gifts.genGifts }} -->
         <!-- {{ this.shares }} -->
 
         <!-- {{ this.$store.state.gift.apKeyStore }} -->
@@ -122,21 +121,13 @@
               <!-- <h5>{{ $store.state.gift.cashAddress }}</h5> -->
             </div>
           </div>
-          <!-- <div class="flex flex-center" @click="copyToClipboard(this.$store.state.gift.cashAddress)">
-            <div class="flex flex-center" v-if="$store.state.gift.cashAddress !== 0">
-          <p class="fontStyle">{{ $store.state.gift.cashAddress }}</p>
-          <p class="fontStyle">Click to Copy Address</p>
-            </div>
-            <div class="flex flex-center" v-else>
-              <p class="fontStyle">{{ $store.state.gift.cashAddress }}</p>
-            </div> -->
-        <!-- </div> -->
       </div>
         </div>
       </div>
     </div>
   </div>
-  </template>
+</template>
+
 <script>
 import HeaderNav from '../../../components/header-nav'
 import { getMnemonic, Wallet } from '../../../wallet'
@@ -159,7 +150,6 @@ export default {
       txid: '',
       amountBCH: '',
       instances: 0,
-      text: ['hot', 'dog', 'chili'],
       id: 1,
       gift: {},
       // test
@@ -172,20 +162,9 @@ export default {
   },
 
   methods: {
-    // test 9 22 2022
-
-    // test 9 23 2022
-    clickMe () {
-      this.genPrivKey()
-      this.genCashAddress()
-      this.genShares()
-      // this.recoverSec()
-    },
     genPrivKey () {
       const privateKey = ECPair.makeRandom()
       this.vWif = privateKey.toWIF()
-      console.log('Private key:', this.vWif)
-      this.$store.dispatch('gifts/genPrivKey', this.vWif)
     },
     genCashAddress () {
       const BCHJS = require('@psf/bch-js')
@@ -201,26 +180,29 @@ export default {
       const secret = Buffer.from(this.vWif)
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
       this.shares = stateShare.map((share) => { return toHex(share) })
-      // commit('aSplitSecret', this.shares)
       this.$store.dispatch('gifts/genShares', this.shares)
       console.log('Shares:', this.shares)
       console.log('xxx:', this.shares)
-      // this.gifts[uuidv4()] = this.text
       this.uid = uuidv4()
       console.log('Gift ID:', this.uid)
       this.gifts[this.uid] = this.localShares
       this.$store.dispatch('gifts/storeGift', { uid: this.uid, shares: this.shares })
     },
-    recoverSec () {
-      const sss = require('shamirs-secret-sharing')
-      const recovery = sss.combine([this.shares[0], this.shares[1]])
-      console.log(recovery.toString())
-      this.$store.dispatch('gifts/recoverSec', recovery.toString())
+    generate () {
+      this.genPrivKey()
+      this.genCashAddress()
+      this.genShares()
+      // this.recoverSec()
     },
-    // /end test
-    recoverSecret () {
-      this.$store.dispatch('gifts/recoverSecret')
-    },
+    // recoverSec () {
+    //   const sss = require('shamirs-secret-sharing')
+    //   const recovery = sss.combine([this.shares[0], this.shares[1]])
+    //   console.log(recovery.toString())
+    //   this.$store.dispatch('gifts/recoverSec', recovery.toString())
+    // },
+    // recoverSecret () {
+    //   this.$store.dispatch('gifts/recoverSecret')
+    // },
     qrCode () {
       const key = this.$store.state.gifts.share[0]
       const QRCode = require('qrcode')
@@ -240,19 +222,8 @@ export default {
           console.error(err)
         }
       })
-    },
-    // function to copy text via click
-    copyToClipboard (value) {
-      this.$copyText(value)
-      this.$q.notify({
-        message: 'Copied to clipboard',
-        timeout: 800,
-        color: 'blue-9',
-        icon: 'mdi-clipboard-check'
-      })
     }
   },
-  // wallet call function when mounted
   mounted () {
     const vm = this
     getMnemonic().then(function (mnemonic) {
