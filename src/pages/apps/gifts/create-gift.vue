@@ -45,7 +45,6 @@
             clearable
             :rules="[val => !!val || 'Field is required']"
             v-model="instances"
-            @input="this.instances"
           >
           </q-input>
           <div class="q-pa-sm">
@@ -72,56 +71,29 @@
             filled
             type="number"
             clearable
-            @input="this.text"
-            v-model="text"
-          >
-          </q-input>
-            <div class="q-pa-sm q-pt-lg flex flex-center">
-              <q-btn
-                no-caps
-                rounded
-                color="blue-9"
-                type="submit"
-                label="Generate"
-                class="flex flex-center"
-                @click="generate()"
-              >
-              </q-btn>
-              <!-- <div class="q-pa-sm q-pb-lg"></div>
-              <div class="q-pa-sm q-pt-lg flex flex-center" >
-              <q-btn
-                no-caps
-                rounded
-                color="blue-9"
-                type="submit"
-                label="cash address"
-                class="flex flex-center"
-                @click="spliceAll()"
-              >
-              </q-btn>
-              </div> -->
+            v-model="maxPerCampaign"
+          ></q-input>
+          <div class="q-pa-sm q-pt-lg flex flex-center">
+            <q-btn
+              no-caps
+              rounded
+              color="blue-9"
+              type="submit"
+              label="Generate"
+              class="flex flex-center"
+              @click="processRequest()"
+            >
+            </q-btn>
+          </div>
         </div>
-
-        <div>
-        <!-- {{this.$store.state.gifts.cashAdd}}
-        {{ this.$store.state.gifts.storeShare }} -->
-        <!-- {{ this.$store.state.gift.recShare }} -->
-        <!-- {{ this.$store.state.gifts.genGifts }} -->
-        <!-- {{ this.shares }} -->
-
-        <!-- {{ this.$store.state.gift.apKeyStore }} -->
-        </div>
-      <div>
+        <div v-if="qrCodeContents">
           <div class="flex flex-center" >
             <div class="flex flex-center col-qr-code">
-                <canvas id="canvas" class="flex flex-center"></canvas>
-                <!-- {{ this.$store.state.gift.gAmount }} -->
+              <qr-code :text="qrCodeContents" />
             </div>
             <div class="flex flex-center myStyle">
-              <!-- <h5>{{ $store.state.gift.cashAddress }}</h5> -->
             </div>
           </div>
-      </div>
         </div>
       </div>
     </div>
@@ -131,9 +103,10 @@
 <script>
 import HeaderNav from '../../../components/header-nav'
 import { getMnemonic, Wallet } from '../../../wallet'
-import { v4 as uuidv4 } from 'uuid'
+import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
+import sha256 from 'js-sha256'
 
 export default {
   name: 'Gifts',
@@ -146,52 +119,49 @@ export default {
   },
   data () {
     return {
-      wallet: '',
-      txid: '',
-      amountBCH: '',
-      instances: 0,
-      id: 1,
-      gift: {},
-      // test
-      vWif: '',
-      str: '',
-      localShare: [],
-      uid: '',
-      gifts: {}
+      amountBCH: 0.001,
+      instances: 1,
+      maxPerCampaign: null,
+      qrCodeContents: null
     }
   },
 
   methods: {
-    genPrivKey () {
+    generateGift () {
       const privateKey = ECPair.makeRandom()
-      this.vWif = privateKey.toWIF()
-    },
-    genCashAddress () {
+      const wif = privateKey.toWIF()
+      console.log('Private key:', wif)
+
       const BCHJS = require('@psf/bch-js')
       const bchjs = new BCHJS()
-      // const pk = this.vWif
-      const pair = bchjs.ECPair.fromWIF(this.vWif)
-      this.str = bchjs.ECPair.toCashAddress(pair)
-      console.log('Address:', this.str)
-      this.$store.dispatch('gifts/genCashAdd', this.str)
-    },
-    genShares () {
+      const pair = bchjs.ECPair.fromWIF(wif)
+      const address = bchjs.ECPair.toCashAddress(pair)
+      console.log('Address:', address)
+      // this.$store.dispatch('gifts/genCashAdd', this.str)
+
       const sss = require('shamirs-secret-sharing')
-      const secret = Buffer.from(this.vWif)
+      const secret = Buffer.from(wif)
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
-      this.shares = stateShare.map((share) => { return toHex(share) })
-      this.$store.dispatch('gifts/genShares', this.shares)
-      console.log('Shares:', this.shares)
-      console.log('xxx:', this.shares)
-      this.uid = uuidv4()
+      const shares = stateShare.map((share) => { return toHex(share) })
+
+      this.uid = sha256(shares[0])
       console.log('Gift ID:', this.uid)
-      this.gifts[this.uid] = this.localShares
-      this.$store.dispatch('gifts/storeGift', { uid: this.uid, shares: this.shares })
+      console.log('Shares:', shares)
+      const payload = {
+        share: shares[1],
+        amount: this.amountBCH,
+        gift_id: this.uid
+      }
+      const url = 'https://gifts.paytaca.com/api/gifts/create/'
+      axios.post(url, payload).then((resp) => {
+        if (resp.status === 200) {
+          this.qrCodeContents = JSON.stringify(shares[0])
+          console.log(this.qrCodeContents)
+        }
+      })
     },
-    generate () {
-      this.genPrivKey()
-      this.genCashAddress()
-      this.genShares()
+    processRequest () {
+      this.generateGift()
       // this.recoverSec()
     },
     // recoverSec () {
@@ -203,15 +173,6 @@ export default {
     // recoverSecret () {
     //   this.$store.dispatch('gifts/recoverSecret')
     // },
-    qrCode () {
-      const key = this.$store.state.gifts.share[0]
-      const QRCode = require('qrcode')
-      const canvas = document.getElementById('canvas')
-      QRCode.toCanvas(canvas, key, function (error) {
-        if (error) console.error(error)
-        console.log('success!')
-      })
-    },
     async handleSubmit (cAdd) {
       const vm = this
       const address = cAdd
