@@ -20,18 +20,10 @@
       </div>
          <!-- <q-btn @click="$router.push({name: 'Gift'})"> -->
           <div @click="$router.push({ name: 'create-gift'})" role="button" class="row q-pl-lg q-pr-lg q-mb-sm round" style="height: 50px">
-            <div class="col row q-mb-sm flex flex-center" style="font-size: 22px" :class="darkMode ? 'pt-dark-card' : 'bg-white'">
-              <div class="q-pl-md flex flex-center" style="user-select:none">Create gift</div>
-              <div class="col row q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'">
-              </div>
-            </div>
+            <q-btn color="primary">Create Gifts</q-btn>
           </div>
           <div @click="$router.push({ name: 'claim-gift'})" role="button" class="row q-pl-lg q-pr-lg q-mt-sm" style="height: 50px">
-            <div class="col row q-mb-sm flex flex-center" style="font-size: 22px" :class="darkMode ? 'pt-dark-card' : 'bg-white'">
-              <div class="q-pl-md flex flex-center" style="user-select:none" >Claim gift</div>
-              <div class="col row q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'">
-              </div>
-            </div>
+            <q-btn color="primary">Claim Gift</q-btn>
           </div>
         </div>
       </div>

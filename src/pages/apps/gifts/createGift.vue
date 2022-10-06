@@ -15,7 +15,7 @@
       <div class="q-pa-lg" style="width: 100%; color: black;">
         <div class="q-pt-xl">
           <label>
-            Enter Amount:
+            Enter Amount Per Gift:
           </label>
           <q-input
             required
@@ -149,6 +149,7 @@ export default {
       vWif: '',
       cAdd: '',
       localShare: [],
+      shareZero: [],
       uid: '',
       gifts: {},
       hotdog: {},
@@ -188,6 +189,7 @@ export default {
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
       this.shares = stateShare.map((share) => { return toHex(share) })
       this.$store.dispatch('gifts/genShares', this.shares)
+      this.shareZero = this.shares[0]
       this.localShare = this.shares
       console.log('Shares:', this.shares)
 
