@@ -61,8 +61,8 @@ const routes = [
       { path: 'settings/ignored-tokens', component: () => import('src/pages/apps/ignored-tokens-list.vue'), name: 'ignored-tokens-list' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
-      { path: 'gifts/create', component: () => import('src/pages/apps/gifts/createGift.vue'), name: 'create-gift' },
-      { path: 'gifts/claim', component: () => import('src/pages/apps/gifts/claimGift.vue'), name: 'claim-gift' }
+      { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
+      { path: 'gifts/claim', component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' }
     ]
   },
   // Always leave this as last one,

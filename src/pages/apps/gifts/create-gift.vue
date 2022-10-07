@@ -45,7 +45,6 @@
             clearable
             :rules="[val => !!val || 'Field is required']"
             v-model="instances"
-            @input="this.instances"
           >
           </q-input>
           <div class="q-pa-sm">
@@ -72,61 +71,42 @@
             filled
             type="text"
             clearable
-            @input="this.text"
-            v-model="text"
-          >
-          </q-input>
-            <div class="q-pa-sm q-pt-lg flex flex-center" style="width:100%">
-              <q-btn
-                no-caps
-                rounded
-                color="blue-9"
-                type="submit"
-                label="Generate"
-                class="flex flex-center"
-                id="canvasButton"
-                @click="clickMe()"
-              >
-              </q-btn>
-              <div class="q-pa-sm q-pb-lg"></div>
+            v-model="maxPerCampaign"
+          ></q-input>
+          <div class="q-pa-sm q-pt-lg flex flex-center">
+            <q-btn
+              no-caps
+              rounded
+              color="blue-9"
+              type="submit"
+              label="Generate"
+              class="flex flex-center"
+              @click="processRequest()"
+            >
+            </q-btn>
+          </div>
         </div>
-        <!-- <div>
-        {{ this.$store.state.gifts.privKey }}
-        {{this.$store.state.gifts.cashAdd}}
-        {{ this.$store.state.gifts.storeShare }}
-        {{ this.$store.state.gift.recShare }}
-        {{ this.$store.state.gifts.genGifts }}
-        </div> -->
-        <div>
-          <div class="flex flex-center q-pb-none">
-            <div class="flex flex-center">
+        <div v-if="qrCodeContents">
+          <div class="flex flex-center" >
             <div class="flex flex-center col-qr-code">
-                <canvas id="canvas" class="flex flex-center"></canvas>
+              <qr-code :text="qrCodeContents" />
             </div>
-              </div>
             <div class="flex flex-center myStyle">
             </div>
           </div>
-          <div class="flex flex-center q-pt-sm" @click="copyToClipboard(this.cAdd)"  v-if="$store.cAdd !== 0">
-              <p class="fontStyle flex flex-center">{{ this.cAdd }}</p>
-            </div>
-              <div class="flex flex-center q-pt-none">
-              <p class="fontStyle">Click to Copy Address</p>
-            </div>
-        </div>
-       </div>
-      </div>
         </div>
       </div>
-   <!--  </div>
-  </div> -->
-  </template>
+    </div>
+  </div>
+</template>
+
 <script>
 import HeaderNav from '../../../components/header-nav'
 import { getMnemonic, Wallet } from '../../../wallet'
-import { v4 as uuidv4 } from 'uuid'
+import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
+import sha256 from 'js-sha256'
 
 export default {
   name: 'Gifts',
@@ -139,83 +119,60 @@ export default {
   },
   data () {
     return {
-      wallet: '',
-      txid: '',
-      amountBCH: '',
-      instances: null,
-      gift: {},
-      text: null,
-      // test
-      vWif: '',
-      cAdd: '',
-      localShare: [],
-      shareZero: [],
-      uid: '',
-      gifts: {},
-      hotdog: {},
-      url: ''
+      amountBCH: 0.001,
+      instances: 1,
+      maxPerCampaign: null,
+      qrCodeContents: null
     }
   },
 
   methods: {
-    // test 9 23 2022
-    clickMe () {
-      for (let i = 0; i < this.instances; i++) {
-        this.genPrivKey()
-        // this.genCashAddress()
-        this.genShares()
-        this.qrCode()
-        this.handleSubmit(this.cAdd)
-        // this.recoverSec()
-      }
-    },
-    genPrivKey () {
+    generateGift () {
       const privateKey = ECPair.makeRandom()
-      this.vWif = privateKey.toWIF()
-      console.log('Private key:', this.vWif)
-      this.$store.dispatch('gifts/genPrivKey', this.vWif)
-      // generate cash address
+      const wif = privateKey.toWIF()
+      console.log('Private key:', wif)
+
       const BCHJS = require('@psf/bch-js')
       const bchjs = new BCHJS()
-      const pair = bchjs.ECPair.fromWIF(this.vWif)
-      this.cAdd = bchjs.ECPair.toCashAddress(pair)
-      console.log('Address:', this.cAdd)
-      this.$store.dispatch('gifts/genCashAdd', this.cAdd)
-    },
-    genShares () {
-      // create shares and send to store
-      const sss = require('shamirs-secret-sharing')
-      const secret = Buffer.from(this.vWif)
-      const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
-      this.shares = stateShare.map((share) => { return toHex(share) })
-      this.$store.dispatch('gifts/genShares', this.shares)
-      this.shareZero = this.shares[0]
-      this.localShare = this.shares
-      console.log('Shares:', this.shares)
+      const pair = bchjs.ECPair.fromWIF(wif)
+      const address = bchjs.ECPair.toCashAddress(pair)
+      console.log('Address:', address)
+      // this.$store.dispatch('gifts/genCashAdd', this.str)
 
-      // create uid and put in dict with shares
-      this.uid = uuidv4()
-      console.log('Gift ID:', this.uid)
-      this.gifts[this.uid] = this.shares
-      this.$store.dispatch('gifts/storeGift', { uid: this.uid, shares: this.shares })
-    },
-    recoverSec () {
       const sss = require('shamirs-secret-sharing')
-      const recovery = sss.combine([this.shares[0], this.shares[1]])
-      console.log(recovery.toString())
-      this.$store.dispatch('gifts/recoverSec', recovery.toString())
-    },
-    // /end test
-    qrCode () {
-      const key = this.localShare[0]
-      // const key = this.vWif
-      const QRCode = require('qrcode')
-      const canvas = document.getElementById('canvas')
-      QRCode.toCanvas(canvas, key, function (error) {
-        if (error) console.error(error)
-        console.log('success')
+      const secret = Buffer.from(wif)
+      const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
+      const shares = stateShare.map((share) => { return toHex(share) })
+
+      this.uid = sha256(shares[0])
+      console.log('Gift ID:', this.uid)
+      console.log('Shares:', shares)
+      const payload = {
+        share: shares[1],
+        amount: this.amountBCH,
+        gift_id: this.uid
+      }
+      const url = 'https://gifts.paytaca.com/api/gifts/create/'
+      axios.post(url, payload).then((resp) => {
+        if (resp.status === 200) {
+          this.qrCodeContents = JSON.stringify(shares[0])
+          console.log(this.qrCodeContents)
+        }
       })
     },
+    processRequest () {
+      this.generateGift()
+      // this.recoverSec()
+    },
+    // recoverSec () {
+    //   const sss = require('shamirs-secret-sharing')
+    //   const recovery = sss.combine([this.shares[0], this.shares[1]])
+    //   console.log(recovery.toString())
+    //   this.$store.dispatch('gifts/recoverSec', recovery.toString())
+    // },
+    // recoverSecret () {
+    //   this.$store.dispatch('gifts/recoverSecret')
+    // },
     async handleSubmit (cAdd) {
       const vm = this
       const address = cAdd
