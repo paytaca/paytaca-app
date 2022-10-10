@@ -75,7 +75,7 @@ export class BchWallet {
     return request
   }
 
-  async sendBch (amount, recipient, changeAddress) {
+  async _sendBch (amount, recipient, changeAddress, broadcast=true) {
     console.log(`Sending ${amount} BCH to ${recipient}`)
     const data = {
       sender: {
@@ -94,11 +94,58 @@ export class BchWallet {
         mnemonic: this.mnemonic,
         derivationPath: this.derivationPath
       },
-      broadcast: true
+      broadcast: Boolean(broadcast),
     }
     const result = await this.watchtower.BCH.send(data)
     console.log(result)
     return result
+  }
+
+  async sendBch(amount, recipient, changeAddress) {
+    return this._sendBch(amount, recipient, changeAddress, true)
+  }
+
+  /**
+   * 
+   * @param {Number|String} amount 
+   * @param {String} recipient 
+   * @param {String} changeAddress 
+   * @param {{ walletHash: String, posId: Number }} posDevice 
+   */
+  async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
+    const response = { success: false, txid: '', otp: '', error: undefined }
+    const sendResponse = await this._sendBch(amount, recipient, changeAddress, false)
+
+    if (!sendResponse?.success) {
+      response.success = false
+      response.error = sendResponse?.error || 'Error generating transaction'
+      return response
+    }
+
+    const broadcastData = {
+      transaction: sendResponse.transaction,
+      pos_device: {
+        wallet_hash: posDevice?.walletHash,
+        pos_id: posDevice
+      }
+    }
+
+    try {
+      const broadcastResponse = await this.watchtower.BCH._api.post(
+        'api/paytacapos/broadcast/',
+        broadcastData,
+      )
+      response.success = Boolean(broadcastResponse?.data?.success)
+      response.txid = broadcastResponse?.data?.txid || ''
+    } catch(error) {
+      response.success = false
+      if (typeof error?.response?.data === 'string') response.error = error.response.data
+      else if(typeof error?.response?.data?.[0] === 'string') response.error = error.response.data[0]
+      else if(error?.message) response.error = error.message
+
+      response.errorObj = error
+    }
+    return response
   }
 
   async sendBchMultiple (recipients, changeAddress) {
