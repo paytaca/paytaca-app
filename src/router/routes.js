@@ -51,6 +51,7 @@ const routes = [
     component: () => import('layouts/Apps.vue'),
     children: [
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
+      { path: 'point-of-sale', component: () => import('src/pages/apps/point-of-sale.vue'), name: 'app-point-of-sale', props: route => route.query },
       { path: 'wallet-connect', component: () => import('src/pages/apps/wallet-connect.vue'), name: 'app-wallet-connect', props: route => route.query },
       { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
       { path: 'bridge', component: () => import('src/pages/apps/bridge.vue'), name: 'app-bridge' },
