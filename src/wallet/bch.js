@@ -124,4 +124,43 @@ export class BchWallet {
   }
 }
 
+
+/**
+ * decoding a URI standard BIP 0021 used as bitcoin payment links
+ * @param {String} uri 
+ */
+export function decodeBIP0021URI(paymentUri) {
+  const response = {
+    address: '',
+    amount: undefined,
+    label: undefined,
+    message: undefined,
+    parameters: null,
+  }
+  const urlObject = new URL(paymentUri)
+  if (!urlObject?.protocol || !urlObject?.pathname) return
+
+  if (!bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)) return
+
+  response.address = urlObject.protocol + urlObject.pathname
+
+  const searchParams = Object.fromEntries(urlObject.searchParams.entries())
+  if (searchParams.amount) {
+    response.amount = Number(searchParams.amount)
+    delete searchParams.amount
+  }
+  if (searchParams.label) {
+    response.label = searchParams.label
+    delete searchParams.label
+  }
+  if (searchParams.message) {
+    response.message = searchParams.message
+    delete searchParams.message
+  }
+
+  response.parameters = searchParams
+
+  return response
+}
+
 export default BchWallet

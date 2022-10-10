@@ -246,6 +246,7 @@ import { markRaw } from '@vue/reactivity'
 import { debounce } from 'quasar'
 import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
+import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from '../../wallet/sbch'
 import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
@@ -470,14 +471,26 @@ export default {
       this.showQrScanner = false
       let address = content
       let amount = null
-      try {
-        console.log('Parsing content as eip681')
-        const eip6821data = decodeEIP681URI(content)
-        address = eip6821data.target_address
-        amount = eip6821data.parsedValue
-      } catch (err) {
-        console.log('Failed to parse as eip681 uri')
-        console.log(err)
+      if (this.isSep20) {
+        try {
+          console.log('Parsing content as eip681')
+          const eip6821data = decodeEIP681URI(content)
+          address = eip6821data.target_address
+          amount = eip6821data.parsedValue
+        } catch (err) {
+          console.log('Failed to parse as eip681 uri')
+          console.log(err)
+        }
+      } else {
+        try {
+          console.log('Parsing content as BIP0021')
+          const bip0021Data = decodeBIP0021URI(content)
+          address = bip0021Data.address
+          if (bip0021Data.amount) amount = bip0021Data.amount
+        } catch(err) {
+          console.log('Failed to parse as BIP0021 uri')
+          console.log(err)
+        }
       }
       const valid = this.checkAddress(address)
       if (valid) {
