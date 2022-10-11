@@ -223,12 +223,22 @@
             </div>
             <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
               txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
-              <a
-                style="text-decoration: none; color: #3b7bf6;"
-                :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
-              >
-                View in explorer
-              </a>
+              <template v-if="walletType === 'SmartBCH'">
+                <a
+                  style="text-decoration: none; color: #3b7bf6;"
+                  :href="'https://sonar.cash/tx/' + sendData.txid" target="_blank"
+                >
+                  View in explorer
+                </a>
+              </template>
+              <template v-else>
+                <a
+                  style="text-decoration: none; color: #3b7bf6;"
+                  :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
+                >
+                  View in explorer
+                </a>
+              </template>
             </div>
           </div>
         </div>
@@ -817,6 +827,9 @@ export default {
                 vm.playSound(true)
                 vm.sendData.sending = false
                 vm.sendData.sent = true
+                if (!vm.sendAmountInFiat) {
+                  vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+                }
               } else {
                 if (result.error) {
                   vm.sendErrors.push(result.error)
