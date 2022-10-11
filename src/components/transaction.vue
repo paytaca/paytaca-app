@@ -175,7 +175,7 @@ export default {
       return (Number(gas) * Number(bchMarketValue)).toFixed(8)
     },
     cachedPaymentOTP() {
-      return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
+      return this.$store.getters['paytacapos/paymentOTPCache'](this.transaction?.txid)?.otp || ''
     }
   },
   methods: {
