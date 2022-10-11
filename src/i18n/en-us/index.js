@@ -1,6 +1,3 @@
-// This is just an example,
-// so you can safely delete all default props below
-
 export default {
   failed: 'Action failed',
   success: 'Action was successful',
@@ -27,5 +24,5 @@ export default {
   SetName: 'Set name',
   SetNewNameForDevice: 'Set new name for device',
   UpdatedDeviceIDNo: 'Updated device #{ID}',
-  UpdatingDeviceIDNo: 'Updating device #{ID}',
+  UpdatingDeviceIDNo: 'Updating device #{ID}'
 }
