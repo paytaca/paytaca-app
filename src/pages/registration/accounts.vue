@@ -86,6 +86,7 @@ import pinDialog from '../../components/pin'
 import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { utils } from 'ethers'
+import { Device } from '@capacitor/device'
 
 export default {
   name: 'registration-accounts',
@@ -266,8 +267,25 @@ export default {
       }
     }
   },
-  mounted () {
+  async mounted () {
+    const eng = ['en-us', 'en-uk', 'en-gb', 'en']
+    let finalLang = ''
+    // Adjust paytaca language according to phone's language (if supported by paytaca)
+    let deviceLang = await Device.getLanguageTag()
+    deviceLang = deviceLang.value.toLowerCase()
+
+    // defaults to english if device lang is unsupported by app
+    if (eng.includes(deviceLang) || !this.$i18n.availableLocales.includes(deviceLang)) {
+      finalLang = 'en-us'
+    } else {
+      finalLang = deviceLang
+    }
+
+    this.$i18n.locale = finalLang
+    this.$q.localStorage.set('lang', finalLang)
+
     const vm = this
+
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {
       if (response.status === 200) {
         vm.show = true
