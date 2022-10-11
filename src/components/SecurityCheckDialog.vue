@@ -3,7 +3,7 @@
     <q-card class="br-15" :class="{'pt-dark text-white': darkMode, 'text-black': !darkMode}">
       <q-card-section>
         <div class="text-center q-mb-sm">
-          Security check
+          {{ $t('SecurityCheck') }}
         </div>
         <div class="row items-center justify-around q-gutter-md">
           <q-btn rounded label="Log In" color="blue-9" @click="executeSecurityChecking()" />

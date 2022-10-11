@@ -12,7 +12,7 @@
           <q-card-section>
               <div class="row">
                   <div class="col-12 text-center q-mt-lg">
-                      <p class="text-h6 dim-text">Saving your PIN...</p>
+                      <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
                   </div>
                   <div class="col-12 text-center">
                       <ProgressLoader/>
@@ -24,7 +24,7 @@
       <q-card v-else class="pt-bg-card" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
         <q-card-section class="q-mt-md q-pb-none">
             <div class="text-center">
-                <p class="text-h6 text-blue-9" :class="{'text-grad': $store.getters['darkmode/getStatus']}"><strong>{{ actionCaption }} PIN</strong></p>
+                <p class="text-h6 text-blue-9 text-uppercase" :class="{'text-grad': $store.getters['darkmode/getStatus']}"><strong>{{ actionCaption }}</strong></p>
                 <p class="dim-text q-mt-md" :class="{'text-grey-5': $store.getters['darkmode/getStatus']}">{{ subTitle }}</p>
             </div>
         </q-card-section>
@@ -112,7 +112,7 @@ export default {
     return {
       dialog: false,
       actionCaption: '',
-      pinLabel: 'Enter PIN',
+      pinLabel: this.$t('EnterPin'),
       btnIcon: 'done',
       pin: '',
       pin2: '',
@@ -123,8 +123,8 @@ export default {
       loader: false,
       resetStatus: true,
       saveBtn: true,
-      subText1: 'Enter your PIN to proceed.',
-      subText2: 'PIN will serve as a verfication of your account in every transaction you make for security purposes.',
+      subText1: this.$t('PinSubtext1'),
+      subText2: this.$t('PinSubtext2'),
       subTitle: null
     }
   },
@@ -137,7 +137,15 @@ export default {
         vm.pin = ''
         vm.removeKey('delete')
         vm.dialog = true
-        vm.actionCaption = vm.pinDialogAction
+
+        if (vm.pinDialogAction === 'SET UP') {
+          vm.actionCaption = vm.$t('SetupPin')
+        } else if (vm.pinDialogAction === 'SET NEW') {
+          vm.actionCaption = vm.$t('SetupNewPin')
+        } else if (vm.pinDialogAction === 'VERIFY') {
+          vm.actionCaption = vm.$t('VerifyPin')
+        }
+
         vm.btnIcon = vm.pinDialogAction === 'VERIFY' ? 'verified_user' : 'done'
         vm.subTitle = vm.pinDialogAction === 'VERIFY' ? vm.subText1 : vm.subText2
       } else {
@@ -187,7 +195,7 @@ export default {
         if (vm.pin2.length === 6) {
           if (vm.pin2 !== vm.pin) {
             vm.saveBtn = true
-            vm.validationMsg = 'PIN mismatched'
+            vm.validationMsg = vm.$t('PinMismatched')
           }
         }
       }
@@ -206,7 +214,7 @@ export default {
         vm.pin = ''
         vm.pin2 = ''
         vm.pinStep = 1
-        vm.pinLabel = 'Enter PIN'
+        vm.pinLabel = vm.$t('EnterPin')
         vm.btnIcon = 'done'
         vm.resetStatus = true
         for (let i = 0; keyLength > i; i++) {
@@ -232,12 +240,12 @@ export default {
           resetAll()
           vm.$emit('nextAction', 'proceed')
         } else {
-          vm.validationMsg = 'Incorrect PIN'
+          vm.validationMsg = vm.$t('IncorrectPin')
         }
       } else if (vm.pinStep === 1) {
         vm.pinStep = 2
         vm.removeKey('delete')
-        vm.pinLabel = 'Confirm PIN'
+        vm.pinLabel = vm.$t('ConfirmPin')
         vm.btnIcon = 'done'
         vm.resetStatus = false
       } else if (vm.pinStep === 2) {

@@ -6,7 +6,7 @@
     />
     <div id="app-container" :class="{'pt-dark': darkMode}">
       <header-nav
-        :title="'SEND ' + asset.symbol"
+        :title="$t('Send') + ' ' + asset.symbol"
         backnavpath="/send/select-asset"
       ></header-nav>
       <div class="q-mt-xl">
@@ -33,7 +33,7 @@
                 filled
                 :dark="darkMode"
                 v-model="manualAddress"
-                :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
+                :label="canUseLNS ? $t('PasteAddressOrLnsHere') : $t('PasteAddressHere')"
                 @update:model-value="resolveLnsName"
               >
                 <template v-slot:append>
@@ -43,7 +43,7 @@
                   <q-item v-if="lns.loading">
                     <q-item-section class="items-center">
                       <q-spinner color="black"/>
-                      <q-item-label caption>Resolving LNS name address</q-item-label>
+                      <q-item-label caption>{{ $t('ResolvingLnsAddress') }}</q-item-label>
                     </q-item-section>
                   </q-item>
                   <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
@@ -58,15 +58,15 @@
                     </q-item-section>
                     <q-item-section>
                       <q-item-label caption>
-                        Unable to resolve LNS name address
+                        {{ $t('UnableToResolveLnsAddress') }}
                       </q-item-label>
                     </q-item-section>
                   </q-item>
                 </q-menu>
               </q-input>
             </div>
-            <div class="col-12" style="text-align: center; font-size: 15px; color: grey;">
-              OR
+            <div class="col-12 text-uppercase" style="text-align: center; font-size: 15px; color: grey;">
+              {{ $t('or') }}
             </div>
             <div class="col-12 q-mt-lg text-center">
               <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
@@ -98,7 +98,7 @@
                   :dark="darkMode"
                 >
                   <template v-slot:label>
-                    Recipient
+                    {{ $t('Recipient') }}
                     <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
                       ({{ sendData.lnsName }})
                     </template>
@@ -106,6 +106,7 @@
                 </q-input>
               </div>
             </div>
+<<<<<<< HEAD
             <template v-if="$store.state.global.online !== false">
               <div class="row" v-if="!isNFT">
                 <div class="col q-mt-md">
@@ -154,6 +155,54 @@
                   <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
                     ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
                   </div>
+=======
+            <div class="row" v-if="!isNFT">
+              <div class="col q-mt-md">
+                <q-input
+                  type="text"
+                  inputmode="none"
+                  @focus="readonlyState(true)"
+                  @blur="readonlyState(false)"
+                  filled
+                  v-model="sendData.amount"
+                  :label="$t('Amount')"
+                  :loading="computingMax"
+                  :disabled="disableAmountInput || setAmountInFiat"
+                  :readonly="disableAmountInput || setAmountInFiat"
+                  :dark="darkMode"
+                  :error="balanceExceeded"
+                  :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
+                >
+                  <template v-slot:append>
+                    {{ asset.symbol }}
+                  </template>
+                </q-input>
+                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </div>
+              </div>
+            </div>
+            <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
+              <div class="col q-mt-md">
+                <q-input
+                  type="text"
+                  inputmode="none"
+                  @focus="readonlyState(true)"
+                  @blur="readonlyState(false)"
+                  filled
+                  v-model="sendAmountInFiat"
+                  :label="$t('Amount')"
+                  :disabled="disableAmountInput"
+                  :readonly="disableAmountInput"
+                  :dark="darkMode"
+                >
+                  <template v-slot:append>
+                    {{ String(selectedMarketCurrency).toUpperCase() }}
+                  </template>
+                </q-input>
+                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+>>>>>>> 84e6e58... Translated texts to Spanish (WIP)
                 </div>
               </div>
               <div class="row" v-if="!isNFT">
@@ -201,7 +250,7 @@
               <q-icon class="material-icons q-mr-md" size="lg">
                 task_alt
               </q-icon>
-              Security Check
+              {{ $t('SecurityCheck') }}
               </div>
             </template>
 
@@ -210,7 +259,7 @@
                 <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
               </q-item-section>
               <q-item-section class="text-right">
-                <h5 class="q-my-sm text-grey-4">SWIPE TO SEND</h5>
+                <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
               </q-item-section>
             </q-item>
           </q-slide-item>
