@@ -146,7 +146,7 @@
                 </template>
                 <a
                   href="#"
-                  v-if="!disableAmountInput || (setAmountInFiat && !sendData.sending)"
+                  v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
                   @click.prevent="setMaximumSendAmount"
                   style="float: right; text-decoration: none; color: #3b7bf6;"
                 >
@@ -154,7 +154,7 @@
                 </a>
               </div>
             </div>
-            <div class="row" v-if="!isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+            <div class="row" v-if="!isNFT && !setAmountInFiat && asset.id === 'bch' && !computingMax && !showSlider" style="margin-top: -10px;">
               <div class="col q-mt-md">
                 <a
                   style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
