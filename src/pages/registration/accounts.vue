@@ -11,13 +11,13 @@
         <div class="col-12 q-mt-md q-px-lg q-py-none">
           <div class="row">
             <div class="col-12 q-py-sm">
-              <q-btn class="full-width bg-blue-9 text-white" @click="initCreateWallet()" label="Create New Wallet" rounded />
+              <q-btn class="full-width bg-blue-9 text-white" @click="initCreateWallet()" :label="$t('CreateNewWallet')" rounded />
             </div>
             <div class="col-12 text-center q-py-sm">
-              <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">OR</p>
+              <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">{{ $t('or') }}</p>
             </div>
             <div class="col-12 q-py-sm">
-              <q-btn class="full-width bg-blue-9 text-white" @click="() => { importSeedPhrase = true }" label="Restore from Seed Phrase" rounded />
+              <q-btn class="full-width bg-blue-9 text-white" @click="() => { importSeedPhrase = true }" :label="$t('RestoreFromSeedPhrase')" rounded />
             </div>
           </div>
         </div>
@@ -25,7 +25,7 @@
       <div class="row" v-else style="margin-top: 60px;">
         <div class="col" v-if="error">
           <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
-            Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down. &#128533;
+            {{ $t('NoInternetConnectionNotice') }} &#128533;
           </div>
         </div>
       </div>
@@ -38,25 +38,26 @@
         <p
           style="text-align: center; font-size: 16px; color: #000;"
           :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"
-        >Restore your Paytaca wallet from its mnemonic backup phrase.</p>
+        >
+          {{ $t('RestoreWalletDescription') }}
+        </p>
         <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
-        <q-btn class="full-width bg-blue-9 text-white q-mt-md" @click="initCreateWallet()" :disable="!validateSeedPhrase()" label="Restore Wallet" rounded />
+        <q-btn class="full-width bg-blue-9 text-white q-mt-md" @click="initCreateWallet()" :disable="!validateSeedPhrase()" :label="$t('RestoreWallet')" rounded />
       </div>
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
       <div class="pt-get-started q-mt-sm q-pa-lg">
-
         <template v-if="steps === totalSteps">
-          <h5 class="q-ma-none get-started-text text-black">Mnemonic Backup Phrase</h5>
+          <h5 class="q-ma-none get-started-text text-black">{{ $t('MnemonicBackupPhrase') }}</h5>
           <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-            Double check if this matches your mnemonic backup phrase.
+            {{ $t('MnemonicBackupPhraseDescription1') }}
           </p>
           <p v-else class="dim-text" style="margin-top: 10px;">
-            Write on paper or take a screenshot and keep it somewhere safe.
+            {{ $t('MnemonicBackupPhraseDescription2') }}
           </p>
         </template>
-        <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? 'Restoring' : 'Creating' }} your wallet...</p>
+        <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
 
         <div class="row" id="mnemonic">
           <div class="col q-mb-sm text-caption" v-if="steps === totalSteps">
@@ -68,7 +69,7 @@
           </div>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <q-btn class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" label="Continue" rounded />
+          <q-btn class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" :label="$t('Continue')" rounded />
         </div>
       </div>
     </div>
@@ -230,9 +231,9 @@ export default {
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
-        reason: 'For easy log in',
-        title: 'Security Authentication',
-        subtitle: 'Verify your account using fingerprint.',
+        reason: $t('NativeBiometricReason'),
+        title: $t('SecurityAuthentication'),
+        subtitle: $t('NativeBiometricSubtitle'),
         description: ''
       })
         .then(() => {

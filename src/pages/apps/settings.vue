@@ -1,13 +1,13 @@
 <template>
   <div class="pt-settings" :class="{'pt-dark': darkMode}">
-      <header-nav title="Settings" backnavpath="/apps" />
+      <header-nav :title="$t('Settings')" backnavpath="/apps" />
       <div class="row" style="padding-top: 60px;">
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6">Security</p>
+              <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Security') }}</p>
               <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
-                <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus = 'show in settings'">
+                <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Security Authentication Setup</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SecurityAuthenticationSetup') }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
                         <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
@@ -15,7 +15,7 @@
                 </q-item>
                 <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">PIN {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Pin') }} {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
                         <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
@@ -25,11 +25,11 @@
           </div>
 
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6">Wallet</p>
+              <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Wallet') }}</p>
               <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
                 <q-item>
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Currency</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
                     </q-item-section>
                     <q-item-section side>
                       <q-select
@@ -69,13 +69,14 @@
                 </q-item>
                 <q-item>
                   <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Ignored Tokens</q-item-label>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('IgnoredTokens') }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <q-btn
                       flat
-                      label="Manage"
+                      :label="$t('Manage')"
                       no-caps
+                      :to="{ path: '/apps/settings/ignored-tokens' }"
                     />
                   </q-item-section>
                 </q-item>
@@ -83,11 +84,11 @@
           </div>
 
           <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6">Personalize</p>
+              <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Personalize') }}</p>
               <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
                 <q-item>
                   <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Language</q-item-label>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <LanguageSelector :darkMode="darkMode" />
@@ -96,7 +97,7 @@
 
                 <q-item clickable v-ripple @click="darkMode = !darkMode">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Dark Mode</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('DarkMode') }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
                       <q-toggle

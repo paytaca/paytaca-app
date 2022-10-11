@@ -9,7 +9,7 @@
             </svg>
           </q-icon>
         </router-link>
-        <span @click="$router.push('/')">Home</span>
+        <span @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
@@ -19,7 +19,7 @@
             </svg>
           </q-icon>
         </router-link>
-        <span @click="$router.push({ name: 'transaction-send-select-asset' })">Send</span>
+        <span @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
       </button>
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'transaction-receive-select-asset' }">
@@ -29,7 +29,7 @@
             </svg>
           </q-icon>
         </router-link>
-        <span @click="$router.push({ name: 'transaction-receive-select-asset' })">Receive</span>
+        <span @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</span>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'apps-dashboard' }">
@@ -39,7 +39,7 @@
             </svg>
           </q-icon>
         </router-link>
-        <span @click="$router.push({ name: 'apps-dashboard' })">Apps</span>
+        <span @click="$router.push({ name: 'apps-dashboard' })">{{ $t('Apps') }}</span>
       </button>
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>

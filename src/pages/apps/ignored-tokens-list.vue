@@ -1,6 +1,6 @@
 <template>
   <div class="pt-settings" :class="{'pt-dark': darkMode}">
-    <header-nav title="Ignored Tokens"/>
+    <header-nav :title="$t('IgnoredTokens')"/>
     <div
       style="padding-top:100px;height:100vh;"
       :class="[
@@ -69,11 +69,12 @@
       <div
         v-else
         :class="[
-          'text-center',
+          'text-center q-mt-md',
           darkMode ? 'text-white' : 'text-grey'
         ]"
+        style="font-size: 18px"
       >
-        No ignored assets
+        {{ $t('NoIgnoredAssets') }}
       </div>
     </div>
   </div>

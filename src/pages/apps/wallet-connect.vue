@@ -6,7 +6,7 @@
     />
     <div id="app-container" style="background-color: #ECF3F3; min-height: 100vh;" class="flex flex-center" :class="{ 'pt-dark': darkMode }">
       <HeaderNav
-        title="Wallet Connect"
+        :title="$t('WalletConnect')"
         backnavpath="/apps"
         style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
       />
@@ -14,7 +14,7 @@
       <div class="q-mx-md">
         <div v-if="!connector">
           <q-input
-            label="Input Wallet Connect URI"
+            :label="$t('InputWalletConnectUri')"
             filled
             :dark="darkMode"
             v-model="handshakeFormData.walletConnectUri"
@@ -26,14 +26,14 @@
                 no-caps
                 rounded
                 color="blue-9"
-                label="Connect"
+                :label="$t('Connect')"
                 @click="handShakeFormSubmit()"
                 :disable="handshakeOnProgress"
               />
             </template>
           </q-input>
-          <div class="q-mt-md q-pt-md text-center text-grey" style="font-size: 15px;">
-            OR
+          <div class="q-mt-md q-pt-md text-center text-uppercase text-grey" style="font-size: 15px;">
+            {{ $t('or') }}
           </div>
           <div class="q-mt-lg row justify-center items-center">
             <q-btn
@@ -278,7 +278,7 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
-        message: 'Copied to clipboard',
+        message: this.$t('CopiedToClipboard'),
         timeout: 200,
         icon: 'mdi-clipboard-check',
         color: 'blue-9'

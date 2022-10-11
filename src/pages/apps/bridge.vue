@@ -4,7 +4,7 @@
     :class="{'pt-dark': darkMode}"
   >
     <HeaderNav
-      title="Bridge"
+      :title="$t('Bridge')"
       backnavpath="/apps"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
@@ -21,7 +21,7 @@
             @click="mode.active = mode.opts.main"
           >
             <q-item-section>
-              BCH Bridge
+              {{ $t('BchBridge') }}
             </q-item-section>
           </q-item>
           <q-item
@@ -33,7 +33,7 @@
             @click="mode.active = mode.opts.spicebotSlp2Sep20"
           >
             <q-item-section>
-              SLP to SEP20
+              {{ $t('SLP_to_SEP20') }}
             </q-item-section>
           </q-item>
         </q-list>

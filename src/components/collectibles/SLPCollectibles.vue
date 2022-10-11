@@ -20,7 +20,7 @@
     </div>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
       <p style="font-size: 18px; color: gray; text-align: center; margin-top: 50px;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
-        You don't own any collectibles yet.
+        {{ $t('NoCollectibles') }}
       </p>
     </template>
     <Collectible v-model="collectibleDetail.show" :collectible="collectibleDetail.collectible"/>

@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
-    <header-nav title="RECEIVE" backnavpath="/"></header-nav>
+    <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense
       active-color="brandblue"
@@ -15,7 +15,7 @@
     <template v-if="assets">
       <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Select Asset to be Received</p>
+          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToBeReceived') }}</p>
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -90,7 +90,7 @@ export default {
         _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
         const unlistedAsset = {
           id: 'sep20/unlisted',
-          name: 'New / Unlisted',
+          name: this.$t('NewUnlisted'),
           symbol: 'SEP20 token',
           logo: 'sep20-logo.png'
         }
@@ -105,7 +105,7 @@ export default {
       })
       const unlistedAsset = {
         id: 'slp/unlisted',
-        name: 'New / Unlisted',
+        name: this.$t('NewUnlisted'),
         symbol: 'SLP token',
         logo: 'slp-logo.png'
       }

@@ -174,7 +174,7 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
-        message: 'Copied to clipboard',
+        message: this.$t('CopiedToClipboard'),
         timeout: 200,
         icon: 'mdi-clipboard-check',
         color: 'blue-9'

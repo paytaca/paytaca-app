@@ -3,8 +3,8 @@
     <q-card class="q-dialog-plugin br-15" :class="{'pt-dark-card': darkMode }">
       <div class="row items-center no-wrap q-pb-sm">
         <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">
-          <template v-if="loading">Finding unlisted assets</template>
-          <template v-else>Unlisted Assets</template>
+          <template v-if="loading">{{ $t('FindingUnlistedAssets') }}</template>
+          <template v-else>{{ $t('UnlistedAssets') }}</template>
         </div>
         <q-space/>
         <q-btn
@@ -15,10 +15,10 @@
           v-close-popup
         />
       </div>
-      <!-- <q-separator/> -->
+
       <q-btn
         v-if="!loading"
-        label="View ignored tokens"
+        :label="$t('ViewIgnoredTokens')"
         no-caps
         flat
         padding="none"
@@ -92,7 +92,7 @@
         <div v-else-if="loading" class="column items-center justify-center">
           <ProgressLoader/>
           <div :class="darkMode ? 'text-white' : 'text-grey'">
-            Searching for other assets
+            {{ $t('SearchingForOtherAssets') }}
           </div>
         </div>
         <div
@@ -103,7 +103,7 @@
             'text-center',
           ]"
         >
-          No tokens found
+          {{ $t('NoTokensFound') }}
         </div>
       </q-card-section>
       <!-- <q-separator/> -->

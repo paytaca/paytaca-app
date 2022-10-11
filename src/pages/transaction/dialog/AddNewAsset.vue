@@ -2,8 +2,7 @@
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
     <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': darkMode}">
         <q-card-section class="pt-label text-weight-medium" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
-            <span v-if="isSep20">Add SEP20 Token</span>
-            <span v-else>Add SLP Type 1 Token</span>
+            <span>{{ addTokenTitle }}</span>
         </q-card-section>
 
         <q-separator />
@@ -14,13 +13,13 @@
               dense
               filled
               color="input-color"
-              :label="`Enter ${isSep20 ? 'SEP20 contract address': 'SLP token ID'}`"
+              :label="inputPlaceholder"
               type="text"
               lazy-rules
               v-model="asset"
               :dark="darkMode"
               :rules="[
-                val => Boolean(val) || `Enter ${isSep20 ? 'SEP20 contract address': 'SLP token id'} is required`,
+                val => Boolean(val) || $t('Required'),
               ]"
             />
           </q-card-section>
@@ -28,8 +27,8 @@
           <q-separator class="q-mt-none" />
 
           <q-card-actions align="right">
-              <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" flat label="close" @click="onCancelClick" />
+              <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
+              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" flat :label="$t('Close')" @click="onCancelClick" />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -59,6 +58,12 @@ export default {
   computed: {
     isSep20 () {
       return this.network === 'sBCH'
+    },
+    addTokenTitle () {
+      return this.isSep20 ? this.$t('Add_SEP20_Token') : this.$t('Add_Type1_Token')
+    },
+    inputPlaceholder () {
+      return this.isSep20 ? this.$t('Enter_SEP20_ContractAddress') : this.$t('Enter_SLP_TokenId')
     }
   },
 

@@ -43,7 +43,7 @@
     </template>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
       <p style="font-size: 18px; color: gray; text-align: center;" class="q-py-md" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
-        You don't own any collectibles yet.
+        {{ $t('NoCollectibles') }}
       </p>
     </template>
     <ERC721CollectibleDetail v-model="collectibleDetail.show" :darkMode="$store.getters['darkmode/getStatus']" :collectible="collectibleDetail.collectible"/>
