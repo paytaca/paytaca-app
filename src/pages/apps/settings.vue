@@ -21,18 +21,6 @@
                         <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
                     </q-item-section>
                 </q-item>
-                <q-item clickable v-ripple @click="darkMode = !darkMode">
-                    <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Dark Mode</q-item-label>
-                    </q-item-section>
-                    <q-item-section avatar>
-                      <q-toggle
-                        v-model="darkMode"
-                        color="blue-9"
-                        keep-color
-                      />
-                    </q-item-section>
-                </q-item>
               </q-list>
           </div>
 
@@ -81,16 +69,42 @@
                 </q-item>
                 <q-item>
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Ignored Tokens</q-item-label>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Ignored Tokens</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <q-btn
                       flat
                       label="Manage"
                       no-caps
-                      :to="{ path: '/apps/settings/ignored-tokens' }"
                     />
                   </q-item-section>
+                </q-item>
+              </q-list>
+          </div>
+
+          <div class="col-12 q-px-lg q-mt-md">
+              <p class="q-px-sm q-my-sm dim-text text-h6">Personalize</p>
+              <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+                <q-item>
+                  <q-item-section>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Language</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <LanguageSelector :darkMode="darkMode" />
+                  </q-item-section>
+                </q-item>
+
+                <q-item clickable v-ripple @click="darkMode = !darkMode">
+                    <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">Dark Mode</q-item-label>
+                    </q-item-section>
+                    <q-item-section avatar>
+                      <q-toggle
+                        v-model="darkMode"
+                        color="blue-9"
+                        keep-color
+                      />
+                    </q-item-section>
                 </q-item>
               </q-list>
           </div>
@@ -108,6 +122,7 @@ import securityOptionDialog from '../../components/authOption'
 import HeaderNav from '../../components/header-nav'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import LanguageSelector from '../../components/settings/LanguageSelector'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -122,7 +137,12 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
-  components: { HeaderNav, pinDialog, securityOptionDialog },
+  components: {
+    HeaderNav,
+    pinDialog,
+    securityOptionDialog,
+    LanguageSelector,
+  },
   watch: {
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
