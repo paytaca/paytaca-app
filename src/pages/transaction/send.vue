@@ -99,6 +99,7 @@
                   filled
                   v-model="sendData.amount"
                   label="Amount"
+                  :loading="computingMax"
                   :disabled="disableAmountInput || setAmountInFiat"
                   :readonly="disableAmountInput || setAmountInFiat"
                   :dark="darkMode"
@@ -373,7 +374,8 @@ export default {
       showQrScanner: false,
       setAmountInFiat: false,
       sendAmountInFiat: null,
-      balanceExceeded: false
+      balanceExceeded: false,
+      computingMax: false
     }
   },
 
@@ -703,11 +705,16 @@ export default {
     async setMaximumSendAmount () {
       if (this.asset.id === 'bch') {
         if (this.isSep20) {
+          this.computingMax = true
           const spendable = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
             this.sendData.recipient
           )
           this.sendData.amount = spendable
+          this.computingMax = false
+          if (spendable < 0) {
+            this.sendErrors.push('Not enough balance to cover the gas fee')
+          }
         } else {
           this.sendData.amount = this.asset.spendable
         }
