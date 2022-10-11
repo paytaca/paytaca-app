@@ -110,10 +110,10 @@ export class BchWallet {
    * @param {Number|String} amount 
    * @param {String} recipient 
    * @param {String} changeAddress 
-   * @param {{ walletHash: String, posId: Number }} posDevice 
+   * @param {{ walletHash: String, posId: Number, paymentTimestamp: Number }} posDevice 
    */
   async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
-    const response = { success: false, txid: '', otp: '', error: undefined }
+    const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
     const sendResponse = await this._sendBch(amount, recipient, changeAddress, false)
 
     if (!sendResponse?.success) {
@@ -124,6 +124,7 @@ export class BchWallet {
 
     const broadcastData = {
       transaction: sendResponse.transaction,
+      payment_timestamp: posDevice?.paymentTimestamp,
       pos_device: {
         wallet_hash: posDevice?.walletHash,
         posid: posDevice?.posId,
@@ -138,6 +139,7 @@ export class BchWallet {
       response.success = Boolean(broadcastResponse?.data?.success)
       response.txid = broadcastResponse?.data?.txid || ''
       response.otp = broadcastResponse?.data?.otp || ''
+      response.otpTimestamp = broadcastResponse?.data?.otp_timestamp || -1
     } catch(error) {
       response.success = false
       if (typeof error?.response?.data === 'string') response.error = error.response.data

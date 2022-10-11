@@ -6,6 +6,7 @@ import darkmode from './darkmode'
 import market from './market'
 import assets from './assets'
 import lns from './lns'
+import paytacapos from './paytacapos'
 import sep20 from './sep20'
 import walletconnect from './walletconnect'
 
@@ -28,6 +29,7 @@ export default function (/* { ssrContext } */) {
       assets,
       market,
       lns,
+      paytacapos,
       sep20,
       walletconnect
     },

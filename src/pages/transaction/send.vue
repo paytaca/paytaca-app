@@ -75,6 +75,9 @@
               {{ sendData.posDevice.walletHash.substring(0, 5) }}
               ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
               <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
+              <div v-if="sendData.posDevice?.paymentTimestamp" class="text-caption text-grey">
+                {{ formatTimestampToText(sendData.posDevice?.paymentTimestamp * 1000) }}
+              </div>
             </div>
             <div class="row">
               <div class="col q-mt-sm se">
@@ -233,9 +236,9 @@
               ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
               <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
 
-              <div v-if="sendData?.responseOTP" class="text-center q-mt-md">
+              <div v-if="paymentOTP" class="text-center q-mt-md">
                 <div class="text-grey">Payment OTP</div>
-                <div class="text-h3" style="letter-spacing:1rem;">{{ sendData.responseOTP }}</div>
+                <div class="text-h3" style="letter-spacing:1rem;">{{ paymentOTP }}</div>
                 <q-separator color="grey"/>
               </div>
             </div>
@@ -356,7 +359,8 @@ export default {
         recipientAddress: '',
         lnsName: '',
         _lnsAddress: '', // in case recipient address is edited in form will check if name still matches the address
-        posDevice: { walletHash: '', posId: -1 },
+        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
+        rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
         fixedRecipientAddress: false
       },
@@ -446,6 +450,11 @@ export default {
     },
     showSlider () {
       return this.sendData.sending !== true && this.sendData.sent !== true && this.sendErrors.length === 0 && this.sliderStatus === true
+    },
+    paymentOTP() {
+      if (this.sendData.responseOTP) return this.sendData.responseOTP
+
+      return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
     }
   },
 
@@ -488,17 +497,27 @@ export default {
   },
 
   methods: {
+    formatTimestampToText(timestamp) {
+      if (!Number.isSafeInteger(timestamp)) return ''
+
+      const dateObj = new Date(timestamp)
+      return new Intl.DateTimeFormat(
+        'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
+      ).format(dateObj)
+    },
     onScannerDecode (content) {
       this.showQrScanner = false
       let address = content
       let amount = null
-      let posDevice = { walletHash: '', posId: -1 }
+      let rawPaymentUri = ''
+      let posDevice = { walletHash: '', posId: -1, paymentTimestamp: -1 }
       if (this.isSep20) {
         try {
           console.log('Parsing content as eip681')
           const eip6821data = decodeEIP681URI(content)
           address = eip6821data.target_address
           amount = eip6821data.parsedValue
+          rawPaymentUri = content
         } catch (err) {
           console.log('Failed to parse as eip681 uri')
           console.log(err)
@@ -511,7 +530,11 @@ export default {
           if (bip0021Data.amount) amount = bip0021Data.amount
           if (bip0021Data.parameters?.POS) {
             posDevice = parsePOSLabel(bip0021Data.parameters.POS)
+            if (bip0021Data.parameters?.ts) {
+              posDevice.paymentTimestamp = Number(bip0021Data.parameters?.ts)
+            }
           }
+          rawPaymentUri = content
         } catch(err) {
           console.log('Failed to parse as BIP0021 uri')
           console.log(err)
@@ -520,6 +543,7 @@ export default {
       const valid = this.checkAddress(address)
       if (valid) {
         this.sendData.recipientAddress = address
+        this.sendData.rawPaymentUri = rawPaymentUri
         this.scannedRecipientAddress = true
 
         if (amount !== null) {
@@ -923,6 +947,16 @@ export default {
               if (result.otp) vm.sendData.responseOTP = result.otp
               if (!vm.sendAmountInFiat) {
                 vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+              }
+
+              if (result?.otp) {
+                vm.$store.commit('paytacapos/saveOTPCache', {
+                  txid: result.txid,
+                  otp: result.otp,
+                  otpTimestamp: result?.otpTimestamp,
+                  rawPaymentUri: vm.sendData?.rawPaymentUri,
+                })
+                vm.$store.commit('paytacapos/removeOldPaymentOTPCache')
               }
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
