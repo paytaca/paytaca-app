@@ -811,6 +811,7 @@ export default {
           }
           if (promise) {
             promise.then(function (result) {
+              console.log('Result:', result)
               if (result.success) {
                 vm.sendData.txid = result.txid
                 vm.playSound(true)
