@@ -126,7 +126,7 @@ export class BchWallet {
       transaction: sendResponse.transaction,
       pos_device: {
         wallet_hash: posDevice?.walletHash,
-        pos_id: posDevice
+        posid: posDevice?.posId,
       }
     }
 
@@ -137,6 +137,7 @@ export class BchWallet {
       )
       response.success = Boolean(broadcastResponse?.data?.success)
       response.txid = broadcastResponse?.data?.txid || ''
+      response.otp = broadcastResponse?.data?.otp || ''
     } catch(error) {
       response.success = false
       if (typeof error?.response?.data === 'string') response.error = error.response.data
