@@ -284,8 +284,8 @@ export class SmartBchWallet {
       to: recipientAddress,
       value: parsedAmount
     }
-    const estGas = await this.provider.estimateGas(txParams)
-    const gasPrice = await this.provider.getGasPrice()
+    const estGas = await this._wallet.estimateGas(txParams)
+    const gasPrice = await this._wallet.getGasPrice()
     let spendableBch = parsedAmount - (estGas * gasPrice)
     spendableBch = utils.formatEther(String(spendableBch))
     return spendableBch
@@ -295,7 +295,7 @@ export class SmartBchWallet {
     return this.sendBchWithData(amount, recipientAddress)
   }
 
-  async sendBchWithData (amount, recipientAddress, data = '') {
+  async sendBchWithData (amount, recipientAddress, data = '', wait = true) {
     if (!utils.isAddress(recipientAddress)) {
       return {
         success: false,
@@ -328,9 +328,20 @@ export class SmartBchWallet {
       }
       txParams.gasLimit = estGas
       const tx = await this._wallet.sendTransaction(txParams)
-      return {
-        success: true,
-        transaction: tx
+      if (wait) {
+        const minedTx = await tx.wait()
+        if (minedTx.status === 1) {
+          return {
+            success: true,
+            transaction: minedTx,
+            txid: minedTx.transactionHash
+          }
+        } else if (minedTx.status === 0) {
+          return {
+            success: false,
+            transaction: 'transaction reverted'
+          }
+        }
       }
     } catch (e) {
       if (e && e.message === 'insufficient-balance') {
@@ -352,7 +363,8 @@ export class SmartBchWallet {
         if (minedTx.status === 1) {
           return {
             success: true,
-            transaction: minedTx
+            transaction: minedTx,
+            txid: minedTx.transactionHash
           }
         } else if (minedTx.status === 0) {
           return {
@@ -402,7 +414,8 @@ export class SmartBchWallet {
       if (minedTx.status === 1) {
         return {
           success: true,
-          transaction: minedTx
+          transaction: minedTx,
+          txid: minedTx.transactionHash
         }
       } else if (minedTx.status === 0) {
         return {
@@ -456,7 +469,8 @@ export class SmartBchWallet {
       if (minedTx.status === 1) {
         return {
           success: true,
-          transaction: minedTx
+          transaction: minedTx,
+          txid: minedTx.transactionHash
         }
       } else if (minedTx.status === 0) {
         return {
