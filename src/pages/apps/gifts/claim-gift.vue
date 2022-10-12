@@ -27,6 +27,7 @@
                 </div>
                 <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
+              <p v-if="bchAmount">{{ bchAmount }} BCH</p>
               <div style="margin-top: 20px; ">
                 <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift">Claim</q-btn>
                 <p v-if="error" style="color: red;">
@@ -47,7 +48,7 @@ import axios from 'axios'
 import sha256 from 'js-sha256'
 import HeaderNav from '../../../components/header-nav'
 import ProgressLoader from '../../../components/ProgressLoader'
-// import SweepPrivateKey from '../../../wallet/sweep'
+import SweepPrivateKey from '../../../wallet/sweep'
 import QrScanner from '../../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 
@@ -61,6 +62,8 @@ export default {
   data () {
     return {
       wallet: null,
+      sweeper: null,
+      bchAmount: null,
       scannedShare: '',
       processing: false,
       error: null,
@@ -69,7 +72,7 @@ export default {
     }
   },
   methods: {
-    recoverPrivateKey () {
+    claimGift () {
       const vm = this
       const sss = require('shamirs-secret-sharing')
       const giftId = sha256(this.scannedShare)
@@ -78,18 +81,32 @@ export default {
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
         const privateKey = sss.combine([this.scannedShare, resp.data.share])
         console.log('Recovered private key:', privateKey.toString())
-        vm.processing = false
-      }).catch((error) => {
-        if (error.response.status === 409) {
-          vm.error = 'You have exceeded the limit of gifts to claim for this campaign!'
+        vm.sweeper = new SweepPrivateKey(privateKey.toString())
+        vm.sweeper.getBchBalance().then(function (data) {
+          vm.bchAmount = data.spendable || 0
+          if (vm.bchAmount > 0) {
+            vm.sweeper.sweepBch(
+              vm.sweeper.bchAddress,
+              privateKey.toString(),
+              vm.bchAmount,
+              vm.$store.getters['global/getAddress']('bch')
+            )
+          } else {
+            vm.error = 'This gift is empty'
+          }
           vm.processing = false
-        }
+        })
+      }).catch((error) => {
+        console.log(error)
+        vm.error = 'Error'
+        vm.processing = false
       })
       // this.$store.dispatch('gifts/recoverSec', recovery.toString())
     },
-    claimGift () {
-      this.processing = true
-      this.recoverPrivateKey()
+    claimGiftX () {
+      // this.processing = true
+      // this.recoverPrivateKey()
+
       // const vm = this
       // if (vm.validatePrivateKey(vm.wif)) {
       //   vm.submitted = true
