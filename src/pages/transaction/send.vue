@@ -237,7 +237,7 @@
               <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
 
               <div v-if="paymentOTP" class="text-center q-mt-md">
-                <div class="text-grey">Payment OTP</div>
+                <div class="text-grey">{{ $t('PaymentOTP', {}, 'Payment OTP')}}</div>
                 <div class="text-h3" style="letter-spacing:1rem;">{{ paymentOTP }}</div>
                 <q-separator color="grey"/>
               </div>
