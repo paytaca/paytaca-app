@@ -4,7 +4,7 @@
     :class="{'pt-dark': darkMode}"
   >
     <HeaderNav
-      title="Asset Swap"
+      :title="$t('AssetSwap')"
       backnavpath="/apps"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
@@ -24,7 +24,7 @@
       >
         <q-popup-proxy>
           <q-banner :class="darkMode ? 'pt-dark text-white' : 'text-black'" class="q-pa-md br-15 text-center">
-            We will integrate SLP DEX for SLP tokens soon!
+            {{ $t('SmartSwapBchSoon') }}
           </q-banner>
         </q-popup-proxy>
       </q-tab>

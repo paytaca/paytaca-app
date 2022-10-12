@@ -6,7 +6,7 @@
       >
         <q-card>
             <q-card-section>
-                <p class="q-my-none pp-text">You've done many attempts. Please try again after 30 seconds.</p>
+                <p class="q-my-none pp-text">{{ $t('BiometricMaxAttemptsMsg') }}</p>
             </q-card-section>
         </q-card>
       </q-dialog>

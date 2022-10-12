@@ -14,7 +14,7 @@
               <q-btn class="full-width bg-blue-9 text-white" @click="initCreateWallet()" :label="$t('CreateNewWallet')" rounded />
             </div>
             <div class="col-12 text-center q-py-sm">
-              <p class="q-my-none q-py-none" style="font-size: 14px; color: #2E73D2;">{{ $t('or') }}</p>
+              <p class="q-my-none q-py-none text-uppercase" style="font-size: 14px; color: #2E73D2;">{{ $t('or') }}</p>
             </div>
             <div class="col-12 q-py-sm">
               <q-btn class="full-width bg-blue-9 text-white" @click="() => { importSeedPhrase = true }" :label="$t('RestoreFromSeedPhrase')" rounded />
@@ -231,7 +231,7 @@ export default {
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
-        reason: $t('NativeBiometricReason'),
+        reason: $t('NativeBiometricReason1'),
         title: $t('SecurityAuthentication'),
         subtitle: $t('NativeBiometricSubtitle'),
         description: ''
@@ -275,14 +275,24 @@ export default {
     let deviceLang = await Device.getLanguageTag()
     deviceLang = deviceLang.value.toLowerCase()
 
+    const supportedLangs = [
+      { value: 'en-us', label: 'English' },
+      { value: 'es', label: 'Spanish' }
+    ]
+
     // defaults to english if device lang is unsupported by app
     if (eng.includes(deviceLang) || !this.$i18n.availableLocales.includes(deviceLang)) {
-      finalLang = 'en-us'
+      finalLang = supportedLangs[0]
     } else {
-      finalLang = deviceLang
+      finalLang = supportedLangs.filter(o => {
+        return {
+          value: o.value,
+          label: this.$t(o.label)
+        }
+      })
     }
 
-    this.$i18n.locale = finalLang
+    this.$i18n.locale = finalLang.value
     this.$q.localStorage.set('lang', finalLang)
 
     const vm = this

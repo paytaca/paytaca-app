@@ -54,7 +54,7 @@
                 flat
                 no-caps
                 color="grey"
-                label="Cancel"
+                :label="$t('Cancel')"
                 @click="stopPendingConnector()"
               />
             </div>
@@ -72,7 +72,7 @@
                   padding="none xs"
                   no-caps
                   flat
-                  label="Disconnect"
+                  :label="$t('Disconnect')"
                   @click="disconnectConnector"
                   :text-color="darkMode ? 'blue-5' : 'blue-9'"
                 />
@@ -130,7 +130,7 @@
                   flat
                   rounded
                   :color="darkMode ? 'blue-5' : 'blue-9'"
-                  label="Clear"
+                  :label="$t('Clear')"
                   @click="confirmClearCallRequests()"
                 />
               </div>
@@ -403,8 +403,8 @@ export default {
         }
 
         this.$q.dialog({
-          title: 'Wallet Connect',
-          message: 'Disconnected!',
+          title: this.$t('WalletConnect'),
+          message: this.$t('Disconnected') + '!',
           class: 'text-black'
         })
 
@@ -439,7 +439,7 @@ export default {
         this.$q.notify({
           color: 'blue-9',
           icon: 'mdi-information',
-          message: 'Rejected call request'
+          message: this.$t('RejectedCallRequest')
         })
         return
       }
@@ -451,13 +451,13 @@ export default {
             this.$q.notify({
               color: 'green-5',
               icon: 'mdi-check-circle',
-              message: 'Call request accepted'
+              message: this.$t('CallRequestAccepted')
             })
           } else {
             this.$q.notify({
               color: 'red-5',
               icon: 'mdi-close-circle',
-              message: 'Error accepting call request'
+              message: this.$t('ErrAcceptingCallRequest')
             })
           }
         })
@@ -497,7 +497,7 @@ export default {
       this.connector.rejectRequest({
         id: callRequest.payload.id,
         error: {
-          message: 'Rejected by user'
+          message: this.$t('RejectedByUser')
         }
       })
 
@@ -506,8 +506,8 @@ export default {
 
     confirmClearCallRequests () {
       this.$q.dialog({
-        title: 'Clear call requests',
-        message: 'Removing all call requests. Are you sure?',
+        title: this.$t('ClearCallRequests'),
+        message: this.$t('ClearCallRequestsPrompt'),
         ok: {
           rounded: true
         },

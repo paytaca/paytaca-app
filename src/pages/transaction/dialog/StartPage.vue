@@ -5,9 +5,9 @@
               <img src="~/assets/paytaca_logo.png" height="120">
               <br>
               <p class="text-h4" :class="darkMode ? 'text-white' : 'text-black'">Paytaca</p>
-              <p :class="darkMode ? 'text-white' : 'text-black'">YOUR MONEY. YOUR CONTROL.</p>
+              <p :class="darkMode ? 'text-white' : 'text-black'">{{ $t('PaytacaMotto') }}</p>
               <br>
-              <q-btn label="Log In" color="blue-9" rounded @click="logIn" />
+              <q-btn :label="$t('LogIn')" color="blue-9" rounded @click="logIn" />
           </div>
       </div>
   </div>

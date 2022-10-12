@@ -3,7 +3,7 @@
     <q-card style="max-width:90vw; min-width:300px;" class="br-15 q-pb-xs" :class="{'pt-dark-card': darkMode, 'text-white': darkMode, 'text-black': !darkMode }">
       <q-card-section class="row no-wrap items-center q-pb-xs">
         <div>
-          <div class="text-subtitle1 text-grad text-weight-medium">Call Request</div>
+          <div class="text-subtitle1 text-grad text-weight-medium">{{ $t('CallRequest') }}</div>
           <div v-if="parsedCallRequest.payload.id" class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
             #{{ parsedCallRequest.payload.id }}
           </div>
@@ -35,8 +35,8 @@
           padding="xs md"
           no-caps
           :options="[
-            {label: 'Raw', value: false},
-            {label: 'Decoded', value: true},
+            {label: $t('Raw'), value: false},
+            {label: $t('Decoded'), value: true},
           ]"
         />
       </q-card-section>
@@ -44,14 +44,14 @@
         v-if="parsedCallRequest.payload.method === 'eth_sign' && showDecoded"
         class="call-request-body"
       >
-        <div class="text-subtitle2 q-mb-xs">Sign Message</div>
+        <div class="text-subtitle2 q-mb-xs">{{ $t('SignMessage') }}</div>
         <div class="q-gutter-y-sm params-section">
           <div>
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Account:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('Account') }}:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0] }}</div>
           </div>
           <div>
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Message:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('Message') }}:</div>
             <div class="break-word">{{ decodeHex(parsedCallRequest.payload.params[1]) }}</div>
           </div>
         </div>
@@ -60,14 +60,14 @@
         v-else-if="parsedCallRequest.payload.method === 'personal_sign' && showDecoded"
         class="call-request-body"
       >
-        <div class="text-subtitle2 q-mb-xs">Sign Message</div>
+        <div class="text-subtitle2 q-mb-xs">{{ $t('SignMessage') }}</div>
         <div class="q-gutter-y-sm params-section">
           <div>
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Account:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('Account') }}:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[1] }}</div>
           </div>
           <div>
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Message:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('Message') }}:</div>
             <div class="break-word">{{ decodeHex(parsedCallRequest.payload.params[0]) }}</div>
           </div>
         </div>
@@ -78,35 +78,35 @@
       >
         <div class="text-subtitle2 q-mb-md">
           <template v-if="parsedCallRequest.payload.method === 'eth_signTransaction'">
-            Sign Transaction
+            {{ $t('SignTransaction') }}
           </template>
           <template v-else-if="parsedCallRequest.payload.method === 'eth_sendTransaction'">
-            Send Transaction
+            {{ $t('SendTransaction') }}
           </template>
         </div>
         <div class="q-gutter-y-sm params-section q-px-md q-pb-md br-15" :class="darkMode ? 'pt-dark-card-2' : 'bg-grey-4'">
           <div>
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">From:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('From') }}:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].from }}</div>
           </div>
           <div>
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">To:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('To') }}:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].to }}</div>
           </div>
           <div v-if="parsedCallRequest.payload.params[0].gasPrice">
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Gas Price:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('GasPrice') }}:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].gasPrice) }}</div>
           </div>
           <div v-if="parsedCallRequest.payload.params[0].gas">
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Gas:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('Gas') }}:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].gas) }}</div>
           </div>
           <div v-if="parsedCallRequest.payload.params[0].value">
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Value:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('Value') }}:</div>
             <div class="break-word">{{ hexToNumber(parsedCallRequest.payload.params[0].value) }}</div>
           </div>
           <div v-if="parsedCallRequest.payload.params[0].data">
-            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">Data:</div>
+            <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('Data') }}:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].data }}</div>
           </div>
         </div>
@@ -142,7 +142,7 @@
           color="grey"
           flat
           rounded
-          label="Reject"
+          :label="$t('Reject')"
           @click="$emit('reject', parsedCallRequest)"
         />
         <q-space/>
@@ -153,7 +153,7 @@
           :disable="loading"
           padding="xs md"
           color="brandblue"
-          label="Accept"
+          :label="$t('Accept')"
           @click="$emit('accept', parsedCallRequest)"
         />
       </q-card-actions>

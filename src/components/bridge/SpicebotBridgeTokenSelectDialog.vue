@@ -2,7 +2,7 @@
   <q-dialog ref="dialog" @hide="onDialogHide" full-width>
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-subtitle1 q-space">Select token</div>
+        <div class="text-subtitle1 q-space">{{ $t('SelectToken') }}</div>
         <q-btn
           flat
           padding="sm"

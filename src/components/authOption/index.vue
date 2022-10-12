@@ -6,15 +6,15 @@
     >
       <q-card :class="{ 'pt-dark-card': darkMode }">
           <q-card-section>
-            <p class="q-my-none" :class="darkMode ? 'text-white' : 'text-black'">Please choose your preferred security authentication.</p>
+            <p class="q-my-none" :class="darkMode ? 'text-white' : 'text-black'">{{ $t('ChoosePreferredSecAuth') }}</p>
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row q-mb-sm">
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="pin" label="PIN" color="pt-radio" class="full-width" :class="darkMode ? 'text-white' : 'text-black'" />
+                <q-radio v-model="preferredSecurity" val="pin" :label="$t('Pin')" color="pt-radio" class="full-width" :class="darkMode ? 'text-white' : 'text-black'" />
               </div>
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="biometric" label="Biometric" color="pt-radio" class="full-width" :class="darkMode ? 'text-white' : 'text-black'" />
+                <q-radio v-model="preferredSecurity" val="biometric" :label="$t('Biometric')" color="pt-radio" class="full-width" :class="darkMode ? 'text-white' : 'text-black'" />
               </div>
             </div>
             <q-separator />
@@ -34,7 +34,7 @@ export default {
     return {
       dialog: false,
       preferredSecurity: 'pin',
-      btnLabel: 'Set Up'
+      btnLabel: this.$t('Setup')
     }
   },
   props: [
@@ -45,18 +45,18 @@ export default {
     securityOptionDialogStatus () {
       if (this.securityOptionDialogStatus === 'show' || this.securityOptionDialogStatus === 'show in settings') {
         this.dialog = true
-        this.btnLabel = this.securityOptionDialogStatus === 'show in settings' ? 'Done' : 'Set Up'
+        this.btnLabel = this.securityOptionDialogStatus === 'show in settings' ? this.$t('Done') : this.t('Setup')
       } else {
         this.dialog = false
       }
     },
     preferredSecurity () {
       if (this.securityOptionDialogStatus === 'show in settings') {
-        this.btnLabel = 'Done'
+        this.btnLabel = this.$t('Done')
       } else if (this.preferredSecurity === 'pin') {
-        this.btnLabel = 'Set up'
+        this.btnLabel = this.$t('Setup')
       } else {
-        this.btnLabel = 'Verify'
+        this.btnLabel = this.$t('Verify')
       }
     }
   },

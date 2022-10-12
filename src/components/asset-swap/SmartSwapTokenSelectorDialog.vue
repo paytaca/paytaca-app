@@ -18,7 +18,7 @@
                 no-caps
                 flat
                 icon-right="mdi-arrow-right"
-                label="Select custom token"
+                :label="$t('SelectCustomToken')"
                 color="blue-9"
                 padding="none xs"
                 @click="panel='custom'"
@@ -36,7 +36,7 @@
               </template>
             </q-input>
             <q-toggle
-              label="Has balance"
+              :label="$t('HasBalance')"
               class="q-mt-sm"
               color="brandblue"
               keep-color
@@ -73,7 +73,7 @@
               <q-btn
                 no-caps
                 icon="mdi-arrow-left"
-                label="Select from list"
+                :label="$t('SelectFromList')"
                 color="blue-9"
                 padding="none xs"
                 flat
@@ -146,7 +146,7 @@ export default {
   props: {
     title: {
       type: String,
-      default: 'Select Token'
+      default: this.$t('SelectToken')
     },
     tokensList: {
       type: Array

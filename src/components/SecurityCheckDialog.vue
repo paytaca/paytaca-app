@@ -6,8 +6,8 @@
           {{ $t('SecurityCheck') }}
         </div>
         <div class="row items-center justify-around q-gutter-md">
-          <q-btn rounded label="Log In" color="blue-9" @click="executeSecurityChecking()" />
-          <q-btn rounded label="Cancel" color="blue-9" @click="onCancelClick()" />
+          <q-btn rounded :label="$t('LogIn')" color="blue-9" @click="executeSecurityChecking()" />
+          <q-btn rounded :label="$t('Cancel')" color="blue-9" @click="onCancelClick()" />
         </div>
       </q-card-section>
       <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
@@ -82,9 +82,9 @@ export default {
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
-        reason: 'For ownership verification',
-        title: 'Security Authentication',
-        subtitle: 'Verify your account using fingerprint.',
+        reason: this.$t('NativeBiometricReason2'),
+        title: this.$t('SecurityAuthentication'),
+        subtitle: this.$t('NativeBiometricSubtitle'),
         description: ''
       }).then(
         () => {

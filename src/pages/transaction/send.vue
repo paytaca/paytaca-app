@@ -106,7 +106,6 @@
                 </q-input>
               </div>
             </div>
-<<<<<<< HEAD
             <template v-if="$store.state.global.online !== false">
               <div class="row" v-if="!isNFT">
                 <div class="col q-mt-md">
@@ -117,13 +116,13 @@
                     @blur="readonlyState(false)"
                     filled
                     v-model="sendData.amount"
-                    label="Amount"
+                    :label="$t('Amount')"
                     :loading="computingMax"
                     :disabled="disableAmountInput || setAmountInFiat"
                     :readonly="disableAmountInput || setAmountInFiat"
                     :dark="darkMode"
                     :error="balanceExceeded"
-                    :error-message="balanceExceeded ? 'Balance exceeded' : ''"
+                    :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
                   >
                     <template v-slot:append>
                       {{ asset.symbol }}
@@ -143,7 +142,7 @@
                     @blur="readonlyState(false)"
                     filled
                     v-model="sendAmountInFiat"
-                    label="Amount"
+                    :label="$t('Amount')"
                     :disabled="disableAmountInput"
                     :readonly="disableAmountInput"
                     :dark="darkMode"
@@ -155,84 +154,36 @@
                   <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
                     ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
                   </div>
-=======
-            <div class="row" v-if="!isNFT">
-              <div class="col q-mt-md">
-                <q-input
-                  type="text"
-                  inputmode="none"
-                  @focus="readonlyState(true)"
-                  @blur="readonlyState(false)"
-                  filled
-                  v-model="sendData.amount"
-                  :label="$t('Amount')"
-                  :loading="computingMax"
-                  :disabled="disableAmountInput || setAmountInFiat"
-                  :readonly="disableAmountInput || setAmountInFiat"
-                  :dark="darkMode"
-                  :error="balanceExceeded"
-                  :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
-                >
-                  <template v-slot:append>
-                    {{ asset.symbol }}
-                  </template>
-                </q-input>
-                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
                 </div>
               </div>
             </div>
-            <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
-              <div class="col q-mt-md">
-                <q-input
-                  type="text"
-                  inputmode="none"
-                  @focus="readonlyState(true)"
-                  @blur="readonlyState(false)"
-                  filled
-                  v-model="sendAmountInFiat"
-                  :label="$t('Amount')"
-                  :disabled="disableAmountInput"
-                  :readonly="disableAmountInput"
-                  :dark="darkMode"
+            <div class="row" v-if="!isNFT">
+              <div class="col q-mt-md" style="font-size: 18px; color: gray;">
+                Balance: {{ asset.balance }} {{ asset.symbol }}
+                <template v-if="asset.id === 'bch' && setAmountInFiat">
+                  = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </template>
+                <a
+                  href="#"
+                  v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
+                  @click.prevent="setMaximumSendAmount"
+                  style="float: right; text-decoration: none; color: #3b7bf6;"
                 >
-                  <template v-slot:append>
-                    {{ String(selectedMarketCurrency).toUpperCase() }}
-                  </template>
-                </q-input>
-                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
->>>>>>> 84e6e58... Translated texts to Spanish (WIP)
-                </div>
+                  MAX
+                </a>
               </div>
-              <div class="row" v-if="!isNFT">
-                <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                  Balance: {{ asset.balance }} {{ asset.symbol }}
-                  <template v-if="asset.id === 'bch' && setAmountInFiat">
-                    = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
-                  </template>
-                  <a
-                    href="#"
-                    v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
-                    @click.prevent="setMaximumSendAmount"
-                    style="float: right; text-decoration: none; color: #3b7bf6;"
-                  >
-                    MAX
-                  </a>
-                </div>
+            </div>
+            <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+              <div class="col q-mt-md">
+                <a
+                  style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
+                  href="#"
+                  @click.prevent="() => {setAmountInFiat = true}"
+                >
+                  Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
+                </a>
               </div>
-              <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
-                <div class="col q-mt-md">
-                  <a
-                    style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
-                    href="#"
-                    @click.prevent="() => {setAmountInFiat = true}"
-                  >
-                    Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
-                  </a>
-                </div>
-              </div>
-            </template>
+            </div>
             <div class="row" v-if="sendData.sending">
               <div class="col-12 text-center">
                 <ProgressLoader/>
@@ -309,7 +260,7 @@
                   style="text-decoration: none; color: #3b7bf6;"
                   :href="'https://sonar.cash/tx/' + sendData.txid" target="_blank"
                 >
-                  View in explorer
+                  {{ $t('ViewInExplorer') }}
                 </a>
               </template>
               <template v-else>
@@ -317,7 +268,7 @@
                   style="text-decoration: none; color: #3b7bf6;"
                   :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
                 >
-                  View in explorer
+                  {{ $t('ViewInExplorer') }}
                 </a>
               </template>
             </div>
@@ -894,7 +845,7 @@ export default {
         this.sendErrors = []
         return true
       } else {
-        this.sendErrors.push('Invalid address')
+        this.sendErrors.push(this.$t('InvalidAddress'))
         return false
       }
     },

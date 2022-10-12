@@ -114,7 +114,7 @@
                         </div> -->
                         <div class="col col-transaction ">
                           <div>
-                            <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
+                            <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text text-uppercase" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
                             <p :class="{'text-grey': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
                           </div>
                           <div class="col">
@@ -129,7 +129,7 @@
                   <p @click="() => { getTransactions(transactionsPage + 1) }">{{ $t('ShowMore') }}</p>
                 </div>
                 <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
-                  <q-img class="absolute-center vertical-top" src="empty-wallet.svg" style="width: 70px; margin-top: -50px; fill: gray;" />
+                  <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
                   <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
                 </div>
               </template>
@@ -212,8 +212,8 @@ export default {
         balance: 0
       },
       recordTypeMap: {
-        incoming: 'RECEIVED',
-        outgoing: 'SENT'
+        incoming: this.$t('Received'),
+        outgoing: this.$t('Sent')
       },
       transactionsFilter: 'all',
       activeBtn: 'btn-all',

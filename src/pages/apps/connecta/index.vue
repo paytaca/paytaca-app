@@ -13,7 +13,7 @@
         <div v-if="paymentRequestStatus.fetching" class="text-center q-my-lg">
           <q-spinner size="md" color="blue-9"/>
           <div class="pp-text">
-            Fetching payment data ...
+            {{ $t('FetchingPaymentData') }}...
           </div>
         </div>
         <q-form
@@ -26,7 +26,7 @@
             v-if="Array.isArray(orderNameForm.errors) && orderNameForm.errors.length"
             class="q-mb-sm q-pa-sm rounded-borders bg-red-2 text-red"
           >
-            Unable to get payment details
+            {{ $t('UnableToGetPaymentDetails') }}
             <ul class="q-my-sm q-pl-lg">
               <li v-for="(error, index) in orderNameForm.errors" :key="index">
                 {{ error }}
@@ -36,14 +36,14 @@
           <q-input
             outlined
             v-model="orderNameForm.orderName"
-            label="Order number"
+            :label="('OrderNo')"
             placeholder="1234"
             mask="####"
             prefix="#"
-            hint="Input order number from Connecta"
+            :hint="$t('InputOrderNoFromConnecta')"
             class="full-width pp-text"
             :rules="[
-              val => Boolean(val) || 'Required',
+              val => Boolean(val) || $t('Required'),
             ]"
           >
             <template v-slot:append>
@@ -61,11 +61,11 @@
 
       <div v-else>
         <div v-if="!paymentRequest || !paymentRequest._isValid" class="text-center pp-text">
-          Unable to read payment request
+          {{ $t('UnableToReadPaymentRequest') }}
         </div>
         <q-card v-else class="q-pa-md" style="background:none">
           <div class="text-h5 pp-text">
-            Payment Details
+            {{ $t('PaymentDetails') }}
           </div>
           <q-separator class="q-mb-sm"/>
 
@@ -73,7 +73,7 @@
             v-if="Array.isArray(paymentRequestStatus.errors) && paymentRequestStatus.errors.length"
             class="q-mb-sm q-pa-sm rounded-borders bg-red-2 text-red"
           >
-            Failed to execute payment request
+            {{ $t('FailedToExecutePaymentRequest') }}
             <ul class="q-my-sm q-pl-lg">
               <li v-for="(error, index) in paymentRequestStatus.errors" :key="index">
                 {{ error }}
@@ -84,7 +84,7 @@
             v-else-if="paymentRequest.paymentDetails.isExpired()"
             class="row items-center q-mb-sm q-pa-sm rounded-borders bg-red-2 text-red"
           >
-            <span>Payment request is expired</span>
+            <span>{{ $t('PaymentRequestIsExpired') }}</span>
             <q-space/>
             <q-btn
               v-if="merchantData.order.id"
@@ -95,24 +95,24 @@
               size="sm"
               variant="link"
               class="pp-text"
-              label="Refetch"
+              :label="$t('Refetch')"
               @click="fetchPaymentRequest({ orderId: merchantData.order.id })"
             />
           </div>
 
           <div class="flex q-gutter-sm">
             <div v-if="merchantData.order.name">
-              <div class="text-caption pp-text">Order number</div>
+              <div class="text-caption pp-text">{{ $t('OrderNo') }}</div>
               <div class="text-subtitle1 pp-text">{{ merchantData.order.name }}</div>
             </div>
             <div v-if="merchantData.shop.name">
-              <div class="text-caption pp-text">Shop name</div>
+              <div class="text-caption pp-text">{{ $t('ShopName') }}</div>
               <div class="text-subtitle1 pp-text">{{ merchantData.shop.name }} </div>
             </div>
           </div>
 
           <div v-if="paymentRequest.paymentDetails.memo">
-            <div class="text-caption pp-text">Memo</div>
+            <div class="text-caption pp-text">{{ $t('Memo') }}</div>
             <div class="text-subtitle1 pp-text">{{ paymentRequest.paymentDetails.memo }}</div>
           </div>
 
@@ -120,14 +120,14 @@
 
           <q-list>
             <q-item-label header class="q-pa-xs pp-text">
-              Recipient/s
+              {{ $t('Recipients') }}
             </q-item-label>
             <template v-for="(output, index) in paymentRequest.paymentDetails.outputs" :key="index"> 
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pp-text" caption>Address</q-item-label>
+                  <q-item-label class="pp-text" caption>{{ $t('Address') }}</q-item-label>
                   <q-item-label class="pp-text" style="word-break:break-word">{{ output.toCashAddress() }}</q-item-label>
-                  <q-item-label class="pp-text" caption>Amount</q-item-label>
+                  <q-item-label class="pp-text" caption>{{ $t('Amount') }}</q-item-label>
                   <q-item-label class="pp-text">{{ output.toBCHString() }}</q-item-label>
                 </q-item-section>
               </q-item>
@@ -151,7 +151,7 @@
               no-caps
               disable
               color="green"
-              label="Sent"
+              :label="$t('Sent')"
               icon-right="done"
             />
             <q-btn
@@ -165,7 +165,7 @@
                 "
               :loading="paymentRequestStatus.executing || paymentRequestStatus.fetching"
               class="pp-text"
-              label="Send"
+              :label="$t('Send')"
               @click="showDragSlide = true"
             />
           </div>
@@ -208,7 +208,7 @@
         <q-card-section>
           <div class="q-my-sm text-subtitle1 row justify-center items-center q-gutter-xs">
             <q-icon name="done" color="positive" size="sm"/>
-            <span class="pp-text">Transaction Sent!</span>
+            <span class="pp-text">{{ $t('TransactionSent') }}!</span>
           </div>
         </q-card-section>
       </q-card>
@@ -362,15 +362,15 @@ export default {
 
           if (err.error) {
             if (err.error.indexOf('not enough balance in sender') > -1) {
-              errors.push('Not enough balance to cover the send amount and transaction fee')
+              errors.push(this.$t('NotEnoughBalForSendAmount'))
             } else if (err.error.indexOf('has insufficient priority') > -1) {
-              errors.push('Not enough balance to cover the transaction fee')
+              errors.push(this.$t('NotEnoughBchForFee'))
             } else {
               errors.push(err.error)
             }
           }
 
-          if (!Array.isArray(errors) || !errors.length) this.paymentRequestStatus.errors = ['Unknown error occurred']
+          if (!Array.isArray(errors) || !errors.length) this.paymentRequestStatus.errors = [this.$t('UnknownErrorOccurred')]
           else this.paymentRequestStatus.errors = errors
         })
     },
@@ -397,7 +397,7 @@ export default {
       this.$connectaAxios.post(url, data, { headers })
         .then(() => {
           this.$q.notify({
-            message: 'Payment acknowledged',
+            message: this.$t('PaymentAcknowledged'),
             color: 'green-5',
             icon: 'mdi-check-circle'
           })
@@ -416,9 +416,9 @@ export default {
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
-        reason: 'For ownership verification',
-        title: 'Security Authentication',
-        subtitle: 'Verify your account using fingerprint.',
+        reason: this.$t('NativeBiometricReason2'),
+        title: this.$t('SecurityAuthentication'),
+        subtitle: this.$t('NativeBiometricSubtitle'),
         description: ''
       })
         .then(() => {
@@ -481,16 +481,16 @@ export default {
               return Promise.resolve()
             }
           }
-          return Promise.reject({ response: { data: { detail: 'Payment details not found' } } })
+          return Promise.reject({ response: { data: { detail: this.$t('PaymentDetailsNotFound') } } })
         })
         .catch(err => {
           let errors = []
-          if (err && err.response && err.response.status) errors = ['Order not found']
+          if (err && err.response && err.response.status) errors = [this.$t('OrderNotFound')]
           if (err && err.response && err.response.data && err.response.data.detail) {
             if (Array.isArray(err.response.data.detail) && err.response.data.detail.length) { errors = err.response.data.detail } else { errors = [err.response.data.detail] }
           }
 
-          if (!Array.isArray(errors) || !errors.length) errors = ['Unknown exception occured']
+          if (!Array.isArray(errors) || !errors.length) errors = [this.$t('UnknownErrorOccurred')]
           this.orderNameForm.errors = errors
         })
     },

@@ -29,7 +29,7 @@
               </div>
             </template>
             <div v-else v-ripple class="text-center text-subtitle1 cursor-pointer relative-position q-pa-md">
-              Select Token
+              {{ $t('SelectToken') }}
             </div>
           </div>
         </q-card-section>
@@ -38,7 +38,7 @@
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               <!-- <img height="40" :src="formData.token.image_url"/> -->
               <div class="q-ml-sm">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You send:</div>
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouSend') }}:</div>
                 <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
                   {{ formData.token && formData.token.name }}
                 </div>
@@ -67,7 +67,7 @@
                   :class="darkMode ? 'text-white': 'text-black'"
                   @click="formData.amount = computedFormData.selectedTokenBalance"
                 >
-                  Balance: {{ computedFormData.selectedTokenBalance }}
+                  {{ $t('Balance') }}: {{ computedFormData.selectedTokenBalance }}
                 </div>
               </template>
             </q-input>
@@ -76,7 +76,7 @@
             <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
               <!-- <img height="40" :src="formData.token.image_url"/> -->
               <div class="q-ml-sm">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You send:</div>
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouReceive') }}:</div>
                 <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
                   {{ formData.token && formData.token.name }}
                 </div>
@@ -95,7 +95,7 @@
           </div>
           <div class="row no-wrap items-start" style="margin-top: -10px;">
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-              Address
+              {{ $t('Address') }}
             </div>
             <q-input
               key="defaultRecipient"
@@ -112,8 +112,8 @@
           <q-separator :color="darkMode ? 'grey' : 'black'"/>
           <q-item class="q-mb-sm">
             <q-item-section side>
-              <q-item-label :class="darkMode ? 'text-grey-6' : ''">Swap ratio</q-item-label>
-              <q-item-label :class="darkMode ? 'text-grey-6' : ''">SEP20 vault balance</q-item-label>
+              <q-item-label :class="darkMode ? 'text-grey-6' : ''">{{ $t('SwapRatio') }}</q-item-label>
+              <q-item-label :class="darkMode ? 'text-grey-6' : ''">{{ $t('SEP20_VaultBalance') }}</q-item-label>
             </q-item-section>
             <q-item-section class="text-right">
               <q-item-label>
@@ -131,7 +131,7 @@
           <q-btn
             no-caps
             :disable="lockInputs"
-            label="Swap"
+            :label="$t('Swap')"
             color="brandblue"
             class="full-width"
             type="submit"
@@ -267,7 +267,7 @@
           no-caps
           :disable="computedStagedSwapInfo.errors.length > 0 || stagedSwapInfo.updatingSwapRequest || stagedSwapInfo.updatingSwapRequest"
           :loading="stagedSwapInfo.updatingSwapRequest"
-          label="Confirm Swap"
+          :label="$t('ConfirmSwap')"
           color="brandblue"
           class="full-width"
           @click="stagedSwapInfo.showConfirmSwipe = true"
@@ -556,8 +556,8 @@ export default {
 
             const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
             this.$q.dialog({
-              title: 'Transaction sent!',
-              message: 'Waiting for SEP20 token to be sent.',
+              title: this.$t('TransactionSent') + '!',
+              message: this.$t('Waiting_SEP20_TokenSent'),
               class: dialogStyleClass
             })
               .onDismiss(() => {
@@ -580,13 +580,13 @@ export default {
         .catch(error => {
           this.stagedSwapInfo.errors = []
           if (error?.error?.indexOf('not enough balance in sender') > -1) {
-            this.stagedSwapInfo.errors.push('Not enough balance to cover the send amount')
+            this.stagedSwapInfo.errors.push(this.$t('NotEnoughBalForSendAmount'))
           } else if (error?.error?.indexOf('not enough balance in fee funder') > -1) {
-            this.stagedSwapInfo.errors.push('Not enough BCH to cover for transaction fee')
+            this.stagedSwapInfo.errors.push(this.$t('NotEnoughBchForFee'))
           } else if (error?.error) {
             this.stagedSwapInfo.errors.push(error.error)
           } else {
-            this.stagedSwapInfo.errors.push('Unknown error occurred')
+            this.stagedSwapInfo.errors.push(this.$t('UnknownErrorOccurred'))
           }
         })
     },

@@ -4,8 +4,7 @@
     v-model="locale"
     :options="localeOptions"
     :dark="darkMode"
-    :option-label="localeOptions[locale]"
-    @filter="filterCurrencyOptionSelection"
+    @filter="filterLangSelection"
     dense
     use-input
     fill-input
@@ -25,18 +24,19 @@ export default {
   data () {
     return {
       locale: this.$q.localStorage.getItem('lang'),
-      defaultLocaleOptions: [
-        { value: 'en-us', label: 'English' },
-        { value: 'es', label: 'Spanish' }
+      langs: [
+        'English',
+        'Spanish',
       ],
-      localeOptions: [
-        { value: 'en-us', label: 'English' },
-        { value: 'es', label: 'Spanish' }
-      ]
+      defaultLocaleOptions: [
+        { value: 'en-us', label: this.$t('English') },
+        { value: 'es', label: this.$t('Spanish') }
+      ],
+      localeOptions: []
     }
   },
   methods: {
-    filterCurrencyOptionSelection (val, update) {
+    filterLangSelection (val, update) {
       if (!val) {
         this.localeOptions = this.defaultLocaleOptions
       } else {
@@ -52,8 +52,15 @@ export default {
   },
   watch: {
     locale (n, o) {
-      this.$i18n.locale = n
-      this.$q.localStorage.set('lang', n)
+      this.$i18n.locale = n.value
+      this.defaultLocaleOptions = this.defaultLocaleOptions.filter((o, index) => {
+        o.label = this.$t(this.langs[index])
+        
+        if (n.value === o.value) {
+          this.$q.localStorage.set('lang', this.langs[index])
+        }
+        return o
+      })
     }
   }
 }
