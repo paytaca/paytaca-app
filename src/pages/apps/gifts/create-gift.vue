@@ -74,7 +74,7 @@
             </q-btn>
           </div>
         </div>
-        <div v-if="qrCodeContents" class="text-center" style="margin-top: 80px;">
+        <div v-if="qrCodeContents" class="text-center" :class="{'text-white': darkMode}" style="margin-top: 80px;">
           <p style="font-size: 22px;">Amount:<br>{{ amountBCH }} BCH</p>
           <div class="flex flex-center" >
             <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
@@ -140,7 +140,7 @@ export default {
       vm.giftId = sha256(shares[0])
       const payload = {
         share: shares[1],
-        amount: vm.amountBCH,
+        amount: parseFloat(vm.amountBCH),
         gift_id: vm.giftId
       }
       vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
