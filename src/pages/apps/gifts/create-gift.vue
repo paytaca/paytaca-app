@@ -56,7 +56,7 @@
           <q-input
             placeholder="Amount"
             filled
-            type="number"
+            type="text"
             clearable
             v-model="maxPerCampaign"
             :dark="darkMode"
@@ -188,6 +188,7 @@ export default {
       this.generateGift()
     }
   },
+  // wallet call function when mounted
   mounted () {
     const vm = this
     getMnemonic().then(function (mnemonic) {
@@ -215,5 +216,8 @@ export default {
     }
     .fontStyle {
       font-size:medium;
+    }
+    display {
+      display: none;
     }
   </style>

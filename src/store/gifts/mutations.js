@@ -20,10 +20,11 @@ export function GENSHARES (state, key) {
   state.storeShare.push(key)
   // state.storeShare.splice(key, 5)
 }
+export function storeGift (state, data) {
+  state.genGifts[data.uid] = data.shares
+  // state.genGifts = {}
+}
 export function RECOVERSEC (state, key) {
   state.recShare.push(key)
   // state.recShare.splice(key, 5)
-}
-export function storeGift (state, data) {
-  state.genGifts[data.uid] = data.shares
 }
