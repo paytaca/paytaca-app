@@ -2,9 +2,8 @@
   <div class="static-container">
     <div
       dense
-      id="app-container"
       style="background-color: #ECF3F3; min-height: 100vh;"
-      class="flex flex-center"
+      :class="{ 'pt-dark': darkMode }"
       >
       <HeaderNav
         title="Gifts"
@@ -13,7 +12,12 @@
         class="q-px-sm"
       />
       <div class="q-pa-lg" style="width: 100%; color: black;">
-        <div class="q-pt-xl">
+        <div class="text-center" v-if="processing">
+          <p>Creating gift...</p>
+          <progress-loader />
+        </div>
+        <div class="q-pt-lg" :class="{'text-white': darkMode}" v-if="!processing && !completed">
+          <h5>Create Gift</h5>
           <label>
             Enter Amount Per Gift:
           </label>
@@ -26,29 +30,10 @@
             type="number"
             v-model="amountBCH"
             @input="this.amountBCH"
+            :dark="darkMode"
           >
           <!-- @input="amountBCH" -->
           </q-input>
-          <div class="q-pa-sm">
-          </div>
-
-          <label>
-            Enter number of Gift Items
-          </label>
-          <q-input
-            required
-            placeholder="Instances"
-            filled
-            type="number"
-            oninput="javascript: if (this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
-            maxlength="3"
-            clearable
-            :rules="[val => !!val || 'Field is required']"
-            v-model="instances"
-          >
-          </q-input>
-          <div class="q-pa-sm">
-          </div>
 
           <label>
             Enter Campaign ID
@@ -58,9 +43,11 @@
             filled
             type="string"
             clearable
+            :dark="darkMode"
           >
           </q-input>
-          <div class="q-pa-sm q-pb-lg">
+
+          <div class="q-pa-sm q-pb-xs">
           </div>
 
           <label>
@@ -72,6 +59,7 @@
             type="number"
             clearable
             v-model="maxPerCampaign"
+            :dark="darkMode"
           ></q-input>
           <div class="q-pa-sm q-pt-lg flex flex-center">
             <q-btn
@@ -86,16 +74,17 @@
             </q-btn>
           </div>
         </div>
-        <div v-if="qrCodeContents">
+        <div v-if="qrCodeContents" class="text-center" style="margin-top: 80px;">
+          <p style="font-size: 22px;">Amount:<br>{{ amountBCH }} BCH</p>
           <div class="flex flex-center" >
-            <div class="flex flex-center col-qr-code">
+            <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
               <qr-code :text="qrCodeContents" />
             </div>
             <div class="flex flex-center myStyle">
             </div>
           </div>
+          <p style="font-size: 18px;">Scan to claim the gift</p>
         </div>
-        <p @click="copyToClipboard(qrCodeContents)">{{ qrCodeContents }}</p>
       </div>
     </div>
   </div>
@@ -104,6 +93,7 @@
 <script>
 import HeaderNav from '../../../components/header-nav'
 import { getMnemonic, Wallet } from '../../../wallet'
+import ProgressLoader from '../../../components/ProgressLoader'
 import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
@@ -111,7 +101,7 @@ import sha256 from 'js-sha256'
 
 export default {
   name: 'Gifts',
-  components: { HeaderNav },
+  components: { HeaderNav, ProgressLoader },
   props: {
     uri: {
       type: String,
@@ -121,25 +111,26 @@ export default {
   data () {
     return {
       amountBCH: 0.001,
-      instances: 1,
       maxPerCampaign: null,
-      qrCodeContents: null
+      qrCodeContents: null,
+      processing: false,
+      completed: false,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
 
   methods: {
     generateGift () {
       const vm = this
+      vm.processing = true
       const privateKey = ECPair.makeRandom()
       const wif = privateKey.toWIF()
-      console.log('Private key:', wif)
 
       const BCHJS = require('@psf/bch-js')
       const bchjs = new BCHJS()
       const pair = bchjs.ECPair.fromWIF(wif)
       const address = bchjs.ECPair.toCashAddress(pair)
       console.log('Address:', address)
-      // this.$store.dispatch('gifts/genCashAdd', this.str)
 
       const sss = require('shamirs-secret-sharing')
       const secret = Buffer.from(wif)
@@ -147,8 +138,6 @@ export default {
       const shares = stateShare.map((share) => { return toHex(share) })
 
       vm.giftId = sha256(shares[0])
-      console.log('Gift ID:', vm.uid)
-      console.log('Shares:', shares)
       const payload = {
         share: shares[1],
         amount: vm.amountBCH,
@@ -161,7 +150,9 @@ export default {
             if (resp.status === 200) {
               vm.qrCodeContents = shares[0]
               console.log(vm.qrCodeContents)
+              vm.completed = true
             }
+            vm.processing = false
           })
         } else {
           console.error(err)
@@ -200,10 +191,10 @@ export default {
       margin-bottom: 10px;
       text-align: center;
       width: 500px;
-      height: 300px;
+      height: 310px;
       border-radius: 16px;
       border: 4px solid #ed5f59;
-      padding: 10px 10px 32px 10px;
+      padding: 22px 10px 32px 10px;
       background: white;
     }
     .fontStyle {
