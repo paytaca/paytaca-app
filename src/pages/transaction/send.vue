@@ -99,6 +99,7 @@
                   filled
                   v-model="sendData.amount"
                   label="Amount"
+                  :loading="computingMax"
                   :disabled="disableAmountInput || setAmountInFiat"
                   :readonly="disableAmountInput || setAmountInFiat"
                   :dark="darkMode"
@@ -145,7 +146,7 @@
                 </template>
                 <a
                   href="#"
-                  v-if="!disableAmountInput || (setAmountInFiat && !sendData.sending)"
+                  v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
                   @click.prevent="setMaximumSendAmount"
                   style="float: right; text-decoration: none; color: #3b7bf6;"
                 >
@@ -153,7 +154,7 @@
                 </a>
               </div>
             </div>
-            <div class="row" v-if="!isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+            <div class="row" v-if="!isNFT && !setAmountInFiat && asset.id === 'bch' && !computingMax && !showSlider" style="margin-top: -10px;">
               <div class="col q-mt-md">
                 <a
                   style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
@@ -223,12 +224,22 @@
             </div>
             <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
               txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
-              <a
-                style="text-decoration: none; color: #3b7bf6;"
-                :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
-              >
-                View in explorer
-              </a>
+              <template v-if="walletType === 'SmartBCH'">
+                <a
+                  style="text-decoration: none; color: #3b7bf6;"
+                  :href="'https://sonar.cash/tx/' + sendData.txid" target="_blank"
+                >
+                  View in explorer
+                </a>
+              </template>
+              <template v-else>
+                <a
+                  style="text-decoration: none; color: #3b7bf6;"
+                  :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
+                >
+                  View in explorer
+                </a>
+              </template>
             </div>
           </div>
         </div>
@@ -363,7 +374,8 @@ export default {
       showQrScanner: false,
       setAmountInFiat: false,
       sendAmountInFiat: null,
-      balanceExceeded: false
+      balanceExceeded: false,
+      computingMax: false
     }
   },
 
@@ -693,11 +705,16 @@ export default {
     async setMaximumSendAmount () {
       if (this.asset.id === 'bch') {
         if (this.isSep20) {
+          this.computingMax = true
           const spendable = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
             this.sendData.recipient
           )
           this.sendData.amount = spendable
+          this.computingMax = false
+          if (spendable < 0) {
+            this.sendErrors.push('Not enough balance to cover the gas fee')
+          }
         } else {
           this.sendData.amount = this.asset.spendable
         }
@@ -811,11 +828,15 @@ export default {
           }
           if (promise) {
             promise.then(function (result) {
+              console.log('Result:', result)
               if (result.success) {
                 vm.sendData.txid = result.txid
                 vm.playSound(true)
                 vm.sendData.sending = false
                 vm.sendData.sent = true
+                if (!vm.sendAmountInFiat) {
+                  vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+                }
               } else {
                 if (result.error) {
                   vm.sendErrors.push(result.error)

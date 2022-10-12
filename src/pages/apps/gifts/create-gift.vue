@@ -95,6 +95,7 @@
             </div>
           </div>
         </div>
+        <p @click="copyToClipboard(qrCodeContents)">{{ qrCodeContents }}</p>
       </div>
     </div>
   </div>
@@ -128,6 +129,7 @@ export default {
 
   methods: {
     generateGift () {
+      const vm = this
       const privateKey = ECPair.makeRandom()
       const wif = privateKey.toWIF()
       console.log('Private key:', wif)
@@ -144,47 +146,28 @@ export default {
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
       const shares = stateShare.map((share) => { return toHex(share) })
 
-      this.uid = sha256(shares[0])
-      console.log('Gift ID:', this.uid)
+      vm.giftId = sha256(shares[0])
+      console.log('Gift ID:', vm.uid)
       console.log('Shares:', shares)
       const payload = {
         share: shares[1],
-        amount: this.amountBCH,
-        gift_id: this.uid
+        amount: vm.amountBCH,
+        gift_id: vm.giftId
       }
-      const url = 'https://gifts.paytaca.com/api/gifts/create/'
-      axios.post(url, payload).then((resp) => {
-        if (resp.status === 200) {
-          this.qrCodeContents = JSON.stringify(shares[0])
-          console.log(this.qrCodeContents)
-        }
-      })
-    },
-    processRequest () {
-      this.generateGift()
-      // this.recoverSec()
-    },
-    // recoverSec () {
-    //   const sss = require('shamirs-secret-sharing')
-    //   const recovery = sss.combine([this.shares[0], this.shares[1]])
-    //   console.log(recovery.toString())
-    //   this.$store.dispatch('gifts/recoverSec', recovery.toString())
-    // },
-    // recoverSecret () {
-    //   this.$store.dispatch('gifts/recoverSecret')
-    // },
-    async handleSubmit (cAdd) {
-      const vm = this
-      const address = cAdd
       vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
         if (result.success) {
-          vm.txid = result.txid
+          const url = 'https://gifts.paytaca.com/api/gifts/create/'
+          axios.post(url, payload).then((resp) => {
+            if (resp.status === 200) {
+              vm.qrCodeContents = shares[0]
+              console.log(vm.qrCodeContents)
+            }
+          })
         } else {
           console.error(err)
         }
       })
     },
-    // function to copy text via click
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
@@ -193,6 +176,9 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
+    },
+    processRequest () {
+      this.generateGift()
     }
   },
   // wallet call function when mounted
