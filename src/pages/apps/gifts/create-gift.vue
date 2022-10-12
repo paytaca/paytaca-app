@@ -12,8 +12,8 @@
         class="q-px-sm"
       />
       <div class="q-pa-lg" style="width: 100%; color: black;">
-        <div class="text-center" v-if="processing">
-          <p>Creating gift...</p>
+        <div class="text-center" v-if="processing" style="margin-top: 80px;">
+          <p :class="{'text-white': darkMode}" >Creating gift...</p>
           <progress-loader />
         </div>
         <div class="q-pt-lg" :class="{'text-white': darkMode}" v-if="!processing && !completed">
@@ -74,7 +74,7 @@
             </q-btn>
           </div>
         </div>
-        <div v-if="qrCodeContents" class="text-center" :class="{'text-white': darkMode}" style="margin-top: 80px;">
+        <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}" style="margin-top: 80px;">
           <p style="font-size: 22px;">Amount:<br>{{ amountBCH }} BCH</p>
           <div class="flex flex-center" >
             <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
@@ -143,21 +143,37 @@ export default {
         amount: parseFloat(vm.amountBCH),
         gift_id: vm.giftId
       }
-      vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
-        if (result.success) {
-          const url = 'https://gifts.paytaca.com/api/gifts/create/'
-          axios.post(url, payload).then((resp) => {
-            if (resp.status === 200) {
-              vm.qrCodeContents = shares[0]
-              console.log(vm.qrCodeContents)
+      const url = 'https://gifts.paytaca.com/api/gifts/create/'
+      axios.post(url, payload).then((resp) => {
+        if (resp.status === 200) {
+          vm.qrCodeContents = shares[0]
+          console.log(vm.qrCodeContents)
+          vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
+            if (result.success) {
+              vm.processing = false
               vm.completed = true
             }
-            vm.processing = false
           })
-        } else {
-          console.error(err)
         }
+      }).catch((error) => {
+        console.log(error)
+        vm.processing = false
       })
+      // vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
+      //   if (result.success) {
+      //     const url = 'https://gifts.paytaca.com/api/gifts/create/'
+      //     axios.post(url, payload).then((resp) => {
+      //       if (resp.status === 200) {
+      //         vm.qrCodeContents = shares[0]
+      //         console.log(vm.qrCodeContents)
+      //         vm.completed = true
+      //       }
+      //       vm.processing = false
+      //     })
+      //   } else {
+      //     console.error(err)
+      //   }
+      // })
     },
     copyToClipboard (value) {
       this.$copyText(value)
