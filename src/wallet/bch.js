@@ -133,7 +133,7 @@ export class BchWallet {
 
     try {
       const broadcastResponse = await this.watchtower.BCH._api.post(
-        'api/paytacapos/broadcast/',
+        'paytacapos/broadcast/',
         broadcastData,
       )
       response.success = Boolean(broadcastResponse?.data?.success)
