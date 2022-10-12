@@ -140,7 +140,7 @@
             </div>
             <div class="row" v-if="!isNFT">
               <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                Balance: {{ asset.balance }} {{ asset.symbol }}
+                {{ $t('Balance') }}: {{ asset.balance }} {{ asset.symbol }}
                 <template v-if="asset.id === 'bch' && setAmountInFiat">
                   = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
                 </template>
@@ -229,7 +229,7 @@
                   style="text-decoration: none; color: #3b7bf6;"
                   :href="'https://sonar.cash/tx/' + sendData.txid" target="_blank"
                 >
-                  View in explorer
+                  {{ $t('ViewInExplorer') }}
                 </a>
               </template>
               <template v-else>
@@ -237,7 +237,7 @@
                   style="text-decoration: none; color: #3b7bf6;"
                   :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
                 >
-                  View in explorer
+                  {{ $t('ViewInExplorer') }}
                 </a>
               </template>
             </div>
@@ -734,7 +734,7 @@ export default {
         this.sendErrors = []
         return true
       } else {
-        this.sendErrors.push('Invalid address')
+        this.sendErrors.push(this.$t('InvalidAddress'))
         return false
       }
     },

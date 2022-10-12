@@ -277,12 +277,12 @@ export default {
           message: `Found ${count} token${count > 1 ? 's' : ''} for wallet.`,
           actions: [
             {
-              label: 'Dismiss',
+              label: this.$t('Dismiss'),
               color: 'white',
               handler: () => { /* ... */ }
             },
             {
-              label: 'View tokens',
+              label: this.$t('ViewTokens'),
               color: 'white',
               handler: () => {
                 this.val = true

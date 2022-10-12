@@ -20,7 +20,6 @@
         padding="xs"
         flat
         class="scanner-close-btn"
-        style=""
         @click="val = false"
       />
       <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
@@ -203,22 +202,18 @@ export default {
         })
         .catch(error => {
           if (error.name === 'NotAllowedError') {
-            this.error = 'Permission required to access to camera'
-            // this.error = 'Hey! I need access to your camera'
+            this.error = this.$t('CameraPermissionErrMsg1')
           } else if (error.name === 'NotFoundError') {
-            this.error = 'No camera found on this device'
-            // this.error = 'Do you even have a camera on your device?'
+            this.error = this.$t('CameraPermissionErrMsg2')
           } else if (error.name === 'NotSupportedError') {
-            this.error = 'Unable to acccess camera in non-secure context'
-            // this.error = 'Seems like this page is served in non-secure context (HTTPS, localhost or file://)'
+            this.error = this.$t('CameraPermissionErrMsg3')
           } else if (error.name === 'NotReadableError') {
-            this.error = 'Unable to access camera.'
-            // this.error = 'Couldn\'t access your camera. Is it already in use?'
+            this.error = this.$t('CameraPermissionErrMsg4')
           } else if (error.name === 'OverconstrainedError') {
             this.frontCamera = false
-            this.error = 'Constraints don\'t match any installed camera. Did you ask for the front camera although there is none?'
+            this.error = this.$t('CameraPermissionErrMsg5')
           } else {
-            this.error = 'Unknown error: ' + error.message
+            this.error = this.$t('UnknownErrorOccurred') + ': ' + error.message
           }
         })
     }

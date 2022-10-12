@@ -240,7 +240,7 @@ export default {
       this.erc721AssetDetailDialog.show = true
     },
     confirmRemoveERC721Asset (asset) {
-      const title = 'Remove asset'
+      const title = this.$t('RemoveAsset')
       const message = 'Remove asset "' + asset.name + '". Are you sure?'
       let dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
       dialogStyleClass += ' br-15'
@@ -278,7 +278,7 @@ export default {
     copyAddress (address) {
       this.$copyText(address)
       this.$q.notify({
-        message: 'Copied address',
+        message: this.$t('CopiedToClipboard'),
         timeout: 800,
         icon: 'mdi-clipboard-check',
         color: 'blue-9'
