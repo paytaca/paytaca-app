@@ -13,11 +13,11 @@
               <p>Claiming gift...</p>
               <progress-loader />
             </div>
-            <q-form v-if="!processing" class="text-center" style="margin-top: 25px;">
+            <q-form v-if="!processing && !completed" class="text-center" style="margin-top: 25px;">
               <textarea
                 v-model="scannedShare"
                 style="width: 100%; font-size: 18px; color: black; background: white;" rows="2"
-                placeholder="Paste your share here"
+                placeholder="Paste gift code here"
               >
               </textarea>
               <br>
@@ -29,11 +29,15 @@
               </template>
               <div style="margin-top: 20px; ">
                 <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift">Claim</q-btn>
-                <p v-if="error" style="color: red;">
-                  {{ error }}
-                </p>
               </div>
             </q-form>
+            <div class="text-center q-pt-md">
+              <p v-if="bchAmount" style="font-size: 24px;">Amount:<br>{{ bchAmount }} BCH</p>
+              <p v-if="completed" style="color: green; font-size: 20px;">Gift claim completed!</p>
+              <p v-if="error" style="color: red;">
+                {{ error }}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -47,7 +51,7 @@ import axios from 'axios'
 import sha256 from 'js-sha256'
 import HeaderNav from '../../../components/header-nav'
 import ProgressLoader from '../../../components/ProgressLoader'
-// import SweepPrivateKey from '../../../wallet/sweep'
+import SweepPrivateKey from '../../../wallet/sweep'
 import QrScanner from '../../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 
@@ -61,75 +65,52 @@ export default {
   data () {
     return {
       wallet: null,
+      sweeper: null,
+      bchAmount: null,
       scannedShare: '',
       processing: false,
+      completed: false,
       error: null,
       showQrScanner: false,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
-    recoverPrivateKey () {
+    claimGift () {
       const vm = this
+      vm.processing = true
       const sss = require('shamirs-secret-sharing')
       const giftId = sha256(this.scannedShare)
       const url = `https://gifts.paytaca.com/api/gifts/${giftId}/claim`
       const walletHash = this.wallet.BCH.getWalletHash()
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
         const privateKey = sss.combine([this.scannedShare, resp.data.share])
-        console.log('Recovered private key:', privateKey.toString())
-        vm.processing = false
-      }).catch((error) => {
-        if (error.response.status === 409) {
-          vm.error = 'You have exceeded the limit of gifts to claim for this campaign!'
+        vm.sweeper = new SweepPrivateKey(privateKey.toString())
+        vm.sweeper.getBchBalance().then(function (data) {
+          vm.bchAmount = data.spendable || 0
+          if (vm.bchAmount > 0) {
+            vm.sweeper.sweepBch(
+              vm.sweeper.bchAddress,
+              privateKey.toString(),
+              vm.bchAmount,
+              vm.$store.getters['global/getAddress']('bch')
+            )
+            vm.completed = true
+          } else {
+            vm.error = 'This gift is empty'
+          }
           vm.processing = false
-        }
+        })
+      }).catch((error) => {
+        console.log(error)
+        vm.error = 'Error'
+        vm.processing = false
       })
-      // this.$store.dispatch('gifts/recoverSec', recovery.toString())
     },
-    claimGift () {
-      this.processing = true
-      this.recoverPrivateKey()
-      // const vm = this
-      // if (vm.validatePrivateKey(vm.wif)) {
-      //   vm.submitted = true
-      //   if (signalFetch) {
-      //     vm.fetching = true
-      //   }
-      //   if (vm.wif.length > 0) {
-      //     vm.sweeper = new SweepPrivateKey(this.wif)
-      //     vm.sweeper.getTokensList().then(function (tokens) {
-      //       vm.tokens = tokens.filter(function (token) {
-      //         // if (token.spendable > 0) {
-      //         // vm.skippedTokens[token.token_id] = false
-      //         return token
-      //         // }
-      //       })
-      //       vm.sweeper.getBchBalance().then(function (data) {
-      //         vm.bchBalance = data.spendable || 0
-      //         vm.fetching = false
-      //         vm.sweeping = false
-      //       })
-      //     })
-      //   }
-      // } else {
-      //   vm.error = 'Invalid private key!'
-      // }
-    },
-    // sweepBch () {
-    //   this.sweeping = true
-    //   this.selectedToken = 'bch'
-    //   this.sweeper.sweepBch(
-    //     this.sweeper.bchAddress,
-    //     this.wif,
-    //     this.bchBalance,
-    //     this.$store.getters['global/getAddress']('bch')
-    //   )
-    //   this.getTokens(false)
-    // },
     onScannerDecode (content) {
       this.showQrScanner = false
       this.scannedShare = content
+      this.claimGift()
     }
   },
   mounted () {
