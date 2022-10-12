@@ -3,7 +3,7 @@
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ path: '/' }">
-          <q-icon class="default-text-color" size="30px">
+          <q-icon class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-home.svg#icon"></use>
             </svg>
@@ -13,7 +13,7 @@
       </button>
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
-          <q-icon class="default-text-color" size="30px">
+          <q-icon class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-send.svg#icon"></use>
             </svg>
@@ -23,7 +23,7 @@
       </button>
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'transaction-receive-select-asset' }">
-          <q-icon class="default-text-color" size="30px">
+          <q-icon class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-receive.svg#icon"></use>
             </svg>
@@ -33,7 +33,7 @@
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'apps-dashboard' }">
-          <q-icon class="default-text-color" size="30px">
+          <q-icon class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-apps.svg#icon"></use>
             </svg>
@@ -64,7 +64,10 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
+  .mb-2 {
+    margin-bottom: 2px;
+  }
   .fixed-footer {
     position: fixed;
     height: 67px;
@@ -76,6 +79,7 @@ export default {
     box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
     bottom: 0pt;
     z-index: 6;
+
     .footer-icon {
       font-size: 30px !important;
       color: rgb(60, 100, 246) !important;
