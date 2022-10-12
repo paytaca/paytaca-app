@@ -19,7 +19,7 @@
       <q-card-section>
         <div class="row items-center">
           <div class="q-space text-h5">
-            Devices
+            {{ $t('Devices') }}
           </div>
           <q-btn
             icon="add"
@@ -34,9 +34,9 @@
         <template v-for="posDevice in posDevices" :key="posDevice?.id">
           <q-item dense>
             <q-item-section>
-              <q-item-label class="text-subtitle1">POS-ID#{{ padPosId(posDevice?.id) }}</q-item-label>
+              <q-item-label class="text-subtitle1"> {{ $t('POSID') }}#{{ padPosId(posDevice?.id) }}</q-item-label>
               <q-item-label v-if=" posDevice?.name" class="text-subtitle2 text-grey">
-                Name: {{ posDevice?.name }}
+                {{ $t('Name') }}: {{ posDevice?.name }}
               </q-item-label>
             </q-item-section>
             <q-item-section side>
@@ -50,7 +50,9 @@
                       @click="renamePosDevice(posDevice)"
                     >
                       <q-item-section>
-                        <q-item-label>{{ posDevice?.name ? 'Rename' : 'Set name' }}</q-item-label>
+                        <q-item-label>
+                          {{ posDevice?.name ? $t('Rename') : $t('SetName', {}, 'Set name') }}
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -60,7 +62,7 @@
                       @click="displayPosDeviceInDialog(posDevice)"
                     >
                       <q-item-section>
-                        <q-item-label>Scan</q-item-label>
+                        <q-item-label>{{ $t('Scan') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -70,7 +72,7 @@
                       @click="confirmRemovePosDevice(posDevice)"
                     >
                       <q-item-section>
-                        <q-item-label>Remove</q-item-label>
+                        <q-item-label>{{ $t('Remove') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -89,12 +91,14 @@ import { PosDeviceManager, padPosId } from 'src/wallet/pos'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import HeaderNav from 'src/components/header-nav.vue'
 import PosDeviceDetailDialog from 'src/components/PosDeviceDetailDialog.vue'
 import { getMnemonic, Wallet } from 'src/wallet'
 
 const $store = useStore()
 const $q = useQuasar()
+const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 async function checkWalletLinkData() {
@@ -136,10 +140,10 @@ function addNewPosDevice() {
     newId = Math.max(...posDevices.value.map(posDevice => posDevice?.id)) + 1
   }
   $q.dialog({
-    title: `Add new device #${padPosId(newId)}`,
-    message: 'Set new name for device',
+    title: $t('AddNewDeviceNo', { ID: padPosId(newId) }, `Add new device #${padPosId(newId)}`),
+    message: $t('SetNewNameForDevice', {}, 'Set new name for device'),
     prompt: {
-      model: `Device ${newId}`,
+      model: $t('DeviceNum', { ID: newId }, `Device ${newId}`),
       dark: darkMode.value,
       outlined: true,
       standout: darkMode.value ? 'text-white bg-grey-3' : '',
@@ -154,9 +158,14 @@ function addNewPosDevice() {
 
 function renamePosDevice(posDevice) {
   // const inputStyle = darkMode.value ? 'color:white !important;' : ''
+  const title = $t(
+    'RenameDeviceNum', { ID: padPosId(posDevice?.id) },
+    `Rename device #${padPosId(posDevice?.id)}`,
+  )
+  const message = $t('SetNewNameForDevice', {}, 'Set new name for device')
   $q.dialog({
-    title: `Rename device #${padPosId(posDevice?.id)}`,
-    message: 'Set new name for device',
+    title: title,
+    message: message,
     prompt: {
       dark: darkMode.value,
       outlined: true,
@@ -171,11 +180,22 @@ function renamePosDevice(posDevice) {
 }
 
 function confirmRemovePosDevice(posDevice) {
-  let message =`Remove POS Device #${posDevice?.id}`
-  if (posDevice?.name) message += ` '${posDevice?.name}'`
+  const msgParams = { ID: posDevice?.id, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
+  const message = $t(
+    'RemovePOSDeviceNumName', msgParams,
+    `Remove POS Device #${msgParams.ID}${msgParams.name}`
+  )
   $q.dialog({
-    title: 'Remove POS device',
+    title: $t('RemovePOSDevice', {}, 'Remove POS device'),
     message: message,
+    ok: {
+      padding: 'xs md',
+      flat: true,
+      noCaps: true,
+      label: $t('RemoveDevice', {}, 'Remove device'),
+      color: 'red-5',
+    },
+    cancel: { noCaps: true, flat: true, padding: 'xs md' },
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
     .onOk(() => {

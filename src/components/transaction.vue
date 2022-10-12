@@ -41,7 +41,7 @@
             </q-item>
             <q-item v-if="cachedPaymentOTP" clickable v-ripple @click="copyToClipboard(cachedPaymentOTP)">
               <q-item-section>
-                <q-item-label class="text-gray" caption>Payment OTP</q-item-label>
+                <q-item-label class="text-gray" caption>{{ $t('PaymentOTP', {}, 'Payment OTP') }}</q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
                   {{ cachedPaymentOTP }}
                 </q-item-label>
