@@ -101,14 +101,14 @@ const $q = useQuasar()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+const walletType = 'bch'
+const walletData = computed(() => $store.getters['global/getWallet'](walletType))
 async function checkWalletLinkData() {
-  const walletType = 'bch'
-  const walletData = $store.getters['global/getWallet'](walletType)
-  if (!walletData?.xPubKey || !walletData?.walletHash) {
+  if (!walletData.value?.xPubKey || !walletData.value?.walletHash) {
     console.log('Incomplete wallet link data. Updating xPubKey and walletHash')
     const mnemonic = await getMnemonic()
     const wallet = new Wallet(mnemonic, walletType)
-    const newWalletData = Object.assign({ type: walletType }, walletData)
+    const newWalletData = Object.assign({ type: walletType }, walletData.value)
     newWalletData.walletHash = wallet.BCH.getWalletHash()
     newWalletData.xPubKey = await wallet.BCH.getXPubKey()
 
@@ -122,10 +122,11 @@ const manager = new PosDeviceManager()
 const posDevices = ref([
   { posid: -1, name: '' },
 ])
-onMounted(() => {
-  posDevices.value = manager.fetchPosDevices()
-})
 watch(posDevices, () => manager.savePosDevices(posDevices.value), { deep: true })
+onMounted(() => fetchPosDevices())
+function fetchPosDevices(opts) {
+  posDevices.value = manager.fetchPosDevices(opts)
+}
 
 function displayPosDeviceInDialog(posDevice) {
   $q.dialog({
