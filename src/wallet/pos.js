@@ -15,8 +15,8 @@ export class PosDeviceManager {
       const data = JSON.parse(localStorage.getItem(this.STORAGE_KEY))
       if (Array.isArray(data)) {
         data.forEach(posDevice => {
-          if (Number.isInteger(posDevice?.id)) {
-            posDevices.push({ id: posDevice.id, name: posDevice?.name || '' })
+          if (Number.isInteger(posDevice?.posid)) {
+            posDevices.push({ posid: posDevice.posid, name: posDevice?.name || '' })
           }
         })
       }
@@ -28,7 +28,7 @@ export class PosDeviceManager {
 
   /**
    * 
-   * @param {{ id: String, name: String }[]} posDevices
+   * @param {{ posid: String, name: String }[]} posDevices
    */
   savePosDevices(posDevices) {
     const cleanedData = this.cleanPosDevicesData(posDevices)
@@ -37,16 +37,16 @@ export class PosDeviceManager {
 
   /**
    * 
-   * @param {{ id: String, name: String }[]} posDevices
+   * @param {{ posid: String, name: String }[]} posDevices
    */
   cleanPosDevicesData(posDevices) {
     if (!Array.isArray(posDevices)) return []
-    // 1st filter remove non integer id
-    // 2nd filter remove duplicate ids
+    // 1st filter remove non integer posid
+    // 2nd filter remove duplicate posids
     return posDevices
-      .filter(posDevice => Number.isInteger(posDevice?.id))
-      .filter((e, i, s) => s.findIndex(e1 => e1?.id === e?.id) === i)
-      .filter(posDevice => posDevice?.id >= 0)
+      .filter(posDevice => Number.isInteger(posDevice?.posid))
+      .filter((e, i, s) => s.findIndex(e1 => e1?.posid === e?.posid) === i)
+      .filter(posDevice => posDevice?.posid >= 0)
   }
 }
 

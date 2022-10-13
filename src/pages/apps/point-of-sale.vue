@@ -31,10 +31,10 @@
         </div>
         <q-separator :color="darkMode ? 'white' : 'grey-7'" class="q-mt-md q-mb-lg"/>
 
-        <template v-for="posDevice in posDevices" :key="posDevice?.id">
+        <template v-for="posDevice in posDevices" :key="posDevice?.posid">
           <q-item dense>
             <q-item-section>
-              <q-item-label class="text-subtitle1"> {{ $t('POSID') }}#{{ padPosId(posDevice?.id) }}</q-item-label>
+              <q-item-label class="text-subtitle1"> {{ $t('POSID') }}#{{ padPosId(posDevice?.posid) }}</q-item-label>
               <q-item-label v-if=" posDevice?.name" class="text-subtitle2 text-grey">
                 {{ $t('Name') }}: {{ posDevice?.name }}
               </q-item-label>
@@ -120,7 +120,7 @@ onMounted(() => checkWalletLinkData())
 
 const manager = new PosDeviceManager()
 const posDevices = ref([
-  { id: -1, name: '' },
+  { posid: -1, name: '' },
 ])
 onMounted(() => {
   posDevices.value = manager.fetchPosDevices()
@@ -130,14 +130,14 @@ watch(posDevices, () => manager.savePosDevices(posDevices.value), { deep: true }
 function displayPosDeviceInDialog(posDevice) {
   $q.dialog({
     component: PosDeviceDetailDialog,
-    componentProps: { posId: posDevice?.id, name: posDevice?.name }
+    componentProps: { posId: posDevice?.posid, name: posDevice?.name }
   })
 }
 
 function addNewPosDevice() {
   let newId = 0
   if (posDevices.value.length > 0) {
-    newId = Math.max(...posDevices.value.map(posDevice => posDevice?.id)) + 1
+    newId = Math.max(...posDevices.value.map(posDevice => posDevice?.posid)) + 1
   }
   $q.dialog({
     title: $t('AddNewDeviceNo', { ID: padPosId(newId) }, `Add new device #${padPosId(newId)}`),
@@ -152,15 +152,15 @@ function addNewPosDevice() {
     cancel: true,
     persistent: true
   }).onOk(data => {
-    posDevices.value.push({ id: newId, name: data })
+    posDevices.value.push({ posid: newId, name: data })
   })
 }
 
 function renamePosDevice(posDevice) {
   // const inputStyle = darkMode.value ? 'color:white !important;' : ''
   const title = $t(
-    'RenameDeviceNum', { ID: padPosId(posDevice?.id) },
-    `Rename device #${padPosId(posDevice?.id)}`,
+    'RenameDeviceNum', { ID: padPosId(posDevice?.posid) },
+    `Rename device #${padPosId(posDevice?.posid)}`,
   )
   const message = $t('SetNewNameForDevice', {}, 'Set new name for device')
   $q.dialog({
@@ -180,7 +180,7 @@ function renamePosDevice(posDevice) {
 }
 
 function confirmRemovePosDevice(posDevice) {
-  const msgParams = { ID: posDevice?.id, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
+  const msgParams = { ID: posDevice?.posid, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
   const message = $t(
     'RemovePOSDeviceNumName', msgParams,
     `Remove POS Device #${msgParams.ID}${msgParams.name}`
@@ -199,12 +199,12 @@ function confirmRemovePosDevice(posDevice) {
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
     .onOk(() => {
-      removePosDevice(posDevice?.id)
+      removePosDevice(posDevice?.posid)
     })
 }
 
 function removePosDevice(posId) {
-  posDevices.value = posDevices.value.filter(posDevice => posDevice?.id !== posId)
+  posDevices.value = posDevices.value.filter(posDevice => posDevice?.posid !== posId)
 }
 
 onMounted(() => {
