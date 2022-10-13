@@ -30,7 +30,20 @@
           />
         </div>
         <q-separator :color="darkMode ? 'white' : 'grey-7'" class="q-mt-md q-mb-lg"/>
-
+        <div v-if="parsedPosDevicePagination.pages > 1" class="row justify-end q-mb-sm q-px-md">
+          <q-pagination
+            :modelValue="parsedPosDevicePagination.currentPage"
+            :max="parsedPosDevicePagination.pages"
+            :max-pages="5"
+            input
+            :dark="darkMode"
+            size="lg"
+            @update:modelValue="val => fetchPosDevices({
+              limit: parsedPosDevicePagination.pageSize,
+              offset: parsedPosDevicePagination.pageSize * (val - 1)
+            })"
+          />
+        </div>
         <template v-for="posDevice in posDevices" :key="posDevice?.posid">
           <q-item dense>
             <q-item-section>
@@ -87,7 +100,7 @@
   </div>
 </template>
 <script setup>
-import { PosDeviceManager, padPosId } from 'src/wallet/pos'
+import { backend as posBackend, parsePosDeviceData, padPosId } from 'src/wallet/pos'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
@@ -102,7 +115,18 @@ const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const walletType = 'bch'
-const walletData = computed(() => $store.getters['global/getWallet'](walletType))
+const walletData = computed(() => {
+  const _walletData = $store.getters['global/getWallet'](walletType)
+  // extract necessary data
+  const data = {
+    walletHash: _walletData?.walletHash,
+    xPubKey: _walletData?.xPubKey,
+  }
+
+  // Object.assign to pass all other data that might come in handy
+  Object.assign(data, _walletData)
+  return data
+})
 async function checkWalletLinkData() {
   if (!walletData.value?.xPubKey || !walletData.value?.walletHash) {
     console.log('Incomplete wallet link data. Updating xPubKey and walletHash')
@@ -118,14 +142,64 @@ async function checkWalletLinkData() {
 }
 onMounted(() => checkWalletLinkData())
 
-const manager = new PosDeviceManager()
-const posDevices = ref([
-  { posid: -1, name: '' },
-])
-watch(posDevices, () => manager.savePosDevices(posDevices.value), { deep: true })
+const posDevices = ref([ { walletHash: '', posid: -1, name: '' } ])
+posDevices.value = []
+const posDevicesPageData = ref({ count: 0, limit: 10, offset: 0 })
+const parsedPosDevicePagination = computed(() => {
+  const pageData = posDevicesPageData?.value
+  const data = { pages: 0, currentPage: 0, pageSize: 0 }
+  if (pageData?.limit) data.pages = Math.ceil(pageData?.count / pageData?.limit)
+  data.pageSize = pageData?.limit
+  if (pageData?.offset) data.currentPage = Math.floor(pageData?.offset / pageData?.limit) + 1
+  else data.currentPage = 1
+  return data
+})
+const fetchingPosDevices = ref(false)
 onMounted(() => fetchPosDevices())
 function fetchPosDevices(opts) {
-  posDevices.value = manager.fetchPosDevices(opts)
+  if (!walletData.value?.walletHash) return
+
+  const params = {
+    limit: opts?.limit || 10,
+    offset: opts?.offset || 0,
+    wallet_hash: walletData.value?.walletHash,
+  }
+  fetchingPosDevices.value = true
+  return posBackend.get('paytacapos/devices/', { params })
+    .then(response => {
+      if (Array.isArray(response?.data?.results)) {
+        posDevices.value = response?.data?.results.map(parsePosDeviceData)
+        posDevicesPageData.value.count = response?.data?.count || 0
+        posDevicesPageData.value.limit = response?.data?.limit || 0
+        posDevicesPageData.value.offset = response?.data?.offset || 0
+      }
+    })
+    .finally(() => {
+      fetchingPosDevices.value = false
+    })
+}
+
+/**
+ * 
+ * @param {{ walletHash:String, posid:Number }} posDevice 
+ * @param {Boolean} append append data to list if doesnt exist in current pos devices list state
+ */
+function refetchPosDevice(posDevice, append=false) {
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
+  posBackend.get(`/paytacapos/devices/${handle}/`)
+    .then(response => {
+      if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
+        const parsedData = parsePosDeviceData(response?.data)
+        const index = posDevices.value.findIndex(device => 
+          device?.walletHash == parsedData?.walletHash && device?.posid == parsedData?.posid
+        )
+
+        if (index >= 0) posDevices.value[index] = parsedData
+        else if (append) posDevices.value.push(parsedData)
+        return Promise.resolve(response)
+      }
+      return Promise.reject({ response })
+    })
 }
 
 function displayPosDeviceInDialog(posDevice) {
@@ -136,15 +210,10 @@ function displayPosDeviceInDialog(posDevice) {
 }
 
 function addNewPosDevice() {
-  let newId = 0
-  if (posDevices.value.length > 0) {
-    newId = Math.max(...posDevices.value.map(posDevice => posDevice?.posid)) + 1
-  }
   $q.dialog({
-    title: $t('AddNewDeviceNo', { ID: padPosId(newId) }, `Add new device #${padPosId(newId)}`),
+    title: $t('AddNewDevice', {}, 'Add new device'),
     message: $t('SetNewNameForDevice', {}, 'Set new name for device'),
     prompt: {
-      model: $t('DeviceNum', { ID: newId }, `Device ${newId}`),
       dark: darkMode.value,
       outlined: true,
       standout: darkMode.value ? 'text-white bg-grey-3' : '',
@@ -153,7 +222,28 @@ function addNewPosDevice() {
     cancel: true,
     persistent: true
   }).onOk(data => {
-    posDevices.value.push({ posid: newId, name: data })
+    const dialog = $q.dialog({
+      title: $t('NewDevice', {}, 'New device'),
+      message: $t('AddingNewDevice', {}, 'Adding new device'),
+      persistent: true,
+      progress: true,
+      class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    })
+    savePosDevice({ posid: -1, name: data }, { refreshList: true })
+      .then(response => {
+        const newPaddedPosId = padPosId(response?.data?.posid)
+        dialog.update({
+          message: $t('DeviceAddedIDNo', { ID: newPaddedPosId }, `Device added #${newPaddedPosId}`),
+        })
+      })
+      .catch(() => {
+        dialog.update({
+          message: $t('FailedAddingNewDevice', {}, 'Failed to add new device'),
+        })
+      })
+      .finally(() => {
+        dialog.update({ persistent: false, progress: false })
+      })
   })
 }
 
@@ -176,7 +266,34 @@ function renamePosDevice(posDevice) {
     cancel: true,
     persistent: true
   }).onOk(data => {
-    posDevice.name = data
+    let updateDialogMsg = $t(
+      'UpdatingDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+      `Updating device #${padPosId(posDevice?.posid)}`,
+    )
+    const dialog = $q.dialog({
+      message: updateDialogMsg,
+      persistent: true,
+      progress: true,
+      class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    })
+    savePosDevice({ posid: posDevice?.posid, name: data }, { refreshList: true })
+      .then(() => {
+        updateDialogMsg = $t(
+          'UpdatedDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+          `Updated device #${padPosId(posDevice?.posid)}`,
+        )
+        dialog.update({ message: updateDialogMsg })
+      })
+      .catch(() => {
+        updateDialogMsg = $t(
+          'FailedUpdateDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+          `Failed to update device #${padPosId(posDevice?.posid)}`,
+        )
+        dialog.update({ message: updateDialogMsg })
+      })
+      .finally(() => {
+        dialog.update({ persistent: false, progress: false })
+      })
   })
 }
 
@@ -200,12 +317,58 @@ function confirmRemovePosDevice(posDevice) {
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
     .onOk(() => {
-      removePosDevice(posDevice?.posid)
+      let updateDialogMsg = $t(
+        'RemovingDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+        `Removing device #${padPosId(posDevice?.posid)}`,
+      )
+      const dialog = $q.dialog({
+        message: updateDialogMsg,
+        persistent: true,
+        progress: true,
+        class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+      })
+      deletePosDevice(posDevice)
+        .then(() => {
+          updateDialogMsg = $t(
+            'RemovedDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+            `Removed device #${padPosId(posDevice?.posid)}`,
+          )
+          dialog.update({ message: updateDialogMsg })
+        })
+        .finally(() => {
+          dialog.update({ persistent: false, progress: false })
+        })
     })
 }
 
-function removePosDevice(posId) {
-  posDevices.value = posDevices.value.filter(posDevice => posDevice?.posid !== posId)
+/**
+ * @param {{ walletHash:String, posid:Number, name?:String }} posDevice 
+ * @param {{ refreshList:Boolean }} opts
+ */
+function savePosDevice(posDevice, opts) {
+  const data = {
+    wallet_hash: posDevice?.walletHash || walletData?.value?.walletHash,
+    posid: posDevice?.posid,
+    name: posDevice?.name || '',
+  }
+  return posBackend.post('/paytacapos/devices/', data)
+    .then(response => {
+      if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
+        if (opts?.refreshList) fetchPosDevices()
+        else refetchPosDevice(parsePosDeviceData(response?.data))
+
+        return Promise.resolve(response)
+      }
+      return Promise.reject({ response })
+    })
+}
+
+/**
+ * @param {{ walletHash:String, posid:Number }} posDevice 
+ */
+function deletePosDevice(posDevice) {
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
+  return posBackend.delete(`paytacapos/devices/${handle}/`).then(() => fetchPosDevices())
 }
 
 onMounted(() => {

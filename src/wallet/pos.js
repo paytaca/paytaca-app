@@ -1,3 +1,25 @@
+import Watchtower from 'watchtower-cash-js'
+// import axios from 'axios'
+// export const backend = axios.create({
+//   baseURL: 'http://localhost:8000/api',
+// })
+
+export const backend = (new Watchtower()).BCH._api
+
+/**
+ * 
+ * @param {{ wallet_hash:String, posid:Number, name?:String }} data 
+ */
+export function parsePosDeviceData(data) {
+  const response = {
+    walletHash: data?.wallet_hash,
+    posid: data?.posid,
+    name: data?.name,
+  }
+
+  return response
+}
+
 export class PosDeviceManager {
   static DEFAULT_STORAGE_KEY = 'posDevices'
   constructor(opts) {
