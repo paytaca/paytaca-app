@@ -70,7 +70,7 @@
         </div>
         <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
           <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
-            <div v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0">
+            <div v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0" :class="darkMode ? 'text-white': 'text-black'">
               POS:
               {{ sendData.posDevice.walletHash.substring(0, 5) }}
               ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
