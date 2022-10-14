@@ -435,6 +435,9 @@ export default {
 
       return this.$store.getters['market/getAssetPrice'](this.assetId, this.selectedMarketCurrency)
     },
+    currencyOptions () {
+      return this.$store.getters['market/currencyOptions']
+    },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
@@ -523,12 +526,16 @@ export default {
       let amount = null
       let rawPaymentUri = ''
       let posDevice = { walletHash: '', posId: -1, paymentTimestamp: -1 }
+      let currency = null
       if (this.isSep20) {
         try {
           console.log('Parsing content as eip681')
           const eip6821data = decodeEIP681URI(content)
           address = eip6821data.target_address
           amount = eip6821data.parsedValue
+          if (typeof eip6821data?.parameters?.currency === 'string') {
+            currency = eip6821data?.parameters?.currency
+          }
           rawPaymentUri = content
         } catch (err) {
           console.log('Failed to parse as eip681 uri')
@@ -545,6 +552,9 @@ export default {
             if (bip0021Data.parameters?.ts) {
               posDevice.paymentTimestamp = Number(bip0021Data.parameters?.ts)
             }
+          }
+          if (typeof bip0021Data?.parameters?.currency === 'string') {
+            currency = bip0021Data?.parameters?.currency
           }
           rawPaymentUri = content
         } catch(err) {
