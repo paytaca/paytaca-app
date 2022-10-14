@@ -558,8 +558,27 @@ export default {
         this.sendData.rawPaymentUri = rawPaymentUri
         this.scannedRecipientAddress = true
 
+        if (currency) this.setAmountInFiat = true
+        if (typeof currency === 'string' && this.selectedMarketCurrency != currency) {
+          const newSelectedCurrency = this.currencyOptions
+            .find(_currency => _currency?.symbol == currency)
+          if (newSelectedCurrency?.symbol) {
+            this.$store.commit('market/updateSelectedCurrency', newSelectedCurrency)
+          } else if (!newSelectedCurrency?.symbol && amount) {
+            this.sendErrors.push(`Detected unknown currency: ${currency}`) 
+            // reset some data updated above on error
+            this.sendData.recipientAddress = ''
+            this.sendData.rawPaymentUri = ''
+            return
+          }
+        }
+
         if (amount !== null) {
           this.sendData.amount = amount
+          if (this.setAmountInFiat) {
+            this.sendAmountInFiat = amount
+            this.sendData.amount = null
+          }
         }
 
         if (posDevice.walletHash && posDevice.posId >= 0) {
