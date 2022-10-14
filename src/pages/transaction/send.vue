@@ -219,11 +219,11 @@
             </ul>
           </div>
         </div>
-        <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -50px;">
-          <q-icon size="100px" name="check_circle" color="green-5"></q-icon>
+        <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
+          <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
           <div :class="darkMode ? 'text-white' : 'pp-text'" style="margin-top: 20px;">
-            <p style="font-size: 30px;">Successfully sent</p>
-            <p style="font-size: 28px; margin-top: -15px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+            <p style="font-size: 26px;">Successfully sent</p>
+            <p style="font-size: 28px; margin-top: -10px;">{{ sendData.amount }} {{ asset.symbol }}</p>
             <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
               ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
             </p>
@@ -413,7 +413,7 @@ export default {
         if (this.showSlider) {
           return false
         }
-        if (this.sendData.sending) {
+        if (this.sendData.sending || this.sendData.sent) {
           return false
         }
       }
