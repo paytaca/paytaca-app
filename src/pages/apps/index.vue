@@ -25,12 +25,6 @@ export default {
     return {
       apps: [
         {
-          name: 'POS',
-          iconName: 'point_of_sale',
-          path: '/apps/point-of-sale',
-          active: true
-        },
-        {
           name: 'Bridge',
           iconName: 'mdi-bridge',
           path: '/apps/bridge',
@@ -58,6 +52,12 @@ export default {
           name: 'Sweep',
           iconName: 'mdi-broom',
           path: '/apps/sweep',
+          active: true
+        },
+        {
+          name: 'POS',
+          iconName: 'point_of_sale',
+          path: '/apps/point-of-sale',
           active: true
         },
         {

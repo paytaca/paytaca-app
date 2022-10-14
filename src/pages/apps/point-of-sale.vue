@@ -75,7 +75,7 @@
                       @click="displayPosDeviceInDialog(posDevice)"
                     >
                       <q-item-section>
-                        <q-item-label>{{ $t('Scan') }}</q-item-label>
+                        <q-item-label>{{ $t('Link') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
