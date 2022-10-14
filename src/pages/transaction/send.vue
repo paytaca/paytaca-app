@@ -70,6 +70,15 @@
         </div>
         <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
           <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
+            <div v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0" :class="darkMode ? 'text-white': 'text-black'">
+              POS:
+              {{ sendData.posDevice.walletHash.substring(0, 5) }}
+              ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
+              <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
+              <div v-if="sendData.posDevice?.paymentTimestamp" class="text-caption text-grey">
+                {{ formatTimestampToText(sendData.posDevice?.paymentTimestamp * 1000) }}
+              </div>
+            </div>
             <div class="row">
               <div class="col q-mt-sm se">
                 <q-input
@@ -154,7 +163,7 @@
                 </a>
               </div>
             </div>
-            <div class="row" v-if="!isNFT && !setAmountInFiat && asset.id === 'bch' && !computingMax && !showSlider" style="margin-top: -10px;">
+            <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
               <div class="col q-mt-md">
                 <a
                   style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
@@ -215,12 +224,24 @@
           <div :class="darkMode ? 'text-white' : 'pp-text'" style="margin-top: 20px;">
             <p style="font-size: 30px;">Successfully sent</p>
             <p style="font-size: 28px; margin-top: -15px;">{{ sendData.amount }} {{ asset.symbol }}</p>
-            <p v-if="asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
+            <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
               ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
             </p>
             <p style="font-size: 24px;">to</p>
             <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
               {{ this.sendData.recipientAddress }}
+            </div>
+            <div v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0">
+              POS:
+              {{ sendData.posDevice.walletHash.substring(0, 5) }}
+              ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
+              <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
+
+              <div v-if="paymentOTP" class="text-center q-mt-md">
+                <div class="text-grey">{{ $t('PaymentOTP', {}, 'Payment OTP')}}</div>
+                <div class="text-h3" style="letter-spacing:1rem;">{{ paymentOTP }}</div>
+                <q-separator color="grey"/>
+              </div>
             </div>
             <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
               txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
@@ -257,6 +278,7 @@ import { markRaw } from '@vue/reactivity'
 import { debounce } from 'quasar'
 import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
+import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from '../../wallet/sbch'
 import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
@@ -266,6 +288,7 @@ import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import QrScanner from '../../components/qr-scanner.vue'
+import { parsePOSLabel } from 'src/wallet/pos'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -347,6 +370,9 @@ export default {
         recipientAddress: '',
         lnsName: '',
         _lnsAddress: '', // in case recipient address is edited in form will check if name still matches the address
+        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
+        rawPaymentUri: '', // for scanning qr data
+        responseOTP: '',
         fixedRecipientAddress: false
       },
       lns: {
@@ -436,6 +462,11 @@ export default {
     },
     showSlider () {
       return this.sendData.sending !== true && this.sendData.sent !== true && this.sendErrors.length === 0 && this.sliderStatus === true
+    },
+    paymentOTP() {
+      if (this.sendData.responseOTP) return this.sendData.responseOTP
+
+      return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
     }
   },
 
@@ -478,26 +509,65 @@ export default {
   },
 
   methods: {
+    formatTimestampToText(timestamp) {
+      if (!Number.isSafeInteger(timestamp)) return ''
+
+      const dateObj = new Date(timestamp)
+      return new Intl.DateTimeFormat(
+        'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
+      ).format(dateObj)
+    },
     onScannerDecode (content) {
       this.showQrScanner = false
       let address = content
       let amount = null
-      try {
-        console.log('Parsing content as eip681')
-        const eip6821data = decodeEIP681URI(content)
-        address = eip6821data.target_address
-        amount = eip6821data.parsedValue
-      } catch (err) {
-        console.log('Failed to parse as eip681 uri')
-        console.log(err)
+      let rawPaymentUri = ''
+      let posDevice = { walletHash: '', posId: -1, paymentTimestamp: -1 }
+      if (this.isSep20) {
+        try {
+          console.log('Parsing content as eip681')
+          const eip6821data = decodeEIP681URI(content)
+          address = eip6821data.target_address
+          amount = eip6821data.parsedValue
+          rawPaymentUri = content
+        } catch (err) {
+          console.log('Failed to parse as eip681 uri')
+          console.log(err)
+        }
+      } else {
+        try {
+          console.log('Parsing content as BIP0021')
+          const bip0021Data = decodeBIP0021URI(content)
+          address = bip0021Data.address
+          if (bip0021Data.amount) amount = bip0021Data.amount
+          if (bip0021Data.parameters?.POS) {
+            posDevice = parsePOSLabel(bip0021Data.parameters.POS)
+            if (bip0021Data.parameters?.ts) {
+              posDevice.paymentTimestamp = Number(bip0021Data.parameters?.ts)
+            }
+          }
+          rawPaymentUri = content
+        } catch(err) {
+          console.log('Failed to parse as BIP0021 uri')
+          console.log(err)
+        }
       }
       const valid = this.checkAddress(address)
       if (valid) {
         this.sendData.recipientAddress = address
+        this.sendData.rawPaymentUri = rawPaymentUri
         this.scannedRecipientAddress = true
 
         if (amount !== null) {
           this.sendData.amount = amount
+        }
+
+        if (posDevice.walletHash && posDevice.posId >= 0) {
+          this.sendData.posDevice = posDevice
+          if (amount) {
+            this.sendData.fixedAmount = true
+            this.sliderStatus = true
+          }
         }
       }
     },
@@ -879,15 +949,35 @@ export default {
         } else if (vm.walletType === 'bch') {
           address = addressObj.toCashAddress()
           const changeAddress = vm.getChangeAddress('bch')
-          vm.wallet.BCH.sendBch(vm.sendData.amount, address, changeAddress).then(function (result) {
+          let sendPromise
+          if (vm.sendData?.posDevice?.walletHash && vm.sendData?.posDevice?.posId >= 0) {
+            sendPromise = vm.wallet.BCH.sendBchToPOS(
+              vm.sendData.amount,address, changeAddress,
+              vm.sendData.posDevice,
+            )
+          } else {
+            sendPromise = vm.wallet.BCH.sendBch(vm.sendData.amount, address, changeAddress)
+          }
+          sendPromise.then(function (result) {
             vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid
               vm.playSound(true)
               vm.sendData.sending = false
               vm.sendData.sent = true
+              if (result.otp) vm.sendData.responseOTP = result.otp
               if (!vm.sendAmountInFiat) {
                 vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+              }
+
+              if (result?.otp) {
+                vm.$store.commit('paytacapos/saveOTPCache', {
+                  txid: result.txid,
+                  otp: result.otp,
+                  otpTimestamp: result?.otpTimestamp,
+                  rawPaymentUri: vm.sendData?.rawPaymentUri,
+                })
+                vm.$store.commit('paytacapos/removeOldPaymentOTPCache')
               }
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
