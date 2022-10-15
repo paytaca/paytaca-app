@@ -61,6 +61,12 @@ export default {
           active: true
         },
         {
+          name: 'POS',
+          iconName: 'point_of_sale',
+          path: '/apps/point-of-sale',
+          active: true
+        },
+        {
           name: 'Wallet Info',
           iconName: 'info',
           path: '/apps/wallet-info',
