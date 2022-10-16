@@ -154,6 +154,13 @@ export default {
       axios.get(url).then(function (response) {
         if (response.status === 200) {
           vm.rows = response.data.gifts
+          for (let i = 0; i < vm.rows.length; i++) {
+            const gift = vm.rows[i]
+            console.log(gift)
+            if (gift.date_claimed) {
+              vm.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
+            }
+          }
         }
       })
     },
