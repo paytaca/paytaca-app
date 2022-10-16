@@ -35,32 +35,39 @@
           <!-- @input="amountBCH" -->
           </q-input>
 
-          <label>
-            Enter Campaign ID
-          </label>
-          <q-input
-            placeholder="Campaign ID"
-            filled
-            type="string"
-            clearable
-            :dark="darkMode"
-          >
-          </q-input>
+          <template v-if="createNewCampaign">
+            <label>
+              Campaign Name
+            </label>
+            <q-input
+              placeholder="Campaign Name"
+              filled
+              type="string"
+              v-model="campaignName"
+              clearable
+              :dark="darkMode"
+            >
+            </q-input>
 
-          <div class="q-pa-sm q-pb-xs">
-          </div>
+            <div class="q-pa-sm q-pb-xs">
+            </div>
 
-          <label>
-            Max Amount per Address
-          </label>
-          <q-input
-            placeholder="Amount"
-            filled
-            type="text"
-            clearable
-            v-model="maxPerCampaign"
-            :dark="darkMode"
-          ></q-input>
+            <label>
+              Max Amount Per Wallet
+            </label>
+            <q-input
+              placeholder="Amount"
+              filled
+              type="text"
+              clearable
+              v-model="maxPerCampaign"
+              :dark="darkMode"
+            ></q-input>
+          </template>
+          <template v-else>
+            <q-select filled v-model="selectedCampaign" :dark="darkMode" :options="campaignOptions" label="Select Campaign" />
+          </template>
+
           <div class="q-pa-sm q-pt-lg flex flex-center">
             <q-btn
               no-caps
@@ -111,6 +118,10 @@ export default {
   data () {
     return {
       amountBCH: 0.001,
+      campaignOptions: [],
+      createNewCampaign: false,
+      selectedCampaign: null,
+      campaignName: null,
       maxPerCampaign: null,
       qrCodeContents: null,
       processing: false,
@@ -142,6 +153,17 @@ export default {
         address: address,
         share: shares[1],
         amount: parseFloat(vm.amountBCH)
+      }
+      if (vm.campaignName) {
+        payload.campaign = {
+          name: vm.campaignName,
+          limit_per_wallet: vm.maxPerCampaign
+        }
+      }
+      if (vm.selectedCampaign) {
+        payload.campaign = {
+          id: vm.selectedCampaign.value
+        }
       }
       const walletHash = this.wallet.BCH.getWalletHash()
       const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
@@ -182,28 +204,37 @@ export default {
       wallet.sBCH.getOrInitWallet()
         .then(() => {
           vm.wallet = wallet
+          const walletHash = vm.wallet.BCH.getWalletHash()
+          const url = `https://gifts.paytaca.com/api/campaigns/${walletHash}/list/`
+          axios.get(url).then((resp) => {
+            vm.campaignOptions = resp.data.campaigns.map(function (item, index) {
+              return { label: item.name, value: item.id }
+            })
+            console.log('Options:', vm.campaignOptions)
+          })
         })
     })
   }
 }
 </script>
-  <style lang="scss" scoped>
-      .col-qr-code {
-      margin-left: auto;
-      margin-right: auto;
-      margin-bottom: 10px;
-      text-align: center;
-      width: 500px;
-      height: 310px;
-      border-radius: 16px;
-      border: 4px solid #ed5f59;
-      padding: 22px 10px 32px 10px;
-      background: white;
-    }
-    .fontStyle {
-      font-size:medium;
-    }
-    display {
-      display: none;
-    }
-  </style>
+
+<style lang="scss" scoped>
+    .col-qr-code {
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 10px;
+    text-align: center;
+    width: 500px;
+    height: 310px;
+    border-radius: 16px;
+    border: 4px solid #ed5f59;
+    padding: 22px 10px 32px 10px;
+    background: white;
+  }
+  .fontStyle {
+    font-size:medium;
+  }
+  display {
+    display: none;
+  }
+</style>

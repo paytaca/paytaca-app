@@ -151,11 +151,7 @@ export default {
     getItems () {
       const vm = this
       const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
-      axios.get(url, {
-        params: {
-          wallet_hash: vm.walletHash
-        }
-      }).then(function (response) {
+      axios.get(url).then(function (response) {
         if (response.status === 200) {
           vm.rows = response.data.gifts
         }

@@ -18,6 +18,7 @@
                 v-model="scannedShare"
                 style="width: 100%; font-size: 18px; color: black; background: white;" rows="2"
                 placeholder="Paste gift code here"
+                :disabled="error"
               >
               </textarea>
               <br>
@@ -28,7 +29,7 @@
                 <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
               <div style="margin-top: 20px; ">
-                <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift">
+                <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift(null)">
                   <span class="text-capitalize">{{ action }}</span>
                 </q-btn>
               </div>
@@ -87,7 +88,7 @@ export default {
     }
   },
   methods: {
-    claimGift (giftCodeHash = null) {
+    claimGift (giftCodeHash) {
       const vm = this
       vm.processing = true
       const sss = require('shamirs-secret-sharing')
@@ -98,6 +99,7 @@ export default {
       if (vm.action === 'Recover') {
         vm.scannedShare = vm.localShare
       }
+      console.log('Gift code hash:', giftCodeHash)
       const url = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
       const walletHash = this.wallet.BCH.getWalletHash()
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
@@ -112,6 +114,9 @@ export default {
               vm.bchAmount,
               vm.$store.getters['global/getAddress']('bch')
             )
+            if (vm.action === 'Recover') {
+              vm.$store.dispatch('gifts/deleteGift', giftCodeHash)
+            }
             vm.completed = true
           } else {
             vm.error = 'This gift has been claimed! Try another one.'
@@ -119,15 +124,14 @@ export default {
           vm.processing = false
         })
       }).catch((error) => {
-        console.log(error)
-        vm.error = 'Error'
+        vm.error = error.response.message
         vm.processing = false
       })
     },
     onScannerDecode (content) {
       this.showQrScanner = false
       this.scannedShare = content
-      this.claimGift()
+      this.claimGift(null)
     }
   },
   mounted () {
