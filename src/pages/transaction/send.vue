@@ -170,8 +170,13 @@
                   href="#"
                   @click.prevent="() => {setAmountInFiat = true}"
                 >
-                  Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
+                  Set amount in {{ String(selectedMarketCurrency).toUpperCase() }} | {{ showSlider }}
                 </a>
+                XXX | {{ sendErrors }}
+                YYY
+                <div>
+                  {{ sendData.sending !== true }} | {{ sendData.sent !== true }} | {{ sendErrors.length === 0 }} | {{ sliderStatus === true }}
+                </div>
               </div>
             </div>
             <div class="row" v-if="sendData.sending">
@@ -585,6 +590,7 @@ export default {
 
         if (amount !== null) {
           this.sendData.amount = amount
+          this.sliderStatus = true
           if (this.setAmountInFiat) {
             this.sendAmountInFiat = amount
             this.sendData.amount = null
