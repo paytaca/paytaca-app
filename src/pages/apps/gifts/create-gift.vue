@@ -65,6 +65,9 @@
             ></q-input>
           </template>
           <template v-else>
+            <label>
+              Campaign (optional):
+            </label>
             <q-select filled v-model="selectedCampaign" :dark="darkMode" :options="campaignOptions" label="Select Campaign" />
           </template>
 
@@ -129,7 +132,13 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
-
+  watch: {
+    selectedCampaign (val) {
+      if (val.value === 'create-new') {
+        this.createNewCampaign = true
+      }
+    }
+  },
   methods: {
     generateGift () {
       const vm = this
@@ -154,15 +163,16 @@ export default {
         share: shares[1],
         amount: parseFloat(vm.amountBCH)
       }
-      if (vm.campaignName) {
-        payload.campaign = {
-          name: vm.campaignName,
-          limit_per_wallet: vm.maxPerCampaign
-        }
-      }
       if (vm.selectedCampaign) {
-        payload.campaign = {
-          id: vm.selectedCampaign.value
+        if (vm.createNewCampaign) {
+          payload.campaign = {
+            name: vm.campaignName,
+            limit_per_wallet: vm.maxPerCampaign
+          }
+        } else {
+          payload.campaign = {
+            id: vm.selectedCampaign.value
+          }
         }
       }
       const walletHash = this.wallet.BCH.getWalletHash()
@@ -210,7 +220,10 @@ export default {
             vm.campaignOptions = resp.data.campaigns.map(function (item, index) {
               return { label: item.name, value: item.id }
             })
-            console.log('Options:', vm.campaignOptions)
+            vm.campaignOptions.push({
+              label: '--- Create New Campaign ---',
+              value: 'create-new'
+            })
           })
         })
     })
