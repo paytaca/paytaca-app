@@ -114,7 +114,7 @@ export default {
             )
             vm.completed = true
           } else {
-            vm.error = 'This gift is empty'
+            vm.error = 'This gift has been claimed! Try another one.'
           }
           vm.processing = false
         })

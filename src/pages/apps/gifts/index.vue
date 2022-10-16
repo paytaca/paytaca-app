@@ -26,7 +26,7 @@
           <q-btn color="primary">Claim Gift</q-btn>
         </div>
       </div>
-      <div v-if="rows.length > 0" class="row q-pa-md text-black" style="margin-top: -20px;">
+      <div v-if="rows.length > 0" class="row q-pa-md" :class="{'text-black': !darkMode}" style="margin-top: -20px;">
         <q-table
           grid
           title="Gifts you created"
@@ -34,10 +34,11 @@
           :columns="columns"
           row-key="name"
           style="width: 100%;"
+          :dark="darkMode"
         >
           <template v-slot:item="props">
             <div
-              class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition"
+              class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               :style="props.selected ? 'transform: scale(0.95);' : ''"
             >
               <q-card>
