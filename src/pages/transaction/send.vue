@@ -466,7 +466,7 @@ export default {
     showSlider () {
       return this.sendData.sending !== true && this.sendData.sent !== true && this.sendErrors.length === 0 && this.sliderStatus === true
     },
-    paymentOTP() {
+    paymentOTP () {
       if (this.sendData.responseOTP) return this.sendData.responseOTP
 
       return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
@@ -557,7 +557,7 @@ export default {
             currency = bip0021Data?.parameters?.currency
           }
           rawPaymentUri = content
-        } catch(err) {
+        } catch (err) {
           console.log('Failed to parse as BIP0021 uri')
           console.log(err)
         }
@@ -569,13 +569,13 @@ export default {
         this.scannedRecipientAddress = true
 
         if (currency) this.setAmountInFiat = true
-        if (typeof currency === 'string' && this.selectedMarketCurrency != currency) {
+        if (typeof currency === 'string' && this.selectedMarketCurrency !== currency) {
           const newSelectedCurrency = this.currencyOptions
-            .find(_currency => _currency?.symbol == currency)
+            .find(_currency => _currency?.symbol === currency)
           if (newSelectedCurrency?.symbol) {
             this.$store.commit('market/updateSelectedCurrency', newSelectedCurrency)
           } else if (!newSelectedCurrency?.symbol && amount) {
-            this.sendErrors.push(`Detected unknown currency: ${currency}`) 
+            this.sendErrors.push(`Detected unknown currency: ${currency}`)
             // reset some data updated above on error
             this.sendData.recipientAddress = ''
             this.sendData.rawPaymentUri = ''
