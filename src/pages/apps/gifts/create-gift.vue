@@ -130,27 +130,28 @@ export default {
       const bchjs = new BCHJS()
       const pair = bchjs.ECPair.fromWIF(wif)
       const address = bchjs.ECPair.toCashAddress(pair)
-      console.log('Address:', address)
 
       const sss = require('shamirs-secret-sharing')
       const secret = Buffer.from(wif)
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
       const shares = stateShare.map((share) => { return toHex(share) })
 
-      vm.giftId = sha256(shares[0])
+      vm.giftCodeHash = sha256(shares[0])
       const payload = {
+        gift_code_hash: vm.giftCodeHash,
+        address: address,
         share: shares[1],
-        amount: parseFloat(vm.amountBCH),
-        gift_id: vm.giftId
+        amount: parseFloat(vm.amountBCH)
       }
-      const url = 'https://gifts.paytaca.com/api/gifts/create/'
+      const walletHash = this.wallet.BCH.getWalletHash()
+      const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
       axios.post(url, payload).then((resp) => {
         if (resp.status === 200) {
           vm.qrCodeContents = shares[0]
-          console.log(vm.qrCodeContents)
           vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
             if (result.success) {
               vm.processing = false
+              vm.$store.dispatch('gifts/saveGift', { giftCodeHash: vm.giftCodeHash, share: shares[2] })
               vm.completed = true
             }
           })
@@ -159,21 +160,6 @@ export default {
         console.log(error)
         vm.processing = false
       })
-      // vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
-      //   if (result.success) {
-      //     const url = 'https://gifts.paytaca.com/api/gifts/create/'
-      //     axios.post(url, payload).then((resp) => {
-      //       if (resp.status === 200) {
-      //         vm.qrCodeContents = shares[0]
-      //         console.log(vm.qrCodeContents)
-      //         vm.completed = true
-      //       }
-      //       vm.processing = false
-      //     })
-      //   } else {
-      //     console.error(err)
-      //   }
-      // })
     },
     copyToClipboard (value) {
       this.$copyText(value)

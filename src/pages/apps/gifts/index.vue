@@ -26,15 +26,59 @@
           <q-btn color="primary">Claim Gift</q-btn>
         </div>
       </div>
-          <div class="row q-pa-md">
-            <q-table
-              title="Gifts generated: "
-              :rows="rows"
-              :columns="columns"
-              row-key="name"
-              style="width: 100%"
-            />
-          </div>
+      <div v-if="rows.length > 0" class="row q-pa-md text-black" style="margin-top: -20px;">
+        <q-table
+          grid
+          title="Gifts you created"
+          :rows="rows"
+          :columns="columns"
+          row-key="name"
+          style="width: 100%;"
+        >
+          <template v-slot:item="props">
+            <div
+              class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition"
+              :style="props.selected ? 'transform: scale(0.95);' : ''"
+            >
+              <q-card>
+                <q-list dense>
+                  <q-item v-for="col in props.cols" :key="col.name">
+                    <template v-if="col.name === 'claimed'">
+                      <template v-if="col.value !== 'Unclaimed'">
+                        <q-item-section>
+                          <q-item-label>
+                            <q-badge color="green">Claimed {{ col.value }}</q-badge>
+                          </q-item-label>
+                        </q-item-section>
+                      </template>
+                      <template v-else>
+                        <q-item-section>
+                          <q-item-label>
+                            <q-badge color="grey">Unclaimed</q-badge>
+                          </q-item-label>
+                        </q-item-section>
+                        <q-item-section v-if="getGiftShare(props.row.gift_code_hash)" side style="padding: 10px 0px;">
+                          <q-item-label caption>
+                            <q-btn size="sm" @click="recoverGift(props.row.gift_code_hash)">Recover</q-btn>
+                          </q-item-label>
+                        </q-item-section>
+                      </template>
+                    </template>
+                    <template v-else>
+                      <q-item-section>
+                        <q-item-label>{{ col.label }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <q-item-label caption>{{ col.value }}</q-item-label>
+                      </q-item-section>
+                    </template>
+                  </q-item>
+                </q-list>
+              </q-card>
+            </div>
+          </template>
+        </q-table>
+      </div>
       </div>
     </div>
 
@@ -44,18 +88,40 @@
 import HeaderNav from '../../../components/header-nav'
 // import { date } from 'quasar'
 // import { defineComponent, ref } from 'vue'
+import { formatDistance } from 'date-fns'
 import axios from 'axios'
+
 const columns = [
   {
-    name: 'name',
+    name: 'amount',
     label: 'Amount',
     align: 'left',
     field: 'amount',
-    format: val => `${val}`,
+    format: val => `${val} BCH`,
     sortable: true
   },
-  { name: 'created', align: 'center', label: 'Date Created', field: 'date_created', sortable: true },
-  { name: 'claimed', align: 'right', label: 'Date Claimed', field: 'date_claimed', sortable: true }
+  {
+    name: 'created',
+    align: 'center',
+    label: 'Date Created',
+    field: 'date_created',
+    format: val => `${formatDistance(new Date(val), new Date(), { addSuffix: true })}`,
+    sortable: true
+  },
+  {
+    name: 'claimed',
+    align: 'right',
+    label: 'Date Claimed',
+    field: 'date_claimed',
+    format: function (val) {
+      if (val === 'None') {
+        return 'Unclaimed'
+      } else {
+        return `${formatDistance(new Date(val), new Date(), { addSuffix: true })}`
+      }
+    },
+    sortable: true
+  }
 ]
 const rows = []
 
@@ -80,23 +146,36 @@ export default {
     }
   },
   methods: {
+
     getItems () {
-      const url = 'https://gifts.paytaca.com/api/gifts/list'
       const vm = this
+      const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
       axios.get(url, {
         params: {
           wallet_hash: vm.walletHash
         }
       }).then(function (response) {
         if (response.status === 200) {
-          // for (let i = 0; i < response.data.gifts.length; i++) {
           vm.rows = response.data.gifts
-          console.log(response.data.gifts)
-          console.log(vm.rows)
         }
       })
     },
-    // const data = response.date
+    getGiftShare (giftCodeHash) {
+      return this.$store.getters['gifts/getGiftShare'](giftCodeHash)
+    },
+    recoverGift (giftCodeHash) {
+      const localShare = this.getGiftShare(giftCodeHash)
+      this.$router.push(
+        {
+          name: 'claim-gift',
+          query: {
+            actionProp: 'Recover',
+            giftCodeHash: giftCodeHash,
+            localShare: localShare
+          }
+        }
+      )
+    },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     }

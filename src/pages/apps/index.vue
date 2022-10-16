@@ -61,7 +61,7 @@ export default {
           active: true
         },
         {
-          name: 'POS',
+          name: 'POS Admin',
           iconName: 'point_of_sale',
           path: '/apps/point-of-sale',
           active: true
