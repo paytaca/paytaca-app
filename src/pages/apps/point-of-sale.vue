@@ -5,7 +5,7 @@
     :class="{'pt-dark': darkMode}"
   >
     <HeaderNav
-      title="POS"
+      title="POS Admin"
       backnavpath="/apps"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />

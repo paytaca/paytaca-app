@@ -32,7 +32,7 @@ const routes = [
           if (!isNaN(props.tokenType)) props.tokenType = Number(props.tokenType)
           if (!isNaN(props.amount)) props.amount = Number(props.amount)
           if (props.fixed === 'true') props.fixed = true
-          else if(props.fixed === 'false') props.fixed = false
+          else if (props.fixed === 'false') props.fixed = false
           return props
         },
         component: () => import('pages/transaction/send.vue')
@@ -60,7 +60,10 @@ const routes = [
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
       { path: 'settings/ignored-tokens', component: () => import('src/pages/apps/ignored-tokens-list.vue'), name: 'ignored-tokens-list' },
-      { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query }
+      { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
+      { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
+      { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
+      { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' }
     ]
   },
   // Always leave this as last one,

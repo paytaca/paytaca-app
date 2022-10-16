@@ -55,7 +55,13 @@ export default {
           active: true
         },
         {
-          name: 'POS',
+          name: 'Gifts',
+          iconName: 'mdi-gift',
+          path: '/apps/gifts/',
+          active: true
+        },
+        {
+          name: 'POS Admin',
           iconName: 'point_of_sale',
           path: '/apps/point-of-sale',
           active: true
@@ -72,6 +78,7 @@ export default {
           path: '/apps/settings',
           active: true
         }
+
         // {
         //   name: 'Rewards',
         //   iconName: 'mdi-trophy',
@@ -117,13 +124,13 @@ export default {
     const htmlTag1 = document.querySelector('.pt-app')
     const htmlTag = document.getElementsByClassName('pt-app')
     this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    for (var i = 0; i < htmlTag.length; i++) {
+    for (let i = 0; i < htmlTag.length; i++) {
       htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
     }
 
     window.addEventListener('resize', function () {
       this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-      for (var i = 0; i < htmlTag.length; i++) {
+      for (let i = 0; i < htmlTag.length; i++) {
         htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
       }
     })
@@ -150,7 +157,7 @@ export default {
     border-radius: 10px;
   }
   .pt-light-app {
-    // background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
+     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }
   .pt-dark-app {
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
