@@ -124,7 +124,7 @@ export default {
           vm.processing = false
         })
       }).catch((error) => {
-        vm.error = error.response.message
+        vm.error = error.response.data.message
         vm.processing = false
       })
     },

@@ -32,8 +32,11 @@
             @input="this.amountBCH"
             :dark="darkMode"
           >
-          <!-- @input="amountBCH" -->
+            <template v-slot:append>BCH</template>
           </q-input>
+          <p style="margin-top: -12px;">
+            ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          </p>
 
           <template v-if="createNewCampaign">
             <label>
@@ -137,6 +140,25 @@ export default {
       if (val.value === 'create-new') {
         this.createNewCampaign = true
       }
+    }
+  },
+  computed: {
+    selectedMarketCurrency () {
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency && currency.symbol
+    },
+    selectedAssetMarketPrice () {
+      return this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+    },
+    sendAmountMarketValue () {
+      const parsedAmount = Number(this.amountBCH)
+      console.log(parsedAmount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
+      if (!computedBalance) return ''
+
+      return computedBalance.toFixed(2)
     }
   },
   methods: {

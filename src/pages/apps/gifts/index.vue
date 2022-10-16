@@ -156,7 +156,6 @@ export default {
           vm.rows = response.data.gifts
           for (let i = 0; i < vm.rows.length; i++) {
             const gift = vm.rows[i]
-            console.log(gift)
             if (gift.date_claimed) {
               vm.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
             }
