@@ -81,7 +81,7 @@ export class BchWallet {
     return request
   }
 
-  async sendBch (amount, recipient, changeAddress) {
+  async _sendBch (amount, recipient, changeAddress, broadcast=true) {
     console.log(`Sending ${amount} BCH to ${recipient}`)
     const data = {
       sender: {
@@ -100,11 +100,61 @@ export class BchWallet {
         mnemonic: this.mnemonic,
         derivationPath: this.derivationPath
       },
-      broadcast: true
+      broadcast: Boolean(broadcast),
     }
     const result = await this.watchtower.BCH.send(data)
     console.log(result)
     return result
+  }
+
+  async sendBch(amount, recipient, changeAddress) {
+    return this._sendBch(amount, recipient, changeAddress, true)
+  }
+
+  /**
+   * 
+   * @param {Number|String} amount 
+   * @param {String} recipient 
+   * @param {String} changeAddress 
+   * @param {{ walletHash: String, posId: Number, paymentTimestamp: Number }} posDevice 
+   */
+  async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
+    const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
+    const sendResponse = await this._sendBch(amount, recipient, changeAddress, false)
+
+    if (!sendResponse?.success) {
+      response.success = false
+      response.error = sendResponse?.error || 'Error generating transaction'
+      return response
+    }
+
+    const broadcastData = {
+      transaction: sendResponse.transaction,
+      payment_timestamp: posDevice?.paymentTimestamp,
+      pos_device: {
+        wallet_hash: posDevice?.walletHash,
+        posid: posDevice?.posId,
+      }
+    }
+
+    try {
+      const broadcastResponse = await this.watchtower.BCH._api.post(
+        'paytacapos/broadcast/',
+        broadcastData,
+      )
+      response.success = Boolean(broadcastResponse?.data?.success)
+      response.txid = broadcastResponse?.data?.txid || ''
+      response.otp = broadcastResponse?.data?.otp || ''
+      response.otpTimestamp = broadcastResponse?.data?.otp_timestamp || -1
+    } catch(error) {
+      response.success = false
+      if (typeof error?.response?.data === 'string') response.error = error.response.data
+      else if(typeof error?.response?.data?.[0] === 'string') response.error = error.response.data[0]
+      else if(error?.message) response.error = error.message
+
+      response.errorObj = error
+    }
+    return response
   }
 
   async sendBchMultiple (recipients, changeAddress) {
@@ -128,6 +178,45 @@ export class BchWallet {
     const result = await this.watchtower.BCH.send(data)
     return result
   }
+}
+
+
+/**
+ * decoding a URI standard BIP 0021 used as bitcoin payment links
+ * @param {String} uri 
+ */
+export function decodeBIP0021URI(paymentUri) {
+  const response = {
+    address: '',
+    amount: undefined,
+    label: undefined,
+    message: undefined,
+    parameters: null,
+  }
+  const urlObject = new URL(paymentUri)
+  if (!urlObject?.protocol || !urlObject?.pathname) return
+
+  if (!bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)) return
+
+  response.address = urlObject.protocol + urlObject.pathname
+
+  const searchParams = Object.fromEntries(urlObject.searchParams.entries())
+  if (searchParams.amount) {
+    response.amount = Number(searchParams.amount)
+    delete searchParams.amount
+  }
+  if (searchParams.label) {
+    response.label = searchParams.label
+    delete searchParams.label
+  }
+  if (searchParams.message) {
+    response.message = searchParams.message
+    delete searchParams.message
+  }
+
+  response.parameters = searchParams
+
+  return response
 }
 
 export default BchWallet
