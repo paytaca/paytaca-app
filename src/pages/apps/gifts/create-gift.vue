@@ -71,7 +71,14 @@
             <label>
               Campaign (optional):
             </label>
-            <q-select filled v-model="selectedCampaign" :dark="darkMode" :options="campaignOptions" label="Select Campaign" />
+            <q-select
+              filled
+              v-model="selectedCampaign"
+              :dark="darkMode"
+              :options="campaignOptions"
+              label="Select Campaign"
+              popup-content-style="color: black;"
+            />
           </template>
 
           <div class="q-pa-sm q-pt-lg flex flex-center">
