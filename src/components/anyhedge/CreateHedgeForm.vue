@@ -676,7 +676,7 @@ async function createHedgePosition() {
       console.log(error)
       let errorMsg = 'Encountered Msg creating contract'
       if (position === 'hedge') errorMsg = 'Encountered error in creating hedge position'
-      if (position === 'long') errorMsg = 'Encountered error in creating hedge position'
+      if (position === 'long') errorMsg = 'Encountered error in creating long position'
       if (isResponseOffer) errorMsg += ' offer'
       errors.value = [errorMsg]
     })
@@ -694,6 +694,7 @@ onMounted(() => {
 })
 onUnmounted(() => clearInterval(oraclePriceUpdateInterval.value))
 watch(() => createHedgeForm.value?.selectedAsset?.oraclePubkey, () => updateSelectedAssetPrice())
+onMounted(() => updateSelectedAssetPrice())
 function updateSelectedAssetPrice() {
   if (!createHedgeForm.value?.selectedAsset?.oraclePubkey) return
   const dispatchPayload = { oraclePubkey: createHedgeForm.value?.selectedAsset?.oraclePubkey, checkTimestampAge: true }
