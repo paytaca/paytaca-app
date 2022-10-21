@@ -63,6 +63,12 @@ export class BchWallet {
     return bchjs.HDNode.toWIF(childNode)
   }
 
+  async getPublicKey(addressPath) {
+    const masterHDNode = await this._getMasterHDNode()
+    const childNode = masterHDNode.derivePath(this.derivationPath + '/' + String(addressPath))
+    return bchjs.HDNode.toPublicKey(childNode).toString('hex')
+  }
+
   async getBalance () {
     const walletHash = this.getWalletHash()
     const request = await this.watchtower.Wallet.getBalance({ walletHash })

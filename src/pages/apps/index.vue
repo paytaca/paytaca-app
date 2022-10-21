@@ -6,7 +6,7 @@
         <div class="row q-px-xs">
           <div v-for="(app, index) in apps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
             <div class="pt-app bg-grad" @click="openApp(app)">
-              <q-icon class="app-icon" :color="iconColorClass(app)" size="xl" :name="app.iconName" />
+              <q-icon class="app-icon" :color="iconColorClass(app)" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
             <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
           </div>
@@ -24,6 +24,13 @@ export default {
   data () {
     return {
       apps: [
+        {
+          name: 'Anyhedge',
+          iconName: 'img:anyhedge-logo.png',
+          path: '/apps/anyhedge',
+          iconStyle: 'width:unset',
+          active: true
+        },
         {
           name: 'Bridge',
           iconName: 'mdi-bridge',

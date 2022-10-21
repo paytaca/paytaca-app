@@ -1,6 +1,7 @@
 import { createStore } from 'vuex'
 import createPersistedState from 'vuex-persistedstate'
 
+import anyhedge from './anyhedge'
 import global from './global'
 import darkmode from './darkmode'
 import market from './market'
@@ -24,6 +25,7 @@ export default function (/* { ssrContext } */) {
   const Store = createStore({
     plugins: [createPersistedState()],
     modules: {
+      anyhedge,
       global,
       darkmode,
       assets,
