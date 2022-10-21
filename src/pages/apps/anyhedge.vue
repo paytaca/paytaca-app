@@ -254,9 +254,9 @@ onMounted(async () => {
 
   fetchSummary('hedge')
   fetchSummary('long')
-  fetchHedgeOffers()
+  // fetchHedgeOffers()
   fetchHedgeContracts()
-  fetchLongAccounts()
+  // fetchLongAccounts()
   fetchLongPositions()
   initWebsocket()
 })
