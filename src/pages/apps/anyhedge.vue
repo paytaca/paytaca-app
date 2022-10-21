@@ -176,7 +176,7 @@
           </div>
         </q-expansion-item>
         <q-separator/> -->
-        <q-expansion-item ref="hedgesDrawerRef" label="Hedge Positions">
+        <q-expansion-item ref="hedgesDrawerRef" label="Hedge Positions" default-opened>
           <q-card-section v-if="fetchingContracts" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
@@ -197,7 +197,7 @@
         </q-expansion-item>
       </template>
       <template v-else-if="selectedAccountType === 'long'">
-        <q-expansion-item ref="hedgesDrawerRef" label="Long Positions">
+        <q-expansion-item ref="hedgesDrawerRef" label="Long Positions" default-opened>
           <q-card-section v-if="fetchingLongPositions" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
