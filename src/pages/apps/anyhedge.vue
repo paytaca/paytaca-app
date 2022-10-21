@@ -156,7 +156,7 @@
       ]"
     >
       <template v-if="selectedAccountType === 'hedge'">
-        <q-expansion-item label="Hedge Offers">
+        <!-- <q-expansion-item label="Hedge Offers">
           <q-card-section v-if="fetchingHedgeOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
@@ -175,7 +175,7 @@
             />
           </div>
         </q-expansion-item>
-        <q-separator/>
+        <q-separator/> -->
         <q-expansion-item ref="hedgesDrawerRef" label="Hedge Positions">
           <q-card-section v-if="fetchingContracts" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
