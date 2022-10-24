@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide">
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">Anyhedge Contract</div>
+        <div class="text-h6 q-space q-mt-sm">AnyHedge Contract</div>
         <q-btn
           flat
           padding="sm"

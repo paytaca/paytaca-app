@@ -25,7 +25,7 @@ export default {
     return {
       apps: [
         {
-          name: 'Anyhedge',
+          name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
           iconStyle: 'width:unset',
