@@ -45,7 +45,7 @@
 
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
-import { QrcodeStream } from 'vue-qrcode-reader'
+import { QrcodeStream } from 'vue3-qrcode-reader'
 import ScannerUI from 'components/scanner-ui/scanner.vue'
 
 export default {
@@ -221,7 +221,7 @@ export default {
   deactivated () {
     this.stopScan()
   },
-  beforeDestroy () {
+  beforeUnmount () {
     this.stopScan()
   }
 }

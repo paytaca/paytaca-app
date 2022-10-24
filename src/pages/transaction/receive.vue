@@ -165,7 +165,7 @@ export default {
       getMnemonic().then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
-          wallet.BCH.getNewAddressSet(lastAddressIndex).then(function (addresses) {
+          wallet.BCH.getNewAddressSet(newAddressIndex).then(function (addresses) {
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'bch',
               lastAddress: addresses.receiving,
@@ -177,7 +177,7 @@ export default {
           })
         }
         if (vm.walletType === 'slp') {
-          wallet.SLP.getNewAddressSet(lastAddressIndex).then(function (addresses) {
+          wallet.SLP.getNewAddressSet(newAddressIndex).then(function (addresses) {
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'slp',
               lastAddress: addresses.receiving,

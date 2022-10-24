@@ -87,6 +87,10 @@ module.exports = function (/* ctx */) {
         //   loader: 'eslint-loader',
         //   exclude: /node_modules/
         // })
+
+        cfg.experiments = {
+          topLevelAwait: true
+        }
       },
 
       chainWebpack (chain) {

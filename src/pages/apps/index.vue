@@ -6,7 +6,7 @@
         <div class="row q-px-xs">
           <div v-for="(app, index) in apps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
             <div class="pt-app bg-grad" @click="openApp(app)">
-              <q-icon class="app-icon" :color="iconColorClass(app)" size="xl" :name="app.iconName" />
+              <q-icon class="app-icon" :color="iconColorClass(app)" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
             <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
           </div>
@@ -24,6 +24,13 @@ export default {
   data () {
     return {
       apps: [
+        {
+          name: 'AnyHedge',
+          iconName: 'img:anyhedge-logo.png',
+          path: '/apps/anyhedge',
+          iconStyle: 'width:unset',
+          active: true
+        },
         {
           name: this.$t('Bridge'),
           iconName: 'mdi-bridge',
@@ -55,6 +62,18 @@ export default {
           active: true
         },
         {
+          name: 'Gifts',
+          iconName: 'mdi-gift',
+          path: '/apps/gifts/',
+          active: true
+        },
+        {
+          name: 'POS Admin',
+          iconName: 'point_of_sale',
+          path: '/apps/point-of-sale',
+          active: true
+        },
+        {
           name: this.$t('WalletInfo'),
           iconName: 'info',
           path: '/apps/wallet-info',
@@ -66,30 +85,6 @@ export default {
           path: '/apps/settings',
           active: true
         }
-        // {
-        //   name: 'Rewards',
-        //   iconName: 'mdi-trophy',
-        //   path: '',
-        //   active: false
-        // },
-        // {
-        //   name: 'Connecta',
-        //   iconName: 'delivery_dining',
-        //   path: '/apps/connecta/',
-        //   active: false
-        // },
-        // {
-        //   name: 'Bills Payment',
-        //   iconName: 'receipt_long',
-        //   path: '',
-        //   active: false
-        // },
-        // {
-        //   name: 'Top Up',
-        //   iconName: 'system_security_update_good',
-        //   path: '',
-        //   active: false
-        // }
       ],
       appHeight: null
     }
@@ -111,13 +106,13 @@ export default {
     const htmlTag1 = document.querySelector('.pt-app')
     const htmlTag = document.getElementsByClassName('pt-app')
     this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    for (var i = 0; i < htmlTag.length; i++) {
+    for (let i = 0; i < htmlTag.length; i++) {
       htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
     }
 
     window.addEventListener('resize', function () {
       this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-      for (var i = 0; i < htmlTag.length; i++) {
+      for (let i = 0; i < htmlTag.length; i++) {
         htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
       }
     })
@@ -144,7 +139,7 @@ export default {
     border-radius: 10px;
   }
   .pt-light-app {
-    // background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
+     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }
   .pt-dark-app {
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);

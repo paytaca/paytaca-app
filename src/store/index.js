@@ -1,14 +1,16 @@
 import { createStore } from 'vuex'
 import createPersistedState from 'vuex-persistedstate'
 
+import anyhedge from './anyhedge'
 import global from './global'
 import darkmode from './darkmode'
 import market from './market'
 import assets from './assets'
 import lns from './lns'
+import paytacapos from './paytacapos'
 import sep20 from './sep20'
 import walletconnect from './walletconnect'
-
+import gifts from './gifts'
 
 /*
  * If not building with SSR mode, you can
@@ -23,13 +25,16 @@ export default function (/* { ssrContext } */) {
   const Store = createStore({
     plugins: [createPersistedState()],
     modules: {
+      anyhedge,
       global,
       darkmode,
       assets,
       market,
       lns,
+      paytacapos,
       sep20,
-      walletconnect
+      walletconnect,
+      gifts
     },
 
     // enable strict mode (adds overhead!)

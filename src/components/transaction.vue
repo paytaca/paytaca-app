@@ -39,6 +39,14 @@
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ formatDate(transaction.date_created) }}</q-item-label>
               </q-item-section>
             </q-item>
+            <q-item v-if="cachedPaymentOTP" clickable v-ripple @click="copyToClipboard(cachedPaymentOTP)">
+              <q-item-section>
+                <q-item-label class="text-gray" caption>{{ $t('PaymentOTP', {}, 'Payment OTP') }}</q-item-label>
+                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                  {{ cachedPaymentOTP }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
             <q-item clickable v-ripple @click="copyToClipboard(isSep20Tx ? transaction.hash : transaction.txid)" style="overflow-wrap: anywhere;">
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('TransactionId') }}</q-item-label>
@@ -165,6 +173,9 @@ export default {
       const gas = this.transaction && (this.isSep20Tx ? this.transaction.gas : this.transaction.tx_fee / (10 ** 8))
       if (!gas) return ''
       return (Number(gas) * Number(bchMarketValue)).toFixed(8)
+    },
+    cachedPaymentOTP() {
+      return this.$store.getters['paytacapos/paymentOTPCache'](this.transaction?.txid)?.otp || ''
     }
   },
   methods: {
