@@ -33,9 +33,30 @@
           :rows="rows"
           :columns="columns"
           row-key="name"
-          style="width: 100%;"
+          style="width: 100%"
           :dark="darkMode"
         >
+          <template v-slot:top-right>
+            <q-btn-dropdown color="primary" label="Sort" >
+              <q-list dense>
+              <q-item clickable v-close-popup @click="claim" >
+                <q-item-section>
+                  <q-item-label>Claimed</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="unclaim" >
+                <q-item-section>
+                  <q-item-label>Unclaimed</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="error" active>
+                <q-item-section>
+                  <q-item-label>All</q-item-label>
+                </q-item-section>
+              </q-item>
+              </q-list>
+            </q-btn-dropdown>
+          </template>
           <template v-slot:item="props">
             <div
               class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
@@ -143,11 +164,22 @@ export default {
       giftArray: {},
       response: null,
       columns,
-      rows
+      rows,
+      claimed: true
     }
   },
   methods: {
-
+    claim () {
+      this.claimed = true
+      this.getItemsWithSort()
+    },
+    unclaim () {
+      this.claimed = false
+    },
+    error () {
+      this.claimed = null
+      this.getItems()
+    },
     getItems () {
       const vm = this
       const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
@@ -156,8 +188,38 @@ export default {
           vm.rows = response.data.gifts
           for (let i = 0; i < vm.rows.length; i++) {
             const gift = vm.rows[i]
+            console.log(vm.rows[i].date_claimed)
             if (gift.date_claimed !== 'None') {
               vm.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
+            }
+          }
+        }
+      })
+    },
+    getItemsWithSort () {
+      const vm = this
+      const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
+      axios.get(url).then(function (response) {
+        if (response.status === 200) {
+          if (vm.claimed === null) {
+            vm.rows = response.data.gifts
+            for (let i = 0; i < vm.rows.length; i++) {
+              const gift = vm.rows[i]
+              // console.log(vm.rows[i].date_claimed)
+              if (gift.date_claimed !== 'None') {
+                vm.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
+              }
+            }
+          } else if (vm.claimed === true) {
+            const gift = response.data.gifts
+            for (let i = 0; i < gift.length; i++) {
+              // console.log(gift[i].date_claimed)
+              if (gift[i].date_claimed === 'None') {
+                gift.splice(gift[i])
+              } else {
+                vm.rows.push(gift[i])
+              }
+              console.log(vm.rows)
             }
           }
         }
@@ -184,7 +246,8 @@ export default {
     }
   },
   mounted () {
-    this.getItems()
+    this.getItemsWithSort()
+    // this.getItems()
   }
 }
 </script>
