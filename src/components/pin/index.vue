@@ -142,7 +142,7 @@ export default {
         vm.subTitle = vm.pinDialogAction === 'VERIFY' ? vm.subText1 : vm.subText2
       } else {
         if (vm.pinDialogAction === 'SKIP') {
-          vm.$emit('nextAction', 'send')
+          vm.$emit('nextAction', 'proceed')
         } else {
           vm.dialog = false
         }
@@ -230,7 +230,7 @@ export default {
         const secretKey = await SecureStoragePlugin.get({ key: 'pin' })
         if (secretKey.value === vm.pin) {
           resetAll()
-          vm.$emit('nextAction', 'send')
+          vm.$emit('nextAction', 'proceed')
         } else {
           vm.validationMsg = 'Incorrect PIN'
         }
@@ -258,7 +258,7 @@ export default {
         vm.loader = false
         vm.removeKey('reset')
         vm.$emit('nextAction')
-        try{
+        try {
           vm.pinDialogAction = ''
         } catch {}
         finally {

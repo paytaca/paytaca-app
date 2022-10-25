@@ -94,7 +94,7 @@
             <div class="col">
               <p class="section-title">Mnemonic Backup Phrase</p>
               <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
-                <q-item clickable @click="toggleMnemonicDisplay()">
+                <q-item clickable @click="executeSecurityChecking">
                   <q-item-section>
                     <q-item-label :class="[darkMode && !showMnemonic ? 'blurry-text-d' : darkMode ? 'pp-text-d' : '', !darkMode && !showMnemonic ? 'blurry-text' : !darkMode ? 'pp-text' : '']">{{ mnemonic }}</q-item-label>
                   </q-item-section>
@@ -135,27 +135,96 @@
         </div>
       </div>
     </div>
+
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
+    <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
   </div>
 </template>
 
 <script>
 import HeaderNav from '../../components/header-nav'
+import pinDialog from '../../components/pin'
+import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
 import { getMnemonic } from '../../wallet'
+import { NativeBiometric } from 'capacitor-native-biometric'
 import packageInfo from '../../../package.json'
+import { Plugins } from '@capacitor/core'
+
+const { SecureStoragePlugin } = Plugins
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav },
+  components: {
+    HeaderNav,
+    pinDialog,
+    biometricWarningAttmepts
+  },
   data () {
     return {
       mnemonic: '',
       showMnemonic: false,
       appVersion: packageInfo.version,
       sbchLnsName: '',
+      pinDialogAction: '',
+      warningAttemptsStatus: 'dismiss',
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
+    executeSecurityChecking () {
+      const vm = this
+      if (vm.showMnemonic === false) {
+        SecureStoragePlugin.get({ key: 'pin' })
+          .then(() => {
+            setTimeout(() => {
+              if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+                vm.pinDialogAction = 'VERIFY'
+              } else {
+                vm.verifyBiometric()
+              }
+            }, 500)
+          })
+          .catch(() => {
+            setTimeout(() => {
+              vm.verifyBiometric()
+            }, 500)
+          })
+      } else {
+        vm.toggleMnemonicDisplay('proceed')
+      }
+    },
+    verifyBiometric () {
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For ownership verification',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          this.submitLabel = 'Processing'
+          this.customKeyboardState = 'dismiss'
+          setTimeout(() => {
+            this.toggleMnemonicDisplay('proceed')
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          this.warningAttemptsStatus = 'dismiss'
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+            this.showMnemonic = false
+          } else if (error.message.includes('Too many attempts. Try again later.')) {
+            this.warningAttemptsStatus = 'show'
+          } else {
+            this.verifyBiometric()
+          }
+        }
+        )
+    },
+    setwarningAttemptsStatus () {
+      this.verifyBiometric()
+    },
     updateSbchLnsName () {
       const { lastAddress: address } = this.getWallet('sbch')
       if (!address) return
@@ -182,8 +251,13 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    toggleMnemonicDisplay () {
-      this.showMnemonic = !this.showMnemonic
+    toggleMnemonicDisplay (action) {
+      if (action === 'proceed') {
+        this.pinDialogAction = ''
+        this.showMnemonic = !this.showMnemonic
+      } else {
+        this.pinDialogAction = ''
+      }
     }
   },
   mounted () {
