@@ -750,7 +750,7 @@ export default {
           this.submitLabel = 'Processing'
           this.customKeyboardState = 'dismiss'
           setTimeout(() => {
-            this.sendTransaction('send')
+            this.sendTransaction('proceed')
           }, 1000)
         },
         (error) => {
@@ -772,7 +772,7 @@ export default {
     },
 
     sendTransaction (action) {
-      if (action === 'send') {
+      if (action === 'proceed') {
         this.customKeyboardState = 'dismiss'
         this.handleSubmit()
       } else {

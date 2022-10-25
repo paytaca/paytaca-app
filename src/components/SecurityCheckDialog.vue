@@ -47,7 +47,7 @@ export default {
     },
     showDialog: {
       type: Boolean,
-      default: false,  
+      default: false,
     }
   },
   data () {
@@ -76,7 +76,7 @@ export default {
         })
     },
     pinDialogNextAction (action) {
-      if (action === 'send') this.onOKClick()
+      if (action === 'proceed') this.onOKClick()
       else this.hide()
     },
     verifyBiometric () {
