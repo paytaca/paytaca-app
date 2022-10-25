@@ -456,6 +456,7 @@ function onHedgeFormCreate(data) {
   if (data.hedgePositionOffer?.id) fetchHedgeOffers()
   if (data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address) {
     const contractAddress = data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address
+    fetchSummary(data?.position)
     const fetchHedgeContractsResponse = data?.position === 'long' ? fetchLongPositions() : fetchHedgeContracts()
     $q.dialog({
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position`,
