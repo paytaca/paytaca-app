@@ -461,7 +461,7 @@ function onHedgeFormCreate(data) {
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position`,
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position created.<br/>Address: ` + contractAddress,
       html: true,
-      class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
       style: 'word-break:break-all;',
     }).onDismiss(() => {
       fetchHedgeContractsResponse.then(() => {
@@ -594,10 +594,4 @@ function fetchLiquidityServiceInfo() {
     })
 }
 onMounted(() => fetchLiquidityServiceInfo())
-
-onMounted(() => {
-  window.t = () => {
-    $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
-  }
-})
 </script>
