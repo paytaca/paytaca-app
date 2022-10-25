@@ -8,24 +8,34 @@
       </ul>
     </q-banner>
 
-    <div class="">
-      <div v-if="createHedgeForm.selectedAsset?.latestPrice?.priceValue">
-        Current price:
-        {{ createHedgeForm.selectedAsset.latestPrice.priceValue / 10 ** (createHedgeForm.selectedAsset.assetDecimals || 0) }}
-        <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
-          {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
-        </template>
+    <div class="row items-center">
+      <div class="q-space">
+        <div v-if="createHedgeForm.selectedAsset?.latestPrice?.priceValue">
+          Current price:
+          {{ createHedgeForm.selectedAsset.latestPrice.priceValue / 10 ** (createHedgeForm.selectedAsset.assetDecimals || 0) }}
+          <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
+            {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
+          </template>
+        </div>
+        <div v-if="spendableBch !== null">
+          Balance:
+          <q-btn
+            flat padding="xs"
+            :text-color="darkMode ? 'blue' : 'brandblue'"
+            :label="`${spendableBch} BCH`"
+            :disable="loading"
+            @click="createHedgeForm.amount = spendableBch"
+          />
+        </div>
       </div>
-      <div v-if="spendableBch !== null">
-        Balance:
-        <q-btn
-          flat padding="xs"
-          :text-color="darkMode ? 'blue' : 'brandblue'"
-          :label="`${spendableBch} BCH`"
-          :disable="loading"
-          @click="createHedgeForm.amount = spendableBch"
-        />
-      </div>
+      <q-btn
+        round
+        color="brandblue"
+        icon="refresh"
+        class="q-mx-xs"
+        padding="xs"
+        @click="clearCreateHedgeForm()"
+      />
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
       <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }} BCH</span>
