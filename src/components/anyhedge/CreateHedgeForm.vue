@@ -8,12 +8,24 @@
       </ul>
     </q-banner>
 
-    <div v-if="createHedgeForm.selectedAsset?.latestPrice?.priceValue">
-      Current price:
-      {{ createHedgeForm.selectedAsset.latestPrice.priceValue / 10 ** (createHedgeForm.selectedAsset.assetDecimals || 0) }}
-      <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
-        {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
-      </template>
+    <div class="">
+      <div v-if="createHedgeForm.selectedAsset?.latestPrice?.priceValue">
+        Current price:
+        {{ createHedgeForm.selectedAsset.latestPrice.priceValue / 10 ** (createHedgeForm.selectedAsset.assetDecimals || 0) }}
+        <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
+          {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
+        </template>
+      </div>
+      <div v-if="spendableBch !== null">
+        Balance:
+        <q-btn
+          flat padding="xs"
+          :text-color="darkMode ? 'blue' : 'brandblue'"
+          :label="`${spendableBch} BCH`"
+          :disable="loading"
+          @click="createHedgeForm.amount = spendableBch"
+        />
+      </div>
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
       <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }} BCH</span>
@@ -42,6 +54,7 @@
         reactive-rules
         :rules="[
           val => val > 0 || 'Invalid amount',
+          val => spendableBch === null || val <= spendableBch || `Exceeding balance ${spendableBch} BCH`,
           val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires atleast ${createHedgeFormConstraints.minimumAmount} BCH`,
           val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
         ]"
@@ -297,6 +310,29 @@ const createHedgeFormMetadata = computed(() => {
 
   return data
 })
+
+const spendableBch = computed(() => {
+  const asset = $store.getters['assets/getAsset']?.('bch')
+  const balance = asset?.[0]?.spendable
+  if (!isFinite(balance)) return null
+  return balance
+})
+
+const balanceUpdateInterval = ref(null)
+onMounted(() => {
+  clearInterval(balanceUpdateInterval.value)
+  balanceUpdateInterval.value = setInterval(() => updateSpendableBalance(), 60 * 1000)
+  updateSpendableBalance()
+})
+onUnmounted(() => clearInterval(balanceUpdateInterval.value))
+async function updateSpendableBalance() {
+  const response = await props.wallet?.BCH?.getBalance()
+  $store.commit('assets/updateAssetBalance', {
+    id: 'bch',
+    balance: response.balance,
+    spendable: response.spendable
+  })
+}
 
 const form = ref(null)
 async function clearCreateHedgeForm() {
