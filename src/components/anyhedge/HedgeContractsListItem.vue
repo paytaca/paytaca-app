@@ -22,9 +22,31 @@
       </q-icon>
     </div>
     <div class="row">
-      <div class="col">
-        <div>{{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}</div>
-        <div class="text-grey">{{ contract.metadata.hedgeInputSats / (10**8) }} BCH</div>
+      <div class="col" style="white-space: nowrap;">
+        <div class="row items-start no-wrap">
+          <div class="col-4 text-caption" style="margin-bottom:-0.25em;">Hedge</div>
+          <div>
+            <div>
+              {{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }}
+              {{ oracleInfo.assetCurrency }}
+            </div>
+            <div style="margin-top:-0.45em" class="text-grey">
+              {{ contract.metadata.hedgeInputSats / (10**8) }} BCH
+            </div>
+          </div>
+        </div>
+        <div class="row items-start no-wrap">
+          <div class="col-4 text-caption" style="margin-bottom:-0.25em;">Long</div>
+          <div>
+            <div>
+              {{ formatUnits(contract.metadata.longInputUnits, oracleInfo.assetDecimals) }}
+              {{ oracleInfo.assetCurrency }}
+            </div>
+            <div style="margin-top:-0.45em" class="text-grey">
+              {{ contract.metadata.longInputSats / (10**8) }} BCH
+            </div>
+          </div>
+        </div>
       </div>
       <div class="col">
         <div v-if="settled" style="text-align:right">

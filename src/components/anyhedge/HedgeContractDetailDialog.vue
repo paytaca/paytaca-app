@@ -12,21 +12,9 @@
       </div>
       <q-card-section class="q-gutter-y-sm">
         <div>
-          <div class="text-grey text-subtitle1">Hedge Value</div>
-          <div class="row text-body1">
-            <div class="q-space">
-              {{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
-            </div>
-            <div class="text-grey">{{ contract.metadata.hedgeInputSats / (10**8) }} BCH</div>
-          </div>
-          <div v-if="isFinite(hedgeMarketValue)">
-            {{ hedgeMarketValue }} {{ selectedMarketCurrency }}
-          </div>
-        </div>
-        <div>
           <div class="text-grey text-subtitle1">Address</div>
-          <div class="row q-gutter-x-xs no-wrap">
-            <div @click="copyText(contract.address)" v-ripple style="position:relative;" class="text-body1">
+          <div class="row q-gutter-x-xs no-wrap q-pr-sm">
+            <div @click="copyText(contract.address)" v-ripple style="position:relative;" class="text-body1 q-space">
               {{ ellipsisText(contract.address) }}
             </div>
             <q-btn
@@ -39,12 +27,48 @@
             />
           </div>
         </div>
+        <div>
+          <div class="text-grey text-subtitle1">Contract Value</div>
+          <div class="row items-center">
+            <div class="col-6">
+              <div class="text-grey-7">Hedge</div>
+              <div>
+                {{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
+              </div>
+              <div>
+                {{ contract.metadata.hedgeInputSats / (10**8) }} BCH
+              </div>
+              <div
+                v-if="isFinite(hedgeMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
+                class="text-caption text-grey"
+                style="margin-top:-0.25em"
+              >
+                {{ hedgeMarketValue }} {{ selectedMarketCurrency }}
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="text-grey-7">Long</div>
+              <div>
+                {{ formatUnits(contract.metadata.longInputUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
+              </div>
+              <div>
+                {{ contract.metadata.longInputSats / (10**8) }} BCH
+              </div>
+              <div
+                v-if="isFinite(longMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
+                class="text-caption text-grey"
+                style="margin-top:-0.25em">
+                {{ longMarketValue }} {{ selectedMarketCurrency }}
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div v-if="(!settled || contract.fundingTxHash)">
           <div class="text-grey text-subtitle1">Funding</div>
-          <div v-if="contract.fundingTxHash" class="row items-center">
-            <div @click="copyText(contract.fundingTxHash)" v-ripple style="position:relative;" class="text-body1">
-              {{ ellipsisText(contract.fundingTxHash, {start: 5, end: 10}) }}
+          <div v-if="contract.fundingTxHash" class="row items-center q-pr-sm">
+            <div @click="copyText(contract.fundingTxHash)" v-ripple style="position:relative;" class="text-body1 q-space">
+              {{ ellipsisText(contract.fundingTxHash, {start: 10, end: 10}) }}
             </div>
             <q-btn
               flat
@@ -137,26 +161,24 @@
         
         <div v-if="!settled" class="text-body1">
           <div class="text-grey text-subtitle1">Liquidation</div>
+          <div class="text-grey text-caption">Start Price</div>
           <div>
-            Start: {{ formatUnits(contract.metadata.startPrice, oracleInfo.assetDecimals) }}
+            {{ formatUnits(contract.metadata.startPrice, oracleInfo.assetDecimals) }}
             <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
           </div>
-          <div class="row q-gutter-x-xs">
-            <div class="q-space">
-              Low: {{ formatUnits(contract.parameters.lowLiquidationPrice, oracleInfo.assetDecimals) }}
-              <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
-            </div>
-            <div>
-              High: {{ formatUnits(contract.parameters.highLiquidationPrice, oracleInfo.assetDecimals) }}
-              <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
-            </div>
+          <div class="text-grey text-caption">Liquidation Price</div>
+          <div>
+            {{ formatUnits(contract.parameters.lowLiquidationPrice, oracleInfo.assetDecimals) }}
+            -
+            {{ formatUnits(contract.parameters.highLiquidationPrice, oracleInfo.assetDecimals) }}
+            <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
           </div>
         </div>
 
         <div>
           <div class="text-grey text-subtitle1">Payout Addresses</div>
-          <div class="row q-gutter-x-xs no-wrap">
-            <div @click="copyText(contract.metadata.hedgeAddress)" v-ripple style="position:relative;" class="text-body2">
+          <div class="row q-gutter-x-xs no-wrap q-pr-sm">
+            <div @click="copyText(contract.metadata.hedgeAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
               Hedge: {{ ellipsisText(contract.metadata.hedgeAddress) }}
             </div>
             <q-btn
@@ -168,8 +190,8 @@
               target="_blank"
             />
           </div>
-          <div class="row q-gutter-x-xs no-wrap">
-            <div @click="copyText(contract.metadata.longAddress)" v-ripple style="position:relative;" class="text-body2">
+          <div class="row q-gutter-x-xs no-wrap q-pr-sm">
+            <div @click="copyText(contract.metadata.longAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
               Long: {{ ellipsisText(contract.metadata.longAddress) }}
             </div>
             <q-btn
@@ -196,15 +218,8 @@
 
         <div v-if="settled">
           <div class="text-grey text-subtitle1">Settlement</div>
-
-          <div class="text-body2">
-            Settlement type: {{ settlementMetadata.settlementTypeText }}
-            <template v-if="settlementMetadata.mutualRedemptionTypeText">
-              ({{settlementMetadata.mutualRedemptionTypeText}})
-            </template>
-          </div>
-          <div v-if="settlementMetadata.txid" class="row items-center now-wrap">
-            <div @click="copyText(settlementMetadata.txid)" v-ripple style="position:relative;" class="text-body2">
+          <div v-if="settlementMetadata.txid" class="row items-center now-wrap q-pr-sm">
+            <div @click="copyText(settlementMetadata.txid)" v-ripple style="position:relative;" class="text-body2 q-space">
               Transaction: {{ ellipsisText(settlementMetadata.txid, {start: 5, end: 10}) }}
             </div>
             <q-btn
@@ -217,8 +232,16 @@
             />
           </div>
           <div v-else>Settlement transaction not found</div>
+          <div class="text-body2">
+            Settlement type: {{ settlementMetadata.settlementTypeText }}
+            <template v-if="settlementMetadata.mutualRedemptionTypeText">
+              ({{settlementMetadata.mutualRedemptionTypeText}})
+            </template>
+          </div>
           <div v-if="settlementMetadata.settlementPriceValue" class="text-body2">
-            Settlement Price: {{ formatUnits(settlementMetadata.settlementPriceValue, oracleInfo.assetDecimals) }}
+            <div class="text-grey">Start - Settlement Price:</div>
+            {{ formatUnits(contract.metadata.startPrice, oracleInfo.assetDecimals) }} -
+            {{ formatUnits(settlementMetadata.settlementPriceValue, oracleInfo.assetDecimals) }}
             <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
           </div>
           <div class="row">
@@ -417,16 +440,28 @@ const oracleInfo = computed(() => {
 })
 
 const selectedMarketCurrency = computed(() => store.getters['market/selectedCurrency']?.symbol)
-const hedgeMarketValue = computed(() => {
-  const oracleToSelectedAssetRate = store.getters['market/getAssetConversion'](
+const oracleToSelectedAssetRate = computed(() => {
+  return store.getters['market/getAssetConversion'](
     oracleInfo.value?.assetCurrency,
     selectedMarketCurrency.value,
   )
+})
+const hedgeMarketValue = computed(() => {
   const nominalUnits = props.contract?.metadata?.nominalUnits
-  if (!isFinite(oracleToSelectedAssetRate)) return undefined
+  if (!isFinite(oracleToSelectedAssetRate.value)) return undefined
   if (!isFinite(nominalUnits)) return undefined
 
-  let marketValue = (nominalUnits * oracleToSelectedAssetRate) / (10 ** oracleInfo.value?.assetDecimals || 0)
+  let marketValue = (nominalUnits * oracleToSelectedAssetRate.value) / (10 ** oracleInfo.value?.assetDecimals || 0)
+  marketValue = Number(marketValue.toFixed(2))
+  return marketValue
+})
+
+const longMarketValue = computed(() => {
+  const longInputUnits = props.contract?.metadata?.longInputUnits
+  if (!isFinite(oracleToSelectedAssetRate.value)) return undefined
+  if (!isFinite(longInputUnits)) return undefined
+
+  let marketValue = (longInputUnits * oracleToSelectedAssetRate.value) / (10 ** oracleInfo.value?.assetDecimals || 0)
   marketValue = Number(marketValue.toFixed(2))
   return marketValue
 })
