@@ -38,7 +38,7 @@
           :pagination="pageNumber"
         >
           <template v-slot:top-right>
-            <q-btn-dropdown color="primary" :label="label" dense class="q-pl-sm">
+            <q-btn-dropdown color="primary" :label="label" dense class="q-pl-sm" :dark="darkMode" content-style="color: black;">
               <q-list dense>
               <q-item clickable v-close-popup @click="claim"  >
                 <q-item-section>
