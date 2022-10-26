@@ -183,8 +183,11 @@
         <div v-if="!settled">
           <div class="text-grey text-subtitle1">Duration</div>
           <div class="row q-gutter-x-sm">
-            <div class="q-space">{{ formatTimestampToText(contract.parameters.startTimestamp * 1000) }}</div>
-            <div>{{ formatTimestampToText(contract.parameters.maturityTimestamp * 1000) }}</div>
+            <div class="q-space">From: {{ formatTimestampToText(contract.parameters.startTimestamp * 1000) }}</div>
+            <div>To: {{ formatTimestampToText(contract.parameters.maturityTimestamp * 1000) }}</div>
+          </div>
+          <div v-if="durationText" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="margin-top:-0.25em;">
+            {{ durationText }}
           </div>
         </div>
 
@@ -408,6 +411,30 @@ const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
 const oracleInfo = computed(() => {
   const oracles = store.getters['anyhedge/oracles']
   return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
+})
+
+const durationText = computed(() => {
+  const unitOptions = [
+    {label: 'second', multiplier: 1,               max: 60 },
+    {label: 'minute', multiplier: 60,              max: 3600 },
+    {label: 'hour',   multiplier: 3600,            max: 86400 },
+    {label: 'day',    multiplier: 86400,           max: 86400 * 10 },
+    {label: 'week',   multiplier: 86400 * 7,       max: 86400 * 30 },
+    {label: '~month', multiplier: 86400 * 30,      max: 86400 * 30 * 12 },
+    {label: '~year',  multiplier: 86400 * 30 * 12, max: Infinity },
+  ]
+  const duration = props.contract?.metadata?.duration
+  if (!isFinite(duration) || duration <= 0) return ''
+  console.log(duration)
+  const unit = unitOptions.find(unit => duration <= unit.max)
+  if (!unit) return ''
+
+  const durationValue = duration/unit.multiplier
+  let label = unit.label
+  if (durationValue > 1) {
+    label += 's'
+  }
+  return `${durationValue} ${label}`
 })
 
 const funding = computed(() => {
