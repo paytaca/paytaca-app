@@ -198,7 +198,7 @@
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
-                unelevated: true,
+                rounded: true,
                 padding: 'sm md',
                 boundaryNumbers: true
               }"
@@ -219,7 +219,7 @@
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
-                unelevated: true,
+                rounded: true,
                 padding: 'sm md',
                 boundaryNumbers: true
               }"
