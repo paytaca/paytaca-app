@@ -53,7 +53,7 @@ export function clearAssetPrices (state) {
 /**
  *
  * @param {Object} state vuex module state
- * @param {{ symbol:String, rate:Number }[]} data
+ * @param {{ symbol:String, rate:Number, timestamp?:Number }[]} data
  */
 export function updateUsdRates (state, data) {
   if (!Array.isArray(data)) return
@@ -62,5 +62,6 @@ export function updateUsdRates (state, data) {
   data.forEach(rateInfo => {
     if (typeof rateInfo.symbol !== 'string') return
     state.usdRates[rateInfo.symbol] = rateInfo.rate
+    state.usdRatesLastUpdate[rateInfo.symbol] = data?.timestamp || Date.now()
   })
 }
