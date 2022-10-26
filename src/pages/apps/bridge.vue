@@ -9,7 +9,7 @@
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
 
-    <q-icon class="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
+    <q-icon class="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '30px' : '0px'}">
       <q-menu>
         <q-list :class="{'pt-dark': darkMode}" style="min-width: 100px">
           <q-item
@@ -40,7 +40,7 @@
       </q-menu>
     </q-icon>
 
-    <div class="q-px-md" :style="{ 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
+    <div class="q-px-md" :style="{ 'margin-top': $q.platform.is.ios ? '30px' : '0px'}">
       <template v-if="mode.active === mode.opts.main">
         <HopCashSwapForm v-if="!waiting" @new-incoming="onNewIncoming" :darkMode="darkMode" />
         <HopCashSwapWait v-else v-bind="parsedWaitInfo" :darkMode="darkMode">

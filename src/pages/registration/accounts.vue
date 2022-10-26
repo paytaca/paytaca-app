@@ -1,7 +1,7 @@
 <template>
   <div id="registration-container">
     <div class="row q-pb-sm">
-      <div class="col pt-brand" :style="{ 'margin-top': this.$q.platform.is.ios ? '50px' : '0px'}">
+      <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
         <img src="~/assets/paytaca_logo.png" height="60">
         <p class="pt-brandname">Paytaca</p>
       </div>

@@ -1,5 +1,4 @@
 <template>
-  
   <div
     style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
     :class="{'pt-dark': darkMode}"
@@ -12,6 +11,7 @@
 
     <q-card
       class="br-15 q-pt-sm q-mx-md"
+      :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0'}"
       :class="[
         darkMode ? 'text-white pt-dark-card' : 'text-black',
       ]"

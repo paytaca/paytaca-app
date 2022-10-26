@@ -1,5 +1,9 @@
 <template>
-  <div class="row justify-center fixed-footer" :class="{'pt-dark-card': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+  <div
+    class="row justify-center fixed-footer"
+    :class="{'pt-dark-card': darkMode}"
+    :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
+  >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ path: '/' }">
@@ -70,11 +74,11 @@ export default {
     height: 67px;
     padding-top: 5px;
     width: 100%;
+    bottom: 0;
     background-color: #fff;
     border-top-right-radius: 20px;
     border-top-left-radius: 20px;
     box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
-    bottom: 0pt;
     z-index: 6;
     .footer-icon {
       font-size: 30px !important;

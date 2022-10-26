@@ -4,7 +4,7 @@
       :title="'RECEIVE ' + asset.symbol"
       backnavpath="/receive/select-asset"
     ></header-nav>
-    <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': this.$q.platform.is.ios ? '30px' : '0px'}">
+    <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '30px' : '0px'}">
       <q-menu anchor="bottom right" self="top end">
         <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
           <q-item clickable v-close-popup>
