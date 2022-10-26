@@ -38,26 +38,35 @@
                   <div v-if="hedgeSummaries.length === 0" class="text-grey-7 text-body1">
                     No ongoing contract
                   </div>
-                  <div v-for="(summary, index) in hedgeSummaries" :key="index" class="row items-center q-gutter-x-xs q-ml-xs">
-                    {{ formatUnits(summary.totalHedgeUnits, summary?.oracle?.assetDecimals || 0) }}
-                    <template v-if="summary?.oracle?.assetCurrency">
-                      {{ summary?.oracle?.assetCurrency }}
-                    </template>
-                    <template v-else>
-                      Asset {{ ellipsisText(summary.oraclePubkey, {start: 5, end: 0}) }}
-                      <q-icon
-                        :color="darkMode ? 'grey-7' : 'black'"
-                        size="sm"
-                        name="help"
-                      >
-                        <q-popup-proxy :breakpoint="0">
-                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption" style="word-break:break-all;">
-                            <div class="text-subtitle1">Unknown asset</div>
-                            Oracle pubkey: {{ summary.oraclePubkey }}
-                          </div>
-                        </q-popup-proxy>
-                      </q-icon>
-                    </template>
+                  <div v-for="(summary, index) in hedgeSummaries" :key="index">
+                    <div class="row items-center q-gutter-x-xs q-ml-xs">
+                      {{ formatUnits(summary.totalHedgeUnits, summary?.oracle?.assetDecimals || 0) }}
+                      <template v-if="summary?.oracle?.assetCurrency">
+                        {{ summary?.oracle?.assetCurrency }}
+                      </template>
+                      <template v-else>
+                        Asset {{ ellipsisText(summary.oraclePubkey, {start: 5, end: 0}) }}
+                        <q-icon
+                          :color="darkMode ? 'grey-7' : 'black'"
+                          size="sm"
+                          name="help"
+                        >
+                          <q-popup-proxy :breakpoint="0">
+                            <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption" style="word-break:break-all;">
+                              <div class="text-subtitle1">Unknown asset</div>
+                              Oracle pubkey: {{ summary.oraclePubkey }}
+                            </div>
+                          </q-popup-proxy>
+                        </q-icon>
+                      </template>
+                    </div>
+                    <div
+                      v-if="summary?.totalHedgeMarketValue && selectedMarketCurrency !== summary?.oracle?.assetCurrency"
+                      class="text-caption q-ml-xs text-grey-7"
+                      style="margin-top:-0.5em;"
+                    >
+                      {{ summary?.totalHedgeMarketValue }} {{ selectedMarketCurrency }}
+                    </div>
                   </div>
                 </template>
               </div>
@@ -90,7 +99,12 @@
             <div class="row items-center">
               <div class="q-space">
                 <q-skeleton v-if="fetchingLongPositions" class="q-mr-sm"/>
-                <span v-else>{{ totalLongSats / 10 ** 8 }} BCH</span>
+                <div v-else>
+                  <div>{{ totalLongSats / 10 ** 8 }} BCH</div>
+                  <div v-if="totalLongMarketValue" class="text-caption text-grey-7" style="margin-top:-0.5em;">
+                    {{ totalLongMarketValue }} {{ selectedMarketCurrency }}
+                  </div>
+                </div>
               </div>
               <q-btn
                 v-if="!showCreateLongForm"
@@ -184,7 +198,7 @@
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
-                unelevated: true,
+                rounded: true,
                 padding: 'sm md',
                 boundaryNumbers: true
               }"
@@ -205,7 +219,7 @@
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
-                unelevated: true,
+                rounded: true,
                 padding: 'sm md',
                 boundaryNumbers: true
               }"
@@ -340,6 +354,9 @@ onUnmounted(() => {
 
 
 // summary
+const selectedMarketCurrency = computed(() => $store.getters['market/selectedCurrency']?.symbol)
+const selectedCurrencyPrice = computed(() => $store.getters['market/getAssetPrice']('bch', selectedMarketCurrency.value))
+
 function parseAssetSummaries(assetSummaries) {
   const data = []
   if (Array.isArray(assetSummaries)) {
@@ -347,11 +364,35 @@ function parseAssetSummaries(assetSummaries) {
     const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
     assetSummaries.forEach(summary => {
       const oraclePubkey = summary?.oracle_pubkey || ''
+      const oracle = oracles?.[oraclePubkey] || defaultOracleInfo
+      const totalHedgeUnits = (summary?.total_hedge_unit_sats || 0)/ 10 ** 8
+      const totalLongSats = summary?.total_long_sats || 0
+      let totalHedgeMarketValue = undefined
+      let totalLongMarketValue = undefined
+      let oracleToSelectedAssetRate = undefined
+      if (oracle?.assetCurrency && selectedMarketCurrency.value) {
+        oracleToSelectedAssetRate = $store.getters['market/getAssetConversion'](
+          oracle.assetCurrency,
+          selectedMarketCurrency.value,
+        )
+      }
+      if (isFinite(oracleToSelectedAssetRate)) {
+        totalHedgeMarketValue = (totalHedgeUnits * oracleToSelectedAssetRate) / (10 ** oracle?.assetDecimals)
+        totalHedgeMarketValue = Number(totalHedgeMarketValue.toFixed(2))
+      }
+
+      if (isFinite(selectedCurrencyPrice.value)) {
+        totalLongMarketValue = (totalLongSats * selectedCurrencyPrice.value) / 10 ** 8
+        totalLongMarketValue = Number(totalLongMarketValue.toFixed(2))
+      }
+
       const parsedSummary = {
-        oraclePubkey: oraclePubkey, 
-        oracle: oracles?.[oraclePubkey] || defaultOracleInfo,
-        totalHedgeUnits: (summary?.total_hedge_unit_sats || 0)/ 10 ** 8,
-        totalLongSats: summary?.total_long_sats || 0,
+        oraclePubkey, 
+        oracle,
+        totalHedgeUnits,
+        totalLongSats,
+        totalHedgeMarketValue,
+        totalLongMarketValue,
       }
 
       data.push(parsedSummary)
@@ -381,9 +422,38 @@ const totalLongSats = computed(() => {
   if (Array.isArray(longSummaries.value)) {
     longSummaries.value.forEach(summary => subtotal += (summary?.totalLongSats || 0))
   }
-
   return subtotal
 })
+const totalLongMarketValue = computed(() => {
+  return longSummaries.value?.reduce?.(
+    (subtotal, summary) => subtotal + summary?.totalLongMarketValue, 0
+  )
+})
+
+const summaryCurrenciesToUpdate = computed(() => {
+  return hedgeSummaries.value
+  .map(hedgeSummary => hedgeSummary?.oracle?.assetCurrency)
+  .filter(currency => typeof currency === 'string') // filter non string values
+  .filter(currency => currency.toLowerCase() !== 'USD') // market prices are based on USD so its always 1 for USD
+  .filter(currency => currency !== selectedMarketCurrency.value) // the app already updates selected market currency regularly
+  .filter(Boolean) // filter empty values
+})
+function updateSummaryMarketPrices() {
+  summaryCurrenciesToUpdate.value.forEach(currency => {
+    $store.dispatch('market/updateUsdRates', { currency, priceDataAge: 60 * 1000 })
+  })
+}
+const summaryMarketPricesUpdateInterval = ref(null)
+onMounted(() => {
+  clearInterval(summaryMarketPricesUpdateInterval.value)
+  summaryMarketPricesUpdateInterval.value = setInterval(
+    () => updateSummaryMarketPrices(),
+    60 * 1000,
+  )
+  updateSummaryMarketPrices()
+})
+onUnmounted(() => clearInterval(summaryMarketPricesUpdateInterval.value))
+watch(summaryCurrenciesToUpdate, () => updateSummaryMarketPrices())
 
 // hedge offers
 const showCreateHedgeForm = ref(false)

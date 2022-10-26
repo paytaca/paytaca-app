@@ -212,14 +212,30 @@ export async function updateAssetPrices2 (context, { clearExisting = false }) {
   context.dispatch('updateUsdRates', { currency: selectedCurrency })
 }
 
-export async function updateUsdRates (context, { currency }) {
+/**
+ * 
+ * @param {Object} context 
+ * @param {Object} param1 
+ * @param {String} [param1.currency] - currency to update, empty value will update all available USD rates
+ * @param {Number} [param1.priceDataAge] - will skip updating if last update is less than specified value in ms. works only if `currency` is specified
+ * @returns 
+ */
+export async function updateUsdRates (context, { currency, priceDataAge }) {
   let rates = []
 
   if (currency) {
+    if (isFinite(priceDataAge) && priceDataAge > 0) {
+      const usdRate = context.state?.usdRates?.[currency]
+      const lastUpdate = context.state.usdRatesLastUpdate?.[currency]
+      if (isFinite(usdRate) && isFinite(lastUpdate) && Date.now() - priceDataAge < lastUpdate) {
+        console.log('here')
+        return [{ symbol: String(currency), rate: usdRate, timestamp: lastUpdate }]
+      }
+    }
     const { data } = await axios.get(`https://api.yadio.io/rate/${currency}/USD`)
     if (!data.rate) return Promise.reject()
     rates = [
-      { symbol: String(currency), rate: data.rate }
+      { symbol: String(currency), rate: data.rate, timestamp: data?.timestamp }
     ]
   } else {
     const { data } = await axios.get('https://api.yadio.io/exrates/USD')
@@ -228,7 +244,7 @@ export async function updateUsdRates (context, { currency }) {
     rates = Object.getOwnPropertyNames(data)
       .map(symbol => {
         if (typeof data[symbol] !== 'string') return
-        return { symbol, rate: data[symbol] }
+        return { symbol, rate: data[symbol], timestamp: data?.timestamp }
       })
       .filter(Boolean)
   }

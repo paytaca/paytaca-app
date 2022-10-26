@@ -21,7 +21,7 @@ const pageNumbers = computed(() => {
   const data = { pages: 0, currentPage: 0, pageSize: 0 }
   if (props?.modelValue?.limit) data.pages = Math.ceil(props?.modelValue?.count / props?.modelValue?.limit)
   data.pageSize = props?.modelValue?.limit
-  if (props?.modelValue?.offset) data.currentPage = Math.floor(props?.modelValue?.count / props?.modelValue?.offset) + 1
+  if (props?.modelValue?.offset) data.currentPage = Math.floor(props?.modelValue?.offset / props?.modelValue?.limit) + 1
   else data.currentPage = 1
   return data
 })

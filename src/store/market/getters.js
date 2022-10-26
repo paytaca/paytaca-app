@@ -39,3 +39,11 @@ export function getAssetPrice (state) {
     return Number(state.usdRates[parsedCurrencySymbol.toUpperCase()]) * Number(assetPrice.prices.usd)
   }
 }
+
+export function getAssetConversion(state) {
+  return (fromCurrency, toCurrency) => {
+    const fromCurrencyRate = state.usdRates[fromCurrency]
+    const toCurrencyRate = state.usdRates[toCurrency]
+    return toCurrencyRate/fromCurrencyRate
+  }
+}

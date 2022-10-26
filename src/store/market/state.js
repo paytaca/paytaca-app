@@ -15,6 +15,9 @@ export default function () {
 
     usdRates: {
       // <symbol>: <rate>
-    }
+    },
+    usdRatesLastUpdate: {
+      // <symbol>: <timestamp>
+    } 
   }
 }

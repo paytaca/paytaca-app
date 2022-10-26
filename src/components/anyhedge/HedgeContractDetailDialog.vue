@@ -19,6 +19,9 @@
             </div>
             <div class="text-grey">{{ contract.metadata.hedgeInputSats / (10**8) }} BCH</div>
           </div>
+          <div v-if="isFinite(hedgeMarketValue)">
+            {{ hedgeMarketValue }} {{ selectedMarketCurrency }}
+          </div>
         </div>
         <div>
           <div class="text-grey text-subtitle1">Address</div>
@@ -183,8 +186,11 @@
         <div v-if="!settled">
           <div class="text-grey text-subtitle1">Duration</div>
           <div class="row q-gutter-x-sm">
-            <div class="q-space">{{ formatTimestampToText(contract.parameters.startTimestamp * 1000) }}</div>
-            <div>{{ formatTimestampToText(contract.parameters.maturityTimestamp * 1000) }}</div>
+            <div class="q-space">From: {{ formatTimestampToText(contract.parameters.startTimestamp * 1000) }}</div>
+            <div>To: {{ formatTimestampToText(contract.parameters.maturityTimestamp * 1000) }}</div>
+          </div>
+          <div v-if="durationText" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="margin-top:-0.25em;">
+            {{ durationText }}
           </div>
         </div>
 
@@ -355,7 +361,7 @@ import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionDat
 import { calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
 import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
 import { getPrivateKey } from 'src/wallet/anyhedge/utils'
-import { computed, inject } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
@@ -408,6 +414,60 @@ const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
 const oracleInfo = computed(() => {
   const oracles = store.getters['anyhedge/oracles']
   return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
+})
+
+const selectedMarketCurrency = computed(() => store.getters['market/selectedCurrency']?.symbol)
+const hedgeMarketValue = computed(() => {
+  const oracleToSelectedAssetRate = store.getters['market/getAssetConversion'](
+    oracleInfo.value?.assetCurrency,
+    selectedMarketCurrency.value,
+  )
+  const nominalUnits = props.contract?.metadata?.nominalUnits
+  if (!isFinite(oracleToSelectedAssetRate)) return undefined
+  if (!isFinite(nominalUnits)) return undefined
+
+  let marketValue = (nominalUnits * oracleToSelectedAssetRate) / (10 ** oracleInfo.value?.assetDecimals || 0)
+  marketValue = Number(marketValue.toFixed(2))
+  return marketValue
+})
+function updateOracleMarketValue() {
+  const currency = oracleInfo.value?.assetCurrency
+  if (!currency) return
+  store.dispatch('market/updateUsdRates', { currency, priceDataAge: 60 * 1000 }) 
+}
+const oracleMarketValueUpdateInterval = ref(null)
+onMounted(() => {
+  clearInterval(oracleMarketValueUpdateInterval.value)
+  oracleMarketValueUpdateInterval.value = setInterval(
+    () => updateOracleMarketValue(),
+    60 * 1000,
+  )
+  updateOracleMarketValue()
+})
+onUnmounted(() => clearInterval(oracleMarketValueUpdateInterval.value))
+watch(oracleInfo, () => updateOracleMarketValue())
+
+const durationText = computed(() => {
+  const unitOptions = [
+    {label: 'second', multiplier: 1,               max: 60 },
+    {label: 'minute', multiplier: 60,              max: 3600 },
+    {label: 'hour',   multiplier: 3600,            max: 86400 },
+    {label: 'day',    multiplier: 86400,           max: 86400 * 10 },
+    {label: 'week',   multiplier: 86400 * 7,       max: 86400 * 30 },
+    {label: '~month', multiplier: 86400 * 30,      max: 86400 * 30 * 12 },
+    {label: '~year',  multiplier: 86400 * 30 * 12, max: Infinity },
+  ]
+  const duration = props.contract?.metadata?.duration
+  if (!isFinite(duration) || duration <= 0) return ''
+  const unit = unitOptions.find(unit => duration <= unit.max)
+  if (!unit) return ''
+
+  const durationValue = duration/unit.multiplier
+  let label = unit.label
+  if (durationValue > 1) {
+    label += 's'
+  }
+  return `${durationValue} ${label}`
 })
 
 const funding = computed(() => {
