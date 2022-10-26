@@ -33,9 +33,31 @@
           :rows="rows"
           :columns="columns"
           row-key="name"
-          style="width: 100%;"
+          style="width: 100%"
           :dark="darkMode"
+          :pagination="pageNumber"
         >
+          <template v-slot:top-right>
+            <q-btn-dropdown color="primary" :label="label" dense class="q-pl-sm">
+              <q-list dense>
+              <q-item clickable v-close-popup @click="claim"  >
+                <q-item-section>
+                  <q-item-label>Claimed</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="unclaim" >
+                <q-item-section>
+                  <q-item-label>Unclaimed</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="getRows" active>
+                <q-item-section>
+                  <q-item-label>All</q-item-label>
+                </q-item-section>
+              </q-item>
+              </q-list>
+            </q-btn-dropdown>
+          </template>
           <template v-slot:item="props">
             <div
               class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
@@ -48,19 +70,21 @@
                       <template v-if="col.value !== 'Unclaimed'">
                         <q-item-section>
                           <q-item-label>
-                            <q-badge color="green">Claimed {{ col.value }}</q-badge>
+                            <q-separator inset />
+                            <q-badge color="green" class="q-mt-sm q-mb-sm">Claimed {{ col.value }}</q-badge>
                           </q-item-label>
                         </q-item-section>
                       </template>
                       <template v-else>
                         <q-item-section>
                           <q-item-label>
-                            <q-badge color="grey">Unclaimed</q-badge>
+                            <q-separator inset />
+                            <q-badge color="grey" class="q-mt-sm q-mb-sm">Unclaimed</q-badge>
                           </q-item-label>
                         </q-item-section>
                         <q-item-section v-if="getGiftShare(props.row.gift_code_hash)" side style="padding: 10px 0px;">
                           <q-item-label caption>
-                            <q-btn size="sm" @click="recoverGift(props.row.gift_code_hash)">Recover</q-btn>
+                            <q-btn size="sm" @click="recoverGift(props.row.gift_code_hash)" dense>Recover</q-btn>
                           </q-item-label>
                         </q-item-section>
                       </template>
@@ -135,27 +159,79 @@ export default {
       default: ''
     }
   },
+  setup () {
+    return {
+      pageNumber: {
+        rowsPerPage: 10
+      },
+      label: 'Sort'
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       info: null,
       walletHash: this.getWallet('bch').walletHash,
-      giftArray: {},
       response: null,
       columns,
       rows
     }
   },
   methods: {
-
-    getItems () {
+    claim () {
       const vm = this
+      vm.label = 'Claimed'
+      const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
+      axios.get(url).then(function (response) {
+        if (response.status === 200) {
+          vm.rows = response.data.gifts
+          const rowArray = vm.rows
+          const storeRow = []
+          for (let i = 0; i < vm.rows.length; i++) {
+            // console.log(rowArray[i].date_claimed)
+            if (rowArray[i].date_claimed !== 'None') {
+              storeRow.push(rowArray[i])
+            }
+          }
+          vm.rows = storeRow
+          // console.log(storeRow)
+        }
+      })
+    },
+    unclaim () {
+      const vm = this
+      vm.label = 'Unclaimed'
+      const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
+      axios.get(url).then(function (response) {
+        if (response.status === 200) {
+          vm.rows = response.data.gifts
+          const rowArray = vm.rows
+          const storeRow = []
+          for (let i = 0; i < vm.rows.length; i++) {
+            // console.log(rowArray[i].date_claimed)
+            if (rowArray[i].date_claimed === 'None') {
+              storeRow.push(rowArray[i])
+            }
+          }
+          vm.rows = storeRow
+          // console.log(vm.storeRow)
+        }
+      })
+    },
+    error () {
+      this.label = 'Sort'
+      this.getRows()
+    },
+    getRows () {
+      const vm = this
+      vm.label = 'Sort'
       const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
       axios.get(url).then(function (response) {
         if (response.status === 200) {
           vm.rows = response.data.gifts
           for (let i = 0; i < vm.rows.length; i++) {
             const gift = vm.rows[i]
+            // console.log(vm.rows[i].date_claimed)
             if (gift.date_claimed !== 'None') {
               vm.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
             }
@@ -184,7 +260,9 @@ export default {
     }
   },
   mounted () {
-    this.getItems()
+    // this.getItemsWithSort()
+    // this.getItems()
+    this.getRows()
   }
 }
 </script>
