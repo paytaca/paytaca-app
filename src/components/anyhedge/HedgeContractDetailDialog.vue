@@ -19,6 +19,9 @@
             </div>
             <div class="text-grey">{{ contract.metadata.hedgeInputSats / (10**8) }} BCH</div>
           </div>
+          <div v-if="isFinite(hedgeMarketValue)">
+            {{ hedgeMarketValue }} {{ selectedMarketCurrency }}
+          </div>
         </div>
         <div>
           <div class="text-grey text-subtitle1">Address</div>
@@ -358,7 +361,7 @@ import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionDat
 import { calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
 import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
 import { getPrivateKey } from 'src/wallet/anyhedge/utils'
-import { computed, inject } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
@@ -413,6 +416,37 @@ const oracleInfo = computed(() => {
   return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
 })
 
+const selectedMarketCurrency = computed(() => store.getters['market/selectedCurrency']?.symbol)
+const hedgeMarketValue = computed(() => {
+  const oracleToSelectedAssetRate = store.getters['market/getAssetConversion'](
+    oracleInfo.value?.assetCurrency,
+    selectedMarketCurrency.value,
+  )
+  const nominalUnits = props.contract?.metadata?.nominalUnits
+  if (!isFinite(oracleToSelectedAssetRate)) return undefined
+  if (!isFinite(nominalUnits)) return undefined
+
+  let marketValue = (nominalUnits * oracleToSelectedAssetRate) / (10 ** oracleInfo.value?.assetDecimals || 0)
+  marketValue = Number(marketValue.toFixed(2))
+  return marketValue
+})
+function updateOracleMarketValue() {
+  const currency = oracleInfo.value?.assetCurrency
+  if (!currency) return
+  store.dispatch('market/updateUsdRates', { currency, priceDataAge: 60 * 1000 }) 
+}
+const oracleMarketValueUpdateInterval = ref(null)
+onMounted(() => {
+  clearInterval(oracleMarketValueUpdateInterval.value)
+  oracleMarketValueUpdateInterval.value = setInterval(
+    () => updateOracleMarketValue(),
+    60 * 1000,
+  )
+  updateOracleMarketValue()
+})
+onUnmounted(() => clearInterval(oracleMarketValueUpdateInterval.value))
+watch(oracleInfo, () => updateOracleMarketValue())
+
 const durationText = computed(() => {
   const unitOptions = [
     {label: 'second', multiplier: 1,               max: 60 },
@@ -425,7 +459,6 @@ const durationText = computed(() => {
   ]
   const duration = props.contract?.metadata?.duration
   if (!isFinite(duration) || duration <= 0) return ''
-  console.log(duration)
   const unit = unitOptions.find(unit => duration <= unit.max)
   if (!unit) return ''
 
