@@ -24,6 +24,36 @@
           <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
             {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
           </template>
+          <q-icon :color="darkMode ? 'grey-7' : 'black'" size="sm" name="info">
+          </q-icon>
+          <q-popup-proxy :breakpoint="0">
+            <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+              <div class="q-py-xs">
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Asset Name</div>
+                <span>
+                  {{ createHedgeForm.selectedAsset?.assetName }}
+                </span>
+              </div>
+              <div
+                class="q-py-xs"
+                style="position:relative;"
+                v-ripple
+                @click="copyText(createHedgeForm.selectedAsset?.oraclePubkey)"
+              >
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Oracle Pubkey</div>
+                <span class="row items-center no-wrap">
+                  {{ ellipsisText(createHedgeForm.selectedAsset?.oraclePubkey, { start: 10, end: 10 }) }}
+                  <q-icon name="content_copy" class="q-ml-xs"/>
+                </span>
+              </div>
+              <div v-if="Number.isFinite(createHedgeForm.selectedAsset?.latestPrice?.messageTimestamp)" class="q-py-xs">
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Price timestamp</div>
+                <span>
+                  {{ formatTimestampToText(createHedgeForm.selectedAsset?.latestPrice?.messageTimestamp * 1000) }}
+                </span>
+              </div>
+            </div>
+          </q-popup-proxy>
         </div>
         <div v-if="spendableBch !== null">
           Balance:
@@ -225,10 +255,10 @@
 </template>
 <script setup>
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
-import { parseHedgePositionData } from '../../wallet/anyhedge/formatters'
+import { parseHedgePositionData, ellipsisText, formatTimestampToText } from '../../wallet/anyhedge/formatters'
 import { calculateGeneralProtocolsLPFee, createFundingProposal } from '../../wallet/anyhedge/funding'
 import { Wallet } from 'src/wallet';
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
@@ -244,6 +274,17 @@ const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const $emit = defineEmits(['created', 'cancel'])
+
+const $copyText = inject('$copyText')
+function copyText(value, message='') {
+  $copyText(value)
+  $q.notify({
+    color: 'blue-9',
+    message: message || 'Copied to clipboard',
+    icon: 'mdi-clipboard-check',
+    timeout: 200
+  })
+}
 
 const props = defineProps({
   wallet: Wallet,
