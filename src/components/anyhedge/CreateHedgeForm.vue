@@ -59,7 +59,7 @@
         label="Amount"
         suffix="BCH"
         :disable="loading"
-        inputmode="numeric"
+        inputmode="decimal"
         v-model="createHedgeForm.amount"
         reactive-rules
         :rules="[
