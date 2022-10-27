@@ -58,7 +58,8 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
     contractData: {},
     liquidityFee: { fee: 0, recalculateAfter: 0 },
     accessKeys: { signature: '', publicKey: '' },
-    error: null
+    error: null,
+    errorMessages: [],
   }
 
   try {
@@ -129,8 +130,15 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
     response.contractData = contractData
   } catch(error) {
     console.error(error)
+    let errors = []
+    if (typeof error?.response?.data === 'string') errors = [error?.response?.data]
+    else if (typeof error?.response?.data?.error === 'string') errors = [error?.response?.data?.error]
+    else if (Array.isArray(error?.response?.data?.errors)) errors = error?.response?.data?.errors
+    else if(typeof error === 'string') errors = [error]
+    else if(typeof error?.message === 'string') errors = [error?.message]
     response.success = false
     response.error = error
+    response.errorMessages = errors
   } finally {
     return response
   }
@@ -155,8 +163,10 @@ export async function getOrFindUtxo(amount, wallet, addressSet) {
     fundingUtxo.amount = utxo.value
     fundingUtxo.address_path = utxo.address_path
   } else {
-    const { txid, dependencyTxids } = await createUtxo(amount, addressSet.receiving, addressSet.change, wallet)
-
+    const { success, error, txid, dependencyTxids } = await createUtxo(amount, addressSet.receiving, addressSet.change, wallet)
+    if (!success) {
+      throw new Error(error || 'Encountered error in generating funding utxo')
+    }
     fundingUtxo.txid = txid
     fundingUtxo.vout = 0
     fundingUtxo.amount = amount
@@ -196,7 +206,13 @@ async function createUtxo(amount, recipient, changeAddress, wallet) {
   const result = await wallet.BCH.watchtower.BCH.send(data)
   if (!result?.success) {
     response.success = false
-    response.error = result?.error || 'Error generating transaction'
+    if (result.error.indexOf('not enough balance in sender') > -1) {
+      response.error = 'Not enough balance to cover the send amount and transaction fee'
+    } else if (result.error.indexOf('has insufficient priority') > -1) {
+      response.error = 'Not enough balance to cover the transaction fee'
+    } else {
+      response.error = result?.error || 'Error generating transaction'
+    }
     return response
   }
 

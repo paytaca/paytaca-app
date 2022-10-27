@@ -1,11 +1,19 @@
 <template>
   <q-form @submit="createHedgePosition()" class="q-gutter-y-md" ref="form" @validation-error="alertError">
-    <q-banner v-if="errors.length > 0" dense rounded class="text-white bg-red q-my-sm">
-      <ul class="q-pl-md">
-        <li v-for="(error, index) in errors" :key="index">
+    <q-banner v-if="errors.length > 0 || mainError" dense rounded class="text-white bg-red q-my-sm">
+      <div v-if="mainError" class="q-px-sm q-mt-xs">
+        {{ mainError }}
+      </div>
+      <div class="q-ma-sm q-pa-sm rounded-borders">
+        <div v-for="(error, index) in errors" :key="index" style="word-break:break-word;" class="text-caption">
+          [{{index + 1}}] {{ error }}
+        </div>
+      </div>
+      <!-- <ul class="q-pl-sm">
+        <li v-for="(error, index) in errors" :key="index" style="word-break:break-word;" class="text-caption">
           {{ error }}
         </li>
-      </ul>
+      </ul> -->
     </q-banner>
 
     <div class="row items-center">
@@ -34,7 +42,7 @@
         icon="refresh"
         class="q-mx-xs"
         padding="xs"
-        @click="clearCreateHedgeForm()"
+        @click="clearCreateHedgeForm({ clearErrors: true })"
       />
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
@@ -345,7 +353,7 @@ async function updateSpendableBalance() {
 }
 
 const form = ref(null)
-async function clearCreateHedgeForm() {
+async function clearCreateHedgeForm(opts) {
   createHedgeForm.value.amount = 0
   createHedgeForm.value.duration = 0
   createHedgeForm.value.lowLiquidationMultiplierPctg = 0.8 * 100
@@ -353,6 +361,11 @@ async function clearCreateHedgeForm() {
   createHedgeForm.value.selectedAsset = oracles.value[0]
   createHedgeForm.value.autoMatch = true
   createHedgeForm.value.autoMatchPoolTarget = 'anyhedge_LP'
+
+  if (opts?.clearErrors) {
+    mainError.value = ''
+    errors.value = []
+  }
 
   await nextTick()
   form.value.resetValidation()
@@ -388,6 +401,7 @@ const createHedgeFormConstraints = computed(() => {
 
 const loading = ref(false)
 const loadingMsg = ref('')
+const mainError = ref('')
 const errors = ref([])
 
 async function getAddressesFromStore() {
@@ -436,7 +450,8 @@ async function getAddresses() {
     response.success = true
     return response
   } catch(error) {
-    errors.value = ['Error generating addresses']
+    mainError.value = 'Error generating addresses'
+    errors.value = []
     response.error = error
     response.success = false
     return response
@@ -509,7 +524,8 @@ async function createHedgePosition() {
 
   // limit long positions to GP LP for now
   if (position === 'long' && (!misc.autoMatch || misc.autoMatchPoolTarget !== 'anyhedge_LP')) {
-    errors.value = ['Creating long positions are only available for General Protocol LP']
+    mainError.value = 'Creating long positions are only available for General Protocol LP'
+    errors.value = []
     loading.value = false
     loadingMsg.value = ''
     return
@@ -547,7 +563,11 @@ async function createHedgePosition() {
       funding.prepareFunding = true
     } catch(error) {
       console.error(error)
-      errors.value = [ typeof error?.error === 'string' ? error.error: 'Error calculating contract fees' ]
+      mainError.value = 'Error calculating contract fees'
+      errors.value = typeof error?.error === 'string' ? [error.error]: []
+      if (Array.isArray(error?.errorMessages) && error?.errorMessages?.length) {
+        errors.value = error?.errorMessages
+      }
       return
     } finally {
       loading.value = false
@@ -565,7 +585,8 @@ async function createHedgePosition() {
     await dialogPromise({component: SecurityCheckDialog})
   } catch(error) {
     console.error(error)
-    errors.value = ['Security check failed']
+    mainError.value = 'Security check failed'
+    errors.value = []
     return
   } finally {
     loading.value = false
@@ -580,7 +601,8 @@ async function createHedgePosition() {
       if (!pubkeys.longAddress || !pubkeys.longPubkey ||
         !priceData.oraclePubkey || !priceData.priceValue || !priceData.messageTimestamp || !priceData.messageSequence
       ) {
-        errors.value = ['Unable to create funding utxo due to incomplete data']
+        mainError.value = 'Unable to create funding utxo due to incomplete data'
+        errors.value = []
         return
       }
 
@@ -617,7 +639,13 @@ async function createHedgePosition() {
       funding.contractData = contractData
     } catch(error) {
       console.error(error)
-      errors.value = ['Encountered error in preparing funding transaction']
+      mainError.value = 'Encountered error in preparing funding transaction'
+      errors.value = []
+      if (typeof error?.response?.data === 'string') errors.value = [error?.response?.data]
+      else if (typeof error?.response?.data?.error === 'string') errors.value = [error?.response?.data?.error]
+      else if (Array.isArray(error?.response?.data?.errors)) errors.value = error?.response?.data?.errors
+      else if(typeof error === 'string') errors.value = [error]
+      else if(typeof error?.message === 'string') errors.value = [error?.message]
       return
 
     } finally {
@@ -713,6 +741,7 @@ async function createHedgePosition() {
         else emitData.hedgePosition = response.data
         $emit('created', emitData)
         clearCreateHedgeForm()
+        mainError.value = ''
         errors.value = []
         return Promise.resolve(response)
       }
@@ -720,11 +749,16 @@ async function createHedgePosition() {
     })
     .catch(error => {
       console.log(error)
-      let errorMsg = 'Encountered Msg creating contract'
+      let errorMsg = 'Encountered error creating contract'
       if (position === 'hedge') errorMsg = 'Encountered error in creating hedge position'
       if (position === 'long') errorMsg = 'Encountered error in creating long position'
       if (isResponseOffer) errorMsg += ' offer'
-      errors.value = [errorMsg]
+      mainError.value = errorMsg
+      errors.value = []
+      if (typeof error?.response?.data == 'string') errors.value = [error?.response?.data]
+      if (typeof error?.response?.data?.detail == 'string') errors.value = [error?.response?.data?.detail]
+      if (Array.isArray(error?.response?.data)) errors.value = error?.response?.data
+      if (Array.isArray(error?.response?.data?.detail)) errors.value = error?.response?.data?.detail
     })
     .finally(() => {
       loading.value = false
