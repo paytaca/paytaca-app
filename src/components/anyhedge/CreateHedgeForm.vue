@@ -142,8 +142,8 @@
       reactive-rules
       :rules="[
         val => val >= 0 || 'Invalid duration',
-        (val, units) => val >= createHedgeFormConstraints.minimumDuration || `Must atleast be ${createHedgeFormConstraints.minimumDuration/ units.value} ${units.label}`,
-        (val, units) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${createHedgeFormConstraints.maximumAmount/ units.value} ${units.label}`,
+        (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must atleast be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
+        (val, units, formatValue) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`,
       ]"
     />
     <div class="row no-wrap q-gutter-x-sm">
