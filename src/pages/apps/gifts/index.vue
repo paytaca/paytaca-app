@@ -89,7 +89,7 @@
                         </q-item-section>
                         <q-item-section side style="padding: 10px 0px;">
                           <q-item-label caption>
-                            <q-btn size="sm" @click="showQr" dense>Show QR</q-btn>
+                            <q-btn size="sm" @click="$router.push({ name: 'show-qr'})" dense>Show QR</q-btn>
                           </q-item-label>
                         </q-item-section>
                       </template>
@@ -178,20 +178,11 @@ export default {
       walletHash: this.getWallet('bch').walletHash,
       response: null,
       columns,
-      rows,
-      val: null,
-      today: null,
-      completed: false,
-      qrCodeContents: null,
-      amountBCH: null
+      rows
     }
   },
   methods: {
     showQr () {
-      const vm = this
-      vm.completed = true
-      vm.amountBCH = 0.001
-      vm.qrCodeContents = 'jericho'
     },
     claim () {
       const vm = this
