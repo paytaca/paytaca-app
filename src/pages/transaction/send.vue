@@ -494,7 +494,7 @@ export default {
       }
     },
     'sendData.amount': function (amount) {
-      if (amount > this.asset.balance) {
+      if (amount > parseFloat(this.asset.balance)) {
         this.balanceExceeded = true
       } else {
         this.balanceExceeded = false
