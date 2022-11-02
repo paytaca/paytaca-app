@@ -12,13 +12,13 @@
         style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
         class="q-px-sm"
       />
-      <div class="row" style="margin-top: 50px;">
+      <div class="row" style="margin-top: 50px;" >
         <div class="col q-mt-sm q-pl-lg q-pr-lg q-pb-none flex" style="font-size: 16px; color: #444655;">
           <p :class="{'text-white': darkMode}">Choose one</p>
           <!-- {{ this.walletHash }} -->
         </div>
       </div>
-      <div class="row justify-center">
+      <div class="row justify-center" >
         <div @click="$router.push({ name: 'create-gift'})" role="button" class="col-6 q-pl-lg q-mb-sm round" style="height: 50px; width: 150px">
           <q-btn color="primary">Create Gift</q-btn>
         </div>
@@ -87,6 +87,11 @@
                             <q-btn size="sm" @click="recoverGift(props.row.gift_code_hash)" dense>Recover</q-btn>
                           </q-item-label>
                         </q-item-section>
+                        <q-item-section side style="padding: 10px 0px;">
+                          <q-item-label caption>
+                            <q-btn size="sm" @click="showQr" dense>Show QR</q-btn>
+                          </q-item-label>
+                        </q-item-section>
                       </template>
                     </template>
                     <template v-else>
@@ -104,9 +109,8 @@
           </template>
         </q-table>
       </div>
-      </div>
+     </div>
     </div>
-
 </template>
 
 <script>
@@ -164,7 +168,7 @@ export default {
       pageNumber: {
         rowsPerPage: 10
       },
-      label: 'Sort'
+      label: 'Filter'
     }
   },
   data () {
@@ -174,10 +178,21 @@ export default {
       walletHash: this.getWallet('bch').walletHash,
       response: null,
       columns,
-      rows
+      rows,
+      val: null,
+      today: null,
+      completed: false,
+      qrCodeContents: null,
+      amountBCH: null
     }
   },
   methods: {
+    showQr () {
+      const vm = this
+      vm.completed = true
+      vm.amountBCH = 0.001
+      vm.qrCodeContents = 'jericho'
+    },
     claim () {
       const vm = this
       vm.label = 'Claimed'
@@ -218,13 +233,9 @@ export default {
         }
       })
     },
-    error () {
-      this.label = 'Sort'
-      this.getRows()
-    },
     getRows () {
       const vm = this
-      vm.label = 'Sort'
+      vm.label = 'Filter'
       const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
       axios.get(url).then(function (response) {
         if (response.status === 200) {
