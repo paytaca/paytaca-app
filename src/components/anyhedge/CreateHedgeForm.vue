@@ -142,7 +142,7 @@
       reactive-rules
       :rules="[
         val => val >= 0 || 'Invalid duration',
-        (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must atleast be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
+        (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must at least be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
         (val, units, formatValue) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`,
       ]"
     />
@@ -422,7 +422,7 @@ const createHedgeFormConstraints = computed(() => {
     minimumLiquidationLimit: 0,
     maximumLiquidationLimit: Infinity,
     minimumAmount: 0,
-    maximumAmount: Infinity,
+    maximumAmount: Infinity
   }
 
   const { autoMatch, autoMatchPoolTarget, selectedAsset } = createHedgeForm.value
