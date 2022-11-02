@@ -231,12 +231,13 @@ async function createUtxo(amount, recipient, changeAddress, wallet) {
   response.txid = decodedTx.hash
 
   const broadcastResponse = await wallet.BCH.watchtower.BCH.broadcastTransaction(result.transaction)
-  if (!broadcastResponse?.success) {
+  if (!broadcastResponse?.data?.success) {
     response.success = false
-    response.error = broadcastResponse?.error || 'Error in broadcasting transaction'
+    response.error = broadcastResponse?.data?.error || 'Error in broadcasting transaction'
     return response
   }
 
+  response.success = true
   return response
 }
 
