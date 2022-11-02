@@ -57,7 +57,7 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
     success: false,
     contractData: {},
     liquidityFee: { fee: 0, recalculateAfter: 0 },
-    accessKeys: { signature: '', publicKey: '' },
+    accessKeys: { signature: '', publicKey: '', authenticationToken: '' },
     error: null,
     errorMessages: [],
   }
@@ -126,7 +126,11 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       contractAccessKeys.publicKey,
       _managerConfig,
     );
-    response.accessKeys = contractAccessKeys
+    response.accessKeys = {
+      signature: contractAccessKeys.signature,
+      publicKey: contractAccessKeys.publicKey,
+      authenticationToken: _managerConfig.authenticationToken,
+    }
     response.contractData = contractData
   } catch(error) {
     console.error(error)
@@ -227,7 +231,7 @@ async function createUtxo(amount, recipient, changeAddress, wallet) {
   response.txid = decodedTx.hash
 
   const broadcastResponse = await wallet.BCH.watchtower.BCH.broadcastTransaction(result.transaction)
-  if (!broadcastResponse?.sucess) {
+  if (!broadcastResponse?.success) {
     response.success = false
     response.error = broadcastResponse?.error || 'Error in broadcasting transaction'
     return response

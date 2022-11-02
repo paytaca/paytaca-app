@@ -537,7 +537,7 @@ async function createHedgePosition() {
     autoMatch: createHedgeForm.value.autoMatch,
     autoMatchPoolTarget: createHedgeForm.value.autoMatchPoolTarget,
     // necessary when using settlement service, they serve as credentials to gain access to the contract
-    accessKeys: { publicKey: '', signature: '' },
+    accessKeys: { publicKey: '', signature: '', authenticationToken: '' },
   }
 
   const priceData = { oraclePubkey: '', priceValue: 0, messageTimestamp: 0, messageSequence: 0 }
@@ -584,6 +584,7 @@ async function createHedgePosition() {
 
       misc.accessKeys.publicKey = generalProtocolsLPFeeResponse.accessKeys.publicKey
       misc.accessKeys.signature = generalProtocolsLPFeeResponse.accessKeys.signature
+      misc.accessKeys.authenticationToken = generalProtocolsLPFeeResponse.accessKeys.authenticationToken
       if (position === 'hedge') {
         pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longAddress
         pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.metadata.longPublicKey
@@ -735,6 +736,7 @@ async function createHedgePosition() {
       port: liquidityServiceInfo.value?.settlementService?.port,
       hedge_signature: position === 'hedge' ? misc.accessKeys.signature : undefined,
       long_signature: position === 'long' ? misc.accessKeys.signature : undefined,
+      auth_token: misc.accessKeys.authenticationToken || undefined,
     },
     funding_proposal: {
       tx_hash: funding.fundingProposal.txHash,
