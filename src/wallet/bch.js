@@ -158,7 +158,7 @@ export class BchWallet {
   }
 
   async sendBchMultiple (recipients, changeAddress) {
-    if (!Array.isArray(recipients) || !recipients.length) return Promise.reject({ error: 'Must have atleast one recipient' })
+    if (!Array.isArray(recipients) || !recipients.length) return Promise.reject({ error: 'Must have at least one recipient' })
 
     const data = {
       sender: {

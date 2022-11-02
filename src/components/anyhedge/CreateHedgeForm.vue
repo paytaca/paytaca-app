@@ -103,7 +103,7 @@
         :rules="[
           val => val > 0 || 'Invalid amount',
           val => spendableBch === null || val <= spendableBch || `Exceeding balance ${spendableBch} BCH`,
-          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires atleast ${createHedgeFormConstraints.minimumAmount} BCH`,
+          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${createHedgeFormConstraints.minimumAmount} BCH`,
           val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
         ]"
         class="q-space"
@@ -159,8 +159,8 @@
         reactive-rules
         :rules="[
           val => (val > 0 && val < 100) || 'Invalid',
-          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must atleast be ${createHedgeFormConstraints.minimumLiquidationLimit * 100} %`,
-          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must at most be ${createHedgeFormConstraints.maximumLiquidationLimit * 100} %`,
+          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must at least be ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
+          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must at most be ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
         ]"
       >
         <template v-slot:hint>
