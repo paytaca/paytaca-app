@@ -7,7 +7,12 @@
       <q-icon v-if="matured || settled" name="handshake" :color="settled ? 'green': 'amber'" size="md" @click.stop>
         <q-popup-proxy :breakpoint="0">
           <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
-            <template v-if="settled">Contract has been settled</template>
+            <template v-if="settled">
+              Contract has been settled.
+              <div v-if="settlementMetadata.settlementTimestamp > 0" class="text-grey">
+                ({{ formatDate(settlementMetadata.settlementTimestamp * 1000) }})
+              </div>
+            </template>
             <template v-else-if="matured">Contract has reached maturity</template>
           </div>
         </q-popup-proxy>
