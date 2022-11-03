@@ -220,6 +220,7 @@ export function parseSettlementMetadata(contract) {
     mutualRedemptionTypeText: '',
 
     settlementPriceValue: 0,
+    settlementTimestamp: -1,
     txid: '',
     hedge: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 },
     long: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 }
@@ -229,6 +230,7 @@ export function parseSettlementMetadata(contract) {
   if (settlement?.hedgeSatoshis >= 0 && settlement?.longSatoshis >= 0) {
     data.txid = settlement?.spendingTransaction || ''
     data.settlementPriceValue = settlement?.settlementPrice
+    data.settlementTimestamp = settlement?.settlementMessageTimestamp
 
     data.settlementType = settlement?.settlementType || ''
     data.settlementTypeText = capitalize(data.settlementType).replace('_', ' ').trim()

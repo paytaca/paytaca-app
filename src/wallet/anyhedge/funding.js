@@ -57,8 +57,9 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
     success: false,
     contractData: {},
     liquidityFee: { fee: 0, recalculateAfter: 0 },
-    accessKeys: { signature: '', publicKey: '' },
-    error: null
+    accessKeys: { signature: '', publicKey: '', authenticationToken: '' },
+    error: null,
+    errorMessages: [],
   }
 
   try {
@@ -79,9 +80,18 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       poolSide: position === 'hedge' ? 'long': 'hedge',
     }
     const contractPosition = await generalProtocolLPBackend.post('/api/v1/prepareContractPosition', prepareContractPositionData)
+      .catch(error => {
+        if (error) error.name = 'PrepareContractPositionError'
+        return Promise.reject(error)
+      })
+      
 
     const hasLiquidity = contractInputs?.longSats < contractPosition?.data?.availableLiquidityInSatoshis
-    if (!hasLiquidity) throw 'Not enough liquidity to support hedge position'
+    if (!hasLiquidity) {
+      const error = new Error('Not enough liquidity to support hedge position')
+      error.name = 'PrepareContractPositionError'
+      throw error
+    }
 
     const nominalUnits = intent.amount * priceData.priceValue
     const contractCreationParameters = {
@@ -105,18 +115,25 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       contractCreationParameters.longAddress = pubkeys.longAddress
     }
     const localContractData = await manager.createContract(contractCreationParameters)
+      .catch(error => {
+        if (error) error.name = 'ContractCompileError'
+        return Promise.reject(error)
+      })
 
     const proposeContractData = {
       contractCreationParameters,
       contractStartingOracleMessageSequence: priceData.messageSequence
     }
     const proposeContractResponse = await generalProtocolLPBackend.post('/api/v1/proposeContract', proposeContractData)
+      .catch(error => {
+        if (error) error.name = 'ContractProposalError'
+        return Promise.reject(error)
+      })
     response.liquidityFee.fee = proposeContractResponse?.data?.liquidityProviderFeeInSatoshis
     response.liquidityFee.recalculateAfter = proposeContractResponse?.data?.renegotiateAfterTimestamp
 
     // response.long.address = contractCreationParameters.longAddress
     // response.long.pubkey = contractCreationParameters.longPublicKey
-    response.success = true
 
     const contractAccessKeys = await getContractAccessKeys(localContractData.address, privateKey)
     const contractData = await getContractStatus(
@@ -124,13 +141,28 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       contractAccessKeys.signature,
       contractAccessKeys.publicKey,
       _managerConfig,
-    );
-    response.accessKeys = contractAccessKeys
+    ).catch(error => {
+      if (error) error.name = 'ContractStatusError'
+      return Promise.reject(error)
+    })
+    response.accessKeys = {
+      signature: contractAccessKeys.signature,
+      publicKey: contractAccessKeys.publicKey,
+      authenticationToken: _managerConfig.authenticationToken,
+    }
     response.contractData = contractData
+    response.success = true
   } catch(error) {
     console.error(error)
+    let errors = []
+    if (typeof error?.response?.data === 'string') errors = [error?.response?.data]
+    else if (typeof error?.response?.data?.error === 'string') errors = [error?.response?.data?.error]
+    else if (Array.isArray(error?.response?.data?.errors)) errors = error?.response?.data?.errors
+    else if(typeof error === 'string') errors = [error]
+    else if(typeof error?.message === 'string') errors = [error?.message]
     response.success = false
     response.error = error
+    response.errorMessages = errors
   } finally {
     return response
   }
@@ -155,8 +187,10 @@ export async function getOrFindUtxo(amount, wallet, addressSet) {
     fundingUtxo.amount = utxo.value
     fundingUtxo.address_path = utxo.address_path
   } else {
-    const { txid, dependencyTxids } = await createUtxo(amount, addressSet.receiving, addressSet.change, wallet)
-
+    const { success, error, txid, dependencyTxids } = await createUtxo(amount, addressSet.receiving, addressSet.change, wallet)
+    if (!success) {
+      throw new Error(error || 'Encountered error in generating funding utxo')
+    }
     fundingUtxo.txid = txid
     fundingUtxo.vout = 0
     fundingUtxo.amount = amount
@@ -196,7 +230,13 @@ async function createUtxo(amount, recipient, changeAddress, wallet) {
   const result = await wallet.BCH.watchtower.BCH.send(data)
   if (!result?.success) {
     response.success = false
-    response.error = result?.error || 'Error generating transaction'
+    if (result.error.indexOf('not enough balance in sender') > -1) {
+      response.error = 'Not enough balance to cover the send amount and transaction fee'
+    } else if (result.error.indexOf('has insufficient priority') > -1) {
+      response.error = 'Not enough balance to cover the transaction fee'
+    } else {
+      response.error = result?.error || 'Error generating transaction'
+    }
     return response
   }
 
@@ -211,12 +251,13 @@ async function createUtxo(amount, recipient, changeAddress, wallet) {
   response.txid = decodedTx.hash
 
   const broadcastResponse = await wallet.BCH.watchtower.BCH.broadcastTransaction(result.transaction)
-  if (!broadcastResponse?.sucess) {
+  if (!broadcastResponse?.data?.success) {
     response.success = false
-    response.error = broadcastResponse?.error || 'Error in broadcasting transaction'
+    response.error = broadcastResponse?.data?.error || 'Error in broadcasting transaction'
     return response
   }
 
+  response.success = true
   return response
 }
 

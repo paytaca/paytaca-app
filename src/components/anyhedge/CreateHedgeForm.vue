@@ -1,11 +1,19 @@
 <template>
   <q-form @submit="createHedgePosition()" class="q-gutter-y-md" ref="form" @validation-error="alertError">
-    <q-banner v-if="errors.length > 0" dense rounded class="text-white bg-red q-my-sm">
-      <ul class="q-pl-md">
-        <li v-for="(error, index) in errors" :key="index">
+    <q-banner v-if="errors.length > 0 || mainError" dense rounded class="text-white bg-red q-my-sm">
+      <div v-if="mainError" class="q-px-sm q-mt-xs">
+        {{ mainError }}
+      </div>
+      <div class="q-ma-sm q-pa-sm rounded-borders">
+        <div v-for="(error, index) in errors" :key="index" style="word-break:break-word;" class="text-caption">
+          [{{index + 1}}] {{ error }}
+        </div>
+      </div>
+      <!-- <ul class="q-pl-sm">
+        <li v-for="(error, index) in errors" :key="index" style="word-break:break-word;" class="text-caption">
           {{ error }}
         </li>
-      </ul>
+      </ul> -->
     </q-banner>
 
     <div class="row items-center">
@@ -16,6 +24,36 @@
           <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
             {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
           </template>
+          <q-icon :color="darkMode ? 'grey-7' : 'black'" size="sm" name="info">
+          </q-icon>
+          <q-popup-proxy :breakpoint="0">
+            <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+              <div class="q-py-xs">
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Asset Name</div>
+                <span>
+                  {{ createHedgeForm.selectedAsset?.assetName }}
+                </span>
+              </div>
+              <div
+                class="q-py-xs"
+                style="position:relative;"
+                v-ripple
+                @click="copyText(createHedgeForm.selectedAsset?.oraclePubkey)"
+              >
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Oracle Pubkey</div>
+                <span class="row items-center no-wrap">
+                  {{ ellipsisText(createHedgeForm.selectedAsset?.oraclePubkey, { start: 10, end: 10 }) }}
+                  <q-icon name="content_copy" class="q-ml-xs"/>
+                </span>
+              </div>
+              <div v-if="Number.isFinite(createHedgeForm.selectedAsset?.latestPrice?.messageTimestamp)" class="q-py-xs">
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Price timestamp</div>
+                <span>
+                  {{ formatTimestampToText(createHedgeForm.selectedAsset?.latestPrice?.messageTimestamp * 1000) }}
+                </span>
+              </div>
+            </div>
+          </q-popup-proxy>
         </div>
         <div v-if="spendableBch !== null">
           Balance:
@@ -34,7 +72,7 @@
         icon="refresh"
         class="q-mx-xs"
         padding="xs"
-        @click="clearCreateHedgeForm()"
+        @click="clearCreateHedgeForm({ clearErrors: true })"
       />
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
@@ -65,7 +103,7 @@
         :rules="[
           val => val > 0 || 'Invalid amount',
           val => spendableBch === null || val <= spendableBch || `Exceeding balance ${spendableBch} BCH`,
-          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires atleast ${createHedgeFormConstraints.minimumAmount} BCH`,
+          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${createHedgeFormConstraints.minimumAmount} BCH`,
           val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
         ]"
         class="q-space"
@@ -104,8 +142,8 @@
       reactive-rules
       :rules="[
         val => val >= 0 || 'Invalid duration',
-        (val, units) => val >= createHedgeFormConstraints.minimumDuration || `Must atleast be ${createHedgeFormConstraints.minimumDuration/ units.value} ${units.label}`,
-        (val, units) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${createHedgeFormConstraints.maximumAmount/ units.value} ${units.label}`,
+        (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must at least be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
+        (val, units, formatValue) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`,
       ]"
     />
     <div class="row no-wrap q-gutter-x-sm">
@@ -120,9 +158,8 @@
         v-model="createHedgeForm.lowLiquidationMultiplierPctg"
         reactive-rules
         :rules="[
-          val => (val > 0 && val < 100) || 'Invalid',
-          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must atleast be ${createHedgeFormConstraints.minimumLiquidationLimit * 100} %`,
-          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must at most be ${createHedgeFormConstraints.maximumLiquidationLimit * 100} %`,
+          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must be at least ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
+          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must be at most ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
         ]"
       >
         <template v-slot:hint>
@@ -141,7 +178,8 @@
         inputmode="numeric"
         v-model="createHedgeForm.highLiquidationMultiplierPctg"
         :rules="[
-          val => (val > 100) || 'Invalid'
+          val => (val > 100) || 'Must be greater than 100%',
+          val => (val <= 1000) || 'Must not be higher than 1000%'
         ]"
       >
         <template v-slot:hint>
@@ -217,10 +255,10 @@
 </template>
 <script setup>
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
-import { parseHedgePositionData } from '../../wallet/anyhedge/formatters'
+import { parseHedgePositionData, ellipsisText, formatTimestampToText } from '../../wallet/anyhedge/formatters'
 import { calculateGeneralProtocolsLPFee, createFundingProposal } from '../../wallet/anyhedge/funding'
 import { Wallet } from 'src/wallet';
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
@@ -236,6 +274,17 @@ const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const $emit = defineEmits(['created', 'cancel'])
+
+const $copyText = inject('$copyText')
+function copyText(value, message='') {
+  $copyText(value)
+  $q.notify({
+    color: 'blue-9',
+    message: message || 'Copied to clipboard',
+    icon: 'mdi-clipboard-check',
+    timeout: 200
+  })
+}
 
 const props = defineProps({
   wallet: Wallet,
@@ -277,7 +326,7 @@ const createHedgeForm = ref({
   amount: 0.0,
   duration: 4 * 3600,
   lowLiquidationMultiplierPctg: 0.8 * 100,
-  highLiquidationMultiplierPctg: 10 * 100,
+  highLiquidationMultiplierPctg: 5 * 100,
   selectedAsset: oracles.value[0],
 
   autoMatch: true,
@@ -345,14 +394,19 @@ async function updateSpendableBalance() {
 }
 
 const form = ref(null)
-async function clearCreateHedgeForm() {
+async function clearCreateHedgeForm(opts) {
   createHedgeForm.value.amount = 0
   createHedgeForm.value.duration = 0
   createHedgeForm.value.lowLiquidationMultiplierPctg = 0.8 * 100
-  createHedgeForm.value.highLiquidationMultiplierPctg = 10 * 100
+  createHedgeForm.value.highLiquidationMultiplierPctg = 5 * 100
   createHedgeForm.value.selectedAsset = oracles.value[0]
   createHedgeForm.value.autoMatch = true
   createHedgeForm.value.autoMatchPoolTarget = 'anyhedge_LP'
+
+  if (opts?.clearErrors) {
+    mainError.value = ''
+    errors.value = []
+  }
 
   await nextTick()
   form.value.resetValidation()
@@ -368,7 +422,7 @@ const createHedgeFormConstraints = computed(() => {
     minimumLiquidationLimit: 0,
     maximumLiquidationLimit: Infinity,
     minimumAmount: 0,
-    maximumAmount: Infinity,
+    maximumAmount: Infinity
   }
 
   const { autoMatch, autoMatchPoolTarget, selectedAsset } = createHedgeForm.value
@@ -388,6 +442,7 @@ const createHedgeFormConstraints = computed(() => {
 
 const loading = ref(false)
 const loadingMsg = ref('')
+const mainError = ref('')
 const errors = ref([])
 
 async function getAddressesFromStore() {
@@ -436,7 +491,8 @@ async function getAddresses() {
     response.success = true
     return response
   } catch(error) {
-    errors.value = ['Error generating addresses']
+    mainError.value = 'Error generating addresses'
+    errors.value = []
     response.error = error
     response.success = false
     return response
@@ -481,7 +537,7 @@ async function createHedgePosition() {
     autoMatch: createHedgeForm.value.autoMatch,
     autoMatchPoolTarget: createHedgeForm.value.autoMatchPoolTarget,
     // necessary when using settlement service, they serve as credentials to gain access to the contract
-    accessKeys: { publicKey: '', signature: '' },
+    accessKeys: { publicKey: '', signature: '', authenticationToken: '' },
   }
 
   const priceData = { oraclePubkey: '', priceValue: 0, messageTimestamp: 0, messageSequence: 0 }
@@ -509,7 +565,8 @@ async function createHedgePosition() {
 
   // limit long positions to GP LP for now
   if (position === 'long' && (!misc.autoMatch || misc.autoMatchPoolTarget !== 'anyhedge_LP')) {
-    errors.value = ['Creating long positions are only available for General Protocol LP']
+    mainError.value = 'Creating long positions are only available for General Protocol LP'
+    errors.value = []
     loading.value = false
     loadingMsg.value = ''
     return
@@ -527,6 +584,7 @@ async function createHedgePosition() {
 
       misc.accessKeys.publicKey = generalProtocolsLPFeeResponse.accessKeys.publicKey
       misc.accessKeys.signature = generalProtocolsLPFeeResponse.accessKeys.signature
+      misc.accessKeys.authenticationToken = generalProtocolsLPFeeResponse.accessKeys.authenticationToken
       if (position === 'hedge') {
         pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longAddress
         pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.metadata.longPublicKey
@@ -547,7 +605,21 @@ async function createHedgePosition() {
       funding.prepareFunding = true
     } catch(error) {
       console.error(error)
-      errors.value = [ typeof error?.error === 'string' ? error.error: 'Error calculating contract fees' ]
+      mainError.value = 'Error calculating contract fees'
+
+      if (error?.error?.name === 'PrepareContractPositionError')
+        mainError.value = 'Encountered error in preparing contract position'
+      if (error?.error?.name === 'ContractCompileError')
+        mainError.value = 'Encountered error in compiling contract'
+      if (error?.error?.name === 'ContractProposalError')
+        mainError.value = 'Encountered error in contract proposal'
+      if (error?.error?.name === 'ContractStatusError')
+        mainError.value = 'Encountered error in fetching contract status'
+
+      errors.value = typeof error?.error === 'string' ? [error.error]: []
+      if (Array.isArray(error?.errorMessages) && error?.errorMessages?.length) {
+        errors.value = error?.errorMessages
+      }
       return
     } finally {
       loading.value = false
@@ -565,7 +637,8 @@ async function createHedgePosition() {
     await dialogPromise({component: SecurityCheckDialog})
   } catch(error) {
     console.error(error)
-    errors.value = ['Security check failed']
+    mainError.value = 'Security check failed'
+    errors.value = []
     return
   } finally {
     loading.value = false
@@ -580,7 +653,8 @@ async function createHedgePosition() {
       if (!pubkeys.longAddress || !pubkeys.longPubkey ||
         !priceData.oraclePubkey || !priceData.priceValue || !priceData.messageTimestamp || !priceData.messageSequence
       ) {
-        errors.value = ['Unable to create funding utxo due to incomplete data']
+        mainError.value = 'Unable to create funding utxo due to incomplete data'
+        errors.value = []
         return
       }
 
@@ -617,7 +691,13 @@ async function createHedgePosition() {
       funding.contractData = contractData
     } catch(error) {
       console.error(error)
-      errors.value = ['Encountered error in preparing funding transaction']
+      mainError.value = 'Encountered error in preparing funding transaction'
+      errors.value = []
+      if (typeof error?.response?.data === 'string') errors.value = [error?.response?.data]
+      else if (typeof error?.response?.data?.error === 'string') errors.value = [error?.response?.data?.error]
+      else if (Array.isArray(error?.response?.data?.errors)) errors.value = error?.response?.data?.errors
+      else if(typeof error === 'string') errors.value = [error]
+      else if(typeof error?.message === 'string') errors.value = [error?.message]
       return
 
     } finally {
@@ -666,6 +746,7 @@ async function createHedgePosition() {
       port: liquidityServiceInfo.value?.settlementService?.port,
       hedge_signature: position === 'hedge' ? misc.accessKeys.signature : undefined,
       long_signature: position === 'long' ? misc.accessKeys.signature : undefined,
+      auth_token: misc.accessKeys.authenticationToken || undefined,
     },
     funding_proposal: {
       tx_hash: funding.fundingProposal.txHash,
@@ -713,6 +794,7 @@ async function createHedgePosition() {
         else emitData.hedgePosition = response.data
         $emit('created', emitData)
         clearCreateHedgeForm()
+        mainError.value = ''
         errors.value = []
         return Promise.resolve(response)
       }
@@ -720,11 +802,16 @@ async function createHedgePosition() {
     })
     .catch(error => {
       console.log(error)
-      let errorMsg = 'Encountered Msg creating contract'
+      let errorMsg = 'Encountered error creating contract'
       if (position === 'hedge') errorMsg = 'Encountered error in creating hedge position'
       if (position === 'long') errorMsg = 'Encountered error in creating long position'
       if (isResponseOffer) errorMsg += ' offer'
-      errors.value = [errorMsg]
+      mainError.value = errorMsg
+      errors.value = []
+      if (typeof error?.response?.data == 'string') errors.value = [error?.response?.data]
+      if (typeof error?.response?.data?.detail == 'string') errors.value = [error?.response?.data?.detail]
+      if (Array.isArray(error?.response?.data)) errors.value = error?.response?.data
+      if (Array.isArray(error?.response?.data?.detail)) errors.value = error?.response?.data?.detail
     })
     .finally(() => {
       loading.value = false

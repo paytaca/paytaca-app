@@ -29,18 +29,20 @@
 import { ref, watch, onMounted, computed } from 'vue';
 import { useFormChild } from 'quasar'
 
-
 const $emit = defineEmits(['update:modelValue'])
 
 const props = defineProps({
   modelValue: Number,
-
   dense: Boolean,
   outlined: Boolean,
   dark: Boolean,
   disable: Boolean,
   label: String,
   rules: Array,
+  // rules is an array of functions that accept parameters:
+  //   - modelValue - Number
+  //   - modelValueUnit - { label:String, value:Number }
+  //   - formatValue - Function(Number)
 })
 watch(
   () => props.modelValue,
@@ -49,33 +51,45 @@ watch(
 )
 
 const unitOptions = ref([
-  {label: 'minutes', value: 60},
-  {label: 'hours', value: 3600},
-  {label: 'days', value: 86400},
-  {label: 'weeks', value: 86400 * 7},
-  {label: '~months', value: 86400 * 30},
+  { label: 'minutes', singular: 'minute', value: 60 },
+  { label: 'hours', singular: 'hour', value: 3600 },
+  { label: 'days', singular: 'day', value: 86400 },
+  { label: 'weeks', singular: 'week', value: 86400 * 7 },
+  { label: 'months', singular: 'month', value: 86400 * 30 }
 ])
 
-const innerModelValue = ref({amount: 0, units: unitOptions.value[1] })
+const innerModelValue = ref({ amount: 0, units: unitOptions.value[1] })
 const innerAtomicValue = computed(() => innerModelValue.value.amount * innerModelValue.value.units.value)
 watch(
-  () => innerAtomicValue.value, 
-  () => $emit('update:modelValue', innerAtomicValue.value),
+  () => innerAtomicValue.value,
+  () => $emit('update:modelValue', innerAtomicValue.value)
 )
 
-function selectBestUnits() {
-  let defaultUnit = unitOptions.value[1];
-  if (props.modelValue.value > 0) {
-    for (var i = unitOptions.value.length-1; i >= 0; i--) {
+function __selectBestUnits (value) {
+  let defaultUnit = unitOptions.value[1]
+  if (value > 0) {
+    for (let i = unitOptions.value.length - 1; i >= 0; i--) {
       const unit = unitOptions.value[i]
-      if (props.modelValue % unit.value === 0) return unit
-      if (props.modelValue < unit.value) defaultUnit = unit
+      if (value % unit.value === 0) return unit
+      if (value < unit.value) defaultUnit = unit
     }
   }
-
   return defaultUnit
 }
-function syncModelValueToInner(updateUnit=true) {
+function selectBestUnits () {
+  return __selectBestUnits(props.modelValue)
+}
+function formatValue (value) {
+  const unit = __selectBestUnits(value)
+  const formattedValue = value / unit.value
+  if (formattedValue === 1) {
+    return `${formattedValue} ${unit.singular}`
+  } else {
+    return `${formattedValue} ${unit.label}`
+  }
+}
+
+function syncModelValueToInner (updateUnit = true) {
   const unit = updateUnit ? selectBestUnits() : innerModelValue.value.units
   innerModelValue.value.amount = (props.modelValue || 0) / unit.value
   innerModelValue.value.units = unit
@@ -88,7 +102,7 @@ function validate() {
   if (!Array.isArray(props?.rules)) return true
 
   const ruleResponses = props.rules.map(rule => {
-    if (typeof rule === 'function') return rule(innerAtomicValue.value, innerModelValue.value.units)
+    if (typeof rule === 'function') return rule(innerAtomicValue.value, innerModelValue.value.units, formatValue)
     return rule
   })
   const hasPromise = ruleResponses.some(ruleResponse => ruleResponse?.constructor === Promise)
@@ -104,7 +118,7 @@ function validate() {
   errors.value = ruleResponses.filter(resp => resp !== true)
   return !hasErrors.value
 }
-function resetValidation() {
+function resetValidation () {
   errors.value = []
 }
 watch(() => innerAtomicValue.value, () => validate())
