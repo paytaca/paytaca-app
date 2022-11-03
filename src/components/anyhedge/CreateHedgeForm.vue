@@ -158,9 +158,8 @@
         v-model="createHedgeForm.lowLiquidationMultiplierPctg"
         reactive-rules
         :rules="[
-          val => (val > 0 && val < 100) || 'Invalid',
-          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must at least be ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
-          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must at most be ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
+          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must be at least ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
+          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must be at most ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
         ]"
       >
         <template v-slot:hint>
@@ -179,7 +178,8 @@
         inputmode="numeric"
         v-model="createHedgeForm.highLiquidationMultiplierPctg"
         :rules="[
-          val => (val > 100 && val < 1000) || 'Invalid'
+          val => (val > 100) || 'Must be greater than 100%',
+          val => (val <= 1000) || 'Must not be higher than 1000%'
         ]"
       >
         <template v-slot:hint>
