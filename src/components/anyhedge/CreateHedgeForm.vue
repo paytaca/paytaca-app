@@ -103,7 +103,7 @@
         :rules="[
           val => val > 0 || 'Invalid amount',
           val => spendableBch === null || val <= spendableBch || `Exceeding balance ${spendableBch} BCH`,
-          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires atleast ${createHedgeFormConstraints.minimumAmount} BCH`,
+          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${createHedgeFormConstraints.minimumAmount} BCH`,
           val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
         ]"
         class="q-space"
@@ -142,7 +142,7 @@
       reactive-rules
       :rules="[
         val => val >= 0 || 'Invalid duration',
-        (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must atleast be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
+        (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must at least be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
         (val, units, formatValue) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`,
       ]"
     />
@@ -159,8 +159,8 @@
         reactive-rules
         :rules="[
           val => (val > 0 && val < 100) || 'Invalid',
-          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must atleast be ${createHedgeFormConstraints.minimumLiquidationLimit * 100} %`,
-          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must at most be ${createHedgeFormConstraints.maximumLiquidationLimit * 100} %`,
+          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must at least be ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
+          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must at most be ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
         ]"
       >
         <template v-slot:hint>
@@ -422,7 +422,7 @@ const createHedgeFormConstraints = computed(() => {
     minimumLiquidationLimit: 0,
     maximumLiquidationLimit: Infinity,
     minimumAmount: 0,
-    maximumAmount: Infinity,
+    maximumAmount: Infinity
   }
 
   const { autoMatch, autoMatchPoolTarget, selectedAsset } = createHedgeForm.value
