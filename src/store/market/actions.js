@@ -228,7 +228,6 @@ export async function updateUsdRates (context, { currency, priceDataAge }) {
       const usdRate = context.state?.usdRates?.[currency]
       const lastUpdate = context.state.usdRatesLastUpdate?.[currency]
       if (isFinite(usdRate) && isFinite(lastUpdate) && Date.now() - priceDataAge < lastUpdate) {
-        console.log('here')
         return [{ symbol: String(currency), rate: usdRate, timestamp: lastUpdate }]
       }
     }

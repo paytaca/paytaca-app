@@ -218,6 +218,14 @@
 
         <div v-if="settled">
           <div class="text-grey text-subtitle1">Settlement</div>
+          <div
+            v-if="settlementMetadata.settlementTimestamp > 0"
+            class="text-caption text-grey row items-center"
+            style="margin-top:-0.5em"
+          >
+            {{ formatTimestampToText(settlementMetadata.settlementTimestamp * 1000) }}
+            <q-icon name="schedule" class="q-ml-xs"/>
+          </div>
           <div v-if="settlementMetadata.txid" class="row items-center now-wrap q-pr-sm">
             <div @click="copyText(settlementMetadata.txid)" v-ripple style="position:relative;" class="text-body2 q-space">
               Transaction: {{ ellipsisText(settlementMetadata.txid, {start: 5, end: 10}) }}
