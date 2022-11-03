@@ -80,9 +80,18 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       poolSide: position === 'hedge' ? 'long': 'hedge',
     }
     const contractPosition = await generalProtocolLPBackend.post('/api/v1/prepareContractPosition', prepareContractPositionData)
+      .catch(error => {
+        if (error) error.name = 'PrepareContractPositionError'
+        return Promise.reject(error)
+      })
+      
 
     const hasLiquidity = contractInputs?.longSats < contractPosition?.data?.availableLiquidityInSatoshis
-    if (!hasLiquidity) throw 'Not enough liquidity to support hedge position'
+    if (!hasLiquidity) {
+      const error = new Error('Not enough liquidity to support hedge position')
+      error.name = 'PrepareContractPositionError'
+      throw error
+    }
 
     const nominalUnits = intent.amount * priceData.priceValue
     const contractCreationParameters = {
@@ -106,18 +115,25 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       contractCreationParameters.longAddress = pubkeys.longAddress
     }
     const localContractData = await manager.createContract(contractCreationParameters)
+      .catch(error => {
+        if (error) error.name = 'ContractCompileError'
+        return Promise.reject(error)
+      })
 
     const proposeContractData = {
       contractCreationParameters,
       contractStartingOracleMessageSequence: priceData.messageSequence
     }
     const proposeContractResponse = await generalProtocolLPBackend.post('/api/v1/proposeContract', proposeContractData)
+      .catch(error => {
+        if (error) error.name = 'ContractProposalError'
+        return Promise.reject(error)
+      })
     response.liquidityFee.fee = proposeContractResponse?.data?.liquidityProviderFeeInSatoshis
     response.liquidityFee.recalculateAfter = proposeContractResponse?.data?.renegotiateAfterTimestamp
 
     // response.long.address = contractCreationParameters.longAddress
     // response.long.pubkey = contractCreationParameters.longPublicKey
-    response.success = true
 
     const contractAccessKeys = await getContractAccessKeys(localContractData.address, privateKey)
     const contractData = await getContractStatus(
@@ -125,13 +141,17 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       contractAccessKeys.signature,
       contractAccessKeys.publicKey,
       _managerConfig,
-    );
+    ).catch(error => {
+      if (error) error.name = 'ContractStatusError'
+      return Promise.reject(error)
+    })
     response.accessKeys = {
       signature: contractAccessKeys.signature,
       publicKey: contractAccessKeys.publicKey,
       authenticationToken: _managerConfig.authenticationToken,
     }
     response.contractData = contractData
+    response.success = true
   } catch(error) {
     console.error(error)
     let errors = []

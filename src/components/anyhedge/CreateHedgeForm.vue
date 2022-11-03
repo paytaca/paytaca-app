@@ -606,6 +606,16 @@ async function createHedgePosition() {
     } catch(error) {
       console.error(error)
       mainError.value = 'Error calculating contract fees'
+
+      if (error?.error?.name === 'PrepareContractPositionError')
+        mainError.value = 'Encountered error in preparing contract position'
+      if (error?.error?.name === 'ContractCompileError')
+        mainError.value = 'Encountered error in compiling contract'
+      if (error?.error?.name === 'ContractProposalError')
+        mainError.value = 'Encountered error in contract proposal'
+      if (error?.error?.name === 'ContractStatusError')
+        mainError.value = 'Encountered error in fetching contract status'
+
       errors.value = typeof error?.error === 'string' ? [error.error]: []
       if (Array.isArray(error?.errorMessages) && error?.errorMessages?.length) {
         errors.value = error?.errorMessages
