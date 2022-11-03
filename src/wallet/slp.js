@@ -33,6 +33,28 @@ export class SlpWallet {
     return bchjs.HDNode.toXPub(childNode)
   }
 
+  /**
+   * 
+   * @param {Object} opts 
+   * @param {Boolean} opts.with_tx
+   * @param {Boolean} opts.exclude_pos
+   * @param {Number} opts.posid
+   */
+   async getLastAddressIndex(opts) {
+    const _params = {
+      with_tx: opts?.with_tx || false,
+      exclude_pos: opts?.exclude_pos || false,
+      posid: opts?.posid || undefined,
+    }
+    const apiResponse = await this.watchtower.BCH._api.get(
+      `last-address-index/wallet/${this.getWalletHash()}/`,
+      { params: _params },
+    )
+    if (Number.isInteger(apiResponse?.data?.address?.address_index)) {
+      return apiResponse.data.address.address_index
+    }
+  }
+
   async getNewAddressSet (index) {
     const masterHDNode = await this._getMasterHDNode()
     const childNode = masterHDNode.derivePath(this.derivationPath)
