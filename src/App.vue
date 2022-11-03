@@ -3,6 +3,7 @@
 </template>
 
 <script>
+import { getMnemonic, Wallet } from './wallet'
 
 export default {
   name: 'App',
@@ -11,7 +12,76 @@ export default {
       assetPricesUpdateIntervalId: null
     }
   },
+  methods: {
+    async resubscribeBCHAddresses() {
+      const mnemonic = await getMnemonic()
+      const wallet = new Wallet(mnemonic, 'BCH')
+      let resubscriptionInfo = { completed: false, lastIndex: -1 }
+      try {
+        const _raw = localStorage.getItem('bchResubscribe')
+        if (_raw) resubscriptionInfo = JSON.parse(_raw)
+      } catch(error) {}
+
+      // abort resubscription if completed
+      if (resubscriptionInfo.completed) return
+
+      let lastBCHIndex = 0
+      try {
+        lastBCHIndex = await wallet.BCH.getLastAddressIndex({ exclude_pos: true, with_tx: true })
+        if (!Number.isInteger(lastBCHIndex)) throw new TypeError('Invalid index')
+      } catch(error) {
+        lastBCHIndex = this.$store.getters['global/getWallet']('bch')?.lastAddressIndex
+      }
+
+      try {
+        // added iterator 'ctr' to cap index to 50 
+        for (var i = resubscriptionInfo.lastIndex+1, ctr = 0; i <= lastBCHIndex && ctr < 50; i++, ctr++) {
+          await wallet.BCH.getNewAddressSet(i)
+          resubscriptionInfo.lastIndex = i
+        }
+        resubscriptionInfo.completed = true
+      } finally {
+        localStorage.setItem('bchResubscribe', JSON.stringify(resubscriptionInfo))
+      }
+    },
+    async resubscribeSLPAddresses() {
+      const mnemonic = await getMnemonic()
+      const wallet = new Wallet(mnemonic, 'BCH')
+      let resubscriptionInfo = { completed: false, lastIndex: -1 }
+      try {
+        const _raw = localStorage.getItem('slpResubscribe')
+        if (_raw) resubscriptionInfo = JSON.parse(_raw)
+      } catch(error) {}
+
+      // abort resubscription if completed
+      if (resubscriptionInfo.completed) return
+
+      let lastSLPIndex = 0
+      try {
+        lastSLPIndex = await wallet.SLP.getLastAddressIndex({ exclude_pos: true, with_tx: true })
+        if (!Number.isInteger(lastSLPIndex)) throw new TypeError('Invalid index')
+      } catch(error) {
+        lastSLPIndex = this.$store.getters['global/getWallet']('slp')?.lastAddressIndex
+      }
+
+      try {
+        // added iterator 'ctr' to cap index to 50
+        for (var i = resubscriptionInfo.lastIndex+1, ctr = 0; i <= lastSLPIndex && ctr < 50; i++, ctr++) {
+          await wallet.SLP.getNewAddressSet(i)
+          resubscriptionInfo.lastIndex = i
+        }
+        resubscriptionInfo.completed = true
+      } finally {
+        localStorage.setItem('slpResubscribe', JSON.stringify(resubscriptionInfo))
+      }
+    },
+    async resubscribeAddresses() {
+      this.resubscribeBCHAddresses()
+      this.resubscribeSLPAddresses()
+    }
+  },
   mounted () {
+    this.resubscribeAddresses()
     const vm = this
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
