@@ -26,6 +26,22 @@
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
                   </q-item-section>
                 </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>UTXO Scan</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">
+                      <q-btn
+                        no-caps
+                        :disable="scanningBchUtxos"
+                        :loading="scanningBchUtxos"
+                        label="Scan"
+                        @click="scanBCHUtxos()"
+                      />
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
               </q-list>
             </div>
           </div>
@@ -49,6 +65,22 @@
                   <q-item-section>
                     <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Wallet Hash</q-item-label>
                     <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>UTXO Scan</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">
+                      <q-btn
+                        no-caps
+                        :disable="scanningSlpUtxos"
+                        :loading="scanningSlpUtxos"
+                        label="Scan"
+                        @click="scanSLPUtxos()"
+                      />
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -145,10 +177,11 @@
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
-import { getMnemonic } from '../../wallet'
+import { getMnemonic, Wallet } from '../../wallet'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import packageInfo from '../../../package.json'
 import { Plugins } from '@capacitor/core'
+import { markRaw } from '@vue/reactivity'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -167,10 +200,60 @@ export default {
       sbchLnsName: '',
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+
+      wallet: null,
+      scanningBchUtxos: false,
+      scanningSlpUtxos: false,
     }
   },
   methods: {
+    loadWallet () {
+      const vm = this
+      return getMnemonic()
+        .then(function (mnemonic) {
+          const wallet = new Wallet(mnemonic, 'BCH')
+          vm.wallet = markRaw(wallet)
+        })
+    },
+    async scanBCHUtxos() {
+      if (!this.wallet) await this.loadWallet()
+      const walletHash = this.wallet.BCH.getWalletHash()
+
+      this.scanningBchUtxos = true
+      this.wallet.BCH.watchtower.BCH._api.get(`utxo/wallet/${walletHash}/scan/`)
+        .then(() => {
+          this.$q.notify({
+            message: 'Scan complete',
+            caption: 'UTXO scan for BCH wallet complete',
+            closeBtn: true,
+            icon: 'mdi-clipboard-check',
+            color: 'blue-9'
+          })
+        })
+        .finally(() => {
+          this.scanningBchUtxos = false
+        })
+    },
+    async scanSLPUtxos() {
+      if (!this.wallet) await this.loadWallet()
+      const walletHash = this.wallet.SLP.getWalletHash()
+
+      this.scanningSlpUtxos = true
+      this.wallet.BCH.watchtower.BCH._api.get(`utxo/wallet/${walletHash}/scan/`)
+        .then(() => {
+          this.$q.notify({
+            message: 'Scan complete',
+            caption: 'UTXO scan for SLP wallet complete',
+            closeBtn: true,
+            icon: 'mdi-clipboard-check',
+            color: 'blue-9'
+          })
+        })
+        .finally(() => {
+          this.scanningSlpUtxos = false
+        })
+    },
     executeSecurityChecking () {
       const vm = this
       if (vm.showMnemonic === false) {
