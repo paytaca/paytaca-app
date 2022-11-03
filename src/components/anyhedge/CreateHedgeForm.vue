@@ -179,7 +179,7 @@
         inputmode="numeric"
         v-model="createHedgeForm.highLiquidationMultiplierPctg"
         :rules="[
-          val => (val > 100) || 'Invalid'
+          val => (val > 100 && val < 1000) || 'Invalid'
         ]"
       >
         <template v-slot:hint>
@@ -326,7 +326,7 @@ const createHedgeForm = ref({
   amount: 0.0,
   duration: 4 * 3600,
   lowLiquidationMultiplierPctg: 0.8 * 100,
-  highLiquidationMultiplierPctg: 10 * 100,
+  highLiquidationMultiplierPctg: 5 * 100,
   selectedAsset: oracles.value[0],
 
   autoMatch: true,
@@ -398,7 +398,7 @@ async function clearCreateHedgeForm(opts) {
   createHedgeForm.value.amount = 0
   createHedgeForm.value.duration = 0
   createHedgeForm.value.lowLiquidationMultiplierPctg = 0.8 * 100
-  createHedgeForm.value.highLiquidationMultiplierPctg = 10 * 100
+  createHedgeForm.value.highLiquidationMultiplierPctg = 5 * 100
   createHedgeForm.value.selectedAsset = oracles.value[0]
   createHedgeForm.value.autoMatch = true
   createHedgeForm.value.autoMatchPoolTarget = 'anyhedge_LP'
