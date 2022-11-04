@@ -87,7 +87,7 @@
                             <q-btn size="sm" @click="recoverGift(props.row.gift_code_hash)" dense>Recover</q-btn>
                           </q-item-label>
                         </q-item-section>
-                        <q-item-section side style="padding: 10px 0px;">
+                        <q-item-section side style="padding: 10px 0px;" v-if="getQrShare(props.row.gift_code_hash)">
                           <q-item-label caption>
                             <!-- <q-btn size="sm" @click="$router.push({ name: 'show-qr'})" dense>Show QR</q-btn> -->
                             <q-btn size="sm" @click="showQr(props.row.gift_code_hash)" dense>Show QR</q-btn>
@@ -179,7 +179,8 @@ export default {
       walletHash: this.getWallet('bch').walletHash,
       response: null,
       columns,
-      rows
+      rows,
+      qrConfirm: false
     }
   },
 
@@ -261,14 +262,17 @@ export default {
     },
     showQr (giftCodeHash) {
       // const localShare = this.getQrShare(giftCodeHash)
+      const vm = this
       this.$router.push(
         {
           name: 'show-qr',
           query: {
+            actionProp: 'showQr',
             giftCodeHash: giftCodeHash
           }
         }
       )
+      vm.qrConfirm = true
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)

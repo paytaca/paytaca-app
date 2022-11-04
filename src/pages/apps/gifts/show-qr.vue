@@ -41,6 +41,10 @@ export default {
   name: 'Gift-showQr',
   components: { HeaderNav },
   props: {
+    actionProp: {
+      type: String,
+      default: 'showQr'
+    },
     uri: {
       type: String,
       default: ''
