@@ -3,3 +3,8 @@ export function getGiftShare (state) {
     return state.gifts[giftCodeHash]
   }
 }
+export function getQrShare (state) {
+  return function (giftCodeHash) {
+    return state.qr[giftCodeHash]
+  }
+}
