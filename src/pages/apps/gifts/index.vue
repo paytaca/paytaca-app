@@ -89,7 +89,8 @@
                         </q-item-section>
                         <q-item-section side style="padding: 10px 0px;">
                           <q-item-label caption>
-                            <q-btn size="sm" @click="$router.push({ name: 'show-qr'})" dense>Show QR</q-btn>
+                            <!-- <q-btn size="sm" @click="$router.push({ name: 'show-qr'})" dense>Show QR</q-btn> -->
+                            <q-btn size="sm" @click="showQr(props.row.gift_code_hash)" dense>Show QR</q-btn>
                           </q-item-label>
                         </q-item-section>
                       </template>
@@ -166,7 +167,7 @@ export default {
   setup () {
     return {
       pageNumber: {
-        rowsPerPage: 10
+        rowsPerPage: 20
       },
       label: 'Filter'
     }
@@ -181,9 +182,8 @@ export default {
       rows
     }
   },
+
   methods: {
-    showQr () {
-    },
     claim () {
       const vm = this
       vm.label = 'Claimed'
@@ -214,13 +214,11 @@ export default {
           const rowArray = vm.rows
           const storeRow = []
           for (let i = 0; i < vm.rows.length; i++) {
-            // console.log(rowArray[i].date_claimed)
             if (rowArray[i].date_claimed === 'None') {
               storeRow.push(rowArray[i])
             }
           }
           vm.rows = storeRow
-          // console.log(vm.storeRow)
         }
       })
     },
@@ -231,6 +229,7 @@ export default {
       axios.get(url).then(function (response) {
         if (response.status === 200) {
           vm.rows = response.data.gifts
+          // console.log(vm.rows)
           for (let i = 0; i < vm.rows.length; i++) {
             const gift = vm.rows[i]
             // console.log(vm.rows[i].date_claimed)
@@ -243,6 +242,9 @@ export default {
     },
     getGiftShare (giftCodeHash) {
       return this.$store.getters['gifts/getGiftShare'](giftCodeHash)
+    },
+    getQrShare (giftCodeHash) {
+      return this.$store.getters['gifts/getQrShare'](giftCodeHash)
     },
     recoverGift (giftCodeHash) {
       const localShare = this.getGiftShare(giftCodeHash)
@@ -257,6 +259,17 @@ export default {
         }
       )
     },
+    showQr (giftCodeHash) {
+      // const localShare = this.getQrShare(giftCodeHash)
+      this.$router.push(
+        {
+          name: 'show-qr',
+          query: {
+            giftCodeHash: giftCodeHash
+          }
+        }
+      )
+    },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     }
@@ -265,6 +278,7 @@ export default {
     // this.getItemsWithSort()
     // this.getItems()
     this.getRows()
+    // console.log(this.getGiftShare(this.giftCodeHash))
   }
 }
 </script>
