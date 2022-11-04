@@ -159,7 +159,7 @@ export default {
     },
     sendAmountMarketValue () {
       const parsedAmount = Number(this.amountBCH)
-      console.log(parsedAmount)
+      // console.log(parsedAmount)
       if (!parsedAmount) return ''
       if (!this.selectedAssetMarketPrice) return ''
       const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
@@ -184,7 +184,7 @@ export default {
       const secret = Buffer.from(wif)
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
       const shares = stateShare.map((share) => { return toHex(share) })
-
+      // console.log(shares)
       vm.giftCodeHash = sha256(shares[0])
       const payload = {
         gift_code_hash: vm.giftCodeHash,
@@ -213,6 +213,7 @@ export default {
             if (result.success) {
               vm.processing = false
               vm.$store.dispatch('gifts/saveGift', { giftCodeHash: vm.giftCodeHash, share: shares[2] })
+              vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: shares[0] })
               vm.completed = true
             }
           })

@@ -12,13 +12,13 @@
         style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
         class="q-px-sm"
       />
-      <div class="row" style="margin-top: 50px;">
+      <div class="row" style="margin-top: 50px;" >
         <div class="col q-mt-sm q-pl-lg q-pr-lg q-pb-none flex" style="font-size: 16px; color: #444655;">
           <p :class="{'text-white': darkMode}">Choose one</p>
           <!-- {{ this.walletHash }} -->
         </div>
       </div>
-      <div class="row justify-center">
+      <div class="row justify-center" >
         <div @click="$router.push({ name: 'create-gift'})" role="button" class="col-6 q-pl-lg q-mb-sm round" style="height: 50px; width: 150px">
           <q-btn color="primary">Create Gift</q-btn>
         </div>
@@ -87,6 +87,12 @@
                             <q-btn size="sm" @click="recoverGift(props.row.gift_code_hash)" dense>Recover</q-btn>
                           </q-item-label>
                         </q-item-section>
+                        <q-item-section side style="padding: 10px 0px;" v-if="getQrShare(props.row.gift_code_hash)">
+                          <q-item-label caption>
+                            <!-- <q-btn size="sm" @click="$router.push({ name: 'show-qr'})" dense>Show QR</q-btn> -->
+                            <q-btn size="sm" @click="showQr(props.row.gift_code_hash)" dense>Show QR</q-btn>
+                          </q-item-label>
+                        </q-item-section>
                       </template>
                     </template>
                     <template v-else>
@@ -104,9 +110,8 @@
           </template>
         </q-table>
       </div>
-      </div>
+     </div>
     </div>
-
 </template>
 
 <script>
@@ -162,9 +167,9 @@ export default {
   setup () {
     return {
       pageNumber: {
-        rowsPerPage: 10
+        rowsPerPage: 20
       },
-      label: 'Sort'
+      label: 'Filter'
     }
   },
   data () {
@@ -174,9 +179,11 @@ export default {
       walletHash: this.getWallet('bch').walletHash,
       response: null,
       columns,
-      rows
+      rows,
+      qrConfirm: false
     }
   },
+
   methods: {
     claim () {
       const vm = this
@@ -208,27 +215,22 @@ export default {
           const rowArray = vm.rows
           const storeRow = []
           for (let i = 0; i < vm.rows.length; i++) {
-            // console.log(rowArray[i].date_claimed)
             if (rowArray[i].date_claimed === 'None') {
               storeRow.push(rowArray[i])
             }
           }
           vm.rows = storeRow
-          // console.log(vm.storeRow)
         }
       })
     },
-    error () {
-      this.label = 'Sort'
-      this.getRows()
-    },
     getRows () {
       const vm = this
-      vm.label = 'Sort'
+      vm.label = 'Filter'
       const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
       axios.get(url).then(function (response) {
         if (response.status === 200) {
           vm.rows = response.data.gifts
+          // console.log(vm.rows)
           for (let i = 0; i < vm.rows.length; i++) {
             const gift = vm.rows[i]
             // console.log(vm.rows[i].date_claimed)
@@ -241,6 +243,9 @@ export default {
     },
     getGiftShare (giftCodeHash) {
       return this.$store.getters['gifts/getGiftShare'](giftCodeHash)
+    },
+    getQrShare (giftCodeHash) {
+      return this.$store.getters['gifts/getQrShare'](giftCodeHash)
     },
     recoverGift (giftCodeHash) {
       const localShare = this.getGiftShare(giftCodeHash)
@@ -255,6 +260,20 @@ export default {
         }
       )
     },
+    showQr (giftCodeHash) {
+      // const localShare = this.getQrShare(giftCodeHash)
+      const vm = this
+      this.$router.push(
+        {
+          name: 'show-qr',
+          query: {
+            actionProp: 'showQr',
+            giftCodeHash: giftCodeHash
+          }
+        }
+      )
+      vm.qrConfirm = true
+    },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     }
@@ -263,6 +282,7 @@ export default {
     // this.getItemsWithSort()
     // this.getItems()
     this.getRows()
+    // console.log(this.getGiftShare(this.giftCodeHash))
   }
 }
 </script>
