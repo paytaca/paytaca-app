@@ -54,6 +54,7 @@ export class SlpWallet {
       return apiResponse.data.address.address_index
     }
   }
+
   async getAddressSetAt(index) {
     const masterHDNode = await this._getMasterHDNode()
     const childNode = masterHDNode.derivePath(this.derivationPath)
@@ -82,13 +83,17 @@ export class SlpWallet {
     }
   }
 
+  async scanUtxos() {
+    return this.watchtower.BCH._api.get(`utxo/wallet/${this.walletHash}/scan/`)
+  }
+
   /**
    * 
    * @param {Object} opts 
    * @param {Number} opts.startIndex
    * @param {Number} opts.count
    */
-   async addressSearch(opts) {
+   async scanAddresses(opts) {
     const response = { success: false, error: '' }
     if(!Number.isSafeInteger(opts?.startIndex)) {
       response.success = false
@@ -117,7 +122,7 @@ export class SlpWallet {
     }
 
     try {
-      const apiResponse = await this.watchtower.BCH._api.post('wallet/address-search/', data)
+      const apiResponse = await this.watchtower.BCH._api.post('wallet/address-scan/', data)
       response.success = true
       response.subscriptionResponses = apiResponse.data
     } catch(error) {

@@ -54,6 +54,17 @@
                           @click="scanBCHAddresses()"
                         />
                       </q-btn-group>
+                      <div v-if="scanningBchUtxos || scanningBchAddresses" class="text-center text-grey q-my-sm">
+                        <template v-if="scanningBchUtxos && scanningBchAddresses">
+                          Scanning for UTXOs and addresses
+                        </template>
+                        <template v-else-if="scanningBchUtxos">
+                          Scanning for UTXOs
+                        </template>
+                        <template v-else-if="scanningBchAddresses">
+                          Scanning for untracked addresses
+                        </template>
+                      </div>
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -111,6 +122,17 @@
                           @click="scanSLPAddresses()"
                         />
                       </q-btn-group>
+                      <div v-if="scanningSlpUtxos || scanningSlpAddresses" class="text-center text-grey q-my-sm">
+                        <template v-if="scanningSlpUtxos && scanningSlpAddresses">
+                          Scanning for UTXOs and addresses
+                        </template>
+                        <template v-else-if="scanningSlpUtxos">
+                          Scanning for UTXOs
+                        </template>
+                        <template v-else-if="scanningSlpAddresses">
+                          Scanning for untracked addresses
+                        </template>
+                      </div>
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -239,6 +261,9 @@ export default {
 
       scanningBchAddresses: false,
       scanningSlpAddresses: false,
+
+      bchAddressScanResponseDialog: null,
+      slpAddressScanResponseDialog: null,
     }
   },
   methods: {
@@ -255,7 +280,7 @@ export default {
       const walletHash = this.wallet.BCH.getWalletHash()
 
       this.scanningBchUtxos = true
-      this.wallet.BCH.watchtower.BCH._api.get(`utxo/wallet/${walletHash}/scan/`)
+      this.wallet.BCH.scanUtxos()
         .then(() => {
           this.$q.notify({
             message: 'Scan complete',
@@ -271,10 +296,9 @@ export default {
     },
     async scanSLPUtxos() {
       if (!this.wallet) await this.loadWallet()
-      const walletHash = this.wallet.SLP.getWalletHash()
 
       this.scanningSlpUtxos = true
-      this.wallet.BCH.watchtower.BCH._api.get(`utxo/wallet/${walletHash}/scan/`)
+      this.wallet.SLP.scanUtxos()
         .then(() => {
           this.$q.notify({
             message: 'Scan complete',
@@ -294,10 +318,11 @@ export default {
       const lastAddressIndexFromStore = this.$store.getters['global/getWallet']('bch')?.lastAddressIndex
       const lastAddressIndex = (Number.isSafeInteger(lastAddressIndexFromStore) && lastAddressIndexFromStore >= 0)
         ? lastAddressIndexFromStore
-        : 0
+        : -1
+      const count = 5
 
       this.scanningBchAddresses = true
-      this.wallet.BCH.addressSearch({ startIndex: lastAddressIndex, count: 5 })
+      this.wallet.BCH.scanAddresses({ startIndex: lastAddressIndex+1, count: count })
         .then(response => {
           if (!response.success) return Promise.reject(response)
           if (!Array.isArray(response?.subscriptionResponses)) return Promise.reject(response)
@@ -327,18 +352,27 @@ export default {
               lastAddressIndex: latestAddressSet.address_index
             })
             if (latestAddressSet.addresses.receiving !== lastAddressFromStore) {
-              this.$q.dialog({
+              this.bchAddressScanResponseDialog?.hide?.()
+              this.bchAddressScanResponseDialog = this.$q.dialog({
                 title: 'BCH address scan complete',
                 html: true,
-                caption: [
+                message: [
                   `Latest address is now:<br/>`,
                   latestAddressSet.addresses.receiving,
-                  lastAddressFromStore ? `<br/>Previous:<br/>${lastAddressFromStore}` : '',
+                  lastAddressFromStore ? `<br/><br/>Previous:<br/>${lastAddressFromStore}` : '',
                 ].join(''), 
                 ok: true,
+                class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+                style: 'word-break:break-word;',
               })
             }
           }
+          return Promise.resolve({
+            scanMore: subscribedAddressSets?.length >= count
+          })
+        })
+        .then(postScanResponse => {
+          if (postScanResponse?.scanMore) this.scanBCHAddresses()
         })
         .finally(() => {
           this.scanningBchAddresses = false
@@ -350,10 +384,11 @@ export default {
       const lastAddressIndexFromStore = this.$store.getters['global/getWallet']('slp')?.lastAddressIndex
       const lastAddressIndex = (Number.isSafeInteger(lastAddressIndexFromStore) && lastAddressIndexFromStore >= 0)
         ? lastAddressIndexFromStore
-        : 0
+        : -1
+      const count = 5
 
       this.scanningSlpAddresses = true
-      this.wallet.SLP.addressSearch({ startIndex: lastAddressIndex, count: 5 })
+      this.wallet.SLP.scanAddresses({ startIndex: lastAddressIndex+1, count: count })
         .then(response => {
           if (!response.success) return Promise.reject(response)
           if (!Array.isArray(response?.subscriptionResponses)) return Promise.reject(response)
@@ -384,18 +419,27 @@ export default {
             })
 
             if (latestAddressSet.addresses.receiving !== lastAddressFromStore) {
-              this.$q.dialog({
+              this.slpAddressScanResponseDialog?.hide?.()
+              this.slpAddressScanResponseDialog = this.$q.dialog({
                 title: 'SLP address scan complete',
                 html: true,
-                caption: [
+                message: [
                   `Latest address is now:<br/>`,
                   latestAddressSet.addresses.receiving,
-                  lastAddressFromStore ? `<br/>Previous:<br/>${lastAddressFromStore}` : '',
+                  lastAddressFromStore ? `<br/><br/>Previous:<br/>${lastAddressFromStore}` : '',
                 ].join(''),
                 ok: true,
+                class: this.darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+                style: 'word-break:break-word;',
               })
             }
           }
+          return Promise.resolve({
+            scanMore: subscribedAddressSets?.length >= count
+          })
+        })
+        .then(postScanResponse => {
+          if (postScanResponse?.scanMore) this.scanBCHAddresses()
         })
         .finally(() => {
           this.scanningSlpAddresses = false
