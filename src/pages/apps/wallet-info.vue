@@ -28,17 +28,32 @@
                 </q-item>
                 <q-item>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>UTXO Scan</q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">
-                      <q-btn
-                        no-caps
-                        :disable="scanningBchUtxos"
-                        :loading="scanningBchUtxos"
-                        label="Scan"
-                        @click="scanBCHUtxos()"
-                      />
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Scan</q-item-label>
+                    <q-item-label
+                      :class="[
+                        darkMode ? 'pt-dark-label' : 'pp-text',
+                        'row items-center justify-around',
+                      ]"
+                      style="word-wrap: break-word;"
+                    >
+                      <q-btn-group spread class="q-space">
+                        <q-btn
+                          no-caps
+                          padding="xs sm"
+                          :disable="scanningBchUtxos"
+                          :loading="scanningBchUtxos"
+                          label="UTXO Scan"
+                          @click="scanBCHUtxos()"
+                        />
+                        <q-btn
+                          no-caps
+                          padding="xs sm"
+                          :disable="scanningBchAddresses"
+                          :loading="scanningBchAddresses"
+                          label="Address Scan"
+                          @click="scanBCHAddresses()"
+                        />
+                      </q-btn-group>
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -69,17 +84,33 @@
                 </q-item>
                 <q-item>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>UTXO Scan</q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">
-                      <q-btn
-                        no-caps
-                        :disable="scanningSlpUtxos"
-                        :loading="scanningSlpUtxos"
-                        label="Scan"
-                        @click="scanSLPUtxos()"
-                      />
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Scan</q-item-label>
+                    <q-item-label
+                      :class="[
+                        darkMode ? 'pt-dark-label' : 'pp-text',
+                        'row items-center justify-around',
+                      ]"
+                      style="word-wrap: break-word;"
+                    >
+                      <q-btn-group spread class="q-space">
+                        <q-btn
+                          no-caps
+                          padding="xs sm"
+                          :disable="scanningSlpUtxos"
+                          :loading="scanningSlpUtxos"
+                          label="UTXO Scan"
+                          @click="scanSLPUtxos()"
+                        >
+                        </q-btn>
+                        <q-btn
+                          no-caps
+                          padding="xs sm"
+                          :disable="scanningSlpAddresses"
+                          :loading="scanningSlpAddresses"
+                          label="Address Scan"
+                          @click="scanSLPAddresses()"
+                        />
+                      </q-btn-group>
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -205,6 +236,9 @@ export default {
       wallet: null,
       scanningBchUtxos: false,
       scanningSlpUtxos: false,
+
+      scanningBchAddresses: false,
+      scanningSlpAddresses: false,
     }
   },
   methods: {
@@ -252,6 +286,119 @@ export default {
         })
         .finally(() => {
           this.scanningSlpUtxos = false
+        })
+    },
+    async scanBCHAddresses() {
+      if (!this.wallet) await this.loadWallet()
+      const lastAddressFromStore = this.$store.getters['global/getWallet']('bch')?.lastAddress
+      const lastAddressIndexFromStore = this.$store.getters['global/getWallet']('bch')?.lastAddressIndex
+      const lastAddressIndex = (Number.isSafeInteger(lastAddressIndexFromStore) && lastAddressIndexFromStore >= 0)
+        ? lastAddressIndexFromStore
+        : 0
+
+      this.scanningBchAddresses = true
+      this.wallet.BCH.addressSearch({ startIndex: lastAddressIndex, count: 5 })
+        .then(response => {
+          if (!response.success) return Promise.reject(response)
+          if (!Array.isArray(response?.subscriptionResponses)) return Promise.reject(response)
+
+          const subscribedAddressSets = response.subscriptionResponses
+            .filter(subscriptionResponse => subscriptionResponse?.success)
+            .map(subscriptionResponse => subscriptionResponse?.address_set)
+            .filter(addressSet => {
+              if (!Number.isSafeInteger(addressSet.address_index)) return false
+              if (!addressSet.addresses.receiving) return false
+              if (!addressSet.addresses.change) return false
+              return true
+            })
+
+          // extract address set with greatest address_index
+          const latestAddressSet = subscribedAddressSets
+            .reduce((_latest, addressSet) => {
+              if (addressSet.address_index < _latest?.address_index) return _latest
+              return addressSet
+            }, null)
+
+          if (latestAddressSet?.address_index >= lastAddressIndex) {
+            this.$store.commit('global/generateNewAddressSet', {
+              type: 'bch',
+              lastAddress: latestAddressSet.addresses.receiving,
+              lastChangeAddress: latestAddressSet.addresses.change,
+              lastAddressIndex: latestAddressSet.address_index
+            })
+            if (latestAddressSet.addresses.receiving !== lastAddressFromStore) {
+              this.$q.dialog({
+                title: 'BCH address scan complete',
+                html: true,
+                caption: [
+                  `Latest address is now:<br/>`,
+                  latestAddressSet.addresses.receiving,
+                  lastAddressFromStore ? `<br/>Previous:<br/>${lastAddressFromStore}` : '',
+                ].join(''), 
+                ok: true,
+              })
+            }
+          }
+        })
+        .finally(() => {
+          this.scanningBchAddresses = false
+        })
+    },
+    async scanSLPAddresses() {
+      if (!this.wallet) await this.loadWallet()
+      const lastAddressFromStore = this.$store.getters['global/getWallet']('slp')?.lastAddress
+      const lastAddressIndexFromStore = this.$store.getters['global/getWallet']('slp')?.lastAddressIndex
+      const lastAddressIndex = (Number.isSafeInteger(lastAddressIndexFromStore) && lastAddressIndexFromStore >= 0)
+        ? lastAddressIndexFromStore
+        : 0
+
+      this.scanningSlpAddresses = true
+      this.wallet.SLP.addressSearch({ startIndex: lastAddressIndex, count: 5 })
+        .then(response => {
+          if (!response.success) return Promise.reject(response)
+          if (!Array.isArray(response?.subscriptionResponses)) return Promise.reject(response)
+
+          const subscribedAddressSets = response.subscriptionResponses
+            .filter(subscriptionResponse => subscriptionResponse?.success)
+            .map(subscriptionResponse => subscriptionResponse?.address_set)
+            .filter(addressSet => {
+              if (!Number.isSafeInteger(addressSet.address_index)) return false
+              if (!addressSet.addresses.receiving) return false
+              if (!addressSet.addresses.change) return false
+              return true
+            })
+
+          // extract address set with greatest address_index
+          const latestAddressSet = subscribedAddressSets
+            .reduce((_latest, addressSet) => {
+              if (addressSet.address_index < _latest?.address_index) return _latest
+              return addressSet
+            }, null)
+
+          if (latestAddressSet?.address_index >= lastAddressIndex) {
+            this.$store.commit('global/generateNewAddressSet', {
+              type: 'slp',
+              lastAddress: latestAddressSet.addresses.receiving,
+              lastChangeAddress: latestAddressSet.addresses.change,
+              lastAddressIndex: latestAddressSet.address_index
+            })
+
+            if (latestAddressSet.addresses.receiving !== lastAddressFromStore) {
+              this.$q.dialog({
+                title: 'SLP address scan complete',
+                html: true,
+                caption: [
+                  `Latest address is now:<br/>`,
+                  latestAddressSet.addresses.receiving,
+                  lastAddressFromStore ? `<br/>Previous:<br/>${lastAddressFromStore}` : '',
+                ].join(''),
+                ok: true,
+              })
+            }
+          }
+        })
+        .finally(() => {
+          this.scanningSlpAddresses = false
         })
     },
     executeSecurityChecking () {
