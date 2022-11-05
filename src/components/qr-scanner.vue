@@ -7,7 +7,7 @@
         padding="xs"
         flat
         class="scanner-close-btn"
-        :style="{'margin-top': $q.platform.is.ios ? '30px' : '0px'}"
+        :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
         @click="stopScan"
       />
       <ScannerUI />

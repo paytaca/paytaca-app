@@ -7,7 +7,7 @@
     <div id="app-container" style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
       <div>
         <header-nav :title="action + ' Gift'" backnavpath="/apps/gifts" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
-        <div style="padding-top: 60px;">
+        <div :style="{ 'padding-top': $q.platform.is.ios ? '85px' : '60px'}">
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="processing" style="text-align: center; padding-top: 25px;">
               <p><span class="text-capitalize">{{ action }}</span>ing gift...</p>

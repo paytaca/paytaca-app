@@ -7,7 +7,7 @@
     <div id="app-container" style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
       <div>
         <header-nav title="Sweep" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
-        <div style="margin-top: 60px;">
+        <div style="margin-top: 60px;" :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}">
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="fetching && tokens.length === 0" style="text-align: center; margin-top: 25px;">
               <p>Scanning...</p>

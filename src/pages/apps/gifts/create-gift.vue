@@ -11,7 +11,7 @@
         style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
         class="q-px-sm"
       />
-      <div class="q-pa-lg" style="width: 100%; color: black;">
+      <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '65px' : '0px'}">
         <div class="text-center" v-if="processing" style="margin-top: 80px;">
           <p :class="{'text-white': darkMode}" >Creating gift...</p>
           <progress-loader />
