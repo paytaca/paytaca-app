@@ -1,7 +1,7 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
     <div id="apps" ref="apps" class="text-center">
-      <div :style="{ 'margin-top': $q.platform.is.ios ? '30px' : '0px'}">
+      <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
         <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">Applications</p>
         <div class="row q-px-xs">
           <div v-for="(app, index) in apps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
@@ -147,7 +147,7 @@ export default {
 
 <style scoped lang="scss">
   #apps {
-    padding: 20px;
+    padding: 20px 20px 80px 20px;
     color: #3B7BF6;
   }
   .section-title {

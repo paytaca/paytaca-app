@@ -1,7 +1,7 @@
 <template>
   <div class="pt-settings" :class="{'pt-dark': darkMode}">
       <header-nav title="Settings" backnavpath="/apps" />
-      <div class="row" style="padding-top: 60px;">
+      <div class="row" :style="{ 'padding-top': $q.platform.is.ios ? '90px' : '60px'}">
           <div class="col-12 q-px-lg q-mt-md">
               <p class="q-px-sm q-my-sm dim-text text-h6">Security</p>
               <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">

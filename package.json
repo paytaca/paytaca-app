@@ -14,7 +14,7 @@
     "@capacitor/app": "^1.1.0",
     "@capacitor/camera": "^1.0.3",
     "@capacitor/cli": "^3.0.0",
-    "@capacitor/core": "^3.0.0",
+    "@capacitor/core": "^3.6.0",
     "@capacitor/storage": "^1.0.3",
     "@electron/remote": "^1.2.0",
     "@generalprotocols/anyhedge": "0.14.99-development.3008515329",

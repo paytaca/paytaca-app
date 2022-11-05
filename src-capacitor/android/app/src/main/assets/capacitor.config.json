@@ -16,5 +16,6 @@
 	},
 	"ios": {
 		"scheme": "Paytaca"
-	}
+	},
+	"server": {}
 }
