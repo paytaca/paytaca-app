@@ -659,7 +659,7 @@ export default {
       return computedBalance.toFixed(8)
     },
     setAmount (key) {
-      let sendAmount
+      let sendAmount, amount
       if (this.setAmountInFiat) {
         sendAmount = this.sendAmountInFiat
       } else {
@@ -667,9 +667,9 @@ export default {
       }
       sendAmount = sendAmount === null ? '' : sendAmount
       if (key === '.' && sendAmount === '') {
-        sendAmount = 0 + key
+        amount = '0.'
       } else {
-        let amount = sendAmount.toString()
+        amount = sendAmount.toString()
         const hasPeriod = amount.indexOf('.')
         if (hasPeriod < 1) {
           if (Number(amount) === 0 && Number(key) > 0) {
@@ -685,12 +685,12 @@ export default {
         } else {
           amount += key !== '.' ? key.toString() : ''
         }
-        // Set the new amount
-        if (this.setAmountInFiat) {
-          this.sendAmountInFiat = amount
-        } else {
-          this.sendData.amount = amount
-        }
+      }
+      // Set the new amount
+      if (this.setAmountInFiat) {
+        this.sendAmountInFiat = amount
+      } else {
+        this.sendData.amount = amount
       }
     },
     makeKeyAction (action) {
