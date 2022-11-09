@@ -232,8 +232,7 @@ export default {
       prevPath: null,
       showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      online: null,
-      onlineCheckerInterval: null
+      online: null
     }
   },
 

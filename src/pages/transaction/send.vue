@@ -11,6 +11,14 @@
       ></header-nav>
       <div class="q-mt-xl">
         <div class="q-pa-md" style="padding-top: 70px;">
+          <v-offline @detected-condition="onNetworkChange" style="margin-bottom: 15px;">
+            <q-banner v-if="online === false" class="bg-red-4">
+              <template v-slot:avatar>
+                <q-icon name="signal_wifi_off" color="primary" />
+              </template>
+              You cannot send funds while offline. Please connect to the internet.
+            </q-banner>
+          </v-offline>
           <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
             <img :src="image" width="150" />
           </div>
@@ -98,82 +106,84 @@
                 </q-input>
               </div>
             </div>
-            <div class="row" v-if="!isNFT">
-              <div class="col q-mt-md">
-                <q-input
-                  type="text"
-                  inputmode="none"
-                  @focus="readonlyState(true)"
-                  @blur="readonlyState(false)"
-                  filled
-                  v-model="sendData.amount"
-                  label="Amount"
-                  :loading="computingMax"
-                  :disabled="disableAmountInput || setAmountInFiat"
-                  :readonly="disableAmountInput || setAmountInFiat"
-                  :dark="darkMode"
-                  :error="balanceExceeded"
-                  :error-message="balanceExceeded ? 'Balance exceeded' : ''"
-                >
-                  <template v-slot:append>
-                    {{ asset.symbol }}
-                  </template>
-                </q-input>
-                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+            <template v-if="online !== false">
+              <div class="row" v-if="!isNFT">
+                <div class="col q-mt-md">
+                  <q-input
+                    type="text"
+                    inputmode="none"
+                    @focus="readonlyState(true)"
+                    @blur="readonlyState(false)"
+                    filled
+                    v-model="sendData.amount"
+                    label="Amount"
+                    :loading="computingMax"
+                    :disabled="disableAmountInput || setAmountInFiat"
+                    :readonly="disableAmountInput || setAmountInFiat"
+                    :dark="darkMode"
+                    :error="balanceExceeded"
+                    :error-message="balanceExceeded ? 'Balance exceeded' : ''"
+                  >
+                    <template v-slot:append>
+                      {{ asset.symbol }}
+                    </template>
+                  </q-input>
+                  <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                    ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
-              <div class="col q-mt-md">
-                <q-input
-                  type="text"
-                  inputmode="none"
-                  @focus="readonlyState(true)"
-                  @blur="readonlyState(false)"
-                  filled
-                  v-model="sendAmountInFiat"
-                  label="Amount"
-                  :disabled="disableAmountInput"
-                  :readonly="disableAmountInput"
-                  :dark="darkMode"
-                >
-                  <template v-slot:append>
-                    {{ String(selectedMarketCurrency).toUpperCase() }}
-                  </template>
-                </q-input>
-                <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                  ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+              <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
+                <div class="col q-mt-md">
+                  <q-input
+                    type="text"
+                    inputmode="none"
+                    @focus="readonlyState(true)"
+                    @blur="readonlyState(false)"
+                    filled
+                    v-model="sendAmountInFiat"
+                    label="Amount"
+                    :disabled="disableAmountInput"
+                    :readonly="disableAmountInput"
+                    :dark="darkMode"
+                  >
+                    <template v-slot:append>
+                      {{ String(selectedMarketCurrency).toUpperCase() }}
+                    </template>
+                  </q-input>
+                  <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                    ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="row" v-if="!isNFT">
-              <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                Balance: {{ asset.balance }} {{ asset.symbol }}
-                <template v-if="asset.id === 'bch' && setAmountInFiat">
-                  = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
-                </template>
-                <a
-                  href="#"
-                  v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
-                  @click.prevent="setMaximumSendAmount"
-                  style="float: right; text-decoration: none; color: #3b7bf6;"
-                >
-                  MAX
-                </a>
+              <div class="row" v-if="!isNFT">
+                <div class="col q-mt-md" style="font-size: 18px; color: gray;">
+                  Balance: {{ asset.balance }} {{ asset.symbol }}
+                  <template v-if="asset.id === 'bch' && setAmountInFiat">
+                    = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                  </template>
+                  <a
+                    href="#"
+                    v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
+                    @click.prevent="setMaximumSendAmount"
+                    style="float: right; text-decoration: none; color: #3b7bf6;"
+                  >
+                    MAX
+                  </a>
+                </div>
               </div>
-            </div>
-            <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
-              <div class="col q-mt-md">
-                <a
-                  style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
-                  href="#"
-                  @click.prevent="() => {setAmountInFiat = true}"
-                >
-                  Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
-                </a>
+              <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+                <div class="col q-mt-md">
+                  <a
+                    style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
+                    href="#"
+                    @click.prevent="() => {setAmountInFiat = true}"
+                  >
+                    Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
+                  </a>
+                </div>
               </div>
-            </div>
+            </template>
             <div class="row" v-if="sendData.sending">
               <div class="col-12 text-center">
                 <ProgressLoader/>
@@ -289,6 +299,7 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import QrScanner from '../../components/qr-scanner.vue'
 import { parsePOSLabel } from 'src/wallet/pos'
+import { VOffline } from 'v-offline'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -304,7 +315,8 @@ export default {
     pinDialog,
     biometricWarningAttmepts,
     customKeyboard,
-    QrScanner
+    QrScanner,
+    VOffline
   },
   props: {
     network: {
@@ -401,7 +413,8 @@ export default {
       setAmountInFiat: false,
       sendAmountInFiat: null,
       balanceExceeded: false,
-      computingMax: false
+      computingMax: false,
+      online: null
     }
   },
 
@@ -604,7 +617,7 @@ export default {
     isValidLNSName: isNameLike,
     readonlyState (state) {
       this.amountInputState = state
-      if (this.amountInputState) {
+      if (this.amountInputState && this.online) {
         this.customKeyboardState = 'show'
       }
     },
@@ -1029,6 +1042,9 @@ export default {
           vm.sendErrors.push('Send amount should be greater than zero')
         }
       }
+    },
+    onNetworkChange (online) {
+      this.online = online
     }
   },
 
