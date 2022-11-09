@@ -6,6 +6,14 @@
     <div v-else>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+          <v-offline @detected-condition="onNetworkChange">
+            <q-banner v-if="online === false" class="bg-red-4">
+              <template v-slot:avatar>
+                <q-icon name="signal_wifi_off" color="primary" />
+              </template>
+              You have lost connection to the internet. This app is offline.
+            </q-banner>
+          </v-offline>
           <div class="row q-pt-lg q-pb-xs">
             <q-tabs
               active-color="brandblue"
@@ -161,6 +169,7 @@ import pinDialog from '../../components/pin'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import { VOffline } from 'v-offline'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -170,7 +179,17 @@ const sep20IdRegexp = /sep20\/(.*)/
 
 export default {
   name: 'Transaction-page',
-  components: { TokenSuggestionsDialog, ProgressLoader, Transaction, AssetInfo, AssetCards, pinDialog, securityOptionDialog, startPage },
+  components: {
+    TokenSuggestionsDialog,
+    ProgressLoader,
+    Transaction,
+    AssetInfo,
+    AssetCards,
+    pinDialog,
+    securityOptionDialog,
+    startPage,
+    VOffline
+  },
   directives: {
     dragscroll
   },
@@ -212,7 +231,9 @@ export default {
       startPageStatus: true,
       prevPath: null,
       showTokenSuggestionsDialog: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      online: null,
+      onlineCheckerInterval: null
     }
   },
 
@@ -222,6 +243,30 @@ export default {
     },
     selectedAsset () {
       this.transactions = []
+    },
+    online (val) {
+      const vm = this
+      if (val === true) {
+        // Load wallets
+        this.loadWallets().then(() => {
+          vm.assets.map(function (asset) {
+            return vm.getBalance(asset.id)
+          })
+
+          if (Array.isArray(vm.assets) && vm.assets.length > 0) {
+            vm.selectedAsset = vm.bchAsset
+            vm.getBalance(vm.selectedAsset.id)
+            vm.getTransactions()
+          }
+
+          vm.$store.dispatch('assets/updateTokenIcons', { all: false })
+          vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+        })
+      } else {
+        vm.online = false
+        vm.balanceLoaded = true
+        vm.transactionsLoaded = true
+      }
     }
   },
 
@@ -762,6 +807,10 @@ export default {
           }
         }
       }
+    },
+    onNetworkChange (online) {
+      this.online = online
+      this.adjustTransactionsDivHeight()
     }
   },
 
@@ -771,7 +820,7 @@ export default {
     })
   },
 
-  async mounted () {
+  mounted () {
     const vm = this
 
     if (vm.prevPath === '/') {
@@ -781,29 +830,6 @@ export default {
     }
 
     vm.adjustTransactionsDivHeight()
-
-    // Load wallets
-    this.loadWallets().then(() => {
-      vm.assets.map(function (asset) {
-        return vm.getBalance(asset.id)
-      })
-
-      if (Array.isArray(vm.assets) && vm.assets.length > 0) {
-        vm.selectedAsset = vm.bchAsset
-        vm.getBalance(vm.selectedAsset.id)
-        vm.getTransactions()
-      }
-
-      // vm.getTransactions()
-      // Temporarily disable automated checking of unlisted assets
-      // if (vm.$root.hasSuggestedAssets) return
-      // vm.checkMissingAssets().then(() => {
-      //   vm.$root.hasSuggestedAssets = true
-      // })
-
-      vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-      vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
-    })
   }
 }
 </script>
