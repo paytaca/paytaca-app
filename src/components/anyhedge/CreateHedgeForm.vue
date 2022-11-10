@@ -261,6 +261,7 @@ import { Wallet } from 'src/wallet';
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar';
+import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
 
@@ -541,7 +542,9 @@ async function createHedgePosition() {
   }
 
   const priceData = { oraclePubkey: '', priceValue: 0, messageTimestamp: 0, messageSequence: 0 }
+  const oracleInfo = { oraclePubkey: '', assetName: '', assetDecimals: 0, assetCurrency: '' }
   if (createHedgeForm.value.selectedAsset?.oraclePubkey) {
+    Object.assign(oracleInfo, createHedgeForm.value.selectedAsset)
     priceData.oraclePubkey = createHedgeForm.value.selectedAsset.oraclePubkey
     priceData.priceValue = createHedgeForm.value.selectedAsset?.latestPrice?.priceValue
     priceData.messageTimestamp = createHedgeForm.value.selectedAsset?.latestPrice?.messageTimestamp
@@ -629,6 +632,30 @@ async function createHedgePosition() {
     funding.prepareFunding = false
     funding.fee.satoshis = 0
     funding.fee.address = ''
+  }
+
+  try {
+    loading.value = true
+    loadingMsg.value = 'Confirm'
+    await dialogPromise({
+      component: CreateHedgeConfirmDialog,
+      componentProps: {
+        intent: intent,
+        pubkeys: pubkeys,
+        priceData: priceData,
+        funding: funding,
+        oracleInfo: oracleInfo,
+        position: position,
+      }
+    })
+  } catch(error) {
+    console.error(error)
+    mainError.value = ''
+    errors.value = []
+    return
+  } finally {
+    loading.value = false
+    loadingMsg.value = ''
   }
 
   try {

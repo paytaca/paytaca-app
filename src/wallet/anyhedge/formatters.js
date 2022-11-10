@@ -18,6 +18,28 @@ export function formatCentsToUSD(value) {
   return formatUnits(value, 2)
 }
 
+export function formatDuration(duration) {
+  const unitOptions = [
+    {label: 'second', multiplier: 1,               max: 60 },
+    {label: 'minute', multiplier: 60,              max: 3600 },
+    {label: 'hour',   multiplier: 3600,            max: 86400 },
+    {label: 'day',    multiplier: 86400,           max: 86400 * 10 },
+    {label: 'week',   multiplier: 86400 * 7,       max: 86400 * 30 },
+    {label: '~month', multiplier: 86400 * 30,      max: 86400 * 30 * 12 },
+    {label: '~year',  multiplier: 86400 * 30 * 12, max: Infinity },
+  ]
+  if (!isFinite(duration) || duration <= 0) return ''
+  const unit = unitOptions.find(unit => duration <= unit.max)
+  if (!unit) return ''
+  
+  const durationValue = duration/unit.multiplier
+  let label = unit.label
+  if (durationValue > 1) {
+    label += 's'
+  }
+  return `${durationValue} ${label}`
+}
+
 /**
  * 
  * @param {String} value 

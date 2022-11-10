@@ -301,6 +301,87 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
 }
 
 /**
+ * @param {Object} data 
+ * @param {Number} data.amountSats
+ * @param {Number} data.lowLiquidationMultiplier
+ * @param {Number} data.startingPriceValue
+ * @param {Number} data.feeSats
+ * @param {Number} data.liquidityFee
+ * @param {'hedge' | 'long'} data.position
+ */
+ export async function calculateFundingAmountsWithFees(data) {
+  // these data are necessary for generating contracts but doesnt affect the funding amounts
+  const dummyData = {
+    oraclePublicKey: '03994dc2c759375e98afbf5049383cd987001c346d0f11aa262c105874fb1390c1',
+    hedgePublicKey: '0242ce009d64bd58c3a11b7c37f33c35177cf093b287ec4db96775381d4903be1d',
+    longPublicKey: '02df07732b3b3fbfb71be46a2393bc07f5d65a0a6d25eb1809fd7a1675cd2d646d',
+    startTimestamp: 1668943195,
+    feeAddress: 'bitcoincash:qpqkl0wm95tnz3xqndmznv6e8dk5204lzvaukyg4c3',
+    duration: 3600,
+    highLiquidationPriceMultiplier: 5,
+  }
+
+  const units = (data.amountSats * data.startingPriceValue) / 10**8
+  const contractCreationParameters = {
+    nominalUnits: units,
+    duration: dummyData.duration,
+    startPrice: data.startingPriceValue,
+    startTimestamp: dummyData.startTimestamp,
+    oraclePublicKey: dummyData.oraclePublicKey,
+    highLiquidationPriceMultiplier: dummyData.highLiquidationPriceMultiplier,
+    lowLiquidationPriceMultiplier: data.lowLiquidationMultiplier,
+    hedgePublicKey: dummyData.hedgePublicKey,
+    longPublicKey: dummyData.longPublicKey,
+  }
+  const manager = new AnyHedgeManager()
+  const contractData = await manager.createContract(contractCreationParameters)
+  if (data.feeSats) {
+    contractData.fee = { satoshis: data.feeSats, address: dummyData.feeAddress }
+  }
+
+  const fundingAmounts = calculateFundingAmounts(contractData, data.position, data.liquidityFee || 0)
+  const response = {
+    hedge: {
+      nominalUnits: contractData.metadata.nominalUnits,
+      sats: contractData.metadata.hedgeInputSats,
+      fees: { premium: 0, network: 0, settlementService: 0 },
+      total: fundingAmounts.hedge,
+      calculatedTotal: 0,
+    },
+    long: {
+      nominalUnits: contractData.metadata.longInputUnits,
+      sats: contractData.metadata.longInputSats,
+      fees: { premium: 0, network: 0, settlementService: 0 },
+      total: fundingAmounts.long,
+      calculatedTotal: 0,
+    },
+    totalSats: 0,
+  }
+
+  if (data.position === 'hedge') {
+    response.hedge.fees.premium = data.liquidityFee || 0
+    response.long.fees.premium = response.hedge.fees.premium * -1
+    response.hedge.fees.settlementService = contractData?.fee?.satoshis || 0
+    response.hedge.fees.network = response.hedge.total - (response.hedge.sats + response.hedge.fees.premium + response.hedge.fees.settlementService)
+  } else if (data.position === 'long') {
+    response.long.fees.premium = data.liquidityFee || 0
+    response.hedge.fees.premium = response.long.fees.premium * -1
+    response.long.fees.settlementService = contractData?.fee?.satoshis || 0
+    response.long.fees.network = response.long.total - (response.long.sats + response.long.fees.premium + response.long.fees.settlementService)
+  }
+
+  const calculateTotal = (_data) => {
+    return _data.sats + _data.fees.premium + _data.fees.network + _data.fees.settlementService
+  }
+  response.hedge.calculatedTotal = calculateTotal(response.hedge)
+  response.long.calculatedTotal = calculateTotal(response.long)
+
+  response.totalSats = response.hedge.total + response.long.total
+
+  return response
+}
+
+/**
  * 
  * @param {Object} contractData 
  * @param {'hedge' | 'long'} position 
