@@ -11,8 +11,8 @@
       ></header-nav>
       <div class="q-mt-xl">
         <div class="q-pa-md" style="padding-top: 70px;">
-          <v-offline @detected-condition="onNetworkChange" style="margin-bottom: 15px;">
-            <q-banner v-if="online === false" class="bg-red-4">
+          <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
+            <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
               <template v-slot:avatar>
                 <q-icon name="signal_wifi_off" color="primary" />
               </template>
@@ -106,7 +106,7 @@
                 </q-input>
               </div>
             </div>
-            <template v-if="online !== false">
+            <template v-if="$store.state.global.online !== false">
               <div class="row" v-if="!isNFT">
                 <div class="col q-mt-md">
                   <q-input
@@ -394,7 +394,6 @@ export default {
         address: ''
       },
       sendErrors: [],
-      online: true,
       pinDialogAction: '',
       leftX: 0,
       slider: 0,
@@ -413,8 +412,7 @@ export default {
       setAmountInFiat: false,
       sendAmountInFiat: null,
       balanceExceeded: false,
-      computingMax: false,
-      online: null
+      computingMax: false
     }
   },
 
@@ -1043,8 +1041,8 @@ export default {
         }
       }
     },
-    onNetworkChange (online) {
-      this.online = online
+    onConnectivityChange (online) {
+      this.$store.dispatch('global/updateConnectivityStatus', online)
     }
   },
 

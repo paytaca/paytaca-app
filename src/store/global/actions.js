@@ -17,3 +17,7 @@ export function setPrivateMode (context, { privateMode }) {
 export function updateTransactions (context, data) {
   context.commit('updateTransactions', data)
 }
+
+export function updateConnectivityStatus (context, online) {
+  context.commit('updateConnectivityStatus', online)
+}

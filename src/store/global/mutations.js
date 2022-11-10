@@ -64,3 +64,7 @@ export function generateNewAddressSet (state, details) {
   state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
   state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
 }
+
+export function updateConnectivityStatus (state, online) {
+  state.online = online
+}
