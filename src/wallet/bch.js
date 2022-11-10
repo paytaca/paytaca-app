@@ -83,8 +83,18 @@ export class BchWallet {
     }
   }
 
-  async scanUtxos() {
-    return this.watchtower.BCH._api.get(`utxo/wallet/${this.walletHash}/scan/`)
+  /**
+   * @param {Object} opts
+   * @param {Boolean} opts.background
+   */
+  async scanUtxos(opts) {
+    const queryParams = {}
+    if (opts?.background) queryParams.background = true
+
+    return this.watchtower.BCH._api.get(
+      `utxo/wallet/${this.walletHash}/scan/`,
+      { params: queryParams },
+    )
   }
 
   /**
