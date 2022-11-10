@@ -4,7 +4,7 @@
       <div v-if="mainError" class="q-px-sm q-mt-xs">
         {{ mainError }}
       </div>
-      <div class="q-ma-sm q-pa-sm rounded-borders">
+      <div v-if="errors?.length" class="q-ma-sm q-pa-sm rounded-borders">
         <div v-for="(error, index) in errors" :key="index" style="word-break:break-word;" class="text-caption">
           [{{index + 1}}] {{ error }}
         </div>
@@ -650,7 +650,7 @@ async function createHedgePosition() {
     try {
       // the following data possibly doesn't exist but;
       // is necessary for creating a funding utxo
-      if (!pubkeys.longAddress || !pubkeys.longPubkey ||
+      if (!pubkeys.longAddress || !pubkeys.longPubkey || !pubkeys.hedgeAddress || !pubkeys.hedgePubkey ||
         !priceData.oraclePubkey || !priceData.priceValue || !priceData.messageTimestamp || !priceData.messageSequence
       ) {
         mainError.value = 'Unable to create funding utxo due to incomplete data'
@@ -672,14 +672,13 @@ async function createHedgePosition() {
         start_price: priceData.priceValue,
         low_liquidation_multiplier: intent.lowPriceMult,
         high_liquidation_multiplier: intent.highPriceMult,
+        fee: {
+          address: funding.fee.address,
+          satoshis: funding.fee.satoshis,
+        }
       }
       const contractData = await parseHedgePositionData(contractCreationParameters)
 
-      if (funding.fee.satoshis && funding.fee.address) {
-        if (!contractData.fee) contractData.fee = {}
-        contractData.fee.satoshis = funding.fee.satoshis
-        contractData.fee.address = funding.fee.address
-      }
       const { fundingUtxo, signedFundingProposal } = await createFundingProposal(
         contractData, position, props.wallet, addressSet, funding.liquidityFee, position)
       funding.fundingProposal.txHash = fundingUtxo.txid
@@ -740,6 +739,7 @@ async function createHedgePosition() {
     long_pubkey:              position === 'long' ? misc.accessKeys.publicKey : undefined,
     long_address_path:        position === 'long' ? pubkeys.longAddressPath : undefined,
     oracle_message_sequence:  priceData.messageSequence || undefined,
+    liquidity_fee:            funding.liquidityFee,
     settlement_service: {
       domain: liquidityServiceInfo.value?.settlementService?.host,
       scheme: liquidityServiceInfo.value?.settlementService?.scheme,
