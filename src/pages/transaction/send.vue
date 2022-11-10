@@ -156,7 +156,7 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </template>
             <div class="row" v-if="!isNFT">
               <div class="col q-mt-md" style="font-size: 18px; color: gray;">
                 Balance: {{ asset.balance }} {{ asset.symbol }}

@@ -1,12 +1,7 @@
 <template>
   <div class="pt-settings" :class="{'pt-dark': darkMode}">
-<<<<<<< HEAD
-      <header-nav title="Settings" backnavpath="/apps" />
-      <div class="row" :style="{ 'padding-top': $q.platform.is.ios ? '90px' : '60px'}">
-=======
       <header-nav :title="$t('Settings')" backnavpath="/apps" />
-      <div class="row" style="padding-top: 60px;">
->>>>>>> 84e6e58... Translated texts to Spanish (WIP)
+      <div class="row" :style="{ 'padding-top': $q.platform.is.ios ? '90px' : '60px'}">
           <div class="col-12 q-px-lg q-mt-md">
               <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Security') }}</p>
               <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">

@@ -146,7 +146,7 @@ export default {
   props: {
     title: {
       type: String,
-      default: this.$t('SelectToken')
+      default: () => { this.$t('SelectToken') }
     },
     tokensList: {
       type: Array

@@ -1,13 +1,8 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
     <div>
-<<<<<<< HEAD
-      <header-nav title="Wallet Info" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
-      <div :style="{ 'padding-top': $q.platform.is.ios ? '90px' : '60px'}">
-=======
       <header-nav :title="$t('WalletInfo')" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
-      <div :style="{ 'padding-top': $q.platform.is.ios ? '70px' : '60px'}">
->>>>>>> 84e6e58... Translated texts to Spanish (WIP)
+      <div :style="{ 'padding-top': $q.platform.is.ios ? '90px' : '60px'}">
         <div id="app" ref="app">
           <div class="row">
             <div class="col">
