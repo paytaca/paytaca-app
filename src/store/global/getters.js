@@ -28,6 +28,21 @@ export function getWallet (state) {
   }
 }
 
+export function getUtxoScanInfo(state) {
+  return (walletHash) => {
+    const utxoScanInfo = state.utxoScanTasks[walletHash]
+    const data = {
+      timestamp: utxoScanInfo?.timestamp || 0,
+      lastUpdate: utxoScanInfo?.lastUpdate || 0,
+      taskId: utxoScanInfo?.taskId || 0,
+      status: utxoScanInfo?.status || 'PENDING',
+      completedAt: utxoScanInfo?.completedAt || 0,
+      queueInfo: utxoScanInfo?.queueInfo,
+    }
+    return data
+  }
+}
+
 export function getDefaultAssetLogo () {
   return function (val = '') {
     const string = sha256(String(val))

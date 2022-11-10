@@ -29,6 +29,23 @@
                 <q-item>
                   <q-item-section>
                     <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Scan</q-item-label>
+                    <q-banner
+                      v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
+                      dense
+                      :class="[
+                        darkMode ? 'pt-dark' : 'bg-primary',
+                        'rounded-borders q-mt-sm',
+                      ]"
+                    >
+                      UTXO scan completed at {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
+                      <template v-slot:action>
+                        <q-btn
+                          no-caps flat
+                          color="white" label="Dismiss"
+                          @click="$store.commit('global/removeUtxoScanTask', bchUtxoScanTaskInfo?.walletHash)"
+                        />
+                      </template>
+                    </q-banner>
                     <q-item-label
                       :class="[
                         darkMode ? 'pt-dark-label' : 'pp-text',
@@ -40,8 +57,8 @@
                         <q-btn
                           no-caps
                           padding="xs sm"
-                          :disable="scanningBchUtxos"
-                          :loading="scanningBchUtxos"
+                          :disable="bchUtxoScanOngoing"
+                          :loading="bchUtxoScanOngoing"
                           label="UTXO Scan"
                           @click="scanBCHUtxos()"
                         />
@@ -54,12 +71,17 @@
                           @click="scanBCHAddresses()"
                         />
                       </q-btn-group>
-                      <div v-if="scanningBchUtxos || scanningBchAddresses" class="text-center text-grey q-my-sm">
-                        <template v-if="scanningBchUtxos && scanningBchAddresses">
+                      <div v-if="bchUtxoScanOngoing || scanningBchAddresses" class="text-center text-grey q-my-sm">
+                        <template v-if="bchUtxoScanOngoing && scanningBchAddresses">
                           Scanning for UTXOs and addresses
                         </template>
-                        <template v-else-if="scanningBchUtxos">
-                          Scanning for UTXOs
+                        <template v-else-if="bchUtxoScanOngoing">
+                          <template v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.queueInfo?.time_start">
+                            UTXO scan ongoing, started {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
+                          </template>
+                          <template>
+                            Scanning for UTXOs
+                          </template>
                         </template>
                         <template v-else-if="scanningBchAddresses">
                           Scanning for untracked addresses
@@ -70,6 +92,8 @@
                 </q-item>
               </q-list>
             </div>
+            <!-- {{ bchUtxoScanTaskInfo }}
+            {{ bchUtxoScanOngoing }} -->
           </div>
           <div class="row" style="margin-top: 20px;">
             <div class="col">
@@ -96,6 +120,23 @@
                 <q-item>
                   <q-item-section>
                     <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Scan</q-item-label>
+                    <q-banner
+                      v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.completedAt"
+                      dense
+                      :class="[
+                        darkMode ? 'pt-dark' : 'bg-primary',
+                        'rounded-borders q-mt-sm',
+                      ]"
+                    >
+                      UTXO scan completed at {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
+                      <template v-slot:action>
+                        <q-btn
+                          no-caps flat
+                          color="white" label="Dismiss"
+                          @click="$store.commit('global/removeUtxoScanTask', slpUtxoScanTaskInfo?.walletHash)"
+                        />
+                      </template>
+                    </q-banner>
                     <q-item-label
                       :class="[
                         darkMode ? 'pt-dark-label' : 'pp-text',
@@ -107,8 +148,8 @@
                         <q-btn
                           no-caps
                           padding="xs sm"
-                          :disable="scanningSlpUtxos"
-                          :loading="scanningSlpUtxos"
+                          :disable="slpUtxoScanOngoing"
+                          :loading="slpUtxoScanOngoing"
                           label="UTXO Scan"
                           @click="scanSLPUtxos()"
                         >
@@ -122,12 +163,17 @@
                           @click="scanSLPAddresses()"
                         />
                       </q-btn-group>
-                      <div v-if="scanningSlpUtxos || scanningSlpAddresses" class="text-center text-grey q-my-sm">
-                        <template v-if="scanningSlpUtxos && scanningSlpAddresses">
+                      <div v-if="slpUtxoScanOngoing || scanningSlpAddresses" class="text-center text-grey q-my-sm">
+                        <template v-if="slpUtxoScanOngoing && scanningSlpAddresses">
                           Scanning for UTXOs and addresses
                         </template>
-                        <template v-else-if="scanningSlpUtxos">
-                          Scanning for UTXOs
+                        <template v-else-if="slpUtxoScanOngoing">
+                          <template v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.queueInfo?.time_start">
+                            UTXO scan ongoing, started {{ formatRelativeTime(slpUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
+                          </template>
+                          <template>
+                            Scanning for UTXOs
+                          </template>
                         </template>
                         <template v-else-if="scanningSlpAddresses">
                           Scanning for untracked addresses
@@ -138,6 +184,8 @@
                 </q-item>
               </q-list>
             </div>
+            <!-- {{ slpUtxoScanTaskInfo }}
+            {{ slpUtxoScanOngoing }} -->
           </div>
           <div class="row" style="margin-top: 20px;">
             <div class="col">
@@ -235,6 +283,7 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import packageInfo from '../../../package.json'
 import { Plugins } from '@capacitor/core'
 import { markRaw } from '@vue/reactivity'
+import ago from 's-ago'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -253,7 +302,6 @@ export default {
       sbchLnsName: '',
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
-      darkMode: this.$store.getters['darkmode/getStatus'],
 
       wallet: null,
       scanningBchUtxos: false,
@@ -264,9 +312,69 @@ export default {
 
       bchAddressScanResponseDialog: null,
       slpAddressScanResponseDialog: null,
+
+      prevUtxoStatusUpdateTimeout: null,
     }
   },
+  computed: {
+    darkMode() {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    bchUtxoScanTaskInfo() {
+      let walletHash = this.getWallet('bch')?.walletHash
+      if (this.wallet) walletHash = this.wallet.BCH.walletHash
+
+      const utxoScanInfo = this.$store.getters['global/getUtxoScanInfo'](walletHash)
+      if (utxoScanInfo) {
+        // if task was added 1 hour ago, consider as not scanning anymore
+        const expiry = Date.now() - (60 * 60 * 1000 )
+        utxoScanInfo.expired = expiry > utxoScanInfo.timestamp
+
+        utxoScanInfo.walletHash = walletHash
+      }
+      return utxoScanInfo
+    },
+    slpUtxoScanTaskInfo() {
+      let walletHash = this.getWallet('slp')?.walletHash
+      if (this.wallet) walletHash = this.wallet.SLP.walletHash
+
+      const utxoScanInfo = this.$store.getters['global/getUtxoScanInfo'](walletHash)
+      if (utxoScanInfo) {
+        // if task was added 1 hour ago, consider as not scanning anymore
+        const expiry = Date.now() - (60 * 60 * 1000 )
+        utxoScanInfo.expired = expiry > utxoScanInfo.timestamp
+
+        utxoScanInfo.walletHash = walletHash
+      }
+      return utxoScanInfo
+    },
+    bchUtxoScanOngoing() {
+      if (this.scanningBchUtxos) return true
+      if (this.bchUtxoScanTaskInfo?.taskId) {
+        if (this.bchUtxoScanTaskInfo.completedAt) return false
+        if (this.bchUtxoScanTaskInfo.expired) return false
+        return true
+      }
+      return false
+    },
+    slpUtxoScanOngoing() {
+      if (this.scanningBchUtxos) return true
+      if (this.slpUtxoScanTaskInfo?.taskId) {
+        if (this.slpUtxoScanTaskInfo.completedAt) return false
+        if (this.slpUtxoScanTaskInfo.expired) return false
+        return true
+      }
+      return false
+    },
+  },
   methods: {
+    formatTimestampToText(timestamp) {
+      const dateObj = new Date(timestamp)
+      return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
+    },
+    formatRelativeTime (date) {
+      return ago(new Date(date))
+    },
     loadWallet () {
       const vm = this
       return getMnemonic()
@@ -275,20 +383,38 @@ export default {
           vm.wallet = markRaw(wallet)
         })
     },
+    updateUtxoScanTasksStatus(nextUpdate=30*1000, age=0) {
+      const bchWalletHash = this.wallet.BCH.getWalletHash()  
+      const slpWalletHash = this.wallet.SLP.getWalletHash()  
+      const updateScanPromises = [
+        this.$store.dispatch('global/updateUtxoScanTaskStatus', { walletHash: bchWalletHash, age: age }),
+        this.$store.dispatch('global/updateUtxoScanTaskStatus', { walletHash: slpWalletHash, age: age }),
+      ]
+
+      Promise.all(updateScanPromises)
+        .finally(() => {
+          if (Number.isSafeInteger(nextUpdate)) {
+            clearTimeout(this.prevUtxoStatusUpdateTimeout)
+            this.prevUtxoStatusUpdateTimeout = setTimeout(
+              () => this.updateUtxoScanTasksStatus(nextUpdate),
+              nextUpdate,
+            )
+          }
+        })
+    },
     async scanBCHUtxos() {
       if (!this.wallet) await this.loadWallet()
-      const walletHash = this.wallet.BCH.getWalletHash()
 
       this.scanningBchUtxos = true
-      this.wallet.BCH.scanUtxos()
-        .then(() => {
-          this.$q.notify({
-            message: 'Scan complete',
-            caption: 'UTXO scan for BCH wallet complete',
-            closeBtn: true,
-            icon: 'mdi-clipboard-check',
-            color: 'blue-9'
-          })
+      this.wallet.BCH.scanUtxos({ background: true })
+        .then(response => {
+          if (response?.data?.task_id) {
+            this.$store.commit('global/setUtxoScanTask', {
+              walletHash: this.wallet.BCH.getWalletHash(),
+              taskId: response.data.task_id,
+            })
+            this.updateUtxoScanTasksStatus()
+          }
         })
         .finally(() => {
           this.scanningBchUtxos = false
@@ -298,15 +424,15 @@ export default {
       if (!this.wallet) await this.loadWallet()
 
       this.scanningSlpUtxos = true
-      this.wallet.SLP.scanUtxos()
-        .then(() => {
-          this.$q.notify({
-            message: 'Scan complete',
-            caption: 'UTXO scan for SLP wallet complete',
-            closeBtn: true,
-            icon: 'mdi-clipboard-check',
-            color: 'blue-9'
-          })
+      this.wallet.SLP.scanUtxos({ background: true })
+        .then(response => {
+          if (response?.data?.task_id) {
+            this.$store.commit('global/setUtxoScanTask', {
+              walletHash: this.wallet.SLP.getWalletHash(),
+              taskId: response.data.task_id,
+            })
+            this.updateUtxoScanTasksStatus()
+          }
         })
         .finally(() => {
           this.scanningSlpUtxos = false
@@ -534,7 +660,11 @@ export default {
       }
     }
   },
+  beforeUnmount() {
+    clearTimeout(this.prevUtxoStatusUpdateTimeout)
+  },
   mounted () {
+    this.loadWallet().then(() => this.updateUtxoScanTasksStatus())
     const divHeight = screen.availHeight - 120
     this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
     this.updateSbchLnsName()
