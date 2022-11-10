@@ -1,5 +1,13 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" persistent :transition-duration="250">
+  <q-dialog
+    ref="dialogRef"
+    @hide="onDialogHide"
+    :transition-duration="250"
+    transition-show="slide-up"
+    transition-hide="slide-down"
+    no-backdrop-dismiss
+    no-shake
+  >
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;">
       <div class="row no-wrap items-center justify-center q-pl-md q-mb-md">
         <div class="text-h6 q-space q-mt-sm">
