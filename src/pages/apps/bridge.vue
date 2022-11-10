@@ -4,7 +4,7 @@
     :class="{'pt-dark': darkMode}"
   >
     <HeaderNav
-      title="Bridge"
+      :title="$t('Bridge')"
       backnavpath="/apps"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
@@ -21,7 +21,7 @@
             @click="mode.active = mode.opts.main"
           >
             <q-item-section>
-              BCH Bridge
+              {{ $t('BchBridge') }}
             </q-item-section>
           </q-item>
           <q-item
@@ -33,7 +33,7 @@
             @click="mode.active = mode.opts.spicebotSlp2Sep20"
           >
             <q-item-section>
-              SLP to SEP20
+              {{ $t('SLP_to_SEP20') }}
             </q-item-section>
           </q-item>
         </q-list>
@@ -49,7 +49,7 @@
               v-if="ctx && ctx.outgoingTxFound"
               no-caps
               color="brandblue"
-              label="Swap Again"
+              :label="$t('SwapAgain')"
               class="q-mt-md full-width"
               @click="clearWaitInfo()"
             />
@@ -107,12 +107,12 @@ export default {
   },
   methods: {
     onNewIncoming (info) {
-      let message = 'Transaction sent!'
-      if (info && info.transferType === 'c2s') message += ' Waiting for transaction in Smart BCH'
-      if (info && info.transferType === 's2c') message += ' Waiting for transaction in Bitcoin Cash'
+      let message = this.$t('TransactionSent') + '! '
+      if (info && info.transferType === 'c2s') message += this.$t('WaitingSmartBchTransaction')
+      if (info && info.transferType === 's2c') message += this.$t('WaitingBchTransaction')
       const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
       this.$q.dialog({
-        title: 'Swap update',
+        title: this.$t('SwapUpdate'),
         message: message,
         class: dialogStyleClass
       })
@@ -131,8 +131,8 @@ export default {
     if (!this.waiting) return next()
     const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
     this.$q.dialog({
-      title: 'Leaving page',
-      message: 'Leaving the page may result in being unable to view progress. Leave page?',
+      title: this.$t('LeavingPage'),
+      message: this.$t('BridgeLeavingPageMsg'),
       cancel: true,
       persistent: true,
       class: dialogStyleClass

@@ -29,19 +29,23 @@
       </div>
 
       <q-banner v-if="networkData.error" dense rounded class="text-white bg-red q-mx-md q-mb-sm">
-        Error occurred in fetching swap information
+        {{ $t('SmartSwapFormErr') }}
         <template v-slot:action>
           <q-btn
             no-caps
             flat
             rounded
             color="white"
-            label="Refetch"
+            :label="$t('Refetch')"
             @click="updateNetworkData()"
           />
         </template>
       </q-banner>
-      <span>Swap from:</span>
+
+      <div class="text-center">
+        {{ $t('SwapFrom') }}:
+      </div>
+
       <q-item clickable>
         <q-item-section avatar @click="selectSourceToken()" class="items-center">
           <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" style="border-radius:50%" class="q-mb-sm">
@@ -67,7 +71,7 @@
             :class="darkMode ? 'text-grey-6' : ''"
             @click="setAmountToSourceTokenBalance()"
           >
-            Balance: {{ formatNumber(formData.sourceToken.balance) }}
+            {{ $t('Balance') }}: {{ formatNumber(formData.sourceToken.balance) }}
           </q-item-label>
         </q-item-section>
       </q-item>
@@ -81,7 +85,11 @@
           @click="reverseSelectedTokens()"
         />
       </div>
-      <span>Swap to:</span>
+
+      <div class="full-width text-center q-mt-md">
+        {{ $t('SwapTo') }}:
+      </div>
+
       <q-item clickable>
         <q-item-section avatar @click="selectDestToken()" class="items-center">
           <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" style="border-radius:50%" class="q-mb-sm">
@@ -121,8 +129,8 @@
       </div>
       <q-item class="q-mt-sm">
         <q-item-section side>
-          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Slippage:</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Deadline:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">{{ $t('Slippage') }}:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">{{ $t('Deadline') }}:</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label>{{ formData.slippageTolerance }}%</q-item-label>
@@ -135,8 +143,8 @@
       <q-separator />
       <q-item class="q-my-sm">
         <q-item-section side>
-          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Route:</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Minimum return:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">{{ $t('Route') }}:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">{{ $t('MinimumReturn') }}:</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label @click="showRouteDialog = computedFormData.parsedDistribution.steps > 0" style="cursor:pointer;">
@@ -167,7 +175,7 @@
         </q-item-section>
       </q-item>
       <div class="row justify-center q-mb-md" style="color: gray;">
-        <span>Powered by SmartSwap.fi</span>
+        <span>{{ $t('PoweredBy') }} SmartSwap.fi</span>
       </div>
       <div class="row">
         <q-btn
@@ -175,7 +183,7 @@
           :disable="networkData.approvingToken || networkData.loading || Boolean(networkData.error)"
           no-caps
           :loading="networkData.approvingToken"
-          :label="'Approve ' + formData.sourceToken.symbol"
+          :label="$t('Approve') + ' ' + formData.sourceToken.symbol"
           color="brandblue"
           class="q-space"
           rounded
@@ -186,7 +194,7 @@
           disable
           rounded
           no-caps
-          label="Enter amount"
+          :label="$t('EnterAmount')"
           color="brandblue"
           class="q-space"
         />
@@ -195,7 +203,7 @@
           :disable="insufficientBalance || networkData.approvingToken || networkData.loading || Boolean(networkData.error)"
           no-caps
           rounded
-          :label="insufficientBalance ? 'Insufficient balance': 'Swap'"
+          :label="insufficientBalance ? $t('InsufficientBalance') : $t('Swap')"
           color="brandblue"
           class="q-space"
           @click="moveSwapDetailsToStaging()"
@@ -234,10 +242,10 @@
       <q-separator spaced/>
       <q-item>
         <q-item-section side>
-          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Slippage:</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Min. Return:</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Deadline:</q-item-label>
-          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Route:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">{{ $t('Slippage') }}:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">{{ $t('MinimumReturn') }}:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">{{ $t('Deadline') }}:</q-item-label>
+          <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">{{ $t('Route') }}:</q-item-label>
         </q-item-section>
         <q-item-section class="text-right">
           <q-item-label>{{ stagedSwapDetails.slippageTolerance }}%</q-item-label>
@@ -276,12 +284,12 @@
           rounded
           color="blue-9"
           icon="mdi-arrow-left"
-          label="Back to Edit"
+          :label="$t('BackToEdit')"
           @click="stagedSwapDetails.show = false"
         />
       </div>
       <div v-if="stagedSwapDetails.txid" class="q-mx-md q-mt-sm">
-        <div>View transaction in explorer:</div>
+        <div>{{ $t('ViewTransactionInExplorer') }}:</div>
         <div class="ellipsis">
           <a
             :href="`https://sonar.cash/tx/${stagedSwapDetails.txid}`"
@@ -298,7 +306,7 @@
         <ProgressLoader/>
       </div>
       <div class="row justify-center" style="margin-top: 20px; color: gray;">
-        <span>Powered by SmartSwap.fi</span>
+        <span>{{ $t('PoweredBy') }} SmartSwap.fi</span>
       </div>
       <DragSlide
         v-if="stagedSwapDetails.show && stagedSwapDetails.showConfirmSwipe"
@@ -315,7 +323,7 @@
     <q-dialog v-model="showSettingsDialogForm" persistent>
       <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;" class="br-15">
         <div class="row no-wrap items-center justify-center q-pl-md">
-          <div class="text-subtitle1 text-weight-medium q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">Settings</div>
+          <div class="text-subtitle1 text-weight-medium q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">{{ $t('Settings') }}</div>
           <q-btn
               flat
               color="blue-9"
@@ -338,11 +346,11 @@
         </div>
         <q-card-section class="text-center">
           <div class="q-mb-sm text-subtitle2 text-weight-regular">
-            Slippage Tolerance
+            {{ $t('SlippageTolerance') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
                 <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
-                  The swap will be reverted if price changes unfavorably by this percentage
+                  {{ $t('SlippageToleranceDescription') }}
                 </div>
               </q-popup-proxy>
             </q-icon>
@@ -370,11 +378,11 @@
             /> -->
           </div>
           <div class="q-mt-lg q-mb-sm text-subtitle2 text-weight-regular">
-            Transaction Deadline
+            {{ $t('TransactionDeadline') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
                 <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
-                  The swap will be reverted if the transaction is pending for more than this duration
+                  {{ $t('SwapTransactionDeadlineDescription') }}
                 </div>
               </q-popup-proxy>
             </q-icon>
@@ -578,7 +586,7 @@ export default {
         address: this.formData.sourceToken.address
       }
       this.$q.dialog({
-        title: 'Approve token',
+        title: this.$t('ApproveToken'),
         message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
         persistent: true,
         ok: {
@@ -603,8 +611,12 @@ export default {
 
       this.approvingToken = true
       const dialog = this.$q.dialog({
-        title: 'Approving token',
-        message: `Approving ${tokenInfo.name}`,
+        title: this.$t('ApprovingToken'),
+        message: this.$t(
+          'ApprovingTokenName',
+          { tokenInfoName: tokenInfo.name },
+          `Approving ${tokenInfo.name}`
+        ),
         progress: true,
         persistent: false,
         ok: false, // we want the user to not be able to close it
@@ -613,7 +625,7 @@ export default {
 
       const onApproveSuccess = () => {
         dialog.update({
-          message: 'Token approved!',
+          message: this.$t('TokenApproved') + '!',
           progress: false,
           ok: true
         })
@@ -828,8 +840,8 @@ export default {
 
         if (response.transaction && response.transaction.hash) this.stagedSwapDetails.txid = response.transaction.hash
         this.$q.dialog({
-          title: 'Swap success',
-          message: 'Assets swapped succesfully!',
+          title: this.$t('SwapSuccess'),
+          message: this.$t('AssetsSwappedSuccesfully') + '!',
           ok: {
             rounded: true
           },

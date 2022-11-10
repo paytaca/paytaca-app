@@ -46,7 +46,7 @@
           <div class="row q-mt-sm">
             <div class="col">
               <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
-                Tokens
+                {{ $t('Tokens') }}
                 <q-btn
                   flat
                   padding="none"
@@ -96,47 +96,47 @@
       <div ref="transactionSection" class="row transaction-row">
         <transaction ref="transaction"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
-            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
-              {{ selectedAsset.symbol }} Transactions
-            </p>
-            <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
-              <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-all')" id="btn-all">All</button>
-              <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-sent')" id="btn-sent">Sent</button>
-              <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-received')" id="btn-received">Received</button>
-            </div>
-            <div class="transaction-list">
-              <template v-if="transactionsLoaded">
-                <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
-                    <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <div class="row" @click="showTransactionDetails(transaction)">
-                        <!-- <div class="q-mr-sm">
-                          <img :src="selectedAsset.logo" width="40">
-                        </div> -->
-                        <div class="col col-transaction ">
-                          <div>
-                            <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
-                            <p :class="{'text-grey': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
-                          </div>
-                          <div class="col">
-                              <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">{{ formatDate(transaction.date_created) }}</span>
-                              <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                          </div>
+          <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
+            {{ selectedAsset.symbol }} {{ $t('Transactions') }}
+          </p>
+          <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
+            <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-all')" id="btn-all">{{ $t('All') }}</button>
+            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-sent')" id="btn-sent">{{ $t('Sent') }}</button>
+            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-received')" id="btn-received">{{ $t('Received') }}</button>
+          </div>
+          <div class="transaction-list">
+            <template v-if="transactionsLoaded">
+              <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
+                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                    <div class="row" @click="showTransactionDetails(transaction)">
+                      <!-- <div class="q-mr-sm">
+                        <img :src="selectedAsset.logo" width="40">
+                      </div> -->
+                      <div class="col col-transaction ">
+                        <div>
+                          <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text text-uppercase" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
+                          <p :class="{'text-grey': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
+                        </div>
+                        <div class="col">
+                            <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">{{ formatDate(transaction.date_created) }}</span>
+                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                         </div>
                       </div>
                     </div>
-                </div>
-                <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
-                  <p @click="() => { getTransactions(transactionsPage + 1) }">Show More</p>
-                </div>
-                <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
-                  <q-img class="absolute-center vertical-top" src="empty-wallet.svg" style="width: 70px; margin-top: -50px; fill: gray;" />
-                  <p :class="{ 'text-black': !darkMode }">No transactions to display</p>
-                </div>
-              </template>
-              <div style="text-align: center;" v-else>
-                <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
+                  </div>
               </div>
+              <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+                <p @click="() => { getTransactions(transactionsPage + 1) }">{{ $t('ShowMore') }}</p>
+              </div>
+              <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
+                <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+                <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
+              </div>
+            </template>
+            <div style="text-align: center;" v-else>
+              <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
             </div>
+          </div>
         </div>
       </div>
       <footer-menu />
@@ -212,8 +212,8 @@ export default {
         balance: 0
       },
       recordTypeMap: {
-        incoming: 'RECEIVED',
-        outgoing: 'SENT'
+        incoming: this.$t('Received'),
+        outgoing: this.$t('Sent')
       },
       transactionsFilter: 'all',
       activeBtn: 'btn-all',

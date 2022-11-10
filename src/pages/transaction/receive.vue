@@ -1,22 +1,22 @@
 <template>
   <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
     <header-nav
-      :title="'RECEIVE ' + asset.symbol"
+      :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
     ></header-nav>
     <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu anchor="bottom right" self="top end">
         <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">Generate new address</q-item-section>
+            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">{{ $t('GenerateNewAddress') }}</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
             <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="copyPrivateKey">
               <template v-if="copying">
-                Copying...
+                {{ $t('Copying') }}...
               </template>
               <template v-else>
-                Copy private key
+                {{ $t('CopyPrivateKey') }}
               </template>
             </q-item-section>
           </q-item>
@@ -46,7 +46,7 @@
           :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'"
           keep-color
           color="blue-9"
-          label="Legacy Address"
+          :label="$t('LegacyAddress')"
         />
       </div>
       <div class="row">
@@ -54,7 +54,7 @@
           <span class="qr-code-text text-weight-light text-center">
             <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
               {{ address }}
-              <p style="font-size: 12px; margin-top: 7px;">Click to copy address</p>
+              <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
             </div>
             <div v-if="lnsName" class="text-center text-caption pp-text">
               {{ lnsName }}
@@ -231,7 +231,7 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
-        message: 'Copied to clipboard',
+        message: this.$t('CopiedToClipboard'),
         timeout: 800,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
@@ -387,7 +387,7 @@ export default {
     if (vm.assetId.endsWith('unlisted')) {
       vm.asset = {
         id: vm.assetId,
-        name: 'New / Unlisted',
+        name: vm.$t('NewUnlisted'),
         symbol: vm.assetId.split('/')[0].toUpperCase() + ' Token',
         logo: vm.assetId.split('/')[0] + '-logo.png'
       }

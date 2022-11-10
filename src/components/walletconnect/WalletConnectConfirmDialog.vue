@@ -31,7 +31,7 @@
           outline
           padding="xs md"
           color="grey"
-          label="Cancel"
+          :label="$t('Cancel')"
           rounded
           flat
           @click="onCancelClick"
@@ -40,7 +40,7 @@
         <q-btn
           padding="xs md"
           color="brandblue"
-          label="Connect"
+          :label="$t('Connect')"
           rounded
           @click="onOKClick"
         />

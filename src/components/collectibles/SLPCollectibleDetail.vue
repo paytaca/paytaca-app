@@ -14,8 +14,8 @@
       </template>
       <q-card-section style="text-align: center; margin-bottom: 10px;">
         <q-btn-group push style="color: rgb(60, 100, 246) !important;">
-          <q-btn @click="verify" push label="Verify" icon="visibility" />
-          <q-btn @click="send" push label="Send" icon="send" />
+          <q-btn @click="verify" push :label="$t('Verify')" icon="visibility" />
+          <q-btn @click="send" push :label="$t('Send')" icon="send" />
         </q-btn-group>
       </q-card-section>
     </q-card>

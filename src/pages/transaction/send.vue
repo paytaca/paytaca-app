@@ -6,7 +6,7 @@
     />
     <div id="app-container" :class="{'pt-dark': darkMode}">
       <header-nav
-        :title="'SEND ' + asset.symbol"
+        :title="$t('Send') + ' ' + asset.symbol"
         backnavpath="/send/select-asset"
       ></header-nav>
       <div class="q-mt-xl">
@@ -33,7 +33,7 @@
                 filled
                 :dark="darkMode"
                 v-model="manualAddress"
-                :label="canUseLNS ? 'Paste address or LNS name here' : 'Paste address here'"
+                :label="canUseLNS ? $t('PasteAddressOrLnsHere') : $t('PasteAddressHere')"
                 @update:model-value="resolveLnsName"
               >
                 <template v-slot:append>
@@ -43,7 +43,7 @@
                   <q-item v-if="lns.loading">
                     <q-item-section class="items-center">
                       <q-spinner color="black"/>
-                      <q-item-label caption>Resolving LNS name address</q-item-label>
+                      <q-item-label caption>{{ $t('ResolvingLnsAddress') }}</q-item-label>
                     </q-item-section>
                   </q-item>
                   <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
@@ -58,15 +58,15 @@
                     </q-item-section>
                     <q-item-section>
                       <q-item-label caption>
-                        Unable to resolve LNS name address
+                        {{ $t('UnableToResolveLnsAddress') }}
                       </q-item-label>
                     </q-item-section>
                   </q-item>
                 </q-menu>
               </q-input>
             </div>
-            <div class="col-12" style="text-align: center; font-size: 15px; color: grey;">
-              OR
+            <div class="col-12 text-uppercase" style="text-align: center; font-size: 15px; color: grey;">
+              {{ $t('or') }}
             </div>
             <div class="col-12 q-mt-lg text-center">
               <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
@@ -98,7 +98,7 @@
                   :dark="darkMode"
                 >
                   <template v-slot:label>
-                    Recipient
+                    {{ $t('Recipient') }}
                     <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
                       ({{ sendData.lnsName }})
                     </template>
@@ -116,13 +116,13 @@
                     @blur="readonlyState(false)"
                     filled
                     v-model="sendData.amount"
-                    label="Amount"
+                    :label="$t('Amount')"
                     :loading="computingMax"
                     :disabled="disableAmountInput || setAmountInFiat"
                     :readonly="disableAmountInput || setAmountInFiat"
                     :dark="darkMode"
                     :error="balanceExceeded"
-                    :error-message="balanceExceeded ? 'Balance exceeded' : ''"
+                    :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
                   >
                     <template v-slot:append>
                       {{ asset.symbol }}
@@ -142,7 +142,7 @@
                     @blur="readonlyState(false)"
                     filled
                     v-model="sendAmountInFiat"
-                    label="Amount"
+                    :label="$t('Amount')"
                     :disabled="disableAmountInput"
                     :readonly="disableAmountInput"
                     :dark="darkMode"
@@ -156,34 +156,34 @@
                   </div>
                 </div>
               </div>
-              <div class="row" v-if="!isNFT">
-                <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                  Balance: {{ asset.balance }} {{ asset.symbol }}
-                  <template v-if="asset.id === 'bch' && setAmountInFiat">
-                    = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
-                  </template>
-                  <a
-                    href="#"
-                    v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
-                    @click.prevent="setMaximumSendAmount"
-                    style="float: right; text-decoration: none; color: #3b7bf6;"
-                  >
-                    MAX
-                  </a>
-                </div>
-              </div>
-              <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
-                <div class="col q-mt-md">
-                  <a
-                    style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
-                    href="#"
-                    @click.prevent="() => {setAmountInFiat = true}"
-                  >
-                    Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
-                  </a>
-                </div>
-              </div>
             </template>
+            <div class="row" v-if="!isNFT">
+              <div class="col q-mt-md" style="font-size: 18px; color: gray;">
+                Balance: {{ asset.balance }} {{ asset.symbol }}
+                <template v-if="asset.id === 'bch' && setAmountInFiat">
+                  = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </template>
+                <a
+                  href="#"
+                  v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
+                  @click.prevent="setMaximumSendAmount"
+                  style="float: right; text-decoration: none; color: #3b7bf6;"
+                >
+                  MAX
+                </a>
+              </div>
+            </div>
+            <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+              <div class="col q-mt-md">
+                <a
+                  style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
+                  href="#"
+                  @click.prevent="() => {setAmountInFiat = true}"
+                >
+                  Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
+                </a>
+              </div>
+            </div>
             <div class="row" v-if="sendData.sending">
               <div class="col-12 text-center">
                 <ProgressLoader/>
@@ -201,7 +201,7 @@
               <q-icon class="material-icons q-mr-md" size="lg">
                 task_alt
               </q-icon>
-              Security Check
+              {{ $t('SecurityCheck') }}
               </div>
             </template>
 
@@ -210,7 +210,7 @@
                 <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
               </q-item-section>
               <q-item-section class="text-right">
-                <h5 class="q-my-sm text-grey-4">SWIPE TO SEND</h5>
+                <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
               </q-item-section>
             </q-item>
           </q-slide-item>
@@ -260,7 +260,7 @@
                   style="text-decoration: none; color: #3b7bf6;"
                   :href="'https://sonar.cash/tx/' + sendData.txid" target="_blank"
                 >
-                  View in explorer
+                  {{ $t('ViewInExplorer') }}
                 </a>
               </template>
               <template v-else>
@@ -268,7 +268,7 @@
                   style="text-decoration: none; color: #3b7bf6;"
                   :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
                 >
-                  View in explorer
+                  {{ $t('ViewInExplorer') }}
                 </a>
               </template>
             </div>
@@ -845,7 +845,7 @@ export default {
         this.sendErrors = []
         return true
       } else {
-        this.sendErrors.push('Invalid address')
+        this.sendErrors.push(this.$t('InvalidAddress'))
         return false
       }
     },

@@ -55,7 +55,7 @@
           <q-btn
             no-caps
             color="brandblue"
-            label="Retry"
+            :label="$t('Retry')"
             class="full-width"
             :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
             @click="startPoller()"
