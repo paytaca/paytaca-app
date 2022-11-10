@@ -68,6 +68,13 @@ export function ellipsisText (value, config) {
  * @property {String|undefined|null} long_schnorr_sig
  * @property {Number|undefined|null} settlement_price
  * @property {String|undefined|null} tx_hash
+ * 
+ * @typedef {Object} MetadataAPI
+ * @property {String} [position_taker]
+ * @property {Number} [liquidity_fee]
+ * @property {Number} [network_fee]
+ * @property {Number} [total_hedge_funding_sats]
+ * @property {Number} [total_long_funding_sats]
 */
 
 /**
@@ -98,6 +105,7 @@ export function ellipsisText (value, config) {
  * @param {SettlementAPI|null} data.settlement
  * @param {FundingAPI|null} data.funding
  * @param {MutualRedemptionAPI|null} data.mutual_redemption
+ * @param {MetadataAPI|null} data.metadata
  * 
  * @returns 
  */
@@ -200,6 +208,18 @@ export async function parseHedgePositionData(data) {
     contractData.mutualRedemption = data.mutual_redemption
   }
 
+  if (data?.metadata) {
+    contractData.apiMetadata = {
+      hedgeAddressPath:       data?.hedge_address_path,
+      longAddressPath:        data?.long_address_path,
+      positionTaker:          data?.metadata?.position_taker,
+      liquidityFee:           data?.metadata?.liquidity_fee,
+      networkFee:             data?.metadata?.network_fee,
+      totalHedgeFundingSats:  data?.metadata?.total_hedge_funding_sats,
+      totalLongFundingSats:   data?.metadata?.total_long_funding_sats,
+    }
+  }
+
   return contractData
 }
 
@@ -223,7 +243,12 @@ export function parseSettlementMetadata(contract) {
     settlementTimestamp: -1,
     txid: '',
     hedge: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 },
-    long: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 }
+    long: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 },
+
+    summary: {
+      hedge: { assetChangePctg: 0, actualSatsChange: 0 },
+      long: { actualSatsChange: 0 },
+    }
   }
 
   const settlement = contract?.settlement?.[0]
@@ -262,6 +287,18 @@ export function parseSettlementMetadata(contract) {
     data.long.assetChangePctg = -(10000 - data.long.assetChangePctg) / 100
     data.long.bchChangePctg = -(10000 - data.long.bchChangePctg) / 100
 
+    if (contract?.apiMetadata?.totalHedgeFundingSats) {
+      data.summary.hedge.actualSatsChange = hedgeSatoshis - contract.apiMetadata.totalHedgeFundingSats
+      data.summary.hedge.assetChangePctg = data.hedge.assetChangePctg
+    } else {
+      data.summary.hedge = null
+    }
+
+    if (contract?.apiMetadata?.totalLongFundingSats) {
+      data.summary.long.actualSatsChange = longSatoshis - contract.apiMetadata.totalLongFundingSats
+    } else {
+      data.summary.long = null
+    }
   }
   return data
 }
