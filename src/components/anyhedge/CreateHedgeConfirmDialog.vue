@@ -29,7 +29,7 @@
             <div class="col-6">
               <div class="text-grey-7">Hedge</div>
               <div v-if="contractValues.priceValue">
-                {{ formatUnits(contractValues.hedge.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency }}
+                {{ formatUnits(contractValues.hedge.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
               <div>
                 {{ contractValues.hedge.satoshis / (10**8) }} BCH
@@ -38,7 +38,7 @@
             <div class="col-6">
               <div class="text-grey-7">Long</div>
               <div v-if="contractValues.priceValue">
-                {{ formatUnits(contractValues.long.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency }}
+                {{ formatUnits(contractValues.long.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
               <div>
                 {{ contractValues.priceValue ? '' : '~' }}
@@ -130,7 +130,8 @@
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.low.price, oracleInfo?.assetDecimals || 0) }}
-                    <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+                    <template v-else="oracleInfo?.assetCurrency">units/BCH</template>
                   </template>
                   {{ liquidationData.priceValue ? `(${liquidationData.low.pctg}%)` : `${liquidationData.low.pctg}%` }}
                 </div>
@@ -140,7 +141,8 @@
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.high.price, oracleInfo?.assetDecimals || 0) }}
-                    <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+                    <template v-else="oracleInfo?.assetCurrency">units/BCH</template>
                   </template>
                   {{ liquidationData.priceValue ? `(${liquidationData.high.pctg}%)` : `${liquidationData.high.pctg}%` }}
                 </div>
@@ -223,22 +225,22 @@ const darkMode = computed(() => store.getters['darkmode/getStatus'])
  * @property {String} longAddressPath
  * 
  * @typedef {Object} PriceDataProp
- * @property {String} oraclePubkey
- * @property {Number} priceValue
- * @property {Number} messageTimestamp
- * @property {Number} messageSequence
+ * @property {String} [oraclePubkey]
+ * @property {Number} [priceValue]
+ * @property {Number} [messageTimestamp]
+ * @property {Number} [messageSequence]
  * 
  * @typedef {Object} FundingProp
  * @property {Number} liquidityFee
- * @property {Object} fee
+ * @property {Object} [fee]
  * @property {String} fee.address
  * @property {Number} fee.satoshis
  * 
  * @typedef {Object} OracleInfoProp
- * @property {String} oraclePubkey
- * @property {String} assetName
- * @property {Number} assetDecimals
- * @property {String} assetCurrency
+ * @property {String} [oraclePubkey]
+ * @property {String} [assetName]
+ * @property {Number} [assetDecimals]
+ * @property {String} [assetCurrency]
  * 
 */
 const props = defineProps({
@@ -275,7 +277,7 @@ const contractValues = computed(() => {
   }
 
   data.hedge.satoshis = props.intent.amount * 10 ** 8
-  data.priceValue = props.priceData.priceValue
+  data.priceValue = props.priceData?.priceValue
   if (data.priceValue) {
     data.hedge.nominalUnits = data.hedge.satoshis * data.priceValue
 
@@ -297,8 +299,8 @@ function updateFundingAmounts() {
   calculateFundingAmountsWithFees({
     amountSats: props.intent.amount * 10 ** 8,
     lowLiquidationMultiplier: props.intent.lowPriceMult,
-    startingPriceValue: props.priceData.priceValue,
-    feeSats: props.funding.fee.satoshis,
+    startingPriceValue: props.priceData?.priceValue,
+    feeSats: props.funding?.fee?.satoshis,
     liquidityFee: props.funding.liquidityFee,
     position: props.position,
   })
@@ -315,7 +317,7 @@ const liquidationData = computed(() => {
     high: { pctg: 0, price: 0 },
   }
 
-  data.priceValue = props.priceData.priceValue
+  data.priceValue = props.priceData?.priceValue
   data.low.pctg = props.intent.lowPriceMult
   data.high.pctg = props.intent.highPriceMult
   if (data.priceValue) {
@@ -335,7 +337,7 @@ const durationData = computed(() => {
     maturityTimestamp: 0,
   }
 
-  if (props.priceData.messageTimestamp) {
+  if (props.priceData?.messageTimestamp) {
     data.startTimestamp = props.priceData.messageTimestamp
     data.maturityTimestamp = data.startTimestamp + data.duration
   }
