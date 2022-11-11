@@ -8,11 +8,11 @@
     no-backdrop-dismiss
     no-shake
   >
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;">
+    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;margin-bottom:3rem;">
       <div class="row no-wrap items-center justify-center q-pl-md q-mb-md">
         <div class="text-h6 q-space q-mt-sm">
-          <template v-if="position === 'hedge'">Stabilize</template>
-          <template v-else-if="position === 'long'">Leverage</template>
+          <template v-if="position === 'hedge'">Stabilize (Hedge)</template>
+          <template v-else-if="position === 'long'">Leverage (Long)</template>
           <template v-else="position === 'long'">Hedge Contract</template>
         </div>
         <q-btn
@@ -22,7 +22,7 @@
           v-close-popup
         />
       </div>
-      <q-card-section class="q-gutter-y-sm q-pt-none" style="max-height:65vh;overflow:auto;">
+      <q-card-section class="q-gutter-y-sm q-pt-none" style="max-height:calc(85vh - 5rem);overflow:auto;">
         <div>
           <div class="text-grey text-subtitle1">Contract Value</div>
           <div class="row items-start">
@@ -60,42 +60,93 @@
           </div>
           <q-separator :dark="darkMode"/>
         </div>
-
         <div v-if="fundingAmounts">
           <div class="text-grey text-subtitle1">Funding</div>
-          <div class="row items-start">
-            <div class="col-6 text-body1 text-grey">Hedge</div>
-            <div class="col-6 text-body1 text-grey">Long</div>
+          <div>
+            <div
+              class="row items-start q-pr-md"
+              v-ripple style="position:relative;"
+              @click="expandFundingAmounts.hedge = !expandFundingAmounts.hedge"
+            >
+              <div>
+                <q-icon
+                  name="arrow_right"
+                  size="1.5em"
+                  :style="{
+                    transform: expandFundingAmounts.hedge ? 'rotate(90deg)' : '',
+                    transition: 'transform 0.25s',
+                  }"
+                />
+              </div>
+              <div class="text-body1 text-grey">Hedge</div>
+              <div class="q-space text-body1 text-right">{{ fundingAmounts?.hedge?.total / (10**8) }} BCH</div>
+            </div>
+            <q-slide-transition>
+              <div v-if="expandFundingAmounts.hedge" class="q-pl-md">
+                <div class="row items-start q-pr-md">
+                  <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
+                  <div class="q-space text-right">{{ fundingAmounts?.hedge?.sats / (10**8) }} BCH</div>
+                </div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Fees</div>
+                <div class="q-pl-md">
+                  <div class="row items-start q-pr-md">
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
+                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.network / (10**8) }} BCH</div>
+                  </div>
+                  <div class="row items-start q-pr-md">
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Settlement Service </div>
+                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.settlementService / (10**8) }} BCH</div>
+                  </div>
+                  <div class="row items-start q-pr-md">
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Premium</div>
+                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.premium / (10**8) }} BCH</div>
+                  </div>
+                </div>
+              </div>
+            </q-slide-transition>
           </div>
-
-          <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
-          <div class="row items-start">
-            <div class="col-6">{{ fundingAmounts?.hedge?.sats / (10**8) }} BCH</div>
-            <div class="col-6">{{ fundingAmounts?.long?.sats / (10**8) }} BCH</div>
-          </div>
-
-          <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
-          <div class="row items-start">
-            <div class="col-6">{{ fundingAmounts?.hedge?.fees?.network / (10**8) }} BCH</div>
-            <div class="col-6">{{ fundingAmounts?.long?.fees?.network / (10**8) }} BCH</div>
-          </div>
-
-          <div class="text-caption text-grey" style="margin-bottom:-0.5em">Settlement Service</div>
-          <div class="row items-start">
-            <div class="col-6">{{ fundingAmounts?.hedge?.fees?.settlementService / (10**8) }} BCH</div>
-            <div class="col-6">{{ fundingAmounts?.long?.fees?.settlementService / (10**8) }} BCH</div>
-          </div>
-
-          <div class="text-caption text-grey" style="margin-bottom:-0.5em">Premium</div>
-          <div class="row items-start">
-            <div class="col-6">{{ fundingAmounts?.hedge?.fees?.premium / (10**8) }} BCH</div>
-            <div class="col-6">{{ fundingAmounts?.long?.fees?.premium / (10**8) }} BCH</div>
-          </div>
-
-          <div class="text-subtitle2" style="margin-bottom:-0.5em">Total</div>
-          <div class="row items-start">
-            <div class="col-6">{{ fundingAmounts?.hedge?.total / (10**8) }} BCH</div>
-            <div class="col-6">{{ fundingAmounts?.long?.total / (10**8) }} BCH</div>
+          <div>
+            <div
+              class="row items-start q-pr-md"
+              v-ripple style="position:relative;"
+              @click="expandFundingAmounts.long = !expandFundingAmounts.long"
+            >
+              <div>
+                <q-icon
+                  name="arrow_right"
+                  size="1.5em"
+                  :style="{
+                    transform: expandFundingAmounts.long ? 'rotate(90deg)' : '',
+                    transition: 'transform 0.25s',
+                  }"
+                />
+              </div>
+              <div class="text-body1 text-grey">Long</div>
+              <div class="q-space text-body1 text-right">{{ fundingAmounts?.long?.total / (10**8) }} BCH</div>
+            </div>
+            <q-slide-transition>
+              <div v-if="expandFundingAmounts.long" class="q-pl-md">
+                <div class="row items-start q-pr-md">
+                  <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
+                  <div class="q-space text-right">{{ fundingAmounts?.long?.sats / (10**8) }} BCH</div>
+                </div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Fees</div>
+                <div class="q-pl-md">
+                  <div class="row items-start q-pr-md">
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
+                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.network / (10**8) }} BCH</div>
+                  </div>
+                  <div class="row items-start q-pr-md">
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Settlement Service </div>
+                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.settlementService / (10**8) }} BCH</div>
+                  </div>
+                  <div class="row items-start q-pr-md">
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Premium</div>
+                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.premium / (10**8) }} BCH</div>
+                  </div>
+                </div>
+              </div>
+            </q-slide-transition>
           </div>
           <q-separator :dark="darkMode"/>
         </div>
@@ -295,6 +346,7 @@ const contractValues = computed(() => {
 })
 
 const fundingAmounts = ref(null)
+const expandFundingAmounts = ref({ hedge: false, long: false })
 function updateFundingAmounts() {
   calculateFundingAmountsWithFees({
     amountSats: props.intent.amount * 10 ** 8,
