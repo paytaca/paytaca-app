@@ -825,6 +825,10 @@ export default {
     }
 
     vm.adjustTransactionsDivHeight()
+
+    if (navigator.onLine) {
+      vm.onConnectivityChange(true)
+    }
   }
 }
 </script>
