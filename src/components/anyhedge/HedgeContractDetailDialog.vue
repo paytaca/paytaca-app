@@ -66,18 +66,98 @@
 
         <div v-if="(!settled || contract.fundingTxHash)">
           <div class="text-grey text-subtitle1">Funding</div>
-          <div v-if="contract.fundingTxHash" class="row items-center q-pr-sm">
-            <div @click="copyText(contract.fundingTxHash)" v-ripple style="position:relative;" class="text-body1 q-space">
-              {{ ellipsisText(contract.fundingTxHash, {start: 10, end: 10}) }}
+          <div v-if="contract.fundingTxHash">
+            <div class="row items-center q-pr-sm">
+              <div @click="copyText(contract.fundingTxHash)" v-ripple style="position:relative;" class="text-body1 q-space">
+                {{ ellipsisText(contract.fundingTxHash, {start: 10, end: 10}) }}
+              </div>
+              <q-btn
+                flat
+                icon="launch"
+                size="xs" padding="xs"
+                class="q-ml-sm"
+                :href="'https://blockchair.com/bitcoin-cash/transaction/' + contract.fundingTxHash"
+                target="_blank"
+              />
             </div>
-            <q-btn
-              flat
-              icon="launch"
-              size="xs" padding="xs"
-              class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/transaction/' + contract.fundingTxHash"
-              target="_blank"
-            />
+            <div
+              v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.settlementService"
+              class="q-pr-md"
+            >
+              <div class="row">
+                <div class="q-space">Hedge</div>
+                <div>
+                  <div v-if="fundingMetadata.hedge.total">
+                    {{ fundingMetadata.hedge.total / 10 ** 8 }} BCH
+                  </div>
+                  <div v-else class="text-grey">---</div>
+                </div>
+              </div>
+              <div :class="darkMode ? 'text-grey' : 'text-grey-7'">
+                <div v-if="fundingMetadata.hedge.fees.network" class="row q-pl-md">
+                  <div class="q-space">Network fee:</div>
+                  <div>{{ fundingMetadata.hedge.fees.network / 10 ** 8 }} BCH</div>
+                </div>
+                <div v-if="fundingMetadata.hedge.fees.premium" class="row q-pl-md">
+                  <div class="q-space">Premium:</div>
+                  <div>{{ fundingMetadata.hedge.fees.premium / 10 ** 8 }} BCH</div>
+                </div>
+                <div v-if="fundingMetadata.hedge.fees.settlementService" class="row q-pl-md">
+                  <div class="q-space">Service fee:</div>
+                  <div>{{ fundingMetadata.hedge.fees.settlementService / 10 ** 8 }} BCH</div>
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="fundingMetadata.long.fees.network || fundingMetadata.long.fees.premium || fundingMetadata.long.fees.settlementService"
+              class="q-pr-md"
+            >
+              <div class="row">
+                <div class="q-space">Long</div>
+                <div>
+                  <div v-if="fundingMetadata.long.total">
+                    {{ fundingMetadata.long.total / 10 ** 8 }} BCH
+                  </div>
+                  <div v-else class="text-grey">---</div>
+                </div>
+              </div>
+              <div :class="darkMode ? 'text-grey' : 'text-grey-7'">
+                <div v-if="fundingMetadata.long.fees.network" class="row q-pl-md">
+                  <div class="q-space">Network fee:</div>
+                  <div>{{ fundingMetadata.long.fees.network / 10 ** 8 }} BCH</div>
+                </div>
+                <div v-if="fundingMetadata.long.fees.premium" class="row q-pl-md">
+                  <div class="q-space">Premium:</div>
+                  <div>{{ fundingMetadata.long.fees.premium / 10 ** 8 }} BCH</div>
+                </div>
+                <div v-if="fundingMetadata.long.fees.settlementService" class="row q-pl-md">
+                  <div class="q-space">Service fee:</div>
+                  <div>{{ fundingMetadata.long.fees.settlementService / 10 ** 8 }} BCH</div>
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="fundingMetadata.fees.network || fundingMetadata.fees.premium || fundingMetadata.fees.settlementService"
+              class="q-pr-md"
+            >
+              <div class="q-space">Other fees:</div>
+              <div :class="darkMode ? 'text-grey' : 'text-grey-7'">
+                <div v-if="fundingMetadata.fees.network" class="row q-pl-md">
+                  <div class="q-space">Network fee:</div>
+                  <div>{{ fundingMetadata.fees.network / 10 ** 8 }} BCH</div>
+                </div>
+                <div v-if="fundingMetadata.fees.premium" class="row q-pl-md">
+                  <div class="q-space">
+                    Premium {{ fundingMetadata.fees.premiumTaker ? `(${fundingMetadata.fees.premiumTaker})`: '' }}:
+                  </div>
+                  <div>{{ fundingMetadata.fees.premium / 10 ** 8 }} BCH</div>
+                </div>
+                <div v-if="fundingMetadata.fees.settlementService" class="row q-pl-md">
+                  <div class="q-space">Service fee:</div>
+                  <div>{{ fundingMetadata.fees.settlementService / 10 ** 8 }} BCH</div>
+                </div>
+              </div>
+            </div>
           </div>
           <div v-else>
             <q-badge color="grey-7">
@@ -274,6 +354,35 @@
                 {{ contract?.metadata?.longInputSats / 10 ** 8 }} -
                 {{ settlementMetadata.long.satoshis / 10 ** 8 }} BCH
               </div>
+            </div>
+          </div>
+          <div v-if="settled && summaryDataAvailable">
+            <div class="text-grey text-subtitle1">Summary</div>
+            <div v-if="viewAs === 'hedge'">
+              Contract value
+              <template v-if="settlementMetadata.summary.hedge.assetChangePctg === 0">
+                maintained
+              </template>
+              <template v-else-if="settlementMetadata.summary.hedge.assetChangePctg < 0">
+                dropped to
+              </template>
+              <template v-else-if="settlementMetadata.summary.assetChangePctg > 0">
+                rose to
+              </template>
+              <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.assetChangePctg)}` + ' text-weight-medium'">
+                {{ formatUnits(settlementMetadata.hedge.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
+              </span>
+              by a
+              <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.actualSatsChange)}` + ' text-weight-medium'">
+                {{ settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8 }} BCH
+              </span>
+              {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? 'loss' : 'gain' }}.
+            </div>
+            <div v-if="viewAs === 'long'">
+              You {{ settlementMetadata.summary.long.actualSatsChange < 0 ? 'lost' : 'gained' }}
+              <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
+                {{ settlementMetadata.summary.long.actualSatsChange / 10 ** 8 }} BCH
+              </span>.
             </div>
           </div>
         </div>
@@ -520,7 +629,50 @@ const funding = computed(() => {
 
   return 'pending'
 })
+const fundingMetadata = computed(() => {
+  const data = {
+    hedge: {
+      total: props.contract?.apiMetadata?.totalHedgeFundingSats || 0,
+      fees: { premium: 0, network: 0, settlementService: 0 }
+    },
+    long: {
+      total: props.contract?.apiMetadata?.totalLongFundingSats || 0,
+      fees: { premium: 0, network: 0, settlementService: 0 }
+    },
+    fees: { network: 0, settlementService: 0, premium: 0, premiumTaker: '' }
+  }
+
+  const apiMetadata = props.contract?.apiMetadata
+  if (apiMetadata?.positionTaker === 'hedge') {
+    data.hedge.fees.network = apiMetadata?.networkFee || 0
+    data.hedge.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (apiMetadata?.liquidityFee) {
+      data.hedge.fees.premium = apiMetadata.liquidityFee
+      data.long.fees.premium = apiMetadata.liquidityFee * -1
+    }
+  } else if (apiMetadata?.positionTaker === 'long') {
+    data.long.fees.network = apiMetadata?.networkFee || 0
+    data.long.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (apiMetadata?.liquidityFee) {
+      data.long.fees.premium = apiMetadata.liquidityFee
+      data.hedge.fees.premium = apiMetadata.liquidityFee * -1
+      
+    }
+  } else {
+    data.fees.network = apiMetadata?.networkFee || 0
+    data.fees.settlementService = props.contract?.fee?.satoshis || 0
+    data.fees.premium = apiMetadata?.liquidityFee || 0
+    data.fees.premiumTaker = apiMetadata?.positionTaker || 'unknown'
+  }
+
+  return data
+})
 const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
+const summaryDataAvailable = computed(() => {
+  if (props.viewAs === 'hedge' && settlementMetadata.value.summary.hedge) return true
+  if (props.viewAs === 'long' && settlementMetadata.value.summary.long) return true
+  return false
+})
 const settlementMetadata = computed(() => parseSettlementMetadata(props?.contract))
 
 function resolveColor(changePctg) {

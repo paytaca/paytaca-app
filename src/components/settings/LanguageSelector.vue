@@ -5,6 +5,7 @@
     :options="localeOptions"
     :dark="darkMode"
     @filter="filterLangSelection"
+    popup-content-style="color: black;"
     dense
     use-input
     fill-input

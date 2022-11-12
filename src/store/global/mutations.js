@@ -65,6 +65,35 @@ export function generateNewAddressSet (state, details) {
   state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
 }
 
+/**
+ * @param {Object} state 
+ * @param {Object} data 
+ * @param {String} data.walletHash
+ * @param {String} data.taskId
+ * @param {String} data.status
+ * @param {Number} data.completedAt
+ * @param {Object} [data.queueInfo]
+ * @param {Number} data.queueInfo.time_start
+ * @note More data might be in `data.queueInfo`
+ */
+export function setUtxoScanTask(state, data) {
+  if (!data?.walletHash || !data?.taskId) return
+  const existingTaskInfo = state.utxoScanTasks[data.walletHash]
+  let newTask = existingTaskInfo?.taskId !== data.taskId
+  state.utxoScanTasks[data.walletHash] = {
+    timestamp: newTask ? Date.now() : existingTaskInfo?.timestamp,
+    lastUpdate: Date.now(),
+    taskId: data.taskId,
+    status: data.status,
+    completedAt: data?.completedAt,
+    queueInfo: data?.queueInfo?.[1],
+  }
+}
+
+export function removeUtxoScanTask(state, walletHash='') {
+  delete state.utxoScanTasks[walletHash]
+}
+
 export function updateConnectivityStatus (state, online) {
   state.online = online
 }
