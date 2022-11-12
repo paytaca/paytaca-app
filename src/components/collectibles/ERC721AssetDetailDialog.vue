@@ -29,7 +29,7 @@
           <q-separator class="q-my-md" />
 
           <a :href="`https://sonar.cash/tx/${asset.address}`" target="_blank" style="text-decoration: none" :class="darkMode ? 'text-blue-5' : 'text-blue-9'">
-            View in explorer
+            {{ $t('ViewInExplorer') }}
           </a>
         </div>
       </q-card-section>
@@ -55,7 +55,7 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
-        message: 'Copied to clipboard',
+        message: this.$t('CopiedToClipboard'),
         timeout: 200,
         icon: 'mdi-clipboard-check',
         color: 'blue-9'

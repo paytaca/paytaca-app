@@ -5,7 +5,7 @@
         <div style="right: 10px; top: 10px; position: absolute; z-index: 100;">
           <q-btn icon="close" flat round dense v-close-popup :color="darkMode ? 'grey' : ''" />
         </div>
-        <div class="text-h6" :class="darkMode ? 'text-white' : 'pp-text'" style="text-align: center !important;">
+        <div class="text-h6 text-uppercase" :class="darkMode ? 'text-white' : 'pp-text'" style="text-align: center !important;">
           {{ actionMap[transaction.record_type] }}
         </div>
         <div class="text-h6" style="text-align: center !important; margin: 10px 0;">
@@ -35,7 +35,7 @@
           <q-list class="list">
             <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.date_created))">
               <q-item-section>
-                <q-item-label class="text-gray" caption>Date</q-item-label>
+                <q-item-label class="text-gray" caption>{{ $t('Date') }}</q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ formatDate(transaction.date_created) }}</q-item-label>
               </q-item-section>
             </q-item>
@@ -49,7 +49,7 @@
             </q-item>
             <q-item clickable v-ripple @click="copyToClipboard(isSep20Tx ? transaction.hash : transaction.txid)" style="overflow-wrap: anywhere;">
               <q-item-section>
-                <q-item-label class="text-gray" caption>Transaction ID</q-item-label>
+                <q-item-label class="text-gray" caption>{{ $t('TransactionId') }}</q-item-label>
                 <q-item-label v-if="isSep20Tx" :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.hash }}</q-item-label>
                 <q-item-label v-else :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.txid }}</q-item-label>
               </q-item-section>
@@ -57,14 +57,14 @@
             <q-item v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>
-                  <span>Sender</span>
+                  <span>{{ $t('Sender') }}</span>
                 </q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.from }}</q-item-label>
               </q-item-section>
               <q-item-section v-else>
                 <q-item-label class="text-gray" caption>
-                  <span v-if="transaction.senders.length === 1">Sender</span>
-                  <span v-if="transaction.senders.length > 1">Senders</span>
+                  <span v-if="transaction.senders.length === 1">{{ $t('Sender') }}</span>
+                  <span v-if="transaction.senders.length > 1">{{ $t('Senders') }}</span>
                 </q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ concatenate(transaction.senders) }}</q-item-label>
               </q-item-section>
@@ -72,21 +72,21 @@
             <q-item v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>
-                  <span>Recipient</span>
+                  <span>{{ $t('Recipient') }}</span>
                 </q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.to }}</q-item-label>
               </q-item-section>
               <q-item-section v-else>
                 <q-item-label class="text-gray" caption>
-                  <span v-if="transaction.recipients.length === 1">Recipient</span>
-                  <span v-if="transaction.recipients.length > 1">Recipients</span>
+                  <span v-if="transaction.recipients.length === 1">{{ $t('Recipient') }}</span>
+                  <span v-if="transaction.recipients.length > 1">{{ $t('Recipients') }}</span>
                 </q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ concatenate(transaction.recipients) }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item>
               <q-item-section v-if="isSep20Tx">
-                <q-item-label class="text-gray" caption>Gas fee</q-item-label>
+                <q-item-label class="text-gray" caption>{{ $t('GasFee') }}</q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.gas }} BCH</q-item-label>
                 <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
                   {{ txFeeMarketValue }}
@@ -94,7 +94,7 @@
                 </q-item-label>
               </q-item-section>
               <q-item-section v-else>
-                <q-item-label class="text-gray" caption>Miner fee</q-item-label>
+                <q-item-label class="text-gray" caption>{{ $t('MinerFee') }}</q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.tx_fee / (10**8) }} BCH</q-item-label>
                 <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
                   {{ txFeeMarketValue }}
@@ -104,18 +104,18 @@
             </q-item>
             <q-item clickable>
               <q-item-section v-if="isSep20Tx">
-                <q-item-label class="text-gray" caption>Explorer Link</q-item-label>
+                <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
                 <q-item-label>
                   <a :href="'https://sonar.cash/tx/' + transaction.hash" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
-                    View in explorer
+                    {{ $t('ViewInExplorer') }}
                   </a>
                 </q-item-label>
               </q-item-section>
               <q-item-section v-else>
-                <q-item-label class="text-gray" caption>Explorer Link</q-item-label>
+                <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
                 <q-item-label>
                   <a :href="'https://blockchair.com/bitcoin-cash/transaction/' + transaction.txid" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
-                    View in explorer
+                    {{ $t('ViewInExplorer') }}
                   </a>
                 </q-item-label>
               </q-item-section>
@@ -138,8 +138,8 @@ export default {
   data () {
     return {
       actionMap: {
-        incoming: 'RECEIVED',
-        outgoing: 'SENT'
+        incoming: this.$t('Received'),
+        outgoing: this.$t('Sent')
       },
       transaction: {},
       darkMode: false
@@ -209,7 +209,7 @@ export default {
       this.$copyText(value)
       this.$q.notify({
         color: 'blue-9',
-        message: 'Copied to clipboard',
+        message: this.$t('CopiedToClipboard'),
         icon: 'mdi-clipboard-check',
         timeout: 200
       })

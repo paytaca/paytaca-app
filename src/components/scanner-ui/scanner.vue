@@ -14,7 +14,7 @@
         <div class="line-design4"></div>
       </div>
     </div>
-    <span class="scanner-text text-center full-width">Scan QR code</span>
+    <span class="scanner-text text-center full-width">{{ $t('ScanQrCode') }}</span>
   </div>
 </template>
 

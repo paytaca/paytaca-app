@@ -6,7 +6,7 @@
         <q-icon class="material-icons q-mr-md" size="lg">
           task_alt
         </q-icon>
-        Security Check
+        {{ $t('SecurityCheck') }}
         </div>
       </template>
 
@@ -15,7 +15,7 @@
           <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
         </q-item-section>
         <q-item-section class="text-right">
-          <h5 class="q-my-sm text-grey-4">SWIPE TO SEND</h5>
+          <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
         </q-item-section>
       </q-item>
     </q-slide-item>

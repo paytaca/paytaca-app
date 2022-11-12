@@ -6,7 +6,7 @@
     />
     <div id="app-container" style="background-color: #ECF3F3; min-height: 100vh;" class="flex flex-center" :class="{ 'pt-dark': darkMode }">
       <HeaderNav
-        title="Wallet Connect"
+        :title="$t('WalletConnect')"
         backnavpath="/apps"
         style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
       />
@@ -14,7 +14,7 @@
       <div class="q-mx-md">
         <div v-if="!connector">
           <q-input
-            label="Input Wallet Connect URI"
+            :label="$t('InputWalletConnectUri')"
             filled
             :dark="darkMode"
             v-model="handshakeFormData.walletConnectUri"
@@ -26,14 +26,14 @@
                 no-caps
                 rounded
                 color="blue-9"
-                label="Connect"
+                :label="$t('Connect')"
                 @click="handShakeFormSubmit()"
                 :disable="handshakeOnProgress"
               />
             </template>
           </q-input>
-          <div class="q-mt-md q-pt-md text-center text-grey" style="font-size: 15px;">
-            OR
+          <div class="q-mt-md q-pt-md text-center text-uppercase text-grey" style="font-size: 15px;">
+            {{ $t('or') }}
           </div>
           <div class="q-mt-lg row justify-center items-center">
             <q-btn
@@ -54,7 +54,7 @@
                 flat
                 no-caps
                 color="grey"
-                label="Cancel"
+                :label="$t('Cancel')"
                 @click="stopPendingConnector()"
               />
             </div>
@@ -72,7 +72,7 @@
                   padding="none xs"
                   no-caps
                   flat
-                  label="Disconnect"
+                  :label="$t('Disconnect')"
                   @click="disconnectConnector"
                   :text-color="darkMode ? 'blue-5' : 'blue-9'"
                 />
@@ -130,7 +130,7 @@
                   flat
                   rounded
                   :color="darkMode ? 'blue-5' : 'blue-9'"
-                  label="Clear"
+                  :label="$t('Clear')"
                   @click="confirmClearCallRequests()"
                 />
               </div>
@@ -278,7 +278,7 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
-        message: 'Copied to clipboard',
+        message: this.$t('CopiedToClipboard'),
         timeout: 200,
         icon: 'mdi-clipboard-check',
         color: 'blue-9'
@@ -403,8 +403,8 @@ export default {
         }
 
         this.$q.dialog({
-          title: 'Wallet Connect',
-          message: 'Disconnected!',
+          title: this.$t('WalletConnect'),
+          message: this.$t('Disconnected') + '!',
           class: 'text-black'
         })
 
@@ -439,7 +439,7 @@ export default {
         this.$q.notify({
           color: 'blue-9',
           icon: 'mdi-information',
-          message: 'Rejected call request'
+          message: this.$t('RejectedCallRequest')
         })
         return
       }
@@ -451,13 +451,13 @@ export default {
             this.$q.notify({
               color: 'green-5',
               icon: 'mdi-check-circle',
-              message: 'Call request accepted'
+              message: this.$t('CallRequestAccepted')
             })
           } else {
             this.$q.notify({
               color: 'red-5',
               icon: 'mdi-close-circle',
-              message: 'Error accepting call request'
+              message: this.$t('ErrAcceptingCallRequest')
             })
           }
         })
@@ -497,7 +497,7 @@ export default {
       this.connector.rejectRequest({
         id: callRequest.payload.id,
         error: {
-          message: 'Rejected by user'
+          message: this.$t('RejectedByUser')
         }
       })
 
@@ -506,8 +506,8 @@ export default {
 
     confirmClearCallRequests () {
       this.$q.dialog({
-        title: 'Clear call requests',
-        message: 'Removing all call requests. Are you sure?',
+        title: this.$t('ClearCallRequests'),
+        message: this.$t('ClearCallRequestsPrompt'),
         ok: {
           rounded: true
         },

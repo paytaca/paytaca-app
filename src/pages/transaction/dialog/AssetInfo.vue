@@ -28,7 +28,7 @@
           </a>
         </div>
         <div style="margin-top: 20px; text-align: center;">
-          <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded label="Send" no-caps>
+          <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded :label="$t('Send')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
               <svg>
@@ -36,7 +36,7 @@
               </svg>
             </q-icon>
           </q-btn>
-          <q-btn @click="receive" rounded color="blue-9" label="Receive" no-caps>
+          <q-btn @click="receive" rounded color="blue-9" :label="$t('Receive')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
               <svg>

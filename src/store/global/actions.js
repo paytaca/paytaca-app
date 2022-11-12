@@ -52,3 +52,7 @@ export async function updateUtxoScanTaskStatus(context, data) {
   context.commit('setUtxoScanTask', updatedTaskInfo)
   return { success: true, taskInfo: updatedTaskInfo }
 }
+
+export function updateConnectivityStatus (context, online) {
+  context.commit('updateConnectivityStatus', online)
+}

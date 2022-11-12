@@ -10,23 +10,23 @@
             <q-input
               dense
               filled
-              label="Input SEP721 Token address"
+              :label="('Input_SEP721_TokenAddress')"
               type="text"
               lazy-rules
               v-model="formData.contractAddress"
               @update:modelValue="autoFillFromAddress()"
               :dark="darkMode"
               :rules="[
-                val => Boolean(val) || 'Required',
-                val => isValidAddress(val) || 'Input valid address',
-                val => !isAddressInAssets(val) || 'Token already exists in list',
+                val => Boolean(val) || $t('Required'),
+                val => isValidAddress(val) || $t('InputValidAddress'),
+                val => !isAddressInAssets(val) || $t('TokenAlreadyInList'),
               ]"
             />
             <q-input
               dense
               filled
               :loading="autoFilling"
-              label="Name"
+              :label="$t('Name')"
               lazy-rules
               v-model="formData.name"
               :dark="darkMode"
@@ -38,7 +38,7 @@
               dense
               filled
               :loading="autoFilling"
-              label="Symbol"
+              :label="$t('Symbol')"
               lazy-rules
               v-model="formData.symbol"
               :dark="darkMode"
@@ -49,8 +49,8 @@
           <q-separator class="q-mt-none"/>
 
           <q-card-actions align="right">
-            <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" label="add" type="submit" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" flat :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" label="close" v-close-popup />
+            <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
+            <q-btn rounded padding="0.5em 2em 0.5em 2em" flat :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" :label="$t('Close')" v-close-popup />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -127,7 +127,7 @@ export default {
     },
     alertTokenAdded (token) {
       this.$q.dialog({
-        title: 'Token added',
+        title: this.$t('TokenAdded'),
         message: `Added token ${token.name} with address: ${token.address}`,
         class: 'pp-text',
         darkMode: this.darkMode

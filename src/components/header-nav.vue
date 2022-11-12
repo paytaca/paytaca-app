@@ -8,7 +8,7 @@
                 arrow_back
             </span>
           </router-link>
-          <p class="text-h5 text-center q-my-none" :class="{'text-grad': $store.getters['darkmode/getStatus']}">
+          <p class="text-h5 text-uppercase text-center q-my-none" :class="{'text-grad': $store.getters['darkmode/getStatus']}">
             {{ title }}
           </p>
         </div>

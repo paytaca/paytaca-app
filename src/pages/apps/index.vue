@@ -2,7 +2,7 @@
   <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
     <div id="apps" ref="apps" class="text-center">
       <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
-        <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">Applications</p>
+        <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">{{ $t('Applications') }}</p>
         <div class="row q-px-xs">
           <div v-for="(app, index) in apps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
             <div class="pt-app bg-grad" @click="openApp(app)">
@@ -32,31 +32,31 @@ export default {
           active: true
         },
         {
-          name: 'Bridge',
+          name: this.$t('Bridge'),
           iconName: 'mdi-bridge',
           path: '/apps/bridge',
           active: true
         },
         {
-          name: 'Asset Swap',
+          name: this.$t('AssetSwap'),
           iconName: 'mdi-swap-horizontal-bold',
           path: '/apps/asset-swap',
           active: true
         },
         {
-          name: 'Wallet Connect',
+          name: this.$t('WalletConnect'),
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
           active: true
         },
         {
-          name: 'Collectibles',
+          name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',
           active: true
         },
         {
-          name: 'Sweep',
+          name: this.$t('Sweep'),
           iconName: 'mdi-broom',
           path: '/apps/sweep',
           active: true
@@ -74,42 +74,17 @@ export default {
           active: true
         },
         {
-          name: 'Wallet Info',
+          name: this.$t('WalletInfo'),
           iconName: 'info',
           path: '/apps/wallet-info',
           active: true
         },
         {
-          name: 'Settings',
+          name: this.$t('Settings'),
           iconName: 'settings',
           path: '/apps/settings',
           active: true
         }
-
-        // {
-        //   name: 'Rewards',
-        //   iconName: 'mdi-trophy',
-        //   path: '',
-        //   active: false
-        // },
-        // {
-        //   name: 'Connecta',
-        //   iconName: 'delivery_dining',
-        //   path: '/apps/connecta/',
-        //   active: false
-        // },
-        // {
-        //   name: 'Bills Payment',
-        //   iconName: 'receipt_long',
-        //   path: '',
-        //   active: false
-        // },
-        // {
-        //   name: 'Top Up',
-        //   iconName: 'system_security_update_good',
-        //   path: '',
-        //   active: false
-        // }
       ],
       appHeight: null
     }
@@ -168,9 +143,6 @@ export default {
   }
   .pt-dark-app {
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-
-    // background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
-    /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
   }
   .pt-app-name {
     color: #000;

@@ -93,3 +93,7 @@ export function setUtxoScanTask(state, data) {
 export function removeUtxoScanTask(state, walletHash='') {
   delete state.utxoScanTasks[walletHash]
 }
+
+export function updateConnectivityStatus (state, online) {
+  state.online = online
+}

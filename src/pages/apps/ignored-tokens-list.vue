@@ -1,6 +1,6 @@
 <template>
   <div class="pt-settings" :class="{'pt-dark': darkMode}">
-    <header-nav title="Ignored Tokens"/>
+    <header-nav :title="$t('IgnoredTokens')"/>
     <div
       style="padding-top:100px;height:100vh;"
       :class="[
@@ -69,11 +69,12 @@
       <div
         v-else
         :class="[
-          'text-center',
+          'text-center q-mt-md',
           darkMode ? 'text-white' : 'text-grey'
         ]"
+        style="font-size: 18px"
       >
-        No ignored assets
+        {{ $t('NoIgnoredAssets') }}
       </div>
     </div>
   </div>
@@ -161,8 +162,8 @@ export default {
     },
     confirmRemoveIgnoredAsset (tokenInfo) {
       this.$q.dialog({
-        title: 'Remove ignored token',
-        message: `Remove ignored token, '${tokenInfo.name}(${tokenInfo.symbol})'?`,
+        title: this.$t('RemoveIgnoredToken'),
+        message: this.$t('RemoveIgnoredToken') + `, '${tokenInfo.name}(${tokenInfo.symbol})'?`,
         cancel: true,
         persistent: true,
         class: this.darkMode ? 'pt-dark text-white' : 'text-black'
@@ -176,14 +177,14 @@ export default {
   beforeRouteLeave (to, from, next) {
     if (this.hasIgnoredAssetsAdded) {
       this.$q.dialog({
-        message: 'You have added assets from ignored list. Remove them from the ignored list?',
+        message: this.$t('RemoveIgnoredTokenPrompt'),
         ok: {
           noCaps: true,
-          label: 'Remove'
+          label: this.$t('Remove')
         },
         cancel: {
           noCaps: true,
-          label: 'Keep',
+          label: this.$t('Keep'),
           flat: true
         },
         persistent: true,

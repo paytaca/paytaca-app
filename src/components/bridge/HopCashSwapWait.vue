@@ -6,7 +6,7 @@
           height="50"
           src="bch-logo.png"
         />
-        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">from</div>
+        <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('From') }}</div>
         <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
           <template v-else>Smart Bitcoin Cash</template>
@@ -24,7 +24,7 @@
 
       <div class="col-5 column items-center">
         <img height="50" src="bch-logo.png"/>
-        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">to</div>
+        <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('To') }}</div>
         <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
           <template v-else>Bitcoin Cash</template>
@@ -101,7 +101,7 @@
           <q-btn
             no-caps
             color="brandblue"
-            label="Retry"
+            :label="$t('Retry')"
             class="full-width"
             :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
             @click="findAndOrWaitOutgoingTx()"
@@ -177,7 +177,7 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
-        message: 'Copied to clipboard',
+        message: this.$t('CopiedToClipboard'),
         timeout: 200,
         icon: 'mdi-clipboard-check',
         color: 'blue-9'

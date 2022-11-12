@@ -21,7 +21,7 @@
             height="40"
             src="bch-logo.png"
           />
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">from</div>
+          <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('From') }}</div>
           <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
             <template v-else>Smart Bitcoin Cash</template>
@@ -40,7 +40,7 @@
 
         <div class="col-5 column items-center">
           <img height="40" src="bch-logo.png"/>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">to</div>
+          <div class="q-mt-sm text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('To') }}</div>
           <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
             <template v-else>Bitcoin Cash</template>
@@ -52,7 +52,7 @@
         <q-card class="q-mt-sm br-15" :class="{'pt-dark-card': darkMode}">
           <q-card-section>
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-              <span>Bridge balance:</span>
+              <span>{{ $t('BridgeBalance') }}:</span>
               <q-btn
                 padding="xs sm"
                 flat
@@ -63,7 +63,7 @@
               />
             </div>
             <div>
-              <span :class="[darkMode ? 'pt-dark-label' : 'pp-text']">Wallet balance:</span>
+              <span :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('WalletBalance') }}:</span>
               <q-btn
                 padding="xs sm"
                 flat
@@ -77,7 +77,7 @@
               <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
                 <img height="40" src="bch-logo.png"/>
                 <div class="q-ml-sm">
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You send:</div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouSend') }}:</div>
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
                 </div>
               </div>
@@ -90,8 +90,8 @@
                   disable: lockInputs || maxBridgeBalance === 0,
                   wait: maxBridgeBalance === 0,
                   rules: [
-                    val => Number(val) >= 0.01 || 'Must be at least 0.01',
-                    val => Number(val) <= maxBridgeBalance || 'Amount must be less than bridge\'s balance',
+                    val => Number(val) >= 0.01 || $t('BridgeError1'),
+                    val => Number(val) <= maxBridgeBalance || $t('BridgeError2'),
                   ],
                 }"
                 class="q-space q-my-sm"
@@ -115,7 +115,7 @@
               <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
                 <img height="40" src="bch-logo.png"/>
                 <div class="q-ml-sm">
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">You receive:</div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouReceive') }}:</div>
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
                 </div>
               </div>
@@ -144,7 +144,7 @@
 
             <div class="row no-wrap items-start" style="margin-top: -10px;">
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-                Receiving address:
+                {{ $t('ReceivingAddress') }}:
               </div>
               <q-input
                 v-if="manualAddress"
@@ -158,7 +158,7 @@
                 class="q-space q-my-sm"
                 :dark="darkMode"
                 :rules="[
-                  val => validateAddress(val) || 'Invalid address',
+                  val => validateAddress(val) || $t('InvalidAddress'),
                 ]"
               />
               <q-input
@@ -184,7 +184,7 @@
                 class="q-mb-md"
                 keep-color
                 color="blue-9"
-                label="Send to another address"
+                :label="$t('SendToAnotherAddress')"
               />
             </div>
 
@@ -193,7 +193,7 @@
                 v-if="manualAddress"
                 no-caps
                 padding="xs md"
-                label="Scan QR code"
+                :label="$t('ScanQrCode')"
                 rounded
                 class="q-mb-sm"
                 color="blue-9"
@@ -205,12 +205,12 @@
             <q-separator spaced/>
             <div v-if="!loading" class="q-pa-sm rounded-borders">
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                <span>BCH to send:</span>
+                <span>{{ $t('BchToSend') }}:</span>
                 <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
               </div>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                 <span>
-                  Estimated fee (0.1%):
+                  {{ $t('EstimatedFee') }} (0.1%):
                   <!-- <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/> -->
                 </span>
                 <span v-if="!showSplitFees" class="text-nowrap q-ml-xs">
@@ -230,29 +230,28 @@
                 </div>
               </q-slide-transition>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                <span>BCH to receive:</span>
+                <span>{{ $t('BchToReceive') }}:</span>
                 <span class="text-nowrap q-ml-xs">~{{ formatAmount(transferredAmount) }} BCH</span>
               </div>
             </div>
-            <div class="row justify-center q-mt-sm" style="color: gray;">Powered by hop.cash</div>
+            <div class="row justify-center q-mt-sm" style="color: gray;">{{ $t('PoweredBy') }} hop.cash</div>
+            <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
+              <ProgressLoader
+                v-if="loading"
+              />
+              <q-btn
+                v-else
+                no-caps
+                rounded
+                :disable="maxBridgeBalance === 0 || lockInputs || !amount"
+                :label="$t('Swap')"
+                color="brandblue"
+                class="full-width"
+                type="submit"
+              />
+            </div>
           </q-card-section>
         </q-card>
-
-        <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
-          <ProgressLoader
-            v-if="loading"
-          />
-          <q-btn
-            v-else
-            no-caps
-            rounded
-            :disable="maxBridgeBalance === 0 || lockInputs || !amount"
-            label="Swap"
-            color="brandblue"
-            class="full-width"
-            type="submit"
-          />
-        </div>
       </q-form>
 
       <DragSlide
@@ -445,7 +444,7 @@ export default {
       this.showQrScanner = false
       if (!this.validateAddress(content)) {
         this.$q.notify({
-          message: 'Invalid address',
+          message: this.$t('InvalidAddress'),
           icon: 'mdi-clipboard-check',
           color: 'blue-9'
         })

@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
-    <header-nav title="SEND" backnavpath="/"></header-nav>
+    <header-nav :title="$t('Send')" backnavpath="/"></header-nav>
     <q-tabs
       dense
       active-color="brandblue"
@@ -15,7 +15,7 @@
     <template v-if="assets">
       <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">Select Asset to Send</p>
+          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToSend') }}</p>
         </div>
       </div>
       <div style="overflow-y: scroll;">
