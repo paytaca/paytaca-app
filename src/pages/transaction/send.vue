@@ -178,7 +178,7 @@
                 <a
                   style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
                   href="#"
-                  @click.prevent="() => {setAmountInFiat = true}"
+                  @click.prevent="() => {sendData.amount = 0; setAmountInFiat = true}"
                 >
                   Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
                 </a>
@@ -514,7 +514,6 @@ export default {
     setAmountInFiat: function (value) {
       if (value === true) {
         this.balanceExceeded = false
-        this.sendData.amount = 0
       }
     },
     sendAmountInFiat: function (amount) {
@@ -523,7 +522,7 @@ export default {
   },
 
   methods: {
-    formatTimestampToText(timestamp) {
+    formatTimestampToText (timestamp) {
       if (!Number.isSafeInteger(timestamp)) return ''
 
       const dateObj = new Date(timestamp)
@@ -595,11 +594,11 @@ export default {
         }
 
         if (amount !== null) {
-          this.sendData.amount = amount
           this.sliderStatus = true
           if (this.setAmountInFiat) {
             this.sendAmountInFiat = amount
-            this.sendData.amount = null
+          } else {
+            this.sendData.amount = amount
           }
         }
 
