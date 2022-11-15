@@ -187,7 +187,7 @@
           :pin-dialog-action="verification.type"
           @nextAction="actionType => {
             verification.type = ''
-            actionType === 'send' ? executePaymentRequest(): null
+            actionType === 'proceed' ? executePaymentRequest(): null
           }"
         />
 

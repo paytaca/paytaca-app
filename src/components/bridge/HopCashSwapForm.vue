@@ -270,7 +270,7 @@
         :pin-dialog-action="verification.type"
         @nextAction="actionType => {
           verification.type = ''
-          actionType === 'send' ? executeSwap(): null
+          actionType === 'proceed' ? executeSwap(): null
         }"
       />
 

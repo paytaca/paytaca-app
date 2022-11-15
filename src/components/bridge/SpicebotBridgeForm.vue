@@ -307,8 +307,7 @@ export default {
   name: 'SpicebotBridgeForm',
   components: {
     DragSlide,
-    ProgressLoader,
-    SpicebotBridgeTokenSelectDialog
+    ProgressLoader
   },
   data () {
     return {
