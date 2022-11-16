@@ -272,8 +272,13 @@ export default {
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     let finalLang = ''
     // Adjust paytaca language according to phone's language (if supported by paytaca)
-    let deviceLang = await Device.getLanguageTag()
-    deviceLang = deviceLang.value.toLowerCase()
+    let deviceLang = null
+    try {
+      deviceLang = await Device.getLanguageTag()
+      deviceLang = deviceLang.value.toLowerCase()
+    } catch(error) {
+      console.error(error)
+    }
 
     const supportedLangs = [
       { value: 'en-us', label: 'English' },
