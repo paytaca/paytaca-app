@@ -98,7 +98,25 @@
                     <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.settlementService / (10**8) }} BCH</div>
                   </div>
                   <div class="row items-start q-pr-md">
-                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Premium</div>
+                    <div class="text-caption text-grey row-items-center" style="margin-bottom:-0.5em">
+                      Premium
+                      <q-icon
+                        v-if="premiumFeeMetadata?.hedge"
+                        :color="premiumFeeMetadata?.hedge?.icon?.color"
+                        :name="premiumFeeMetadata?.hedge?.icon?.name"
+                        size="1.5em"
+                      >
+                        <q-popup-proxy :breakpoint="0">
+                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                            Premium is 
+                            <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.hedge?.icon?.color}`]" style="word-break: keep-all;">
+                              {{ formatUnits(premiumFeeMetadata?.hedge?.pctg, 2) }}%
+                            </span>
+                            of position's value
+                          </div>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </div>
                     <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.premium / (10**8) }} BCH</div>
                   </div>
                 </div>
@@ -141,7 +159,25 @@
                     <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.settlementService / (10**8) }} BCH</div>
                   </div>
                   <div class="row items-start q-pr-md">
-                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Premium</div>
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">
+                      Premium
+                      <q-icon
+                        v-if="premiumFeeMetadata?.long"
+                        :color="premiumFeeMetadata?.long?.icon?.color"
+                        :name="premiumFeeMetadata?.long?.icon?.name"
+                        size="1.5em"
+                      >
+                        <q-popup-proxy :breakpoint="0">
+                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                            Premium is 
+                            <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.long?.icon?.color}`]" style="word-break: keep-all;">
+                              {{ formatUnits(premiumFeeMetadata?.long?.pctg, 2) }}%
+                            </span>
+                            of position's value
+                          </div>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </div>
                     <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.premium / (10**8) }} BCH</div>
                   </div>
                 </div>
@@ -369,6 +405,25 @@ function updateFundingAmounts() {
 }
 // watch(props, updateFundingAmounts())
 onMounted(() => updateFundingAmounts())
+const premiumFeeMetadata = computed(() => {
+  if (!fundingAmounts.value) return
+  return {
+    hedge: parsePremiumFee(fundingAmounts.value.hedge),
+    long: parsePremiumFee(fundingAmounts.value.long),
+  }
+})
+function parsePremiumFee({ sats, fees={ premium } }) {
+  const data = { pctg: 0, icon: { color: '', name: '' } }
+  if (sats && fees?.premium) data.pctg = (fees?.premium / sats) * 100
+
+  if (data.pctg <= 1) data.icon = { color: 'green', name: 'gpp_good' }
+  if (data.pctg > 1 && data.pctg <= 5) data.icon = { color: 'yellow', name: 'gpp_maybe' }
+  if (data.pctg > 5 && data.pctg <= 10) data.icon = { color: 'amber', name: 'gpp_maybe' }
+  if (data.pctg > 10) data.icon = { color: 'red', name: 'gpp_bad' }
+
+  data.pctg = data.pctg * 100
+  return data
+}
 
 const liquidationData = computed(() => {
   const data = {
