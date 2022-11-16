@@ -12,31 +12,47 @@
           <q-icon v-if="transaction.record_type === 'incoming'" name="arrow_downward" class="record-type-icon"></q-icon>
           <q-icon v-if="transaction.record_type === 'outgoing'" name="arrow_upward" class="record-type-icon"></q-icon>
         </div>
-        <q-card-section class="amount">
-          <img :src="transaction.asset.logo || fallbackAssetLogo" height="30" /> &nbsp;
-          <div class="amount-label q-pl-sm" :class="darkMode ? 'text-white' : 'pp-text'">
-            <template v-if="transaction.record_type === 'outgoing'">
-              {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
-            </template>
-            <template v-else>
-              {{ transaction.amount }} {{ transaction.asset.symbol }}
-            </template>
-            <div v-if="transactionAmountMarketValue" class="text-caption">
-              <template v-if="transaction.record_type === 'outgoing'">
-                {{ transactionAmountMarketValue * -1 }} {{ String(selectedMarketCurrency).toUpperCase() }}
-              </template>
-              <template v-else>
-                {{ transactionAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
-              </template>
-            </div>
-          </div>
+        <q-card-section class="amount q-pb-none">
+          <q-item class="q-px-none">
+            <q-item-section side top>
+              <img :src="transaction.asset.logo || fallbackAssetLogo" height="30" />
+            </q-item-section>
+            <q-item-section :class="darkMode ? 'text-white' : 'pp-text'">
+              <q-item-label>
+                <template v-if="transaction.record_type === 'outgoing'">
+                  {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
+                </template>
+                <template v-else>
+                  {{ transaction.amount }} {{ transaction.asset.symbol }}
+                </template>
+              </q-item-label>
+              <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
+                <template v-if="transaction.record_type === 'outgoing'">
+                  {{ transactionAmountMarketValue * -1 }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </template>
+                <template v-else>
+                  {{ transactionAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                </template>
+                <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
+                  <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
+                    <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                      Asset value is based on prices at the time of transaction
+                    </div>
+                  </q-popup-proxy>
+                </q-icon>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
         </q-card-section>
-        <q-card-section class="q-mt-xs">
+        <q-card-section class="q-pt-none">
           <q-list class="list">
-            <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.date_created))">
+            <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.tx_timestamp || transaction.date_created))">
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('Date') }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ formatDate(transaction.date_created) }}</q-item-label>
+                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                  <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
+                  <template v-else>{{ formatDate(transaction.date_created) }}</template>
+                </q-item-label>
               </q-item-section>
             </q-item>
             <q-item v-if="cachedPaymentOTP" clickable v-ripple @click="copyToClipboard(cachedPaymentOTP)">
@@ -159,7 +175,12 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
+    historicalMarketPrice() {
+      if (this.selectedMarketCurrency === 'USD' && this.transaction.usd_price) return this.transaction.usd_price
+      return null
+    },
     marketAssetPrice () {
+      if (this.historicalMarketPrice) return this.historicalMarketPrice
       return this.$store.getters['market/getAssetPrice'](this.transaction.asset.id, this.selectedMarketCurrency)
     },
     transactionAmountMarketValue () {
@@ -220,7 +241,7 @@ export default {
 
 <style scoped>
   .amount {
-    height: 50px;
+    /* height: 50px; */
     font-size: 20px;
     margin-left: 16px;
   }
