@@ -102,7 +102,6 @@ module.exports = function (/* ctx */) {
         // chain
         //   .plugin('eslint-webpack-plugin')
         //   .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }])
-
       },
 
       uglifyOptions: {
