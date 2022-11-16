@@ -290,6 +290,7 @@ import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from '../../wallet/sbch'
+import { parsePaytacaPaymentUri } from 'src/wallet/payment-uri'
 import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
@@ -537,7 +538,36 @@ export default {
       let rawPaymentUri = ''
       let posDevice = { walletHash: '', posId: -1, paymentTimestamp: -1 }
       let currency = null
-      if (this.isSep20) {
+      if (content.startsWith('paytaca:')) {
+        console.log('Parsing content using in-app protocol')
+        let appPaymentUriData
+        try {
+          appPaymentUriData = parsePaytacaPaymentUri(content)
+          if (appPaymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
+        } catch(error) {
+          console.error(error)
+          if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
+            this.sendErrors.push('Invalid address format')
+            return
+          }
+          if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
+            this.sendErrors.push('Multiple recipients not yet supported')
+            return
+          }
+        }
+
+        if (appPaymentUriData.outputs?.[0]) {
+          address = appPaymentUriData.outputs[0].address
+          amount = appPaymentUriData.outputs[0].amount?.value
+          currency = appPaymentUriData.outputs[0].amount?.currency
+        }
+
+        if (appPaymentUriData.pos) {
+          posDevice.walletHash = appPaymentUriData.pos.walletHash
+          posDevice.posId = appPaymentUriData.pos.posId
+          if (appPaymentUriData.timestamp) posDevice.paymentTimestamp = appPaymentUriData.timestamp
+        }
+      } else if (this.isSep20) {
         try {
           console.log('Parsing content as eip681')
           const eip6821data = decodeEIP681URI(content)
