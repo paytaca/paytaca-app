@@ -614,7 +614,7 @@ export default {
     isValidLNSName: isNameLike,
     readonlyState (state) {
       this.amountInputState = state
-      if (this.amountInputState && this.online) {
+      if (this.amountInputState && this.$store.getters['global/getConnectivityStatus']) {
         this.customKeyboardState = 'show'
       }
     },
@@ -1063,6 +1063,10 @@ export default {
       vm.wallet = markRaw(wallet)
       if (vm.network === 'sBCH') vm.wallet.sBCH.getOrInitWallet()
     })
+
+    if (navigator.onLine) {
+      vm.onConnectivityChange(true)
+    }
   },
 
   created () {
