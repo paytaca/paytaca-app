@@ -347,6 +347,14 @@ const contractValues = computed(() => {
 
 const fundingAmounts = ref(null)
 const expandFundingAmounts = ref({ hedge: false, long: false })
+onMounted(() => {
+  expandFundingAmounts.value.hedge = props.position === 'hedge'
+  expandFundingAmounts.value.long = props.position === 'long'
+})
+watch(() => [props.position], () => {
+  expandFundingAmounts.value.hedge = props.position === 'hedge'
+  expandFundingAmounts.value.long = props.position === 'long'
+})
 function updateFundingAmounts() {
   calculateFundingAmountsWithFees({
     amountSats: props.intent.amount * 10 ** 8,
