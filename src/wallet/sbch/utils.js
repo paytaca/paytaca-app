@@ -113,7 +113,7 @@ export function decodeEIP681URI (uri, urnScheme) {
   var data = uri.match(exp)
 
   if (!data) {
-    throw new Error('Invalid BIP681 URI: ' + uri)
+    throw new Error('Invalid EIP681 URI: ' + uri)
   }
 
   var parameters = uri.split('?')

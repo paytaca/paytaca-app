@@ -118,7 +118,10 @@
                           <p :class="{'text-grey': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
                         </div>
                         <div class="col">
-                            <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">{{ formatDate(transaction.date_created) }}</span>
+                            <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
+                              <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
+                              <template v-else>{{ formatDate(transaction.date_created) }}</template>
+                            </span>
                             <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
                         </div>
                       </div>
