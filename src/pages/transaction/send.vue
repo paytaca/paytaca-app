@@ -288,9 +288,7 @@ import { markRaw } from '@vue/reactivity'
 import { debounce } from 'quasar'
 import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
-import { decodeBIP0021URI } from 'src/wallet/bch'
-import { decodeEIP681URI } from '../../wallet/sbch'
-import { parsePaytacaPaymentUri } from 'src/wallet/payment-uri'
+import { parsePaymentUri } from 'src/wallet/payment-uri'
 import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
@@ -299,7 +297,6 @@ import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import QrScanner from '../../components/qr-scanner.vue'
-import { parsePOSLabel } from 'src/wallet/pos'
 import { VOffline } from 'v-offline'
 
 const { SecureStoragePlugin } = Plugins
@@ -538,70 +535,36 @@ export default {
       let rawPaymentUri = ''
       let posDevice = { walletHash: '', posId: -1, paymentTimestamp: -1 }
       let currency = null
-      if (content.startsWith('paytaca:')) {
-        console.log('Parsing content using in-app protocol')
-        let appPaymentUriData
-        try {
-          appPaymentUriData = parsePaytacaPaymentUri(content)
-          if (appPaymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
-        } catch(error) {
-          console.error(error)
-          if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
-            this.sendErrors.push('Invalid address format')
-            return
-          }
-          if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
-            this.sendErrors.push('Multiple recipients not yet supported')
-            return
-          }
-        }
 
-        if (appPaymentUriData.outputs?.[0]) {
-          address = appPaymentUriData.outputs[0].address
-          amount = appPaymentUriData.outputs[0].amount?.value
-          currency = appPaymentUriData.outputs[0].amount?.currency
-        }
+      let paymentUriData
+      try {
+        paymentUriData = parsePaymentUri(content, { chain: this.isSep20 ? 'smart' : 'main' })
+        console.log(paymentUriData)
 
-        if (appPaymentUriData.pos) {
-          posDevice.walletHash = appPaymentUriData.pos.walletHash
-          posDevice.posId = appPaymentUriData.pos.posId
-          if (appPaymentUriData.timestamp) posDevice.paymentTimestamp = appPaymentUriData.timestamp
+        if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
+      } catch(error) {
+        console.error(error)
+        if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
+          this.sendErrors.push('Invalid address format')
+          return
         }
-      } else if (this.isSep20) {
-        try {
-          console.log('Parsing content as eip681')
-          const eip6821data = decodeEIP681URI(content)
-          address = eip6821data.target_address
-          amount = eip6821data.parsedValue
-          if (typeof eip6821data?.parameters?.currency === 'string') {
-            currency = eip6821data?.parameters?.currency
-          }
-          rawPaymentUri = content
-        } catch (err) {
-          console.log('Failed to parse as eip681 uri')
-          console.log(err)
-        }
-      } else {
-        try {
-          console.log('Parsing content as BIP0021')
-          const bip0021Data = decodeBIP0021URI(content)
-          address = bip0021Data.address
-          if (bip0021Data.amount) amount = bip0021Data.amount
-          if (bip0021Data.parameters?.POS) {
-            posDevice = parsePOSLabel(bip0021Data.parameters.POS)
-            if (bip0021Data.parameters?.ts) {
-              posDevice.paymentTimestamp = Number(bip0021Data.parameters?.ts)
-            }
-          }
-          if (typeof bip0021Data?.parameters?.currency === 'string') {
-            currency = bip0021Data?.parameters?.currency
-          }
-          rawPaymentUri = content
-        } catch (err) {
-          console.log('Failed to parse as BIP0021 uri')
-          console.log(err)
+        if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
+          this.sendErrors.push('Multiple recipients not yet supported')
+          return
         }
       }
+
+      if (paymentUriData?.outputs?.[0]) {
+        address = paymentUriData.outputs[0].address
+        amount = paymentUriData.outputs[0].amount?.value
+        currency = paymentUriData.outputs[0].amount?.currency
+      }
+      if (paymentUriData?.pos) {
+        posDevice.walletHash = paymentUriData.pos.walletHash
+        posDevice.posId = paymentUriData.pos.posId
+        if (paymentUriData.timestamp) posDevice.paymentTimestamp = paymentUriData.timestamp
+      }
+
       const valid = this.checkAddress(address)
       if (valid) {
         this.sendData.recipientAddress = address
