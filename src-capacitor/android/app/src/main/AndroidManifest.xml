@@ -18,6 +18,7 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name="com.paytaca.app.MainActivity"
             android:label="@string/title_activity_main"
+            android:exported="true"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask">
 
