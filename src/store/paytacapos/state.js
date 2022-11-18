@@ -1,5 +1,20 @@
 export default function () {
   return {
+    merchantInfo: {
+      id: 0,
+      walletHash: '',
+      name: '',
+      primaryContactNumber: '',
+      location: {
+        landmark: '',
+        location: '',
+        street: '',
+        city: '',
+        country: '',
+        longitude: null,
+        latitude: null,
+      },
+    },
     paymentOTPCache: {
       'txid': { otp: '', otpTimestamp: -1, rawPaymentUri: '' },
       /* 

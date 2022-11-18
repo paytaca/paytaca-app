@@ -8,6 +8,52 @@
       backnavpath="/apps"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
+    <q-card
+      class="br-15 q-mx-md q-mb-md"
+      :style="{ 'margin-top': $q.platform.is.ios ? '55px' : '0'}"
+      :class="[
+        darkMode ? 'text-white pt-dark-card' : 'text-black',
+      ]"
+    >
+      <q-card-section>
+        <q-item
+          dense
+          class="q-px-sm"
+          style="flex-wrap:wrap;"
+          clickable v-ripple
+          @click="openMerchantInfoDialog()"
+        >
+          <template v-if="merchantInfo?.id">
+            <q-item-section style="position:relative;">
+              <q-item-label class="text-h6">
+                <q-icon name="storefront" size="1.25em"/>
+                {{ merchantInfo?.name }}
+              </q-item-label>
+              <q-item-label v-if="merchantInfo?.primaryContactNumber" class="text-subtitle1 text-weight-light">
+                <q-icon name="phone" size="1rem" class="q-mr-sm"/>
+                {{ merchantInfo?.primaryContactNumber }}
+              </q-item-label>
+              <q-item-label v-if="merchantInfo?.formattedLocation" class="text-subtitle2 text-weight-light ellipsis-2-lines">
+                <q-icon name="location_on" size="1rem" class="q-mr-sm"/>
+                {{ merchantInfo?.formattedLocation }}
+              </q-item-label>
+            </q-item-section>
+          </template>
+          <template v-else>
+            <q-item-section>
+              <q-item-label class="text-subtitle1">No merchant details</q-item-label>
+              <q-item-label class="text-subtitle2 text-grey">Setup merchant details</q-item-label>
+            </q-item-section>
+          </template>
+          <q-icon
+            name="edit"
+            size="1.5em"
+            class="text-grey float-right"
+            style="position:absolute;top:0rem;right:0.25rem;"
+          />
+        </q-item>
+      </q-card-section>
+    </q-card>
 
     <q-card
       class="br-15 q-pt-sm q-mx-md"
@@ -44,7 +90,10 @@
             })"
           />
         </div>
-        <template v-for="posDevice in posDevices" :key="posDevice?.posid">
+        <div v-if="fetchingPosDevices" class="q-mt-sm q-px-md q-gutter-md">
+          <q-skeleton v-for="i in 3" height="3.25rem"/>
+        </div>
+        <template v-else v-for="posDevice in posDevices" :key="posDevice?.posid">
           <q-item dense>
             <q-item-section>
               <q-item-label class="text-subtitle1"> {{ $t('POSID') }}#{{ padPosId(posDevice?.posid) }}</q-item-label>
@@ -75,7 +124,7 @@
                       @click="displayPosDeviceInDialog(posDevice)"
                     >
                       <q-item-section>
-                        <q-item-label>{{ $t('Link') }}</q-item-label>
+                        <q-item-label>{{ $t('Link', {}, 'Link') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -95,6 +144,9 @@
           </q-item>
           <q-separator :color="darkMode ? 'white' : 'grey-7'" spaced inset/>
         </template>
+        <div v-if="!posDevices?.length && !fetchingPosDevices" class="text-grey text-center">
+          No devices
+        </div>
       </q-card-section>
     </q-card>
   </div>
@@ -106,6 +158,7 @@ import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from 'src/components/header-nav.vue'
+import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
 import PosDeviceDetailDialog from 'src/components/PosDeviceDetailDialog.vue'
 import { getMnemonic, Wallet } from 'src/wallet'
 
@@ -141,6 +194,16 @@ async function checkWalletLinkData() {
   }
 }
 onMounted(() => checkWalletLinkData())
+
+const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
+onMounted(() => {
+  $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash})
+})
+function openMerchantInfoDialog() {
+  $q.dialog({
+    component: MerchantInfoDialog,
+  })
+}
 
 const posDevices = ref([ { walletHash: '', posid: -1, name: '' } ])
 posDevices.value = []
@@ -216,7 +279,7 @@ function addNewPosDevice() {
     prompt: {
       dark: darkMode.value,
       outlined: true,
-      standout: darkMode.value ? 'text-white bg-grey-3' : '',
+      // standout: darkMode.value ? 'text-white bg-grey-3' : '',
     },
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
     cancel: true,
@@ -236,10 +299,17 @@ function addNewPosDevice() {
           message: $t('DeviceAddedIDNo', { ID: newPaddedPosId }, `Device added #${newPaddedPosId}`),
         })
       })
-      .catch(() => {
-        dialog.update({
-          message: $t('FailedAddingNewDevice', {}, 'Failed to add new device'),
-        })
+      .catch(error => {
+        let title = ''
+        let message = $t('FailedAddingNewDevice', {}, 'Failed to add new device')
+        let onErrorDismiss = () => {}
+        if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
+          title = message
+          message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
+          onErrorDismiss = () => openMerchantInfoDialog()
+        }
+        dialog.update({ title: title, message: message })
+          .onDismiss(() => onErrorDismiss())
       })
       .finally(() => {
         dialog.update({ persistent: false, progress: false })
@@ -260,7 +330,7 @@ function renamePosDevice(posDevice) {
     prompt: {
       dark: darkMode.value,
       outlined: true,
-      standout: darkMode.value ? 'text-white bg-grey-3' : '',
+      // standout: darkMode.value ? 'text-white bg-grey-3' : '',
     },
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
     cancel: true,
@@ -284,12 +354,21 @@ function renamePosDevice(posDevice) {
         )
         dialog.update({ message: updateDialogMsg })
       })
-      .catch(() => {
-        updateDialogMsg = $t(
+      .catch(error => {
+        let title = ''
+        let message = $t(
           'FailedUpdateDeviceIDNo', {ID: padPosId(posDevice?.posid)},
           `Failed to update device #${padPosId(posDevice?.posid)}`,
         )
-        dialog.update({ message: updateDialogMsg })
+        let onErrorDismiss = () => {}
+        if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
+          title = message
+          message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
+          onErrorDismiss = () => openMerchantInfoDialog()
+        }
+
+        dialog.update({ title: title, message: message })
+          .onDismiss(() => onErrorDismiss())
       })
       .finally(() => {
         dialog.update({ persistent: false, progress: false })

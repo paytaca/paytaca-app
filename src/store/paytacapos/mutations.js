@@ -1,6 +1,42 @@
 /**
  * 
  * @param {Object} state 
+ * @param {Object} data
+ * @param {Number} data.id
+ * @param {String} data.name
+ * @param {String} data.wallet_hash
+ * @param {String} data.primary_contact_number
+ * @param {Object} [data.location]
+ * @param {String} data.location.landmark
+ * @param {String} data.location.location
+ * @param {String} data.location.street
+ * @param {String} data.location.city
+ * @param {String} data.location.country
+ * @param {String} data.location.longitude
+ * @param {String} data.location.latitude
+ * 
+ */
+export function updateMerchantInfo(state, data) {
+  state.merchantInfo = {
+    id: data?.id,
+    walletHash: data?.wallet_hash,
+    name: data?.name,
+    primaryContactNumber: data?.primary_contact_number,
+    location: {
+      landmark: data?.location?.landmark,
+      location: data?.location?.location,
+      street: data?.location?.street,
+      city: data?.location?.city,
+      country: data?.location?.country,
+      longitude: data?.location?.longitude,
+      latitude: data?.location?.latitude,
+    },
+  }
+}
+
+/**
+ * 
+ * @param {Object} state 
  * @param {Object} data 
  * @param {String} data.txid
  * @param {String} data.otp
