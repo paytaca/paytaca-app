@@ -410,6 +410,7 @@ export default {
       setAmountInFiat: false,
       sendAmountInFiat: null,
       balanceExceeded: false,
+      setMax: false,
       computingMax: false
     }
   },
@@ -515,7 +516,9 @@ export default {
       }
     },
     sendAmountInFiat: function (amount) {
-      this.sendData.amount = this.convertFiatToSelectedAsset(amount)
+      if (!this.setMax) {
+        this.sendData.amount = this.convertFiatToSelectedAsset(amount)
+      }
     }
   },
 
@@ -542,7 +545,7 @@ export default {
         console.log(paymentUriData)
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
-      } catch(error) {
+      } catch (error) {
         console.error(error)
         if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
           this.sendErrors.push('Invalid address format')
@@ -806,6 +809,7 @@ export default {
       }
     },
     async setMaximumSendAmount () {
+      this.setMax = true
       if (this.asset.id === 'bch') {
         if (this.isSep20) {
           this.computingMax = true
@@ -821,7 +825,9 @@ export default {
         } else {
           this.sendData.amount = this.asset.spendable
         }
-        this.sendAmountInFiat = this.convertToFiatAmount(this.sendData.amount)
+        if (this.setAmountInFiat) {
+          this.sendAmountInFiat = this.convertToFiatAmount(this.sendData.amount)
+        }
       } else {
         this.sendData.amount = this.asset.balance
       }
