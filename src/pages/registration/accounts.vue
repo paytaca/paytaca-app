@@ -270,20 +270,21 @@ export default {
   },
   async mounted () {
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
+    const supportedLangs = [
+      { value: 'en-us', label: 'English' },
+      { value: 'es', label: 'Spanish' }
+    ]
     let finalLang = ''
+
     // Adjust paytaca language according to phone's language (if supported by paytaca)
     let deviceLang = null
     try {
       deviceLang = await Device.getLanguageTag()
       deviceLang = deviceLang.value.toLowerCase()
-    } catch(error) {
+    } catch (error) {
+      deviceLang = supportedLangs[0]
       console.error(error)
     }
-
-    const supportedLangs = [
-      { value: 'en-us', label: 'English' },
-      { value: 'es', label: 'Spanish' }
-    ]
 
     // defaults to english if device lang is unsupported by app
     if (eng.includes(deviceLang) || !this.$i18n.availableLocales.includes(deviceLang)) {
