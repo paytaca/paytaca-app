@@ -159,7 +159,7 @@ import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from 'src/components/header-nav.vue'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
-import PosDeviceDetailDialog from 'src/components/PosDeviceDetailDialog.vue'
+import PosDeviceDetailDialog from 'src/components/paytacapos/PosDeviceDetailDialog.vue'
 import { getMnemonic, Wallet } from 'src/wallet'
 
 const $store = useStore()
