@@ -11,6 +11,25 @@ export function merchantInfo(state) {
   return data
 }
 
+export function merchantBranches(state) {
+  if (!Array.isArray(state.branches)) return []
+  const merchantWalletHash = state?.merchantInfo?.walletHash
+
+  if (!merchantWalletHash) return state.branches
+  return state.branches
+    .filter(branchInfo => branchInfo?.merchantWalletHash === merchantWalletHash)
+    .map(branchInfo => {
+      const formattedLocation = [
+          branchInfo?.location?.location || branchInfo?.location?.landmark,
+          branchInfo?.location?.street,
+          branchInfo?.location?.city,
+          branchInfo?.location?.country,
+        ].filter(Boolean).join(', ')
+
+      return Object.assign({ formattedLocation }, branchInfo)
+    })
+}
+
 export function paymentOTPCache(state) {
   return (txid) => {
     return {

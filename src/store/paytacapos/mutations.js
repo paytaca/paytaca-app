@@ -35,6 +35,60 @@ export function updateMerchantInfo(state, data) {
 }
 
 /**
+ * @param {Object} state 
+ * @param {Object} data 
+ * @param {Number} data.id
+ * @param {String} data.name
+ * @param {Object} data.merchant
+ * @param {String} data.merchant.wallet_hash
+ * @param {Object} [data.location]
+ * @param {String} data.location.landmark
+ * @param {String} data.location.location
+ * @param {String} data.location.street
+ * @param {String} data.location.city
+ * @param {String} data.location.country
+ * @param {String} data.location.longitude
+ * @param {String} data.location.latitude
+ */
+ export function updateBranchInfo(state, data) {
+  if (!data?.id) return
+  if (!Array.isArray(state.branches)) state.branches = []
+
+  const _branchInfo = {
+    id: data?.id,
+    merchantWalletHash: data?.merchant?.wallet_hash,
+    name: data?.name,
+    location: {
+      landmark: data?.location?.landmark,
+      location: data?.location?.location,
+      street: data?.location?.street,
+      city: data?.location?.city,
+      country: data?.location?.country,
+      longitude: data?.location?.longitude,
+      latitude: data?.location?.latitude,
+    },
+  }
+
+  Object.assign(_branchInfo, data)
+  const index = state.branches.findIndex(branchInfo => branchInfo?.id === _branchInfo?.id)
+  if (index >=0) state.branches[index] = _branchInfo
+  else state.branches.push(_branchInfo)
+}
+
+/**
+ * @param {Object} state 
+ * @param {Number} branchId 
+ */
+export function removeBranchInfo(state, branchId) {
+  if (!Array.isArray(state.branches)) return
+  state.branches = state.branches.filter(branchInfo => branchInfo?.id !== branchId)
+}
+
+export function clearBranchInfo(state) {
+  state.branches = []
+}
+
+/**
  * 
  * @param {Object} state 
  * @param {Object} data 

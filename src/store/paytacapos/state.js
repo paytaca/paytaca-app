@@ -15,6 +15,22 @@ export default function () {
         latitude: null,
       },
     },
+    branches: [
+      {
+        id: 0,
+        merchantWalletHash: '',
+        name: '',
+        location: {
+          landmark: '',
+          location: '',
+          street: '',
+          city: '',
+          country: '',
+          longitude: null,
+          latitude: null,
+        },
+      }
+    ],
     paymentOTPCache: {
       'txid': { otp: '', otpTimestamp: -1, rawPaymentUri: '' },
       /* 
