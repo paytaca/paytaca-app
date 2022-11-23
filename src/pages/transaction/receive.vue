@@ -197,16 +197,21 @@ export default {
       })
     },
     async copyPrivateKey () {
-      this.copying = true
-      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-      let privateKey
-      if (this.walletType === 'bch') {
-        privateKey = await this.wallet.BCH.getPrivateKey('0/' + String(lastAddressIndex))
-      } else {
-        privateKey = await this.wallet.SLP.getPrivateKey('0/' + String(lastAddressIndex))
+      try {
+        this.copying = true
+        const mnemonic = await getMnemonic()
+        const wallet = new Wallet(mnemonic, this.network)
+        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        let privateKey
+        if (this.walletType === 'bch') {
+          privateKey = await wallet.BCH.getPrivateKey('0/' + String(lastAddressIndex))
+        } else {
+          privateKey = await wallet.SLP.getPrivateKey('0/' + String(lastAddressIndex))
+        }
+        this.copyToClipboard(privateKey)
+      } finally {
+        this.copying = false
       }
-      this.copying = false
-      this.copyToClipboard(privateKey)
     },
     getAddress () {
       if (this.isSep20) {

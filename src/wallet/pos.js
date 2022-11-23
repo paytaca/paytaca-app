@@ -8,13 +8,14 @@ export const backend = (new Watchtower()).BCH._api
 
 /**
  * 
- * @param {{ wallet_hash:String, posid:Number, name?:String }} data 
+ * @param {{ wallet_hash:String, posid:Number, name?:String, branchId?: Number }} data 
  */
 export function parsePosDeviceData(data) {
   const response = {
     walletHash: data?.wallet_hash,
     posid: data?.posid,
     name: data?.name,
+    branchId: data?.branch_id,
   }
 
   return response
