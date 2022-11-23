@@ -43,6 +43,7 @@
             map-options
             clearable
             v-model="posDeviceForm.branchId"
+            popup-content-style="color: black;"
           />
           <div v-if="loading" class="text-center q-mt-md">
             <template v-if="newDevice">
