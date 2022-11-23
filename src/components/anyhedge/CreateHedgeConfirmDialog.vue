@@ -419,7 +419,7 @@ function parsePremiumFee({ sats, fees={ premium } }) {
   if (data.pctg <= 1) data.icon = { color: 'green', name: 'gpp_good' }
   if (data.pctg > 1 && data.pctg <= 5) data.icon = { color: 'yellow', name: 'gpp_maybe' }
   if (data.pctg > 5 && data.pctg <= 10) data.icon = { color: 'amber', name: 'gpp_maybe' }
-  if (data.pctg > 10) data.icon = { color: 'red', name: 'gpp_bad' }
+  if (data.pctg > 10) data.icon = { color: 'red', name: 'gpp_maybe' }
 
   data.pctg = data.pctg * 100
   return data
