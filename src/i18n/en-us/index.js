@@ -4,6 +4,10 @@ export default {
 
   AddingNewDevice: 'Adding new device',
   AddNewDevice: 'Add new device',
+  Branch: 'Branch',
+  BranchDetails: 'Branch details',
+  BranchDetailsSaved: 'Branch details saved',
+  BranchName: 'Branch name',
   BusinessDetails: 'Business details',
   BusinessName: 'Business name',
   City: 'City',
@@ -13,6 +17,7 @@ export default {
   FailedAddingNewDevice: 'Failed to add new device',
   FailedUpdateDeviceIDNo: 'Failed to update device #{ID}',
   InvalidPhoneNumber: 'Invalid phone number',
+  Link: 'Link',
   Location: 'Location',
   MerchantDetails: 'Merchant details',
   MerchantDetailsRequired: 'Merchant details required',
@@ -23,9 +28,7 @@ export default {
   PinLocation: 'Pin location',
   POSID: 'POSID', // Point of sale ID
   PrimaryContactNumber: 'Primary contact number',
-  Rename: 'Rename',
   Remove: 'Remove',
-  RenameDeviceNum: 'Rename device #{ID}',
   RemovedDeviceIDNo: 'Removed device #{ID}',
   RemoveDevice: 'Remove Device',
   RemovingDeviceIDNo: 'Removing device #{ID}',
@@ -38,6 +41,7 @@ export default {
   SetNewNameForDevice: 'Set new name for device',
   Street: 'Street',
   Update: 'Update',
+  UpdateDeviceIDNo: 'Update device #{ID}',
   UpdatedDeviceIDNo: 'Updated device #{ID}',
   UpdatingDeviceIDNo: 'Updating device #{ID}',
 

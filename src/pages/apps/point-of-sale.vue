@@ -100,6 +100,9 @@
               <q-item-label v-if=" posDevice?.name" class="text-subtitle2 text-grey">
                 {{ $t('Name') }}: {{ posDevice?.name }}
               </q-item-label>
+              <q-item-label v-if="merchantBranch(posDevice?.branchId)?.name" class="text-subtitle2 text-grey">
+                {{ $t('Branch') }}: {{ merchantBranch(posDevice?.branchId)?.name }}
+              </q-item-label>
             </q-item-section>
             <q-item-section side>
               <q-btn icon="more_vert" flat>
@@ -109,11 +112,11 @@
                       clickable
                       v-close-popup
                       :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
-                      @click="renamePosDevice(posDevice)"
+                      @click="updatePosDevice(posDevice)"
                     >
                       <q-item-section>
                         <q-item-label>
-                          {{ posDevice?.name ? $t('Rename') : $t('SetName', {}, 'Set name') }}
+                          {{ $t('Update', {}, 'Update') }}
                         </q-item-label>
                       </q-item-section>
                     </q-item>
@@ -160,6 +163,7 @@ import { useI18n } from 'vue-i18n'
 import HeaderNav from 'src/components/header-nav.vue'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
 import PosDeviceDetailDialog from 'src/components/paytacapos/PosDeviceDetailDialog.vue'
+import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
 import { getMnemonic, Wallet } from 'src/wallet'
 
 const $store = useStore()
@@ -203,6 +207,11 @@ function openMerchantInfoDialog() {
   $q.dialog({
     component: MerchantInfoDialog,
   })
+}
+const merchantBranches = computed(() => $store.getters['paytacapos/merchantBranches'])
+onMounted(() => $store.dispatch('paytacapos/refetchBranches', { walletHash: walletData.value.walletHash }))
+function merchantBranch (branchId) {
+  return merchantBranches.value.find(branchInfo => branchInfo?.id === branchId)
 }
 
 const posDevices = ref([ { walletHash: '', posid: -1, name: '' } ])
@@ -273,107 +282,108 @@ function displayPosDeviceInDialog(posDevice) {
 }
 
 function addNewPosDevice() {
-  $q.dialog({
-    title: $t('AddNewDevice', {}, 'Add new device'),
-    message: $t('SetNewNameForDevice', {}, 'Set new name for device'),
-    prompt: {
-      dark: darkMode.value,
-      outlined: true,
-      // standout: darkMode.value ? 'text-white bg-grey-3' : '',
-    },
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
-    cancel: true,
-    persistent: true
-  }).onOk(data => {
-    const dialog = $q.dialog({
-      title: $t('NewDevice', {}, 'New device'),
-      message: $t('AddingNewDevice', {}, 'Adding new device'),
-      persistent: true,
-      progress: true,
-      class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
-    })
-    savePosDevice({ posid: -1, name: data }, { refreshList: true })
-      .then(response => {
-        const newPaddedPosId = padPosId(response?.data?.posid)
-        dialog.update({
-          message: $t('DeviceAddedIDNo', { ID: newPaddedPosId }, `Device added #${newPaddedPosId}`),
-        })
-      })
-      .catch(error => {
-        let title = ''
-        let message = $t('FailedAddingNewDevice', {}, 'Failed to add new device')
-        let onErrorDismiss = () => {}
-        if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
-          title = message
-          message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
-          onErrorDismiss = () => openMerchantInfoDialog()
-        }
-        dialog.update({ title: title, message: message })
-          .onDismiss(() => onErrorDismiss())
-      })
-      .finally(() => {
-        dialog.update({ persistent: false, progress: false })
-      })
+  const dialog = $q.dialog({
+    component: PosDeviceFormDialog,
+    componentProps: {
+      newDevice: true,
+      branchOptions: merchantBranches.value,
+    }
   })
+    .onOk(apiCall => {
+      const dialog = $q.dialog({
+        title: $t('NewDevice', {}, 'New device'),
+        message: $t('AddingNewDevice', {}, 'Adding new device'),
+        persistent: true,
+        progress: true,
+        class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+      })
+      apiCall
+        .then(response => {
+          if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
+            fetchPosDevices()
+            return Promise.resolve(response)
+          }
+          return Promise.reject({ response })
+        })
+        .then(response => {
+          const newPaddedPosId = padPosId(response?.data?.posid)
+          dialog.update({
+            message: $t('DeviceAddedIDNo', { ID: newPaddedPosId }, `Device added #${newPaddedPosId}`),
+          })
+        })
+        .catch(error => {
+          let title = ''
+          let message = $t('FailedAddingNewDevice', {}, 'Failed to add new device')
+          let onErrorDismiss = () => {}
+          if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
+            title = message
+            message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
+            onErrorDismiss = () => openMerchantInfoDialog()
+          }
+          dialog.update({ title: title, message: message })
+            .onDismiss(() => onErrorDismiss())
+        })
+        .finally(() => {
+          dialog.update({ persistent: false, progress: false })
+        })
+    })
 }
 
-function renamePosDevice(posDevice) {
-  // const inputStyle = darkMode.value ? 'color:white !important;' : ''
-  const title = $t(
-    'RenameDeviceNum', { ID: padPosId(posDevice?.posid) },
-    `Rename device #${padPosId(posDevice?.posid)}`,
-  )
-  const message = $t('SetNewNameForDevice', {}, 'Set new name for device')
-  $q.dialog({
-    title: title,
-    message: message,
-    prompt: {
-      dark: darkMode.value,
-      outlined: true,
-      // standout: darkMode.value ? 'text-white bg-grey-3' : '',
-    },
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
-    cancel: true,
-    persistent: true
-  }).onOk(data => {
-    let updateDialogMsg = $t(
-      'UpdatingDeviceIDNo', {ID: padPosId(posDevice?.posid)},
-      `Updating device #${padPosId(posDevice?.posid)}`,
-    )
-    const dialog = $q.dialog({
-      message: updateDialogMsg,
-      persistent: true,
-      progress: true,
-      class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
-    })
-    savePosDevice({ posid: posDevice?.posid, name: data }, { refreshList: true })
-      .then(() => {
-        updateDialogMsg = $t(
-          'UpdatedDeviceIDNo', {ID: padPosId(posDevice?.posid)},
-          `Updated device #${padPosId(posDevice?.posid)}`,
-        )
-        dialog.update({ message: updateDialogMsg })
-      })
-      .catch(error => {
-        let title = ''
-        let message = $t(
-          'FailedUpdateDeviceIDNo', {ID: padPosId(posDevice?.posid)},
-          `Failed to update device #${padPosId(posDevice?.posid)}`,
-        )
-        let onErrorDismiss = () => {}
-        if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
-          title = message
-          message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
-          onErrorDismiss = () => openMerchantInfoDialog()
-        }
-
-        dialog.update({ title: title, message: message })
-          .onDismiss(() => onErrorDismiss())
-      })
-      .finally(() => {
-        dialog.update({ persistent: false, progress: false })
-      })
+function updatePosDevice(posDevice) {
+  const dialog = $q.dialog({
+    component: PosDeviceFormDialog,
+    componentProps: {
+      newDevice: false,
+      posDevice: posDevice,
+      branchOptions: merchantBranches.value,
+    }
   })
+    .onOk(apiCall => {
+      let updateDialogMsg = $t(
+        'UpdatingDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+        `Updating device #${padPosId(posDevice?.posid)}`,
+      )
+      const dialog = $q.dialog({
+        message: updateDialogMsg,
+        persistent: true,
+        progress: true,
+        class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+      })
+      apiCall
+        .then(response => {
+          if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
+            refetchPosDevice(parsePosDeviceData(response?.data))
+            return Promise.resolve(response)
+          }
+          return Promise.reject({ response })
+        })
+        .then(() => {
+          updateDialogMsg = $t(
+            'UpdatedDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+            `Updated device #${padPosId(posDevice?.posid)}`,
+          )
+          dialog.update({ message: updateDialogMsg })
+        })
+        .catch(error => {
+          let title = ''
+          let message = $t(
+            'FailedUpdateDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+            `Failed to update device #${padPosId(posDevice?.posid)}`,
+          )
+          let onErrorDismiss = () => {}
+          if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
+            title = message
+            message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
+            onErrorDismiss = () => openMerchantInfoDialog()
+          }
+
+          dialog.update({ title: title, message: message })
+            .onDismiss(() => onErrorDismiss())
+        })
+        .finally(() => {
+          dialog.update({ persistent: false, progress: false })
+        })
+    })
 }
 
 function confirmRemovePosDevice(posDevice) {
@@ -417,28 +427,6 @@ function confirmRemovePosDevice(posDevice) {
         .finally(() => {
           dialog.update({ persistent: false, progress: false })
         })
-    })
-}
-
-/**
- * @param {{ walletHash:String, posid:Number, name?:String }} posDevice 
- * @param {{ refreshList:Boolean }} opts
- */
-function savePosDevice(posDevice, opts) {
-  const data = {
-    wallet_hash: posDevice?.walletHash || walletData?.value?.walletHash,
-    posid: posDevice?.posid,
-    name: posDevice?.name || '',
-  }
-  return posBackend.post('/paytacapos/devices/', data)
-    .then(response => {
-      if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
-        if (opts?.refreshList) fetchPosDevices()
-        else refetchPosDevice(parsePosDeviceData(response?.data))
-
-        return Promise.resolve(response)
-      }
-      return Promise.reject({ response })
     })
 }
 
