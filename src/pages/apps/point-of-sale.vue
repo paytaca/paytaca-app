@@ -20,11 +20,9 @@
           dense
           class="q-px-sm"
           style="flex-wrap:wrap;"
-          clickable v-ripple
-          @click="openMerchantInfoDialog()"
         >
           <template v-if="merchantInfo?.id">
-            <q-item-section style="position:relative;">
+            <q-item-section>
               <q-item-label class="text-h6">
                 <q-icon name="storefront" size="1.25em"/>
                 {{ merchantInfo?.name }}
@@ -37,6 +35,50 @@
                 <q-icon name="location_on" size="1rem" class="q-mr-sm"/>
                 {{ merchantInfo?.formattedLocation }}
               </q-item-label>
+              <q-item-label
+                class="text-subtitle1 text-weight-light ellipsis-2-lines"
+                v-ripple style="position:relative;"
+              >
+                <div class="row items-center">
+                  <q-icon name="store" size="1rem" class="q-mr-sm"/>
+                  <span v-if="!merchantBranches.length" class="text-grey">No branches</span>
+                  <span v-else>
+                    {{ merchantBranches.length }} branch{{merchantBranches.length > 1 ? 'es': ''}}
+                  </span>
+                  <q-space/>
+                  <q-icon name="more_horiz" size="1.5em" class="q-px-sm"/>
+                </div>
+                <q-menu anchor="bottom right" self="top right" :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-pa-sm']">
+                  <q-list separator :dark="darkMode">
+                    <q-item
+                      v-for="branch in merchantBranches" :key="branch.id"
+                      dense
+                      clickable
+                      v-ripple
+                      @click="showBranchInfo(branch)"
+                    >
+                      <q-item-section>
+                        <q-item-label>{{ branch.name }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      dense
+                      clickable
+                      v-ripple
+                      @click="openNewBranchForm()"
+                    >
+                      <q-item-section>
+                        <q-item-label>
+                          {{ $t('Add', {}, 'Add') }}
+                        </q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <q-icon name="add" color="green"/>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-item-label>
             </q-item-section>
           </template>
           <template v-else>
@@ -45,11 +87,14 @@
               <q-item-label class="text-subtitle2 text-grey">Setup merchant details</q-item-label>
             </q-item-section>
           </template>
-          <q-icon
-            name="edit"
-            size="1.5em"
+          <q-btn
+            flat
+            padding="sm"
+            icon="edit"
+            size="1em"
             class="text-grey float-right"
             style="position:absolute;top:0rem;right:0.25rem;"
+            @click.stop="openMerchantInfoDialog()"
           />
         </q-item>
       </q-card-section>
@@ -161,6 +206,7 @@ import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from 'src/components/header-nav.vue'
+import BranchFormDialog from 'src/components/paytacapos/BranchFormDialog.vue'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
 import PosDeviceDetailDialog from 'src/components/paytacapos/PosDeviceDetailDialog.vue'
 import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
@@ -212,6 +258,23 @@ const merchantBranches = computed(() => $store.getters['paytacapos/merchantBranc
 onMounted(() => $store.dispatch('paytacapos/refetchBranches', { walletHash: walletData.value.walletHash }))
 function merchantBranch (branchId) {
   return merchantBranches.value.find(branchInfo => branchInfo?.id === branchId)
+}
+function showBranchInfo(branch) {
+  $q.dialog({
+    component: BranchFormDialog,
+    componentProps: {
+      branchId: branch?.id,
+    }
+  })
+}
+
+function openNewBranchForm() {
+  $q.dialog({
+    component: BranchFormDialog,
+    componentProps: {
+      newBranch: true,
+    }
+  })
 }
 
 const posDevices = ref([ { walletHash: '', posid: -1, name: '' } ])

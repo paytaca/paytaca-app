@@ -140,7 +140,7 @@ export function updateBranchInfo(context, data) {
   if (update) {
     apiCall = watchtower.BCH._api.put(`paytacapos/branches/${payload?.id}/`, payload)
   } else {
-    apiCall = watchtower.BCH._api.put(`paytacapos/branches/`, payload)
+    apiCall = watchtower.BCH._api.post(`paytacapos/branches/`, payload)
   }
 
   return apiCall
