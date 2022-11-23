@@ -76,8 +76,7 @@ export default {
   Value: 'Valor',
   Version: 'Versión',
   Wallet: 'Cartera',
-  
-  
+
   // PHRASES & SENTENCES
   ApproveToken: 'Aprobar token',
   AboutTheApp: 'Sobre la aplicación',
@@ -253,7 +252,7 @@ export default {
   WalletHash: 'Wallet Hash',
   WalletInfo: 'Wallet Info',
   Waiting_SEP20_TokenSent: 'Esperando que se envíe la señal SEP20',
-  XpubKey: 'x Pub Key',
+  XpubKey: 'xPub Key',
   YouReceive: 'Recibiste',
-  YouSend: 'Usted envía',
+  YouSend: 'Usted envía'
 }

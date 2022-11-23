@@ -129,6 +129,7 @@
 </template>
 <script>
 import { debounce } from 'quasar'
+import { inject } from 'vue'
 import { getSep20ContractDetails } from '../../wallet/sbch/utils'
 import ProgressLoader from '../ProgressLoader.vue'
 
@@ -145,8 +146,7 @@ export default {
   },
   props: {
     title: {
-      type: String,
-      default: () => { this.$t('SelectToken') }
+      type: String
     },
     tokensList: {
       type: Array

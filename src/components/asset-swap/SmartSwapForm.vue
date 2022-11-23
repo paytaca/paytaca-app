@@ -730,6 +730,7 @@ export default {
         component: SmartSwapTokenSelectorDialog,
         componentProps: {
           tokensList: this.tokensList,
+          title: this.$t('SelectToken'),
           darkMode: this.darkMode
         }
       })
