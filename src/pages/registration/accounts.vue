@@ -168,6 +168,9 @@ export default {
           lastAddressIndex: 0
         })
         vm.steps += 1
+        try {
+          this.$store.dispatch('global/refetchWalletPreferences')
+        } catch(error) { console.error(error) }
       })
 
       bchWallet.BCH.getXPubKey().then(function (xpub) {
