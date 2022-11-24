@@ -22,15 +22,23 @@
         :disable="loading"
         :dark="darkMode"
         :label="$t('PrimaryContactNumber', {}, 'Primary contact number')"
-        mask="####-###-####"
-        placeholder="09##-###-####"
         v-model="merchantInfoForm.primaryContactNumber"
         lazy-rules
         hide-bottom-space
+        clearable
         :rules="[
-          val => !val || String(val).match(/09\d{2}-?\d{3}-?\d{4}/) || $t('InvalidPhoneNumber', {}, 'Invalid phone number'),
+          val => Boolean(val),
+          val => !val || String(val).match(/(0|(\+\d+))\d{3}-?\d{3}-?\d{4}/) || $t('InvalidPhoneNumber', {}, 'Invalid phone number'),
         ]"
-      />
+        @update:model-value="() => merchantInfoForm.showContactNumberCodeSelector = true"
+      >
+        <PhoneCountryCodeSelector
+          v-model="merchantInfoForm.showContactNumberCodeSelector"
+          :needle="merchantInfoForm.primaryContactNumber"
+          @selected-code="code => replacePrimaryNumberCode(code)"
+          :dark="darkMode"
+        />
+      </q-input>
     </div>
     <div class="q-mt-sm q-gutter-sm">
       <div class="text-subtitle1 text-grey">{{ $t('Location', {}, 'Location') }}</div>
@@ -145,6 +153,7 @@ import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
+import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
 
 defineEmits(['cancel'])
 const props = defineProps({
@@ -166,6 +175,7 @@ const walletHash = computed(() => {
 const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
 const merchantInfoForm = ref({
   name: '',
+  showContactNumberCodeSelector: false,
   primaryContactNumber: '',
   location: {
     landmark: '',
@@ -195,6 +205,17 @@ function filterCountriesOpts (val, update) {
   }
   update()
 }
+
+function replacePrimaryNumberCode(code='') {
+  const isPhoneNumberLike = RegExp("\\+?[0-9\\-]+").test(merchantInfoForm.value.primaryContactNumber)
+  if (typeof merchantInfoForm.value.primaryContactNumber !== 'string' || !isPhoneNumberLike) {
+    merchantInfoForm.value.primaryContactNumber = code
+    return
+  }
+  merchantInfoForm.value.primaryContactNumber = code + merchantInfoForm.value.primaryContactNumber.substring(code.length)
+}
+
+
 const validCoordinates = computed(() => 
   Number.isFinite(merchantInfoForm.value.location.longitude) && Number.isFinite(merchantInfoForm.value.location.latitude)
 )
