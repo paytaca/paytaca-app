@@ -62,6 +62,7 @@
         v-model="merchantInfoForm.location.city"
       />
       <q-input
+        v-if="!countriesOpts.length"
         outlined
         dense
         :readonly="readOnly"
@@ -69,6 +70,23 @@
         :dark="darkMode"
         :label="$t('Country', {}, 'Country')"
         v-model="merchantInfoForm.location.country"
+      />
+      <q-select
+        v-else
+        outlined
+        dense
+        :readonly="readOnly"
+        :disable="loading"
+        :dark="darkMode"
+        :label="$t('Country', {}, 'Country')"
+        clearable
+        use-input
+        fill-input
+        hide-selected
+        :options="filteredCountriesOpts"
+        @filter="filterCountriesOpts"
+        v-model="merchantInfoForm.location.country"
+        :popup-content-class="darkMode ? '': 'text-black'"
       />
     </div>
     <div class="row items-center q-gutter-x-sm q-mt-sm">
@@ -121,6 +139,7 @@
   </q-form>
 </template>
 <script setup>
+import countriesJson from 'src/assets/countries.json'
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
@@ -158,6 +177,24 @@ const merchantInfoForm = ref({
     langitude: null,
   }
 })
+const countriesOpts = computed(() => {
+  if (!Array.isArray(countriesJson)) return []
+  return countriesJson
+    .map(countryJson => countryJson?.name)
+    .filter(Boolean)
+    .filter((e,i,s) => s.indexOf(e) === i)
+})
+const filteredCountriesOpts = ref([])
+function filterCountriesOpts (val, update) {
+  if (!val) {
+    filteredCountriesOpts.value = countriesOpts.value
+  } else {
+    const needle = String(val).toLowerCase()
+    filteredCountriesOpts.value = countriesOpts.value
+      .filter(country => String(country).toLowerCase().indexOf(needle) >= 0)
+  }
+  update()
+}
 const validCoordinates = computed(() => 
   Number.isFinite(merchantInfoForm.value.location.longitude) && Number.isFinite(merchantInfoForm.value.location.latitude)
 )

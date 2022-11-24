@@ -72,12 +72,29 @@
               v-model="branchInfoForm.location.city"
             />
             <q-input
+              v-if="!countriesOpts.length"
               outlined
               dense
               :readonly="readOnly"
               :disable="loading"
               :dark="darkMode"
               :label="$t('Country', {}, 'Country')"
+              v-model="branchInfoForm.location.country"
+            />
+            <q-select
+              v-else
+              outlined
+              dense
+              :readonly="readOnly"
+              :disable="loading"
+              :dark="darkMode"
+              :label="$t('Country', {}, 'Country')"
+              clearable
+              use-input
+              fill-input
+              hide-selected
+              :options="filteredCountriesOpts"
+              @filter="filterCountriesOpts"
               v-model="branchInfoForm.location.country"
             />
           </div>
@@ -134,6 +151,7 @@
   </q-dialog>
 </template>
 <script setup>
+import countriesJson from 'src/assets/countries.json'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
@@ -182,6 +200,25 @@ const branchInfoForm = ref({
     langitude: null,
   }
 })
+const countriesOpts = computed(() => {
+  if (!Array.isArray(countriesJson)) return []
+  return countriesJson
+    .map(countryJson => countryJson?.name)
+    .filter(Boolean)
+    .filter((e,i,s) => s.indexOf(e) === i)
+})
+const filteredCountriesOpts = ref([])
+function filterCountriesOpts (val, update) {
+  if (!val) {
+    filteredCountriesOpts.value = countriesOpts.value
+  } else {
+    const needle = String(val).toLowerCase()
+    filteredCountriesOpts.value = countriesOpts.value
+      .filter(country => String(country).toLowerCase().indexOf(needle) >= 0)
+  }
+  update()
+}
+
 const validCoordinates = computed(() => 
   Number.isFinite(branchInfoForm.value.location.longitude) && Number.isFinite(branchInfoForm.value.location.latitude)
 )
