@@ -177,6 +177,7 @@ export default {
     },
     historicalMarketPrice() {
       if (this.selectedMarketCurrency === 'USD' && this.transaction.usd_price) return this.transaction.usd_price
+      if (this.transaction?.market_prices?.[this.selectedMarketCurrency]) return this.transaction?.market_prices?.[this.selectedMarketCurrency]
       return null
     },
     marketAssetPrice () {
