@@ -56,3 +56,38 @@ export async function updateUtxoScanTaskStatus(context, data) {
 export function updateConnectivityStatus (context, online) {
   context.commit('updateConnectivityStatus', online)
 }
+
+export async function refetchWalletPreferences(context) {
+  const walletHash = context.getters['getWallet']('bch')?.walletHash
+  if (!walletHash) return Promise.reject('wallet hash not found')
+  const preferencesResponse = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
+  context.dispatch('updateWalletPreferences', preferencesResponse?.data)
+}
+
+/**
+ * 
+ * @param {Object} context
+ * @param {Object} data 
+ * @param {String} data.selected_currency
+ */
+export async function updateWalletPreferences(context, data) {
+  const selectedCurrency = data?.selected_currency
+  if (selectedCurrency) {
+    const currency = context.rootGetters['market/currencyOptions']?.find(currencyOpt => currencyOpt?.symbol === selectedCurrency)
+    if(currency) context.commit('market/updateSelectedCurrency', currency, { root: true })
+  }
+}
+
+export async function saveWalletPreferences(context) {
+  const walletHash = context.getters['getWallet']('bch')?.walletHash
+  if (!walletHash) return Promise.reject('wallet hash not found')
+  const data = {}
+
+  const selectedCurrency = context.rootGetters['market/selectedCurrency']
+  if (selectedCurrency?.symbol) data.selected_currency = selectedCurrency?.symbol
+
+  const response = await watchtower.BCH._api.patch(`wallet/preferences/${walletHash}/`, data)
+  if (response?.data?.wallet_hash) context.dispatch('updateWalletPreferences', response?.data)
+
+  return response?.data
+}

@@ -48,7 +48,6 @@
                         <template v-slot:option="scope">
                           <q-item
                             v-bind="scope.itemProps"
-                            v-on="scope.itemEvents"
                           >
                             <q-item-section>
                               <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
@@ -162,6 +161,7 @@ export default {
       },
       set (value) {
         this.$store.commit('market/updateSelectedCurrency', value)
+        this.$store.dispatch('global/saveWalletPreferences')
       }
     }
   },
@@ -230,6 +230,7 @@ export default {
     }
 
     this.$store.dispatch('market/updateSupportedCurrencies', {})
+    this.$store.dispatch('global/refetchWalletPreferences')
   }
 }
 </script>

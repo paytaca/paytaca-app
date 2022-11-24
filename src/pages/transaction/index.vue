@@ -115,7 +115,21 @@
                       <div class="col col-transaction ">
                         <div>
                           <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text text-uppercase" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
-                          <p :class="{'text-grey': darkMode}" class="q-mb-none transactions-wallet float-right ib-text q-mt-sm">{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</p>
+                          <p
+                            :class="{'text-grey': darkMode, 'q-mt-sm': !marketValue(transaction)?.marketValue }"
+                            class="q-mb-none transactions-wallet float-right ib-text text-right"
+                          >
+                            <div>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</div>
+
+                            <div 
+                              v-if="marketValue(transaction)?.marketValue"
+                              class="text-caption text-grey"
+                              :class="[darkMode ? 'text-weight-light' : '']"
+                              style="margin-top:-0.25em;"
+                            >
+                              {{ marketValue(transaction)?.marketValue }} {{ selectedMarketCurrency }}
+                            </div>
+                          </p>
                         </div>
                         <div class="col">
                             <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
@@ -576,6 +590,28 @@ export default {
           }, 1000)
         })
       }
+    },
+    marketValue(transaction){
+      const data = {
+        marketAssetPrice: null,
+        isHistoricalPrice: false,
+        marketValue: null,
+      }
+      if (this.selectedMarketCurrency === 'USD' && transaction?.usd_price) {
+        data.marketAssetPrice = transaction.usd_price
+        data.isHistoricalPrice = true
+      } else if (transaction?.market_prices?.[this.selectedMarketCurrency]) {
+        data.marketAssetPrice = transaction?.market_prices?.[this.selectedMarketCurrency]
+        data.isHistoricalPrice = true
+      } else {
+        data.marketAssetPrice = this.selectedAssetMarketPrice
+        data.isHistoricalPrice = false
+      }
+
+      if (data.marketAssetPrice) {
+        data.marketValue = (Number(transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
+      }
+      return data
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)

@@ -42,6 +42,7 @@
             emit-value
             map-options
             clearable
+            :popup-content-class="darkMode ? '': 'text-black'"
             v-model="posDeviceForm.branchId"
             popup-content-style="color: black;"
           />
@@ -123,7 +124,6 @@ const posDeviceForm = ref({
 const branchOpts = computed(() => {
   let opts = []
   if (Array.isArray(props.branchOptions)) opts.push.apply(opts, props.branchOptions)
-  opts.unshift(null)
   return opts
 })
 onMounted(() => resetForm())

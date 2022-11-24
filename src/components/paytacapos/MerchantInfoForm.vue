@@ -22,15 +22,23 @@
         :disable="loading"
         :dark="darkMode"
         :label="$t('PrimaryContactNumber', {}, 'Primary contact number')"
-        mask="####-###-####"
-        placeholder="09##-###-####"
         v-model="merchantInfoForm.primaryContactNumber"
         lazy-rules
         hide-bottom-space
+        clearable
         :rules="[
-          val => !val || String(val).match(/09\d{2}-?\d{3}-?\d{4}/) || $t('InvalidPhoneNumber', {}, 'Invalid phone number'),
+          val => Boolean(val),
+          val => !val || String(val).match(/(0|(\+\d+))\d{3}-?\d{3}-?\d{4}/) || $t('InvalidPhoneNumber', {}, 'Invalid phone number'),
         ]"
-      />
+        @update:model-value="() => merchantInfoForm.showContactNumberCodeSelector = true"
+      >
+        <PhoneCountryCodeSelector
+          v-model="merchantInfoForm.showContactNumberCodeSelector"
+          :needle="merchantInfoForm.primaryContactNumber"
+          @selected-code="code => replacePrimaryNumberCode(code)"
+          :dark="darkMode"
+        />
+      </q-input>
     </div>
     <div class="q-mt-sm q-gutter-sm">
       <div class="text-subtitle1 text-grey">{{ $t('Location', {}, 'Location') }}</div>
@@ -62,6 +70,7 @@
         v-model="merchantInfoForm.location.city"
       />
       <q-input
+        v-if="!countriesOpts.length"
         outlined
         dense
         :readonly="readOnly"
@@ -69,6 +78,23 @@
         :dark="darkMode"
         :label="$t('Country', {}, 'Country')"
         v-model="merchantInfoForm.location.country"
+      />
+      <q-select
+        v-else
+        outlined
+        dense
+        :readonly="readOnly"
+        :disable="loading"
+        :dark="darkMode"
+        :label="$t('Country', {}, 'Country')"
+        clearable
+        use-input
+        fill-input
+        hide-selected
+        :options="filteredCountriesOpts"
+        @filter="filterCountriesOpts"
+        v-model="merchantInfoForm.location.country"
+        :popup-content-class="darkMode ? '': 'text-black'"
       />
     </div>
     <div class="row items-center q-gutter-x-sm q-mt-sm">
@@ -121,11 +147,13 @@
   </q-form>
 </template>
 <script setup>
+import countriesJson from 'src/assets/countries.json'
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
+import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
 
 defineEmits(['cancel'])
 const props = defineProps({
@@ -147,6 +175,7 @@ const walletHash = computed(() => {
 const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
 const merchantInfoForm = ref({
   name: '',
+  showContactNumberCodeSelector: false,
   primaryContactNumber: '',
   location: {
     landmark: '',
@@ -158,6 +187,35 @@ const merchantInfoForm = ref({
     langitude: null,
   }
 })
+const countriesOpts = computed(() => {
+  if (!Array.isArray(countriesJson)) return []
+  return countriesJson
+    .map(countryJson => countryJson?.name)
+    .filter(Boolean)
+    .filter((e,i,s) => s.indexOf(e) === i)
+})
+const filteredCountriesOpts = ref([])
+function filterCountriesOpts (val, update) {
+  if (!val) {
+    filteredCountriesOpts.value = countriesOpts.value
+  } else {
+    const needle = String(val).toLowerCase()
+    filteredCountriesOpts.value = countriesOpts.value
+      .filter(country => String(country).toLowerCase().indexOf(needle) >= 0)
+  }
+  update()
+}
+
+function replacePrimaryNumberCode(code='') {
+  const isPhoneNumberLike = RegExp("\\+?[0-9\\-]+").test(merchantInfoForm.value.primaryContactNumber)
+  if (typeof merchantInfoForm.value.primaryContactNumber !== 'string' || !isPhoneNumberLike) {
+    merchantInfoForm.value.primaryContactNumber = code
+    return
+  }
+  merchantInfoForm.value.primaryContactNumber = code + merchantInfoForm.value.primaryContactNumber.substring(code.length)
+}
+
+
 const validCoordinates = computed(() => 
   Number.isFinite(merchantInfoForm.value.location.longitude) && Number.isFinite(merchantInfoForm.value.location.latitude)
 )
