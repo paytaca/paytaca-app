@@ -93,6 +93,7 @@
               use-input
               fill-input
               hide-selected
+              :popup-content-class="darkMode ? '': 'text-black'"
               :options="filteredCountriesOpts"
               @filter="filterCountriesOpts"
               v-model="branchInfoForm.location.country"
