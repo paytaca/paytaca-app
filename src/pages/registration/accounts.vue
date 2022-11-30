@@ -139,7 +139,7 @@ export default {
         vm.$router.push('/')
       })
     },
-    initCreateWallet() {
+    initCreateWallet () {
       if (this.steps === -1) {
         this.steps = 0
       }
@@ -169,7 +169,7 @@ export default {
         })
         vm.steps += 1
         try {
-          this.$store.dispatch('global/refetchWalletPreferences')
+          vm.$store.dispatch('global/refetchWalletPreferences')
         } catch(error) { console.error(error) }
       })
 
@@ -234,9 +234,9 @@ export default {
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
-        reason: $t('NativeBiometricReason1'),
-        title: $t('SecurityAuthentication'),
-        subtitle: $t('NativeBiometricSubtitle'),
+        reason: this.$t('NativeBiometricReason1'),
+        title: this.$t('SecurityAuthentication'),
+        subtitle: this.$t('NativeBiometricSubtitle'),
         description: ''
       })
         .then(() => {
@@ -248,6 +248,7 @@ export default {
           // Failed to authenticate
           console.log('Verification error: ', error)
           if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled')) {
+            console.error(error)
           } else {
             this.verifyBiometric()
           }

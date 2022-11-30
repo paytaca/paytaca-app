@@ -154,8 +154,8 @@
 <script setup>
 import countriesJson from 'src/assets/countries.json'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
-import { computed, ref, onMounted } from 'vue';
-import { useStore } from 'vuex';
+import { computed, ref, onMounted } from 'vue'
+import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
