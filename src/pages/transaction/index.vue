@@ -354,6 +354,7 @@ export default {
       const vm = this
       vm.selectedAsset = this.bchAsset
       vm.getBalance(this.bchAsset.id)
+      vm.transactions = []
       vm.transactionsPage = 0
       vm.getTransactions()
       vm.assetClickCounter += 1
@@ -591,11 +592,11 @@ export default {
         })
       }
     },
-    marketValue(transaction){
+    marketValue (transaction) {
       const data = {
         marketAssetPrice: null,
         isHistoricalPrice: false,
-        marketValue: null,
+        marketValue: null
       }
       if (this.selectedMarketCurrency === 'USD' && transaction?.usd_price) {
         data.marketAssetPrice = transaction.usd_price
