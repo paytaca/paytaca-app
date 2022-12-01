@@ -136,6 +136,24 @@ export function removeLinkCode(state, data) {
 }
 
 /**
+ * @param {Object} state 
+ * @param {Object} data 
+ * @param {String} data.walletHash
+ * @param {Number} data.posid
+ * @param {Number} [data.lastActive]
+ */
+export function setDeviceLastActive(state, data) {
+  const index = state.devicesLastActive.findIndex(
+    deviceLastActive => deviceLastActive?.walletHash === data.walletHash && deviceLastActive?.posid === data?.posid
+  )
+
+  if (index >= 0) state.devicesLastActive[index].lastActive = data?.lastActive
+  else state.devicesLastActive.push(data)
+
+  state.devicesLastActive = state.devicesLastActive.filter(deviceLastActive => deviceLastActive?.lastActive)
+}
+
+/**
  * 
  * @param {Object} state 
  * @param {Object} data 

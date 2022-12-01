@@ -328,6 +328,7 @@ function fetchPosDevices(opts) {
         posDevicesPageData.value.count = response?.data?.count || 0
         posDevicesPageData.value.limit = response?.data?.limit || 0
         posDevicesPageData.value.offset = response?.data?.offset || 0
+        if (rpcClient.ws.readyState == WebSocket.OPEN) posDevices.value.forEach(updateLastActive)
       }
     })
     .finally(() => {
@@ -376,8 +377,33 @@ function openLinkDeviceDialog(posDevice) {
     .onDismiss(() => refetchPosDevice(posDevice))
 }
 
+function deviceLastActive(posDevice) {
+  return $store.getters['paytacapos/devicesLastActive']?.find?.(
+    data => data?.walletHash === posDevice?.walletHash && data?.posid === posDevice?.posid
+  )?.lastActive
+}
+
 function isDeviceOnline(posDevice) {
-  return false
+  const lastActive = deviceLastActive(posDevice)
+  return (lastActive + 60) * 1000 > Date.now()
+}
+
+/**
+ * @param {Object} posDevice
+ * @param {String} posDevice.walletHash
+ * @param {Number} posDevice.posid
+ */
+function updateLastActive(posDevice) {
+  if(!posDevice?.walletHash || !Number.isSafeInteger(posDevice?.posid)) return
+  rpcClient.call('last_active', [posDevice?.walletHash, posDevice.posid])
+    .then(lastActive => {
+      console.log(lastActive)
+      $store.commit('paytacapos/setDeviceLastActive', {
+        walletHash: posDevice.walletHash,
+        posid: posDevice.posid,
+        lastActive: lastActive,
+      })
+    })
 }
 
 function confirmUnlinkPosDevice(posDevice) {
@@ -617,6 +643,13 @@ const rpcUpdateHandler = (rpcResult) => {
       case 'create':
         fetchPosDevices()
         break
+      case 'ping':
+        $store.commit('paytacapos/setDeviceLastActive', {
+          walletHash:updateData?.object?.wallet_hash,
+          posid:updateData?.object?.posid,
+          lastActive: Number(updateData?.data?.timestamp),
+        })
+        break
     }
   }
 }
@@ -632,6 +665,9 @@ rpcClient.onClose(error => {
     console.log('RPC client closed', error)
     connectRpcClient({ retries: 5 })
   }
+})
+rpcClient.onOpen(() => {
+  posDevices.value.forEach(updateLastActive)
 })
 onMounted(() => connectRpcClient({retries: 5}))
 onUnmounted(() => {

@@ -35,6 +35,11 @@ export function linkCodes(state) {
   return state.linkCodes
 }
 
+export function devicesLastActive(state) {
+  if (!Array.isArray(state.devicesLastActive)) return []
+  return state.devicesLastActive
+}
+
 export function paymentOTPCache(state) {
   return (txid) => {
     return {
