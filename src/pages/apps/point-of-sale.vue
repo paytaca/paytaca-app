@@ -141,12 +141,17 @@
         <template v-else v-for="posDevice in posDevices" :key="posDevice?.posid">
           <q-item dense>
             <q-item-section>
-              <q-item-label class="text-subtitle1"> {{ $t('POSID') }}#{{ padPosId(posDevice?.posid) }}</q-item-label>
-              <q-item-label v-if=" posDevice?.name" class="text-subtitle2 text-grey">
-                {{ $t('Name') }}: {{ posDevice?.name }}
+              <q-item-label class="text-subtitle1">
+                {{ posDevice?.name || 'POSID' }} #{{ padPosId(posDevice?.posid) }}
               </q-item-label>
-              <q-item-label v-if="merchantBranch(posDevice?.branchId)?.name" class="text-subtitle2 text-grey">
-                {{ $t('Branch') }}: {{ merchantBranch(posDevice?.branchId)?.name }}
+              <q-item-label v-if="merchantBranch(posDevice?.branchId)?.name" class="row items-center text-subtitle2 text-grey">
+                <q-icon name="store" size="1.25em" class="q-mr-xs"/>
+                {{ merchantBranch(posDevice?.branchId)?.name }}
+              </q-item-label>
+              <q-item-label v-if="posDevice?.isLinked?.()" class="row items-center text-subtitle2 text-grey">
+                <q-icon name="phone_iphone" size="1.25em" class="q-mr-xs"/>
+                <span>{{ posDevice?.linkedDevice?.name || posDevice?.linkedDevice?.deviceModel }}</span>
+                <q-icon name="circle" :color="isDeviceOnline(posDevice) ? 'green': 'grey'" size=".75em" class="q-ml-xs"/>
               </q-item-label>
             </q-item-section>
             <q-item-section side>
@@ -166,10 +171,22 @@
                       </q-item-section>
                     </q-item>
                     <q-item
+                      v-if="posDevice?.isLinked?.()"
                       clickable
                       v-close-popup
                       :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
-                      @click="displayPosDeviceInDialog(posDevice)"
+                      @click="confirmUnlinkPosDevice(posDevice)"
+                    >
+                      <q-item-section>
+                        <q-item-label>{{ $t('Unlink', {}, 'Unlink') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-else
+                      clickable
+                      v-close-popup
+                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      @click="openLinkDeviceDialog(posDevice)"
                     >
                       <q-item-section>
                         <q-item-label>{{ $t('Link', {}, 'Link') }}</q-item-label>
@@ -201,7 +218,7 @@
 </template>
 <script setup>
 import { backend as posBackend, parsePosDeviceData, padPosId } from 'src/wallet/pos'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
@@ -211,6 +228,10 @@ import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue
 import PosDeviceDetailDialog from 'src/components/paytacapos/PosDeviceDetailDialog.vue'
 import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
 import { getMnemonic, Wallet } from 'src/wallet'
+import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.vue'
+import Watchtower from 'watchtower-cash-js'
+import { RpcWebSocketClient } from 'rpc-websocket-client';
+
 
 const $store = useStore()
 const $q = useQuasar()
@@ -277,7 +298,7 @@ function openNewBranchForm() {
   })
 }
 
-const posDevices = ref([ { walletHash: '', posid: -1, name: '' } ])
+const posDevices = ref([ { walletHash: '', posid: -1, name: '', linkedDevice: null, lastActive: 0 } ])
 posDevices.value = []
 const posDevicesPageData = ref({ count: 0, limit: 10, offset: 0 })
 const parsedPosDevicePagination = computed(() => {
@@ -342,6 +363,69 @@ function displayPosDeviceInDialog(posDevice) {
     component: PosDeviceDetailDialog,
     componentProps: { posId: posDevice?.posid, name: posDevice?.name }
   })
+}
+
+function openLinkDeviceDialog(posDevice) {
+  $q.dialog({
+    component: PosDeviceLinkDialog,
+    componentProps: {
+      posid: posDevice?.posid,
+      name: posDevice?.name,
+    }
+  })
+    .onDismiss(() => refetchPosDevice(posDevice))
+}
+
+function isDeviceOnline(posDevice) {
+  return false
+}
+
+function confirmUnlinkPosDevice(posDevice) {
+  const msgParams = { ID: posDevice?.posid, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
+  const message = $t(
+    'UnlinkPOSDeviceNumName', msgParams,
+    `Unlink POS Device #${msgParams.ID}${msgParams.name}`
+  )
+  $q.dialog({
+    title: $t('UnlinkPOSDevice', {}, 'Unlink POS device'),
+    message: message,
+    ok: {
+      padding: 'xs md',
+      flat: true,
+      noCaps: true,
+      label: $t('UnlinkDevice', {}, 'Unlink device'),
+      color: 'red-5',
+    },
+    cancel: { noCaps: true, flat: true, padding: 'xs md' },
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+    .onOk(() => {
+      let updateDialogMsg = $t(
+        'UnlinkingDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+        `Unlinking device #${padPosId(posDevice?.posid)}`,
+      )
+      const dialog = $q.dialog({
+        message: updateDialogMsg,
+        persistent: true,
+        progress: true,
+        class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+      })
+
+      const walletHashPosid = `${posDevice?.walletHash}:${posDevice?.posid}`
+      const watchtower = new Watchtower()
+      watchtower.BCH._api.post(`paytacapos/devices/${walletHashPosid}/unlink_device/`)
+        .then(response => {
+          updateDialogMsg = $t(
+            'UnlinkedDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+            `Unlinked device #${padPosId(posDevice?.posid)}`,
+          )
+          dialog.update({ message: updateDialogMsg })
+          refetchPosDevice(parsePosDeviceData(response?.data))
+        })
+        .finally(() => {
+          dialog.update({ persistent: false, progress: false })
+        })
+    })
 }
 
 function addNewPosDevice() {
@@ -506,4 +590,79 @@ onMounted(() => {
     $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
   }
 })
+
+/**
+ * @param {Object} rpcResult 
+ * @param {Object} rpcResult.result
+ * @param {Object} rpcResult.result.update
+ * @param {String} rpcResult.result.update.resource
+ * @param {String} rpcResult.result.update.action
+ * @param {Object} [rpcResult.result.update.object]
+ * @param {Object} [rpcResult.result.update.data]
+*/
+const rpcUpdateHandler = (rpcResult) => {
+  console.debug(rpcResult)
+  const updateData = rpcResult?.result?.update
+  if (!updateData) return
+  if (updateData?.resource === 'pos_device') {
+    switch(updateData?.action) {
+      case 'update':
+      case 'link':
+      case 'unlink':
+        refetchPosDevice({
+          walletHash:updateData?.object?.wallet_hash,
+          posid:updateData?.object?.posid,
+        })
+        break
+      case 'create':
+        fetchPosDevices()
+        break
+    }
+  }
+}
+
+const rpcClient = new RpcWebSocketClient()
+const enableRpcReconnection = ref(true)
+const rpcReconnectTimeout = ref(null) 
+if (rpcClient.onNotification.indexOf(rpcUpdateHandler) < 0) {
+  rpcClient.onNotification.push(rpcUpdateHandler)
+}
+rpcClient.onClose(error => {
+  if (rpcReconnectTimeout.value == null && enableRpcReconnection.value) {
+    console.log('RPC client closed', error)
+    connectRpcClient({ retries: 5 })
+  }
+})
+onMounted(() => connectRpcClient({retries: 5}))
+onUnmounted(() => {
+  enableRpcReconnection.value = false
+  console.log('Closing rpc client', rpcClient?.ws?.close())
+  console.log('Cancelling reconnect timeout', rpcReconnectTimeout.value, clearTimeout(rpcReconnectTimeout.value))
+})
+/**
+ * @param {Object} opts
+ * @param {Number} [opts.retries]
+ */
+function connectRpcClient(opts) {
+  const RECONNECT_INTERVAL = 10 * 1000
+  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  const url = `${scheme}://localhost:8000/ws/paytacapos/updates/${walletData.value.walletHash}/`
+  rpcClient.connect(url)
+    .then(response => {
+      console.log('RPC Client connected:', response)
+      clearTimeout(rpcReconnectTimeout.value)
+      rpcReconnectTimeout.value = null
+    })
+    .catch(error => {
+      console.error('RPC Client connection error:', error)
+      if (opts?.retries > 0 && enableRpcReconnection.value) {
+        console.log('Retrying reconnection after', RECONNECT_INTERVAL/1000, 'second/s')
+        clearTimeout(rpcReconnectTimeout.value)
+        rpcReconnectTimeout.value = setTimeout(() => connectRpcClient({ retries: opts?.retries - 1 }), RECONNECT_INTERVAL)
+      } else {
+        console.log('Skipping reconnection')
+      }
+    })
+}
+
 </script>

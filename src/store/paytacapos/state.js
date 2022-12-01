@@ -31,6 +31,9 @@ export default function () {
         },
       }
     ],
+    linkCodes: [
+      { walletHash:'', posid: 0, code: '', expiresAt: 0 },
+    ],
     paymentOTPCache: {
       'txid': { otp: '', otpTimestamp: -1, rawPaymentUri: '' },
       /* 

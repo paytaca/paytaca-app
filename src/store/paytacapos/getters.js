@@ -30,6 +30,11 @@ export function merchantBranches(state) {
     })
 }
 
+export function linkCodes(state) {
+  if (!Array.isArray(state.linkCodes)) return []
+  return state.linkCodes
+}
+
 export function paymentOTPCache(state) {
   return (txid) => {
     return {

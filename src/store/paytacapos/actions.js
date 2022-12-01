@@ -176,3 +176,45 @@ export function deleteBranch(context, data) {
       return Promise.resolve(response)
     })
 }
+
+
+/**
+ * @param {Object} context 
+ * @param {Object} data
+ * @param {String} data.walletHash
+ * @param {String} data.posid
+ * @param {String} data.xpubkey
+ * 
+ * @param {Object} data.opts
+ * @param {Object} data.opts.checkExpiry
+ */
+export function generateLinkCode(context, data) {
+  if (!data?.walletHash || !data?.xpubkey || !Number.isSafeInteger(data?.posid)) return Promise.reject()
+  if (data?.opts?.checkExpiry) {
+    const storedLinkCode = context.getters['linkCodes']
+      .find(linkCode => linkCode?.walletHash === data.walletHash && linkCode?.posid === data.posid)
+  
+    if (storedLinkCode?.code && storedLinkCode?.expiresAt > Date.now() / 1000) {
+      return Promise.resolve({ storedLinkCode })
+    }
+  }
+
+  const _data = {
+    wallet_hash: data?.walletHash,
+    posid: data?.posid,
+    xpubkey: data?.xpubkey,
+  }
+  const watchtower = new Watchtower() 
+  return watchtower.BCH._api.post('paytacapos/devices/generate_link_device_code/', _data)
+    .then(response => {
+      if (!response?.data?.code) return Promise.reject({ response })
+
+      context.commit('saveLinkCode', {
+        walletHash: _data.wallet_hash,
+        posid: data.posid,
+        code: response.data.code,
+        expiresAt: response.data.expires,
+      })
+      return Promise.resolve(response)
+    })
+}

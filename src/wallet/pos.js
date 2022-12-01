@@ -16,6 +16,16 @@ export function parsePosDeviceData(data) {
     posid: data?.posid,
     name: data?.name,
     branchId: data?.branch_id,
+    linkedDevice: {
+      linkCode: data?.linked_device?.link_code,
+      name: data?.linked_device?.name,
+      deviceModel: data?.linked_device?.device_model,
+      os: data?.linked_device?.os,
+      isSuspended: data?.linked_device?.is_suspended,
+    },
+    isLinked(){
+      return Boolean(this.linkedDevice.linkCode)
+    }
   }
 
   return response

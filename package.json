@@ -42,6 +42,7 @@
     "qrcode": "^1.5.1",
     "quasar": "^2.7.7",
     "randombytes": "^2.1.0",
+    "rpc-websocket-client": "^1.1.4",
     "s-ago": "^2.2.0",
     "shamirs-secret-sharing": "^1.0.1",
     "slp-mdm": "0.0.7",
