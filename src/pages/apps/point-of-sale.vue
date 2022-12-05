@@ -171,10 +171,25 @@
                       </q-item-section>
                     </q-item>
                     <q-item
-                      v-if="posDevice?.isLinked?.()"
+                      v-if="posDevice?.isLinked?.() && posDevice?.linkedDevice?.unlinkRequest?.id"
                       clickable
                       v-close-popup
                       :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      @click="confirmCancelUnlinkPosDevice(posDevice)"
+                    >
+                      <q-item-section>
+                        <q-item-label>
+                          {{ $t('Cancel', {}, 'Cancel') }}
+                          {{ $t('Unlink', {}, 'Unlink').toLowerCase() }}
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-else-if="posDevice?.isLinked?.()"
+                      clickable
+                      v-close-popup
+                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      :disabled="posDevice?.linkedDevice?.unlinkRequest?.id"
                       @click="confirmUnlinkPosDevice(posDevice)"
                     >
                       <q-item-section>
@@ -217,6 +232,7 @@
   </div>
 </template>
 <script setup>
+import BCHJS from '@psf/bch-js';
 import { backend as posBackend, parsePosDeviceData, padPosId } from 'src/wallet/pos'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
@@ -232,6 +248,7 @@ import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.v
 import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 
+const bchjs = new BCHJS()
 
 const $store = useStore()
 const $q = useQuasar()
@@ -359,17 +376,20 @@ function refetchPosDevice(posDevice, append=false) {
   posBackend.get(`/paytacapos/devices/${handle}/`)
     .then(response => {
       if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
-        const parsedData = parsePosDeviceData(response?.data)
-        const index = posDevices.value.findIndex(device => 
-          device?.walletHash == parsedData?.walletHash && device?.posid == parsedData?.posid
-        )
-
-        if (index >= 0) posDevices.value[index] = parsedData
-        else if (append) posDevices.value.push(parsedData)
+        syncPosDevice(parsePosDeviceData(response?.data), append)
         return Promise.resolve(response)
       }
       return Promise.reject({ response })
     })
+}
+
+function syncPosDevice(posDevice, append=false) {
+  const index = posDevices.value.findIndex(device => 
+    device?.walletHash == posDevice?.walletHash && device?.posid == posDevice?.posid
+  )
+
+  if (index >= 0) posDevices.value[index] = posDevice
+  else if (append) posDevices.value.push(posDevice)
 }
 
 function displayPosDeviceInDialog(posDevice) {
@@ -389,6 +409,83 @@ function openLinkDeviceDialog(posDevice) {
     }
   })
     .onDismiss(() => refetchPosDevice(posDevice))
+}
+
+async function deviceUnlinkRequest(posDevice) {
+  
+  const dialog = $q.dialog({
+    title: $t('UnlinkDevice', {}, 'Unlink device'),
+    message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request'),
+    persistent: true,
+    progress: true,
+    ok: false,
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+
+  return Promise.resolve(posDevice)
+    .then(async (posDevice) => {
+      dialog.update({ message: $t('GeneratingRandomSignature', {}, 'Generating random signature') })
+      const nonce = Math.floor(Math.random() * (2 ** 31-1))
+      const privkey = await wallet.value.BCH.getPrivateKey(nonce)
+      const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, posDevice.linkedDevice.linkCode)
+      return { posDevice, nonce, signature }
+    })
+    .catch(error => {
+      console.error(error)
+      dialog.update({
+        title: $t('UnlinkDeviceRequestFailed', {}, 'Unlink device request failed'),
+        message: $t('FailedToCreateRandomSig', {}, 'Failed to create random signature'),
+    })
+      return Promise.resolve({ skip: true })
+    })
+    .then(async ({ skip, posDevice, nonce, signature }) => {
+      if (skip) return { skip }
+      dialog.update({ message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request') })
+      const data = { nonce, signature }
+      const watchtower = new Watchtower()
+      const response = await watchtower.BCH._api.post(`paytacapos/devices/${posDevice.walletHash}:${posDevice.posid}/unlink_device/request/`, data)
+      syncPosDevice(parsePosDeviceData(response?.data))
+      dialog.update({
+        title: $t('UnlinkDeviceRequestCreated', {}, 'Unlink device request created'),
+        message: $t('NotifyPOSDeviceToConfirmUnlinking', {}, 'Notify POS device to confirm unlinking'),
+      })
+    })
+    .catch(error => {
+      console.error(error)
+      dialog.update({
+        title: $t('UnlinkDeviceRequestFailed', {}, 'Unlink device request failed'),
+        message: 'Failed to create unlink request',
+    })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false, ok: true })
+    })
+}
+
+function confirmCancelUnlinkPosDevice(posDevice) {
+  const dialog = $q.dialog({
+    title: $t('UnlinkDevice', {}, 'Unlink device'),
+    message: $t('CancellingUnlinkRequest', {}, 'Cancelling unlink request'),
+    persistent: true,
+    progress: true,
+    ok: false,
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
+  const watchtower = new Watchtower()
+  watchtower.BCH._api.post(`paytacapos/devices/${handle}/unlink_device/cancel/`)
+    .then(response => {
+      syncPosDevice(parsePosDeviceData(response?.data))
+      dialog.update({ message: $t('UnlinkRequestCancelled', {}, 'Unlink request cancelled') })
+    })
+    .catch(error => {
+      console.error(error)
+      let message = $t('CancelUnlinkRequestError', {}, 'Cancel unlink request error')
+      dialog.update({ message: message })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false, ok: true })
+    })
 }
 
 function deviceLastActive(posDevice) {
@@ -420,6 +517,8 @@ function updateLastActive(posDevice) {
 }
 
 function confirmUnlinkPosDevice(posDevice) {
+  if (posDevice?.linkedDevice?.unlinkRequest?.id) return 
+
   const msgParams = { ID: posDevice?.posid, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
   const message = $t(
     'UnlinkPOSDeviceNumName', msgParams,
@@ -439,31 +538,7 @@ function confirmUnlinkPosDevice(posDevice) {
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
     .onOk(() => {
-      let updateDialogMsg = $t(
-        'UnlinkingDeviceIDNo', {ID: padPosId(posDevice?.posid)},
-        `Unlinking device #${padPosId(posDevice?.posid)}`,
-      )
-      const dialog = $q.dialog({
-        message: updateDialogMsg,
-        persistent: true,
-        progress: true,
-        class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
-      })
-
-      const walletHashPosid = `${posDevice?.walletHash}:${posDevice?.posid}`
-      const watchtower = new Watchtower()
-      watchtower.BCH._api.post(`paytacapos/devices/${walletHashPosid}/unlink_device/`)
-        .then(response => {
-          updateDialogMsg = $t(
-            'UnlinkedDeviceIDNo', {ID: padPosId(posDevice?.posid)},
-            `Unlinked device #${padPosId(posDevice?.posid)}`,
-          )
-          dialog.update({ message: updateDialogMsg })
-          refetchPosDevice(parsePosDeviceData(response?.data))
-        })
-        .finally(() => {
-          dialog.update({ persistent: false, progress: false })
-        })
+      return deviceUnlinkRequest(posDevice)
     })
 }
 

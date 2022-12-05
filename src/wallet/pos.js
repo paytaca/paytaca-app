@@ -9,7 +9,22 @@ export const backend = (new Watchtower()).BCH._api
 
 /**
  * 
- * @param {{ wallet_hash:String, posid:Number, name?:String, branchId?: Number }} data 
+ * @param {Object} data 
+ * @param {String} data.wallet_hash
+ * @param {Number} data.posid
+ * @param {Number} [data.branch_id]
+ * @param {Object} [data.linked_device]
+ * @param {String} [data.linked_device.link_code]
+ * @param {String} [data.linked_device.name]
+ * @param {String} [data.linked_device.device_model]
+ * @param {String} [data.linked_device.os]
+ * @param {Boolean} data.linked_device.is_suspended
+ * @param {Object} [data.linked_device.unlink_request]
+ * @param {Number} data.linked_device.unlink_request.id
+ * @param {Boolean} data.linked_device.unlink_request.force
+ * @param {Number} data.linked_device.unlink_request.nonce
+ * @param {String} data.linked_device.unlink_request.signature
+ * @param {String} data.linked_device.unlink_request.updated_at
  */
 export function parsePosDeviceData(data) {
   const response = {
@@ -23,6 +38,13 @@ export function parsePosDeviceData(data) {
       deviceModel: data?.linked_device?.device_model,
       os: data?.linked_device?.os,
       isSuspended: data?.linked_device?.is_suspended,
+      unlinkRequest: {
+        id: data?.linked_device?.unlink_request?.id,
+        force: data?.linked_device?.unlink_request?.force,
+        nonce: data?.linked_device?.unlink_request?.nonce,
+        signature: data?.linked_device?.unlink_request?.signature,
+        updatedAt: data?.linked_device?.unlink_request?.updated_at,
+      },
     },
     isLinked(){
       return Boolean(this.linkedDevice.linkCode)
