@@ -23,7 +23,7 @@
           <q-skeleton v-if="generatingLinkCode" height="250px" width="250px"/>
           <qr-code
             v-else
-            :text="linkCode?.code"
+            :text="qrCodeData"
             color="#253933"
             :size="250"
             error-level="H"
@@ -42,7 +42,6 @@
             {{ linkExpiresIn < -1 ? 'seconds': 'second' }} ago
           </span>
           <q-btn
-            v-if="linkExpiresIn == null || linkExpiresIn < 0 || generatingLinkCode"
             :disable="generatingLinkCode"
             :loading="generatingLinkCode"
             padding="none"
@@ -60,11 +59,14 @@
   </q-dialog>
 </template>
 <script setup>
-import { padPosId } from 'src/wallet/pos'
+import BCHJS from '@psf/bch-js';
+import { loadWallet, Wallet } from 'src/wallet'
+import { padPosId, aes } from 'src/wallet/pos'
 import { useDialogPluginComponent } from 'quasar'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useStore } from 'vuex';
-import Watchtower from 'watchtower-cash-js';
+
+const bchjs = new BCHJS()
 
 // dialog plugins requirement
 defineEmits([
@@ -80,6 +82,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const props = defineProps({
   posid: Number,
   name: { type: String, required: false },
+  wallet: Wallet,
 })
 
 const paddedPosId = computed(() => padPosId(props.posid))
@@ -87,18 +90,31 @@ const walletData = computed(() => $store.getters['global/getWallet']('bch'))
 
 const generatingLinkCode = ref(false)
 const linkCode = computed(() => {
+  if (!props.wallet) return
   return $store.getters['paytacapos/linkCodes']
-    .find(linkCode => linkCode.walletHash === walletData.value?.walletHash && linkCode.posid === props.posid)
+    .find(linkCode => linkCode.walletHash === props.wallet.BCH?.walletHash && linkCode.posid === props.posid)
 })
-onMounted(() => console.log(linkCode.value?.code))
-watch(() => [linkCode.value?.code], () => console.log(linkCode.value?.code))
 
 onMounted(() => generateLinkCode({ checkExpiry: true }))
-function generateLinkCode(opts) {
+
+async function generateLinkCode(opts) {
+  const xpubkey = await props.wallet.BCH.getXPubKey()
+  const key = aes.generateKey()
+  const encryptedXpubkey = aes.encrypt(xpubkey, key.password, key.iv)
+  const password = key.password + '.' + key.iv
+
+  const nonce = Math.floor(Math.random() * 2 ** 31-1)
+  const privkey = await props.wallet.BCH.getPrivateKey(nonce)
+
+  const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encryptedXpubkey)
+
   const data = {
-    walletHash: walletData.value?.walletHash,
+    walletHash: props.wallet.BCH.walletHash,
     posid: props.posid,
-    xpubkey: walletData.value?.xPubKey,
+    encryptedXpubkey: encryptedXpubkey,
+    decryptKey: password,
+    nonce: nonce,
+    signature: signature,
     opts: {
       checkExpiry: opts?.checkExpiry,
     }
@@ -110,6 +126,16 @@ function generateLinkCode(opts) {
       generatingLinkCode.value = false
     })
 }
+
+const qrCodeData = computed(() => {
+  return JSON.stringify({
+    code: linkCode.value?.code,
+    decryptKey: linkCode.value?.decryptKey,
+    nonce: linkCode.value?.nonce,
+  })
+})
+watch(qrCodeData, () => console.log(qrCodeData.value))
+onMounted(() => console.log(qrCodeData.value))
 
 const expirationUpdateInterval = ref(null)
 const linkExpiresIn = ref(null)

@@ -32,7 +32,7 @@ export default function () {
       }
     ],
     linkCodes: [
-      { walletHash:'', posid: 0, code: '', expiresAt: 0 },
+      { walletHash: '', posid: 0, code: '', expiresAt: 0, decryptKey: '', nonce: 0 },
     ],
     devicesLastActive: [
       { walletHash:'', posid: 0, lastActive: 0 },

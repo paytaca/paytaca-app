@@ -95,9 +95,11 @@ export function clearBranchInfo(state) {
  * @param {Number} data.posid
  * @param {String} data.code
  * @param {Number} data.expiresAt
+ * @param {Number} data.decryptKey
+ * @param {Number} data.nonce
  */
 export function saveLinkCode(state, data) {
-  if (!data.walletHash || !data.code || !data.expiresAt) return
+  if (!data.walletHash || !data.code || !data.expiresAt || !data.decryptKey || !Number.isSafeInteger(data.nonce)) return
   if (!Array.isArray(state.linkCodes)) state.linkCodes = []
 
   const _linkCode = {
@@ -105,6 +107,8 @@ export function saveLinkCode(state, data) {
     posid: data?.posid,
     code: data?.code || '',
     expiresAt: data?.expiresAt || 0,
+    decryptKey: data?.decryptKey || '',
+    nonce: data?.nonce || 0,
   }
 
   const index = state.linkCodes.findIndex(

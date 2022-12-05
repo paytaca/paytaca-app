@@ -227,7 +227,7 @@ import BranchFormDialog from 'src/components/paytacapos/BranchFormDialog.vue'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
 import PosDeviceDetailDialog from 'src/components/paytacapos/PosDeviceDetailDialog.vue'
 import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
-import { getMnemonic, Wallet } from 'src/wallet'
+import { loadWallet } from 'src/wallet'
 import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.vue'
 import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
@@ -251,14 +251,20 @@ const walletData = computed(() => {
   Object.assign(data, _walletData)
   return data
 })
+
+const wallet = ref(null)
+onMounted(() => {
+  loadWallet('BCH').then(_wallet => {
+    wallet.value = _wallet
+    checkWalletLinkData()
+  })
+})
 async function checkWalletLinkData() {
   if (!walletData.value?.xPubKey || !walletData.value?.walletHash) {
     console.log('Incomplete wallet link data. Updating xPubKey and walletHash')
-    const mnemonic = await getMnemonic()
-    const wallet = new Wallet(mnemonic, walletType)
     const newWalletData = Object.assign({ type: walletType }, walletData.value)
-    newWalletData.walletHash = wallet.BCH.getWalletHash()
-    newWalletData.xPubKey = await wallet.BCH.getXPubKey()
+    newWalletData.walletHash = wallet.value.BCH.getWalletHash()
+    newWalletData.xPubKey = await wallet.value.BCH.getXPubKey()
 
     $store.commit('global/updateXPubKey', newWalletData)
     $store.commit('global/updateWallet', newWalletData)
@@ -267,9 +273,11 @@ async function checkWalletLinkData() {
 onMounted(() => checkWalletLinkData())
 
 const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
-onMounted(() => {
-  $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash})
-})
+onMounted(() => $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash }))
+watch(
+  () => walletData.value.walletHash,
+  () => $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash }),
+)
 function openMerchantInfoDialog() {
   $q.dialog({
     component: MerchantInfoDialog,
@@ -277,6 +285,10 @@ function openMerchantInfoDialog() {
 }
 const merchantBranches = computed(() => $store.getters['paytacapos/merchantBranches'])
 onMounted(() => $store.dispatch('paytacapos/refetchBranches', { walletHash: walletData.value.walletHash }))
+watch(
+  () => walletData.value.walletHash,
+  () => $store.dispatch('paytacapos/refetchBranches', { walletHash: walletData.value.walletHash }),
+)
 function merchantBranch (branchId) {
   return merchantBranches.value.find(branchInfo => branchInfo?.id === branchId)
 }
@@ -312,6 +324,7 @@ const parsedPosDevicePagination = computed(() => {
 })
 const fetchingPosDevices = ref(false)
 onMounted(() => fetchPosDevices())
+watch(() => walletData.value.walletHash, () => fetchPosDevices())
 function fetchPosDevices(opts) {
   if (!walletData.value?.walletHash) return
 
@@ -372,6 +385,7 @@ function openLinkDeviceDialog(posDevice) {
     componentProps: {
       posid: posDevice?.posid,
       name: posDevice?.name,
+      wallet: wallet.value,
     }
   })
     .onDismiss(() => refetchPosDevice(posDevice))
@@ -397,11 +411,10 @@ function updateLastActive(posDevice) {
   if(!posDevice?.walletHash || !Number.isSafeInteger(posDevice?.posid)) return
   rpcClient.call('last_active', [posDevice?.walletHash, posDevice.posid])
     .then(lastActive => {
-      console.log(lastActive)
       $store.commit('paytacapos/setDeviceLastActive', {
         walletHash: posDevice.walletHash,
         posid: posDevice.posid,
-        lastActive: lastActive,
+        lastActive: Number(lastActive),
       })
     })
 }
