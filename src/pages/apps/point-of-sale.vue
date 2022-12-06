@@ -149,9 +149,17 @@
                 {{ merchantBranch(posDevice?.branchId)?.name }}
               </q-item-label>
               <q-item-label v-if="posDevice?.isLinked?.()" class="row items-center text-subtitle2 text-grey">
-                <q-icon name="phone_iphone" size="1.25em" class="q-mr-xs"/>
+                <q-icon v-if="posDevice?.linkedDevice?.unlinkRequest?.id" name="phonelink_erase" size="1.25em" class="q-mr-xs" />
+                <q-icon v-else-if="posDevice?.linkedDevice?.isSuspended" name="phonelink_lock" size="1.25em" class="q-mr-xs"/>
+                <q-icon v-else name="phone_iphone" size="1.25em" class="q-mr-xs"/>
                 <span>{{ posDevice?.linkedDevice?.name || posDevice?.linkedDevice?.deviceModel }}</span>
                 <q-icon name="circle" :color="isDeviceOnline(posDevice) ? 'green': 'grey'" size=".75em" class="q-ml-xs"/>
+                <q-popup-proxy v-if="(posDevice?.linkedDevice?.isSuspended || posDevice?.linkedDevice?.unlinkRequest?.id)" :breakpoint="0">
+                  <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption device-tooltip">
+                    <div v-if="posDevice?.linkedDevice?.isSuspended">Device is currently suspended</div>
+                    <div v-if="posDevice?.linkedDevice?.unlinkRequest?.id">Unlink request pending</div>
+                  </div>
+                </q-popup-proxy>
               </q-item-label>
             </q-item-section>
             <q-item-section side>
@@ -205,6 +213,24 @@
                     >
                       <q-item-section>
                         <q-item-label>{{ $t('Link', {}, 'Link') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-if="posDevice?.isLinked?.()"
+                      clickable
+                      v-close-popup
+                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      @click="updateDeviceSuspension(posDevice, !posDevice?.linkedDevice?.isSuspended)"
+                    >
+                      <q-item-section>
+                        <q-item-label>
+                          <template v-if="posDevice?.linkedDevice?.isSuspended">
+                            {{ $t('UnsuspendDevice', {}, 'Unsuspend device') }}
+                          </template>
+                          <template v-else>
+                            {{ $t('SuspendDevice', {}, 'Suspend device') }}
+                          </template>
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -488,6 +514,49 @@ function confirmCancelUnlinkPosDevice(posDevice) {
     })
 }
 
+function updateDeviceSuspension(posDevice, isSuspended) {
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
+  const data = { is_suspended: Boolean(isSuspended) }
+  const dialog = $q.dialog({
+    title: data.is_suspended ? $t('SuspendDevice', {} , 'Suspend device') : $t('UnsuspendDevice', {}, 'Unsuspend device'),
+    message: data.is_suspended ? $t('SuspendingDevice', {} , 'Suspending device') : $t('UnsuspendingDevice', {}, 'Unsuspending device'),
+    ok: false,
+    cancel: false,
+    persistent: true,
+    progress: true,
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+  const watchtower = new Watchtower()
+  watchtower.BCH._api.post(`paytacapos/devices/${handle}/suspend/`, data)
+    .then(response => {
+      syncPosDevice(parsePosDeviceData(response?.data))
+      dialog.update({
+        title: $t('Success', {}, 'Success'),
+        message: data.is_suspended ? $t('Devicesuspended', {} , 'Device suspended') : $t('DeviceUnsuspended', {}, 'Device unsuspended'),
+      })
+    })
+    .catch(error => {
+      console.error(error)
+      let message = ''
+      if (Array.isArray(error?.response?.data?.non_field_errors)) {
+        message = error?.response?.data?.non_field_errors.find(errorMsg => {
+          if (errorMsg === 'pos device not found') return $t('POSDeviceNotFound', {}, 'POS device not found')
+          if (errorMsg === 'pos device is not linked') return $t('POSDeviceIsNotLinked', {}, 'POS device is not linked')
+        })
+      } else if (error?.response?.status === 404) {
+        message = $t('POSDeviceNotFound', {}, 'POS device not found')
+      }
+      if (!message) message = $t('UnknownErrorOccurred', {}, 'Unknown error occurred')
+      dialog.update({
+        title: $t('Error', {}, 'Error'),
+        message: message,
+      })
+    })
+    .finally(() => {
+      dialog.update({ progress: false, persistent: false, ok: true })
+    })
+}
+
 function deviceLastActive(posDevice) {
   return $store.getters['paytacapos/devicesLastActive']?.find?.(
     data => data?.walletHash === posDevice?.walletHash && data?.posid === posDevice?.posid
@@ -723,6 +792,8 @@ const rpcUpdateHandler = (rpcResult) => {
       case 'update':
       case 'link':
       case 'unlink':
+      case 'suspend':
+      case 'unsuspend':
         refetchPosDevice({
           walletHash:updateData?.object?.wallet_hash,
           posid:updateData?.object?.posid,
@@ -791,3 +862,12 @@ function connectRpcClient(opts) {
 }
 
 </script>
+<style scoped>
+.device-tooltip > div::before {
+  content: "- ";
+}
+.device-tooltip > div:only-child::before {
+  content: "";
+}
+
+</style>
