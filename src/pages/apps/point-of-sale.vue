@@ -113,6 +113,14 @@
             {{ $t('Devices') }}
           </div>
           <q-btn
+            icon="assessment"
+            padding="xs"
+            round
+            :color="darkMode ? '' : 'brandblue'"
+            class="q-mr-sm"
+            @click="displaySalesReportDialog()"
+          />
+          <q-btn
             icon="add"
             padding="xs"
             round
@@ -166,6 +174,16 @@
               <q-btn icon="more_vert" flat>
                 <q-menu>
                   <q-list :class="{'pt-dark-card': darkMode, 'text-black': !darkMode }" style="min-width: 100px">
+                    <q-item
+                      clickable
+                      v-close-popup
+                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      @click="displayDeviceSalesReportDialog(posDevice)"
+                    >
+                      <q-item-section>
+                        <q-item-label>{{ $t('SalesReport', {}, 'Sales Report') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
                     <q-item
                       clickable
                       v-close-popup
@@ -271,6 +289,7 @@ import PosDeviceDetailDialog from 'src/components/paytacapos/PosDeviceDetailDial
 import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
 import { loadWallet } from 'src/wallet'
 import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.vue'
+import SalesReportDialog from 'src/components/paytacapos/SalesReportDialog.vue'
 import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 
@@ -557,6 +576,23 @@ function updateDeviceSuspension(posDevice, isSuspended) {
     })
 }
 
+function displayDeviceSalesReportDialog(posDevice) {
+  $q.dialog({
+    component: SalesReportDialog,
+    componentProps: {
+      posDevice: posDevice,
+    }
+  })
+}
+
+function displaySalesReportDialog() {
+  $q.dialog({
+    component: SalesReportDialog,
+    componentProps: {
+      walletHash: walletData.value.walletHash,
+    }
+  })
+}
 function deviceLastActive(posDevice) {
   return $store.getters['paytacapos/devicesLastActive']?.find?.(
     data => data?.walletHash === posDevice?.walletHash && data?.posid === posDevice?.posid
