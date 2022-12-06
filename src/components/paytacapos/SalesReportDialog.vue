@@ -102,6 +102,7 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 function openFilterForm() {
+  const currency = salesReportData.value?.data?.find?.(record => record?.currency)?.currency
   $q.dialog({
     component: SalesReportFilterFormDialog,
     componentProps: {
@@ -109,6 +110,7 @@ function openFilterForm() {
         timestampFrom: salesReportData.value?.timestamp_from,
         timestampTo: salesReportData.value?.timestamp_to,
         range: salesReportData.value?.range_type,
+        currency: currency,
       }
     }
   }).onOk(fetchSalesReport)
@@ -144,7 +146,7 @@ onMounted(() => fetchSalesReport({
   // timestampFrom: Math.floor(new Date("2022-11-10") / 1000),
   // timestampTo: Math.floor(new Date("2022-11-16") / 1000),
   range: 'month',
-  currency: 'USD',
+  currency: $store.getters['market/selectedCurrency']?.symbol || 'USD',
 }))
 
 const totalSales = computed(() => {

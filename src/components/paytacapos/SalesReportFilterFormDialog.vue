@@ -59,6 +59,17 @@
               </q-icon>
             </template>
           </q-input>
+          <q-select
+            dense
+            outlined
+            :dark="darkMode"
+            label="Currency"
+            :options="currencyOptions"
+            emit-value
+            map-options
+            v-model="formData.currency"
+            :popup-content-class="darkMode ? '': 'text-black'"
+          />
           <div class="row items-center q-gutter-x-sm q-mt-md">
             <q-btn no-caps label="Cancel" color="grey" outline class="q-space" v-close-popup/>
             <q-btn no-caps label="Filter" color="brandblue" class="q-space" type="submit"/>
@@ -92,6 +103,7 @@ const formData = ref({
   dateFrom: null,
   dateTo: null,
   range: props?.initialValue?.range || null,
+  currency: props?.initialValue?.currency || null,
 })
 onMounted(() => {
   if (props?.initialValue?.timestampFrom) {
@@ -108,11 +120,20 @@ const rangeOptions = ref([
   { label: 'Daily', value: 'day' }, 
 ])
 
+const preferenceCurrency = computed(() => $store.getters['market/selectedCurrency']?.symbol)
+const currencyOptions = computed(() => {
+  const data = ['USD']
+  if (preferenceCurrency.value) data.push(preferenceCurrency.value)
+  if (props.initialValue?.currency && data.indexOf(props.initialValue?.currency) < 0) data.push(props.initialValue?.currency)
+  return data
+})
+
 function submitFilterForm() {
   onDialogOK({
     timestampFrom: Math.floor(new Date(formData.value.dateFrom) / 1000) || undefined,
     timestampTo: Math.floor(new Date(formData.value.dateTo) / 1000) || undefined,
     range: formData.value.range,
+    currency: formData.value.currency,
   })
 }
 </script>
