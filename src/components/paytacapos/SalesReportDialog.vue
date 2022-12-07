@@ -136,7 +136,6 @@ function fetchSalesReport(opts) {
   }
   watchtower.BCH._api.get(`paytacapos/devices/sales_report/${walletHash}/`, { params })
     .then(response => {
-      console.log(response)
       salesReportData.value = response?.data
     })
 }

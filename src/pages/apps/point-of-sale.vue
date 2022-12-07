@@ -116,7 +116,7 @@
             icon="assessment"
             padding="xs"
             round
-            :color="darkMode ? '' : 'brandblue'"
+            :color="darkMode ? 'grad' : 'brandblue'"
             class="q-mr-sm"
             @click="displaySalesReportDialog()"
           />
@@ -820,7 +820,6 @@ onMounted(() => {
  * @param {Object} [rpcResult.result.update.data]
 */
 const rpcUpdateHandler = (rpcResult) => {
-  console.debug(rpcResult)
   const updateData = rpcResult?.result?.update
   if (!updateData) return
   if (updateData?.resource === 'pos_device') {
