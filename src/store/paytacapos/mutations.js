@@ -89,6 +89,75 @@ export function clearBranchInfo(state) {
 }
 
 /**
+ * @param {Object} state 
+ * @param {Object} data 
+ * @param {String} data.walletHash
+ * @param {Number} data.posid
+ * @param {String} data.code
+ * @param {Number} data.expiresAt
+ * @param {Number} data.decryptKey
+ * @param {Number} data.nonce
+ */
+export function saveLinkCode(state, data) {
+  if (!data.walletHash || !data.code || !data.expiresAt || !data.decryptKey || !Number.isSafeInteger(data.nonce)) return
+  if (!Array.isArray(state.linkCodes)) state.linkCodes = []
+
+  const _linkCode = {
+    walletHash: data?.walletHash || '',
+    posid: data?.posid,
+    code: data?.code || '',
+    expiresAt: data?.expiresAt || 0,
+    decryptKey: data?.decryptKey || '',
+    nonce: data?.nonce || 0,
+  }
+
+  const index = state.linkCodes.findIndex(
+    linkCode => linkCode?.walletHash === _linkCode.walletHash && linkCode?.posid === _linkCode?.posid
+  )
+
+  if (index >= 0) state.linkCodes[index] = _linkCode
+  else state.linkCodes.push(_linkCode)
+}
+
+/**
+ * @param {Object} state 
+ * @param {Object} data 
+ * @param {String} [data.code]
+ * @param {String} [data.walletHash]
+ * @param {Number} [data.posid]
+ */
+export function removeLinkCode(state, data) {
+  if (!Array.isArray(state.linkCodes)) return
+
+  state.linkCodes = state.linkCodes
+    .filter(linkCode => {
+      if (data?.code && data?.code === linkCode?.code) return false
+      if (data?.walletHash && isFinite(data?.posid)) {
+        if (linkCode?.walletHash === data.walletHash && linkCode?.posid === data?.posid) return false
+      }
+      return true
+    })
+}
+
+/**
+ * @param {Object} state 
+ * @param {Object} data 
+ * @param {String} data.walletHash
+ * @param {Number} data.posid
+ * @param {Number} [data.lastActive]
+ */
+export function setDeviceLastActive(state, data) {
+  const index = state.devicesLastActive.findIndex(
+    deviceLastActive => deviceLastActive?.walletHash === data.walletHash && deviceLastActive?.posid === data?.posid
+  )
+
+  if (index >= 0) state.devicesLastActive[index].lastActive = data?.lastActive
+  else state.devicesLastActive.push(data)
+
+  state.devicesLastActive = state.devicesLastActive.filter(deviceLastActive => deviceLastActive?.lastActive)
+}
+
+/**
  * 
  * @param {Object} state 
  * @param {Object} data 

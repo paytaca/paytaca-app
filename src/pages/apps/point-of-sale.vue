@@ -113,6 +113,14 @@
             {{ $t('Devices') }}
           </div>
           <q-btn
+            icon="assessment"
+            padding="xs"
+            round
+            :color="darkMode ? 'grad' : 'brandblue'"
+            class="q-mr-sm"
+            @click="displaySalesReportDialog()"
+          />
+          <q-btn
             icon="add"
             padding="xs"
             round
@@ -141,18 +149,41 @@
         <template v-else v-for="posDevice in posDevices" :key="posDevice?.posid">
           <q-item dense>
             <q-item-section>
-              <q-item-label class="text-subtitle1"> {{ $t('POSID') }}#{{ padPosId(posDevice?.posid) }}</q-item-label>
-              <q-item-label v-if=" posDevice?.name" class="text-subtitle2 text-grey">
-                {{ $t('Name') }}: {{ posDevice?.name }}
+              <q-item-label class="text-subtitle1">
+                {{ posDevice?.name || 'POSID' }} #{{ padPosId(posDevice?.posid) }}
               </q-item-label>
-              <q-item-label v-if="merchantBranch(posDevice?.branchId)?.name" class="text-subtitle2 text-grey">
-                {{ $t('Branch') }}: {{ merchantBranch(posDevice?.branchId)?.name }}
+              <q-item-label v-if="merchantBranch(posDevice?.branchId)?.name" class="row items-center text-subtitle2 text-grey">
+                <q-icon name="store" size="1.25em" class="q-mr-xs"/>
+                {{ merchantBranch(posDevice?.branchId)?.name }}
+              </q-item-label>
+              <q-item-label v-if="posDevice?.isLinked?.()" class="row items-center text-subtitle2 text-grey">
+                <q-icon v-if="posDevice?.linkedDevice?.unlinkRequest?.id" name="phonelink_erase" size="1.25em" class="q-mr-xs" />
+                <q-icon v-else-if="posDevice?.linkedDevice?.isSuspended" name="phonelink_lock" size="1.25em" class="q-mr-xs"/>
+                <q-icon v-else name="phone_iphone" size="1.25em" class="q-mr-xs"/>
+                <span>{{ posDevice?.linkedDevice?.name || posDevice?.linkedDevice?.deviceModel }}</span>
+                <q-icon name="circle" :color="isDeviceOnline(posDevice) ? 'green': 'grey'" size=".75em" class="q-ml-xs"/>
+                <q-popup-proxy v-if="(posDevice?.linkedDevice?.isSuspended || posDevice?.linkedDevice?.unlinkRequest?.id)" :breakpoint="0">
+                  <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption device-tooltip">
+                    <div v-if="posDevice?.linkedDevice?.isSuspended">Device is currently suspended</div>
+                    <div v-if="posDevice?.linkedDevice?.unlinkRequest?.id">Unlink request pending</div>
+                  </div>
+                </q-popup-proxy>
               </q-item-label>
             </q-item-section>
             <q-item-section side>
               <q-btn icon="more_vert" flat>
                 <q-menu>
-                  <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
+                  <q-list :class="{'pt-dark-card': darkMode, 'text-black': !darkMode }" style="min-width: 100px">
+                    <q-item
+                      clickable
+                      v-close-popup
+                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      @click="displayDeviceSalesReportDialog(posDevice)"
+                    >
+                      <q-item-section>
+                        <q-item-label>{{ $t('SalesReport', {}, 'Sales Report') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
                     <q-item
                       clickable
                       v-close-popup
@@ -166,13 +197,58 @@
                       </q-item-section>
                     </q-item>
                     <q-item
+                      v-if="posDevice?.isLinked?.() && posDevice?.linkedDevice?.unlinkRequest?.id"
                       clickable
                       v-close-popup
                       :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
-                      @click="displayPosDeviceInDialog(posDevice)"
+                      @click="confirmCancelUnlinkPosDevice(posDevice)"
+                    >
+                      <q-item-section>
+                        <q-item-label>
+                          {{ $t('Cancel', {}, 'Cancel') }}
+                          {{ $t('Unlink', {}, 'Unlink').toLowerCase() }}
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-else-if="posDevice?.isLinked?.()"
+                      clickable
+                      v-close-popup
+                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      :disabled="posDevice?.linkedDevice?.unlinkRequest?.id"
+                      @click="confirmUnlinkPosDevice(posDevice)"
+                    >
+                      <q-item-section>
+                        <q-item-label>{{ $t('Unlink', {}, 'Unlink') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-else
+                      clickable
+                      v-close-popup
+                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      @click="openLinkDeviceDialog(posDevice)"
                     >
                       <q-item-section>
                         <q-item-label>{{ $t('Link', {}, 'Link') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-if="posDevice?.isLinked?.()"
+                      clickable
+                      v-close-popup
+                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+                      @click="updateDeviceSuspension(posDevice, !posDevice?.linkedDevice?.isSuspended)"
+                    >
+                      <q-item-section>
+                        <q-item-label>
+                          <template v-if="posDevice?.linkedDevice?.isSuspended">
+                            {{ $t('UnsuspendDevice', {}, 'Unsuspend device') }}
+                          </template>
+                          <template v-else>
+                            {{ $t('SuspendDevice', {}, 'Suspend device') }}
+                          </template>
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -200,8 +276,9 @@
   </div>
 </template>
 <script setup>
+import BCHJS from '@psf/bch-js';
 import { backend as posBackend, parsePosDeviceData, padPosId } from 'src/wallet/pos'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
@@ -210,7 +287,13 @@ import BranchFormDialog from 'src/components/paytacapos/BranchFormDialog.vue'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
 import PosDeviceDetailDialog from 'src/components/paytacapos/PosDeviceDetailDialog.vue'
 import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
-import { getMnemonic, Wallet } from 'src/wallet'
+import { loadWallet } from 'src/wallet'
+import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.vue'
+import SalesReportDialog from 'src/components/paytacapos/SalesReportDialog.vue'
+import Watchtower from 'watchtower-cash-js'
+import { RpcWebSocketClient } from 'rpc-websocket-client';
+
+const bchjs = new BCHJS()
 
 const $store = useStore()
 const $q = useQuasar()
@@ -230,14 +313,20 @@ const walletData = computed(() => {
   Object.assign(data, _walletData)
   return data
 })
+
+const wallet = ref(null)
+onMounted(() => {
+  loadWallet('BCH').then(_wallet => {
+    wallet.value = _wallet
+    checkWalletLinkData()
+  })
+})
 async function checkWalletLinkData() {
   if (!walletData.value?.xPubKey || !walletData.value?.walletHash) {
     console.log('Incomplete wallet link data. Updating xPubKey and walletHash')
-    const mnemonic = await getMnemonic()
-    const wallet = new Wallet(mnemonic, walletType)
     const newWalletData = Object.assign({ type: walletType }, walletData.value)
-    newWalletData.walletHash = wallet.BCH.getWalletHash()
-    newWalletData.xPubKey = await wallet.BCH.getXPubKey()
+    newWalletData.walletHash = wallet.value.BCH.getWalletHash()
+    newWalletData.xPubKey = await wallet.value.BCH.getXPubKey()
 
     $store.commit('global/updateXPubKey', newWalletData)
     $store.commit('global/updateWallet', newWalletData)
@@ -246,9 +335,11 @@ async function checkWalletLinkData() {
 onMounted(() => checkWalletLinkData())
 
 const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
-onMounted(() => {
-  $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash})
-})
+onMounted(() => $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash }))
+watch(
+  () => walletData.value.walletHash,
+  () => $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash }),
+)
 function openMerchantInfoDialog() {
   $q.dialog({
     component: MerchantInfoDialog,
@@ -256,6 +347,10 @@ function openMerchantInfoDialog() {
 }
 const merchantBranches = computed(() => $store.getters['paytacapos/merchantBranches'])
 onMounted(() => $store.dispatch('paytacapos/refetchBranches', { walletHash: walletData.value.walletHash }))
+watch(
+  () => walletData.value.walletHash,
+  () => $store.dispatch('paytacapos/refetchBranches', { walletHash: walletData.value.walletHash }),
+)
 function merchantBranch (branchId) {
   return merchantBranches.value.find(branchInfo => branchInfo?.id === branchId)
 }
@@ -277,7 +372,7 @@ function openNewBranchForm() {
   })
 }
 
-const posDevices = ref([ { walletHash: '', posid: -1, name: '' } ])
+const posDevices = ref([ { walletHash: '', posid: -1, name: '', linkedDevice: null, lastActive: 0 } ])
 posDevices.value = []
 const posDevicesPageData = ref({ count: 0, limit: 10, offset: 0 })
 const parsedPosDevicePagination = computed(() => {
@@ -291,6 +386,7 @@ const parsedPosDevicePagination = computed(() => {
 })
 const fetchingPosDevices = ref(false)
 onMounted(() => fetchPosDevices())
+watch(() => walletData.value.walletHash, () => fetchPosDevices())
 function fetchPosDevices(opts) {
   if (!walletData.value?.walletHash) return
 
@@ -307,6 +403,7 @@ function fetchPosDevices(opts) {
         posDevicesPageData.value.count = response?.data?.count || 0
         posDevicesPageData.value.limit = response?.data?.limit || 0
         posDevicesPageData.value.offset = response?.data?.offset || 0
+        if (rpcClient.ws.readyState == WebSocket.OPEN) posDevices.value.forEach(updateLastActive)
       }
     })
     .finally(() => {
@@ -324,17 +421,20 @@ function refetchPosDevice(posDevice, append=false) {
   posBackend.get(`/paytacapos/devices/${handle}/`)
     .then(response => {
       if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
-        const parsedData = parsePosDeviceData(response?.data)
-        const index = posDevices.value.findIndex(device => 
-          device?.walletHash == parsedData?.walletHash && device?.posid == parsedData?.posid
-        )
-
-        if (index >= 0) posDevices.value[index] = parsedData
-        else if (append) posDevices.value.push(parsedData)
+        syncPosDevice(parsePosDeviceData(response?.data), append)
         return Promise.resolve(response)
       }
       return Promise.reject({ response })
     })
+}
+
+function syncPosDevice(posDevice, append=false) {
+  const index = posDevices.value.findIndex(device => 
+    device?.walletHash == posDevice?.walletHash && device?.posid == posDevice?.posid
+  )
+
+  if (index >= 0) posDevices.value[index] = posDevice
+  else if (append) posDevices.value.push(posDevice)
 }
 
 function displayPosDeviceInDialog(posDevice) {
@@ -342,6 +442,209 @@ function displayPosDeviceInDialog(posDevice) {
     component: PosDeviceDetailDialog,
     componentProps: { posId: posDevice?.posid, name: posDevice?.name }
   })
+}
+
+function openLinkDeviceDialog(posDevice) {
+  $q.dialog({
+    component: PosDeviceLinkDialog,
+    componentProps: {
+      posid: posDevice?.posid,
+      name: posDevice?.name,
+      wallet: wallet.value,
+    }
+  })
+    .onDismiss(() => refetchPosDevice(posDevice))
+}
+
+async function deviceUnlinkRequest(posDevice) {
+  
+  const dialog = $q.dialog({
+    title: $t('UnlinkDevice', {}, 'Unlink device'),
+    message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request'),
+    persistent: true,
+    progress: true,
+    ok: false,
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+
+  return Promise.resolve(posDevice)
+    .then(async (posDevice) => {
+      dialog.update({ message: $t('GeneratingRandomSignature', {}, 'Generating random signature') })
+      const nonce = Math.floor(Math.random() * (2 ** 31-1))
+      const privkey = await wallet.value.BCH.getPrivateKey(nonce)
+      const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, posDevice.linkedDevice.linkCode)
+      return { posDevice, nonce, signature }
+    })
+    .catch(error => {
+      console.error(error)
+      dialog.update({
+        title: $t('UnlinkDeviceRequestFailed', {}, 'Unlink device request failed'),
+        message: $t('FailedToCreateRandomSig', {}, 'Failed to create random signature'),
+    })
+      return Promise.resolve({ skip: true })
+    })
+    .then(async ({ skip, posDevice, nonce, signature }) => {
+      if (skip) return { skip }
+      dialog.update({ message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request') })
+      const data = { nonce, signature }
+      const watchtower = new Watchtower()
+      const response = await watchtower.BCH._api.post(`paytacapos/devices/${posDevice.walletHash}:${posDevice.posid}/unlink_device/request/`, data)
+      syncPosDevice(parsePosDeviceData(response?.data))
+      dialog.update({
+        title: $t('UnlinkDeviceRequestCreated', {}, 'Unlink device request created'),
+        message: $t('NotifyPOSDeviceToConfirmUnlinking', {}, 'Notify POS device to confirm unlinking'),
+      })
+    })
+    .catch(error => {
+      console.error(error)
+      dialog.update({
+        title: $t('UnlinkDeviceRequestFailed', {}, 'Unlink device request failed'),
+        message: 'Failed to create unlink request',
+    })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false, ok: true })
+    })
+}
+
+function confirmCancelUnlinkPosDevice(posDevice) {
+  const dialog = $q.dialog({
+    title: $t('UnlinkDevice', {}, 'Unlink device'),
+    message: $t('CancellingUnlinkRequest', {}, 'Cancelling unlink request'),
+    persistent: true,
+    progress: true,
+    ok: false,
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
+  const watchtower = new Watchtower()
+  watchtower.BCH._api.post(`paytacapos/devices/${handle}/unlink_device/cancel/`)
+    .then(response => {
+      syncPosDevice(parsePosDeviceData(response?.data))
+      dialog.update({ message: $t('UnlinkRequestCancelled', {}, 'Unlink request cancelled') })
+    })
+    .catch(error => {
+      console.error(error)
+      let message = $t('CancelUnlinkRequestError', {}, 'Cancel unlink request error')
+      dialog.update({ message: message })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false, ok: true })
+    })
+}
+
+function updateDeviceSuspension(posDevice, isSuspended) {
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
+  const data = { is_suspended: Boolean(isSuspended) }
+  const dialog = $q.dialog({
+    title: data.is_suspended ? $t('SuspendDevice', {} , 'Suspend device') : $t('UnsuspendDevice', {}, 'Unsuspend device'),
+    message: data.is_suspended ? $t('SuspendingDevice', {} , 'Suspending device') : $t('UnsuspendingDevice', {}, 'Unsuspending device'),
+    ok: false,
+    cancel: false,
+    persistent: true,
+    progress: true,
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+  const watchtower = new Watchtower()
+  watchtower.BCH._api.post(`paytacapos/devices/${handle}/suspend/`, data)
+    .then(response => {
+      syncPosDevice(parsePosDeviceData(response?.data))
+      dialog.update({
+        title: $t('Success', {}, 'Success'),
+        message: data.is_suspended ? $t('Devicesuspended', {} , 'Device suspended') : $t('DeviceUnsuspended', {}, 'Device unsuspended'),
+      })
+    })
+    .catch(error => {
+      console.error(error)
+      let message = ''
+      if (Array.isArray(error?.response?.data?.non_field_errors)) {
+        message = error?.response?.data?.non_field_errors.find(errorMsg => {
+          if (errorMsg === 'pos device not found') return $t('POSDeviceNotFound', {}, 'POS device not found')
+          if (errorMsg === 'pos device is not linked') return $t('POSDeviceIsNotLinked', {}, 'POS device is not linked')
+        })
+      } else if (error?.response?.status === 404) {
+        message = $t('POSDeviceNotFound', {}, 'POS device not found')
+      }
+      if (!message) message = $t('UnknownErrorOccurred', {}, 'Unknown error occurred')
+      dialog.update({
+        title: $t('Error', {}, 'Error'),
+        message: message,
+      })
+    })
+    .finally(() => {
+      dialog.update({ progress: false, persistent: false, ok: true })
+    })
+}
+
+function displayDeviceSalesReportDialog(posDevice) {
+  $q.dialog({
+    component: SalesReportDialog,
+    componentProps: {
+      posDevice: posDevice,
+    }
+  })
+}
+
+function displaySalesReportDialog() {
+  $q.dialog({
+    component: SalesReportDialog,
+    componentProps: {
+      walletHash: walletData.value.walletHash,
+    }
+  })
+}
+function deviceLastActive(posDevice) {
+  return $store.getters['paytacapos/devicesLastActive']?.find?.(
+    data => data?.walletHash === posDevice?.walletHash && data?.posid === posDevice?.posid
+  )?.lastActive
+}
+
+function isDeviceOnline(posDevice) {
+  const lastActive = deviceLastActive(posDevice)
+  return (lastActive + 60) * 1000 > Date.now()
+}
+
+/**
+ * @param {Object} posDevice
+ * @param {String} posDevice.walletHash
+ * @param {Number} posDevice.posid
+ */
+function updateLastActive(posDevice) {
+  if(!posDevice?.walletHash || !Number.isSafeInteger(posDevice?.posid)) return
+  rpcClient.call('last_active', [posDevice?.walletHash, posDevice.posid])
+    .then(lastActive => {
+      $store.commit('paytacapos/setDeviceLastActive', {
+        walletHash: posDevice.walletHash,
+        posid: posDevice.posid,
+        lastActive: Number(lastActive),
+      })
+    })
+}
+
+function confirmUnlinkPosDevice(posDevice) {
+  if (posDevice?.linkedDevice?.unlinkRequest?.id) return 
+
+  const msgParams = { ID: posDevice?.posid, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
+  const message = $t(
+    'UnlinkPOSDeviceNumName', msgParams,
+    `Unlink POS Device #${msgParams.ID}${msgParams.name}`
+  )
+  $q.dialog({
+    title: $t('UnlinkPOSDevice', {}, 'Unlink POS device'),
+    message: message,
+    ok: {
+      padding: 'xs md',
+      flat: true,
+      noCaps: true,
+      label: $t('UnlinkDevice', {}, 'Unlink device'),
+      color: 'red-5',
+    },
+    cancel: { noCaps: true, flat: true, padding: 'xs md' },
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+    .onOk(() => {
+      return deviceUnlinkRequest(posDevice)
+    })
 }
 
 function addNewPosDevice() {
@@ -506,4 +809,100 @@ onMounted(() => {
     $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
   }
 })
+
+/**
+ * @param {Object} rpcResult 
+ * @param {Object} rpcResult.result
+ * @param {Object} rpcResult.result.update
+ * @param {String} rpcResult.result.update.resource
+ * @param {String} rpcResult.result.update.action
+ * @param {Object} [rpcResult.result.update.object]
+ * @param {Object} [rpcResult.result.update.data]
+*/
+const rpcUpdateHandler = (rpcResult) => {
+  const updateData = rpcResult?.result?.update
+  if (!updateData) return
+  if (updateData?.resource === 'pos_device') {
+    switch(updateData?.action) {
+      case 'update':
+      case 'link':
+      case 'unlink':
+      case 'suspend':
+      case 'unsuspend':
+        refetchPosDevice({
+          walletHash:updateData?.object?.wallet_hash,
+          posid:updateData?.object?.posid,
+        })
+        break
+      case 'create':
+        fetchPosDevices()
+        break
+      case 'ping':
+        $store.commit('paytacapos/setDeviceLastActive', {
+          walletHash:updateData?.object?.wallet_hash,
+          posid:updateData?.object?.posid,
+          lastActive: Number(updateData?.data?.timestamp),
+        })
+        break
+    }
+  }
+}
+
+const rpcClient = new RpcWebSocketClient()
+const enableRpcReconnection = ref(true)
+const rpcReconnectTimeout = ref(null) 
+if (rpcClient.onNotification.indexOf(rpcUpdateHandler) < 0) {
+  rpcClient.onNotification.push(rpcUpdateHandler)
+}
+rpcClient.onClose(error => {
+  if (rpcReconnectTimeout.value == null && enableRpcReconnection.value) {
+    console.log('RPC client closed', error)
+    connectRpcClient({ retries: 5 })
+  }
+})
+rpcClient.onOpen(() => {
+  posDevices.value.forEach(updateLastActive)
+})
+onMounted(() => connectRpcClient({retries: 5}))
+onUnmounted(() => {
+  enableRpcReconnection.value = false
+  console.log('Closing rpc client', rpcClient?.ws?.close())
+  console.log('Cancelling reconnect timeout', rpcReconnectTimeout.value, clearTimeout(rpcReconnectTimeout.value))
+})
+/**
+ * @param {Object} opts
+ * @param {Number} [opts.retries]
+ */
+function connectRpcClient(opts) {
+  const host = new URL(new Watchtower().BCH._api.defaults.baseURL).host
+  const RECONNECT_INTERVAL = 10 * 1000
+  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  const url = `${scheme}://${host}/ws/paytacapos/updates/${walletData.value.walletHash}/`
+  rpcClient.connect(url)
+    .then(response => {
+      console.log('RPC Client connected:', response)
+      clearTimeout(rpcReconnectTimeout.value)
+      rpcReconnectTimeout.value = null
+    })
+    .catch(error => {
+      console.error('RPC Client connection error:', error)
+      if (opts?.retries > 0 && enableRpcReconnection.value) {
+        console.log('Retrying reconnection after', RECONNECT_INTERVAL/1000, 'second/s')
+        clearTimeout(rpcReconnectTimeout.value)
+        rpcReconnectTimeout.value = setTimeout(() => connectRpcClient({ retries: opts?.retries - 1 }), RECONNECT_INTERVAL)
+      } else {
+        console.log('Skipping reconnection')
+      }
+    })
+}
+
 </script>
+<style scoped>
+.device-tooltip > div::before {
+  content: "- ";
+}
+.device-tooltip > div:only-child::before {
+  content: "";
+}
+
+</style>

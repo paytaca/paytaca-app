@@ -49,6 +49,11 @@ export class Wallet {
   }
 }
 
+export async function loadWallet(network = 'BCH') {
+  const mnemonic = await getMnemonic()
+  return new Wallet(mnemonic, network)
+}
+
 export async function generateMnemonic () {
   const mnemonic = bchjs.Mnemonic.generate(128)
   await SecureStoragePlugin.set({ key: 'mn', value: mnemonic })
