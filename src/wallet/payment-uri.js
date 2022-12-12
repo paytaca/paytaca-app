@@ -320,8 +320,7 @@ export class JSONPaymentProtocol {
    * @param {Wallet} wallet 
    */
   async prepareTransaction(wallet, changeAddress) {
-    const totalSendAmount = this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
-    const totalSendAmountSats = totalSendAmount * 10 ** 8
+    const totalSendAmountSats = this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
 
     if (this.parsed.outputs.find(output => !output.address.startsWith('bitcoincash'))) {
       throw JsonPaymentProtocolError('Invalid recipient address')
@@ -389,8 +388,8 @@ export class JSONPaymentProtocol {
 
     const senderRemainder = totalInput.minus(totalOutput.plus(txFee))
     if (senderRemainder.isGreaterThanOrEqualTo(wallet.BCH.watchtower.BCH.dustLimit)) {
-      // generate address from one of the utxos if no change address provided
-      if (!changeAddress) changeAddress = bchjs.ECPair.toCashAddress(inputs[0].keyPair)
+      // generate change address if no change address provided
+      if (!changeAddress) changeAddress = (await wallet.BCH.getAddressSetAt(0)).change
       txBuilder.addOutput(
         bchjs.Address.toLegacyAddress(changeAddress),
         parseInt(senderRemainder)

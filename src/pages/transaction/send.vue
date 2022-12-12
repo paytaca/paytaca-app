@@ -654,7 +654,7 @@ export default {
     onJppPaymentSucess() {
       this.$forceUpdate()
       this.sendData.txid = this.jpp?.txids?.[0]
-      this.sendData.amount = this.jpp.total
+      this.sendData.amount = this.jpp.total / 10 ** 8
       this.sendData.recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(',')
       this.playSound(true)
       this.sendData.sending = false
