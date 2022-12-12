@@ -655,7 +655,7 @@ export default {
       this.$forceUpdate()
       this.sendData.txid = this.jpp?.txids?.[0]
       this.sendData.amount = this.jpp.total / 10 ** 8
-      this.sendData.recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(',')
+      this.sendData.recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
       this.playSound(true)
       this.sendData.sending = false
       this.sendData.sent = true
@@ -1119,7 +1119,6 @@ export default {
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
-    window.t = (content) => this.onScannerDecode(content)
   },
 
   created () {
