@@ -9,7 +9,15 @@
         :title="$t('Send') + ' ' + asset.symbol"
         backnavpath="/send/select-asset"
       ></header-nav>
-      <div class="q-mt-xl">
+      <JppPaymentPanel
+        v-if="jpp && !jpp.txids?.length"
+        :jpp="jpp"
+        :wallet="wallet"
+        class="q-mx-md"
+        style="margin-top:5.5rem"
+        @paid="onJppPaymentSucess()"
+      />
+      <div v-else class="q-mt-xl">
         <div class="q-pa-md" style="padding-top: 70px;">
           <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
             <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
@@ -288,7 +296,8 @@ import { markRaw } from '@vue/reactivity'
 import { debounce } from 'quasar'
 import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
-import { parsePaymentUri } from 'src/wallet/payment-uri'
+import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
+import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
 import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
@@ -308,6 +317,7 @@ const sBCHWalletType = 'SmartBCH'
 export default {
   name: 'Send-page',
   components: {
+    JppPaymentPanel,
     ProgressLoader,
     HeaderNav,
     pinDialog,
@@ -368,6 +378,8 @@ export default {
         error: '',
         decodedContent: ''
       },
+
+      jpp: null,
 
       sendData: {
         sent: false,
@@ -568,6 +580,9 @@ export default {
         if (paymentUriData.timestamp) posDevice.paymentTimestamp = paymentUriData.timestamp
       }
 
+      // skip the usual route when found a valid JSON payment protocol url
+      if (paymentUriData.jpp.valid) return this.handleJPP(paymentUriData.jpp.paymentUri)
+
       const valid = this.checkAddress(address)
       if (valid) {
         this.sendData.recipientAddress = address
@@ -606,6 +621,44 @@ export default {
           }
         }
       }
+    },
+    handleJPP(paymentUri) {
+      const dialog = this.$q.dialog({
+        title: 'Invoice',
+        message: 'Fetching invoice data',
+        progress: true,
+        persistent: true,
+        ok: false,
+        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+      })
+
+      JSONPaymentProtocol.fetch(paymentUri)
+        .then(jpp => {
+          this.jpp = markRaw(jpp)
+          window.jpp = this.jpp
+          console.log(this.jpp)
+          dialog.hide()
+        })
+        .catch(error => {
+          let message = 'Failed to fetch invoice data'
+          if (typeof error?.response?.data === 'string') {
+            if (error?.response?.data?.indexOf('expired') >= 0) message = 'Invoice is expired'
+          }
+          dialog.update({ message: message })
+          console.error(error)
+        })
+        .finally(() => {
+          dialog.update({ persistent: false, progress: false, ok: true })
+        })
+    },
+    onJppPaymentSucess() {
+      this.$forceUpdate()
+      this.sendData.txid = this.jpp?.txids?.[0]
+      this.sendData.amount = this.jpp.total
+      this.sendData.recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(',')
+      this.playSound(true)
+      this.sendData.sending = false
+      this.sendData.sent = true
     },
     isValidLNSName: isNameLike,
     readonlyState (state) {
@@ -1066,6 +1119,7 @@ export default {
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
+    window.t = (content) => this.onScannerDecode(content)
   },
 
   created () {

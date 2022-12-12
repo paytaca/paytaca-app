@@ -1,9 +1,13 @@
+import axios from 'axios'
 import BCHJS from '@psf/bch-js'
 import { utils } from 'ethers'
+import BigNumber from 'bignumber.js'
 
 import { parsePOSLabel } from 'src/wallet/pos'
+import { Wallet } from './index'
 import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from 'src/wallet/sbch/utils'
+import { sha256 } from 'js-sha256'
 
 const bchjs = new BCHJS()
 /**
@@ -176,6 +180,7 @@ export function parsePaymentUri(content, opts) {
     pos: undefined,
     timestamp: 0,
     otherParams: {},
+    jpp: { valid: false, fetch: () => null, paymentUri: null },
   }
 
   let bip0021Decoded, bip0021DecodeError 
@@ -220,5 +225,277 @@ export function parsePaymentUri(content, opts) {
   if (bip0021DecodeError && eip681DecodeError) throw [bip0021DecodeError, eip681DecodeError]
   if (bip0021DecodeError || eip681DecodeError) throw bip0021DecodeError || eip681DecodeError
 
+  if (!data?.outputs?.[0]?.address && JSONPaymentProtocol.isValidPaymentLink(content)) {
+    data.jpp.valid = true
+    data.jpp.paymentUri = JSONPaymentProtocol.getPaymentLink(content)
+    data.jpp.fetch = () => JSONPaymentProtocol.fetch(content)
+  }
   return data
+}
+
+
+export function JsonPaymentProtocolError (...args) {
+  const error = new Error(...args)
+  error.name = 'JsonPaymentProtocolError'
+  return error
+}
+
+/**
+ * {@link https://en.bitcoin.it/wiki/BIP_0070}
+ * {@link https://github.com/bitpay/jsonPaymentProtocol/blob/master/v1/specification.md}
+ * {@link https://github.com/developers-cash/cash-pay-server}
+ */
+export class JSONPaymentProtocol {
+  static JsonPaymentProtocolError = JsonPaymentProtocolError
+  /**
+   * @typedef {Object} PaymentRequestOutput
+   * @property {String} address
+   * @property {Number} amount
+   * 
+   * @param {Object} data
+   * @param {String} data.network - "test" | "main"
+   * @param {String} data.currency - e.g. "BTC", "BCH"
+   * @param {Number} data.requiredFeePerByte
+   * @param {PaymentRequestOutput[]} data.outputs
+   * @param {String} data.time - ISO datetime string
+   * @param {String} data.expires - ISO datetime string
+   * @param {String} data.memo
+   * @param {String} data.paymentUrl
+   * @param {String} data.paymentId
+   */
+  constructor(data) {
+    this._data = data
+    this.transactions = [
+      // '02000000011f0f762184cbc8e94b307fab6f805168724f123a23cd48aac4a9bac8768cfd67000000004847304402205079b96def679f04de9698dd8b9f58dff3e4a13c075f5939c6edfbb8698c8cc802203eac5a3d6410a9f94a86828a4e207f8083fe0bf1c77a74a0cb7add49100d427001ffffffff0284990000000000001976a9149097a519e42061e4977b07b69735ed842b755c0088ac08cd042a010000001976a914cf4b90bca14deab1315c125b8b74b7d31eea97b288ac00000000',
+    ]
+  }
+
+  get expired() {
+    return Date.now() > this.parsed.expires
+  }
+
+  get parsed() {
+    const parsedData = {
+      network: this._data?.network || '',
+      currency: this._data?.currency || '',
+      requiredFeePerByte: this._data?.requiredFeePerByte || 0,
+      outputs: [{ address: '', amount: 0 }],
+      time: new Date(this._data?.time),
+      expires: new Date(this._data?.expires),
+      memo: this._data?.memo || '',
+      paymentUrl: this._data?.paymentUrl || '',
+      paymentId: this._data?.paymentId || '',
+    }
+    if (Array.isArray(this._data?.outputs)) parsedData.outputs = this._data?.outputs
+    parsedData.outputs = parsedData.outputs.filter(output => output?.address && output?.amount)
+
+    return parsedData
+  }
+
+  get total() {
+    return Number(
+      this.parsed.outputs.reduce((subtotal=0, output) => subtotal + output.amount, 0).toFixed(8)
+    )
+  }
+
+  get errors() {
+    const errors = []
+    if (this.parsed.currency !== 'BCH') errors.push('Unsupported currency')
+    if (this.parsed.network && this.parsed.network !== 'main') errors.push('Invalid network')
+
+    if (!this.parsed.outputs.length) errors.push('No outputs found')
+    return errors
+  }
+
+  get isValid() {
+    return Boolean(this.errors.length)
+  }
+
+  get txids() {
+    if (!Array.isArray(this.transactions)) return []
+    return this.transactions.map(tx => sha256(tx))
+  }
+
+  /**
+   * @param {Wallet} wallet 
+   */
+  async prepareTransaction(wallet, changeAddress) {
+    const totalSendAmount = this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
+    const totalSendAmountSats = totalSendAmount * 10 ** 8
+
+    if (this.parsed.outputs.find(output => !output.address.startsWith('bitcoincash'))) {
+      throw JsonPaymentProtocolError('Invalid recipient address')
+    }
+
+    const bchUtxos = await wallet.BCH.watchtower.BCH.getBchUtxos(
+      `wallet:${wallet.BCH.walletHash}`,
+      totalSendAmountSats,
+    )
+
+    if (bchUtxos.cumulativeValue < totalSendAmountSats) {
+      throw JsonPaymentProtocolError('Not enough balance')
+    }
+
+    const txBuilder = new bchjs.TransactionBuilder()
+    const inputs = []
+    let p2pkhOutputsCount =  0
+    let p2shOutputsCount = 0
+    let totalInput = new BigNumber(0)
+    let totalOutput = new BigNumber(0)
+
+    for (let i = 0; i < bchUtxos.utxos.length; i++ ) {
+      const utxo = bchUtxos.utxos[i]
+      txBuilder.addInput(utxo.tx_hash, utxo.tx_pos)
+      totalInput = totalInput.plus(utxo.value)
+      const addressPath = utxo?.address_path || utxo.wallet_index
+      const utxoPkWif = await wallet.BCH.watchtower.BCH.retrievePrivateKey(
+        wallet.BCH.mnemonic,
+        wallet.BCH.derivationPath,
+        addressPath,
+      )
+
+      inputs.push({
+        utxo: utxo,
+        keyPair: bchjs.ECPair.fromWIF(utxoPkWif),
+      })
+    }
+
+    for (let i = 0; i < this.parsed.outputs.length; i++) {
+      const output = this.parsed.outputs[i]
+      const sendAmount = new BigNumber(output.amount)
+      txBuilder.addOutput(
+        bchjs.Address.toLegacyAddress(output.address),
+        parseInt(sendAmount),
+      )
+
+      if (bchjs.Address.isP2SHAddress(output.address)) {
+        p2shOutputsCount += 1
+      } else {
+        p2pkhOutputsCount += 1
+      }
+      totalOutput = totalOutput.plus(sendAmount)
+    }
+
+    p2pkhOutputsCount += 1  // Add extra for sending the BCH change,if any
+    const byteCount = bchjs.BitcoinCash.getByteCount(
+      { P2PKH: inputs.length },
+      {
+        P2PKH: p2pkhOutputsCount,
+        P2SH: p2shOutputsCount
+      }
+    )
+    const feeRate = this.parsed.requiredFeePerByte || 1.1 // 1.1 sats/byte fee rate
+    const txFee = Math.ceil(byteCount * feeRate)
+
+    const senderRemainder = totalInput.minus(totalOutput.plus(txFee))
+    if (senderRemainder.isGreaterThanOrEqualTo(wallet.BCH.watchtower.BCH.dustLimit)) {
+      // generate address from one of the utxos if no change address provided
+      if (!changeAddress) changeAddress = bchjs.ECPair.toCashAddress(inputs[0].keyPair)
+      txBuilder.addOutput(
+        bchjs.Address.toLegacyAddress(changeAddress),
+        parseInt(senderRemainder)
+      )
+    }
+
+    this.preparedTx = { inputs: inputs, builder: txBuilder, verified: false }
+    return this.preparedTx
+  }
+
+  signPreparedTx() {
+    if (!this.preparedTx?.builder) throw new JsonPaymentProtocolError('Transaction unprepared')
+    if (!this.preparedTx?.verified) throw new JsonPaymentProtocolError('Transaction not verified')
+    if (!Array.isArray(this.preparedTx?.inputs)) throw new JsonPaymentProtocolError('Invalid keypair')
+
+    let redeemScript
+    for (let i = 0; i < this.preparedTx.inputs.length; i++) {
+      const input = this.preparedTx.inputs[i]
+      this.preparedTx.builder.sign(
+        i,
+        input.keyPair,
+        redeemScript,
+        this.preparedTx.builder.hashTypes.SIGHASH_ALL,
+        parseInt(input.utxo.value),
+      )
+    }
+
+    return this.preparedTx.builder.build().toHex()
+  }
+
+  async verifyPayment() {
+    if (!this?.preparedTx?.builder) throw JsonPaymentProtocolError('Transaction not prepared') 
+    const unsignedTransaction = this?.preparedTx?.builder?.transaction.tx.toHex() || ''
+    const data = {
+      currency: this.parsed.currency,
+      unsignedTransaction: unsignedTransaction,
+      weightedSize: unsignedTransaction.length / 2, // tx hex in bytes
+    }
+
+    const headers = { 'Content-Type': 'application/verify-payment' }
+    try {
+      const response = await axios.post(this.parsed.paymentUrl, data, { headers })
+
+      this.preparedTx.verified = true
+      this.verifyResponse = response.data
+      return response
+    } catch(error) {
+      if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
+    }
+  }
+
+  async pay() {
+    const signedTxHex = this.signPreparedTx()
+    const data = {
+      currency: this.parsed.currency,
+      transactions: [signedTxHex],
+    }
+
+    const headers = { 'Content-Type': 'application/payment' }
+    try {
+      const response = await axios.post(this.parsed.paymentUrl, data, { headers }) 
+      this.paymentResponse = response.data
+      this.transactions = data.transactions
+      return response
+    } catch(error) {
+      if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
+    }
+  }
+
+  /**
+   * @param {String} paymentUri 
+   * @param {Object} opts
+   * @param {Boolean} opts.verify
+   */
+  static async fetch(paymentUri, opts) {
+    let link = new URL(paymentUri)
+    const searchParams = Object.fromEntries(link.searchParams.entries())
+    if (searchParams?.r) link = new URL(searchParams?.r)
+
+    const headers = {
+      Accept: 'application/payment-request',
+      'Access-Control-Expose-Headers': [
+        'digest',
+        'x-identity',
+        'x-signature-type',
+        'x-signature',
+      ].join(', ')
+    }
+    const response = await axios.get(String(link), { headers })
+    return new JSONPaymentProtocol(response.data)
+  }
+
+
+  static getPaymentLink(paymentUri) {
+    try {
+      let link = new URL(paymentUri)
+      const searchParams = Object.fromEntries(link.searchParams.entries())
+      return new URL(searchParams?.r)
+    } catch(error) {
+      console.error(error)
+    }
+    return null
+  }
+
+  static isValidPaymentLink(paymentUri) {
+    return Boolean(this.getPaymentLink(paymentUri))
+  }
 }
