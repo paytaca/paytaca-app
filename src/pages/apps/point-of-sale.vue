@@ -790,6 +790,24 @@ function confirmRemovePosDevice(posDevice) {
           )
           dialog.update({ message: updateDialogMsg })
         })
+        .catch(error => {
+          console.error(error)
+          let message = ''
+          if (Array.isArray(error?.response?.data)) {
+            message = error?.response?.data.find(errorMsg => {
+              if (String(errorMsg).indexOf('device is linked') >= 0) return $t('POSDeviceMustBeUnlinked', {}, 'POS Device must be unlinked')
+            })
+          }
+
+          if (!message && error?.response?.status === 404) message = $t('POSDeviceNotFound', {}, 'POS device not found')
+
+          if (!message) message = $t('FailedToRemoveDevice', {}, 'Failed to remove device')
+
+          dialog.update({
+            title: $t('RemoveDeviceFailed', {}, 'Remove Device Failed'),
+            message: message,
+          })
+        })
         .finally(() => {
           dialog.update({ persistent: false, progress: false })
         })
@@ -800,7 +818,7 @@ function confirmRemovePosDevice(posDevice) {
  * @param {{ walletHash:String, posid:Number }} posDevice 
  */
 function deletePosDevice(posDevice) {
-  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid + 100}`
   return posBackend.delete(`paytacapos/devices/${handle}/`).then(() => fetchPosDevices())
 }
 
