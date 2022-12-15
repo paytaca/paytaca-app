@@ -1,13 +1,15 @@
-import axios from 'axios'
 import BCHJS from '@psf/bch-js'
 import { utils } from 'ethers'
 import BigNumber from 'bignumber.js'
+import { Http } from '@capacitor-community/http';
 
 import { parsePOSLabel } from 'src/wallet/pos'
 import { Wallet } from './index'
 import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from 'js-sha256'
+import protobuf from 'protobufjs'
+import bitcoinPaymentRequestProto from './paymentrequest/bitcoin-com-pb'
 
 const bchjs = new BCHJS()
 /**
@@ -240,6 +242,28 @@ export function JsonPaymentProtocolError (...args) {
   return error
 }
 
+
+export class JPPSourceTypes {
+  static DEFAULT = 'default'
+  static BITCOIN_COM = 'bitcoin.com'
+
+  /**
+   * 
+   * @param {URL | String} paymentUrl 
+   */
+  static resolve(paymentUrl) {
+    try {
+      let link = new URL(paymentUrl)
+      if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
+      return this.DEFAULT
+    } catch(error) {
+      console.error(error)
+    }
+    return null
+  }
+
+}
+
 /**
  * {@link https://en.bitcoin.it/wiki/BIP_0070}
  * {@link https://github.com/bitpay/jsonPaymentProtocol/blob/master/v1/specification.md}
@@ -268,6 +292,10 @@ export class JSONPaymentProtocol {
     this.transactions = [
       // '02000000011f0f762184cbc8e94b307fab6f805168724f123a23cd48aac4a9bac8768cfd67000000004847304402205079b96def679f04de9698dd8b9f58dff3e4a13c075f5939c6edfbb8698c8cc802203eac5a3d6410a9f94a86828a4e207f8083fe0bf1c77a74a0cb7add49100d427001ffffffff0284990000000000001976a9149097a519e42061e4977b07b69735ed842b755c0088ac08cd042a010000001976a914cf4b90bca14deab1315c125b8b74b7d31eea97b288ac00000000',
     ]
+
+    if (this.parsed.paymentUrl) {
+      this.source = JPPSourceTypes.resolve(this.parsed.paymentUrl)
+    }
   }
 
   get expired() {
@@ -417,10 +445,17 @@ export class JSONPaymentProtocol {
       )
     }
 
-    return this.preparedTx.builder.build().toHex()
+    this.signedTxHex = this.preparedTx.builder.build().toHex()
+    return this.signedTxHex
   }
 
   async verifyPayment() {
+    // Bitcoin.com payment request doesnt seem to have verify payment
+    if (this.source === JPPSourceTypes.BITCOIN_COM) {
+      this.preparedTx.verified = true
+      return
+    }
+
     if (!this?.preparedTx?.builder) throw JsonPaymentProtocolError('Transaction not prepared') 
     const unsignedTransaction = this?.preparedTx?.builder?.transaction.tx.toHex() || ''
     const data = {
@@ -430,32 +465,84 @@ export class JSONPaymentProtocol {
     }
 
     const headers = { 'Content-Type': 'application/verify-payment' }
+    let responseType = 'json'
+    if (this.source === JPPSourceTypes.BITCOIN_COM) {
+      headers['Content-Type'] = 'application/bitcoincash-verifypayment'
+      responseType = 'blob'
+    }
     try {
-      const response = await axios.post(this.parsed.paymentUrl, data, { headers })
+      const requestOpts = { url: this.parsed.paymentUrl, data, headers, responseType }
+      const response = await Http.post(requestOpts)
+      this.verifyRequest =  requestOpts
+      this.verifyResponse = response
+      if (response?.error) throw new Error({ response })
 
       this.preparedTx.verified = true
-      this.verifyResponse = response.data
       return response
     } catch(error) {
+      console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
     }
   }
 
   async pay() {
     const signedTxHex = this.signPreparedTx()
-    const data = {
+    let data = {
       currency: this.parsed.currency,
       transactions: [signedTxHex],
     }
 
     const headers = { 'Content-Type': 'application/payment' }
+    let responseType = 'json' 
+    if (this.source === JPPSourceTypes.BITCOIN_COM) {
+      headers['Content-Type'] = 'application/bitcoincash-payment'
+      headers['Accept'] = 'application/bitcoincash-paymentack'
+      const paymentRequestProto = protobuf.Root.fromJSON(bitcoinPaymentRequestProto)
+      const Payment = paymentRequestProto.lookupType('Payment')
+      const paymentMessage = Payment.create({
+        transactions: data.transactions.map(txHex => Buffer.from(txHex, 'hex'))
+      })
+      data = Payment.encode(paymentMessage).finish()
+      responseType = 'blob'
+    }
     try {
-      const response = await axios.post(this.parsed.paymentUrl, data, { headers }) 
-      this.paymentResponse = response.data
+      const requestOpts = { url: this.parsed.paymentUrl, data, headers, responseType }
+      const response = await Http.post(requestOpts)
+      this.paymentRequest =  requestOpts
+      this.paymentResponse = response
+      if (response?.error) throw new Error({ response })
+
       this.transactions = data.transactions
       return response
     } catch(error) {
+      console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
+    }
+  }
+
+  /**
+   * @param {String} data base64 encoded data
+   */
+  static parseProto(data) {
+    const dataBytes = Buffer.from(data, 'base64')
+    const paymentRequestProto = protobuf.Root.fromJSON(bitcoinPaymentRequestProto)
+    const PaymentRequest = paymentRequestProto.lookupType('PaymentRequest')
+    const paymentRequest = PaymentRequest.decode(dataBytes, dataBytes.length)
+
+    const PaymentDetails = paymentRequestProto.lookupType('PaymentDetails')
+    const paymentDetails = PaymentDetails.decode(paymentRequest.serializedPaymentDetails, paymentRequest.serializedPaymentDetails.length)
+   
+    return {
+      network: paymentDetails?.network,
+      outputs: paymentDetails?.outputs?.map?.(output => Object({
+        amount: output?.amount,
+        address: bchjs.Address.fromOutputScript(output?.script),
+      })),
+      time: paymentDetails?.time * 1000,
+      expires: paymentDetails?.expires * 1000,
+      memo: paymentDetails?.memo,
+      paymentUrl: paymentDetails?.paymentUrl,
+
     }
   }
 
@@ -471,15 +558,24 @@ export class JSONPaymentProtocol {
 
     const headers = {
       Accept: 'application/payment-request',
-      'Access-Control-Expose-Headers': [
-        'digest',
-        'x-identity',
-        'x-signature-type',
-        'x-signature',
-      ].join(', ')
     }
-    const response = await axios.get(String(link), { headers })
-    return new JSONPaymentProtocol(response.data)
+
+    let parseProto = false
+    if (JPPSourceTypes.resolve(link) === JPPSourceTypes.BITCOIN_COM) {
+      headers.Accept = 'application/bitcoincash-paymentrequest'
+      parseProto = true
+    }
+
+    const response = await Http.get({ url: String(link), headers, responseType: 'blob' })
+    let parsedData = response.data
+    if (parseProto) {
+      parsedData =  this.parseProto(response.data)
+      if (parsedData && !parsedData?.paymentId) {
+        const splitPath = link.pathname.split('/')
+        parsedData.paymentId = splitPath[splitPath.length-1]
+      }
+    }
+    return new JSONPaymentProtocol(parsedData)
   }
 
 
