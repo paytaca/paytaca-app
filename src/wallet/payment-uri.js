@@ -7,7 +7,7 @@ import { parsePOSLabel } from 'src/wallet/pos'
 import { Wallet } from './index'
 import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from 'src/wallet/sbch/utils'
-import { sha256 } from 'js-sha256'
+import { sha256 } from "@psf/bch-js/src/crypto"
 import protobuf from 'protobufjs'
 import bitcoinPaymentRequestProto from './paymentrequest/bitcoin-com-pb'
 
@@ -341,7 +341,7 @@ export class JSONPaymentProtocol {
 
   get txids() {
     if (!Array.isArray(this.transactions)) return []
-    return this.transactions.map(tx => sha256(tx))
+    return this.transactions.map(tx => sha256(sha256(Buffer.from(tx, 'hex'))).reverse().toString('hex'))
   }
 
   /**
