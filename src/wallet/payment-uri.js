@@ -458,22 +458,26 @@ export class JSONPaymentProtocol {
 
     if (!this?.preparedTx?.builder) throw JsonPaymentProtocolError('Transaction not prepared') 
     const unsignedTransaction = this?.preparedTx?.builder?.transaction.tx.toHex() || ''
-    const data = {
-      currency: this.parsed.currency,
-      unsignedTransaction: unsignedTransaction,
-      weightedSize: unsignedTransaction.length / 2, // tx hex in bytes
+
+    const requestOpts = {
+      url: this.parsed.paymentUrl,
+      headers: { 'Content-Type': 'application/verify-payment' },
+      data: {
+        currency: this.parsed.currency,
+        unsignedTransaction: unsignedTransaction,
+        weightedSize: unsignedTransaction.length / 2, // tx hex in bytes
+      },
+      responseType: 'json',
     }
 
-    const headers = { 'Content-Type': 'application/verify-payment' }
-    let responseType = 'json'
     if (this.source === JPPSourceTypes.BITCOIN_COM) {
-      headers['Content-Type'] = 'application/bitcoincash-verifypayment'
-      responseType = 'blob'
+      requestOpts.headers['Content-Type'] = 'application/bitcoincash-verifypayment'
+      requestOpts.responseType = 'blob'
     }
+
     try {
-      const requestOpts = { url: this.parsed.paymentUrl, data, headers, responseType }
       const response = await Http.post(requestOpts)
-      this.verifyRequest =  requestOpts
+      this.verifyRequest = requestOpts
       this.verifyResponse = response
       if (response?.error) throw new Error({ response })
 
@@ -482,41 +486,46 @@ export class JSONPaymentProtocol {
     } catch(error) {
       console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
+      throw error
     }
   }
 
   async pay() {
     const signedTxHex = this.signPreparedTx()
-    let data = {
-      currency: this.parsed.currency,
-      transactions: [signedTxHex],
+    const transactions = [signedTxHex]
+    const requestOpts = {
+      url: this.parsed.paymentUrl,
+      headers: { 'Content-Type': 'application/payment' },
+      data: {
+        currency: this.parsed.currency,
+        transactions: transactions,
+      },
+      responseType: 'json',
     }
-
-    const headers = { 'Content-Type': 'application/payment' }
-    let responseType = 'json' 
+ 
     if (this.source === JPPSourceTypes.BITCOIN_COM) {
-      headers['Content-Type'] = 'application/bitcoincash-payment'
-      headers['Accept'] = 'application/bitcoincash-paymentack'
+      requestOpts.headers['Content-Type'] = 'application/bitcoincash-payment'
+      requestOpts.headers['Accept'] = 'application/bitcoincash-paymentack'
       const paymentRequestProto = protobuf.Root.fromJSON(bitcoinPaymentRequestProto)
       const Payment = paymentRequestProto.lookupType('Payment')
       const paymentMessage = Payment.create({
-        transactions: data.transactions.map(txHex => Buffer.from(txHex, 'hex'))
+        transactions: requestOpts.data.transactions.map(txHex => Buffer.from(txHex, 'hex'))
       })
-      data = Payment.encode(paymentMessage).finish()
-      responseType = 'blob'
+      requestOpts.data = Payment.encode(paymentMessage).finish()
+      requestOpts.responseType = 'blob'
     }
     try {
-      const requestOpts = { url: this.parsed.paymentUrl, data, headers, responseType }
       const response = await Http.post(requestOpts)
-      this.paymentRequest =  requestOpts
+      this.paymentRequest = requestOpts
       this.paymentResponse = response
       if (response?.error) throw new Error({ response })
 
-      this.transactions = data.transactions
+      this.transactions = transactions
       return response
     } catch(error) {
       console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
+      throw error
     }
   }
 
