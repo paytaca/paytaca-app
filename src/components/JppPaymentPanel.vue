@@ -2,15 +2,33 @@
   <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
     <q-card-section>
         <div class="text-h6 ellipsis">Payment</div>
-        <div class="row items-center">
+        <div class="row items-center no-wrap q-gutter-xs">
           <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">PaymentID:</div>
           <div>#{{ jpp?.parsed?.paymentId }}</div>
+          <q-btn
+            flat
+            icon="content_copy"
+            size="sm"
+            padding="xs"
+            @click="copyToClipboard(jpp?.parsed?.paymentId, 'Payment ID Copied')"
+          />
         </div>
-        <div v-if="jpp?.parsed?.time" class="row items-center">
+        <div v-if="jpp?.parsed?.paymentUrl" class="row items-center no-wrap q-gutter-xs">
+          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">URL:</div>
+          <div class="ellipsis">{{ jpp?.parsed?.paymentUrl }}</div>
+          <q-btn
+            flat
+            icon="content_copy"
+            size="sm"
+            padding="xs"
+            @click="copyToClipboard(jpp?.parsed?.paymentUrl, 'Link Copied')"
+          />
+        </div>
+        <div v-if="jpp?.parsed?.time" class="row items-center no-wrap q-gutter-xs">
           <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Created:</div>
           <div>{{ formatTimestampToText(jpp?.parsed?.time) }}</div>
         </div>
-        <div v-if="jpp?.parsed?.expires" class="row items-center">
+        <div v-if="jpp?.parsed?.expires" class="row items-center no-wrap q-gutter-xs">
           <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Expires:</div>
           <div>{{ formatTimestampToText(jpp?.parsed?.expires) }}</div>
         </div>
