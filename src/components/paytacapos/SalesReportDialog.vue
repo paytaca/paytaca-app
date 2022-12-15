@@ -128,7 +128,7 @@ function fetchSalesReport(opts) {
   const walletHash = props.posDevice?.walletHash || props?.walletHash
   if (!walletHash) return
   const params = {
-    posid: props?.posDevice?.posid || undefined,
+    posid: props?.posDevice?.posid >= 0 ? props?.posDevice?.posid : undefined,
     from: Number.isNaN(opts?.timestampFrom) ? undefined : opts?.timestampFrom,
     to: Number.isNaN(opts?.timestampTo) ? undefined : opts?.timestampTo,
     range: opts?.range,
