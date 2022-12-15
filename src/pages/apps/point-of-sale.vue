@@ -892,10 +892,10 @@ onUnmounted(() => {
  * @param {Number} [opts.retries]
  */
 function connectRpcClient(opts) {
-  const host = new URL(new Watchtower().BCH._api.defaults.baseURL).host
+  const apiUrl = new URL(new Watchtower().BCH._api.defaults.baseURL)
   const RECONNECT_INTERVAL = 10 * 1000
-  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  const url = `${scheme}://${host}/ws/paytacapos/updates/${walletData.value.walletHash}/`
+  const scheme = apiUrl.protocol === 'https:' ? 'wss' : 'ws'
+  const url = `${scheme}://${apiUrl.host}/ws/paytacapos/updates/${walletData.value.walletHash}/`
   rpcClient.connect(url)
     .then(response => {
       console.log('RPC Client connected:', response)
