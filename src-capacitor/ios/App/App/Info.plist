@@ -50,5 +50,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>For easier and faster authentication</string>
 </dict>
 </plist>

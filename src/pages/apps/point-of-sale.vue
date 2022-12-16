@@ -790,6 +790,24 @@ function confirmRemovePosDevice(posDevice) {
           )
           dialog.update({ message: updateDialogMsg })
         })
+        .catch(error => {
+          console.error(error)
+          let message = ''
+          if (Array.isArray(error?.response?.data)) {
+            message = error?.response?.data.find(errorMsg => {
+              if (String(errorMsg).indexOf('device is linked') >= 0) return $t('POSDeviceMustBeUnlinked', {}, 'POS Device must be unlinked')
+            })
+          }
+
+          if (!message && error?.response?.status === 404) message = $t('POSDeviceNotFound', {}, 'POS device not found')
+
+          if (!message) message = $t('FailedToRemoveDevice', {}, 'Failed to remove device')
+
+          dialog.update({
+            title: $t('RemoveDeviceFailed', {}, 'Remove Device Failed'),
+            message: message,
+          })
+        })
         .finally(() => {
           dialog.update({ persistent: false, progress: false })
         })
@@ -800,7 +818,7 @@ function confirmRemovePosDevice(posDevice) {
  * @param {{ walletHash:String, posid:Number }} posDevice 
  */
 function deletePosDevice(posDevice) {
-  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid + 100}`
   return posBackend.delete(`paytacapos/devices/${handle}/`).then(() => fetchPosDevices())
 }
 
@@ -874,10 +892,10 @@ onUnmounted(() => {
  * @param {Number} [opts.retries]
  */
 function connectRpcClient(opts) {
-  const host = new URL(new Watchtower().BCH._api.defaults.baseURL).host
+  const apiUrl = new URL(new Watchtower().BCH._api.defaults.baseURL)
   const RECONNECT_INTERVAL = 10 * 1000
-  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  const url = `${scheme}://${host}/ws/paytacapos/updates/${walletData.value.walletHash}/`
+  const scheme = apiUrl.protocol === 'https:' ? 'wss' : 'ws'
+  const url = `${scheme}://${apiUrl.host}/ws/paytacapos/updates/${walletData.value.walletHash}/`
   rpcClient.connect(url)
     .then(response => {
       console.log('RPC Client connected:', response)
