@@ -568,6 +568,11 @@ export class JSONPaymentProtocol {
     let parsedData = response.data
     if (proxy && parsedData) {
       parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
+      parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
+      if (!parsedData.paymentId) {
+        const splitPath = paymentUrl.pathname.split('/')	
+        parsedData.paymentId = splitPath[splitPath.length-1]
+      }
       parsedData.currency = parsedData.currency || 'BCH'
     }
     return new JSONPaymentProtocol(parsedData)
