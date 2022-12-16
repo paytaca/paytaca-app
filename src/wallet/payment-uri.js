@@ -291,9 +291,7 @@ export class JSONPaymentProtocol {
    */
   constructor(data) {
     this._data = data
-    this.transactions = [
-      // '02000000011f0f762184cbc8e94b307fab6f805168724f123a23cd48aac4a9bac8768cfd67000000004847304402205079b96def679f04de9698dd8b9f58dff3e4a13c075f5939c6edfbb8698c8cc802203eac5a3d6410a9f94a86828a4e207f8083fe0bf1c77a74a0cb7add49100d427001ffffffff0284990000000000001976a9149097a519e42061e4977b07b69735ed842b755c0088ac08cd042a010000001976a914cf4b90bca14deab1315c125b8b74b7d31eea97b288ac00000000',
-    ]
+    this.transactions = []
 
     if (this.parsed.paymentUrl) {
       this.source = JPPSourceTypes.resolve(this.parsed.paymentUrl)

@@ -77,8 +77,7 @@
               {{ $t('or') }}
             </div>
             <div class="col-12 q-mt-lg text-center">
-              <!-- <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" /> -->
-              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="$q.dialog({ prompt: true }).onOk(onScannerDecode)" />
+              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
             </div>
           </div>
           <div class="q-pa-md text-center text-weight-medium">
@@ -648,8 +647,6 @@ export default {
       JSONPaymentProtocol.fetch(paymentUri)
         .then(jpp => {
           this.jpp = markRaw(jpp)
-          window.jpp = this.jpp
-          console.log(this.jpp)
           dialog.hide()
         })
         .catch(error => {
@@ -1137,13 +1134,6 @@ export default {
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
-
-    // this.sendData.txid = 'e996e2fccd1af88ecacd52d894e1673bcd356df20428a5b3e54ee3f356ef82ff'
-    // this.sendData.recipientAddress = 'bitcoincash:praklsw0sxmyckmdhmwh20nqldh59msn35tj3ynjf6'
-    // this.sendData.paymentAckMemo = 'Payment memo'
-    // this.sendData.amount = 0.00232
-    // this.sendData.sent = true
-    // this.sendData.success = true
   },
 
   created () {
