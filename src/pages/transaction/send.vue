@@ -77,7 +77,8 @@
               {{ $t('or') }}
             </div>
             <div class="col-12 q-mt-lg text-center">
-              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+              <!-- <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" /> -->
+              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="$q.dialog({ prompt: true }).onOk(onScannerDecode)" />
             </div>
           </div>
           <div class="q-pa-md text-center text-weight-medium">
@@ -655,6 +656,10 @@ export default {
           let message = 'Failed to fetch invoice data'
           if (typeof error?.response?.data === 'string') {
             if (error?.response?.data?.indexOf('expired') >= 0) message = 'Invoice is expired'
+            else if (error?.response?.data?.length <= 1000) message = error?.response?.data
+          }
+          if (error?.name === 'JsonPaymentProtocolError' && error?.message) {
+            message = error?.message
           }
           dialog.update({ message: message })
           console.error(error)
@@ -1132,6 +1137,13 @@ export default {
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
+
+    // this.sendData.txid = 'e996e2fccd1af88ecacd52d894e1673bcd356df20428a5b3e54ee3f356ef82ff'
+    // this.sendData.recipientAddress = 'bitcoincash:praklsw0sxmyckmdhmwh20nqldh59msn35tj3ynjf6'
+    // this.sendData.paymentAckMemo = 'Payment memo'
+    // this.sendData.amount = 0.00232
+    // this.sendData.sent = true
+    // this.sendData.success = true
   },
 
   created () {
