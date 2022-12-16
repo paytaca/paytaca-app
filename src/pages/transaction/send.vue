@@ -280,6 +280,17 @@
                 </a>
               </template>
             </div>
+
+            <div v-if="sendData.paymentAckMemo" class="row justify-center">
+              <div
+                class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1"
+                style="min-width:50vw;border: 1px solid grey;background-color: inherit;"
+                :class="darkMode ? 'text-white': ''"
+              >
+                <span :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Memo:</span>
+                {{ sendData.paymentAckMemo }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -395,6 +406,7 @@ export default {
         posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
         rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
+        paymentAckMemo: '',
         fixedRecipientAddress: false
       },
       lns: {
@@ -656,6 +668,7 @@ export default {
       this.sendData.txid = this.jpp?.txids?.[0]
       this.sendData.amount = this.jpp.total / 10 ** 8
       this.sendData.recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
+      this.sendData.paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)
       this.sendData.sending = false
       this.sendData.sent = true
