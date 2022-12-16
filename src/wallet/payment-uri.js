@@ -8,8 +8,6 @@ import { Wallet } from './index'
 import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
-import protobuf from 'protobufjs'
-import bitcoinPaymentRequestProto from './paymentrequest/bitcoin-com-pb'
 import Watchtower from 'watchtower-cash-js';
 
 const bchjs = new BCHJS()
@@ -539,32 +537,6 @@ export class JSONPaymentProtocol {
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
       if (error?.response?.data?.message) throw JsonPaymentProtocolError(error?.response?.data?.message)
       throw error
-    }
-  }
-
-  /**
-   * @param {String} data base64 encoded data
-   */
-  static parseProto(data) {
-    const dataBytes = Buffer.from(data, 'base64')
-    const paymentRequestProto = protobuf.Root.fromJSON(bitcoinPaymentRequestProto)
-    const PaymentRequest = paymentRequestProto.lookupType('PaymentRequest')
-    const paymentRequest = PaymentRequest.decode(dataBytes, dataBytes.length)
-
-    const PaymentDetails = paymentRequestProto.lookupType('PaymentDetails')
-    const paymentDetails = PaymentDetails.decode(paymentRequest.serializedPaymentDetails, paymentRequest.serializedPaymentDetails.length)
-   
-    return {
-      network: paymentDetails?.network,
-      outputs: paymentDetails?.outputs?.map?.(output => Object({
-        amount: output?.amount,
-        address: bchjs.Address.fromOutputScript(output?.script),
-      })),
-      time: paymentDetails?.time * 1000,
-      expires: paymentDetails?.expires * 1000,
-      memo: paymentDetails?.memo,
-      paymentUrl: paymentDetails?.paymentUrl,
-
     }
   }
 

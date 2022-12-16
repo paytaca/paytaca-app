@@ -6,7 +6,6 @@ import com.epicshaggy.biometric.NativeBiometric;
 import com.capacitorjs.plugins.app.AppPlugin;
 import com.paytaca.app.plugins.DeepLinkHelperPlugin;
 import com.getcapacitor.community.barcodescanner.BarcodeScanner;
-import com.getcapacitor.plugin.http.Http;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -27,7 +26,6 @@ public class MainActivity extends BridgeActivity {
       add(AppPlugin.class);
       add(DeepLinkHelperPlugin.class);
       add(BarcodeScanner.class);
-      add(Http.class);
     }});
   }
 }

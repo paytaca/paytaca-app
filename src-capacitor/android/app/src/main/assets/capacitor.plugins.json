@@ -4,10 +4,6 @@
 		"classpath": "com.getcapacitor.community.barcodescanner.BarcodeScanner"
 	},
 	{
-		"pkg": "@capacitor-community/http",
-		"classpath": "com.getcapacitor.plugin.http.Http"
-	},
-	{
 		"pkg": "@capacitor/app",
 		"classpath": "com.capacitorjs.plugins.app.AppPlugin"
 	},
