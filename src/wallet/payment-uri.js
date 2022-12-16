@@ -9,8 +9,10 @@ import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
+window.a = axios
 
 const bchjs = new BCHJS()
+window.bchjs = bchjs
 /**
  * 
  * @typedef {Object} PaymentUriOutput
@@ -245,6 +247,7 @@ export function JsonPaymentProtocolError (...args) {
 export class JPPSourceTypes {
   static DEFAULT = 'default'
   static BITCOIN_COM = 'bitcoin.com'
+  static BITPAY = 'bitpay'
 
   /**
    * 
@@ -254,6 +257,7 @@ export class JPPSourceTypes {
     try {
       let link = new URL(paymentUrl)
       if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
+      if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
       return this.DEFAULT
     } catch(error) {
       console.error(error)
@@ -276,6 +280,7 @@ export class JSONPaymentProtocol {
    * @property {Number} amount
    * 
    * @param {Object} data
+   * @param {String} [data.chain]
    * @param {String} data.network - "test" | "main"
    * @param {String} data.currency - e.g. "BTC", "BCH"
    * @param {Number} data.requiredFeePerByte
@@ -303,6 +308,7 @@ export class JSONPaymentProtocol {
 
   get parsed() {
     const parsedData = {
+      chain: this._data?.chain || '',
       network: this._data?.network || '',
       currency: this._data?.currency || '',
       requiredFeePerByte: this._data?.requiredFeePerByte || 0,
@@ -472,6 +478,15 @@ export class JSONPaymentProtocol {
     if (this.source === JPPSourceTypes.BITCOIN_COM) {
       requestOpts.headers['Content-Type'] = 'application/bitcoincash-verifypayment'
       requestOpts.responseType = 'blob'
+    } else if (this.source === JPPSourceTypes.BITPAY) {
+      requestOpts.headers['Content-Type'] = 'application/payment-verification'
+      requestOpts.headers['X-Paypro-Version'] = 2
+
+      requestOpts.data = {
+        chain: this.parsed.chain,
+        transaction: [unsignedTransaction, unsignedTransaction.length/2],
+        currency: this.parsed.currency,
+      }
     }
 
     try {
@@ -516,6 +531,14 @@ export class JSONPaymentProtocol {
         payment_url: this.parsed.paymentUrl,
         raw_tx_hex: transactions[0],
       }
+    } else if (this.source === JPPSourceTypes.BITPAY) {
+      requestOpts.headers['Content-Type'] = 'application/payment'
+      requestOpts.headers['X-Paypro-Version'] = 2
+      requestOpts.data = {
+        chain: this.parsed.chain,
+        currency: this.parsed.currency,
+        transactions: [transactions[0], transactions[0]?.length/2],
+      }
     }
     try {
       const watchtower = new Watchtower()
@@ -541,30 +564,105 @@ export class JSONPaymentProtocol {
   }
 
   /**
+   * 
+   * @typedef {Object} BitPayJPPOutput
+   * @property {String} address
+   * @property {Number} amount
+   * 
+   * @typedef {Object} BitPayJPPInstruction
+   * @property {String} type
+   * @property {Number} requiredFeeRate
+   * @property {BitPayJPPOutput[]} outputs
+   * 
+   * 
+   * @param {Object} data 
+   * @param {String} data.time
+   * @param {String} data.expires
+   * @param {String} data.memo
+   * @param {String} data.paymentUrl
+   * @param {String} data.paymentId
+   * @param {String} data.chain
+   * @param {String} data.network
+   * @param {BitPayJPPInstruction[]} data.instructions
+   */
+  static parseBitpayRequestData(data) {
+    const txInstruction = data?.instructions.find(instruction => instruction.type === 'transaction')
+    return {
+      time: data?.time,
+      expires: data?.expires,
+      memo: data?.memo,
+      paymentUrl: data?.paymentUrl,
+      paymentId: data?.paymentId,
+      chain: data?.chain,
+      network: data?.network,
+      currency: data?.chain,
+      requiredFeePerByte: txInstruction?.requiredFeeRate,
+      outputs: txInstruction?.outputs?.map(output => Object({
+        amount: output?.amount,
+        address: bchjs.Address.toCashAddress(output?.address),
+      })),
+    }
+  }
+
+  /**
    * @param {String} paymentUri 
    * @param {Object} opts
    * @param {Boolean} opts.verify
    */
   static async fetch(paymentUri, opts) {
     let link = new URL(paymentUri)
+    const paymentUrl = link
     const searchParams = Object.fromEntries(link.searchParams.entries())
     if (searchParams?.r) link = new URL(searchParams?.r)
 
+    let method = 'get'
+    let data
     const headers = {
       Accept: 'application/payment-request',
     }
     const params = {}
 
+    const jppSource = JPPSourceTypes.resolve(link)
     let proxy = false
-    if (JPPSourceTypes.resolve(link) === JPPSourceTypes.BITCOIN_COM) {
+    if (jppSource === JPPSourceTypes.BITCOIN_COM) {
       params.payment_url = String(link)
       link = 'payment-requests/fetch/'
       headers.Accept = 'application/json'
       proxy = true
+    } else if (jppSource === JPPSourceTypes.BITPAY) {
+      const paymentOptsResp = await axios.get(
+        String(link),
+        { headers: {Accept: 'application/payment-options', 'X-Paypro-Version': 2 } }
+      )
+      if (!Array.isArray(paymentOptsResp?.data?.paymentOptions)) {
+        throw JsonPaymentProtocolError('Unable to fetch payment options')
+      }
+      const bchOpt = paymentOptsResp?.data?.paymentOptions?.find(
+        paymentOpt => paymentOpt?.chain === "BCH" && paymentOpt?.currency === "BCH"
+      )
+      if (!bchOpt) throw JSONPaymentProtocol("Invoice does not accept BCH")
+
+      method = 'post'
+      data = bchOpt
+
+      delete headers['Accept']
+      headers['Content-Type'] = 'application/payment-request'
+      headers['X-Paypro-Version'] = 2
     }
 
     const watchtower = new Watchtower()
-    const response = await watchtower.BCH._api.get(String(link), { headers, params })
+    let response
+    if (jppSource === JPPSourceTypes.BITPAY) {
+      const axiosInstance = axios.create({})
+      axiosInstance.interceptors.request.use(config => {
+        if (config?.headers?.[method]?.Accept) delete config.headers[method].Accept
+        if (config?.headers?.[method]?.accept) delete config.headers[method].accept
+        return config
+      })
+      response = await axiosInstance.request({method: method, url: String(link), headers, params })
+    } else {
+      response = await watchtower.BCH._api.request({method: method, url: String(link), headers, params })
+    }
     let parsedData = response.data
     if (proxy && parsedData) {
       parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
@@ -574,6 +672,9 @@ export class JSONPaymentProtocol {
         parsedData.paymentId = splitPath[splitPath.length-1]
       }
       parsedData.currency = parsedData.currency || 'BCH'
+    } else if (jppSource === JPPSourceTypes.BITPAY) {
+      parsedData = this.parseBitpayRequestData(parsedData)
+      parsedData.currency = bchOpt?.currency
     }
     return new JSONPaymentProtocol(parsedData)
   }
