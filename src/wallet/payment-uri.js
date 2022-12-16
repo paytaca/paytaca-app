@@ -9,10 +9,8 @@ import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
-window.a = axios
 
 const bchjs = new BCHJS()
-window.bchjs = bchjs
 /**
  * 
  * @typedef {Object} PaymentUriOutput
@@ -659,9 +657,9 @@ export class JSONPaymentProtocol {
         if (config?.headers?.[method]?.accept) delete config.headers[method].accept
         return config
       })
-      response = await axiosInstance.request({method: method, url: String(link), headers, params })
+      response = await axiosInstance.request({method: method, data: data, url: String(link), headers, params })
     } else {
-      response = await watchtower.BCH._api.request({method: method, url: String(link), headers, params })
+      response = await watchtower.BCH._api.request({method: method, data: data, url: String(link), headers, params })
     }
     let parsedData = response.data
     if (proxy && parsedData) {
