@@ -1,7 +1,7 @@
+import axios from 'axios'
 import BCHJS from '@psf/bch-js'
 import { utils } from 'ethers'
 import BigNumber from 'bignumber.js'
-import { Http } from '@capacitor-community/http';
 
 import { parsePOSLabel } from 'src/wallet/pos'
 import { Wallet } from './index'
@@ -10,6 +10,7 @@ import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import protobuf from 'protobufjs'
 import bitcoinPaymentRequestProto from './paymentrequest/bitcoin-com-pb'
+import Watchtower from 'watchtower-cash-js';
 
 const bchjs = new BCHJS()
 /**
@@ -476,7 +477,9 @@ export class JSONPaymentProtocol {
     }
 
     try {
-      const response = await Http.post(requestOpts)
+      const response = await axios.post(requestOpts.url, requestOpts.data, {
+        headers: requestOpts.headers,
+      })
       this.verifyRequest = requestOpts
       this.verifyResponse = response
       if (response?.error) throw new Error({ response })
@@ -494,6 +497,7 @@ export class JSONPaymentProtocol {
     const signedTxHex = this.signPreparedTx()
     const transactions = [signedTxHex]
     const requestOpts = {
+      proxy: false,
       url: this.parsed.paymentUrl,
       headers: { 'Content-Type': 'application/payment' },
       data: {
@@ -504,27 +508,36 @@ export class JSONPaymentProtocol {
     }
  
     if (this.source === JPPSourceTypes.BITCOIN_COM) {
-      requestOpts.headers['Content-Type'] = 'application/bitcoincash-payment'
-      requestOpts.headers['Accept'] = 'application/bitcoincash-paymentack'
-      const paymentRequestProto = protobuf.Root.fromJSON(bitcoinPaymentRequestProto)
-      const Payment = paymentRequestProto.lookupType('Payment')
-      const paymentMessage = Payment.create({
-        transactions: requestOpts.data.transactions.map(txHex => Buffer.from(txHex, 'hex'))
-      })
-      requestOpts.data = Payment.encode(paymentMessage).finish()
-      requestOpts.responseType = 'blob'
+      requestOpts.proxy = true
+      requestOpts.headers ={
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
+      requestOpts.url = 'payment-requests/pay/'
+      requestOpts.data = {
+        payment_url: this.parsed.paymentUrl,
+        raw_tx_hex: transactions[0],
+      }
     }
     try {
-      const response = await Http.post(requestOpts)
+      const watchtower = new Watchtower()
+      const response = await watchtower.BCH._api.post(
+        requestOpts.url,
+        requestOpts.data,
+        { headers: requestOpts.headers }
+      )
       this.paymentRequest = requestOpts
       this.paymentResponse = response
       if (response?.error) throw new Error({ response })
+      if (requestOpts.proxy && !response?.data?.success) throw JsonPaymentProtocolError(response?.data?.message)
 
+      this.paymentAckMemo = response?.data?.memo || response?.data?.message
       this.transactions = transactions
       return response
     } catch(error) {
       console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
+      if (error?.response?.data?.message) throw JsonPaymentProtocolError(error?.response?.data?.message)
       throw error
     }
   }
@@ -568,21 +581,22 @@ export class JSONPaymentProtocol {
     const headers = {
       Accept: 'application/payment-request',
     }
+    const params = {}
 
-    let parseProto = false
+    let proxy = false
     if (JPPSourceTypes.resolve(link) === JPPSourceTypes.BITCOIN_COM) {
-      headers.Accept = 'application/bitcoincash-paymentrequest'
-      parseProto = true
+      params.payment_url = String(link)
+      link = 'payment-requests/fetch/'
+      headers.Accept = 'application/json'
+      proxy = true
     }
 
-    const response = await Http.get({ url: String(link), headers, responseType: 'blob' })
+    const watchtower = new Watchtower()
+    const response = await watchtower.BCH._api.get(String(link), { headers, params })
     let parsedData = response.data
-    if (parseProto) {
-      parsedData =  this.parseProto(response.data)
-      if (parsedData && !parsedData?.paymentId) {
-        const splitPath = link.pathname.split('/')
-        parsedData.paymentId = splitPath[splitPath.length-1]
-      }
+    if (proxy && parsedData) {
+      parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
+      parsedData.currency = parsedData.currency || 'BCH'
     }
     return new JSONPaymentProtocol(parsedData)
   }
