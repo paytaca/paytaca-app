@@ -17,5 +17,7 @@
 	"ios": {
 		"scheme": "Paytaca"
 	},
-	"server": {}
+	"server": {
+		"androidScheme": "https"
+	}
 }
