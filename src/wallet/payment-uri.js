@@ -480,7 +480,10 @@ export class JSONPaymentProtocol {
 
       requestOpts.data = {
         chain: this.parsed.chain,
-        transaction: [unsignedTransaction, unsignedTransaction.length/2],
+        transactions: [{
+          tx: unsignedTransaction,
+          weightedSize: unsignedTransaction.length/2,
+        }],
         currency: this.parsed.currency,
       }
     }
@@ -533,7 +536,10 @@ export class JSONPaymentProtocol {
       requestOpts.data = {
         chain: this.parsed.chain,
         currency: this.parsed.currency,
-        transactions: [transactions[0], transactions[0]?.length/2],
+        transactions: [{
+          tx: transactions[0],
+          weightedSize: transactions[0]?.length/2
+        }],
       }
     }
     try {
@@ -659,8 +665,7 @@ export class JSONPaymentProtocol {
       headers['X-Paypro-Version'] = 2
     }
 
-    const watchtower = new Watchtower()
-    let response
+    let parsedData
     if (jppSource === JPPSourceTypes.BITPAY) {
       const axiosInstance = axios.create({})
       axiosInstance.interceptors.request.use(config => {
@@ -668,22 +673,22 @@ export class JSONPaymentProtocol {
         if (config?.headers?.[method]?.accept) delete config.headers[method].accept
         return config
       })
-      response = await axiosInstance.request({method: method, data: data, url: String(link), headers, params })
+      const response = await axiosInstance.request({method: method, data: data, url: String(link), headers, params })
+      parsedData = this.parseBitpayRequestData(response?.data)
+      parsedData.currency = data?.currency
     } else {
-      response = await watchtower.BCH._api.request({method: method, data: data, url: String(link), headers, params })
-    }
-    let parsedData = response.data
-    if (proxy && parsedData) {
-      parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
-      parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
-      if (!parsedData.paymentId) {
-        const splitPath = paymentUrl.pathname.split('/')	
-        parsedData.paymentId = splitPath[splitPath.length-1]
+      const watchtower = new Watchtower()
+      const response = await watchtower.BCH._api.request({method: method, data: data, url: String(link), headers, params })
+      parsedData = response.data
+      if (proxy && parsedData) {
+        parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
+        parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
+        if (!parsedData.paymentId) {
+          const splitPath = paymentUrl.pathname.split('/')	
+          parsedData.paymentId = splitPath[splitPath.length-1]
+        }
+        parsedData.currency = parsedData.currency || 'BCH'
       }
-      parsedData.currency = parsedData.currency || 'BCH'
-    } else if (jppSource === JPPSourceTypes.BITPAY) {
-      parsedData = this.parseBitpayRequestData(parsedData)
-      parsedData.currency = bchOpt?.currency
     }
     return new JSONPaymentProtocol(parsedData)
   }
