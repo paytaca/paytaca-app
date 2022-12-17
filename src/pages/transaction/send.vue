@@ -291,6 +291,19 @@
                 {{ sendData.paymentAckMemo }}
               </div>
             </div>
+            <q-item
+              v-if="jpp?.paymentManuallyVerified"
+              class="text-left bg-warning rounded-borders text-black text-subtitle1 q-mt-sm"
+            >
+              <q-item-section avatar style="min-width:unset;">
+                <q-icon name="warning" size="1.5em"/>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>
+                  Payment might not be acknowledged as transaction was manually verified
+                </q-item-label>
+              </q-item-section>
+            </q-item>
           </div>
         </div>
       </div>

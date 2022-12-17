@@ -342,7 +342,7 @@ export class JSONPaymentProtocol {
 
   get txids() {
     if (!Array.isArray(this.transactions)) return []
-    return this.transactions.map(tx => sha256(sha256(Buffer.from(tx, 'hex'))).reverse().toString('hex'))
+    return this.transactions.map(tx => JSONPaymentProtocol.rawTxToHash(tx))
   }
 
   /**
@@ -553,6 +553,19 @@ export class JSONPaymentProtocol {
       return response
     } catch(error) {
       console.error(error)
+      const txid = JSONPaymentProtocol.rawTxToHash(transactions[0])
+      try {
+        const exists = await JSONPaymentProtocol.txExists(txid)
+        if (exists) {
+          this.transactions = transactions
+          this.paymentManuallyVerified = true
+          console.warn('Payment failed but transaction exists')
+          return
+        }
+      } catch(_error) {
+        console.error(_error)
+      }
+
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
       if (error?.response?.data?.message) throw JsonPaymentProtocolError(error?.response?.data?.message)
       throw error
@@ -689,5 +702,30 @@ export class JSONPaymentProtocol {
 
   static isValidPaymentLink(paymentUri) {
     return Boolean(this.getPaymentLink(paymentUri))
+  }
+
+  static rawTxToHash(tx='') {
+    return sha256(sha256(Buffer.from(tx, 'hex'))).reverse().toString('hex')
+  }
+
+  static async txExists(txid='') {
+    const query = {
+      v: 3,
+      q: {
+        find: {
+          "tx.h": txid,
+        },
+        "project": { "tx.h": 1  },
+        "limit": 10
+      }
+    }
+    const serializedQuery = btoa(JSON.stringify(query))
+    const response = await axios.get(`https://bitdb.bch.sx/q/${serializedQuery}`)
+    if (Array.isArray(response.data?.c) && response.data?.c.some(record => record?.tx?.h === txid)) {
+      return true
+    } else if(Array.isArray(response.data?.u) && response.data?.u.some(record => record?.tx?.h === txid)) {
+      return true
+    }
+    return false
   }
 }
