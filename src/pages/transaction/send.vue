@@ -606,7 +606,7 @@ export default {
       }
 
       // skip the usual route when found a valid JSON payment protocol url
-      if (paymentUriData.jpp.valid) return this.handleJPP(paymentUriData.jpp.paymentUri)
+      if (paymentUriData?.jpp?.valid) return this.handleJPP(paymentUriData.jpp.paymentUri)
 
       const valid = this.checkAddress(address)
       if (valid) {
