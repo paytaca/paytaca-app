@@ -747,6 +747,7 @@ async function getAddresses() {
 
 
 async function fundHedgeProposal(position) {
+  const positionTaker = props.contract.apiMetadata?.positionTaker || position
   const dialog = $q.dialog({
     title: 'Submitting funding proposal',
     message: 'Retrieving addresses',
@@ -771,7 +772,7 @@ async function fundHedgeProposal(position) {
 
   try {
     dialog.update({ message: 'Calculating funding amount' })
-    const { hedge, long } = calculateFundingAmounts(props.contract, 'hedge', 0)
+    const { hedge, long } = calculateFundingAmounts(props.contract, positionTaker, 0)
     let amount
     if (position === 'hedge') amount = Math.round(hedge)/10**8
     else if (position === 'long') amount = Math.round(long)/10**8
@@ -794,7 +795,9 @@ async function fundHedgeProposal(position) {
   try {
     dialog.update({ persistent: true, ok: false, progress: true })
     dialog.update({ message: 'Creating funding proposal' })
-    const createFundingProposalResponse = await createFundingProposal(props.contract, position, props.wallet, addressSet, 0, 'hedge')
+    const createFundingProposalResponse = await createFundingProposal(
+      props.contract, position, props.wallet, addressSet, 0, positionTaker,
+    )
     fundingUtxo = createFundingProposalResponse.fundingUtxo
     signedFundingProposal = createFundingProposalResponse.signedFundingProposal
   } catch(error) {
