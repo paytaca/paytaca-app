@@ -134,7 +134,7 @@ export default {
     },
     connectToBroker () {
       const vm = this
-      vm.mqttClient = mqtt.connect('mqtt://localhost:8083/mqtt')
+      vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + ':8083/mqtt')
       vm.mqttClient.on('connect', function () {
         vm.mqttClient.subscribe(vm.buildTopic(), function (err) {
           if (err) {
