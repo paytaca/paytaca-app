@@ -170,11 +170,11 @@
       ]"
     >
       <template v-if="selectedAccountType === 'hedge'">
-        <!-- <q-expansion-item label="Hedge Offers">
+        <q-expansion-item ref="offersDrawerRef" label="Hedge Offers">
           <q-card-section v-if="fetchingHedgeOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeOffersList v-else :hedge-offers="hedgeOffers"/>
+          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="hedgeOffers" @removed="removedHedgeOffer"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -189,7 +189,7 @@
             />
           </div>
         </q-expansion-item>
-        <q-separator/> -->
+        <q-separator/>
         <q-expansion-item ref="hedgesDrawerRef" label="Hedge Positions" default-opened>
           <q-card-section v-if="fetchingContracts" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
@@ -211,6 +211,26 @@
         </q-expansion-item>
       </template>
       <template v-else-if="selectedAccountType === 'long'">
+        <q-expansion-item ref="offersDrawerRef" label="Long Offers">
+          <q-card-section v-if="fetchingLongOffers" class="q-gutter-y-md">
+            <q-skeleton v-for="i in 3" type="rect"/>
+          </q-card-section>
+          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="longOffers" @removed="removedHedgeOffer"/>
+          <div class="row justify-center">
+            <LimitOffsetPagination
+              :pagination-props="{
+                unelevated: true,
+                padding: 'sm md',
+                boundaryNumbers: true
+              }"
+              class="q-mb-md"
+              :hide-below-pages="2"
+              :modelValue="longOffersPaginationState"
+              @update:modelValue="fetchLongOffers"
+            />
+          </div>
+        </q-expansion-item>
+        <q-separator/>
         <q-expansion-item ref="hedgesDrawerRef" label="Long Positions" default-opened>
           <q-card-section v-if="fetchingLongPositions" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
@@ -237,7 +257,7 @@
 <script setup>
 import { getMnemonic, Wallet } from '../../wallet'
 import { anyhedgeBackend, connectWebsocketUpdates, generalProtocolLPBackend } from '../../wallet/anyhedge/backend'
-import { formatUnits, ellipsisText, parseHedgePositionData } from '../../wallet/anyhedge/formatters'
+import { formatUnits, ellipsisText, parseHedgePositionData, parseHedgePositionOffer } from '../../wallet/anyhedge/formatters'
 import { ref, computed, markRaw, onMounted, inject, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar, scroll } from 'quasar'
@@ -260,6 +280,8 @@ const selectedAccountType = ref('hedge')
 
 const hedgesDrawerRef = ref()
 const hedgesListRef = ref()
+const offersDrawerRef = ref()
+const offersListRef = ref()
 
 const wallet = ref(null)
 onMounted(async () => {
@@ -268,9 +290,10 @@ onMounted(async () => {
 
   fetchSummary('hedge')
   fetchSummary('long')
-  // fetchHedgeOffers()
+  fetchHedgeOffers()
   fetchHedgeContracts()
   // fetchLongAccounts()
+  fetchLongOffers()
   fetchLongPositions()
   initWebsocket()
 })
@@ -288,7 +311,7 @@ const websocketMessageHandler = (message) => {
   console.log(data)
   if (data?.resource === 'long_account') fetchLongAccounts()
   if (data?.resource === 'hedge_position_offer') {
-    if (data?.action === 'settlement') {
+    if (data?.action === 'settled') {
       if (data?.meta?.position === 'hedge') {
         fetchSummary('hedge')
         fetchHedgeOffers()
@@ -297,6 +320,8 @@ const websocketMessageHandler = (message) => {
         fetchSummary('long')
         fetchLongPositions()
       }
+    } else if (['accepted', 'cancel_accept', 'settled'].indexOf(data?.action) >= 0) {
+      refetchHedgePositionOffer(data?.meta?.id)
     }
   }
   if (data?.resource === 'hedge_position') {
@@ -468,17 +493,24 @@ function fetchHedgeOffers(pagination) {
     {
       params: {
         wallet_hash: walletHash,
+        position: 'hedge',
         limit: pagination?.limit || DEFAULT_PAGE_SIZE,
         offset: pagination?.offset || 0,
       }
     }
   )
     .then(response => {
-      if (Array.isArray(response?.data?.results))  hedgeOffers.value = response.data.results
+      if (Array.isArray(response?.data?.results)) {
+        hedgeOffers.value = response.data.results.map(parseHedgePositionOffer)
+        hedgeOffers.value.forEach(async (positionOffer) => {
+          if (!positionOffer?.hedgePosition) return
+          positionOffer.hedgePosition = await positionOffer?.hedgePosition
+        })
+      }
       if (response?.data?.count >= 0 && response?.data?.limit >= 0 && response?.data?.offset >= 0) {
-        contractsPaginationState.value.count = response.data.count
-        contractsPaginationState.value.limit = response.data.limit
-        contractsPaginationState.value.offset = response.data.offset
+        hedgeOffersPaginationState.value.count = response.data.count
+        hedgeOffersPaginationState.value.limit = response.data.limit
+        hedgeOffersPaginationState.value.offset = response.data.offset
       }
       return Promise.resolve(response)
     })
@@ -523,7 +555,20 @@ function fetchHedgeContracts(pagination) {
 }
 
 function onHedgeFormCreate(data) {
-  if (data.hedgePositionOffer?.id) fetchHedgeOffers()
+  if (data.hedgePositionOffer?.id) {
+    fetchHedgeOffers()
+    $q.dialog({
+      title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position Offer`,
+      message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position offer created`,
+      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      style: 'word-break:break-all;',
+    })
+      .onDismiss(() => {
+        if (data?.position === 'long') showCreateLongForm.value = false
+        else showCreateHedgeForm.value = false
+        offersDrawerRef.value?.show?.()
+      })
+  }
   if (data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address) {
     const contractAddress = data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address
     fetchSummary(data?.position)
@@ -545,6 +590,44 @@ function onHedgeFormCreate(data) {
       })
     })
   }
+}
+
+// long offers
+const longOffers = ref([])
+const longOffersPaginationState = ref({ count: 0, limit: 1, offset: 0 })
+const fetchingLongOffers = ref(false)
+function fetchLongOffers(pagination) {
+  const walletHash = wallet.value.BCH.getWalletHash()
+  fetchingLongOffers.value = true
+  return anyhedgeBackend.get(
+    '/anyhedge/hedge-position-offers/',
+    {
+      params: {
+        wallet_hash: walletHash,
+        position: 'long',
+        limit: pagination?.limit || DEFAULT_PAGE_SIZE,
+        offset: pagination?.offset || 0,
+      }
+    }
+  )
+    .then(response => {
+      if (Array.isArray(response?.data?.results)) {
+        longOffers.value = response.data.results.map(parseHedgePositionOffer)
+        longOffers.value.forEach(async (positionOffer) => {
+          if (!positionOffer?.hedgePosition) return
+          positionOffer.hedgePosition = await positionOffer?.hedgePosition
+        })
+      }
+      if (response?.data?.count >= 0 && response?.data?.limit >= 0 && response?.data?.offset >= 0) {
+        longOffersPaginationState.value.count = response.data.count
+        longOffersPaginationState.value.limit = response.data.limit
+        longOffersPaginationState.value.offset = response.data.offset
+      }
+      return Promise.resolve(response)
+    })
+    .finally(() => {
+      fetchingLongOffers.value = false
+    })
 }
 
 // long positions
@@ -602,6 +685,28 @@ function fetchLongPositions(pagination) {
     })
     .finally(() => {
       fetchingLongPositions.value = false
+    })
+}
+
+function removedHedgeOffer(hedgeOffer) {
+  if (!hedgeOffer?.id) return
+  hedgeOffers.value = hedgeOffers.value.filter(offer => offer?.id !== hedgeOffer?.id)
+  longOffers.value = longOffers.value.filter(offer => offer?.id !== hedgeOffer?.id)
+}
+
+function refetchHedgePositionOffer(hedgeOfferId) {
+  anyhedgeBackend.get(`anyhedge/hedge-position-offers/${hedgeOfferId}/`)
+    .then(async (response) => {
+      if (!response?.data?.id) return Promise.reject({ response })
+      const hedgeOffer = parseHedgePositionOffer(response?.data)
+      if (hedgeOffer?.hedgePosition) hedgeOffer.hedgePosition = await hedgeOffer.hedgePosition
+
+      const hedgeOffersListIndex = hedgeOffers.value.findIndex(_hedgeOffer => _hedgeOffer?.id === hedgeOffer?.id)
+      if (hedgeOffersListIndex >= 0) hedgeOffers.value[hedgeOffersListIndex] = hedgeOffer
+
+      const longOffersListIndex = longOffers.value.findIndex(_hedgeOffer => _hedgeOffer?.id === hedgeOffer?.id)
+      if (longOffersListIndex >= 0) longOffers.value[longOffersListIndex] = hedgeOffer
+      return Promise.resolve(response)
     })
 }
 
