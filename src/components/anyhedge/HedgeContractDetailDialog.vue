@@ -167,11 +167,19 @@
               <div class="col-3 text-body1">Hedge</div>
               <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
               <template v-else>
-                <q-btn v-if="viewAsHedge" no-caps label="Submit funding proposal" color="brandblue" padding="none sm" @click="fundHedgeProposal('hedge')"/>
+                <q-btn
+                  v-if="viewAsHedge"
+                  :disable="matured"
+                  no-caps
+                  label="Submit funding proposal"
+                  color="brandblue"
+                  padding="none sm"
+                  @click="fundHedgeProposal('hedge')"
+                />
                 <q-badge v-else color="grey-7">Not yet submitted</q-badge>
               </template>
               <q-space/>
-              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -197,11 +205,19 @@
               <div class="col-3 text-body1">Long</div>
               <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
               <template v-else>
-                <q-btn v-if="viewAsLong" no-caps label="Submit funding proposal" color="brandblue" padding="none sm" @click="fundHedgeProposal('long')"/>
+                <q-btn
+                  v-if="viewAsLong"
+                  :disable="matured"
+                  no-caps
+                  label="Submit funding proposal"
+                  color="brandblue"
+                  padding="none sm"
+                  @click="fundHedgeProposal('long')"
+                />
                 <q-badge v-else color="grey-7">Not yet submitted</q-badge>
               </template>
               <q-space/>
-              <q-btn v-if="contract.longFundingProposal && viewAsLong" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -229,6 +245,7 @@
             class="q-mt-sm"
           >
             <q-btn
+              :disable="matured"
               padding="none md"
               no-caps
               label="Complete Funding Proposal"
@@ -667,6 +684,7 @@ const fundingMetadata = computed(() => {
 
   return data
 })
+const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.maturityTimestamp)
 const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
 const summaryDataAvailable = computed(() => {
   if (props.viewAs === 'hedge' && settlementMetadata.value.summary.hedge) return true
