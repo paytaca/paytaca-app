@@ -225,6 +225,35 @@
         />
       </div>
     </q-slide-transition>
+    <q-slide-transition>
+      <div v-if="createHedgeForm.autoMatchPoolTarget === 'watchtower_P2P'">
+        <q-input
+          :dark="darkMode"
+          outlined
+          dense
+          label="Match similarity"
+          suffix="%"
+          :disable="loading"
+          inputmode="numeric"
+          v-model="createHedgeForm.p2pMatch.similarity"
+          :rules="[
+            val => (val >= 1) || 'Must be greater than 1%',
+            val => (val <= 100) || 'Must not be higher than 100%'
+          ]"
+        >
+          <template v-slot:append>
+            <q-icon name="help" :color="darkMode ? 'grey-7' : 'black'">
+              <q-popup-proxy :breakpoint="0">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                  If there is no exact match found from the pool,
+                  a list of similar offers is suggested instead
+                </div>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+        </q-input>
+      </div>
+    </q-slide-transition>
 
     <div class="q-gutter-y-md">
       <div v-if="loading" class="text-center">
@@ -333,6 +362,9 @@ const createHedgeForm = ref({
 
   autoMatch: true,
   autoMatchPoolTarget: 'anyhedge_LP',
+  p2pMatch: {
+    similarity: 50,
+  }
 })
 const createHedgeFormMetadata = computed(() => {
   const data = {
@@ -408,6 +440,9 @@ async function clearCreateHedgeForm(opts) {
   createHedgeForm.value.selectedAsset = oracles.value[0]
   createHedgeForm.value.autoMatch = true
   createHedgeForm.value.autoMatchPoolTarget = 'anyhedge_LP'
+  createHedgeForm.value.p2pMatch = {
+    similarity: 50,
+  }
 
   if (opts?.clearErrors) {
     mainError.value = ''
@@ -549,6 +584,7 @@ async function createHedgePosition() {
     // for p2p
     matchedHedgePositionOffer: parseHedgePositionOffer(null),
     isPositionOffer: false,
+    matchSimilarity: createHedgeForm.value.p2pMatch.similarity / 100,
   }
 
   // for p2p
@@ -663,6 +699,7 @@ async function createHedgePosition() {
         low_liquidation_multiplier: intent.lowPriceMult,
         high_liquidation_multiplier: intent.highPriceMult,
         oracle_pubkey: priceData?.oraclePubkey,
+        similarity: misc.matchSimilarity || undefined,
       }
       const findMatchResp = await anyhedgeBackend.post('anyhedge/hedge-position-offers/find_match/', findMatchData)
       p2pMatchOpts.matchingPositionOffer = findMatchResp?.data?.matching_position_offer
