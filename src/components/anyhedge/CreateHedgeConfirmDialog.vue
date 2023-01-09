@@ -11,9 +11,16 @@
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;margin-bottom:3rem;">
       <div class="row no-wrap items-center justify-center q-pl-md q-mb-md">
         <div class="text-h6 q-space q-mt-sm">
-          <template v-if="position === 'hedge'">Stabilize (Hedge)</template>
-          <template v-else-if="position === 'long'">Leverage (Long)</template>
-          <template v-else="position === 'long'">Hedge Contract</template>
+          <template v-if="isPositionOffer">
+            Position offer
+            <template v-if="position === 'hedge'">(Hedge)</template>
+            <template v-else-if="position === 'long'">(Long)</template>
+          </template>
+          <template v-else>
+            <template v-if="position === 'hedge'">Stabilize (Hedge)</template>
+            <template v-else-if="position === 'long'">Leverage (Long)</template>
+            <template v-else>Hedge Contract</template>
+          </template>
         </div>
         <q-btn
           flat
@@ -60,7 +67,7 @@
           </div>
           <q-separator :dark="darkMode"/>
         </div>
-        <div v-if="fundingAmounts">
+        <div v-if="fundingAmounts && !isPositionOffer">
           <div class="text-grey text-subtitle1">Funding</div>
           <div>
             <div
@@ -242,11 +249,11 @@
 
         <div>
           <div class="text-grey text-subtitle1">Payout addresses</div>
-          <div class="q-mb-xs">
+          <div v-if="!isPositionOffer || pubkeys.hedgeAddress" class="q-mb-xs">
             <div class="text-caption text-grey" style="margin-bottom:-0.5em;">Hedge:</div>
             <div class="q-space" style="word-break:break-all;">{{pubkeys.hedgeAddress}}</div>
           </div>
-          <div class="q-mb-xs">
+          <div v-if="!isPositionOffer || pubkeys.longAddress" class="q-mb-xs">
             <div class="text-caption text-grey" style="margin-bottom:-0.5em;">Long:</div>
             <div class="q-space" style="word-break:break-all;">{{pubkeys.longAddress}}</div>
           </div>
@@ -343,6 +350,8 @@ const props = defineProps({
   oracleInfo: Object,
 
   position: String,
+  positionTaker: String,
+  isPositionOffer: Boolean,
 })
 const showSlider = ref(false)
 onMounted(() => {
@@ -364,7 +373,7 @@ const contractValues = computed(() => {
   }
 
   data.hedge.satoshis = props.intent.amount * 10 ** 8
-  data.priceValue = props.priceData?.priceValue
+  if (!props.isPositionOffer) data.priceValue = props.priceData?.priceValue
   if (data.priceValue) {
     data.hedge.nominalUnits = data.hedge.satoshis * data.priceValue
 
@@ -398,7 +407,7 @@ function updateFundingAmounts() {
     startingPriceValue: props.priceData?.priceValue,
     feeSats: props.funding?.fee?.satoshis,
     liquidityFee: props.funding.liquidityFee,
-    position: props.position,
+    position: props.positionTaker || props.position,
   })
     .then(newFundingAmounts => fundingAmounts.value = newFundingAmounts)
     .catch(() => fundingAmounts.value = null)
@@ -432,7 +441,7 @@ const liquidationData = computed(() => {
     high: { pctg: 0, price: 0 },
   }
 
-  data.priceValue = props.priceData?.priceValue
+  if (!props.isPositionOffer) data.priceValue = props.priceData?.priceValue
   data.low.pctg = props.intent.lowPriceMult
   data.high.pctg = props.intent.highPriceMult
   if (data.priceValue) {
@@ -452,7 +461,7 @@ const durationData = computed(() => {
     maturityTimestamp: 0,
   }
 
-  if (props.priceData?.messageTimestamp) {
+  if (props.priceData?.messageTimestamp && !props.isPositionOffer) {
     data.startTimestamp = props.priceData.messageTimestamp
     data.maturityTimestamp = data.startTimestamp + data.duration
   }
