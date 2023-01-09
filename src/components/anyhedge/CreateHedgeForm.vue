@@ -212,17 +212,21 @@
     <q-slide-transition>
       <div v-if="createHedgeForm.autoMatch">
         <div :class="darkMode ? 'text-white' : 'text-grey-7'">Liquidity Pool</div>
-        <q-btn-toggle
-          :dark="darkMode"
-          no-caps
-          label="Liquidity Pool"
-          :disable="loading"
-          v-model="createHedgeForm.autoMatchPoolTarget"
-          :options="[
-            {label: 'General Protocol LP', value: 'anyhedge_LP'},
-            {label: 'Paytaca (P2P)', value: 'watchtower_P2P' },
-          ]"
-        />
+        <div class="row items-center justify-center">
+          <q-btn-toggle
+            :dark="darkMode"
+            no-caps
+            spread
+            class="full-width"
+            label="Liquidity"
+            :disable="loading"
+            v-model="createHedgeForm.autoMatchPoolTarget"
+            :options="[
+              {label: 'BCH Bull', value: 'anyhedge_LP'},
+              {label: 'Peer-to-peer', value: 'watchtower_P2P' },
+            ]"
+          />
+        </div>
       </div>
     </q-slide-transition>
     <q-slide-transition>
