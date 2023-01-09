@@ -97,6 +97,40 @@ export function ellipsisText (value, config) {
  * @property {Number} [network_fee]
  * @property {Number} [total_hedge_funding_sats]
  * @property {Number} [total_long_funding_sats]
+ * 
+ * 
+ * @typedef {Object} HedgePositionOfferAPI
+ * @property {Number} id
+ * @property {String} status
+ * @property {String} position
+ * @property {String} wallet_hash
+ * @property {Number} satoshis
+ * @property {Number} duration_seconds
+ * @property {Number} low_liquidation_multiplier
+ * @property {Number} high_liquidation_multiplier
+ * @property {String} oracle_pubkey
+ * @property {String} address
+ * @property {String} pubkey
+ * @property {String} address_path
+ * @property {Object} [hedge_position]
+ * @property {String} [expires_at]
+ * @property {String} created_at
+ * @property {HedgePositionOfferCounterPartyInfoAPI} [data.counter_party_info]
+ * 
+ * @typedef {Object} HedgePositionOfferCounterPartyInfoAPI
+ * @property {String} settlement_deadline
+ * @property {String} contract_address
+ * @property {String} anyhedge_contract_version
+ * @property {String} wallet_hash
+ * @property {String} address
+ * @property {String} pubkey
+ * @property {String} address_path
+ * @property {String} price_message_timestamp
+ * @property {Number} price_value
+ * @property {Number} oracle_message_sequence
+ * @property {String} settlement_service_fee
+ * @property {String} settlement_service_fee_address
+ * @property {Number} [calculated_hedge_sats]
 */
 
 /**
@@ -323,4 +357,54 @@ export function parseSettlementMetadata(contract) {
     }
   }
   return data
+}
+
+/**
+ * @param {HedgePositionOfferAPI} data
+ */
+export function parseHedgePositionOffer(data) {
+  const parsedData = {
+    id: data?.id,
+    status: data?.status,
+    position: data?.position,
+    walletHash: data?.wallet_hash,
+    satoshis: data?.satoshis,
+    durationSeconds: data?.duration_seconds,
+    lowLiquidationPriceMultiplier: data?.low_liquidation_multiplier,
+    highLiquidationPriceMultiplier: data?.high_liquidation_multiplier,
+    oraclePubkey: data?.oracle_pubkey,
+    address: data?.address,
+    pubkey: data?.pubkey,
+    addressPath: data?.address_path,
+    hedgePosition: data?.hedge_position ?
+      parseHedgePositionData(data.hedge_position) :
+      null,
+    expiresAt: data?.expires_at ? new Date(data?.expires_at) / 1000 : null,
+    createdAt: data?.created_at ? new Date(data?.created_at) / 1000 : null,
+    counterPartyInfo: data?.counter_party_info ?
+      parseCounterPartyInfo(data.counter_party_info) :
+      null,
+  }
+  return parsedData
+}
+
+/**
+ * @param {HedgePositionOfferCounterPartyInfoAPI} counterPartyInfo 
+ */
+export function parseCounterPartyInfo(counterPartyInfo) {
+  return {
+    settlementDeadline: counterPartyInfo?.settlement_deadline ? new Date(counterPartyInfo?.settlement_deadline) / 1000 : null,
+    contractAddress: counterPartyInfo?.contract_address,
+    contractVersion: counterPartyInfo?.anyhedge_contract_version,
+    walletHash: counterPartyInfo?.wallet_hash,
+    address: counterPartyInfo?.address,
+    pubkey: counterPartyInfo?.pubkey,
+    addressPath: counterPartyInfo?.address_path,
+    priceMessageTimestamp: counterPartyInfo?.price_message_timestamp ? new Date(counterPartyInfo?.price_message_timestamp) / 1000 : null,
+    priceValue: counterPartyInfo?.price_value,
+    oracleMessageSequence: counterPartyInfo?.oracle_message_sequence,
+    settlementServiceFee: counterPartyInfo?.settlement_service_fee,
+    settlementServiceFeeAddress: counterPartyInfo?.settlement_service_fee_address,
+    calculatedHedgeSats: counterPartyInfo?.calculated_hedge_sats,
+  }
 }

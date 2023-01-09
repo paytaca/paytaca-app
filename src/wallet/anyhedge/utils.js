@@ -77,3 +77,21 @@ export async function getPrivateKey(contractData, position, wallet) {
     const defaultPathPrivkey = await wallet.BCH.getPrivateKey(`0/0`)
     if (checkPrivAndPubkey(defaultPathPrivkey, pubkey)) return defaultPathPrivkey
 }
+
+/**
+ * 
+ * @param {Object} opts 
+ * @param {'hedge' | 'long'} opts.position
+ * @param {Number} opts.satoshis 
+ * @param {Number} opts.lowLiquidationPriceMultiplier
+ */
+export function estimateCounterPartySats(opts) {
+    let sats = 0
+    const multiplier = ((1 - opts.lowLiquidationPriceMultiplier) / opts.lowLiquidationPriceMultiplier)
+    if (opts?.position === 'hedge') {
+        sats = opts.satoshis * multiplier
+    } else if (opts?.position === 'long') {
+        sats = opts.satoshis / multiplier
+    }
+    return Math.round(sats)
+}
