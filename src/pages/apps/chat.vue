@@ -4,20 +4,20 @@
     :class="{'pt-dark': darkMode}"
   >
     <header-nav title="Chat [beta]" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-  <div class="q-pa-md row justify-center">
+  <div class="q-pa-md row justify-center text-black">
     <div class="q-pa-md row justify-center">
-      <p class="text-black">You are chatting as:</p>
+      <p :class="{'text-white': darkMode}">You are chatting as:</p>
       <div class="q-pa-md row justify-center" style="width: 100%; margin-top: -15px;">
-        <small class="text-black">{{ getAddress() }}</small>
+        <small :class="{'text-white': darkMode}">{{ getAddress() }}</small>
       </div>
     </div>
     <div class="q-pa-md row justify-center">
       <div class="q-pa-md row justify-center">
         <template v-if="recipientAddress">
           <div class="q-pa-md row justify-center" style="margin-top: -55px;">
-            <p class="text-black">You are chatting with:</p>
+            <p :class="{'text-white': darkMode}">You are chatting with:</p>
             <div class="row justify-center" style="width: 100%;">
-              <small class="text-black">{{ recipientAddress }}</small>
+              <small :class="{'text-white': darkMode}">{{ recipientAddress }}</small>
             </div>
           </div>
         </template>
@@ -29,6 +29,7 @@
             style="width: 300px; margin-top: -15px;"
             :error-message="recipientError"
             :error="recipientError !== null"
+            :dark="darkMode"
             outlined
             dense
           >
@@ -49,13 +50,14 @@
       <div v-for="message in messages" style="width: 100%; max-width: 400px">
         <q-chat-message
           :text="[message.msg]"
-          :sent="message.name === me"
+          :sent="message.from === me"
           :stamp="formatTimestamp(message.timestamp)"
         />
       </div>
       <div class="q-pt-lg" style="width: 100%; max-width: 400px">
         <q-input
           v-model="message"
+          :dark="darkMode"
           filled
           autogrow
         />
@@ -135,11 +137,11 @@ export default {
         })
 
         const message = {
-          'name': vm.me,
+          'from': vm.me,
           'msg': Buffer.from(encrypted).toString('base64'),
           'timestamp': Date.now()
         }
-        vm.mqttClient.publish(vm.buildTopic(), JSON.stringify(message), { qos: 1, retain: true })
+        vm.mqttClient.publish(vm.buildTopic(), JSON.stringify(message), { qos: 0, retain: true })
         vm.message = null
       }
     },
@@ -150,7 +152,7 @@ export default {
     
       let decrypted, signatures, verificationKey
       try {
-        if (payload.name === this.me) {
+        if (payload.from === this.me) {
           verificationKey = await openpgp.readKey({ armoredKey: this.pgpKeys.public })
         } else {
           verificationKey = await openpgp.readKey({ armoredKey: this.recipientPublicKey })
