@@ -78,11 +78,20 @@
 
 <script>
 import HeaderNav from '../../components/header-nav'
+import { getMnemonic, Wallet } from '../../wallet'
 import * as openpgp from 'openpgp/lightweight'
 import * as mqtt from 'mqtt'
 import axios from 'axios'
 import sha256 from 'js-sha256'
+import BCHJS from '@psf/bch-js';
+
+const bchjs = new BCHJS()
 const ago = require('s-ago')
+
+const chatBackend = axios.create({
+  // baseURL: 'https://watchtower.cash/api'
+  baseURL: 'http://localhost:8000/api'
+})
 
 export default {
   name: 'app-chat',
@@ -117,8 +126,8 @@ export default {
   methods: {
     async retrievePublicKey (address) {
       // Get the public key
-      const url = `http://localhost:8000/api/chat/info/${address}`
-      const resp = await axios.get(url)
+      const url = `/chat/info/${address}`
+      const resp = await chatBackend.get(url)
       if (resp.status === 200) {
         this.recipientPublicKey = Buffer.from(resp.data.public_key, 'base64').toString()
       }
@@ -138,6 +147,7 @@ export default {
 
         const message = {
           'from': vm.me,
+          'to': vm.recipientAddress,
           'msg': Buffer.from(encrypted).toString('base64'),
           'timestamp': Date.now()
         }
@@ -217,8 +227,6 @@ export default {
         public: identity.publicKey,
         private: identity.privateKey
       }
-      // const pkB64 = Buffer.from(vm.pgpKeys.public).toString('base64')
-      // console.log(pkB64)
     } else {
       const userID = address.split(':')[1]
       const email = userID + '@bchmail.site'
@@ -236,7 +244,28 @@ export default {
         publicKey: publicKey,
         privateKey: privateKey
       }
-      vm.$store.dispatch('chat/addIdentity', newIdentity)
+
+      const mnemonic = await getMnemonic()
+      const wallet = new Wallet(mnemonic, 'bch')
+
+      const public_key_hash = sha256(publicKey)
+      const lastAddressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+      const signature = await wallet.BCH.signMessage(public_key_hash, lastAddressIndex)
+      const payload = {
+        bch_address: address,
+        user_id: userID,
+        email: email,
+        public_key: Buffer.from(publicKey).toString('base64'),
+        public_key_hash: public_key_hash,
+        signature: Buffer.from(signature).toString('base64')
+      }
+
+      const url = `/chat/info/`
+      chatBackend.post(url, payload).then(function (resp) {
+        if (resp.status === 201) {
+          vm.$store.dispatch('chat/addIdentity', newIdentity)
+        }
+      })
 
       vm.pgpKeys = {
         public: publicKey,
