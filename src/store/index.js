@@ -11,6 +11,7 @@ import paytacapos from './paytacapos'
 import sep20 from './sep20'
 import walletconnect from './walletconnect'
 import gifts from './gifts'
+import chat from './chat'
 
 /*
  * If not building with SSR mode, you can
@@ -34,7 +35,8 @@ export default function (/* { ssrContext } */) {
       paytacapos,
       sep20,
       walletconnect,
-      gifts
+      gifts,
+      chat
     },
 
     // enable strict mode (adds overhead!)

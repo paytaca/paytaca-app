@@ -13,18 +13,18 @@
     </div>
     <div class="q-pa-md row justify-center">
       <div class="q-pa-md row justify-center">
-        <template v-if="recipient">
+        <template v-if="recipientAddress">
           <div class="q-pa-md row justify-center" style="margin-top: -55px;">
             <p class="text-black">You are chatting with:</p>
             <div class="row justify-center" style="width: 100%;">
-              <small class="text-black">{{ recipient }}</small>
+              <small class="text-black">{{ recipientAddress }}</small>
             </div>
           </div>
         </template>
         <template v-else>
           <q-input
             class="q-mt-md"
-            v-model="recipient"
+            v-model="recipientAddress"
             label="Set address to chat with"
             style="width: 300px; margin-top: -15px;"
             :error-message="recipientError"
@@ -42,13 +42,12 @@
         icon-right="mdi-connection"
         label="Start Chat"
         @click.prevent="connectToBroker"
-        :disable="!recipient"
+        :disable="!recipientAddress"
       />
     </div>
     <template v-if="connected">
       <div v-for="message in messages" style="width: 100%; max-width: 400px">
         <q-chat-message
-          :name="message.name"
           :text="[message.msg]"
           :sent="message.name === me"
           :stamp="formatTimestamp(message.timestamp)"
@@ -66,7 +65,7 @@
           color="blue"
           icon-right="send"
           label="Send"
-          @click.prevent="sendChatMessage"
+          @click.prevent="sendEncryptedChatMessage"
           :disable="!message"
         />
       </div>
@@ -77,8 +76,9 @@
 
 <script>
 import HeaderNav from '../../components/header-nav'
-import { generateKey } from 'openpgp/lightweight'
+import * as openpgp from 'openpgp/lightweight'
 import * as mqtt from 'mqtt'
+import axios from 'axios'
 import sha256 from 'js-sha256'
 const ago = require('s-ago')
 
@@ -87,9 +87,13 @@ export default {
   components: { HeaderNav },
   data () {
     return {
-      key: null,
+      pgpKeys: {
+        public: null,
+        private: null
+      },
       me: this.getAddress(),
-      recipient: null,
+      recipientAddress: null,
+      recipientPublicKey: null,
       recipientError: null,
       message: null,
       mqttClient: null,
@@ -99,25 +103,70 @@ export default {
     }
   },
   watch: {
-    recipient (val) {
-      console.log(val, this.me)
+    recipientAddress (val) {
       if (val === this.me) {
         this.recipientError = 'Must be different from your address'
-        this.recipient = null
+        this.recipientAddress = null
+      } else {
+        this.retrievePublicKey(val)
       }
     }
   },
   methods: {
-    sendChatMessage () {
+    async retrievePublicKey (address) {
+      // Get the public key
+      const url = `http://localhost:8000/api/chat/info/${address}`
+      const resp = await axios.get(url)
+      if (resp.status === 200) {
+        this.recipientPublicKey = Buffer.from(resp.data.public_key, 'base64').toString()
+      }
+    },
+    async sendEncryptedChatMessage () {
       const vm = this
       if (this.mqttClient && this.message) {
+        const recipientPublicKey = await openpgp.readKey({ armoredKey: this.recipientPublicKey })
+        const publicKey = await openpgp.readKey({ armoredKey: this.pgpKeys.public })
+        const privateKey = await openpgp.readPrivateKey({ armoredKey: this.pgpKeys.private })
+
+        const encrypted = await openpgp.encrypt({
+            message: await openpgp.createMessage({ text: this.message }),
+            encryptionKeys: [recipientPublicKey, publicKey], 
+            signingKeys: privateKey
+        })
+
         const message = {
           'name': vm.me,
-          'msg': this.message,
+          'msg': Buffer.from(encrypted).toString('base64'),
           'timestamp': Date.now()
         }
         vm.mqttClient.publish(vm.buildTopic(), JSON.stringify(message), { qos: 1, retain: true })
         vm.message = null
+      }
+    },
+    async decryptChatMessage (payload) {
+      const message = await openpgp.readMessage({
+        armoredMessage: Buffer.from(payload.msg, 'base64').toString()
+      })
+    
+      let decrypted, signatures, verificationKey
+      try {
+        if (payload.name === this.me) {
+          verificationKey = await openpgp.readKey({ armoredKey: this.pgpKeys.public })
+        } else {
+          verificationKey = await openpgp.readKey({ armoredKey: this.recipientPublicKey })
+        }
+        const privateKey = await openpgp.readPrivateKey({ armoredKey: this.pgpKeys.private })
+        const { data: decrypted, signatures } = await openpgp.decrypt({
+          message,
+          decryptionKeys: privateKey,
+          expectSigned: true,
+          verificationKeys: verificationKey,
+        })
+
+        payload.msg = decrypted
+        this.messages.push(payload)
+      } catch (e) {
+        throw new Error('Message could not be decrypted: ' + e.message)
       }
     },
     formatTimestamp (timestamp) {
@@ -125,7 +174,7 @@ export default {
       return ago(ts)
     },
     buildTopic () {
-      let parties = [this.me, this.recipient]
+      let parties = [this.me, this.recipientAddress]
       parties.sort()
       return 'chat/' + sha256(parties.join()) + '/direct'
     },
@@ -134,7 +183,7 @@ export default {
     },
     connectToBroker () {
       const vm = this
-      vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + ':8083/mqtt')
+      vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + '/mqtt')
       vm.mqttClient.on('connect', function () {
         vm.mqttClient.subscribe(vm.buildTopic(), function (err) {
           if (err) {
@@ -151,14 +200,47 @@ export default {
         if (!msg.timestamp) {
           msg.timestamp = timeNow
         }
-        vm.messages.push(msg)
+
+        vm.decryptChatMessage(msg)
       })
     }
   },
   async mounted () {
     const vm = this
-    vm.key = await generateKey({ curve: 'p521',  userIDs: [{ name: 'Test', email: 'test@test.com' }] })
-    console.log(this.key)
+
+    const address = this.getAddress()
+    const identity = vm.$store.getters['chat/getIdentity'](address)
+    if (identity) {
+      vm.pgpKeys = {
+        public: identity.publicKey,
+        private: identity.privateKey
+      }
+      // const pkB64 = Buffer.from(vm.pgpKeys.public).toString('base64')
+      // console.log(pkB64)
+    } else {
+      const userID = address.split(':')[1]
+      const email = userID + '@bchmail.site'
+
+      // Generate or use existing key
+      const { privateKey, publicKey, revocationCertificate } = await openpgp.generateKey({
+        curve: 'p521',
+        userIDs: [{ name: userID, email: email }]
+      })
+
+      const newIdentity = {
+        address: address,
+        userId: userID,
+        email: email,
+        publicKey: publicKey,
+        privateKey: privateKey
+      }
+      vm.$store.dispatch('chat/addIdentity', newIdentity)
+
+      vm.pgpKeys = {
+        public: publicKey,
+        private: privateKey
+      }
+    }
   }
 }
 </script>
