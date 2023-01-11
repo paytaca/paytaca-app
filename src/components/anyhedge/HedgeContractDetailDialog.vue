@@ -329,7 +329,21 @@
           </div>
           <div v-if="settled && summaryDataAvailable">
             <div class="text-grey text-subtitle1">Summary</div>
-            <div v-if="viewAs === 'hedge'">
+            <div v-if="settlementMetadata.settlementType === 'mutual'">
+              <template v-if="viewAs === 'hedge'">
+                You {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? 'lost' : 'gained' }}
+                <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.actualSatsChange)}` + ' text-weight-medium'">
+                  {{ settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8 }} BCH
+                </span>.
+              </template>
+              <template v-else-if="viewAs === 'long'">
+                You {{ settlementMetadata.summary.long.actualSatsChange < 0 ? 'lost' : 'gained' }}
+                <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
+                  {{ settlementMetadata.summary.long.actualSatsChange / 10 ** 8 }} BCH
+                </span>.
+              </template>
+            </div>
+            <div v-else-if="viewAs === 'hedge'">
               Contract value
               <template v-if="settlementMetadata.summary.hedge.assetChangePctg === 0">
                 maintained
@@ -349,7 +363,7 @@
               </span>
               {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? 'loss' : 'gain' }}.
             </div>
-            <div v-if="viewAs === 'long'">
+            <div v-else-if="viewAs === 'long'">
               You {{ settlementMetadata.summary.long.actualSatsChange < 0 ? 'lost' : 'gained' }}
               <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
                 {{ settlementMetadata.summary.long.actualSatsChange / 10 ** 8 }} BCH
