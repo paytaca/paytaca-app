@@ -97,6 +97,7 @@ export default {
   components: { HeaderNav },
   data () {
     return {
+      wallet: null,
       pgpKeys: {
         public: null,
         private: null
@@ -124,11 +125,29 @@ export default {
   },
   methods: {
     async retrievePublicKey (address) {
-      // Get the public key
+      const vm = this
+      // Get the public key and verify
       const url = `/chat/info/${address}`
       const resp = await chatBackend.get(url)
       if (resp.status === 200) {
-        this.recipientPublicKey = Buffer.from(resp.data.public_key, 'base64').toString()
+        if (vm.wallet) {
+          let correctHash, validSignature
+          try {
+            const recipientPublicKey = Buffer.from(resp.data.public_key, 'base64').toString()
+            const signature = Buffer.from(resp.data.signature, 'base64').toString()
+            correctHash = resp.data.public_key_hash === sha256(recipientPublicKey)
+            validSignature = await vm.wallet.BCH.verifyMessage(
+              address,
+              signature,
+              resp.data.public_key_hash
+            )
+            if (correctHash && validSignature) {
+              vm.recipientPublicKey = recipientPublicKey
+            }
+          } catch (e) {
+            throw new Error('Public key verification failed: ' + e.message)
+          }
+        }
       }
     },
     async sendEncryptedChatMessage () {
@@ -219,6 +238,9 @@ export default {
   async mounted () {
     const vm = this
 
+    const mnemonic = await getMnemonic()
+    vm.wallet = new Wallet(mnemonic, 'bch')
+
     const address = this.getAddress()
     const identity = vm.$store.getters['chat/getIdentity'](address)
     if (identity) {
@@ -244,12 +266,9 @@ export default {
         privateKey: privateKey
       }
 
-      const mnemonic = await getMnemonic()
-      const wallet = new Wallet(mnemonic, 'bch')
-
       const public_key_hash = sha256(publicKey)
       const lastAddressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
-      const signature = await wallet.BCH.signMessage(public_key_hash, lastAddressIndex)
+      const signature = await vm.wallet.BCH.signMessage(public_key_hash, lastAddressIndex)
       const payload = {
         bch_address: address,
         user_id: userID,

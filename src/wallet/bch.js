@@ -271,6 +271,14 @@ export class BchWallet {
       message
     )
   }
+
+  async verifyMessage (address, signature, message) {
+    return bchjs.BitcoinCash.verifyMessage(
+      address,
+      signature,
+      message
+    )
+  }
 }
 
 
