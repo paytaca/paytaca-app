@@ -47,7 +47,57 @@
               val => val <= settlemenPriceBounds.max || `Must be less than ${settlemenPriceBounds.max}`,
             ]"
           />
-          <div class="row items-center no-wrap q-gutter-x-sm">
+
+          <div v-if="mutualRedemptionProposal.redemptionType === 'arbitrary'" class="row items-center">
+            <q-space/>
+            <q-btn
+              flat
+              rounded
+              padding="sm"
+              :icon="mutualRedemptionProposal.arbitraryUseSliders ? 'tune' : 'keyboard'"
+              @click="mutualRedemptionProposal.arbitraryUseSliders = !mutualRedemptionProposal.arbitraryUseSliders"
+            />
+          </div>
+          <div
+            v-if="mutualRedemptionProposal.redemptionType === 'arbitrary' && mutualRedemptionProposal.arbitraryUseSliders"
+            class="q-mx-sm"
+          >
+            <div>
+              <div class="row">
+                <div class="q-space">Hedge</div>
+                <div>{{ mutualRedemptionProposal.hedgeBch }} BCH</div>
+              </div>
+              <q-slider
+                :dark="darkMode"
+                color="brandblue"
+                :min="0"
+                :inner-min="DUST"
+                :max="totalPayoutSats/10 ** 8"
+                :inner-max="totalPayoutSats/10 ** 8-DUST"
+                :step="10 ** -6"
+                v-model="mutualRedemptionProposal.hedgeBch"
+              >
+              </q-slider>
+            </div>
+            <div>
+              <div class="row">
+                <div class="q-space">Long</div>
+                <div>{{ mutualRedemptionProposal.longBch }} BCH</div>
+              </div>
+              <q-slider
+                :dark="darkMode"
+                color="brandblue"
+                :min="0"
+                :inner-min="DUST"
+                :max="totalPayoutSats/10 ** 8"
+                :inner-max="totalPayoutSats/10 ** 8-DUST"
+                :step="10 ** -6"
+                v-model="mutualRedemptionProposal.longBch"
+              >
+              </q-slider>
+            </div>
+          </div>
+          <div v-else class="row items-center no-wrap q-gutter-x-sm">
             <q-input
               :dark="darkMode"
               outlined
@@ -119,6 +169,7 @@ defineEmits([
 ])
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
+const DUST = computed(() => 546 / 10 ** 8)
 // misc
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
@@ -156,19 +207,28 @@ const fundingSatoshis = computed(() => {
   return manager.calculateTotalRequiredFundingSatoshis(props.contract)
 })
 
+const refundBchPayout = computed(() => {
+  return {
+    hedge: (props?.contract?.metadata?.hedgeInputSats) / 10 ** 8,
+    long: (props?.contract?.metadata?.longInputSats) / 10 ** 8,
+  }
+})
+
 const mutualRedemptionProposal = ref({
   redemptionType: '',
   settlementPrice: 0,
   hedgeBch: 0,
   longBch: 0,
+
+  arbitraryUseSliders: false,
 })
 
 watch(
   () => [mutualRedemptionProposal.value.redemptionType],
   () => {
     if (mutualRedemptionProposal.value.redemptionType == 'refund') {
-      mutualRedemptionProposal.value.hedgeBch = (props?.contract?.metadata?.hedgeInputSats) / 10 ** 8
-      mutualRedemptionProposal.value.longBch = (props?.contract?.metadata?.longInputSats) / 10 ** 8
+      mutualRedemptionProposal.value.hedgeBch = refundBchPayout.value.hedge
+      mutualRedemptionProposal.value.longBch = refundBchPayout.value.long
     } else if (mutualRedemptionProposal.value.redemptionType == 'early_maturation') {
       let settlementPrice = oracleInfo.value?.latestPrice?.priceValue
       if (assetDecimals.value) settlementPrice = settlementPrice / 10 ** assetDecimals.value
@@ -179,14 +239,14 @@ watch(
 
 watch(() => mutualRedemptionProposal.value.hedgeBch, () => {
   if (mutualRedemptionProposal.value.redemptionType == 'arbitrary' && fundingSatoshis.value) {
-    const longSats = totalPayoutSats.value - mutualRedemptionProposal.value.hedgeBch * 10 ** 8
+    const longSats = Math.round(totalPayoutSats.value - mutualRedemptionProposal.value.hedgeBch * 10 ** 8)
     mutualRedemptionProposal.value.longBch = longSats / 10 ** 8
   }
 })
 
 watch(() => mutualRedemptionProposal.value.longBch, () => {
   if (mutualRedemptionProposal.value.redemptionType == 'arbitrary' && fundingSatoshis.value) {
-    const hedgeSats = totalPayoutSats.value - mutualRedemptionProposal.value.longBch * 10 ** 8
+    const hedgeSats = Math.round(totalPayoutSats.value - mutualRedemptionProposal.value.longBch * 10 ** 8)
     mutualRedemptionProposal.value.hedgeBch = hedgeSats / 10 ** 8
   }
 })
