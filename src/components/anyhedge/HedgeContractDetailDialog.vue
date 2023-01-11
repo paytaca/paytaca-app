@@ -80,84 +80,24 @@
                 target="_blank"
               />
             </div>
-            <div
+            <FundingAmountsPanel
               v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.settlementService"
+              :dark-mode="darkMode"
+              label="Hedge" :data="fundingMetadata.hedge"
               class="q-pr-md"
-            >
-              <div class="row">
-                <div class="q-space">Hedge</div>
-                <div>
-                  <div v-if="fundingMetadata.hedge.total">
-                    {{ fundingMetadata.hedge.total / 10 ** 8 }} BCH
-                  </div>
-                  <div v-else class="text-grey">---</div>
-                </div>
-              </div>
-              <div :class="darkMode ? 'text-grey' : 'text-grey-7'">
-                <div v-if="fundingMetadata.hedge.fees.network" class="row q-pl-md">
-                  <div class="q-space">Network fee:</div>
-                  <div>{{ fundingMetadata.hedge.fees.network / 10 ** 8 }} BCH</div>
-                </div>
-                <div v-if="fundingMetadata.hedge.fees.premium" class="row q-pl-md">
-                  <div class="q-space">Premium:</div>
-                  <div>{{ fundingMetadata.hedge.fees.premium / 10 ** 8 }} BCH</div>
-                </div>
-                <div v-if="fundingMetadata.hedge.fees.settlementService" class="row q-pl-md">
-                  <div class="q-space">Service fee:</div>
-                  <div>{{ fundingMetadata.hedge.fees.settlementService / 10 ** 8 }} BCH</div>
-                </div>
-              </div>
-            </div>
-            <div
+            />
+            <FundingAmountsPanel
               v-if="fundingMetadata.long.fees.network || fundingMetadata.long.fees.premium || fundingMetadata.long.fees.settlementService"
+              :dark-mode="darkMode"
+              label="Long" :data="fundingMetadata.long"
               class="q-pr-md"
-            >
-              <div class="row">
-                <div class="q-space">Long</div>
-                <div>
-                  <div v-if="fundingMetadata.long.total">
-                    {{ fundingMetadata.long.total / 10 ** 8 }} BCH
-                  </div>
-                  <div v-else class="text-grey">---</div>
-                </div>
-              </div>
-              <div :class="darkMode ? 'text-grey' : 'text-grey-7'">
-                <div v-if="fundingMetadata.long.fees.network" class="row q-pl-md">
-                  <div class="q-space">Network fee:</div>
-                  <div>{{ fundingMetadata.long.fees.network / 10 ** 8 }} BCH</div>
-                </div>
-                <div v-if="fundingMetadata.long.fees.premium" class="row q-pl-md">
-                  <div class="q-space">Premium:</div>
-                  <div>{{ fundingMetadata.long.fees.premium / 10 ** 8 }} BCH</div>
-                </div>
-                <div v-if="fundingMetadata.long.fees.settlementService" class="row q-pl-md">
-                  <div class="q-space">Service fee:</div>
-                  <div>{{ fundingMetadata.long.fees.settlementService / 10 ** 8 }} BCH</div>
-                </div>
-              </div>
-            </div>
-            <div
+            />
+            <FundingAmountsPanel
               v-if="fundingMetadata.fees.network || fundingMetadata.fees.premium || fundingMetadata.fees.settlementService"
+              :dark-mode="darkMode"
+              label="Other fees" :data="fundingMetadata"
               class="q-pr-md"
-            >
-              <div class="q-space">Other fees:</div>
-              <div :class="darkMode ? 'text-grey' : 'text-grey-7'">
-                <div v-if="fundingMetadata.fees.network" class="row q-pl-md">
-                  <div class="q-space">Network fee:</div>
-                  <div>{{ fundingMetadata.fees.network / 10 ** 8 }} BCH</div>
-                </div>
-                <div v-if="fundingMetadata.fees.premium" class="row q-pl-md">
-                  <div class="q-space">
-                    Premium {{ fundingMetadata.fees.premiumTaker ? `(${fundingMetadata.fees.premiumTaker})`: '' }}:
-                  </div>
-                  <div>{{ fundingMetadata.fees.premium / 10 ** 8 }} BCH</div>
-                </div>
-                <div v-if="fundingMetadata.fees.settlementService" class="row q-pl-md">
-                  <div class="q-space">Service fee:</div>
-                  <div>{{ fundingMetadata.fees.settlementService / 10 ** 8 }} BCH</div>
-                </div>
-              </div>
-            </div>
+            />
           </div>
           <div v-else>
             <q-badge color="grey-7">
@@ -167,11 +107,19 @@
               <div class="col-3 text-body1">Hedge</div>
               <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
               <template v-else>
-                <q-btn v-if="viewAsHedge" no-caps label="Submit funding proposal" color="brandblue" padding="none sm" @click="fundHedgeProposal('hedge')"/>
+                <q-btn
+                  v-if="viewAsHedge"
+                  :disable="matured"
+                  no-caps
+                  label="Submit funding proposal"
+                  color="brandblue"
+                  padding="none sm"
+                  @click="fundHedgeProposal('hedge')"
+                />
                 <q-badge v-else color="grey-7">Not yet submitted</q-badge>
               </template>
               <q-space/>
-              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -192,16 +140,31 @@
                 </q-menu>
               </q-btn>
             </div>
+            <FundingAmountsPanel
+              :dark-mode="darkMode"
+              hide-total
+              total-bottom
+              :data="calculatedFundingAmounts.hedge"
+              class="q-pl-sm q-pr-md"
+            />
 
             <div class="row items-center q-gutter-x-xs">
               <div class="col-3 text-body1">Long</div>
               <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
               <template v-else>
-                <q-btn v-if="viewAsLong" no-caps label="Submit funding proposal" color="brandblue" padding="none sm" @click="fundHedgeProposal('long')"/>
+                <q-btn
+                  v-if="viewAsLong"
+                  :disable="matured"
+                  no-caps
+                  label="Submit funding proposal"
+                  color="brandblue"
+                  padding="none sm"
+                  @click="fundHedgeProposal('long')"
+                />
                 <q-badge v-else color="grey-7">Not yet submitted</q-badge>
               </template>
               <q-space/>
-              <q-btn v-if="contract.longFundingProposal && viewAsLong" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -222,6 +185,13 @@
                 </q-menu>
               </q-btn>
             </div>
+            <FundingAmountsPanel
+              :dark-mode="darkMode"
+              hide-label
+              total-bottom
+              :data="calculatedFundingAmounts.long"
+              class="q-pl-sm q-pr-md"
+            />
           </div>
 
           <div
@@ -229,6 +199,7 @@
             class="q-mt-sm"
           >
             <q-btn
+              :disable="matured"
               padding="none md"
               no-caps
               label="Complete Funding Proposal"
@@ -358,7 +329,21 @@
           </div>
           <div v-if="settled && summaryDataAvailable">
             <div class="text-grey text-subtitle1">Summary</div>
-            <div v-if="viewAs === 'hedge'">
+            <div v-if="settlementMetadata.settlementType === 'mutual'">
+              <template v-if="viewAs === 'hedge'">
+                You {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? 'lost' : 'gained' }}
+                <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.actualSatsChange)}` + ' text-weight-medium'">
+                  {{ settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8 }} BCH
+                </span>.
+              </template>
+              <template v-else-if="viewAs === 'long'">
+                You {{ settlementMetadata.summary.long.actualSatsChange < 0 ? 'lost' : 'gained' }}
+                <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
+                  {{ settlementMetadata.summary.long.actualSatsChange / 10 ** 8 }} BCH
+                </span>.
+              </template>
+            </div>
+            <div v-else-if="viewAs === 'hedge'">
               Contract value
               <template v-if="settlementMetadata.summary.hedge.assetChangePctg === 0">
                 maintained
@@ -378,7 +363,7 @@
               </span>
               {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? 'loss' : 'gain' }}.
             </div>
-            <div v-if="viewAs === 'long'">
+            <div v-else-if="viewAs === 'long'">
               You {{ settlementMetadata.summary.long.actualSatsChange < 0 ? 'lost' : 'gained' }}
               <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
                 {{ settlementMetadata.summary.long.actualSatsChange / 10 ** 8 }} BCH
@@ -498,13 +483,14 @@
 <script setup>
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
-import { calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
+import { calculateContractFundingWithFees, calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
 import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
 import { getPrivateKey } from 'src/wallet/anyhedge/utils'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
+import FundingAmountsPanel from './FundingAmountsPanel.vue'
 import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 
@@ -667,6 +653,15 @@ const fundingMetadata = computed(() => {
 
   return data
 })
+
+const calculatedFundingAmounts = computed(() => {
+  return calculateContractFundingWithFees({
+    contractData: props.contract,
+    position: props.contract?.apiMetadata?.positionTaker,
+    liquidityFee: props.contract?.apiMetadata?.liquidityFee,
+  })
+})
+const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.maturityTimestamp)
 const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
 const summaryDataAvailable = computed(() => {
   if (props.viewAs === 'hedge' && settlementMetadata.value.summary.hedge) return true
@@ -729,6 +724,7 @@ async function getAddresses() {
 
 
 async function fundHedgeProposal(position) {
+  const positionTaker = props.contract.apiMetadata?.positionTaker || position
   const dialog = $q.dialog({
     title: 'Submitting funding proposal',
     message: 'Retrieving addresses',
@@ -753,7 +749,7 @@ async function fundHedgeProposal(position) {
 
   try {
     dialog.update({ message: 'Calculating funding amount' })
-    const { hedge, long } = calculateFundingAmounts(props.contract, 'hedge', 0)
+    const { hedge, long } = calculateFundingAmounts(props.contract, positionTaker, 0)
     let amount
     if (position === 'hedge') amount = Math.round(hedge)/10**8
     else if (position === 'long') amount = Math.round(long)/10**8
@@ -776,7 +772,9 @@ async function fundHedgeProposal(position) {
   try {
     dialog.update({ persistent: true, ok: false, progress: true })
     dialog.update({ message: 'Creating funding proposal' })
-    const createFundingProposalResponse = await createFundingProposal(props.contract, position, props.wallet, addressSet, 0, 'hedge')
+    const createFundingProposalResponse = await createFundingProposal(
+      props.contract, position, props.wallet, addressSet, 0, positionTaker,
+    )
     fundingUtxo = createFundingProposalResponse.fundingUtxo
     signedFundingProposal = createFundingProposalResponse.signedFundingProposal
   } catch(error) {

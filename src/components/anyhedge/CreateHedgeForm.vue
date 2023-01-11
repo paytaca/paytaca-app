@@ -208,23 +208,56 @@
           </div>
         </q-popup-proxy>
       </q-icon>
-    </div>
+    </div> -->
     <q-slide-transition>
       <div v-if="createHedgeForm.autoMatch">
         <div :class="darkMode ? 'text-white' : 'text-grey-7'">Liquidity Pool</div>
-        <q-btn-toggle
-          :dark="darkMode"
-          no-caps
-          label="Liquidity Pool"
-          :disable="loading"
-          v-model="createHedgeForm.autoMatchPoolTarget"
-          :options="[
-            {label: 'General Protocol LP', value: 'anyhedge_LP'},
-            {label: 'Paytaca (P2P)', value: 'watchtower_P2P', disable: true },
-          ]"
-        />
+        <div class="row items-center justify-center">
+          <q-btn-toggle
+            :dark="darkMode"
+            no-caps
+            spread
+            class="full-width"
+            label="Liquidity"
+            :disable="loading"
+            v-model="createHedgeForm.autoMatchPoolTarget"
+            :options="[
+              {label: 'BCH Bull', value: 'anyhedge_LP'},
+              {label: 'Peer-to-peer', value: 'watchtower_P2P' },
+            ]"
+          />
+        </div>
       </div>
-    </q-slide-transition> -->
+    </q-slide-transition>
+    <q-slide-transition>
+      <div v-if="createHedgeForm.autoMatchPoolTarget === 'watchtower_P2P'">
+        <q-input
+          :dark="darkMode"
+          outlined
+          dense
+          label="Match similarity"
+          suffix="%"
+          :disable="loading"
+          inputmode="numeric"
+          v-model="createHedgeForm.p2pMatch.similarity"
+          :rules="[
+            val => (val >= 1) || 'Must be greater than 1%',
+            val => (val <= 100) || 'Must not be higher than 100%'
+          ]"
+        >
+          <template v-slot:append>
+            <q-icon name="help" :color="darkMode ? 'grey-7' : 'black'">
+              <q-popup-proxy :breakpoint="0">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                  If there is no exact match found from the pool,
+                  a list of similar offers is suggested instead
+                </div>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+        </q-input>
+      </div>
+    </q-slide-transition>
 
     <div class="q-gutter-y-md">
       <div v-if="loading" class="text-center">
@@ -255,12 +288,13 @@
 </template>
 <script setup>
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
-import { parseHedgePositionData, ellipsisText, formatTimestampToText } from '../../wallet/anyhedge/formatters'
+import { parseHedgePositionData, parseHedgePositionOffer, ellipsisText, formatTimestampToText } from '../../wallet/anyhedge/formatters'
 import { calculateGeneralProtocolsLPFee, createFundingProposal } from '../../wallet/anyhedge/funding'
 import { Wallet } from 'src/wallet';
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar';
+import HedgePositionOfferSelectionDialog from './HedgePositionOfferSelectionDialog.vue';
 import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
@@ -332,12 +366,16 @@ const createHedgeForm = ref({
 
   autoMatch: true,
   autoMatchPoolTarget: 'anyhedge_LP',
+  p2pMatch: {
+    similarity: 50,
+  }
 })
 const createHedgeFormMetadata = computed(() => {
   const data = {
     nominalAmount: 0, longNominalAmount: 0,
     lowLiquidationPrice: 0, highLiquidationPrice: 0,
     intentAmountBCH: 0,
+    longAmountBCH: 0,
   }
 
   // const priceValue = 13049
@@ -364,8 +402,11 @@ const createHedgeFormMetadata = computed(() => {
     const amount = createHedgeForm.value.amount
     data.intentAmountBCH = amount / (1/lowPriceMult - 1)
     data.intentAmountBCH = Math.round(data.intentAmountBCH * 10 ** 8) / 10 ** 8
+    data.longAmountBCH = Math.round(amount * 10 ** 8) / 10 ** 8
   } else {
     data.intentAmountBCH = createHedgeForm.value.amount
+    const totalSats = Math.round(data.nominalAmount / data.lowLiquidationPrice * 10 ** 8)
+    data.longAmountBCH = Math.round(totalSats - (data.intentAmountBCH * 10 ** 8)) / 10 ** 8
   }
 
   return data
@@ -403,6 +444,9 @@ async function clearCreateHedgeForm(opts) {
   createHedgeForm.value.selectedAsset = oracles.value[0]
   createHedgeForm.value.autoMatch = true
   createHedgeForm.value.autoMatchPoolTarget = 'anyhedge_LP'
+  createHedgeForm.value.p2pMatch = {
+    similarity: 50,
+  }
 
   if (opts?.clearErrors) {
     mainError.value = ''
@@ -518,6 +562,7 @@ async function createHedgePosition() {
   // grouping data
   const intent = {
     amount: createHedgeFormMetadata.value.intentAmountBCH,
+    longAmountBCH: createHedgeFormMetadata.value.longAmountBCH,
     lowPriceMult: createHedgeForm.value.lowLiquidationMultiplierPctg / 100,
     highPriceMult: createHedgeForm.value.highLiquidationMultiplierPctg / 100,
     duration: createHedgeForm.value.duration,
@@ -539,6 +584,18 @@ async function createHedgePosition() {
     autoMatchPoolTarget: createHedgeForm.value.autoMatchPoolTarget,
     // necessary when using settlement service, they serve as credentials to gain access to the contract
     accessKeys: { publicKey: '', signature: '', authenticationToken: '' },
+
+    // for p2p
+    matchedHedgePositionOffer: parseHedgePositionOffer(null),
+    isPositionOffer: false,
+    matchSimilarity: createHedgeForm.value.p2pMatch.similarity / 100,
+  }
+
+  // for p2p
+  const cancelAcceptedPositionOffer = () => {
+    if (misc?.matchedHedgePositionOffer?.id) {
+      anyhedgeBackend.post(`anyhedge/hedge-position-offers/${misc.matchedHedgePositionOffer.id}/cancel_accept_offer/`)
+    }
   }
 
   const priceData = { oraclePubkey: '', priceValue: 0, messageTimestamp: 0, messageSequence: 0 }
@@ -553,6 +610,11 @@ async function createHedgePosition() {
 
   const funding = {
     prepareFunding: false,
+    positionTaker: position,
+    contractCreationParams: {
+      address: '',
+      version: '',  
+    },
     liquidityFee: 0,
     fee: { satoshis: 0, address: '' },
     fundingProposal: {
@@ -564,15 +626,6 @@ async function createHedgePosition() {
       inputTxHashes: [],
     },
     contractData: {},
-  }
-
-  // limit long positions to GP LP for now
-  if (position === 'long' && (!misc.autoMatch || misc.autoMatchPoolTarget !== 'anyhedge_LP')) {
-    mainError.value = 'Creating long positions are only available for General Protocol LP'
-    errors.value = []
-    loading.value = false
-    loadingMsg.value = ''
-    return
   }
 
   // calculating fees
@@ -632,6 +685,174 @@ async function createHedgePosition() {
     funding.prepareFunding = false
     funding.fee.satoshis = 0
     funding.fee.address = ''
+
+    const p2pMatchOpts = {
+      matchingPositionOffer: null,
+      similarPositionOffers: [],
+    }
+    try {
+      loading.value = true
+      loadingMsg.value = 'Finding matching contract'
+      const findMatchData = {
+        wallet_hash: misc.walletHash,
+        position: position,
+        satoshis: position === 'hedge' ? 
+          Math.round(intent.amount * 10 ** 8) : 
+          Math.round(intent.longAmountBCH * 10 ** 8),
+        duration_seconds: intent.duration,
+        low_liquidation_multiplier: intent.lowPriceMult,
+        high_liquidation_multiplier: intent.highPriceMult,
+        oracle_pubkey: priceData?.oraclePubkey,
+        similarity: misc.matchSimilarity || undefined,
+      }
+      const findMatchResp = await anyhedgeBackend.post('anyhedge/hedge-position-offers/find_match/', findMatchData)
+      p2pMatchOpts.matchingPositionOffer = findMatchResp?.data?.matching_position_offer
+      p2pMatchOpts.similarPositionOffers = findMatchResp?.data?.similar_position_offers
+    } catch(error) {
+      console.error(error)
+      errors.value = [
+        `Error in finding matching ${position === 'hedge' ? 'long' : 'hedge' } position`,
+      ]
+      return
+    } finally {
+      loading.value = false
+      loadingMsg.value = ''
+    }
+
+    if (p2pMatchOpts.matchingPositionOffer?.id) {
+      misc.matchedHedgePositionOffer = parseHedgePositionOffer(p2pMatchOpts.matchingPositionOffer)
+    } else if (p2pMatchOpts.similarPositionOffers?.length) {
+      try {
+        loading.value = true
+        loadingMsg.value = 'Similar offers found'
+        await dialogPromise({
+          title: 'No matching offer',
+          message: `No matching offers found but found similar offers. Select one instead?`,
+          ok: true,
+          cancel: true,
+          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+        })
+      } catch(error) {
+        console.error(error)
+        return
+      } finally {
+        loading.value = false
+        loadingMsg.value = ''
+      }
+
+      try {
+        loading.value = true
+        loadingMsg.value = 'Selecting from similar offers'
+        const selectedSimilarOffer = await dialogPromise({
+          component: HedgePositionOfferSelectionDialog,
+          componentProps: {
+            hedgePositionOffers: p2pMatchOpts.similarPositionOffers?.map(parseHedgePositionOffer),
+          },
+        })
+        if (selectedSimilarOffer) misc.matchedHedgePositionOffer = selectedSimilarOffer
+        else throw new Error('User cancelled')
+      } catch(error) {
+        console.error(error)
+        if (typeof error?.message === 'string') errors.value = [error.message]
+      } finally {
+        loading.value = false
+        loadingMsg.value = ''
+      }
+    }
+
+    if (!misc.matchedHedgePositionOffer?.id){
+      try {
+        await dialogPromise({
+          title: 'No matching offer',
+          message: `No matching offers found, create one instead?`,
+          ok: true,
+          cancel: true,
+          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+        })
+        misc.isPositionOffer = true
+        funding.prepareFunding = false
+        funding.fee.satoshis = 0
+        funding.fee.address = ''
+      } catch(error) {
+        console.error(error)
+        errors.value = [
+          `No matching ${position === 'hedge' ? 'long' : 'hedge' } position found`,
+        ]
+        return
+      } finally {
+        loading.value = false
+        loadingMsg.value = ''
+      }
+    }
+
+    if (misc.matchedHedgePositionOffer?.id) {
+      try {
+        loading.value = true
+        loadingMsg.value = 'Found existing offer. Accepting position offer'
+        const acceptOfferData = {
+          wallet_hash: misc.walletHash,
+          address: position === 'hedge' ? pubkeys.hedgeAddress : pubkeys.longAddress,
+          pubkey: position === 'hedge' ? pubkeys.hedgePubkey : pubkeys.longPubkey,
+          address_path: position === 'hedge' ? pubkeys.hedgeAddressPath : pubkeys.longAddressPath,
+          oracle_message_sequence: priceData?.messageSequence,
+        }
+        const acceptOfferResp = await anyhedgeBackend.post(
+          `anyhedge/hedge-position-offers/${misc.matchedHedgePositionOffer.id}/accept_offer/`,
+          acceptOfferData,
+        )
+        const matchedOffer = parseHedgePositionOffer(acceptOfferResp?.data)
+        misc.matchedHedgePositionOffer = matchedOffer
+
+        if (position === 'hedge') {
+          pubkeys.longAddress = matchedOffer.address
+          pubkeys.longPubkey = matchedOffer.pubkey
+          pubkeys.longAddressPath = matchedOffer.addressPath
+        } else {
+          pubkeys.hedgeAddress = matchedOffer.address
+          pubkeys.hedgePubkey = matchedOffer.pubkey
+          pubkeys.hedgeAddressPath = matchedOffer.addressPath
+        }
+
+        misc.matchedHedgePositionOffer = matchedOffer
+        intent.amount = matchedOffer.position === 'hedge' ?
+          matchedOffer.satoshis / 10 ** 8 :
+          matchedOffer.counterPartyInfo.calculatedHedgeSats / 10 ** 8
+        intent.duration = matchedOffer.durationSeconds
+        intent.lowPriceMult = matchedOffer.lowLiquidationPriceMultiplier
+        intent.highPriceMult = matchedOffer.highLiquidationPriceMultiplier
+
+        priceData.priceValue = matchedOffer.counterPartyInfo?.priceValue
+        priceData.messageTimestamp = matchedOffer.counterPartyInfo?.priceMessageTimestamp
+        priceData.messageSequence = matchedOffer.counterPartyInfo?.oracleMessageSequence
+        funding.contractCreationParams.address = matchedOffer.counterPartyInfo?.contractAddress
+        funding.contractCreationParams.version = matchedOffer.counterPartyInfo?.contractVersion
+        funding.positionTaker = matchedOffer.position
+        funding.fee.address = matchedOffer?.counterPartyInfo?.settlementServiceFeeAddress
+        funding.fee.satoshis = matchedOffer?.counterPartyInfo?.settlementServiceFee
+        funding.liquidityFee = 0
+        funding.prepareFunding = true
+      } catch(error) {
+        console.error(error)
+        if (Array.isArray(error?.response?.data) && error?.response?.data?.length) {
+          errors.value = error?.response?.data.map(errorMsg => {
+            if (typeof errorMsg !== 'string') return
+            if (errorMsg.indexOf('price') >= 0 && errorMsg.indexOf('outdated') >= 0) {
+              return 'Starting price is outdated'
+            } else if (errorMsg.indexOf('invalid') >= 0 && errorMsg.indexOf('hedge position offer') >= 0) {
+              return 'Position offer is invalid'
+            } else if (errorMsg.indexOf('hedge position offer') >= 0 && (errorMsg.indexOf('no longer active') >= 0 || errorMsg.indexOf('inactive') >= 0)) {
+              return 'Position offer is no longer available'
+            }
+          }).filter(Boolean)
+        }
+
+        if (!errors.value.length) errors.value = ['Encountered error in accepting matching position offer']
+        return
+      } finally {
+        loading.value = false
+        loadingMsg.value = ''
+      }
+    }
   }
 
   try {
@@ -646,12 +867,15 @@ async function createHedgePosition() {
         funding: funding,
         oracleInfo: oracleInfo,
         position: position,
+        positionTaker: funding.positionTaker,
+        isPositionOffer: misc.isPositionOffer,
       }
     })
   } catch(error) {
     console.error(error)
     mainError.value = ''
     errors.value = []
+    cancelAcceptedPositionOffer()
     return
   } finally {
     loading.value = false
@@ -666,6 +890,7 @@ async function createHedgePosition() {
     console.error(error)
     mainError.value = 'Security check failed'
     errors.value = []
+    cancelAcceptedPositionOffer()
     return
   } finally {
     loading.value = false
@@ -688,6 +913,8 @@ async function createHedgePosition() {
       loading.value = true
       loadingMsg.value = 'Creating utxo for funding proposal'
       const contractCreationParameters = {
+        address: funding.contractCreationParams.address,
+        anyhedge_contract_version: funding.contractCreationParams.version,
         satoshis: intent.amount * 10 ** 8,
         start_timestamp: priceData.messageTimestamp,
         maturity_timestamp: priceData.messageTimestamp + intent.duration,
@@ -707,7 +934,7 @@ async function createHedgePosition() {
       const contractData = await parseHedgePositionData(contractCreationParameters)
 
       const { fundingUtxo, signedFundingProposal } = await createFundingProposal(
-        contractData, position, props.wallet, addressSet, funding.liquidityFee, position)
+        contractData, position, props.wallet, addressSet, funding.liquidityFee, funding.positionTaker)
       funding.fundingProposal.txHash = fundingUtxo.txid
       funding.fundingProposal.txIndex = fundingUtxo.vout
       funding.fundingProposal.txValue = fundingUtxo.amount
@@ -724,6 +951,7 @@ async function createHedgePosition() {
       else if (Array.isArray(error?.response?.data?.errors)) errors.value = error?.response?.data?.errors
       else if(typeof error === 'string') errors.value = [error]
       else if(typeof error?.message === 'string') errors.value = [error?.message]
+      cancelAcceptedPositionOffer()
       return
 
     } finally {
@@ -733,27 +961,32 @@ async function createHedgePosition() {
   }
 
   const hedgePositionOfferData = {
+    position: position,
     wallet_hash: misc.walletHash,
 
-    satoshis: Math.round(intent.amount * 10 ** 8),
+    satoshis: position === 'hedge' ?
+      Math.round(intent.amount * 10 ** 8) : Math.round(intent.longAmountBCH * 10 ** 8),
     duration_seconds: intent.duration,
     high_liquidation_multiplier: intent.highPriceMult,
     low_liquidation_multiplier: intent.lowPriceMult,
 
-    hedge_address: pubkeys.hedgeAddress,
-    hedge_pubkey: pubkeys.hedgePubkey,
-    hedge_address_path: pubkeys.hedgeAddressPath,
-
-    long_address: pubkeys.longAddress,
-    long_pubkey: pubkeys.longPubkey,
-    long_address_path: pubkeys.longAddressPath,
+    address: position === 'hedge' ? pubkeys.hedgeAddress : pubkeys.longAddress,
+    pubkey: position === 'hedge' ? pubkeys.hedgePubkey : pubkeys.longPubkey,
+    address_path: position === 'hedge' ? pubkeys.hedgeAddressPath : pubkeys.longAddressPath,
 
     oracle_pubkey: priceData.oraclePubkey || undefined,
-    price_oracle_message_sequence: priceData.messageSequence || undefined,
+  }
 
-    auto_match: misc.autoMatch,
-    auto_match_pool_target: misc.autoMatchPoolTarget,
-    save_position_offer: !misc.autoMatch,
+  const settleOfferData = {
+    hedge_position_offer_id: misc.matchedHedgePositionOffer?.id || undefined,
+    counter_party_funding_proposal: {
+      tx_hash: funding.fundingProposal.txHash,
+      tx_index: funding.fundingProposal.txIndex,
+      tx_value: funding.fundingProposal.txValue,
+      script_sig: funding.fundingProposal.scriptSig,
+      pubkey: funding.fundingProposal.pubkey,
+      input_tx_hashes: funding.fundingProposal.inputTxHashes
+    }
   }
 
   const fungGPLPContractData = {
@@ -795,6 +1028,10 @@ async function createHedgePosition() {
   if (misc.autoMatch && misc.autoMatchPoolTarget === 'anyhedge_LP') {
     data = fungGPLPContractData
     path = '/anyhedge/hedge-positions/fund_gp_lp_contract/'
+    isResponseOffer = false
+  } else if(misc.autoMatchPoolTarget === 'watchtower_P2P' && misc.matchedHedgePositionOffer?.id) {
+    path = `/anyhedge/hedge-position-offers/${settleOfferData.hedge_position_offer_id}/settle_offer/`
+    data = settleOfferData
     isResponseOffer = false
   } else {
     data = hedgePositionOfferData
@@ -839,6 +1076,7 @@ async function createHedgePosition() {
       if (typeof error?.response?.data?.detail == 'string') errors.value = [error?.response?.data?.detail]
       if (Array.isArray(error?.response?.data)) errors.value = error?.response?.data
       if (Array.isArray(error?.response?.data?.detail)) errors.value = error?.response?.data?.detail
+      cancelAcceptedPositionOffer()
     })
     .finally(() => {
       loading.value = false

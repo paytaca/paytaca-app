@@ -1,6 +1,6 @@
 import axios from 'axios'
 import BCHJS from '@psf/bch-js'
-import { AnyHedgeManager } from '@generalprotocols/anyhedge'
+import { AnyHedgeManager, ContractData } from '@generalprotocols/anyhedge'
 import Watchtower from 'watchtower-cash-js'
 import { Wallet } from '../index'
 import { generalProtocolLPBackend, generalProtocolLPAuthToken } from './backend'
@@ -339,6 +339,18 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
     contractData.fee = { satoshis: data.feeSats, address: dummyData.feeAddress }
   }
 
+  return calculateContractFundingWithFees(Object.assign({}, data, { contractData }))
+}
+
+/**
+ * @param {Object} data
+ * @param {ContractData} data.contractData
+ * @param {'hedge' | 'long'} data.position 
+ * @param {Number} [data.liquidityFee]
+ * @returns 
+ */
+export function calculateContractFundingWithFees(data) {
+  const contractData = data?.contractData
   const fundingAmounts = calculateFundingAmounts(contractData, data.position, data.liquidityFee || 0)
   const response = {
     hedge: {
@@ -380,7 +392,6 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
 
   return response
 }
-
 /**
  * 
  * @param {Object} contractData 
