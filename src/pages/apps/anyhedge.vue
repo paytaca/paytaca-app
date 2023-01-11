@@ -178,7 +178,8 @@
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
-                unelevated: true,
+                maxPages: 5,
+                rounded: true,
                 padding: 'sm md',
                 boundaryNumbers: true
               }"
@@ -198,6 +199,7 @@
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
+                maxPages: 5,
                 rounded: true,
                 padding: 'sm md',
                 boundaryNumbers: true
@@ -219,7 +221,8 @@
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
-                unelevated: true,
+                maxPages: 5,
+                rounded: true,
                 padding: 'sm md',
                 boundaryNumbers: true
               }"
@@ -239,6 +242,7 @@
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
+                maxPages: 5,
                 rounded: true,
                 padding: 'sm md',
                 boundaryNumbers: true

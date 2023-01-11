@@ -2,6 +2,7 @@
   <q-card-section v-ripple style="position:relative">
     <div class="row q-mb-sm">
         <q-badge :color="statusToColor(hedgePositionOffer?.status)">{{ parseHedgePositionStatus(hedgePositionOffer?.status) }}</q-badge>
+        <q-badge v-if="hedgePositionOffer?.id" color="grey" class="q-ml-xs">#{{ hedgePositionOffer?.id }}</q-badge>
         <div class="q-space"></div>
         <div class="text-grey">{{ formatDate(hedgePositionOffer?.createdAt * 1000) }}</div>
       </div>
