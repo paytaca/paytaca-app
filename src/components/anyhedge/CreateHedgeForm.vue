@@ -833,7 +833,20 @@ async function createHedgePosition() {
         funding.prepareFunding = true
       } catch(error) {
         console.error(error)
-        errors.value = ['Encountered error in accepting matching position offer']
+        if (Array.isArray(error?.response?.data) && error?.response?.data?.length) {
+          errors.value = error?.response?.data.map(errorMsg => {
+            if (typeof errorMsg !== 'string') return
+            if (errorMsg.indexOf('price') >= 0 && errorMsg.indexOf('outdated') >= 0) {
+              return 'Starting price is outdated'
+            } else if (errorMsg.indexOf('invalid') >= 0 && errorMsg.indexOf('hedge position offer') >= 0) {
+              return 'Position offer is invalid'
+            } else if (errorMsg.indexOf('hedge position offer') >= 0 && (errorMsg.indexOf('no longer active') >= 0 || errorMsg.indexOf('inactive') >= 0)) {
+              return 'Position offer is no longer available'
+            }
+          }).filter(Boolean)
+        }
+
+        if (!errors.value.length) errors.value = ['Encountered error in accepting matching position offer']
         return
       } finally {
         loading.value = false
