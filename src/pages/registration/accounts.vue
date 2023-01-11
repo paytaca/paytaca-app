@@ -283,7 +283,7 @@ export default {
     // Adjust paytaca language according to phone's language (if supported by paytaca)
     let deviceLang = null
     try {
-      deviceLang = await Device.getLanguageTag()
+      deviceLang = await Device.getLanguageCode()
       deviceLang = deviceLang.value.toLowerCase()
     } catch (error) {
       deviceLang = supportedLangs[0]

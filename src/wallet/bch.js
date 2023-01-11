@@ -263,6 +263,14 @@ export class BchWallet {
     const result = await this.watchtower.BCH.send(data)
     return result
   }
+
+  async signMessage (message, lastAddressIndex) {
+    const privateKey = await this.getPrivateKey('0/' + String(lastAddressIndex))
+    return bchjs.BitcoinCash.signMessageWithPrivKey(
+      privateKey,
+      message
+    )
+  }
 }
 
 

@@ -13,8 +13,7 @@ export default {
     }
   },
   methods: {
-    async resubscribeBCHAddresses() {
-      const mnemonic = await getMnemonic()
+    async resubscribeBCHAddresses(mnemonic) {
       const wallet = new Wallet(mnemonic, 'BCH')
       let resubscriptionInfo = { completed: false, lastIndex: -1 }
       try {
@@ -44,8 +43,7 @@ export default {
         localStorage.setItem('bchResubscribe', JSON.stringify(resubscriptionInfo))
       }
     },
-    async resubscribeSLPAddresses() {
-      const mnemonic = await getMnemonic()
+    async resubscribeSLPAddresses(mnemonic) {
       const wallet = new Wallet(mnemonic, 'BCH')
       let resubscriptionInfo = { completed: false, lastIndex: -1 }
       try {
@@ -76,8 +74,11 @@ export default {
       }
     },
     async resubscribeAddresses() {
-      this.resubscribeBCHAddresses()
-      this.resubscribeSLPAddresses()
+      const mnemonic = await getMnemonic()
+      if (mnemonic) {
+        this.resubscribeBCHAddresses(mnemonic)
+        this.resubscribeSLPAddresses(mnemonic)
+      }
     }
   },
   mounted () {

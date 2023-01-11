@@ -68,6 +68,12 @@ export default {
           active: true
         },
         {
+          name: 'Chat',
+          iconName: 'mdi-chat',
+          path: '/apps/chat/',
+          active: true
+        },
+        {
           name: 'POS Admin',
           iconName: 'point_of_sale',
           path: '/apps/point-of-sale',
