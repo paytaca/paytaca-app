@@ -1,7 +1,7 @@
 <template>
   <q-card-section v-ripple style="position:relative">
     <div class="row q-mb-sm">
-        <q-badge :color="statusToColor(hedgePositionOffer?.status)">{{ parseHedgePositionStatus(hedgePositionOffer?.status) }}</q-badge>
+        <q-badge :color="resolvePositionOfferColor(hedgePositionOffer?.status)">{{ formatPositionOfferStatus(hedgePositionOffer?.status) }}</q-badge>
         <q-badge v-if="hedgePositionOffer?.id" color="grey" class="q-ml-xs">#{{ hedgePositionOffer?.id }}</q-badge>
         <div class="q-space"></div>
         <div class="text-grey">{{ formatDate(hedgePositionOffer?.createdAt * 1000) }}</div>
@@ -71,7 +71,7 @@
   </q-card-section>
 </template>
 <script setup>
-import { formatTimestampToText, formatDate, formatDuration, parseHedgePositionOffer } from 'src/wallet/anyhedge/formatters'
+import { formatTimestampToText, formatDate, formatDuration, parseHedgePositionOffer, formatPositionOfferStatus, resolvePositionOfferColor } from 'src/wallet/anyhedge/formatters'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { format, useQuasar } from 'quasar'
@@ -92,26 +92,6 @@ const props = defineProps({
   hedgePositionOffer: Object,
 })
 const isPending = computed(() => props.hedgePositionOffer?.status === 'pending')
-
-const statusColorMap = { pending: 'amber', accepted: 'teal', settled: 'green', agreed: 'green', cancelled: 'red' }
-function statusToColor(value) {
-  return statusColorMap[value] || 'grey'
-}
-
-function parseHedgePositionStatus(status) {
-  if (!status) return ''
-  switch(status) {
-    case 'pending':
-      return 'Pending'
-    case 'accepted':
-      return 'Accepted'
-    case 'settled':
-    case 'agreed':
-      return 'Agreed'
-    default:
-      return capitalize(status)
-  }
-}
 
 function openUpdateExpirationForm() {
   console.log(props.hedgePositionOffer?.expiresAt * 1000)

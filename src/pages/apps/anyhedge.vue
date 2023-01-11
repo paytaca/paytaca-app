@@ -171,6 +171,49 @@
     >
       <template v-if="selectedAccountType === 'hedge'">
         <q-expansion-item ref="offersDrawerRef" label="Hedge Offers">
+          <template v-slot:header>
+            <q-item-section>
+              <div class="row items-center full-width">
+                Hedge offers
+                <q-badge v-if="pendingHedgeOffersCount" color="amber" class="q-ml-xs q-px-sm q-py-xs" @click.stop>
+                  {{ pendingHedgeOffersCount }}
+                </q-badge>
+                <q-badge v-if="acceptedHedgeOffersCount" color="teal" class="q-ml-xs q-px-sm q-py-xs">
+                  {{ acceptedHedgeOffersCount }}
+                </q-badge>
+              </div>
+            </q-item-section>
+          </template>
+          <div class="q-px-md row items-center no-wrap">
+            <div class="row items-center q-gutter-sm">
+              <template v-if="hedgeOffersFilter.statuses.length">
+                <q-badge
+                  v-for="(status, index) in hedgeOffersFilter.statuses" :key="index"
+                  :color="resolvePositionOfferColor(status) || 'grey'"
+                >
+                  {{ formatPositionOfferStatus(status) || '' }}
+                </q-badge>
+              </template>
+              <q-badge v-if="hedgeOffersFilter.expired" color="grey">Expired</q-badge>
+              <q-btn
+                v-if="hedgeOffersHasFilter"
+                flat
+                no-caps
+                padding="xs"
+                label="Clear filter"
+                @click="clearHedgeOffersListFilters()"
+              />
+            </div>
+            <q-space/>
+            <q-btn
+              rounded
+              padding="sm"
+              flat
+              icon="filter_alt"
+              @click="openHedgeOffersListFilterForm()"
+            />
+          </div>
+          <q-separator :dark="darkMode" inset/>
           <q-card-section v-if="fetchingHedgeOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
@@ -214,6 +257,49 @@
       </template>
       <template v-else-if="selectedAccountType === 'long'">
         <q-expansion-item ref="offersDrawerRef" label="Long Offers">
+          <template v-slot:header>
+            <q-item-section>
+              <div class="row items-center full-width">
+                Long Offers
+                <q-badge v-if="pendingLongOffersCount" color="amber" class="q-ml-xs">
+                  {{ pendingLongOffersCount }}
+                </q-badge>
+                <q-badge v-if="acceptedLongOffersCount" color="teal" class="q-ml-xs">
+                  {{ acceptedLongOffersCount }}
+                </q-badge>
+              </div>
+            </q-item-section>
+          </template>
+          <div class="q-px-md row items-center no-wrap">
+            <div class="row items-center q-gutter-sm">
+              <template v-if="longOffersFilter.statuses.length">
+                <q-badge
+                  v-for="(status, index) in longOffersFilter.statuses" :key="index"
+                  :color="resolvePositionOfferColor(status) || 'grey'"
+                >
+                  {{ formatPositionOfferStatus(status) || '' }}
+                </q-badge>
+              </template>
+              <q-badge v-if="longOffersFilter.expired" color="grey">Expired</q-badge>
+              <q-btn
+                v-if="longOffersHasFilter"
+                flat
+                no-caps
+                padding="xs"
+                label="Clear filter"
+                @click="clearLongOffersListFilters()"
+              />
+            </div>
+            <q-space/>
+            <q-btn
+              rounded
+              padding="sm"
+              flat
+              icon="filter_alt"
+              @click="openLongOffersListFilterForm()"
+            />
+          </div>
+          <q-separator :dark="darkMode" inset/>
           <q-card-section v-if="fetchingLongOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
@@ -261,7 +347,7 @@
 <script setup>
 import { getMnemonic, Wallet } from '../../wallet'
 import { anyhedgeBackend, connectWebsocketUpdates, generalProtocolLPBackend } from '../../wallet/anyhedge/backend'
-import { formatUnits, ellipsisText, parseHedgePositionData, parseHedgePositionOffer } from '../../wallet/anyhedge/formatters'
+import { formatUnits, ellipsisText, parseHedgePositionData, parseHedgePositionOffer, formatPositionOfferStatus, resolvePositionOfferColor } from '../../wallet/anyhedge/formatters'
 import { ref, computed, markRaw, onMounted, inject, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar, scroll } from 'quasar'
@@ -271,6 +357,7 @@ import AddLiquidityForm from 'src/components/anyhedge/AddLiquidityForm.vue'
 import CreateHedgeForm from 'src/components/anyhedge/CreateHedgeForm.vue'
 import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
+import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll
 
@@ -299,6 +386,8 @@ onMounted(async () => {
   // fetchLongAccounts()
   fetchLongOffers()
   fetchLongPositions()
+  updateHedgeOffersCount()
+  updateLongOffersCount()
   initWebsocket()
 })
 
@@ -320,12 +409,16 @@ const websocketMessageHandler = (message) => {
         fetchSummary('hedge')
         fetchHedgeOffers()
         fetchHedgeContracts()
+        updateHedgeOffersCount()
       } else if (data?.meta?.position === 'long') {
         fetchSummary('long')
         fetchLongPositions()
+        updateLongOffersCount()
       }
     } else if (['accepted', 'cancel_accept', 'settled'].indexOf(data?.action) >= 0) {
       refetchHedgePositionOffer(data?.meta?.id)
+      if (data?.meta?.position === 'hedge') updateHedgeOffersCount()
+      if (data?.meta?.position === 'long') updateLongOffersCount()
     }
   }
   if (data?.resource === 'hedge_position') {
@@ -486,22 +579,96 @@ watch(summaryCurrenciesToUpdate, () => updateSummaryMarketPrices())
 
 // hedge offers
 const showCreateHedgeForm = ref(false)
+const pendingHedgeOffersCount = ref(0)
+const acceptedHedgeOffersCount = ref(0)
 const hedgeOffers = ref([])
+const hedgeOffersFilter = ref({
+  statuses: [],
+  expired: undefined,
+})
 const hedgeOffersPaginationState = ref({ count: 0, limit: 1, offset: 0 })
 const fetchingHedgeOffers = ref(false)
-function fetchHedgeOffers(pagination) {
+const hedgeOffersHasFilter = computed(() => {
+  return hedgeOffersFilter.value?.statuses?.length || hedgeOffersFilter.value?.expired
+}) 
+function clearHedgeOffersListFilters() {
+  hedgeOffersFilter.value.statuses = []
+  hedgeOffersFilter.value.expired = undefined
+  fetchHedgeOffers()
+}
+function openHedgeOffersListFilterForm() {
+  $q.dialog({
+    component: HedgeOffersFilterFormDialog,
+    componentProps: {
+      initialValue: hedgeOffersFilter.value,
+    }
+  })
+    .onOk(value => {
+      hedgeOffersFilter.value.statuses = value?.statuses || []
+      hedgeOffersFilter.value.expired = value?.expired || undefined
+      fetchHedgeOffers()
+    })
+}
+function updateHedgeOffersCount() {
+  updatePendingHedgeOffersCount()
+  updateAcceptedHedgeOffersCount()
+}
+function updatePendingHedgeOffersCount() {
   const walletHash = wallet.value.BCH.getWalletHash()
-  fetchingHedgeOffers.value = true
   return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
     {
       params: {
         wallet_hash: walletHash,
         position: 'hedge',
-        limit: pagination?.limit || DEFAULT_PAGE_SIZE,
-        offset: pagination?.offset || 0,
+        statuses: 'pending',
+        limit: 1,
+        offset: 999,
       }
     }
+  ) 
+    .then(response => {
+      if (isNaN(response?.data?.count)) return Promise.reject({ response })
+      pendingHedgeOffersCount.value = response?.data?.count
+    })
+}
+function updateAcceptedHedgeOffersCount() {
+  const walletHash = wallet.value.BCH.getWalletHash()
+  return anyhedgeBackend.get(
+    '/anyhedge/hedge-position-offers/',
+    {
+      params: {
+        wallet_hash: walletHash,
+        position: 'hedge',
+        statuses: 'accepted',
+        limit: 1,
+        offset: 999,
+      }
+    }
+  ) 
+    .then(response => {
+      if (isNaN(response?.data?.count)) return Promise.reject({ response })
+      acceptedHedgeOffersCount.value = response?.data?.count
+    })
+}
+function fetchHedgeOffers(pagination) {
+  const walletHash = wallet.value.BCH.getWalletHash()
+  fetchingHedgeOffers.value = true
+  const params = {
+    wallet_hash: walletHash,
+    position: 'hedge',
+    limit: pagination?.limit || DEFAULT_PAGE_SIZE,
+    offset: pagination?.offset || 0,
+
+    expired: hedgeOffersFilter.value.expired,
+  }
+
+  if (Array.isArray(hedgeOffersFilter.value.statuses) && hedgeOffersFilter.value.statuses.length) {
+    params.statuses = hedgeOffersFilter.value.statuses.join(',')
+  }
+  return anyhedgeBackend.get(
+    '/anyhedge/hedge-position-offers/',
+    { params },
   )
     .then(response => {
       if (Array.isArray(response?.data?.results)) {
@@ -562,6 +729,8 @@ function onHedgeFormCreate(data) {
   if (data.hedgePositionOffer?.id) {
     fetchHedgeOffers()
     fetchLongOffers()
+    if (data.hedgePositionOffer?.position === 'hedge') updateHedgeOffersCount()
+    if (data.hedgePositionOffer?.position === 'long') updateLongOffersCount()
     $q.dialog({
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position Offer`,
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position offer created`,
@@ -598,22 +767,95 @@ function onHedgeFormCreate(data) {
 }
 
 // long offers
+const pendingLongOffersCount = ref(0)
+const acceptedLongOffersCount = ref(0)
 const longOffers = ref([])
+const longOffersFilter = ref({
+  statuses: [],
+  expired: undefined
+})
 const longOffersPaginationState = ref({ count: 0, limit: 1, offset: 0 })
 const fetchingLongOffers = ref(false)
-function fetchLongOffers(pagination) {
+const longOffersHasFilter = computed(() => {
+  return longOffersFilter.value?.statuses?.length || longOffersFilter.value?.expired
+}) 
+function clearLongOffersListFilters() {
+  longOffersFilter.value.statuses = [] 
+  longOffersFilter.value.expired = undefined
+  fetchLongOffers()
+}
+function openLongOffersListFilterForm() {
+  $q.dialog({
+    component: HedgeOffersFilterFormDialog,
+    componentProps: {
+      initialValue: longOffersFilter.value,
+    }
+  })
+    .onOk(value => {
+      longOffersFilter.value.statuses = value?.statuses || []
+      longOffersFilter.value.expired = value?.expired || undefined
+      fetchLongOffers()
+    })
+}
+function updateLongOffersCount() {
+  updatePendingLongOffersCount()
+  updateAcceptedLongOffersCount()
+}
+function updatePendingLongOffersCount() {
   const walletHash = wallet.value.BCH.getWalletHash()
-  fetchingLongOffers.value = true
   return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
     {
       params: {
         wallet_hash: walletHash,
         position: 'long',
-        limit: pagination?.limit || DEFAULT_PAGE_SIZE,
-        offset: pagination?.offset || 0,
+        statuses: 'pending',
+        limit: 1,
+        offset: 999,
       }
     }
+  ) 
+    .then(response => {
+      if (isNaN(response?.data?.count)) return Promise.reject({ response })
+      pendingLongOffersCount.value = response?.data?.count
+    })
+}
+function updateAcceptedLongOffersCount() {
+  const walletHash = wallet.value.BCH.getWalletHash()
+  return anyhedgeBackend.get(
+    '/anyhedge/hedge-position-offers/',
+    {
+      params: {
+        wallet_hash: walletHash,
+        position: 'long',
+        statuses: 'accepted',
+        limit: 1,
+        offset: 999,
+      }
+    }
+  ) 
+    .then(response => {
+      if (isNaN(response?.data?.count)) return Promise.reject({ response })
+      acceptedLongOffersCount.value = response?.data?.count
+    })
+}
+function fetchLongOffers(pagination) {
+  const walletHash = wallet.value.BCH.getWalletHash()
+  fetchingLongOffers.value = true
+  const params = {
+    wallet_hash: walletHash,
+    position: 'long',
+    limit: pagination?.limit || DEFAULT_PAGE_SIZE,
+    offset: pagination?.offset || 0,
+
+    expired: longOffersFilter.value.expired,
+  }
+  if (Array.isArray(longOffersFilter.value.statuses) && longOffersFilter.value.statuses.length) {
+    params.statuses = longOffersFilter.value.statuses.join(',')
+  }
+  return anyhedgeBackend.get(
+    '/anyhedge/hedge-position-offers/',
+    { params },
   )
     .then(response => {
       if (Array.isArray(response?.data?.results)) {

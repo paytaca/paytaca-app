@@ -2,6 +2,26 @@ import { AnyHedgeManager, SettlementType, ContractData } from '@generalprotocols
 import ago from 's-ago'
 import { capitalize } from 'vue'
 
+export function formatPositionOfferStatus(value='') {
+  if (!value) return ''
+  switch(value) {
+    case 'pending':
+      return 'Pending'
+    case 'accepted':
+      return 'Accepted'
+    case 'settled':
+    case 'agreed':
+      return 'Agreed'
+    default:
+      return capitalize(value)
+  }
+}
+
+export function resolvePositionOfferColor(value='') {
+  const statusColorMap = { pending: 'amber', accepted: 'teal', settled: 'green', agreed: 'green', cancelled: 'red' }
+  return statusColorMap[value]
+}
+
 export function formatTimestampToText(timestamp) {
   const dateObj = new Date(timestamp)
   return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
