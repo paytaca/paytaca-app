@@ -1,7 +1,7 @@
 <template>
   <q-card-section v-ripple style="position:relative">
     <div class="row q-mb-sm">
-        <q-badge :color="statusToColor(hedgePositionOffer?.status)">{{ capitalize(hedgePositionOffer?.status) }}</q-badge>
+        <q-badge :color="statusToColor(hedgePositionOffer?.status)">{{ parseHedgePositionStatus(hedgePositionOffer?.status) }}</q-badge>
         <div class="q-space"></div>
         <div class="text-grey">{{ formatDate(hedgePositionOffer?.createdAt * 1000) }}</div>
       </div>
@@ -92,11 +92,25 @@ const props = defineProps({
 })
 const isPending = computed(() => props.hedgePositionOffer?.status === 'pending')
 
-const statusColorMap = { pending: 'amber', accepted: 'teal', settled: 'green', cancelled: 'red' }
+const statusColorMap = { pending: 'amber', accepted: 'teal', settled: 'green', agreed: 'green', cancelled: 'red' }
 function statusToColor(value) {
   return statusColorMap[value] || 'grey'
 }
 
+function parseHedgePositionStatus(status) {
+  if (!status) return ''
+  switch(status) {
+    case 'pending':
+      return 'Pending'
+    case 'accepted':
+      return 'Accepted'
+    case 'settled':
+    case 'agreed':
+      return 'Agreed'
+    default:
+      return capitalize(status)
+  }
+}
 
 function openUpdateExpirationForm() {
   console.log(props.hedgePositionOffer?.expiresAt * 1000)
