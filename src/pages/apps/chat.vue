@@ -89,8 +89,7 @@ const bchjs = new BCHJS()
 const ago = require('s-ago')
 
 const chatBackend = axios.create({
-  // baseURL: 'https://watchtower.cash/api'
-  baseURL: 'http://localhost:8000/api'
+  baseURL: 'https://watchtower.cash/api'
 })
 
 export default {
