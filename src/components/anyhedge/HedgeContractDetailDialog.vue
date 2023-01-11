@@ -615,14 +615,14 @@ const fundingMetadata = computed(() => {
   }
 
   const apiMetadata = props.contract?.apiMetadata
-  if (apiMetadata?.positionTaker === 'hedgee') {
+  if (apiMetadata?.positionTaker === 'hedge') {
     data.hedge.fees.network = apiMetadata?.networkFee || 0
     data.hedge.fees.settlementService = props.contract?.fee?.satoshis || 0
     if (apiMetadata?.liquidityFee) {
       data.hedge.fees.premium = apiMetadata.liquidityFee
       data.long.fees.premium = apiMetadata.liquidityFee * -1
     }
-  } else if (apiMetadata?.positionTaker === 'longe') {
+  } else if (apiMetadata?.positionTaker === 'long') {
     data.long.fees.network = apiMetadata?.networkFee || 0
     data.long.fees.settlementService = props.contract?.fee?.satoshis || 0
     if (apiMetadata?.liquidityFee) {
