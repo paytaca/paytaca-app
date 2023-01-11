@@ -557,6 +557,7 @@ function fetchHedgeContracts(pagination) {
 function onHedgeFormCreate(data) {
   if (data.hedgePositionOffer?.id) {
     fetchHedgeOffers()
+    fetchLongOffers()
     $q.dialog({
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position Offer`,
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position offer created`,
