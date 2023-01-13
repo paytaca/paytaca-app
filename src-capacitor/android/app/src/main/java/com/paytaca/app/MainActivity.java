@@ -4,8 +4,10 @@ import android.os.Bundle;
 
 import com.epicshaggy.biometric.NativeBiometric;
 import com.capacitorjs.plugins.app.AppPlugin;
+import com.google.firebase.FirebaseApp;
 import com.paytaca.app.plugins.DeepLinkHelperPlugin;
 import com.getcapacitor.community.barcodescanner.BarcodeScanner;
+import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -26,6 +28,9 @@ public class MainActivity extends BridgeActivity {
       add(AppPlugin.class);
       add(DeepLinkHelperPlugin.class);
       add(BarcodeScanner.class);
+      add(PushNotificationsPlugin.class);
     }});
+
+    FirebaseApp.initializeApp(this.getBaseContext());
   }
 }
