@@ -215,7 +215,8 @@ export default {
         const encrypted = await openpgp.encrypt({
             message: await openpgp.createMessage({ text: this.message }),
             encryptionKeys: [recipientPublicKey, publicKey], 
-            signingKeys: privateKey
+            signingKeys: privateKey,
+            date: new Date(Date.now() - 1000)  // Set the signing date 1 second in the past
         })
 
         const message = {

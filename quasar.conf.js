@@ -115,7 +115,7 @@ module.exports = function (/* ctx */) {
     devServer: {
       // Updated for Quasar v1 to v2 migration
       server: {
-        type: 'http', // https | http
+        type: 'https', // https | http
       },
       port: 9000,
       open: true // opens browser window automatically
