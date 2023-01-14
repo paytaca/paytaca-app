@@ -1,84 +1,95 @@
 <template>
   <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;"
+    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px; z-index: 1;"
     :class="{'pt-dark': darkMode}"
   >
+    <QrScanner
+      v-model="showQrScanner"
+      @decode="onScannerDecode"
+    />
     <header-nav title="Chat [beta]" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
-  <div class="q-pa-md row justify-center text-black">
-    <div class="q-pa-md row justify-center">
-      <p :class="{'text-white': darkMode}">You are chatting as:</p>
-      <div class="q-pa-md row justify-center" style="width: 100%; margin-top: -15px;">
-        <small :class="{'text-white': darkMode}">{{ getAddress() }}</small>
-      </div>
-    </div>
-    <div class="q-pa-md row justify-center">
+    <div class="q-pa-md row justify-center text-black">
       <div class="q-pa-md row justify-center">
-        <template v-if="recipientAddress">
-          <div class="q-pa-md row justify-center" style="margin-top: -55px;">
-            <p :class="{'text-white': darkMode}">You are chatting with:</p>
-            <div class="row justify-center" style="width: 100%;">
-              <small :class="{'text-white': darkMode}">{{ recipientAddress }}</small>
+        <p :class="{'text-white': darkMode}">You are chatting as:</p>
+        <div class="q-pa-md row justify-center" style="width: 100%; margin-top: -15px;">
+          <small :class="{'text-white': darkMode}">{{ getAddress() }}</small>
+        </div>
+      </div>
+      <div class="q-pa-md row justify-center">
+        <div class="q-pa-md row justify-center">
+          <template v-if="recipientAddress">
+            <div class="q-pa-md row justify-center" style="margin-top: -55px;">
+              <p :class="{'text-white': darkMode}">You are chatting with:</p>
+              <div class="row justify-center" style="width: 100%;">
+                <small :class="{'text-white': darkMode}">{{ recipientAddress }}</small>
+              </div>
             </div>
-          </div>
-        </template>
-        <template v-else>
-          <q-input
-            class="q-mt-md"
-            v-model="recipientAddress"
-            label="Set address to chat with"
-            style="width: 300px; margin-top: -15px;"
-            :error-message="recipientError"
-            :error="recipientError !== null"
-            :dark="darkMode"
-            outlined
-            dense
-          >
-          </q-input>
-        </template>
+          </template>
+          <template v-else>
+            <q-input
+              class="q-mt-md"
+              v-model="recipientAddress"
+              label="Set address to chat with"
+              style="width: 300px; margin-top: -15px;"
+              :error-message="recipientError"
+              :error="recipientError !== null"
+              :dark="darkMode"
+              outlined
+              dense
+            >
+            </q-input>
+            <div class="col-12 text-uppercase" style="text-align: center; font-size: 15px; color: grey;">
+              {{ $t('or') }}
+            </div>
+            <div class="col-12 q-mt-md text-center">
+              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+            </div>
+          </template>
+        </div>
       </div>
-    </div>
-    <div class="q-pa-md row justify-center" style="width: 100%;" v-if="!connected">
-      <q-btn
-        color="blue"
-        icon-right="mdi-connection"
-        label="Start Chat"
-        @click.prevent="connectToBroker"
-        :disable="!recipientAddress"
-      />
-    </div>
-    <template v-if="connected">
-      <div v-for="message in messages" style="width: 100%; max-width: 400px">
-        <q-chat-message
-          :text="[message.msg]"
-          :sent="message.from === me"
-          :stamp="formatTimestamp(message.timestamp)"
-        />
-      </div>
-      <div class="q-pt-lg" style="width: 100%; max-width: 400px">
-        <q-input
-          v-model="message"
-          :dark="darkMode"
-          filled
-          autogrow
-        />
-      </div>
-      <div ref="sendButton" class="q-pt-md" style="width: 100%; max-width: 400px;">
+      <div class="q-pa-md row justify-center" style="width: 100%;" v-if="!connected && recipientAddress && !recipientError">
         <q-btn
           color="blue"
-          icon-right="send"
-          label="Send"
-          @click.prevent="sendEncryptedChatMessage"
-          :disable="!message"
+          icon-right="mdi-connection"
+          label="Start Chat"
+          @click.prevent="connectToBroker"
+          :disable="!recipientAddress"
         />
       </div>
-    </template>
-  </div>
+      <template v-if="connected">
+        <div v-for="message in messages" style="width: 100%; max-width: 400px">
+          <q-chat-message
+            :text="[message.msg]"
+            :sent="message.from === me"
+            :stamp="formatTimestamp(message.timestamp)"
+          />
+        </div>
+        <div class="q-pt-lg" style="width: 100%; max-width: 400px">
+          <q-input
+            v-model="message"
+            :dark="darkMode"
+            filled
+            autogrow
+          />
+        </div>
+        <div ref="sendButton" class="q-pt-md" style="width: 100%; max-width: 400px;">
+          <q-btn
+            color="blue"
+            icon-right="send"
+            label="Send"
+            @click.prevent="sendEncryptedChatMessage"
+            :disable="!message"
+          />
+        </div>
+      </template>
+    </div>
   </div>
 </template>
 
 <script>
 import HeaderNav from '../../components/header-nav'
-import { getMnemonic, Wallet } from '../../wallet'
+import QrScanner from '../../components/qr-scanner.vue'
+import { getMnemonic, Wallet, Address } from '../../wallet'
 import * as openpgp from 'openpgp/lightweight'
 import * as mqtt from 'mqtt'
 import axios from 'axios'
@@ -94,9 +105,10 @@ const chatBackend = axios.create({
 
 export default {
   name: 'app-chat',
-  components: { HeaderNav },
+  components: { HeaderNav, QrScanner },
   data () {
     return {
+      showQrScanner: false,
       wallet: null,
       pgpKeys: {
         public: null,
@@ -115,39 +127,82 @@ export default {
   },
   watch: {
     recipientAddress (val) {
-      if (val === this.me) {
-        this.recipientError = 'Must be different from your address'
-        this.recipientAddress = null
-      } else {
-        this.retrievePublicKey(val)
+      if (val) {
+        let addressIsValid, recipientError
+        try {
+          const addressObj = new Address(val)
+          if (addressObj.isCashAddress()) {
+            if (addressObj.isMainnetCashAddress()) {
+              if (val === this.me) {
+                recipientError = 'The address must be different from your address'
+                this.recipientAddress = null
+              } else {
+                addressIsValid = true
+              }
+            } else {
+              addressIsValid = false
+              recipientError = 'That is an invalid address'
+            }
+          } else {
+            addressIsValid = false
+            recipientError = 'That is an invalid address'
+          }
+        } catch (e) {
+          addressIsValid = false
+          recipientError = 'That is an invalid address'
+        }
+        if (addressIsValid === true) {
+          this.recipientError = null
+          this.retrievePublicKey(val)
+        } else {
+          this.recipientError = recipientError
+          this.recipientAddress = null
+        }
       }
     }
   },
   methods: {
+    onScannerDecode (content) {
+      this.showQrScanner = false
+      this.recipientAddress = content
+    },
+    raiseInvalidAddressError () {
+      console.log('Oops!')
+      this.recipientAddress = null
+      this.recipientError = 'That address does not have an associated PGP public key'
+    },
     async retrievePublicKey (address) {
       const vm = this
       // Get the public key and verify
       const url = `/chat/info/${address}`
-      const resp = await chatBackend.get(url)
-      if (resp.status === 200) {
-        if (vm.wallet) {
-          let correctHash, validSignature
-          try {
-            const recipientPublicKey = Buffer.from(resp.data.public_key, 'base64').toString()
-            const signature = Buffer.from(resp.data.signature, 'base64').toString()
-            correctHash = resp.data.public_key_hash === sha256(recipientPublicKey)
-            validSignature = await vm.wallet.BCH.verifyMessage(
-              address,
-              signature,
-              resp.data.public_key_hash
-            )
-            if (correctHash && validSignature) {
-              vm.recipientPublicKey = recipientPublicKey
+      let resp
+      try {
+        resp = await chatBackend.get(url)
+        if (resp.status === 200) {
+          if (vm.wallet) {
+            let correctHash, validSignature
+            try {
+              const recipientPublicKey = Buffer.from(resp.data.public_key, 'base64').toString()
+              const signature = Buffer.from(resp.data.signature, 'base64').toString()
+              correctHash = resp.data.public_key_hash === sha256(recipientPublicKey)
+              validSignature = await vm.wallet.BCH.verifyMessage(
+                address,
+                signature,
+                resp.data.public_key_hash
+              )
+              if (correctHash && validSignature) {
+                vm.recipientPublicKey = recipientPublicKey
+              } else {
+                invalidAddress = true
+              }
+            } catch (e) {
+              invalidAddress = true
+              throw new Error('Public key verification failed: ' + e.message)
             }
-          } catch (e) {
-            throw new Error('Public key verification failed: ' + e.message)
           }
         }
+      } catch (e) {
+        vm.raiseInvalidAddressError()
       }
     },
     async sendEncryptedChatMessage () {
@@ -169,7 +224,7 @@ export default {
           'msg': Buffer.from(encrypted).toString('base64'),
           'timestamp': Date.now()
         }
-        vm.mqttClient.publish(vm.buildTopic(), JSON.stringify(message), { qos: 0, retain: true })
+        vm.mqttClient.publish(vm.buildTopic(), JSON.stringify(message), { qos: 0, retain: false })
         vm.message = null
       }
     },
@@ -293,3 +348,10 @@ export default {
   }
 }
 </script>
+
+<style lang="scss">
+  .btn-scan {
+    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    color: white;
+  }
+</style>

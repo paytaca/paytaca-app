@@ -236,7 +236,7 @@ export default {
   left: 0;
   right: 0;
   background: lightcoral;
-  z-index: 999;
+  z-index: 9999;
   display: flex;
 }
 .scanner-container > .scanner-close-btn {
