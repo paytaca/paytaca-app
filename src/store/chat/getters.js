@@ -7,3 +7,9 @@ export function getIdentity (state) {
 export function getChatsList (state) {
   return state.chatsList
 }
+
+export function getHistory (state) {
+  return function (topic) {
+    return state.history[topic]
+  }
+}

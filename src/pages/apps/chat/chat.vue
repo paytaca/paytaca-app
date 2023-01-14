@@ -9,53 +9,55 @@
     />
     <header-nav title="Chat" backnavpath="/apps/chat" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
     <div class="q-pa-md row justify-center text-black">
-      <div class="q-pa-md row justify-center">
-        <p :class="{'text-white': darkMode}">You are chatting as:</p>
-        <div class="q-pa-md row justify-center" style="width: 100%; margin-top: -15px;">
-          <small :class="{'text-white': darkMode}">{{ getAddress() }}</small>
-        </div>
-      </div>
-      <div class="q-pa-md row justify-center">
+      <template v-if="!connected">
         <div class="q-pa-md row justify-center">
-          <template v-if="recipientAddress">
-            <div class="q-pa-md row justify-center" style="margin-top: -55px;">
-              <p :class="{'text-white': darkMode}">You are chatting with:</p>
-              <div class="row justify-center" style="width: 100%;">
-                <small :class="{'text-white': darkMode}">{{ recipientAddress }}</small>
-              </div>
-            </div>
-          </template>
-          <template v-else>
-            <q-input
-              class="q-mt-md"
-              v-model="recipientAddress"
-              label="Set address to chat with"
-              style="width: 300px; margin-top: -15px;"
-              :error-message="recipientError"
-              :error="recipientError !== null"
-              :dark="darkMode"
-              outlined
-              dense
-            >
-            </q-input>
-            <div class="col-12 text-uppercase" style="text-align: center; font-size: 15px; color: grey;">
-              {{ $t('or') }}
-            </div>
-            <div class="col-12 q-mt-md text-center">
-              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
-            </div>
-          </template>
+          <p :class="{'text-white': darkMode}">You are chatting as:</p>
+          <div class="q-pa-md row justify-center" style="width: 100%; margin-top: -15px;">
+            <small :class="{'text-white': darkMode}">{{ getAddress() }}</small>
+          </div>
         </div>
-      </div>
-      <div class="q-pa-md row justify-center" style="width: 100%;" v-if="!connected && recipientAddress && !recipientError">
-        <q-btn
-          color="blue"
-          icon-right="mdi-connection"
-          label="Start Chat"
-          @click.prevent="connectToBroker"
-          :disable="!recipientAddress"
-        />
-      </div>
+        <div class="q-pa-md row justify-center">
+          <div class="q-pa-md row justify-center">
+            <template v-if="recipientAddress">
+              <div class="q-pa-md row justify-center" style="margin-top: -55px;">
+                <p :class="{'text-white': darkMode}">You are chatting with:</p>
+                <div class="row justify-center" style="width: 100%;">
+                  <small :class="{'text-white': darkMode}">{{ recipientAddress }}</small>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <q-input
+                class="q-mt-md"
+                v-model="recipientAddress"
+                label="Set address to chat with"
+                style="width: 300px; margin-top: -15px;"
+                :error-message="recipientError"
+                :error="recipientError !== null"
+                :dark="darkMode"
+                outlined
+                dense
+              >
+              </q-input>
+              <div class="col-12 text-uppercase" style="text-align: center; font-size: 15px; color: grey;">
+                {{ $t('or') }}
+              </div>
+              <div class="col-12 q-mt-md text-center">
+                <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
+              </div>
+            </template>
+          </div>
+        </div>
+        <div class="q-pa-md row justify-center" style="width: 100%;" v-if="recipientAddress && !recipientError">
+          <q-btn
+            color="blue"
+            icon-right="mdi-connection"
+            label="Start Chat"
+            @click.prevent="connectToBroker"
+            :disable="!recipientAddress"
+          />
+        </div>
+      </template>
       <template v-if="connected">
         <div v-for="message in messages" style="width: 100%; max-width: 400px">
           <q-chat-message
@@ -121,8 +123,19 @@ export default {
       message: null,
       mqttClient: null,
       connected: false,
-      messages: [],
+      topic: null,
       darkMode: this.$store.getters['darkmode/getStatus']
+    }
+  },
+  computed: {
+    messages () {
+      const history = this.$store.getters['chat/getHistory'](this.topic)
+      console.log('HISTORY:', history)
+      return history.filter((msg) => {
+        if (msg) {
+          return msg
+        }
+      })
     }
   },
   watch: {
@@ -167,7 +180,6 @@ export default {
       this.recipientAddress = content
     },
     raiseInvalidAddressError () {
-      console.log('Oops!')
       this.recipientAddress = null
       this.recipientError = 'That address does not have an associated PGP public key'
     },
@@ -225,7 +237,7 @@ export default {
           'msg': Buffer.from(encrypted).toString('base64'),
           'timestamp': Date.now()
         }
-        vm.mqttClient.publish(vm.buildTopic(), JSON.stringify(message), { qos: 0, retain: false })
+        vm.mqttClient.publish(vm.topic, JSON.stringify(message), { qos: 0, retain: false })
         vm.message = null
       }
     },
@@ -250,7 +262,10 @@ export default {
         })
 
         payload.msg = decrypted
-        this.messages.push(payload)
+        this.$store.dispatch(
+          'chat/appendMessage',
+          { topic: this.topic, message: payload }
+        )
       } catch (e) {
         throw new Error('Message could not be decrypted: ' + e.message)
       }
@@ -262,7 +277,7 @@ export default {
     buildTopic () {
       let parties = [this.me, this.recipientAddress]
       parties.sort()
-      return 'chat/' + sha256(parties.join()) + '/direct'
+      this.topic = 'chat/' + sha256(parties.join()) + '/direct'
     },
     getAddress () {
       return this.$store.getters['global/getAddress']('bch')
@@ -271,7 +286,8 @@ export default {
       const vm = this
       vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + '/mqtt')
       vm.mqttClient.on('connect', function () {
-        vm.mqttClient.subscribe(vm.buildTopic(), function (err) {
+        vm.buildTopic()
+        vm.mqttClient.subscribe(vm.topic, function (err) {
           if (err) {
             console.log('Could not subscribe to the topic in the MQTT broker')
           } else {
@@ -280,7 +296,7 @@ export default {
         })
       })
 
-      vm.mqttClient.on('message', function (topic, message) {
+      vm.mqttClient.on('message', function (topic, message, packet) {
         const msg = JSON.parse(message.toString())
         const timeNow = Date.now()
         if (!msg.timestamp) {
@@ -345,6 +361,11 @@ export default {
         public: publicKey,
         private: privateKey
       }
+    }
+  },
+  beforeRouteLeave () {
+    if (this.mqttClient) {
+      this.mqttClient.end()
     }
   }
 }
