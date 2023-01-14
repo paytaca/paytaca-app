@@ -77,7 +77,7 @@
               {{ $t('or') }}
             </div>
             <div class="col-12 q-mt-lg text-center">
-              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
             </div>
           </div>
           <div class="q-pa-md text-center text-weight-medium">

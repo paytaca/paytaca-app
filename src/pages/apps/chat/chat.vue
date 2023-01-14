@@ -7,7 +7,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <header-nav title="Chat [beta]" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
+    <header-nav title="Chat" backnavpath="/apps/chat" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
     <div class="q-pa-md row justify-center text-black">
       <div class="q-pa-md row justify-center">
         <p :class="{'text-white': darkMode}">You are chatting as:</p>
@@ -42,7 +42,7 @@
               {{ $t('or') }}
             </div>
             <div class="col-12 q-mt-md text-center">
-              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
             </div>
           </template>
         </div>
@@ -87,9 +87,9 @@
 </template>
 
 <script>
-import HeaderNav from '../../components/header-nav'
-import QrScanner from '../../components/qr-scanner.vue'
-import { getMnemonic, Wallet, Address } from '../../wallet'
+import HeaderNav from '../../../components/header-nav'
+import QrScanner from '../../../components/qr-scanner.vue'
+import { getMnemonic, Wallet, Address } from '../../../wallet'
 import * as openpgp from 'openpgp/lightweight'
 import * as mqtt from 'mqtt'
 import axios from 'axios'
@@ -104,7 +104,7 @@ const chatBackend = axios.create({
 })
 
 export default {
-  name: 'app-chat',
+  name: 'app-chat-window',
   components: { HeaderNav, QrScanner },
   data () {
     return {

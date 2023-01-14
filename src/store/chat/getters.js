@@ -3,3 +3,7 @@ export function getIdentity (state) {
     return state.identities[address]
   }
 }
+
+export function getChatsList (state) {
+  return state.chatsList
+}
