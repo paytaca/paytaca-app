@@ -13,24 +13,37 @@
     ></q-icon>
     <div class="q-px-xs text-black">
       <q-list :dark="darkMode">
-        <q-item v-for="chat, index in chats" :key="index" class="q-pt-md" clickable v-ripple>
+        <q-item
+          v-for="chat, index in chats"
+          :key="index"
+          @click.once="loadConversation(chat)"
+          class="q-pt-md"
+          clickable
+          v-ripple
+        >
           <q-item-section>
-            <q-item-label>{{ chat.with }}</q-item-label>
-            <q-item-label caption lines="2">{{  chat.lastMessage }}</q-item-label>
+            <q-item-label>{{ formatAddress(chat.message.to) }}</q-item-label>
+            <q-item-label caption lines="2">{{  chat.message.msg }}</q-item-label>
           </q-item-section>
 
           <q-item-section side top>
-            <q-item-label caption>5 min ago</q-item-label>
-            <q-icon name="star" color="yellow" />
+            <q-badge color="blue" outline>Direct Message</q-badge>
+            <q-item-label caption>{{ formatTimestamp(chat.message.timestamp) }}</q-item-label>
           </q-item-section>
         </q-item>
       </q-list>
+    </div>
+    <div v-if="chats.length === 0" class="q-mt-lg row justify-center text-black">
+      <p style="font-size: 18px;" class="q-mt-lg" :class="{ 'text-white': darkMode }">
+        No existing conversations
+      </p>
     </div>
   </div>
 </template>
 
 <script>
 import HeaderNav from '../../../components/header-nav'
+const ago = require('s-ago')
 
 export default {
   name: 'app-chat-index',
@@ -45,6 +58,27 @@ export default {
     getScreenWidth () {
       const divBounds = document.body.getBoundingClientRect()
       return divBounds.width
+    },
+    getAddress () {
+      return this.$store.getters['global/getAddress']('bch')
+    },
+    loadConversation (chat) {
+      const me = this.getAddress()
+      let recipientAddress
+      if (chat.message.from === me) {
+        recipientAddress = chat.message.to
+      } else {
+        recipientAddress = chat.message.from
+      }
+      return this.$router.push(`/apps/chat/conversation/?presetTopic=${chat.topic}&presetRecipientAddress=${recipientAddress}`)
+    },
+    formatTimestamp (timestamp) {
+      const ts = new Date(timestamp)
+      return ago(ts)
+    },
+    formatAddress (address) {
+      const addr = address.split('bitcoincash:')[1]
+      return 'bitcoincash:' + addr.substring(0, 10) + '...' + addr.substring(addr.length - 10)
     }
   },
   mounted () {

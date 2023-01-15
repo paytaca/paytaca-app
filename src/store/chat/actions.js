@@ -5,3 +5,7 @@ export function addIdentity ({ commit }, data) {
 export function appendMessage ({ commit }, data) {
   commit('appendMessage', data)
 }
+
+export function deleteHistory ({ commit }, topic) {
+  commit('deleteHistory', topic)
+}

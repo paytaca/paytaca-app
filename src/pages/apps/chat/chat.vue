@@ -8,8 +8,32 @@
       @decode="onScannerDecode"
     />
     <header-nav title="Chat" backnavpath="/apps/chat" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
+    <q-icon v-if="connected" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
+      <q-menu anchor="bottom right" self="top end">
+        <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
+          <q-item clickable v-close-popup>
+            <q-item-section :class="[darkMode ? 'text-white' : 'text-black']" @click="confirmDeletion = true">
+              Delete Conversation
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-icon>
+    <q-dialog class="text-black" v-model="confirmDeletion" persistent>
+      <q-card :dark="darkMode">
+        <q-card-section class="row items-center">
+          <q-avatar icon="delete" color="red" text-color="white" />
+          <span class="q-ml-sm">Are you sure you want to delete this conversation?</span>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn flat label="Yes, Delete" color="red" @click="deleteConversation(topic)" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
     <div class="q-pa-md row justify-center text-black">
-      <template v-if="!connected">
+      <template v-if="!connected && !topic">
         <div class="q-pa-md row justify-center">
           <p :class="{'text-white': darkMode}">You are chatting as:</p>
           <div class="q-pa-md row justify-center" style="width: 100%; margin-top: -15px;">
@@ -53,28 +77,32 @@
             color="blue"
             icon-right="mdi-connection"
             label="Start Chat"
-            @click.prevent="connectToBroker"
-            :disable="!recipientAddress"
+            @click.prevent="connectToBroker()"
+            :disable="!recipientAddress || connecting"
           />
         </div>
       </template>
-      <template v-if="connected">
-        <div v-for="message in messages" style="width: 100%; max-width: 400px">
-          <q-chat-message
-            :text="[message.msg]"
-            :sent="message.from === me"
-            :stamp="formatTimestamp(message.timestamp)"
-          />
-        </div>
-        <div class="q-pt-lg" style="width: 100%; max-width: 400px">
+      <div v-if="connecting">
+        <ProgressLoader />
+      </div>
+      <div v-for="message in messages" style="width: 100%; max-width: 400px">
+        <q-chat-message
+          :text="[message.msg]"
+          :sent="message.from === me"
+          :stamp="formatTimestamp(message.timestamp)"
+        />
+      </div>
+      <div v-if="connected" class="send-container" style="width: 100%; padding: 12px;">
+        <div class="q-pt-lg">
           <q-input
             v-model="message"
             :dark="darkMode"
+            style="width: 100%;"
             filled
             autogrow
           />
         </div>
-        <div ref="sendButton" class="q-pt-md" style="width: 100%; max-width: 400px;">
+        <div ref="sendButton" class="q-pt-md" style="width: 100%;">
           <q-btn
             color="blue"
             icon-right="send"
@@ -83,7 +111,7 @@
             :disable="!message"
           />
         </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>
@@ -92,11 +120,13 @@
 import HeaderNav from '../../../components/header-nav'
 import QrScanner from '../../../components/qr-scanner.vue'
 import { getMnemonic, Wallet, Address } from '../../../wallet'
+import ProgressLoader from '../../../components/ProgressLoader'
 import * as openpgp from 'openpgp/lightweight'
 import * as mqtt from 'mqtt'
 import axios from 'axios'
 import sha256 from 'js-sha256'
 import BCHJS from '@psf/bch-js';
+import { timeouts } from 'retry'
 
 const bchjs = new BCHJS()
 const ago = require('s-ago')
@@ -107,7 +137,8 @@ const chatBackend = axios.create({
 
 export default {
   name: 'app-chat-window',
-  components: { HeaderNav, QrScanner },
+  components: { HeaderNav, QrScanner, ProgressLoader },
+  props: [ 'presetTopic', 'presetRecipientAddress' ], 
   data () {
     return {
       showQrScanner: false,
@@ -124,13 +155,14 @@ export default {
       mqttClient: null,
       connected: false,
       topic: null,
+      connecting: false,
+      confirmDeletion: false,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
     messages () {
       const history = this.$store.getters['chat/getHistory'](this.topic)
-      console.log('HISTORY:', history)
       return history.filter((msg) => {
         if (msg) {
           return msg
@@ -237,7 +269,7 @@ export default {
           'msg': Buffer.from(encrypted).toString('base64'),
           'timestamp': Date.now()
         }
-        vm.mqttClient.publish(vm.topic, JSON.stringify(message), { qos: 0, retain: false })
+        vm.mqttClient.publish(vm.topic, JSON.stringify(message), { qos: 2, retain: true })
         vm.message = null
       }
     },
@@ -266,6 +298,10 @@ export default {
           'chat/appendMessage',
           { topic: this.topic, message: payload }
         )
+        const vm = this
+        setTimeout(function () {
+          vm.scrollToTop()
+        }, 100)
       } catch (e) {
         throw new Error('Message could not be decrypted: ' + e.message)
       }
@@ -282,16 +318,25 @@ export default {
     getAddress () {
       return this.$store.getters['global/getAddress']('bch')
     },
-    connectToBroker () {
+    connectToBroker (topic = null) {
       const vm = this
+      vm.connecting = true
+      const options = {
+        clientId: this.me.split(':')[1]
+      }
       vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + '/mqtt')
       vm.mqttClient.on('connect', function () {
-        vm.buildTopic()
+        if (!topic) {
+          vm.buildTopic()
+        } else {
+          vm.topic = topic
+        }
         vm.mqttClient.subscribe(vm.topic, function (err) {
           if (err) {
             console.log('Could not subscribe to the topic in the MQTT broker')
           } else {
             vm.connected = true
+            vm.connecting = false
           }
         })
       })
@@ -305,10 +350,34 @@ export default {
 
         vm.decryptChatMessage(msg)
       })
+    },
+    getScreenWidth () {
+      const divBounds = document.body.getBoundingClientRect()
+      return divBounds.width
+    },
+    deleteConversation () {
+      this.$store.dispatch('chat/deleteHistory', this.topic)
+      this.$router.push('/apps/chat')
+    },
+    scrollToTop () {
+      const sendContainer = document.body.getElementsByClassName('send-container')[0]
+      if (sendContainer) {
+        this.$nextTick(() => {
+          sendContainer.scrollIntoView({ block: 'end',  behavior: 'smooth' })
+        })
+      }
     }
   },
   async mounted () {
     const vm = this
+
+    if (vm.presetTopic && vm.presetRecipientAddress) {
+      vm.recipientAddress = vm.presetRecipientAddress
+      vm.retrievePublicKey(vm.recipientAddress)
+
+      vm.topic = vm.presetTopic
+      vm.connectToBroker(vm.topic)
+    }
 
     const mnemonic = await getMnemonic()
     vm.wallet = new Wallet(mnemonic, 'bch')
@@ -375,5 +444,11 @@ export default {
   .btn-scan {
     background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
     color: white;
+  }
+  #context-menu {
+    position: fixed;
+    top: 16px;
+    color: #3b7bf6;
+    z-index: 150;
   }
 </style>

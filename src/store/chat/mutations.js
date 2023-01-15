@@ -6,8 +6,16 @@ export function addIdentity (state, data) {
 
 export function appendMessage (state, data) {
 	if (state.history[data.topic]) {
-		state.history[data.topic].push(data.message)
+		const messages = state.history[data.topic]
+		const lastMessage = messages[messages.length - 1]
+		if (lastMessage.timestamp !== data.message.timestamp) {
+			state.history[data.topic].push(data.message)
+		}
 	} else {
     state.history[data.topic] = [data.message]
   }
+}
+
+export function deleteHistory (state, topic) {
+	delete state.history[topic]
 }

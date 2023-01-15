@@ -60,7 +60,7 @@ const routes = [
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep' },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
       { path: 'chat', component: () => import('src/pages/apps/chat/index.vue'), name: 'app-chats-list' },
-      { path: 'chat/conversation', component: () => import('src/pages/apps/chat/chat.vue'), name: 'app-chat-conversation' },
+      { path: 'chat/conversation', component: () => import('src/pages/apps/chat/chat.vue'), name: 'app-chat-conversation', props: route => route.query },
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
       { path: 'settings/ignored-tokens', component: () => import('src/pages/apps/ignored-tokens-list.vue'), name: 'ignored-tokens-list' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
