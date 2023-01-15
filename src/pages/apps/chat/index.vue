@@ -23,11 +23,6 @@
         >
           <q-item-section>
             <q-item-label>{{ formatAddress(chat.message.to) }}</q-item-label>
-            <q-item-label caption lines="2">{{  chat.message.msg }}</q-item-label>
-          </q-item-section>
-
-          <q-item-section side top>
-            <q-badge color="blue" outline>Direct Message</q-badge>
             <q-item-label caption>{{ formatTimestamp(chat.message.timestamp) }}</q-item-label>
           </q-item-section>
         </q-item>

@@ -22,7 +22,6 @@
     <q-dialog class="text-black" v-model="confirmDeletion" persistent>
       <q-card :dark="darkMode">
         <q-card-section class="row items-center">
-          <q-avatar icon="delete" color="red" text-color="white" />
           <span class="q-ml-sm">Are you sure you want to delete this conversation?</span>
         </q-card-section>
 
