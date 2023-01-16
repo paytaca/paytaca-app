@@ -8,9 +8,81 @@ import Watchtower from 'watchtower-cash-js';
 import { BigNumber } from 'ethers'
 
 
+/**
+ * This is a proxy events emitter for PushNotification plugin's events
+ * - Created a proxy emitter class since the original event emitter lack removing specific event listeners
+ * - This is meant to be singleton class, use `PushNotificationsEventEmitter.getInstance()` to access
+ */
+class PushNotificationsEventEmitter {
+  static events = [
+    'registration',
+    'registrationError',
+    'pushNotificationReceived',
+    'pushNotificationActionPerformed',
+  ]
+
+  /**
+   * @returns {PushNotificationsEventEmitter}
+   */
+  static getInstance() {
+    if (!PushNotificationsEventEmitter.instance) {
+      PushNotificationsEventEmitter.instance = new PushNotificationsEventEmitter()
+    }
+
+    return PushNotificationsEventEmitter.instance
+  }
+
+  constructor() {
+    if (PushNotificationsEventEmitter.instance) return PushNotificationsEventEmitter.instance
+    PushNotificationsEventEmitter.instance = this
+
+    this.listeners = {}
+
+    this.eventHandlers = {}
+    PushNotificationsEventEmitter.events.forEach(eventName => {
+      this.eventHandlers[eventName] = eventData => this.emitEvent(eventName, eventData)
+    })
+    this.setupEventHandlers()
+  }
+
+  setupEventHandlers() {
+    Object.getOwnPropertyNames(this.eventHandlers)
+      .forEach(eventName => {
+        PushNotifications.addListener(eventName, this.eventHandlers[eventName])
+      })
+  }
+
+  addEventListener(eventName='', callback) {
+    if (!eventName || typeof callback !== 'function') return
+    if (!Array.isArray(this.listeners[eventName])) this.listeners[eventName] = []
+    if (this.listeners[eventName].indexOf(callback) >= 0) return
+    this.listeners[eventName].push(callback)
+  }
+
+  removeEventListener(eventName='', callback) {
+    if (!Array.isArray(this.listeners[eventName])) return
+
+    const index = this.listeners[eventName].indexOf(callback)
+    if (index >= 0) {
+      this.listeners[eventName].splice(index, 1);
+    }
+  }
+
+  emitEvent(eventName, data) {
+    if (!Array.isArray(this.listeners[eventName])) return
+    this.listeners[eventName]
+      .forEach(callback => {
+        try {
+          callback(data)
+        } catch(error) {}
+      })
+  }
+}
+
 class PushNotificationsManager {
   constructor() {
     this.watchtower = new Watchtower()
+    this.events = PushNotificationsEventEmitter.getInstance()
     this.registrationToken = ''
     this.deviceId = ''
 
@@ -30,19 +102,25 @@ class PushNotificationsManager {
       const registrationSuccessHandler = token => {
         manager.registrationToken = token?.value || token
         resolve(token)
-        PushNotifications.removeAllListeners()
+        removeListeners()
       }
       const registrationErrorHandler = error => {
         reject(error)
-        PushNotifications.removeAllListeners()
+        removeListeners()
       }
-      PushNotifications.addListener('registration', registrationSuccessHandler)
-      PushNotifications.addListener('registrationError', registrationErrorHandler)
+
+      const removeListeners = () => {
+        this.events.removeEventListener('registration', registrationSuccessHandler)
+        this.events.removeEventListener('registrationError', registrationErrorHandler)
+      }
+
+      this.events.addEventListener('registration', registrationSuccessHandler)
+      this.events.addEventListener('registrationError', registrationErrorHandler)
       setTimeout(() => {
         const error = new Error('Timeout exceeded')
         error.name = 'RegistrationTokenTimeout'
         reject(error)
-        PushNotifications.removeAllListeners()
+        removeListeners()
       }, opts?.timeout || 60 * 1000)
 
       PushNotifications.register()
