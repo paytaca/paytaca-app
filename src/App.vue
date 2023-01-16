@@ -94,6 +94,23 @@ export default {
     }
   },
   mounted () {
+    this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
+      console.log('Notification:', notification)
+      if (notification?.title || notification?.body) {
+        this.$q.notify({
+          color: 'brandblue',
+          message: notification?.title,
+          caption: notification?.body,
+          attrs: {
+            style: 'word-break:break-all;',
+          },
+          actions: [
+            { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
+          ]
+        })
+      }
+    })
+
     this.subscribePushNotifications()
     this.resubscribeAddresses()
     const vm = this
