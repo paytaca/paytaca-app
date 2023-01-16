@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { reactive, markRaw } from 'vue'
 import { boot } from 'quasar/wrappers'
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -158,8 +157,7 @@ class PushNotificationsManager {
       data.gcm_device = deviceInfo
     }
 
-    const response = await axios.post('http://192.168.1.12:8000/api/push-notifications/subscribe/', data)
-    // const response = await this.watchtower.BCH._api.post('/push-notifications/subscribe/', data)
+    const response = await this.watchtower.BCH._api.post('/push-notifications/subscribe/', data)
     this.subscriptionInfo = response?.data
     return response
   }
