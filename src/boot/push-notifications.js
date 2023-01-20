@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { reactive, markRaw } from 'vue'
 import { boot } from 'quasar/wrappers'
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -6,6 +7,7 @@ import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
 import { BigNumber } from 'ethers'
 
+window.devBaseUrl = 'http://192.168.1.13:8000/api'
 
 /**
  * This is a proxy events emitter for PushNotification plugin's events
@@ -84,11 +86,32 @@ class PushNotificationsManager {
     this.events = PushNotificationsEventEmitter.getInstance()
     this.registrationToken = ''
     this.deviceId = ''
+    this.registrationTokenError= 'no error'
+    this.permissionStatus = null
 
     this.fetchRegistrationToken()
+      .catch(error => {
+        this.registrationTokenError = error
+      })
     this.fetchDeviceId()
 
     this.subscriptionInfo = {}
+  }
+
+  checkPermissions() {
+    return PushNotifications.checkPermissions()
+      .then(response => {
+        this.permissionStatus = response?.receive
+        return Promise.resolve(response)
+      })
+  }
+
+  requestPermission() {
+    return PushNotifications.requestPermissions()
+      .then(response => {
+        this.permissionStatus = response?.receive
+        return Promise.resolve(response)
+      })
   }
 
   /**
@@ -120,7 +143,7 @@ class PushNotificationsManager {
         error.name = 'RegistrationTokenTimeout'
         reject(error)
         removeListeners()
-      }, opts?.timeout || 60 * 1000)
+      }, opts?.timeout || 5 * 1000)
 
       PushNotifications.register()
     })
@@ -142,6 +165,12 @@ class PushNotificationsManager {
     if (!this.deviceId) await this.fetchDeviceId()
     if (!this.registrationToken) await this.fetchRegistrationToken()
 
+    if (this.permissionStatus !== 'granted') await this.requestPermission()
+    if (this.permissionStatus !== 'granted') {
+      console.warn('Aborting push notification subscribe due to permission status:', this.permissionStatus)
+      return
+    }
+
     const data = { wallet_hashes: walletHashes, gcm_device: undefined, apns_device: undefined }
     const deviceInfo = {
       registration_id: this.registrationToken,
@@ -157,7 +186,11 @@ class PushNotificationsManager {
       data.gcm_device = deviceInfo
     }
 
-    const response = await this.watchtower.BCH._api.post('/push-notifications/subscribe/', data)
+    const response = await this.watchtower.BCH._api.post(
+      `${window.devBaseUrl}/push-notifications/subscribe/`,
+      // '/push-notifications/subscribe/',
+      data,
+    )
     this.subscriptionInfo = response?.data
     return response
   }
