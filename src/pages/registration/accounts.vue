@@ -211,6 +211,13 @@ export default {
           lastAddress: sbchWallet.sBCH._wallet ? sbchWallet.sBCH._wallet.address : ''
         })
       })
+
+      const walletHashes = [
+        bchWallet.BCH.getWalletHash(),
+        bchWallet.SLP.getWalletHash(),
+        sbchWallet.sBCH.getWalletHash(),
+      ]
+      this.$pushNotifications?.subscribe?.(walletHashes)
     },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
