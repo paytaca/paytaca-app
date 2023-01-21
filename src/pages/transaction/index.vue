@@ -187,6 +187,7 @@ import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { VOffline } from 'v-offline'
+import axios from 'axios'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -869,6 +870,16 @@ export default {
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
+
+    // Check for slow internet and/or accessibility of the backend
+    axios.get('https://watchtower.cash', { timeout: 5000 }).then((resp) => {
+      console.log('ONLINE')
+    }).catch((error) => {
+      console.log(error)
+      vm.$store.dispatch('global/updateConnectivityStatus', false)
+      vm.balanceLoaded = true
+      vm.transactionsLoaded = true
+    })
   }
 }
 </script>
