@@ -270,14 +270,16 @@ export default {
         size: 3,
         dropRate: 3
       })
-      vm.$q.notify({
-        classes: 'br-15 text-body1',
-        message: `${amount} ${symbol} received!`,
-        color: 'blue-9',
-        position: 'bottom',
-        avatar: logo,
-        timeout: 4000
-      })
+      if (!vm.$q.platform.is.mobile) {
+        vm.$q.notify({
+          classes: 'br-15 text-body1',
+          message: `${amount} ${symbol} received!`,
+          color: 'blue-9',
+          position: 'bottom',
+          avatar: logo,
+          timeout: 4000
+        })
+      }
       setTimeout(function () {
         vm.$confetti.stop()
       }, 3000)
