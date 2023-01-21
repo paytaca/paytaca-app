@@ -11,7 +11,7 @@
       @click.once="$router.push('/apps/chat/conversation')"
       :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}"
     ></q-icon>
-    <div class="q-px-xs text-black">
+    <div class="q-px-xs text-black" :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}">
       <q-list :dark="darkMode">
         <q-item
           v-for="chat, index in chats"

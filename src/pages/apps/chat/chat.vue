@@ -31,7 +31,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <div class="q-pa-md row justify-center text-black">
+    <div class="q-pa-md row justify-center text-black" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '0px'}">
       <template v-if="!connected && !topic">
         <div class="q-pa-md row justify-center">
           <p :class="{'text-white': darkMode}">You are chatting as:</p>
