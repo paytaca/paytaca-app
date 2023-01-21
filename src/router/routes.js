@@ -50,11 +50,6 @@ const routes = [
     path: '/apps',
     component: () => import('layouts/Apps.vue'),
     children: [
-      {
-        path: 'sandbox',
-        name: 'sandbox',
-        component: () => import('pages/sandbox/PushNotificationSandbox.vue')
-      },
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
       { path: 'anyhedge', component: () => import('src/pages/apps/anyhedge.vue'), name: 'app-any-hedge', props: route => route.query },
       { path: 'point-of-sale', component: () => import('src/pages/apps/point-of-sale.vue'), name: 'app-point-of-sale', props: route => route.query },

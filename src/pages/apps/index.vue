@@ -25,12 +25,6 @@ export default {
     return {
       apps: [
         {
-          name: 'PushNotification Sandbox',
-          iconName: '',
-          path: '/apps/sandbox',
-          active: true
-        },
-        {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',

@@ -7,8 +7,6 @@ import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
 import { BigNumber } from 'ethers'
 
-window.devBaseUrl = 'http://192.168.1.13:8000/api'
-
 /**
  * This is a proxy events emitter for PushNotification plugin's events
  * - Created a proxy emitter class since the original event emitter lack removing specific event listeners
@@ -143,7 +141,7 @@ class PushNotificationsManager {
         error.name = 'RegistrationTokenTimeout'
         reject(error)
         removeListeners()
-      }, opts?.timeout || 5 * 1000)
+      }, opts?.timeout || 30 * 1000)
 
       PushNotifications.register()
     })
@@ -187,8 +185,7 @@ class PushNotificationsManager {
     }
 
     const response = await this.watchtower.BCH._api.post(
-      `${window.devBaseUrl}/push-notifications/subscribe/`,
-      // '/push-notifications/subscribe/',
+      '/push-notifications/subscribe/',
       data,
     )
     this.subscriptionInfo = response?.data
