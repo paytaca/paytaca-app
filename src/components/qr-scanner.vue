@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="$q.platform.is.mobile || $q.platform.is.android || $q.platform.is.ios" id="qr-scanner-ui" class="qrcode-scanner hide-section">
+    <div v-if="isMobile" id="qr-scanner-ui" class="qrcode-scanner hide-section">
       <q-btn
         icon="close"
         rounded
@@ -13,7 +13,7 @@
       <ScannerUI />
     </div>
 
-    <div v-show="val && !($q.platform.is.mobile || $q.platform.is.android || $q.platform.is.ios)" class="scanner-container">
+    <div v-show="val && !isMobile" class="scanner-container">
       <q-btn
         icon="close"
         rounded
@@ -67,12 +67,17 @@ export default {
     }
 
   },
+  computed: {
+    isMobile() {
+      return !(this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios)
+    }
+  },
   watch: {
     val () {
       this.$emit('input', this.val)
     },
     modelValue (bool) {
-      if (this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios) {
+      if (this.isMobile) {
         if (bool) {
           this.prepareScanner()
         }

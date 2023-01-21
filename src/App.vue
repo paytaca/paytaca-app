@@ -3,16 +3,28 @@
 </template>
 
 <script>
-import { getMnemonic, Wallet } from './wallet'
+import { getMnemonic, Wallet, loadWallet } from './wallet'
 
 export default {
   name: 'App',
   data () {
     return {
+      subscribedPushNotifications: false,
       assetPricesUpdateIntervalId: null
     }
   },
   methods: {
+    async subscribePushNotifications() {
+      if (this.subscribedPushNotifications) return
+      const wallet = await loadWallet()
+      const walletHashes = [
+        wallet.BCH.getWalletHash(),
+        wallet.SLP.getWalletHash(),
+        wallet.sBCH.getWalletHash(),
+      ]
+      await this.$pushNotifications.subscribe(walletHashes)
+      this.subscribedPushNotifications = true
+    },
     async resubscribeBCHAddresses(mnemonic) {
       const wallet = new Wallet(mnemonic, 'BCH')
       let resubscriptionInfo = { completed: false, lastIndex: -1 }
@@ -82,6 +94,24 @@ export default {
     }
   },
   mounted () {
+    this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
+      console.log('Notification:', notification)
+      if (notification?.title || notification?.body) {
+        this.$q.notify({
+          color: 'brandblue',
+          message: notification?.title,
+          caption: notification?.body,
+          attrs: {
+            style: 'word-break:break-all;',
+          },
+          actions: [
+            { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
+          ]
+        })
+      }
+    })
+
+    this.subscribePushNotifications()
     this.resubscribeAddresses()
     const vm = this
     if (vm.$q.platform.is.bex) {

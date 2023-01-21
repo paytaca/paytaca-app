@@ -46,6 +46,7 @@ export class Wallet {
 
   loadSBCH() {
     this._sBCH = new SmartBchWallet(projectId, this.mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
+    this._sBCH.initWallet()
   }
 }
 

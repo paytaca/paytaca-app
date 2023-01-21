@@ -45,7 +45,7 @@ export default {
     securityOptionDialogStatus () {
       if (this.securityOptionDialogStatus === 'show' || this.securityOptionDialogStatus === 'show in settings') {
         this.dialog = true
-        this.btnLabel = this.securityOptionDialogStatus === 'show in settings' ? this.$t('Done') : this.t('Setup')
+        this.btnLabel = this.securityOptionDialogStatus === 'show in settings' ? this.$t('Done') : this.$t('Setup')
       } else {
         this.dialog = false
       }
