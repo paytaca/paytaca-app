@@ -7,6 +7,17 @@ export default function () {
       //   publicKey: '',
       //   privateKey: ''
       // }
+    },
+    history: {
+      // topic: [
+      //   {
+      //     from: '',
+      //     to: '',
+      //     msg: '',
+      //     timestamp: ''
+      //   }
+      //   ...
+      // ]
     }
   }
 }
