@@ -427,7 +427,7 @@ export default {
       vm.hideAssetInfo()
       const txCheck = setInterval(function () {
         if (transaction) {
-          transaction.asset = vm.selectedAsset
+          if (!transaction?.asset) transaction.asset = vm.selectedAsset
           vm.$refs.transaction.show(transaction, vm.darkMode)
           vm.hideBalances = true
           clearInterval(txCheck)
@@ -895,21 +895,28 @@ export default {
       const asset = isToken ? assets.find(asset => asset?.id == assetId) : this.bchAsset
 
       const transaction = await this.findTransaction({ txid, assetId, logIndex, chain })
-      if (this.selectedNetwork != chain) this.changeNetwork(chain, asset)
-      const refetchTxList = this.selectedAsset?.id != asset?.id
-      this.selectedAsset = asset
-      if (refetchTxList) {
-        this.transactions = []
-        this.transactionsPage = 0
-        this.transactionsLoaded = false
-        this.getTransactions()
-      }
+
       if (!transaction) {
         this.$q.dialog({
           message: 'Transaction not found',
           class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
         })
         return
+      }
+      if (asset?.id) {
+        if (this.selectedNetwork != chain) this.changeNetwork(chain, asset)
+        const refetchTxList = this.selectedAsset?.id != asset?.id
+        this.selectedAsset = asset
+        if (refetchTxList) {
+          this.transactions = []
+          this.transactionsPage = 0
+          this.transactionsLoaded = false
+          this.getTransactions()
+        }
+      } else {
+        transaction.asset = {
+          id: assetId,
+        }
       }
       this.showTransactionDetails(transaction)
     },
@@ -921,20 +928,28 @@ export default {
 
       const watchtower = new Watchtower()
       if (chain === 'sBCH') {
-        const response = await watchtower.BCH._api(`smartbch/transactions/${txid}/transfers/`)
-        const txTransfer = response?.data?.find?.(tx => {
-          if (typeof logIndex === 'number') return tx?.log_index === logIndex
-          return true
-        })
-        const address = this.$store.getters['global/getAddress']('sbch')
-        return parseTransactionTransfer(txTransfer, { address })
+        return watchtower.BCH._api(`smartbch/transactions/${txid}/transfers/`)
+          .then(response => {
+            const txTransfer = response?.data?.find?.(tx => {
+              if (typeof logIndex === 'number') return tx?.log_index === logIndex
+              return true
+            })
+            const address = this.$store.getters['global/getAddress']('sbch')
+            return parseTransactionTransfer(txTransfer, { address })
+          })
+          .catch(error => {
+            console.error(error)
+            return null
+          })
       } else {
         const isToken = assetId != 'bch'
         const tokenId = isToken ? assetId.split('/')[1] : assetId
         const walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
         const apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
-        const response = await watchtower.BCH._api(apiPath, { params: { txids: txid } })
-        return response?.data?.history?.find?.(tx => tx?.txid === txid)
+        return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+          .then(response => {
+            return response?.data?.history?.find?.(tx => tx?.txid === txid)
+          })
       }
     },
   },
