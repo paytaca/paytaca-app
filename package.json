@@ -64,7 +64,7 @@
     "vuex": "^4.0.2",
     "vuex-persist": "^3.1.3",
     "vuex-persistedstate": "^4.0.0-beta.2",
-    "watchtower-cash-js": "^0.1.32"
+    "watchtower-cash-js": "^0.1.33"
   },
   "overrides": {
     "@generalprotocols/anyhedge@0.14.99-development.3008515329": {
