@@ -124,8 +124,7 @@ import * as openpgp from 'openpgp/lightweight'
 import * as mqtt from 'mqtt'
 import axios from 'axios'
 import sha256 from 'js-sha256'
-import BCHJS from '@psf/bch-js';
-import { timeouts } from 'retry'
+import BCHJS from '@psf/bch-js'
 
 const bchjs = new BCHJS()
 const ago = require('s-ago')

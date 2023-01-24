@@ -165,7 +165,8 @@ export default {
       getMnemonic().then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
-          wallet.BCH.getNewAddressSet(newAddressIndex).then(function (addresses) {
+          wallet.BCH.getNewAddressSet(newAddressIndex).then(function (result) {
+            const addresses = result.addresses
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'bch',
               lastAddress: addresses.receiving,
@@ -173,6 +174,7 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             vm.generatingAddress = false
+            vm.$store.dispatch('chat/addIdentity', result.pgpIdentity)
             try { vm.setupListener() } catch {}
           })
         }
