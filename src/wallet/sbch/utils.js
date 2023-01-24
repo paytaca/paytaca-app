@@ -1,7 +1,51 @@
 import axios from 'axios'
-import { ethers, utils } from 'ethers'
+import { ethers, utils, BigNumber } from 'ethers'
 
 import { sep20Abi, erc721Abi } from './abi'
+
+/**
+ * Parses transaction to fit index page's expected structure for a transaction
+ * @param {Object} tx
+ * @param {Number} tx.id
+ * @param {String} tx.txid
+ * @param {String} tx.block_number
+ * @param {String} tx.timestamp
+ * @param {String} tx.from_addr
+ * @param {String} tx.to_addr
+ * @param {Number} tx.tx_fee
+ * @param {String | null} tx.amount
+ * @param {Number | null} tx.token_id
+ * @param {Number | null} tx.log_index
+ * @param {Object} [tx.token_contract]
+ * @param {Number} tx.token_contract.id
+ * @param {String} tx.token_contract.address
+ * @param {String} tx.token_contract.name
+ * @param {String} tx.token_contract.symbol
+ * @param {Number} tx.token_contract.decimals
+ * @param {String} tx.token_contract.image_url
+ * @param {Object} opts
+ * @param {String} opts.address - for determining if incoming/outgoing
+ */
+export function parseTransactionTransfer(tx, opts={ address: '' }) {
+  const address = opts?.address
+  const received = String(tx.to_addr).toLowerCase() === String(address).toLowerCase()
+  const data = Object.assign({}, tx, {
+    record_type: received ? 'incoming' : 'outgoing',
+    hash: tx?.txid,
+    block: BigNumber.from(tx?.block_number).toNumber(),
+
+    gas: tx?.tx_fee,
+    amount: received ? tx?.amount : (tx?.amount * -1),
+
+    from: tx?.from_addr,
+    to: tx?.to_addr,
+    senders: [tx?.from_addr],
+    recipients: [tx?.to_addr],
+
+    date_created: new Date(tx?.timestamp) * 1,
+  })
+  return data
+}
 
 export function getProvider (test = false) {
   const rpcUrls = {
