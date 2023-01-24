@@ -375,9 +375,12 @@ const offersDrawerRef = ref()
 const offersListRef = ref()
 
 const wallet = ref(null)
-onMounted(async () => {
+async function initWallet() {
   const mnemonic = await getMnemonic()
   wallet.value = markRaw(new Wallet(mnemonic))
+}
+onMounted(async () => {
+  await initWallet()
 
   fetchSummary('hedge')
   fetchSummary('long')
@@ -1017,4 +1020,70 @@ function fetchLiquidityServiceInfo() {
     })
 }
 onMounted(() => fetchLiquidityServiceInfo())
+
+const openedNotification = computed(() => $store.getters['notification/openedNotification'])
+watch(() => [openedNotification.value?.id], () => handleOpenedNotification())
+onMounted(() => handleOpenedNotification())
+function handleOpenedNotification() {
+  const notificationTypes = $store.getters['notification/types']
+
+  const type = openedNotification.value?.data?.type
+  const openContractTypes = [
+    notificationTypes.ANYHEDGE_OFFER_SETTLED,
+    notificationTypes.ANYHEDGE_MATURED,
+    notificationTypes.ANYHEDGE_REQUIRE_FUNDING,
+  ]
+
+  if (openContractTypes.indexOf(type) >= 0) {
+    const address = openedNotification.value?.data?.address
+    const position = openedNotification.value?.data?.position
+    displayContractFromNotification({address, position}) 
+    $store.commit('notification/clearOpenedNotification')
+  }
+}
+
+async function displayContractFromNotification(data={address: '', position: '' }) {
+  if (!data) return
+  const { address } = data
+  let _position, contract
+
+  const hedgeContract = contracts.value.find(contract => contract?.address === address)
+  if (hedgeContract) [contract, _position] = [hedgeContract, 'hedge']
+
+  if (!contract) {
+    const longContract = longPositions.value.find(contract => contract?.address === address)
+    if (longContract) [contract, _position] = [longContract, 'long']
+  }
+
+  if (!contract) {
+    if (!wallet.value) await initWallet()
+    const walletHash = wallet.value.BCH.getWalletHash()
+    const response = await anyhedgeBackend.get(`anyhedge/hedge-positions/${address}/`)
+    contract = await parseHedgePositionData(response?.data)
+    if (walletHash == contract.hedgeWalletHash) _position = 'hedge'
+    else if (walletHash == contract.longWalletHash) _position = 'long'
+  }
+
+  let contractsListRef
+  if (_position == 'hedge') contractsListRef = contracts
+  else if (_position == 'long') contractsListRef = longPositions
+
+  if (contractsListRef) {
+    const index = contractsListRef.value.findIndex(contract => contract?.address == contract?.address)
+    if (index >= 0) contractsListRef.value[index] = contract
+    else contractsListRef.value.unshift(contract)
+  }
+
+  if (_position && !selectedAccountType.value !== _position) selectedAccountType.value = _position
+  if (contract) {
+    hedgesDrawerRef.value?.show?.()
+    hedgesListRef?.value?.displayContractInDialog?.(contract)
+  } else {
+    $q.dialog({
+      message: 'Unable to find contract',
+      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    })
+  }
+  return contract
+}
 </script>
