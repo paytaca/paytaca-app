@@ -12,6 +12,7 @@ import sep20 from './sep20'
 import walletconnect from './walletconnect'
 import gifts from './gifts'
 import chat from './chat'
+import notification from './notification'
 
 /*
  * If not building with SSR mode, you can
@@ -36,7 +37,8 @@ export default function (/* { ssrContext } */) {
       sep20,
       walletconnect,
       gifts,
-      chat
+      chat,
+      notification
     },
 
     // enable strict mode (adds overhead!)

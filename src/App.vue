@@ -157,6 +157,19 @@ export default {
           }, 60 * 1000)
         })
     }, 500)
+
+    // Vuex notification module will act as the event bus for events when user opens app using
+    // push notifications, any page expected to do something when a push notification arrives
+    // should be handled within the page itself
+    // the routing however will be handled by the App.vue & notification module
+    // The reason is to have the same handlers for both cases where the app is closed/open
+    this.$pushNotifications.events.addEventListener(
+      'pushNotificationActionPerformed',
+      notificationAction => {
+        this.$store.commit('notification/setOpenedNotification', notificationAction?.notification)
+        this.$store.dispatch('notification/handleOpenedNotification')
+      },
+    )
   }
 }
 </script>
