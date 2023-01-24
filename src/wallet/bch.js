@@ -105,7 +105,7 @@ export class BchWallet {
       projectId: this.projectId,
       walletHash: this.walletHash,
       addressIndex: index,
-      pgpInfo: addresses.pgpInfo
+      chatIdentity: addresses.pgpInfo
     }
     const result = await this.watchtower.subscribe(data)
 

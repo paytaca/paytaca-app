@@ -216,7 +216,7 @@ export default {
     async retrievePublicKey (address) {
       const vm = this
       // Get the public key and verify
-      const url = `/chat/info/${address}`
+      const url = `/chat/identity/${address}`
       let resp
       try {
         resp = await chatBackend.get(url)
@@ -417,7 +417,7 @@ export default {
         signature: Buffer.from(signature).toString('base64')
       }
 
-      const url = `/chat/info/`
+      const url = `/chat/identity/`
       chatBackend.post(url, payload).then(function (resp) {
         if (resp.status === 201) {
           vm.$store.dispatch('chat/addIdentity', newIdentity)
