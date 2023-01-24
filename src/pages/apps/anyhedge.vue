@@ -1056,12 +1056,16 @@ async function displayContractFromNotification(data={address: '', position: '' }
   }
 
   if (!contract) {
-    if (!wallet.value) await initWallet()
-    const walletHash = wallet.value.BCH.getWalletHash()
-    const response = await anyhedgeBackend.get(`anyhedge/hedge-positions/${address}/`)
-    contract = await parseHedgePositionData(response?.data)
-    if (walletHash == contract.hedgeWalletHash) _position = 'hedge'
-    else if (walletHash == contract.longWalletHash) _position = 'long'
+    try {
+      if (!wallet.value) await initWallet()
+      const walletHash = wallet.value.BCH.getWalletHash()
+      const response = await anyhedgeBackend.get(`anyhedge/hedge-positions/${address}/`)
+      contract = await parseHedgePositionData(response?.data)
+      if (walletHash == contract.hedgeWalletHash) _position = 'hedge'
+      else if (walletHash == contract.longWalletHash) _position = 'long'
+    } catch(error) {
+      console.error(error)
+    }
   }
 
   let contractsListRef
