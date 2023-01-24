@@ -183,11 +183,13 @@ import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import startPage from '../../pages/transaction/dialog/StartPage.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
+import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { VOffline } from 'v-offline'
 import axios from 'axios'
+import Watchtower from 'watchtower-cash-js'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -259,10 +261,19 @@ export default {
     },
     selectedAsset () {
       this.transactions = []
+    },
+    'openedNotification.id': {
+      handler() {
+        if (!this.openedNotification?.id) return
+        this.handleOpenedNotification()
+      }
     }
   },
 
   computed: {
+    openedNotification() {
+      return this.$store.getters['notification/openedNotification']
+    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -278,20 +289,23 @@ export default {
 
       return this.$store.getters['assets/getAssets'][0]
     },
-    assets () {
-      if (this.selectedNetwork === 'sBCH') {
-        return this.$store.getters['sep20/getAssets'].filter(function (item) {
-          if (item && item.id !== 'bch') {
-            return item
-          }
-        })
-      }
-
+    mainchainAssets () {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item && item.id !== 'bch') {
           return item
         }
       })
+    },
+    smartchainAssets() {
+      return this.$store.getters['sep20/getAssets'].filter(function (item) {
+        if (item && item.id !== 'bch') {
+          return item
+        }
+      })
+    },
+    assets () {
+      if (this.selectedNetwork === 'sBCH') return this.smartchainAssets
+      return this.mainchainAssets
     },
     selectedAssetMarketPrice () {
       if (!this.selectedAsset || !this.selectedAsset.id) return
@@ -333,12 +347,15 @@ export default {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
-    changeNetwork (newNetwork = 'BCH') {
+    changeNetwork (newNetwork = 'BCH', setAsset) {
       const vm = this
       const prevNetwork = vm.selectedNetwork
       vm.selectedNetwork = newNetwork
       if (prevNetwork !== vm.selectedNetwork) {
         vm.selectedAsset = vm.bchAsset
+        if (setAsset?.id && vm.assets.find(asset => asset?.id == setAsset?.id)) {
+          vm.selectedAsset = setAsset
+        }
         vm.transactions = []
         vm.transactionsLoaded = false
         vm.transactionsPage = 0
@@ -410,7 +427,7 @@ export default {
       vm.hideAssetInfo()
       const txCheck = setInterval(function () {
         if (transaction) {
-          transaction.asset = vm.selectedAsset
+          if (!transaction?.asset) transaction.asset = vm.selectedAsset
           vm.$refs.transaction.show(transaction, vm.darkMode)
           vm.hideBalances = true
           clearInterval(txCheck)
@@ -834,7 +851,9 @@ export default {
           })
 
           if (Array.isArray(vm.assets) && vm.assets.length > 0) {
-            vm.selectedAsset = vm.bchAsset
+            if (!vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)) {
+              vm.selectedAsset = vm.bchAsset
+            }
             vm.getBalance(vm.selectedAsset.id)
             vm.getTransactions()
           }
@@ -847,7 +866,92 @@ export default {
         vm.transactionsLoaded = true
       }
       this.adjustTransactionsDivHeight()
-    }
+    },
+    async handleOpenedNotification() {
+      console.log('Handling opened notification')
+      const openedNotification = this.$store.getters['notification/openedNotification']
+      const notificationTypes = this.$store.getters['notification/types']
+      if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {
+        const txid = openedNotification?.data?.txid
+        const tokenId = openedNotification?.data?.token_id
+        this.findAndOpenTransaction({txid, tokenId, chain: 'BCH' })
+        this.$store.commit('notification/clearOpenedNotification')
+      } else if (openedNotification?.data?.type === notificationTypes.SBCH_TRANSACTION) {
+        const txid = openedNotification?.data?.txid
+        const tokenId = openedNotification?.data?.token_address
+        const logIndex = openedNotification?.data?.log_index
+        this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
+        this.$store.commit('notification/clearOpenedNotification')
+      }
+    },
+    async findAndOpenTransaction(data={txid: '', tokenId: '', logIndex: null, chain: 'BCH'}){
+      if (!data) return
+      const {txid, tokenId, logIndex, chain } = data
+      const isToken = tokenId && String(tokenId) != 'bch'
+      const tokenPrefix = chain === 'sBCH' ? 'sep20' : 'slp'
+      const assetId = isToken ? `${tokenPrefix}/${tokenId}` : 'bch'
+      
+      const assets = chain === 'sBCH' ? this.smartchainAssets : this.mainchainAssets
+      const asset = isToken ? assets.find(asset => asset?.id == assetId) : this.bchAsset
+
+      const transaction = await this.findTransaction({ txid, assetId, logIndex, chain })
+
+      if (!transaction) {
+        this.$q.dialog({
+          message: 'Transaction not found',
+          class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+        })
+        return
+      }
+      if (asset?.id) {
+        if (this.selectedNetwork != chain) this.changeNetwork(chain, asset)
+        const refetchTxList = this.selectedAsset?.id != asset?.id
+        this.selectedAsset = asset
+        if (refetchTxList) {
+          this.transactions = []
+          this.transactionsPage = 0
+          this.transactionsLoaded = false
+          this.getTransactions()
+        }
+      } else {
+        transaction.asset = {
+          id: assetId,
+        }
+      }
+      this.showTransactionDetails(transaction)
+    },
+    async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
+      if (!data) return
+      const { txid, assetId, chain, logIndex } = data
+      const transaction = this.transactions?.find?.(tx => (tx?.txid || tx?.tx_hash) === txid)
+      if (transaction) return transaction
+
+      const watchtower = new Watchtower()
+      if (chain === 'sBCH') {
+        return watchtower.BCH._api(`smartbch/transactions/${txid}/transfers/`)
+          .then(response => {
+            const txTransfer = response?.data?.find?.(tx => {
+              if (typeof logIndex === 'number') return tx?.log_index === logIndex
+              return true
+            })
+            const address = this.$store.getters['global/getAddress']('sbch')
+            return parseTransactionTransfer(txTransfer, { address })
+          })
+          .catch(error => {
+            console.error(error)
+            return null
+          })
+      } else {
+        const isToken = assetId != 'bch'
+        const tokenId = isToken ? assetId.split('/')[1] : assetId
+        const walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
+        const apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
+        return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+          .then(response => {
+            return response?.data?.history?.find?.(tx => tx?.txid === txid)
+          })
+      }
+    },
   },
 
   beforeRouteEnter (to, from, next) {
@@ -857,6 +961,8 @@ export default {
   },
 
   mounted () {
+    window.vm = this
+    this.handleOpenedNotification()
     const vm = this
 
     if (vm.prevPath === '/') {
