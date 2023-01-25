@@ -215,28 +215,4 @@ export default boot(({ app, store }) => {
   app.config.globalProperties.$pushNotifications = manager
   app.provide('$pushNotifications', manager)
 
-  // const testNotification = {
-  //   id: "0:1674453550557754%329660f9329660f9",
-  //   data: {
-  //     // SEP20 sbch tx test
-  //     // type: "sbch_transaction",
-  //     // txid: "0x9c52671a63b0bce8b7209871ee4a2089d90d5bb1a4ee5e1f8301455f61462018",
-  //     // log_index: 2,
-  //     // token_address: "0x77CB87b57F54667978Eb1B199b28a0db8C8E1c0B",
-  //     // token_type: 20,
-  
-  //     // bch tx test
-  //     // type: "transaction",
-  //     // txid: "dfa742eb529734170898e8a46e7ae9c525faa4d8fd5a5c4c137a9ce31f30a70e",
-  //     // tokenid: "bch",
-
-  //     // type: "anyhedge_offer_settled",
-  //     // address: "bitcoincash:pp98lav8r5fd6lrd0089r6szfk223quzfuqa3vguke",
-  //     // position: "long",
-  //   }
-  // }
-  // store.commit('notification/setOpenedNotification', testNotification)
-  // setTimeout(() => {
-  //   store.dispatch('notification/handleOpenedNotification').then(console.log)
-  // }, 500)
 })
