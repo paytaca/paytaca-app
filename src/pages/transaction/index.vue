@@ -978,7 +978,7 @@ export default {
     }
 
     // Check for slow internet and/or accessibility of the backend
-    axios.get('https://watchtower.cash', { timeout: 5000 }).then((resp) => {
+    axios.get('https://watchtower.cash', { timeout: 1000 * 60 }).then((resp) => {
       console.log('ONLINE')
     }).catch((error) => {
       console.log(error)
