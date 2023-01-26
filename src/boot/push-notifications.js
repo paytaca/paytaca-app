@@ -193,7 +193,7 @@ class PushNotificationsManager {
   }
 }
 
-export default boot(({ app }) => {
+export default boot(({ app, store }) => {
   const manager = reactive(
     markRaw(new PushNotificationsManager())
   )
@@ -214,4 +214,5 @@ export default boot(({ app }) => {
 
   app.config.globalProperties.$pushNotifications = manager
   app.provide('$pushNotifications', manager)
+
 })
