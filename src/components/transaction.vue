@@ -186,6 +186,7 @@ import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDeta
 export default {
   name: 'transaction',
   props: {
+    wallet: Object,
     hideCallback: {
       type: Function
     }
@@ -295,6 +296,7 @@ export default {
       })
     },
     displayAnyhedgeContract(contractAddress) {
+      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
       const dialog = this.$q.dialog({
         title: 'AnyHedge Contract',
         message: 'Fetching contract',
@@ -307,9 +309,17 @@ export default {
           if (!response?.data?.address) return Promise.reject({ response }) 
           const parsedContractData = await parseHedgePositionData(response?.data)
           dialog.hide()
+
+          let viewAs
+          if (parsedContractData?.hedgeWalletHash === walletHash) viewAs = 'hedge'
+          if (parsedContractData?.longWalletHash === walletHash) viewAs = 'long'
           this.$q.dialog({
             component: HedgeContractDetailDialog,
-            componentProps: { contract: parsedContractData },
+            componentProps: {
+              contract: parsedContractData,
+              wallet: this.wallet,
+              viewAs: viewAs,
+            },
           })
           return Promise.resolve(response)
         })

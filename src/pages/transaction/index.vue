@@ -94,7 +94,7 @@
         </div>
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
-        <transaction ref="transaction"></transaction>
+        <transaction ref="transaction" :wallet="wallet"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
           <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
             {{ selectedAsset.symbol }} {{ $t('Transactions') }}
