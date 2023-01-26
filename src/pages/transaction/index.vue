@@ -106,42 +106,13 @@
           </div>
           <div class="transaction-list">
             <template v-if="transactionsLoaded">
-              <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
-                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div class="row" @click="showTransactionDetails(transaction)">
-                      <!-- <div class="q-mr-sm">
-                        <img :src="selectedAsset.logo" width="40">
-                      </div> -->
-                      <div class="col col-transaction ">
-                        <div>
-                          <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text text-uppercase" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
-                          <p
-                            :class="{'text-grey': darkMode, 'q-mt-sm': !marketValue(transaction)?.marketValue }"
-                            class="q-mb-none transactions-wallet float-right ib-text text-right"
-                          >
-                            <div>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</div>
-
-                            <div 
-                              v-if="marketValue(transaction)?.marketValue"
-                              class="text-caption text-grey"
-                              :class="[darkMode ? 'text-weight-light' : '']"
-                              style="margin-top:-0.25em;"
-                            >
-                              {{ marketValue(transaction)?.marketValue }} {{ selectedMarketCurrency }}
-                            </div>
-                          </p>
-                        </div>
-                        <div class="col">
-                            <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
-                              <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
-                              <template v-else>{{ formatDate(transaction.date_created) }}</template>
-                            </span>
-                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-              </div>
+              <TransactionListItem
+                v-for="(transaction, index) in transactions"
+                :key="'tx-' + index"
+                :transaction="transaction"
+                :selected-asset="selectedAsset"
+                @click="showTransactionDetails(transaction)"
+              />
               <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
                 <p @click="() => { getTransactions(transactionsPage + 1) }">{{ $t('ShowMore') }}</p>
               </div>
@@ -183,6 +154,7 @@ import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import startPage from '../../pages/transaction/dialog/StartPage.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
+import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -200,6 +172,7 @@ const sep20IdRegexp = /sep20\/(.*)/
 export default {
   name: 'Transaction-page',
   components: {
+    TransactionListItem,
     TokenSuggestionsDialog,
     ProgressLoader,
     Transaction,
