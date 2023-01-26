@@ -94,7 +94,7 @@
         </div>
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
-        <transaction ref="transaction"></transaction>
+        <transaction ref="transaction" :wallet="wallet"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
           <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
             {{ selectedAsset.symbol }} {{ $t('Transactions') }}
@@ -106,42 +106,13 @@
           </div>
           <div class="transaction-list">
             <template v-if="transactionsLoaded">
-              <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
-                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div class="row" @click="showTransactionDetails(transaction)">
-                      <!-- <div class="q-mr-sm">
-                        <img :src="selectedAsset.logo" width="40">
-                      </div> -->
-                      <div class="col col-transaction ">
-                        <div>
-                          <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text text-uppercase" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
-                          <p
-                            :class="{'text-grey': darkMode, 'q-mt-sm': !marketValue(transaction)?.marketValue }"
-                            class="q-mb-none transactions-wallet float-right ib-text text-right"
-                          >
-                            <div>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</div>
-
-                            <div 
-                              v-if="marketValue(transaction)?.marketValue"
-                              class="text-caption text-grey"
-                              :class="[darkMode ? 'text-weight-light' : '']"
-                              style="margin-top:-0.25em;"
-                            >
-                              {{ marketValue(transaction)?.marketValue }} {{ selectedMarketCurrency }}
-                            </div>
-                          </p>
-                        </div>
-                        <div class="col">
-                            <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
-                              <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
-                              <template v-else>{{ formatDate(transaction.date_created) }}</template>
-                            </span>
-                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-              </div>
+              <TransactionListItem
+                v-for="(transaction, index) in transactions"
+                :key="'tx-' + index"
+                :transaction="transaction"
+                :selected-asset="selectedAsset"
+                @click="showTransactionDetails(transaction)"
+              />
               <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
                 <p @click="() => { getTransactions(transactionsPage + 1) }">{{ $t('ShowMore') }}</p>
               </div>
@@ -183,6 +154,7 @@ import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import startPage from '../../pages/transaction/dialog/StartPage.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
+import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -200,6 +172,7 @@ const sep20IdRegexp = /sep20\/(.*)/
 export default {
   name: 'Transaction-page',
   components: {
+    TransactionListItem,
     TokenSuggestionsDialog,
     ProgressLoader,
     Transaction,
@@ -218,7 +191,6 @@ export default {
   ],
   data () {
     return {
-      today: new Date().toDateString(),
       hideBalances: false,
       networks: {
         BCH: { name: 'BCH' },
@@ -231,10 +203,6 @@ export default {
         logo: 'bitcoin-cash-bch-logo.png',
         balance: 0
       },
-      recordTypeMap: {
-        incoming: this.$t('Received'),
-        outgoing: this.$t('Sent')
-      },
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       transactions: [],
@@ -243,7 +211,6 @@ export default {
       transactionsLoaded: false,
       balanceLoaded: false,
       wallet: null,
-      paymentMethods: null,
       manageAssets: false,
       assetInfoShown: false,
       pinDialogAction: '',
@@ -316,13 +283,6 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    selectedAssetMarketBalance () {
-      if (!this.selectedAsset) return ''
-      if (!this.selectedAssetMarketPrice) return ''
-      const computedBalance = Number(this.selectedAsset.balance || 0) * Number(this.selectedAssetMarketPrice)
-
-      return computedBalance.toFixed(2)
-    },
     earliestBlock () {
       if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
       return Math.min(
@@ -339,13 +299,6 @@ export default {
         const sectionHeight = this.$refs.fixedSection.clientHeight
         this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
       }, 500)
-    },
-    formatDate (date) {
-      return ago(new Date(date))
-    },
-    getFallbackAssetLogo (asset) {
-      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
-      return logoGenerator(String(asset && asset.id))
     },
     changeNetwork (newNetwork = 'BCH', setAsset) {
       const vm = this
@@ -506,6 +459,7 @@ export default {
     },
     getSbchTransactions (address) {
       const vm = this
+      const asset = vm.selectedAsset
       const id = String(vm.selectedAsset.id)
       vm.transactionsLoaded = false
 
@@ -548,6 +502,7 @@ export default {
               .map(tx => {
                 tx.senders = [tx.from]
                 tx.recipients = [tx.to]
+                tx.asset = asset
                 return tx
               })
             )
@@ -559,6 +514,7 @@ export default {
     },
     getBchTransactions (page) {
       const vm = this
+      const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
       vm.transactionsLoaded = false
       let recordType = 'all'
@@ -569,68 +525,38 @@ export default {
       }
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getTransactions(tokenId, page, recordType).then(function (transactions) {
-          if (transactions.history) {
-            if (Number(transactions.page) > vm.transactionsPage) {
-              vm.transactionsPage = Number(transactions.page)
-
-              transactions.history.map(function (item) {
-                return vm.transactions.push(item)
-              })
-            }
-          } else {
-            transactions.map(function (item) {
-              return vm.transactions.push(item)
-            })
-          }
+        vm.wallet.SLP.getTransactions(tokenId, page, recordType).then(function (response) {
+          const transactions = response.history || response
+          const page = Number(response?.page)
+          const hasNext = response?.has_next
+          if (!Array.isArray(transactions)) return
+          if (page > vm.transactionsPage) vm.transactionsPage = page
+          transactions.map(function (item) {
+            item.asset = asset
+            return vm.transactions.push(item)
+          })
           vm.transactionsLoaded = true
           setTimeout(() => {
-            vm.transactionsPageHasNext = transactions.has_next
-          }, 1000)
+            vm.transactionsPageHasNext = hasNext
+          }, 250)
         })
       } else {
-        vm.wallet.BCH.getTransactions(page, recordType).then(function (transactions) {
-          if (transactions.history) {
-            if (Number(transactions.page) > vm.transactionsPage) {
-              vm.transactionsPage = Number(transactions.page)
-
-              transactions.history.map(function (item) {
-                return vm.transactions.push(item)
-              })
-            }
-          } else {
-            transactions.map(function (item) {
-              return vm.transactions.push(item)
-            })
-          }
+        vm.wallet.BCH.getTransactions(page, recordType).then(function (response) {
+          const transactions = response.history || response
+          const page = Number(response?.page)
+          const hasNext = response?.has_next
+          if (!Array.isArray(transactions)) return
+          if (page > vm.transactionsPage) vm.transactionsPage = page
+          transactions.map(function (item) {
+            item.asset = asset
+            return vm.transactions.push(item)
+          })
           vm.transactionsLoaded = true
           setTimeout(() => {
-            vm.transactionsPageHasNext = transactions.has_next
-          }, 1000)
+            vm.transactionsPageHasNext = hasNext
+          }, 250)
         })
       }
-    },
-    marketValue (transaction) {
-      const data = {
-        marketAssetPrice: null,
-        isHistoricalPrice: false,
-        marketValue: null
-      }
-      if (this.selectedMarketCurrency === 'USD' && transaction?.usd_price) {
-        data.marketAssetPrice = transaction.usd_price
-        data.isHistoricalPrice = true
-      } else if (transaction?.market_prices?.[this.selectedMarketCurrency]) {
-        data.marketAssetPrice = transaction?.market_prices?.[this.selectedMarketCurrency]
-        data.isHistoricalPrice = true
-      } else {
-        data.marketAssetPrice = this.selectedAssetMarketPrice
-        data.isHistoricalPrice = false
-      }
-
-      if (data.marketAssetPrice) {
-        data.marketValue = (Number(transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
-      }
-      return data
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
@@ -990,7 +916,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
   .fixed-container {
     position: fixed;
     top: 0 !important;
@@ -1014,43 +940,9 @@ export default {
       height: 430px;
     }
   }
-  .p-label {
-    margin-bottom: 0px !important;
-  }
-  .default-text-color {
-    color: rgb(60, 100, 246) !important;
-  }
-  .text-light {
-    color: #BAC2C2;
-  }
-  .text-number-balance {
-    font-size: 45px;
-  }
   .payment-methods {
     color: #000;
     font-size: 20px;
-  }
-  .pp-fcolor {
-    color: #000 !important;
-  }
-  .selected {
-    box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;
-  }
-  .ib-text {
-    display: inline-block;
-  }
-  .pay-text {
-    font-size: 24px;
-    color: #DBE7E7;
-  }
-  .text-num-lg {
-    font-size: 18px;
-    color: #DBE7E7;
-  }
-  .text-num-md {
-    margin-top: 13px;
-    font-size: 12px;
-    color: #DBE7E7;
   }
   .transaction-container {
     min-height: 80vh;
@@ -1059,21 +951,9 @@ export default {
     background-color: #F9F8FF;
     margin-top: 24px;
   }
-  .col-transaction {
-    padding-top: 2px;
-    font-weight: 500;
-  }
   .transaction-wallet {
     font-size: 20px;
     color: #444646;
-  }
-  .transactions-wallet {
-    color: #4C4F4F;
-  }
-  .subtext {
-    font-size: 11px;
-    color: #4C4F4F;
-    opacity: .5;
   }
   .btn-all {
     margin-left: 0px;

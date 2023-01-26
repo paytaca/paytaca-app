@@ -5,7 +5,7 @@
       v-for="(asset, index) in assets"
       :key="index"
       class="method-cards q-pa-md q-mr-none"
-      :class="[{ selected: asset ? asset.id === selectedAsset.id : null }, {'pt-dark-box-shadow': darkMode}]"
+      :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
@@ -197,7 +197,8 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
+
   #asset-container {
     overflow: scroll;
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
@@ -229,5 +230,13 @@ export default {
     background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
     /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
     /* background: #717D7E; */
+  }
+  .selected {
+    box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;
+  }
+
+  .text-num-lg {
+    font-size: 18px;
+    color: #DBE7E7;
   }
 </style>

@@ -118,6 +118,41 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
+            <q-item v-if="anyhedgeContracts?.length">
+              <q-item-section>
+                <q-item-label class="text-gray" caption>Anyhedge</q-item-label>
+                <q-item-label
+                  v-for="(contractInfo, index) in anyhedgeContracts"
+                  :key="index"
+                  :class="darkMode ? 'text-white' : 'pp-text'"
+                >
+                  <q-popup-proxy :breakpoint="0">
+                    <div
+                      :class="['q-px-sm q-py-xs', darkMode ? 'pt-dark-label pt-dark' : 'text-black']"
+                      class="text-caption"
+                    >
+                      {{ contractInfo.label }}
+                    </div>
+                  </q-popup-proxy>
+                  <div class="row items-center">
+                    <div class="q-space">
+                      {{ ellipsisText(contractInfo.address, { end: 5 }) }}
+                    </div>
+                    <q-btn
+                      flat icon="content_copy"
+                      size="sm" padding="xs sm"
+                      @click.stop="copyToClipboard(contractInfo.address)"
+                    />
+                    <q-separator vertical :dark="darkMode"/>
+                    <q-btn
+                      flat icon="open_in_new"
+                      size="sm" padding="xs sm"
+                      @click.stop="displayAnyhedgeContract(contractInfo.address)"
+                    />
+                  </div>
+                </q-item-label>
+              </q-item-section>
+            </q-item>
             <q-item clickable>
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
@@ -144,9 +179,14 @@
 </template>
 
 <script>
+import { ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
+import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
+import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
+
 export default {
   name: 'transaction',
   props: {
+    wallet: Object,
     hideCallback: {
       type: Function
     }
@@ -198,9 +238,28 @@ export default {
     },
     cachedPaymentOTP() {
       return this.$store.getters['paytacapos/paymentOTPCache'](this.transaction?.txid)?.otp || ''
+    },
+    anyhedgeContracts() {
+      if (!Array.isArray(this.transaction.attributes)) return
+      const contracts = this.transaction.attributes
+        .map(attribute => {
+          switch(attribute?.key) {
+            case('anyhedge_funding_tx'):
+              return { label: 'Funding transaction', address: attribute?.value }
+            case('anyhedge_hedge_funding_utxo'):
+              return { label: 'Hedge funding UTXO', address: attribute?.value }
+            case('anyhedge_long_funding_utxo'):
+              return { label: 'Long funding UTXO', address: attribute?.value }
+            case('anyhedge_settlement_tx'):
+              return { label: 'Settlement transaction', address: attribute?.value }
+          }
+        })
+        .filter(Boolean)
+      return contracts
     }
   },
   methods: {
+    ellipsisText,
     concatenate (array) {
       let addresses = array.map(function (item) {
         return item[0]
@@ -235,6 +294,39 @@ export default {
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
+    },
+    displayAnyhedgeContract(contractAddress) {
+      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+      const dialog = this.$q.dialog({
+        title: 'AnyHedge Contract',
+        message: 'Fetching contract',
+        ok: false,
+        progress: true,
+        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+      })
+      anyhedgeBackend.get(`anyhedge/hedge-positions/${contractAddress}/`)
+        .then(async (response) => {
+          if (!response?.data?.address) return Promise.reject({ response }) 
+          const parsedContractData = await parseHedgePositionData(response?.data)
+          dialog.hide()
+
+          let viewAs
+          if (parsedContractData?.hedgeWalletHash === walletHash) viewAs = 'hedge'
+          if (parsedContractData?.longWalletHash === walletHash) viewAs = 'long'
+          this.$q.dialog({
+            component: HedgeContractDetailDialog,
+            componentProps: {
+              contract: parsedContractData,
+              wallet: this.wallet,
+              viewAs: viewAs,
+            },
+          })
+          return Promise.resolve(response)
+        })
+        .catch(error => {
+          console.error(error)
+          dialog.update({ message: 'Unable to fetch contract data' })
+        })
     }
   }
 }
