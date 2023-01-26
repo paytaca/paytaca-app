@@ -1032,6 +1032,8 @@ function handleOpenedNotification() {
     notificationTypes.ANYHEDGE_OFFER_SETTLED,
     notificationTypes.ANYHEDGE_MATURED,
     notificationTypes.ANYHEDGE_REQUIRE_FUNDING,
+    notificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_UPDATE,
+    notificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_COMPLETE,
   ]
 
   if (openContractTypes.indexOf(type) >= 0) {

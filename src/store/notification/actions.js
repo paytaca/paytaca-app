@@ -22,6 +22,8 @@ export function getOpenedNotificationRoute(context) {
     case(NotificationTypes.ANYHEDGE_MATURED):
     case(NotificationTypes.ANYHEDGE_OFFER_SETTLED):
     case(NotificationTypes.ANYHEDGE_REQUIRE_FUNDING):
+    case(NotificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_UPDATE):
+    case(NotificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_COMPLETE):
       route = { name: 'app-any-hedge' }
       break
   }

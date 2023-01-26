@@ -5,6 +5,8 @@ export function types() {
     ANYHEDGE_OFFER_SETTLED: 'anyhedge_offer_settled',
     ANYHEDGE_MATURED: 'anyhedge_matured',
     ANYHEDGE_REQUIRE_FUNDING: 'anyhedge_require_funding',
+    ANYHEDGE_MUTUAL_REDEMPTION_UPDATE: 'anyhedge_mutual_redemption_update',
+    ANYHEDGE_MUTUAL_REDEMPTION_COMPLETE: 'anyhedge_mutual_redemption_complete',
   }
 }
 
