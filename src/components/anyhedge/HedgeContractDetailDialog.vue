@@ -458,7 +458,7 @@
             </div>
             <div>
               <q-btn
-                v-if="!mutualRedemptionData.txHash"
+                v-if="!mutualRedemptionData.txHash && (viewAsHedge || viewAsLong)"
                 no-caps
                 color="brandblue"
                 label="Propose Another Redemption"
@@ -900,7 +900,10 @@ async function verifyFundingProposalUtxo(position) {
 }
 
 const mutualRedemptionAllowed = computed(() => {
-  return props.contract?.metadata?.enableMutualRedemption && props.contract?.hedgeWalletHash && props.contract?.longWalletHash
+  return props.contract?.metadata?.enableMutualRedemption &&
+    props.contract?.hedgeWalletHash &&
+    props.contract?.longWalletHash && 
+    (viewAsHedge.value || viewAsLong.value)
 })
 function openCreateMutualRedemptionFormDialog() {
   $q.dialog({
