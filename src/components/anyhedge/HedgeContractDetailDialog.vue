@@ -2,7 +2,11 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide">
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">AnyHedge Contract</div>
+        <div class="text-h6 q-space q-mt-sm">
+          <template v-if="viewAsHedge && viewPositionInTitle">Stabilize</template>
+          <template v-else-if="viewAsLong && viewPositionInTitle">Leverage</template>
+          <template v-else>AnyHedge Contract</template>
+        </div>
         <q-btn
           flat
           padding="sm"
@@ -10,7 +14,7 @@
           v-close-popup
         />
       </div>
-      <q-card-section class="q-gutter-y-sm">
+      <q-card-section class="q-gutter-y-sm" style="max-height:calc(95vh - 10rem);overflow:auto;">
         <div>
           <div class="text-grey text-subtitle1">Address</div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
@@ -521,6 +525,7 @@ const props = defineProps({
     required: true,
   },
   viewAs: String,
+  viewPositionInTitle: Boolean,
   wallet: Object,
 })
 
