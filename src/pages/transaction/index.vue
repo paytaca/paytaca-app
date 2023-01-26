@@ -479,6 +479,7 @@ export default {
     },
     getSbchTransactions (address) {
       const vm = this
+      const asset = vm.selectedAsset
       const id = String(vm.selectedAsset.id)
       vm.transactionsLoaded = false
 
@@ -521,6 +522,7 @@ export default {
               .map(tx => {
                 tx.senders = [tx.from]
                 tx.recipients = [tx.to]
+                tx.asset = asset
                 return tx
               })
             )
@@ -532,6 +534,7 @@ export default {
     },
     getBchTransactions (page) {
       const vm = this
+      const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
       vm.transactionsLoaded = false
       let recordType = 'all'
@@ -542,44 +545,36 @@ export default {
       }
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getTransactions(tokenId, page, recordType).then(function (transactions) {
-          if (transactions.history) {
-            if (Number(transactions.page) > vm.transactionsPage) {
-              vm.transactionsPage = Number(transactions.page)
-
-              transactions.history.map(function (item) {
-                return vm.transactions.push(item)
-              })
-            }
-          } else {
-            transactions.map(function (item) {
-              return vm.transactions.push(item)
-            })
-          }
+        vm.wallet.SLP.getTransactions(tokenId, page, recordType).then(function (response) {
+          const transactions = response.history || response
+          const page = Number(response?.page)
+          const hasNext = response?.has_next
+          if (!Array.isArray(transactions)) return
+          if (page > vm.transactionsPage) vm.transactionsPage = page
+          transactions.map(function (item) {
+            item.asset = asset
+            return vm.transactions.push(item)
+          })
           vm.transactionsLoaded = true
           setTimeout(() => {
-            vm.transactionsPageHasNext = transactions.has_next
-          }, 1000)
+            vm.transactionsPageHasNext = hasNext
+          }, 250)
         })
       } else {
-        vm.wallet.BCH.getTransactions(page, recordType).then(function (transactions) {
-          if (transactions.history) {
-            if (Number(transactions.page) > vm.transactionsPage) {
-              vm.transactionsPage = Number(transactions.page)
-
-              transactions.history.map(function (item) {
-                return vm.transactions.push(item)
-              })
-            }
-          } else {
-            transactions.map(function (item) {
-              return vm.transactions.push(item)
-            })
-          }
+        vm.wallet.BCH.getTransactions(page, recordType).then(function (response) {
+          const transactions = response.history || response
+          const page = Number(response?.page)
+          const hasNext = response?.has_next
+          if (!Array.isArray(transactions)) return
+          if (page > vm.transactionsPage) vm.transactionsPage = page
+          transactions.map(function (item) {
+            item.asset = asset
+            return vm.transactions.push(item)
+          })
           vm.transactionsLoaded = true
           setTimeout(() => {
-            vm.transactionsPageHasNext = transactions.has_next
-          }, 1000)
+            vm.transactionsPageHasNext = hasNext
+          }, 250)
         })
       }
     },
