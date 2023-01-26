@@ -282,6 +282,8 @@ export async function parseHedgePositionData(data) {
 
   if (data?.mutual_redemption) {
     contractData.mutualRedemption = data.mutual_redemption
+  } else {
+    contractData.mutualRedemption = null
   }
 
   if (data?.metadata) {
