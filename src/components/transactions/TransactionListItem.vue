@@ -34,8 +34,14 @@
         </div>
       </div>
     </div>
-    <div class="q-gutter-xs">
-      <q-badge v-for="(badge,index) in badges" :key="index" class="q-py-xs q-px-sm" @click.stop>
+    <div class="row items-center q-gutter-xs">
+      <q-badge
+        v-for="(badge,index) in badges" :key="index"
+        class="q-py-xs q-px-sm"
+        rounded
+        @click.stop
+      >
+        <q-icon v-if="badge?.icon" :name="badge?.icon" class="q-mr-xs"/>
         <span style="max-width:5em" class="ellipsis">
           {{ badge?.text }}
         </span>
@@ -123,6 +129,7 @@ const badges = computed(() => {
     switch(attribute?.key) {
       case('anyhedge_funding_tx'):
         badges.push({
+          icon: 'img:anyhedge-logo.png',
           text: 'Anyhedge funding transaction',
           data: { address: attribute?.value },
         })
@@ -130,12 +137,14 @@ const badges = computed(() => {
       case('anyhedge_hedge_funding_utxo'):
       case('anyhedge_long_funding_utxo'):
         badges.push({
+          icon: 'img:anyhedge-logo.png',
           text: 'Anyhedge funding UTXO',
           data: { address: attribute?.value },
         })
         break
       case('anyhedge_settlement_tx'):
         badges.push({
+          icon: 'img:anyhedge-logo.png',
           text: 'Anyhedge settlement transaction',
           data: { address: attribute?.value },
         })
