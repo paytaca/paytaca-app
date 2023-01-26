@@ -191,7 +191,6 @@ export default {
   ],
   data () {
     return {
-      today: new Date().toDateString(),
       hideBalances: false,
       networks: {
         BCH: { name: 'BCH' },
@@ -204,10 +203,6 @@ export default {
         logo: 'bitcoin-cash-bch-logo.png',
         balance: 0
       },
-      recordTypeMap: {
-        incoming: this.$t('Received'),
-        outgoing: this.$t('Sent')
-      },
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       transactions: [],
@@ -216,7 +211,6 @@ export default {
       transactionsLoaded: false,
       balanceLoaded: false,
       wallet: null,
-      paymentMethods: null,
       manageAssets: false,
       assetInfoShown: false,
       pinDialogAction: '',
@@ -289,13 +283,6 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    selectedAssetMarketBalance () {
-      if (!this.selectedAsset) return ''
-      if (!this.selectedAssetMarketPrice) return ''
-      const computedBalance = Number(this.selectedAsset.balance || 0) * Number(this.selectedAssetMarketPrice)
-
-      return computedBalance.toFixed(2)
-    },
     earliestBlock () {
       if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
       return Math.min(
@@ -312,13 +299,6 @@ export default {
         const sectionHeight = this.$refs.fixedSection.clientHeight
         this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
       }, 500)
-    },
-    formatDate (date) {
-      return ago(new Date(date))
-    },
-    getFallbackAssetLogo (asset) {
-      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
-      return logoGenerator(String(asset && asset.id))
     },
     changeNetwork (newNetwork = 'BCH', setAsset) {
       const vm = this
@@ -577,28 +557,6 @@ export default {
           }, 250)
         })
       }
-    },
-    marketValue (transaction) {
-      const data = {
-        marketAssetPrice: null,
-        isHistoricalPrice: false,
-        marketValue: null
-      }
-      if (this.selectedMarketCurrency === 'USD' && transaction?.usd_price) {
-        data.marketAssetPrice = transaction.usd_price
-        data.isHistoricalPrice = true
-      } else if (transaction?.market_prices?.[this.selectedMarketCurrency]) {
-        data.marketAssetPrice = transaction?.market_prices?.[this.selectedMarketCurrency]
-        data.isHistoricalPrice = true
-      } else {
-        data.marketAssetPrice = this.selectedAssetMarketPrice
-        data.isHistoricalPrice = false
-      }
-
-      if (data.marketAssetPrice) {
-        data.marketValue = (Number(transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
-      }
-      return data
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
