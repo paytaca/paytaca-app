@@ -116,4 +116,10 @@ function formatDate (date) {
 .ib-text {
   display: inline-block;
 }
+
+.subtext {
+  font-size: 11px;
+  color: #4C4F4F;
+  opacity: .5;
+}
 </style>

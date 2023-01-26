@@ -916,7 +916,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
   .fixed-container {
     position: fixed;
     top: 0 !important;
@@ -940,43 +940,9 @@ export default {
       height: 430px;
     }
   }
-  .p-label {
-    margin-bottom: 0px !important;
-  }
-  .default-text-color {
-    color: rgb(60, 100, 246) !important;
-  }
-  .text-light {
-    color: #BAC2C2;
-  }
-  .text-number-balance {
-    font-size: 45px;
-  }
   .payment-methods {
     color: #000;
     font-size: 20px;
-  }
-  .pp-fcolor {
-    color: #000 !important;
-  }
-  .selected {
-    box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;
-  }
-  .ib-text {
-    display: inline-block;
-  }
-  .pay-text {
-    font-size: 24px;
-    color: #DBE7E7;
-  }
-  .text-num-lg {
-    font-size: 18px;
-    color: #DBE7E7;
-  }
-  .text-num-md {
-    margin-top: 13px;
-    font-size: 12px;
-    color: #DBE7E7;
   }
   .transaction-container {
     min-height: 80vh;
@@ -985,21 +951,9 @@ export default {
     background-color: #F9F8FF;
     margin-top: 24px;
   }
-  .col-transaction {
-    padding-top: 2px;
-    font-weight: 500;
-  }
   .transaction-wallet {
     font-size: 20px;
     color: #444646;
-  }
-  .transactions-wallet {
-    color: #4C4F4F;
-  }
-  .subtext {
-    font-size: 11px;
-    color: #4C4F4F;
-    opacity: .5;
   }
   .btn-all {
     margin-left: 0px;
