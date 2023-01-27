@@ -158,7 +158,7 @@ export default {
 
       const bchWallet = new Wallet(this.mnemonic, 'BCH')
 
-      bchWallet.BCH.getNewAddressSet(0).then(function (addresses) {
+      bchWallet.BCH.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
           walletHash: bchWallet.BCH.walletHash,
@@ -167,6 +167,7 @@ export default {
           lastChangeAddress: addresses !== null ? addresses.change : '',
           lastAddressIndex: 0
         })
+        vm.$store.dispatch('chat/addIdentity', pgpIdentity)
         vm.steps += 1
         try {
           vm.$store.dispatch('global/refetchWalletPreferences')

@@ -715,7 +715,7 @@ export default {
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
         if (bchChangeAddress.length === 0) {
-          vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+          vm.wallet.BCH.getNewAddressSet(0).then(function ({ addresses }) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
               walletHash: vm.wallet.BCH.walletHash,

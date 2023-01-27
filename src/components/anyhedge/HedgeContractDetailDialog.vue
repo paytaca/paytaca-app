@@ -731,7 +731,8 @@ async function getAddresses() {
     }
 
     const addressIndex = 0
-    let addressSet = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    const result = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    const addressSet = result.adddresses
     if (!addressSet?.receiving) throw new Error('Expected receiving address')
     response.addressSet = addressSet
     response.addressSet.index = addressIndex

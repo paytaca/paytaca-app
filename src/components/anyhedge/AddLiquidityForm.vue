@@ -187,7 +187,8 @@ async function getAddressSetForNewLongAccount() {
   try{
     loading.value = true
     loadingMsg.value = 'Generating address set'
-    const addressSet = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    const result = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    const addressSet = result.addressres
     const pubkey = await props.wallet.BCH.getPublicKey(`0/${addressIndex}`)
     addressSet.pubkey = pubkey
     if (!addressSet?.receiving || !addressSet?.pubkey) throw new Error('Expected receiving address & pubkey')
