@@ -41,14 +41,15 @@ export async function updateSupportedCurrencies (context, { force = true }) {
  *  }
  */
 export function getAllAssetList (context) {
-  const mainchainAssets = context.rootGetters['assets/getAssets']
-  const smartchainAssets = context.rootGetters['sep20/getAssets']
+  // TODO: Fetching of price needs to be improved. Coingecko does not not have price quoute for 
+  // most BCH and sBCH tokens currently. For SPICE, the price quote is wrong.
+  // The filters below is meant to only have BCH as result. This is temporary.
+  const mainchainAssets = context.rootGetters['assets/getAssets'].filter(asset => asset.id.indexOf('/') === -1)
+  const smartchainAssets = context.rootGetters['sep20/getAssets'].filter(asset => asset.id.indexOf('/') === -1)
 
   const mainchain = mainchainAssets.map(asset => {
-    const isSpice = String(asset.id).toLowerCase() === 'slp/4de69e374a8ed21cbddd47f2338cc0f479dc58daa2bbe11cd604ca488eca0ddf'
     const filteredSymbol = context.state.coinsList
       .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
-      .filter(coin => String(coin.name).toLowerCase() === String(asset.name).toLowerCase() || isSpice)
     const filteredPlatform = filteredSymbol
       .filter(coin => !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1)
     const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
@@ -56,14 +57,10 @@ export function getAllAssetList (context) {
   })
 
   const smartchain = smartchainAssets.map(asset => {
-    const isSpice = String(asset.id).toLowerCase() === 'sep20/0xe11829a7d5d8806bb36e118461a1012588fafd89'
     const filteredSymbol = context.state.coinsList
       .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
-      .filter(coin => String(coin.name).toLowerCase() === String(asset.name).toLowerCase() || isSpice)
     const filteredPlatform = filteredSymbol
       .filter(coin => {
-        if (isSpice) return !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1
-
         return coin.platforms && coin.platforms.smartbch
       })
 
@@ -108,102 +105,6 @@ export async function updateAssetPrices (context, { clearExisting = false }) {
         prices: prices[coin.id]
       }
     })
-
-  if (clearExisting) context.commit('clearAssetPrices')
-  context.commit('updateAssetPrices', newAssetPrices)
-  let selectedCurrency = null
-  if (context.state.selectedCurrency && context.state.selectedCurrency.symbol) selectedCurrency = context.state.selectedCurrency.symbol
-  context.dispatch('updateUsdRates', { currency: selectedCurrency })
-}
-
-export async function updateMainchainAssetPrices (context, { commit = true }) {
-  const mainchainAssets = context.rootGetters['assets/getAssets'].map(asset => {
-    const filteredSymbol = context.state.coinsList
-      .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
-    const filteredPlatform = filteredSymbol
-      .filter(coin => !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1)
-    const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
-    return { asset, coin }
-  })
-
-  const coinIds = mainchainAssets.map(({ coin }) => coin && coin.id).filter(Boolean)
-  const { data: prices } = await axios.get(
-    'https://api.coingecko.com/api/v3/simple/price',
-    {
-      params: {
-        ids: coinIds.join(','),
-        vs_currencies: 'usd'
-      }
-    }
-  )
-
-  const marketPrices = mainchainAssets.map(({ asset, coin }) => {
-    return {
-      assetId: asset.id,
-      coinId: coin.id,
-      prices: prices[coin.id]
-    }
-  })
-
-  if (commit) {
-    context.commit('updateAssetPrices', marketPrices)
-    let selectedCurrency = null
-    if (context.state.selectedCurrency && context.state.selectedCurrency.symbol) selectedCurrency = context.state.selectedCurrency.symbol
-    context.dispatch('updateUsdRates', { currency: selectedCurrency })
-  }
-  return marketPrices
-}
-
-export async function updateSmartchainPrices (context, { commit = true }) {
-  const smartchainAssets = context.rootGetters['sep20/getAssets']
-    .map(asset => {
-      const match = String(asset.id).match(/^sep20\/(0x[0-9a-fA-F]*)$/)
-      if (!match) return
-      return { asset, address: match[1] }
-    })
-    .filter(Boolean)
-  const addresses = smartchainAssets.map(asset => asset.address).filter(Boolean)
-
-  const { data: prices } = await axios.get(
-    'https://api.coingecko.com/api/v3/simple/token_price/smartbch',
-    {
-      params: {
-        contract_addresses: addresses.join(','),
-        vs_currencies: 'usd'
-      }
-    }
-  )
-
-  const marketPrices = smartchainAssets
-    .map(({ asset, address }) => {
-      if (!address) return
-      if (!prices[address.toLowerCase()]) return
-
-      return {
-        assetId: asset.id,
-        contractAddress: address,
-        prices: prices[address.toLowerCase()]
-      }
-    })
-    .filter(Boolean)
-
-  if (commit) {
-    context.commit('updateAssetPrices', marketPrices)
-    let selectedCurrency = null
-    if (context.state.selectedCurrency && context.state.selectedCurrency.symbol) selectedCurrency = context.state.selectedCurrency.symbol
-    context.dispatch('updateUsdRates', { currency: selectedCurrency })
-  }
-  return marketPrices
-}
-
-export async function updateAssetPrices2 (context, { clearExisting = false }) {
-  const mainchainMarketPrices = await context.dispatch('updateMainchainAssetPrices', { commit: false })
-  const smartchainMarketPrices = await context.dispatch('updateSmartchainPrices', { commit: false })
-
-  const newAssetPrices = [
-    ...mainchainMarketPrices,
-    ...smartchainMarketPrices
-  ]
 
   if (clearExisting) context.commit('clearAssetPrices')
   context.commit('updateAssetPrices', newAssetPrices)
