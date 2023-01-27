@@ -20,6 +20,7 @@ export function getOpenedNotificationRoute(context) {
       route = { name: 'transaction-index' }
       break
     case(NotificationTypes.ANYHEDGE_MATURED):
+    case(NotificationTypes.ANYHEDGE_CONTRACT_CANCELLED):
     case(NotificationTypes.ANYHEDGE_OFFER_SETTLED):
     case(NotificationTypes.ANYHEDGE_REQUIRE_FUNDING):
     case(NotificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_UPDATE):

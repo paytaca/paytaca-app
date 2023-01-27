@@ -104,26 +104,34 @@
             />
           </div>
           <div v-else>
+            <q-badge v-if="isCancelled" color="red" class="q-mr-xs">
+              Contract cancelled
+              <span v-if="contract?.cancelled?.at > 0" class="q-ml-xs">
+                ({{ formatDate(contract?.cancelled?.at * 1000) }})
+              </span>
+            </q-badge>
             <q-badge color="grey-7">
               Not yet funded
             </q-badge>
             <div class="row no-wrap items-center q-gutter-x-xs q-py-xs">
               <div class="col-3 text-body1">Hedge</div>
-              <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
-              <template v-else>
-                <q-btn
-                  v-if="viewAsHedge"
-                  :disable="matured"
-                  no-caps
-                  label="Submit funding proposal"
-                  color="brandblue"
-                  padding="none sm"
-                  @click="fundHedgeProposal('hedge')"
-                />
-                <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+              <template v-if="!isCancelled">
+                <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
+                <template v-else>
+                  <q-btn
+                    v-if="viewAsHedge"
+                    :disable="matured"
+                    no-caps
+                    label="Submit funding proposal"
+                    color="brandblue"
+                    padding="none sm"
+                    @click="fundHedgeProposal('hedge')"
+                  />
+                  <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+                </template>
               </template>
               <q-space/>
-              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured && !isCancelled" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -154,21 +162,23 @@
 
             <div class="row items-center q-gutter-x-xs">
               <div class="col-3 text-body1">Long</div>
-              <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
-              <template v-else>
-                <q-btn
-                  v-if="viewAsLong"
-                  :disable="matured"
-                  no-caps
-                  label="Submit funding proposal"
-                  color="brandblue"
-                  padding="none sm"
-                  @click="fundHedgeProposal('long')"
-                />
-                <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+              <template v-if="!isCancelled">
+                <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
+                <template v-else>
+                  <q-btn
+                    v-if="viewAsLong"
+                    :disable="matured"
+                    no-caps
+                    label="Submit funding proposal"
+                    color="brandblue"
+                    padding="none sm"
+                    @click="fundHedgeProposal('long')"
+                  />
+                  <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+                </template>
               </template>
               <q-space/>
-              <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured && !isCancelled" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -195,6 +205,17 @@
               total-bottom
               :data="calculatedFundingAmounts.long"
               class="q-pl-sm q-pr-md"
+            />
+            <q-btn
+              v-if="canCancelContract"
+              outline
+              padding="xs sm"
+              no-caps
+              color="red"
+              label="Cancel contract"
+              icon="block"
+              class="full-width q-mt-sm"
+              @click="cancelContractConfirm(viewAs)"
             />
           </div>
 
@@ -481,7 +502,7 @@
 <script setup>
 import BCHJS from '@psf/bch-js';
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
-import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
+import { formatDate, formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
 import { calculateContractFundingWithFees, calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
 import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
 import { getPrivateKey } from 'src/wallet/anyhedge/utils'
@@ -1167,6 +1188,11 @@ async function cancelMutualRedemption(position) {
     dialog.update({ persistent: false, ok: true, progress: false })
   }
 
+
+  dialog.update({
+    message: (position === initiator ? 'Cancelling' : 'Declining') + ' mutual redemption proposal',
+    persistent: true, ok: false, progress: true
+  })
   const data = { position, signature }
   const contractAddress = props.contract?.address
   anyhedgeBackend.post(`/anyhedge/hedge-positions/${contractAddress}/cancel_mutual_redemption/`, data)
@@ -1206,5 +1232,85 @@ async function cancelMutualRedemptionConfirm(position) {
   })
   await dialogPromise({component: SecurityCheckDialog})
   cancelMutualRedemption(position)
+}
+
+const isCancelled = computed(() => props.contract?.cancelled?.at > 0)
+const canCancelContract = computed(() => {
+  return !props.contract?.fundingTxHash &&
+    !props.contract?.cancelled?.at &&
+    (viewAsHedge.value || viewAsLong.value)
+})
+async function cancelContract(position) {
+  const dialog = $q.dialog({
+    title: 'Cancel contract',
+    message: 'Cancelling contract',
+    persistent: true,
+    progress: true,
+    html: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+  })
+
+  const data = {
+    position: position,
+    timestamp: Math.floor(Date.now()/ 1000),
+    signature: undefined,
+  }
+
+  try {
+    dialog.update({ message: 'Signing request' })
+    const privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
+    const message = `${data.timestamp}:${props.contract?.address}`
+    data.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
+  } catch(error) {
+    console.error(error)
+    dialog.update({ message: 'Encountered error in signing message' })
+    return
+  } finally {
+    dialog.update({ persistent: false, ok: true, progress: false })
+  }
+
+  dialog.update({
+    message: 'Cancelling contract',
+    persistent: true, ok: false, progress: true
+  })
+  const contractAddress = props.contract?.address
+  anyhedgeBackend.post(`/anyhedge/hedge-positions/${contractAddress}/cancel/`, data)
+    .then(response => {
+      if (response?.data?.address) {
+        parseHedgePositionData(response?.data).then(contractData => Object.assign(props.contract, contractData))
+        dialog.update({
+          message: 'Contract cancelled',
+          ok: true,
+          progress: false,
+        })
+        return Promise.resolve(response)
+      }
+      return Promise.reject(response)
+    })
+    .catch(error => {
+      console.error(error)
+      let errors = ['Encountered error in cancelling contract']
+      if (typeof error?.response?.data === 'string') errors = [error.response.data]
+      else if (Array.isArray(error?.response?.data)) errors = error.response.data
+      else if (Array.isArray(error?.response?.data?.non_field_errors)) errors = error?.response?.data?.non_field_errors
+      dialog.update({ message: errors.join('<br/>') })
+    })
+    .finally(() => {
+      dialog.update({progress: false, persistent: false, ok: true})
+    })
+}
+
+async function cancelContractConfirm(position) {
+  await dialogPromise({
+    title: 'Cancel contract',
+    message: 'Are you sure?',
+    html: true,
+    ok: true,
+    cancel: true,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  await dialogPromise({component: SecurityCheckDialog})
+  cancelContract(position)
 }
 </script>

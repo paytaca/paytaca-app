@@ -173,6 +173,8 @@ export function ellipsisText (value, config) {
  * @param {Number} data.start_price
  * @param {Number} data.low_liquidation_multiplier
  * @param {Number} data.high_liquidation_multiplier
+ * @param {Number} [data.cancelled_at]
+ * @param {String} [data.cancelled_by]
  * @param {String|null} data.funding_tx_hash
  * @param {Boolean|null} data.funding_tx_hash_validated
  * @param {{ address: String, satoshis: Number }} data.fee
@@ -296,6 +298,12 @@ export async function parseHedgePositionData(data) {
       totalHedgeFundingSats:  data?.metadata?.total_hedge_funding_sats,
       totalLongFundingSats:   data?.metadata?.total_long_funding_sats,
     }
+  }
+
+  if (data?.cancelled_at) {
+    contractData.cancelled = { at: data.cancelled_at, by: data?.cancelled_by }
+  } else {
+    contractData.cancelled = null
   }
 
   return contractData
