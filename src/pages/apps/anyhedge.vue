@@ -433,6 +433,8 @@ const websocketMessageHandler = (message) => {
       fetchSummary('hedge')
       fetchSummary('long')
       refetchContract(data?.meta?.address)
+    } else if (data?.action === 'cancelled') {
+      refetchContract(data?.meta?.address)
     }
   }
   if (data?.resource === 'mutual_redemption') {
@@ -1031,7 +1033,10 @@ function handleOpenedNotification() {
   const openContractTypes = [
     notificationTypes.ANYHEDGE_OFFER_SETTLED,
     notificationTypes.ANYHEDGE_MATURED,
+    notificationTypes.ANYHEDGE_CONTRACT_CANCELLED,
     notificationTypes.ANYHEDGE_REQUIRE_FUNDING,
+    notificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_UPDATE,
+    notificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_COMPLETE,
   ]
 
   if (openContractTypes.indexOf(type) >= 0) {

@@ -1,9 +1,24 @@
 <template>
-  <q-card-section>
-    <div class="row justify-end items-center q-gutter-sm">
+  <q-card-section :class="{'text-grey': contract?.cancelled?.at }">
+    <div class="row justify-end items-center q-gutter-x-sm">
       <div class="q-space text-body1">
         {{ ellipsisText(contract?.address, { end: 5 }) }}
       </div>
+      <q-icon v-if="contract?.cancelled?.at" name="block" color="red" size="md" @click.stop>
+        <q-popup-proxy :breakpoint="0">
+          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+            Contract was cancelled
+            <template v-if="contract?.cancelled?.by">
+              by {{ contract?.cancelled?.by }}
+            </template>
+
+            <div v-if="contract?.cancelled?.at > 0" class="text-grey">
+              ({{ formatDate(contract?.cancelled?.at * 1000) }})
+            </div>
+          </div>
+        </q-popup-proxy>
+      </q-icon>
+
       <q-icon v-if="matured || settled" name="handshake" :color="settled ? 'green': 'amber'" size="md" @click.stop>
         <q-popup-proxy :breakpoint="0">
           <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">

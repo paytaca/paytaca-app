@@ -2,7 +2,11 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide">
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">AnyHedge Contract</div>
+        <div class="text-h6 q-space q-mt-sm">
+          <template v-if="viewAsHedge && viewPositionInTitle">Stabilize</template>
+          <template v-else-if="viewAsLong && viewPositionInTitle">Leverage</template>
+          <template v-else>AnyHedge Contract</template>
+        </div>
         <q-btn
           flat
           padding="sm"
@@ -10,7 +14,7 @@
           v-close-popup
         />
       </div>
-      <q-card-section class="q-gutter-y-sm">
+      <q-card-section class="q-gutter-y-sm" style="max-height:calc(95vh - 10rem);overflow:auto;">
         <div>
           <div class="text-grey text-subtitle1">Address</div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
@@ -100,26 +104,34 @@
             />
           </div>
           <div v-else>
+            <q-badge v-if="isCancelled" color="red" class="q-mr-xs">
+              Contract cancelled
+              <span v-if="contract?.cancelled?.at > 0" class="q-ml-xs">
+                ({{ formatDate(contract?.cancelled?.at * 1000) }})
+              </span>
+            </q-badge>
             <q-badge color="grey-7">
               Not yet funded
             </q-badge>
             <div class="row no-wrap items-center q-gutter-x-xs q-py-xs">
               <div class="col-3 text-body1">Hedge</div>
-              <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
-              <template v-else>
-                <q-btn
-                  v-if="viewAsHedge"
-                  :disable="matured"
-                  no-caps
-                  label="Submit funding proposal"
-                  color="brandblue"
-                  padding="none sm"
-                  @click="fundHedgeProposal('hedge')"
-                />
-                <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+              <template v-if="!isCancelled">
+                <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
+                <template v-else>
+                  <q-btn
+                    v-if="viewAsHedge"
+                    :disable="matured"
+                    no-caps
+                    label="Submit funding proposal"
+                    color="brandblue"
+                    padding="none sm"
+                    @click="fundHedgeProposal('hedge')"
+                  />
+                  <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+                </template>
               </template>
               <q-space/>
-              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured && !isCancelled" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -150,21 +162,23 @@
 
             <div class="row items-center q-gutter-x-xs">
               <div class="col-3 text-body1">Long</div>
-              <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
-              <template v-else>
-                <q-btn
-                  v-if="viewAsLong"
-                  :disable="matured"
-                  no-caps
-                  label="Submit funding proposal"
-                  color="brandblue"
-                  padding="none sm"
-                  @click="fundHedgeProposal('long')"
-                />
-                <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+              <template v-if="!isCancelled">
+                <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
+                <template v-else>
+                  <q-btn
+                    v-if="viewAsLong"
+                    :disable="matured"
+                    no-caps
+                    label="Submit funding proposal"
+                    color="brandblue"
+                    padding="none sm"
+                    @click="fundHedgeProposal('long')"
+                  />
+                  <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+                </template>
               </template>
               <q-space/>
-              <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured && !isCancelled" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -191,6 +205,17 @@
               total-bottom
               :data="calculatedFundingAmounts.long"
               class="q-pl-sm q-pr-md"
+            />
+            <q-btn
+              v-if="canCancelContract"
+              outline
+              padding="xs sm"
+              no-caps
+              color="red"
+              label="Cancel contract"
+              icon="block"
+              class="full-width q-mt-sm"
+              @click="cancelContractConfirm(viewAs)"
             />
           </div>
 
@@ -396,64 +421,58 @@
               <div>Hedge:</div>
               <div class="row q-gutter-x-xs items-center q-space no-wrap">
                 <div>{{ mutualRedemptionData.hedgeSatoshis / 10 ** 8 }} BCH</div>
-                <template v-if="mutualRedemptionData.hedgeSchnorrSig">
-                  <div class="q-space">
-                    <q-badge color="brandblue">Signed</q-badge>
-                  </div>
-                  <q-btn v-if="viewAsHedge && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
-                    <q-menu
-                      anchor="bottom right" self="top right"
-                      :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
-                    >
-                      <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('hedge')">
-                        <q-item-section>
-                          <q-item-label>Resubmit</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </q-menu>
-                  </q-btn>
-                </template>
-                <template v-else>
-                  <q-btn
-                    v-if="viewAsHedge && !mutualRedemptionData.txHash"
-                    no-caps label="Approve"
-                    color="brandblue" padding="none sm"
-                    @click="signMutualRedemptionConfirm('hedge')"
-                  />
+                <div class="q-space">
+                  <q-badge v-if="mutualRedemptionData.hedgeSchnorrSig" color="brandblue">Signed</q-badge>
                   <q-badge v-else color="grey-7">Pending</q-badge>
-                </template>
+                </div>
+                <q-btn v-if="viewAsHedge && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
+                  <q-menu
+                    anchor="bottom right" self="top right"
+                    :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
+                  >
+                    <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('hedge')">
+                      <q-item-section>
+                        <q-item-label>
+                          {{ mutualRedemptionData.hedgeSchnorrSig ? 'Resubmit' : 'Accept'  }}
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable v-ripple v-close-popup @click="cancelMutualRedemptionConfirm('hedge')">
+                      <q-item-section>
+                        <q-item-label>{{ mutualRedemptionData.hedgeSchnorrSig ? 'Cancel' : 'Decline' }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-menu>
+                </q-btn>
               </div>
             </div>
             <div class="row q-gutter-x-xs items-center">
               <div>Long:</div>
               <div class="row q-gutter-x-xs items-center q-space no-wrap">
                 <div>{{ mutualRedemptionData.longSatoshis / 10 ** 8 }} BCH</div>
-                <template v-if="mutualRedemptionData.longSchnorrSig">
-                  <div class="q-space">
-                    <q-badge color="brandblue">Signed</q-badge>
-                  </div>
-                  <q-btn v-if="viewAsLong && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
-                    <q-menu
-                      anchor="bottom right" self="top right"
-                      :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
-                    >
-                      <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('long')">
-                        <q-item-section>
-                          <q-item-label>Resubmit</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </q-menu>
-                  </q-btn>
-                </template>
-                <template v-else>
-                  <q-btn
-                    v-if="viewAsLong && !mutualRedemptionData.txHash"
-                    no-caps label="Approve"
-                    color="brandblue" padding="none sm"
-                    @click="signMutualRedemptionConfirm('long')"
-                  />
+                <div class="q-space">
+                  <q-badge v-if="mutualRedemptionData.longSchnorrSig" color="brandblue">Signed</q-badge>
                   <q-badge v-else color="grey-7">Pending</q-badge>
-                </template>
+                </div>
+                <q-btn v-if="viewAsLong && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
+                  <q-menu
+                    anchor="bottom right" self="top right"
+                    :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
+                  >
+                    <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('long')">
+                      <q-item-section>
+                        <q-item-label>
+                          {{ mutualRedemptionData.longSchnorrSig ? 'Resubmit' : 'Accept'  }}
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable v-ripple v-close-popup @click="cancelMutualRedemptionConfirm('long')">
+                      <q-item-section>
+                        <q-item-label>{{ mutualRedemptionData.longSchnorrSig ? 'Cancel' : 'Decline' }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-menu>
+                </q-btn>
               </div>
             </div>
             <div>
@@ -481,8 +500,9 @@
   </q-dialog>
 </template>
 <script setup>
+import BCHJS from '@psf/bch-js';
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
-import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
+import { formatDate, formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
 import { calculateContractFundingWithFees, calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
 import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
 import { getPrivateKey } from 'src/wallet/anyhedge/utils'
@@ -493,6 +513,8 @@ import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
 import FundingAmountsPanel from './FundingAmountsPanel.vue'
 import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+
+const bchjs = new BCHJS()
 
 // dialog plugins requirement
 defineEmits([
@@ -524,6 +546,7 @@ const props = defineProps({
     required: true,
   },
   viewAs: String,
+  viewPositionInTitle: Boolean,
   wallet: Object,
 })
 
@@ -922,10 +945,12 @@ const mutualRedemptionData = computed(() => {
     longSchnorrSig: '',
     txHash: '',
     settlementPrice: undefined,
+    initiator: '',
   }
 
   if (props?.contract?.mutualRedemption) data.exists = true
 
+  data.initiator = props?.contract?.mutualRedemption?.initiator
   data.hedgeSatoshis = props?.contract?.mutualRedemption?.hedge_satoshis || 0
   data.longSatoshis = props?.contract?.mutualRedemption?.long_satoshis || 0
   data.txHash = props?.contract?.mutualRedemption?.tx_hash || ''
@@ -1133,5 +1158,159 @@ async function signMutualRedemptionConfirm(position) {
   })
   await dialogPromise({component: SecurityCheckDialog})
   signMutualRedemption(position)
+}
+
+async function cancelMutualRedemption(position) {
+  const initiator = mutualRedemptionData.value.initiator
+  const dialog = $q.dialog({
+    title: position === initiator ? 'Cancel proposal' : 'Decline proposal',
+    message: 'Signing message',
+    persistent: true,
+    progress: true,
+    html: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+  })
+
+  let signature
+  try {
+    const privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
+    const message = initiator === 'hedge'
+      ? mutualRedemptionData.value.hedgeSchnorrSig
+      : mutualRedemptionData.value.longSchnorrSig
+    console.log('Sign:', privkey, message)
+    signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
+  } catch(error) {
+    console.error(error)
+    dialog.update({ message: 'Unable to sign message' })
+    return
+  } finally {
+    dialog.update({ persistent: false, ok: true, progress: false })
+  }
+
+
+  dialog.update({
+    message: (position === initiator ? 'Cancelling' : 'Declining') + ' mutual redemption proposal',
+    persistent: true, ok: false, progress: true
+  })
+  const data = { position, signature }
+  const contractAddress = props.contract?.address
+  anyhedgeBackend.post(`/anyhedge/hedge-positions/${contractAddress}/cancel_mutual_redemption/`, data)
+    .then(response => {
+      if (response?.data?.address) {
+        parseHedgePositionData(response?.data).then(contractData => Object.assign(props.contract, contractData))
+        dialog.update({
+          message: 'Mutual redemption ' + (initiator == position ? 'cancelled' : 'declined'),
+          ok: true,
+          progress: false,
+        })
+        return Promise.resolve(response)
+      }
+      return Promise.reject(response)
+    })
+    .catch(error => {
+      console.error(error)
+      let errors = ['Encountered error in cancelling proposal']
+      if (typeof error?.response?.data === 'string') errors = [error.response.data]
+      else if (Array.isArray(error?.response?.data)) errors = error.response.data
+      else if (Array.isArray(error?.response?.data?.non_field_errors)) errors = error?.response?.data?.non_field_errors
+      dialog.update({ message: errors.join('<br/>') })
+    })
+    .finally(() => {
+      dialog.update({progress: false, persistent: false, ok: true})
+    })
+}
+
+async function cancelMutualRedemptionConfirm(position) {
+  await dialogPromise({
+    title: position === mutualRedemptionData.value.initiator ? 'Cancel proposal' : 'Decline proposal',
+    message: 'Are you sure?',
+    html: true,
+    ok: true,
+    cancel: true,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  await dialogPromise({component: SecurityCheckDialog})
+  cancelMutualRedemption(position)
+}
+
+const isCancelled = computed(() => props.contract?.cancelled?.at > 0)
+const canCancelContract = computed(() => {
+  return !props.contract?.fundingTxHash &&
+    !props.contract?.cancelled?.at &&
+    (viewAsHedge.value || viewAsLong.value)
+})
+async function cancelContract(position) {
+  const dialog = $q.dialog({
+    title: 'Cancel contract',
+    message: 'Cancelling contract',
+    persistent: true,
+    progress: true,
+    html: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+  })
+
+  const data = {
+    position: position,
+    timestamp: Math.floor(Date.now()/ 1000),
+    signature: undefined,
+  }
+
+  try {
+    dialog.update({ message: 'Signing request' })
+    const privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
+    const message = `${data.timestamp}:${props.contract?.address}`
+    data.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
+  } catch(error) {
+    console.error(error)
+    dialog.update({ message: 'Encountered error in signing message' })
+    return
+  } finally {
+    dialog.update({ persistent: false, ok: true, progress: false })
+  }
+
+  dialog.update({
+    message: 'Cancelling contract',
+    persistent: true, ok: false, progress: true
+  })
+  const contractAddress = props.contract?.address
+  anyhedgeBackend.post(`/anyhedge/hedge-positions/${contractAddress}/cancel/`, data)
+    .then(response => {
+      if (response?.data?.address) {
+        parseHedgePositionData(response?.data).then(contractData => Object.assign(props.contract, contractData))
+        dialog.update({
+          message: 'Contract cancelled',
+          ok: true,
+          progress: false,
+        })
+        return Promise.resolve(response)
+      }
+      return Promise.reject(response)
+    })
+    .catch(error => {
+      console.error(error)
+      let errors = ['Encountered error in cancelling contract']
+      if (typeof error?.response?.data === 'string') errors = [error.response.data]
+      else if (Array.isArray(error?.response?.data)) errors = error.response.data
+      else if (Array.isArray(error?.response?.data?.non_field_errors)) errors = error?.response?.data?.non_field_errors
+      dialog.update({ message: errors.join('<br/>') })
+    })
+    .finally(() => {
+      dialog.update({progress: false, persistent: false, ok: true})
+    })
+}
+
+async function cancelContractConfirm(position) {
+  await dialogPromise({
+    title: 'Cancel contract',
+    message: 'Are you sure?',
+    html: true,
+    ok: true,
+    cancel: true,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  await dialogPromise({component: SecurityCheckDialog})
+  cancelContract(position)
 }
 </script>

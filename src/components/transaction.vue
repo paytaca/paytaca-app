@@ -319,6 +319,7 @@ export default {
               contract: parsedContractData,
               wallet: this.wallet,
               viewAs: viewAs,
+              viewPositionInTitle: true,
             },
           })
           return Promise.resolve(response)

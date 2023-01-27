@@ -1,5 +1,62 @@
 <template>
-  <q-form @submit="createHedgePosition()" class="q-gutter-y-md" ref="form" @validation-error="alertError">
+<TransitionGroup name="slide-group" tag="div" style="overflow:hidden;">
+  <div v-if="openLiquidityPoolOptsForm.show">
+    <div class="q-mx-sm text-subtitle1">Select liquidity pool</div>
+    <q-list class="q-my-sm" :dark="darkMode" separator>
+      <q-item
+        v-for="(pool, index) in liquidityPoolOpts" :key="index"
+        clickable
+        v-ripple
+        :class="[
+          'rounded-borders',
+          openLiquidityPoolOptsForm.selected === pool.value ? 'text-weight-medium': null,
+        ]"
+        @click="
+          openLiquidityPoolOptsForm.selected = openLiquidityPoolOptsForm.selected != pool.value ? pool.value : null
+        "
+      >
+        <q-item-section>
+          <q-item-label>{{ pool.label }}</q-item-label>
+          <q-slide-transition>
+            <q-item-label
+              v-if="pool.description && openLiquidityPoolOptsForm.selected == pool.value"
+              caption
+            >
+              {{ pool.description }}
+            </q-item-label>
+          </q-slide-transition>
+        </q-item-section>
+      </q-item>
+    </q-list>
+
+    <div class="q-gutter-y-md">
+      <q-btn
+        no-caps
+        :disable="!openLiquidityPoolOptsForm.selected"
+        label="Select"
+        color="brandblue"
+        class="full-width"
+        @click="() => {
+          createHedgeForm.autoMatchPoolTarget = openLiquidityPoolOptsForm.selected
+          openLiquidityPoolOptsForm.show = false
+        }"
+      />
+      <q-btn
+        no-caps
+        outline
+        label="Cancel"
+        color="grey"
+        class="full-width"
+        @click="$emit('cancel')"
+      />
+    </div>
+  </div>
+  <q-form
+    v-else
+    @submit="createHedgePosition()"
+    class="q-gutter-y-md" ref="form"
+    @validation-error="alertError"
+  >
     <q-banner v-if="errors.length > 0 || mainError" dense rounded class="text-white bg-red q-my-sm">
       <div v-if="mainError" class="q-px-sm q-mt-xs">
         {{ mainError }}
@@ -221,10 +278,7 @@
             label="Liquidity"
             :disable="loading"
             v-model="createHedgeForm.autoMatchPoolTarget"
-            :options="[
-              {label: 'BCH Bull', value: 'anyhedge_LP'},
-              {label: 'Peer-to-peer', value: 'watchtower_P2P' },
-            ]"
+            :options="liquidityPoolOpts"
           />
         </div>
       </div>
@@ -285,6 +339,7 @@
 
     </div>
   </q-form>
+</TransitionGroup>
 </template>
 <script setup>
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
@@ -357,6 +412,24 @@ const oracles = computed(() => {
     return parsedOracles
 })
 
+const openLiquidityPoolOptsForm = ref({
+  show: true,
+  selected: null,
+})
+
+const liquidityPoolOpts = ref([
+  {
+    label: 'BCH Bull',
+    value: 'anyhedge_LP',
+    description: 'Create anyhedge contracts instantly with a liquidity provider.',
+  },
+  {
+    label: 'Peer-to-peer',
+    value: 'watchtower_P2P',
+    description: 'Create anyhedge contract offers & find a match with other users',
+  },
+])
+
 const createHedgeForm = ref({
   amount: 0.0,
   duration: 4 * 3600,
@@ -365,7 +438,7 @@ const createHedgeForm = ref({
   selectedAsset: oracles.value[0],
 
   autoMatch: true,
-  autoMatchPoolTarget: 'anyhedge_LP',
+  autoMatchPoolTarget: '',
   p2pMatch: {
     similarity: 50,
   }
@@ -1099,3 +1172,15 @@ function updateSelectedAssetPrice() {
   $store.dispatch('anyhedge/updateOracleLatestPrice', dispatchPayload)
 }
 </script>
+<style scoped>
+.slide-group-enter-active,
+.slide-group-enter-active {
+  transition: all 0.5s ease-out;
+}
+.slide-group-enter-from {
+  opacity: 0;
+}
+.slide-group-leave-to {
+  opacity: 0;
+}
+</style>
