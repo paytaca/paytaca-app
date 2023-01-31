@@ -546,7 +546,10 @@ const createHedgeFormConstraints = computed(() => {
   const { autoMatch, autoMatchPoolTarget, selectedAsset } = createHedgeForm.value
   if (autoMatch && autoMatchPoolTarget === 'anyhedge_LP' && selectedAsset) {
     const constraints = liquidityServiceInfo.value?.liquidityParameters?.[selectedAsset?.oraclePubkey]?.[props.position == 'hedge' ? 'long' : 'hedge']
-    if (constraints) Object.assign(data, constraints)
+    if (constraints) Object.assign(data, constraints, {
+      minimumDuration: constraints.minimumDuration || constraints.minimumDurationInSeconds,
+      maximumDuration: constraints.maximumDuration || constraints.maximumDurationInSeconds,
+    })
 
     const priceValue = selectedAsset?.latestPrice?.priceValue
     if (priceValue) {
