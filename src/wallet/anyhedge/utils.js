@@ -38,13 +38,17 @@ const bchjs = new BCHJS()
  * @returns {ContractData}
  */
 export async function getContractStatus(contractAddress, signature, publicKey, managerConfig) {
-    const { data } = await axios.get(
-        `${managerConfig.serviceScheme}://${managerConfig.serviceDomain}:${managerConfig.servicePort}/status`,
-        {
-            params: { contractAddress, signature, publicKey },
-            headers: { Authorization: managerConfig.authenticationToken },
-        }
-    )
+    const url = new URL(`${managerConfig.serviceScheme}://${managerConfig.serviceDomain}:${managerConfig.servicePort}/api/v1/contractStatus`)
+    const opts = {
+        params: { contractAddress, signature, publicKey },
+        headers: { Authorization: managerConfig.authenticationToken },
+    }
+    const { data } = await axios.get(String(url), opts)
+        .catch(error => {
+            if (error?.response?.status != 404) return Promise.reject(error)
+            url.pathname = '/status'
+            return axios.get(String(url), opts)
+        })
     return data
 }
 
