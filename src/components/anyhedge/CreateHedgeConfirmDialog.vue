@@ -323,6 +323,8 @@ const darkMode = computed(() => store.getters['darkmode/getStatus'])
  * @property {Number} [priceValue]
  * @property {Number} [messageTimestamp]
  * @property {Number} [messageSequence]
+ * @property {String} [message]
+ * @property {String} [signature]
  * 
  * @typedef {Object} FundingProp
  * @property {Number} liquidityFee
@@ -403,14 +405,19 @@ watch(() => [props.position], () => {
 function updateFundingAmounts() {
   calculateFundingAmountsWithFees({
     amountSats: props.intent.amount * 10 ** 8,
+    startingOracleMessage: props.priceData.message,
+    startingOracleSignature: props.priceData.signature,
     lowLiquidationMultiplier: props.intent.lowPriceMult,
-    startingPriceValue: props.priceData?.priceValue,
-    feeSats: props.funding?.fee?.satoshis,
+    startingPriceValue: props.priceData.priceValue,
+    fees: props.funding?.fees,
     liquidityFee: props.funding.liquidityFee,
     position: props.positionTaker || props.position,
   })
     .then(newFundingAmounts => fundingAmounts.value = newFundingAmounts)
-    .catch(() => fundingAmounts.value = null)
+    .catch((error) => {
+      console.error(error)
+      fundingAmounts.value = null
+    })
 }
 // watch(props, updateFundingAmounts())
 onMounted(() => updateFundingAmounts())
@@ -468,4 +475,6 @@ const durationData = computed(() => {
 
   return data
 })
+window.p = props
+window.t = updateFundingAmounts
 </script>

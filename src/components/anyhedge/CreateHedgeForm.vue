@@ -672,7 +672,14 @@ async function createHedgePosition() {
     }
   }
 
-  const priceData = { oraclePubkey: '', priceValue: 0, messageTimestamp: 0, messageSequence: 0 }
+  const priceData = {
+    oraclePubkey: '',
+    priceValue: 0,
+    messageTimestamp: 0,
+    messageSequence: 0,
+    message: '',
+    signature: '',
+  }
   const oracleInfo = { oraclePubkey: '', assetName: '', assetDecimals: 0, assetCurrency: '' }
   if (createHedgeForm.value.selectedAsset?.oraclePubkey) {
     Object.assign(oracleInfo, createHedgeForm.value.selectedAsset)
@@ -680,6 +687,8 @@ async function createHedgePosition() {
     priceData.priceValue = createHedgeForm.value.selectedAsset?.latestPrice?.priceValue
     priceData.messageTimestamp = createHedgeForm.value.selectedAsset?.latestPrice?.messageTimestamp
     priceData.messageSequence = createHedgeForm.value.selectedAsset?.latestPrice?.messageSequence
+    priceData.message = createHedgeForm.value.selectedAsset?.latestPrice?.message
+    priceData.signature = createHedgeForm.value.selectedAsset?.latestPrice?.signature
   }
 
   const funding = {
@@ -690,7 +699,7 @@ async function createHedgePosition() {
       version: '',  
     },
     liquidityFee: 0,
-    fee: { satoshis: 0, address: '' },
+    fees: [{ satoshis: 0, address: '', name: '', description: '' }],
     fundingProposal: {
       txHash: '',
       txIndex: 0,
@@ -715,23 +724,43 @@ async function createHedgePosition() {
       misc.accessKeys.publicKey = generalProtocolsLPFeeResponse.accessKeys.publicKey
       misc.accessKeys.signature = generalProtocolsLPFeeResponse.accessKeys.signature
       misc.accessKeys.authenticationToken = generalProtocolsLPFeeResponse.accessKeys.authenticationToken
+
+      // NOTE: handling old & new implementation since settlement service might be
+      //        using the old one remove handling old one after stable
       if (position === 'hedge') {
-        pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longAddress
-        pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.metadata.longPublicKey
+        pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longPayoutAddress || 
+          generalProtocolsLPFeeResponse.contractData.metadata.longAddress
+        pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.parameters.longMutualRedeemPublicKey
       } else if (position === 'long') {
-        pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgeAddress
-        pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.metadata.hedgePublicKey
+        pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgePayoutAddress ||
+          generalProtocolsLPFeeResponse.contractData.metadata.hedgeAddress
+        pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.parameters.hedgeMutualRedeemPublicKey
       }
 
+      // NOTE: handling old & new implementation since settlement service might be
+      //        using the old one remove handling old one after stable
       const fee = generalProtocolsLPFeeResponse.contractData?.fee
       if (fee?.satoshis && fee?.address) {
-        funding.fee.satoshis = generalProtocolsLPFeeResponse.contractData.fee.satoshis
-        funding.fee.address = generalProtocolsLPFeeResponse.contractData.fee.address
+        funding.fees.push({
+          address: fee.address, satoshis: fee.satoshis,
+          name: fee?.name, description: fee?.description,
+        })
+      } else if (Array.isArray(generalProtocolsLPFeeResponse.contractData?.fees)) {
+        generalProtocolsLPFeeResponse.contractData?.fees.forEach(fee => {
+          if (!fee?.address || !fee?.satoshis) return
+          funding.fees.push({
+            address: fee.address, satoshis: fee.satoshis,
+            name: fee?.name, description: fee?.description,
+          })
+        })
+        funding.fees = funding.fees.filter(fee => fee.address && fee.satoshis)
       }
 
       if (generalProtocolsLPFeeResponse?.liquidityFee?.fee) {
         funding.liquidityFee = generalProtocolsLPFeeResponse.liquidityFee.fee
       }
+      funding.contractCreationParams.address = generalProtocolsLPFeeResponse.contractData?.address
+      funding.contractCreationParams.version = generalProtocolsLPFeeResponse.contractData?.version
       funding.prepareFunding = true
     } catch(error) {
       console.error(error)
@@ -757,8 +786,7 @@ async function createHedgePosition() {
     }
   } else if (misc.autoMatchPoolTarget === 'watchtower_P2P') {
     funding.prepareFunding = false
-    funding.fee.satoshis = 0
-    funding.fee.address = ''
+    funding.fees = []
 
     const p2pMatchOpts = {
       matchingPositionOffer: null,
@@ -845,8 +873,7 @@ async function createHedgePosition() {
         })
         misc.isPositionOffer = true
         funding.prepareFunding = false
-        funding.fee.satoshis = 0
-        funding.fee.address = ''
+        funding.fees = []
       } catch(error) {
         console.error(error)
         errors.value = [
@@ -898,11 +925,21 @@ async function createHedgePosition() {
         priceData.priceValue = matchedOffer.counterPartyInfo?.priceValue
         priceData.messageTimestamp = matchedOffer.counterPartyInfo?.priceMessageTimestamp
         priceData.messageSequence = matchedOffer.counterPartyInfo?.oracleMessageSequence
+        priceData.message = matchedOffer.counterPartyInfo?.startingOracleMessage
+        priceData.signature = matchedOffer.counterPartyInfo?.startingOracleSignature
         funding.contractCreationParams.address = matchedOffer.counterPartyInfo?.contractAddress
         funding.contractCreationParams.version = matchedOffer.counterPartyInfo?.contractVersion
         funding.positionTaker = matchedOffer.position
-        funding.fee.address = matchedOffer?.counterPartyInfo?.settlementServiceFeeAddress
-        funding.fee.satoshis = matchedOffer?.counterPartyInfo?.settlementServiceFee
+        if (matchedOffer?.counterPartyInfo?.settlementServiceFeeAddress &&
+            matchedOffer?.counterPartyInfo?.settlementServiceFee
+        ) {
+          funding.fees.push({
+            address: matchedOffer?.counterPartyInfo?.settlementServiceFeeAddress,
+            satoshis: matchedOffer?.counterPartyInfo?.settlementServiceFee,
+            name: 'Settlement Service',
+            description: 'Settlement service fee for Paytaca',
+          })
+        }
         funding.liquidityFee = 0
         funding.prepareFunding = true
       } catch(error) {
@@ -977,7 +1014,8 @@ async function createHedgePosition() {
       // the following data possibly doesn't exist but;
       // is necessary for creating a funding utxo
       if (!pubkeys.longAddress || !pubkeys.longPubkey || !pubkeys.hedgeAddress || !pubkeys.hedgePubkey ||
-        !priceData.oraclePubkey || !priceData.priceValue || !priceData.messageTimestamp || !priceData.messageSequence
+        !priceData.oraclePubkey || !priceData.priceValue || !priceData.messageTimestamp ||
+        !priceData.messageSequence || !priceData.message || !priceData.signature
       ) {
         mainError.value = 'Unable to create funding utxo due to incomplete data'
         errors.value = []
@@ -992,6 +1030,8 @@ async function createHedgePosition() {
         satoshis: intent.amount * 10 ** 8,
         start_timestamp: priceData.messageTimestamp,
         maturity_timestamp: priceData.messageTimestamp + intent.duration,
+        starting_oracle_message: priceData.message,
+        starting_oracle_signature: priceData.signature,
         hedge_address: pubkeys.hedgeAddress,
         hedge_pubkey: pubkeys.hedgePubkey,
         long_address: pubkeys.longAddress,
@@ -1000,12 +1040,15 @@ async function createHedgePosition() {
         start_price: priceData.priceValue,
         low_liquidation_multiplier: intent.lowPriceMult,
         high_liquidation_multiplier: intent.highPriceMult,
-        fee: {
-          address: funding.fee.address,
-          satoshis: funding.fee.satoshis,
+        fees: funding.fees,
+        metadata: {
+          position_taker: funding.positionTaker,
         }
       }
       const contractData = await parseHedgePositionData(contractCreationParameters)
+      if (contractData.address !== funding.contractCreationParams.address) {
+        throw "Contract address mismatch. Unable to create funding utxo"
+      }
 
       const { fundingUtxo, signedFundingProposal } = await createFundingProposal(
         contractData, position, props.wallet, addressSet, funding.liquidityFee, funding.positionTaker)
@@ -1093,6 +1136,7 @@ async function createHedgePosition() {
   }
 
   // console.log(hedgePositionOfferData)
+  // console.log(settleOfferData)
   // console.log(fungGPLPContractData)
   // return
 
