@@ -730,38 +730,51 @@ async function createHedgePosition() {
 
       // NOTE: handling old & new implementation since settlement service might be
       //        using the old one remove handling old one after stable
-      if (position === 'hedge') {
-        pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longPayoutAddress || 
-          generalProtocolsLPFeeResponse.contractData.metadata.longAddress
-        pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.parameters.longMutualRedeemPublicKey
-      } else if (position === 'long') {
-        pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgePayoutAddress ||
-          generalProtocolsLPFeeResponse.contractData.metadata.hedgeAddress
-        pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.parameters.hedgeMutualRedeemPublicKey
-      }
+      // we are able to tell if the settlement service is the upgraded implementation since
+      // generalProtocolsLPFeeResponse.contractData is directly from the settlement service and
+      // not compiled locally
+      const isUpgrade = Boolean(generalProtocolsLPFeeResponse.contractData.metadata.longPayoutAddress)
+      if (isUpgrade) {
+        if (position === 'hedge') {
+          pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longPayoutAddress
+          pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.parameters.hedgeMutualRedeemPublicKey
+        } else if (position === 'long') {
+          pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgePayoutAddress
+          pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.parameters.longMutualRedeemPublicKey
+        }
 
-      // NOTE: handling old & new implementation since settlement service might be
-      //        using the old one remove handling old one after stable
-      const fee = generalProtocolsLPFeeResponse.contractData?.fee
-      if (fee?.satoshis && fee?.address) {
-        funding.fees.push({
-          address: fee.address, satoshis: fee.satoshis,
-          name: fee?.name, description: fee?.description,
-        })
-      } else if (Array.isArray(generalProtocolsLPFeeResponse.contractData?.fees)) {
-        generalProtocolsLPFeeResponse.contractData?.fees.forEach(fee => {
-          if (!fee?.address || !fee?.satoshis) return
+        if (Array.isArray(generalProtocolsLPFeeResponse.contractData?.fees)) {
+          generalProtocolsLPFeeResponse.contractData?.fees.forEach(fee => {
+            if (!fee?.address || !fee?.satoshis) return
+            funding.fees.push({
+              address: fee.address, satoshis: fee.satoshis,
+              name: fee?.name, description: fee?.description,
+            })
+          })
+        }
+        funding.liquidityFee = 0 // liquidity fee is in fees array now
+      } else {
+        if (position === 'hedge') {
+          pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longAddress
+          pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.parameters.longMutualRedeemPublicKey
+        } else if (position === 'long') {
+          pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgeAddress
+          pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.parameters.hedgeMutualRedeemPublicKey
+        }
+
+        const fee = generalProtocolsLPFeeResponse.contractData?.fee
+        if (fee?.satoshis && fee?.address) {
           funding.fees.push({
             address: fee.address, satoshis: fee.satoshis,
             name: fee?.name, description: fee?.description,
           })
-        })
-        funding.fees = funding.fees.filter(fee => fee.address && fee.satoshis)
+          if (generalProtocolsLPFeeResponse?.liquidityFee?.fee) {
+            funding.liquidityFee = generalProtocolsLPFeeResponse?.liquidityFee?.fee
+          }
+        }
       }
 
-      if (generalProtocolsLPFeeResponse?.liquidityFee?.fee) {
-        funding.liquidityFee = generalProtocolsLPFeeResponse.liquidityFee.fee
-      }
+      funding.fees = funding.fees.filter(fee => fee.address && fee.satoshis)
       funding.contractCreationParams.address = generalProtocolsLPFeeResponse.contractData?.address
       funding.contractCreationParams.version = generalProtocolsLPFeeResponse.contractData?.version
       funding.prepareFunding = true

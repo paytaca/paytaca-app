@@ -143,6 +143,7 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
         if (error) error.name = 'ContractProposalError'
         return Promise.reject(error)
       })
+
     response.liquidityFee.fee = proposeContractResponse?.data?.liquidityProviderFeeInSatoshis
     response.liquidityFee.recalculateAfter = proposeContractResponse?.data?.renegotiateAfterTimestamp
 
@@ -289,20 +290,37 @@ export async function searchUtxo(amount, walletHash) {
  * @returns 
  */
 export function calculateFundingAmounts(contractData, position, liquidityProviderFeeInSatoshis=0) {
+  // NOTE: handles both old & new implementation
   const localContractMetadata = contractData.metadata
+  const takerPayoutAddress = position === 'hedge'?
+    localContractMetadata.hedgePayoutAddress : localContractMetadata.longPayoutAddress
+
   const makerInputSats = position === 'long' ? localContractMetadata.hedgeInputInSatoshis : localContractMetadata.longInputInSatoshis;
-  const takerInputSats = position === 'long' ? localContractMetadata.longInputInSatoshis : localContractMetadata.hedgeInputInSatoshis;
 
   const manager = new AnyHedgeManager()
   const totalRequiredFundingSatoshis = manager.calculateTotalRequiredFundingSatoshis(contractData)
-  const takerRequiredFundingSatoshis = totalRequiredFundingSatoshis - makerInputSats + liquidityProviderFeeInSatoshis;
+
+  const takerTotalFeesAndPremiumsToDeduct = contractData.fees
+    .reduce((total, fee) => {
+      // If the fee is going to the taker's address, add it to the amount that must
+      // be deducted from the total that taker should pay ..
+      // must check the fee name to verify that it is really the liquidity premium
+      if (fee.address === takerPayoutAddress) {
+        return total += fee.satoshis;
+      }
+
+      // Return the previous total.
+      return total;
+    }, 0);
+
+  const takerRequiredFundingSatoshis = totalRequiredFundingSatoshis - makerInputSats + liquidityProviderFeeInSatoshis - takerTotalFeesAndPremiumsToDeduct;
 
   // Calculate the amounts necessary to fund the contract.
   const contractAmount = {
     hedge: 0,
     long: 0,
   }
-  
+
   if (position == 'hedge') {
     contractAmount.hedge = takerRequiredFundingSatoshis
     contractAmount.long = totalRequiredFundingSatoshis - takerRequiredFundingSatoshis
