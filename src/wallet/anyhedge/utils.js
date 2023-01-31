@@ -67,8 +67,8 @@ export async function getPrivateKey(contractData, position, wallet) {
     // accessed properties are from when 
     const addressPath = position === 'hedge' ? contractData.hedgeAddressPath : contractData.longAddressPath
     const pubkey = position === 'hedge'
-        ? contractData.metadata.hedgePublicKey
-        : contractData.metadata.longPublicKey
+        ? contractData.parameters.hedgeMutualRedeemPublicKey
+        : contractData.parameters.longMutualRedeemPublicKey
     
     if (addressPath) {
         const privkey = await wallet.BCH.getPrivateKey(addressPath)

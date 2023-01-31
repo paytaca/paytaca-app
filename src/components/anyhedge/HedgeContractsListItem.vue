@@ -51,7 +51,7 @@
               {{ oracleInfo.assetCurrency }}
             </div>
             <div style="margin-top:-0.45em" class="text-grey">
-              {{ contract.metadata.hedgeInputSats / (10**8) }} BCH
+              {{ contract.metadata.hedgeInputInSatoshis / (10**8) }} BCH
             </div>
           </div>
         </div>
@@ -59,11 +59,11 @@
           <div class="col-4 text-caption" style="margin-bottom:-0.25em;">Long</div>
           <div>
             <div>
-              {{ formatUnits(contract.metadata.longInputUnits, oracleInfo.assetDecimals) }}
+              {{ formatUnits(contract.metadata.longInputInOracleUnits, oracleInfo.assetDecimals) }}
               {{ oracleInfo.assetCurrency }}
             </div>
             <div style="margin-top:-0.45em" class="text-grey">
-              {{ contract.metadata.longInputSats / (10**8) }} BCH
+              {{ contract.metadata.longInputInSatoshis / (10**8) }} BCH
             </div>
           </div>
         </div>
@@ -163,13 +163,13 @@ onUnmounted(() => clearTimeout(durationUpdateTimeout.value))
 const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
 const oracleInfo = computed(() => {
   const oracles = $store.getters['anyhedge/oracles']
-  return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
+  return oracles?.[props.contract?.parameters?.oraclePublicKey] || defaultOracleInfo
 })
 
 const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.maturityTimestamp)
-const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
+const settled = computed(() => props.contract?.settlements?.[0]?.settlementTransactionHash)
 const funding = computed(() => {
-  if (props.contract?.funding?.[0]?.fundingTransaction) return 'complete'
+  if (props.contract?.fundings?.[0]?.fundingTransactionHash) return 'complete'
   else if (props.contract?.hedgeFundingProposal && props.contract?.longFundingProposal) return 'ready'
   else if (props.contract?.hedgeFundingProposal || props.contract?.longFundingProposal) return 'partial'
 
