@@ -3,7 +3,7 @@ import BCHJS from '@psf/bch-js'
 import { AnyHedgeManager, ContractData } from '@generalprotocols/anyhedge'
 import Watchtower from 'watchtower-cash-js'
 import { Wallet } from '../index'
-import { generalProtocolLPBackend, generalProtocolLPAuthToken } from './backend'
+import { generalProtocolLPBackend, generalProtocolLPAuthToken, anyhedgeBackend } from './backend'
 import { getContractAccessKeys, getContractStatus } from './utils'
 
 const bchjs = new BCHJS()
@@ -136,10 +136,19 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
     contractCreationParameters.longAddress = contractCreationParameters.longPayoutAddress
     contractCreationParameters.longPublicKey = contractCreationParameters.longMutualRedeemPublicKey
 
+    const customFee = await anyhedgeBackend.get('anyhedge/hedge-positions/gp_lp_contract_fee/')
+      .then(response => {
+        if (!response?.data?.address || !response?.data?.satoshis) return
+        return response?.data
+      })
+      .catch(error => console.error(error))
+
     const proposeContractData = {
       contractCreationParameters,
+      fees: [],
       contractStartingOracleMessageSequence: priceData.messageSequence
     }
+    if (customFee) proposeContractData.fees.push(customFee)
     const proposeContractResponse = await generalProtocolLPBackend.post('/api/v1/proposeContract', proposeContractData)
       .catch(error => {
         if (error) error.name = 'ContractProposalError'
