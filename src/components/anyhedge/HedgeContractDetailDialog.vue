@@ -85,19 +85,19 @@
               />
             </div>
             <FundingAmountsPanel
-              v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.settlementService"
+              v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.service"
               :dark-mode="darkMode"
               label="Hedge" :data="fundingMetadata.hedge"
               class="q-pr-md"
             />
             <FundingAmountsPanel
-              v-if="fundingMetadata.long.fees.network || fundingMetadata.long.fees.premium || fundingMetadata.long.fees.settlementService"
+              v-if="fundingMetadata.long.fees.network || fundingMetadata.long.fees.premium || fundingMetadata.long.fees.service"
               :dark-mode="darkMode"
               label="Long" :data="fundingMetadata.long"
               class="q-pr-md"
             />
             <FundingAmountsPanel
-              v-if="fundingMetadata.fees.network || fundingMetadata.fees.premium || fundingMetadata.fees.settlementService"
+              v-if="fundingMetadata.fees.network || fundingMetadata.fees.premium || fundingMetadata.fees.service"
               :dark-mode="darkMode"
               label="Other fees" :data="fundingMetadata"
               class="q-pr-md"
@@ -643,20 +643,21 @@ const fundingMetadata = computed(() => {
   const data = {
     hedge: {
       total: props.contract?.apiMetadata?.totalHedgeFundingSats || 0,
-      fees: { premium: 0, network: 0, settlementService: 0 }
+      fees: { premium: 0, network: 0, service: 0, serviceFees: [] }
     },
     long: {
       total: props.contract?.apiMetadata?.totalLongFundingSats || 0,
-      fees: { premium: 0, network: 0, settlementService: 0 }
+      fees: { premium: 0, network: 0, service: 0, serviceFees: [] }
     },
-    fees: { network: 0, settlementService: 0, premium: 0, premiumTaker: '' }
+    fees: { network: 0, service: 0, premium: 0, premiumTaker: '', serviceFees: [] }
   }
 
   const apiMetadata = props.contract?.apiMetadata
   if (apiMetadata?.positionTaker === 'hedge') {
     data.hedge.fees.network = apiMetadata?.networkFee || 0
     if (Array.isArray(props.contract?.fees)) {
-      data.hedge.fees.settlementService = props.contract.fees
+      data.hedge.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.hedge.fees.service = props.contract.fees
         .map(fee => fee?.satoshis)
         .filter(satoshis => !isNaN(satoshis))
         .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
@@ -668,7 +669,8 @@ const fundingMetadata = computed(() => {
   } else if (apiMetadata?.positionTaker === 'long') {
     data.long.fees.network = apiMetadata?.networkFee || 0
     if (Array.isArray(props.contract?.fees)) {
-      data.long.fees.settlementService = props.contract.fees
+      data.long.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.long.fees.service = props.contract.fees
         .map(fee => fee?.satoshis)
         .filter(satoshis => !isNaN(satoshis))
         .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
@@ -680,7 +682,13 @@ const fundingMetadata = computed(() => {
     }
   } else {
     data.fees.network = apiMetadata?.networkFee || 0
-    data.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (Array.isArray(props.contract?.fees)) {
+      data.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.fees.service = props.contract?.fees
+        .map(fee => fee?.satoshis)
+        .filter(satoshis => !isNaN(satoshis))
+        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
+    }
     data.fees.premium = apiMetadata?.liquidityFee || 0
     data.fees.premiumTaker = apiMetadata?.positionTaker || 'unknown'
   }

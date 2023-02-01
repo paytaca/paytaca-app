@@ -100,9 +100,27 @@
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
                     <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.network / (10**8) }} BCH</div>
                   </div>
-                  <div class="row items-start q-pr-md">
-                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Settlement Service </div>
-                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.settlementService / (10**8) }} BCH</div>
+                  <div v-if="fundingAmounts?.hedge?.fees?.serviceFees?.length > 1">
+                    <div
+                      v-for="(fee, index) in fundingAmounts?.hedge?.fees?.serviceFees" :key="index"
+                      class="row items-start q-pr-md"
+                    >
+                      <div class="row items-center text-caption text-grey" style="margin-bottom:-0.5em">
+                        {{ fee?.name || ellipsisText(fee?.address) }}
+                        <q-icon v-if="fee?.description" name="description" size="1.05em"/>
+                      </div>
+                      <div class="q-space text-right q-ml-xs">{{ fee?.satoshis / (10**8) }} BCH</div>
+                      <q-popup-proxy v-if="fee?.description" :breakpoint="0">
+                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                          <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
+                          <div>{{ fee?.description }}</div>
+                        </div>
+                      </q-popup-proxy>
+                    </div>
+                  </div>
+                  <div v-else class="row items-start q-pr-md">
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Service fee</div>
+                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.service / (10**8) }} BCH</div>
                   </div>
                   <div class="row items-start q-pr-md">
                     <div class="text-caption text-grey row-items-center" style="margin-bottom:-0.5em">
@@ -161,9 +179,27 @@
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
                     <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.network / (10**8) }} BCH</div>
                   </div>
-                  <div class="row items-start q-pr-md">
-                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Settlement Service </div>
-                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.settlementService / (10**8) }} BCH</div>
+                  <div v-if="fundingAmounts?.long?.fees?.serviceFees?.length > 1">
+                    <div
+                      v-for="(fee, index) in fundingAmounts?.long?.fees?.serviceFees" :key="index"
+                      class="row items-start q-pr-md"
+                    >
+                      <div class="row items-center text-caption text-grey" style="margin-bottom:-0.5em">
+                        {{ fee?.name || ellipsisText(fee?.address) }}
+                        <q-icon v-if="fee?.description" name="description" size="1.05em"/>
+                      </div>
+                      <div class="q-space text-right q-ml-xs">{{ fee?.satoshis / (10**8) }} BCH</div>
+                      <q-popup-proxy v-if="fee?.description" :breakpoint="0">
+                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                          <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
+                          <div>{{ fee?.description }}</div>
+                        </div>
+                      </q-popup-proxy>
+                    </div>
+                  </div>
+                  <div v-else class="row items-start q-pr-md">
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Service fee</div>
+                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.service / (10**8) }} BCH</div>
                   </div>
                   <div class="row items-start q-pr-md">
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">
@@ -286,7 +322,7 @@
 </template>
 <script setup>
 import { calculateFundingAmountsWithFees } from 'src/wallet/anyhedge/funding';
-import { formatDuration, formatUnits, formatTimestampToText } from 'src/wallet/anyhedge/formatters';
+import { formatDuration, formatUnits, formatTimestampToText, ellipsisText } from 'src/wallet/anyhedge/formatters';
 import { useDialogPluginComponent } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';

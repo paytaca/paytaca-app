@@ -24,9 +24,26 @@
         <div class="q-space">Premium:</div>
         <div>{{ data?.fees?.premium / 10 ** 8 }} BCH</div>
       </div>
-      <div v-if="data?.fees?.settlementService" class="row q-pl-md">
+      <div v-if="data?.fees?.service" class="row q-pl-md">
         <div class="q-space">Service fee:</div>
-        <div>{{ data?.fees?.settlementService / 10 ** 8 }} BCH</div>
+        <div>{{ data?.fees?.service / 10 ** 8 }} BCH</div>
+        <q-popup-proxy :breakpoint="0">
+          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+            <div>
+              <div v-for="(fee, index) in data?.fees?.serviceFees" :key="index" class="row no-wrap">
+                <div class="q-space ellipsis"> {{ fee?.name || ellipsisText(fee?.address) }}</div>
+                <div class="q-ml-xs">{{ fee?.satoshis / 10 ** 8 }} BCH</div>
+
+                <q-popup-proxy v-if="fee?.description" :breakpoint="0">
+                  <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                    <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
+                    <div>{{ fee?.description }}</div>
+                  </div>
+                </q-popup-proxy>
+              </div>
+            </div>
+          </div>
+        </q-popup-proxy>
       </div>
     </div>
     <div v-if="totalBottom" class="row">
@@ -39,6 +56,8 @@
   </div>
 </template>
 <script setup>
+import { ellipsisText } from 'src/wallet/anyhedge/formatters'
+
 const props = defineProps({
   darkMode: Boolean,
   label: String,
