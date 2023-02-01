@@ -737,10 +737,10 @@ async function createHedgePosition() {
       if (isUpgrade) {
         if (position === 'hedge') {
           pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longPayoutAddress
-          pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.parameters.hedgeMutualRedeemPublicKey
+          pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.parameters.longMutualRedeemPublicKey
         } else if (position === 'long') {
           pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgePayoutAddress
-          pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.parameters.longMutualRedeemPublicKey
+          pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.parameters.hedgeMutualRedeemPublicKey
         }
 
         if (Array.isArray(generalProtocolsLPFeeResponse.contractData?.fees)) {
