@@ -1191,7 +1191,10 @@ async function createHedgePosition() {
         if (isResponseOffer) emitData.hedgePositionOffer = response.data
         else emitData.hedgePosition = response.data
         $emit('created', emitData)
-        clearCreateHedgeForm()
+
+        // clear after timeout due to form validation not resetting when
+        // a dialog is opened(from $emit above) in the same line of execution
+        setTimeout(() => clearCreateHedgeForm(), 250)
         mainError.value = ''
         errors.value = []
         return Promise.resolve(response)
