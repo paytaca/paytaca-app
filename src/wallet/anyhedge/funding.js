@@ -128,13 +128,13 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
       })
 
     // NOTE: Populating properties expected from old implementation. Remove after stable
-    contractCreationParameters.duration = intent.duration
-    contractCreationParameters.startPrice = priceData.priceValue
-    contractCreationParameters.startTimestamp = priceData.messageTimestamp
-    contractCreationParameters.hedgeAddress = contractCreationParameters.hedgePayoutAddress
-    contractCreationParameters.hedgePublicKey = contractCreationParameters.hedgeMutualRedeemPublicKey
-    contractCreationParameters.longAddress = contractCreationParameters.longPayoutAddress
-    contractCreationParameters.longPublicKey = contractCreationParameters.longMutualRedeemPublicKey
+    // contractCreationParameters.duration = intent.duration
+    // contractCreationParameters.startPrice = priceData.priceValue
+    // contractCreationParameters.startTimestamp = priceData.messageTimestamp
+    // contractCreationParameters.hedgeAddress = contractCreationParameters.hedgePayoutAddress
+    // contractCreationParameters.hedgePublicKey = contractCreationParameters.hedgeMutualRedeemPublicKey
+    // contractCreationParameters.longAddress = contractCreationParameters.longPayoutAddress
+    // contractCreationParameters.longPublicKey = contractCreationParameters.longMutualRedeemPublicKey
 
     const customFee = await anyhedgeBackend.get('anyhedge/hedge-positions/gp_lp_contract_fee/')
       .then(response => {
