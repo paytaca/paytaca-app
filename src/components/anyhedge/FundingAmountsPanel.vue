@@ -25,7 +25,7 @@
         <div>{{ data?.fees?.premium / 10 ** 8 }} BCH</div>
       </div>
       <div v-if="data?.fees?.service" class="row q-pl-md">
-        <div class="q-space">Service fee:</div>
+        <div class="q-space">Service fee{{ data?.fees?.serviceFees?.length > 1 ? 's' : '' }}:</div>
         <div>{{ data?.fees?.service / 10 ** 8 }} BCH</div>
         <q-popup-proxy :breakpoint="0">
           <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
