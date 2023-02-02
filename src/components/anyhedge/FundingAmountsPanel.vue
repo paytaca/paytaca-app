@@ -31,12 +31,18 @@
           <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
             <div>
               <div v-for="(fee, index) in data?.fees?.serviceFees" :key="index" class="row no-wrap">
-                <div class="q-space ellipsis"> {{ fee?.name || ellipsisText(fee?.address) }}</div>
-                <div class="q-ml-xs">{{ fee?.satoshis / 10 ** 8 }} BCH</div>
+                <div class="q-space ellipsis">
+                  {{ fee?.name || ellipsisText(fee?.address) }}
+                  <q-icon v-if="fee?.description" name="description"/>
+                </div>
+                <div class="q-ml-xs" style="white-space:nowrap">{{ fee?.satoshis / 10 ** 8 }} BCH</div>
 
                 <q-popup-proxy v-if="fee?.description" :breakpoint="0">
                   <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
-                    <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
+                    <template v-if="fee?.name">
+                      <div class="text-subtitle1">{{ fee?.name }} </div>
+                      <q-separator :dark="darkMode"/>
+                    </template>
                     <div>{{ fee?.description }}</div>
                   </div>
                 </q-popup-proxy>

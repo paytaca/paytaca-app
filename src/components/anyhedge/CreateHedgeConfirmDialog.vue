@@ -100,29 +100,43 @@
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
                     <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.network / (10**8) }} BCH</div>
                   </div>
-                  <div v-if="fundingAmounts?.hedge?.fees?.serviceFees?.length > 1">
+                  <div>
                     <div
                       v-for="(fee, index) in fundingAmounts?.hedge?.fees?.serviceFees" :key="index"
-                      class="row items-start q-pr-md"
+                      class="row items-start q-pr-md no-wrap"
                     >
-                      <div class="row items-center text-caption text-grey" style="margin-bottom:-0.5em">
+                      <div class="text-caption text-grey ellipsis" style="margin-bottom:-0.5em">
+                        <q-icon
+                          v-if="fee?.stats?.pctg"
+                          :color="fee?.stats?.icon?.color"
+                          :name="fee?.stats?.icon?.name"
+                          size="1.25em"
+                        />
                         {{ fee?.name || ellipsisText(fee?.address) }}
-                        <q-icon v-if="fee?.description" name="description" size="1.05em"/>
+                        <q-icon v-if="fee?.description" name="description"/>
                       </div>
-                      <div class="q-space text-right q-ml-xs">{{ fee?.satoshis / (10**8) }} BCH</div>
-                      <q-popup-proxy v-if="fee?.description" :breakpoint="0">
+                      <q-space/>
+                      <div class="text-right q-ml-xs" style="white-space:nowrap">{{ fee?.satoshis / (10**8) }} BCH</div>
+                      <q-popup-proxy v-if="fee?.description || fee?.stats?.pctg" :breakpoint="0">
                         <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
                           <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
-                          <div>{{ fee?.description }}</div>
+                          <div v-if="fee?.stats?.pctg" class="text-caption" style="margin-top:-0.25em">
+                            <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
+                              {{ formatUnits(fee?.stats?.pctg, 2) }}%
+                            </span>
+                            of position's value
+                          </div>
+                          <template v-if="fee?.description">
+                            <q-separator :dark="darkMode"/>
+                            <div>{{ fee?.description }}</div>
+                          </template>
                         </div>
                       </q-popup-proxy>
                     </div>
                   </div>
-                  <div v-else class="row items-start q-pr-md">
-                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Service fee</div>
-                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.service / (10**8) }} BCH</div>
-                  </div>
-                  <div class="row items-start q-pr-md">
+
+                  <!-- Keeping this section for backward compabitibility -->
+                  <div v-if="premiumFeeMetadata?.hedge?.pctg" class="row items-start q-pr-md">
                     <div class="text-caption text-grey row-items-center" style="margin-bottom:-0.5em">
                       Premium
                       <q-icon
@@ -179,29 +193,42 @@
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
                     <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.network / (10**8) }} BCH</div>
                   </div>
-                  <div v-if="fundingAmounts?.long?.fees?.serviceFees?.length > 1">
+                  <div>
                     <div
                       v-for="(fee, index) in fundingAmounts?.long?.fees?.serviceFees" :key="index"
-                      class="row items-start q-pr-md"
+                      class="row items-start q-pr-md no-wrap"
                     >
-                      <div class="row items-center text-caption text-grey" style="margin-bottom:-0.5em">
+                      <div class="text-caption text-grey ellipsis" style="margin-bottom:-0.5em">
+                        <q-icon
+                          v-if="fee?.stats?.pctg"
+                          :color="fee?.stats?.icon?.color"
+                          :name="fee?.stats?.icon?.name"
+                          size="1.25em"
+                        />
                         {{ fee?.name || ellipsisText(fee?.address) }}
-                        <q-icon v-if="fee?.description" name="description" size="1.05em"/>
+                        <q-icon v-if="fee?.description" name="description"/>
                       </div>
-                      <div class="q-space text-right q-ml-xs">{{ fee?.satoshis / (10**8) }} BCH</div>
-                      <q-popup-proxy v-if="fee?.description" :breakpoint="0">
+                      <q-space/>
+                      <div class="text-right q-ml-xs" style="white-space:nowrap">{{ fee?.satoshis / (10**8) }} BCH</div>
+                      <q-popup-proxy v-if="fee?.description || fee?.stats?.pctg" :breakpoint="0">
                         <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
                           <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
-                          <div>{{ fee?.description }}</div>
+                          <div v-if="fee?.stats?.pctg" class="text-caption" style="margin-top:-0.25em">
+                            <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
+                              {{ formatUnits(fee?.stats?.pctg, 2) }}%
+                            </span>
+                            of position's value
+                          </div>
+                          <template v-if="fee?.description">
+                            <q-separator :dark="darkMode"/>
+                            <div>{{ fee?.description }}</div>
+                          </template>
                         </div>
                       </q-popup-proxy>
                     </div>
                   </div>
-                  <div v-else class="row items-start q-pr-md">
-                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Service fee</div>
-                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.service / (10**8) }} BCH</div>
-                  </div>
-                  <div class="row items-start q-pr-md">
+                  <!-- Keeping this section for backward compabitibility -->
+                  <div v-if="premiumFeeMetadata?.long?.pctg" class="row items-start q-pr-md">
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">
                       Premium
                       <q-icon
@@ -321,7 +348,7 @@
   </q-dialog>
 </template>
 <script setup>
-import { calculateFundingAmountsWithFees } from 'src/wallet/anyhedge/funding';
+import { calculateFundingAmountsWithFees, LIQUIDITY_FEE_NAME } from 'src/wallet/anyhedge/funding';
 import { formatDuration, formatUnits, formatTimestampToText, ellipsisText } from 'src/wallet/anyhedge/formatters';
 import { useDialogPluginComponent } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -445,16 +472,35 @@ function updateFundingAmounts() {
     startingOracleSignature: props.priceData.signature,
     lowLiquidationMultiplier: props.intent.lowPriceMult,
     startingPriceValue: props.priceData.priceValue,
+    hedgeAddress: props.pubkeys.hedgeAddress,
+    longAddress: props.pubkeys.longAddress,
     fees: props.funding?.fees,
     liquidityFee: props.funding.liquidityFee,
     position: props.positionTaker || props.position,
   })
-    .then(newFundingAmounts => fundingAmounts.value = newFundingAmounts)
+    .then(newFundingAmounts => {
+      if (Array.isArray(newFundingAmounts?.hedge?.fees?.serviceFees)) {
+        attachFeeStats(newFundingAmounts?.hedge)
+      }
+      if (Array.isArray(newFundingAmounts?.long?.fees?.serviceFees)) {
+        attachFeeStats(newFundingAmounts?.long)
+      }
+      fundingAmounts.value = newFundingAmounts
+    })
     .catch((error) => {
       console.error(error)
       fundingAmounts.value = null
     })
 }
+
+function attachFeeStats({ sats, fees={ serviceFees }}) {
+  if (!Array.isArray(fees?.serviceFees)) return
+  fees.serviceFees.forEach(fee => {
+    if (fee?.name !== LIQUIDITY_FEE_NAME) return
+    fee.stats = parsePremiumFee({sats, fees: { premium: fee.satoshis }})
+  })
+}
+
 // watch(props, updateFundingAmounts())
 onMounted(() => updateFundingAmounts())
 const premiumFeeMetadata = computed(() => {

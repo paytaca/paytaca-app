@@ -8,7 +8,7 @@ import { getContractAccessKeys, getContractStatus } from './utils'
 
 const bchjs = new BCHJS()
 
-export const LIQUIDITY_FEE_NAME = 'Liquidity Premium'
+export const LIQUIDITY_FEE_NAME = 'Liquidity premium'
 
 /**
  * @param {Number} satoshis 
@@ -296,6 +296,29 @@ export async function searchUtxo(amount, walletHash) {
 /**
  * 
  * @param {ContractData} contractData 
+ * @param {'hedge' | 'long'} position 
+ */
+export function splitContractFees(contractData, position) {
+  const localContractMetadata = contractData.metadata
+  const takerPayoutAddress = position === 'long'?
+    localContractMetadata.longPayoutAddress : localContractMetadata.hedgePayoutAddress
+
+  const makerFees = contractData?.fees.filter(fee => {
+    return fee?.name === LIQUIDITY_FEE_NAME && fee?.address === takerPayoutAddress
+  })
+  const takerFees = contractData?.fees.filter(fee => makerFees.indexOf(fee) < 0)
+
+  return {
+    totalTakerFees: takerFees.reduce((subtotal, fee) => subtotal + fee?.satoshis, 0),
+    totalMakerFees: makerFees.reduce((subtotal, fee) => subtotal + fee?.satoshis, 0),
+    takerFees,
+    makerFees,
+  }
+}
+
+/**
+ * 
+ * @param {ContractData} contractData 
  * @param {'hedge' || 'long'} position
  * @param {*} liquidityProviderFeeInSatoshis 
  * @returns 
@@ -350,6 +373,8 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
  * @param {String} data.startingOracleSignature
  * @param {Number} data.lowLiquidationMultiplier
  * @param {Number} data.startingPriceValue
+ * @param {String} data.hedgeAddress
+ * @param {String} data.longAddress
  * @param {{ satoshis: Number }[]} data.fees
  * @param {Number} data.liquidityFee
  * @param {'hedge' | 'long'} data.position
@@ -361,10 +386,7 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
     maturityTimestamp: Math.floor(Date.now() / 1000) + 86400,
     hedgePublicKey: '0242ce009d64bd58c3a11b7c37f33c35177cf093b287ec4db96775381d4903be1d',
     longPublicKey: '02df07732b3b3fbfb71be46a2393bc07f5d65a0a6d25eb1809fd7a1675cd2d646d',
-    hedgeAddress: 'bitcoincash:qp6nn4uztqqdts0gjzhqgvtp582xd85lyqkayhd0a7',
-    longAddress: 'bitcoincash:qpqkl0wm95tnz3xqndmznv6e8dk5204lzvaukyg4c3',
     highLiquidationPriceMultiplier: 5,
-    feeAddress: 'bitcoincash:qpqkl0wm95tnz3xqndmznv6e8dk5204lzvaukyg4c3',
   }
 
   const units = (data.amountSats * data.startingPriceValue) / 10**8
@@ -380,17 +402,15 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
     lowLiquidationPriceMultiplier: data.lowLiquidationMultiplier,
     hedgeMutualRedeemPublicKey: dummyData.hedgePublicKey,
     longMutualRedeemPublicKey: dummyData.longPublicKey,
-    hedgePayoutAddress: dummyData.hedgeAddress,
-    longPayoutAddress: dummyData.longAddress,
+    hedgePayoutAddress: data.hedgeAddress,
+    longPayoutAddress: data.longAddress,
     enableMutualRedemption: 1,
   }
-  console.log(contractCreationParameters)
   const manager = new AnyHedgeManager()
   const contractData = await manager.createContract(contractCreationParameters)
   if (Array.isArray(data.fees)) {
     contractData.fees = data.fees.filter(fee => fee?.satoshis)
   }
-  console.log(contractData)
 
   return calculateContractFundingWithFees(Object.assign({}, data, { contractData }))
 }
@@ -423,26 +443,25 @@ export function calculateContractFundingWithFees(data) {
     totalSats: 0,
   }
 
+  const contractFees = splitContractFees(contractData, data.position)
   if (data.position === 'hedge') {
     response.hedge.fees.premium = data.liquidityFee || 0
     response.long.fees.premium = response.hedge.fees.premium * -1
     if (Array.isArray(contractData?.fees)) {
-      response.hedge.fees.serviceFees = contractData?.fees.filter(fee => fee?.address && fee?.satoshis)
-      response.hedge.fees.service = contractData?.fees
-        .map(fee => fee?.satoshis)
-        .filter(satoshis => !isNaN(satoshis))
-        .reduce((subtotal, satoshis) => subtotal + satoshis, 0)
+      response.hedge.fees.serviceFees = contractFees.takerFees
+      response.hedge.fees.service = contractFees.totalTakerFees
+      response.long.fees.serviceFees = contractFees.makerFees
+      response.long.fees.service = contractFees.totalMakerFees
     }
     response.hedge.fees.network = response.hedge.total - (response.hedge.sats + response.hedge.fees.premium + response.hedge.fees.service)
   } else if (data.position === 'long') {
     response.long.fees.premium = data.liquidityFee || 0
     response.hedge.fees.premium = response.long.fees.premium * -1
     if (Array.isArray(contractData?.fees)) {
-      response.long.fees.serviceFees = contractData?.fees.filter(fee => fee?.address && fee?.satoshis)
-      response.long.fees.service = contractData?.fees
-        .map(fee => fee?.satoshis)
-        .filter(satoshis => !isNaN(satoshis))
-        .reduce((subtotal, satoshis) => subtotal + satoshis, 0)
+      response.long.fees.serviceFees = contractFees.takerFees
+      response.long.fees.service = contractFees.totalTakerFees
+      response.hedge.fees.serviceFees = contractFees.makerFees
+      response.hedge.fees.service = contractFees.totalMakerFees
     }
     response.long.fees.network = response.long.total - (response.long.sats + response.long.fees.premium + response.long.fees.service)
   }
