@@ -40,7 +40,7 @@
                 {{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
               </div>
               <div>
-                {{ contract.metadata.hedgeInputSats / (10**8) }} BCH
+                {{ contract.metadata.hedgeInputInSatoshis / (10**8) }} BCH
               </div>
               <div
                 v-if="isFinite(hedgeMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
@@ -53,10 +53,10 @@
             <div class="col-6">
               <div class="text-grey-7">Long</div>
               <div>
-                {{ formatUnits(contract.metadata.longInputUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
+                {{ formatUnits(contract.metadata.longInputInOracleUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
               </div>
               <div>
-                {{ contract.metadata.longInputSats / (10**8) }} BCH
+                {{ contract.metadata.longInputInSatoshis / (10**8) }} BCH
               </div>
               <div
                 v-if="isFinite(longMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
@@ -85,19 +85,19 @@
               />
             </div>
             <FundingAmountsPanel
-              v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.settlementService"
+              v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.service"
               :dark-mode="darkMode"
               label="Hedge" :data="fundingMetadata.hedge"
               class="q-pr-md"
             />
             <FundingAmountsPanel
-              v-if="fundingMetadata.long.fees.network || fundingMetadata.long.fees.premium || fundingMetadata.long.fees.settlementService"
+              v-if="fundingMetadata.long.fees.network || fundingMetadata.long.fees.premium || fundingMetadata.long.fees.service"
               :dark-mode="darkMode"
               label="Long" :data="fundingMetadata.long"
               class="q-pr-md"
             />
             <FundingAmountsPanel
-              v-if="fundingMetadata.fees.network || fundingMetadata.fees.premium || fundingMetadata.fees.settlementService"
+              v-if="fundingMetadata.fees.network || fundingMetadata.fees.premium || fundingMetadata.fees.service"
               :dark-mode="darkMode"
               label="Other fees" :data="fundingMetadata"
               class="q-pr-md"
@@ -254,28 +254,28 @@
         <div>
           <div class="text-grey text-subtitle1">Payout Addresses</div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
-            <div @click="copyText(contract.metadata.hedgeAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
-              Hedge: {{ ellipsisText(contract.metadata.hedgeAddress) }}
+            <div @click="copyText(contract.metadata.hedgePayoutAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
+              Hedge: {{ ellipsisText(contract.metadata.hedgePayoutAddress) }}
             </div>
             <q-btn
               flat
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.hedgeAddress"
+              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.hedgePayoutAddress"
               target="_blank"
             />
           </div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
-            <div @click="copyText(contract.metadata.longAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
-              Long: {{ ellipsisText(contract.metadata.longAddress) }}
+            <div @click="copyText(contract.metadata.longPayoutAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
+              Long: {{ ellipsisText(contract.metadata.longPayoutAddress) }}
             </div>
             <q-btn
               flat
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.longAddress"
+              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.longPayoutAddress"
               target="_blank"
             />
           </div>
@@ -336,18 +336,18 @@
                 {{ formatUnits(settlementMetadata.hedge.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
               <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
-                {{ contract?.metadata?.hedgeInputSats / 10 ** 8 }} -
+                {{ contract?.metadata?.hedgeInputInSatoshis / 10 ** 8 }} -
                 {{ settlementMetadata.hedge.satoshis / 10 ** 8 }} BCH
               </div>
             </div>
             <div class="col">
               <div class="text-grey-7">Long</div>
               <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.long.assetChangePctg)}` + ' text-weight-medium'">
-                {{ formatUnits(contract?.metadata?.longInputUnits, oracleInfo.assetDecimals) }} -
+                {{ formatUnits(contract?.metadata?.longInputInOracleUnits, oracleInfo.assetDecimals) }} -
                 {{ formatUnits(settlementMetadata.long.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
               <div :class="`text-${resolveColor(settlementMetadata.long.bchChangePctg)}` + ' text-weight-medium'">
-                {{ contract?.metadata?.longInputSats / 10 ** 8 }} -
+                {{ contract?.metadata?.longInputInSatoshis / 10 ** 8 }} -
                 {{ settlementMetadata.long.satoshis / 10 ** 8 }} BCH
               </div>
             </div>
@@ -562,7 +562,7 @@ const viewAsLong = computed(() => props.viewAs === 'long')
 const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
 const oracleInfo = computed(() => {
   const oracles = store.getters['anyhedge/oracles']
-  return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
+  return oracles?.[props.contract?.parameters?.oraclePublicKey] || defaultOracleInfo
 })
 
 const selectedMarketCurrency = computed(() => store.getters['market/selectedCurrency']?.symbol)
@@ -583,11 +583,11 @@ const hedgeMarketValue = computed(() => {
 })
 
 const longMarketValue = computed(() => {
-  const longInputUnits = props.contract?.metadata?.longInputUnits
+  const longInputInOracleUnits = props.contract?.metadata?.longInputInOracleUnits
   if (!isFinite(oracleToSelectedAssetRate.value)) return undefined
-  if (!isFinite(longInputUnits)) return undefined
+  if (!isFinite(longInputInOracleUnits)) return undefined
 
-  let marketValue = (longInputUnits * oracleToSelectedAssetRate.value) / (10 ** oracleInfo.value?.assetDecimals || 0)
+  let marketValue = (longInputInOracleUnits * oracleToSelectedAssetRate.value) / (10 ** oracleInfo.value?.assetDecimals || 0)
   marketValue = Number(marketValue.toFixed(2))
   return marketValue
 })
@@ -598,6 +598,7 @@ function updateOracleMarketValue() {
 }
 const oracleMarketValueUpdateInterval = ref(null)
 onMounted(() => {
+  window.c = props.contract
   clearInterval(oracleMarketValueUpdateInterval.value)
   oracleMarketValueUpdateInterval.value = setInterval(
     () => updateOracleMarketValue(),
@@ -618,12 +619,12 @@ const durationText = computed(() => {
     {label: '~month', multiplier: 86400 * 30,      max: 86400 * 30 * 12 },
     {label: '~year',  multiplier: 86400 * 30 * 12, max: Infinity },
   ]
-  const duration = props.contract?.metadata?.duration
-  if (!isFinite(duration) || duration <= 0) return ''
-  const unit = unitOptions.find(unit => duration <= unit.max)
+  const durationInSeconds = props.contract?.metadata?.durationInSeconds
+  if (!isFinite(durationInSeconds) || durationInSeconds <= 0) return ''
+  const unit = unitOptions.find(unit => durationInSeconds <= unit.max)
   if (!unit) return ''
 
-  const durationValue = duration/unit.multiplier
+  const durationValue = durationInSeconds/unit.multiplier
   let label = unit.label
   if (durationValue > 1) {
     label += 's'
@@ -632,7 +633,7 @@ const durationText = computed(() => {
 })
 
 const funding = computed(() => {
-  if (props.contract?.funding?.[0]?.fundingTransaction) return 'complete'
+  if (props.contract?.fundings?.[0]?.fundingTransactionHash) return 'complete'
   else if (props.contract?.hedgeFundingProposal && props.contract?.longFundingProposal) return 'ready'
   else if (props.contract?.hedgeFundingProposal || props.contract?.longFundingProposal) return 'partial'
 
@@ -642,26 +643,38 @@ const fundingMetadata = computed(() => {
   const data = {
     hedge: {
       total: props.contract?.apiMetadata?.totalHedgeFundingSats || 0,
-      fees: { premium: 0, network: 0, settlementService: 0 }
+      fees: { premium: 0, network: 0, service: 0, serviceFees: [] }
     },
     long: {
       total: props.contract?.apiMetadata?.totalLongFundingSats || 0,
-      fees: { premium: 0, network: 0, settlementService: 0 }
+      fees: { premium: 0, network: 0, service: 0, serviceFees: [] }
     },
-    fees: { network: 0, settlementService: 0, premium: 0, premiumTaker: '' }
+    fees: { network: 0, service: 0, premium: 0, premiumTaker: '', serviceFees: [] }
   }
 
   const apiMetadata = props.contract?.apiMetadata
   if (apiMetadata?.positionTaker === 'hedge') {
     data.hedge.fees.network = apiMetadata?.networkFee || 0
-    data.hedge.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (Array.isArray(props.contract?.fees)) {
+      data.hedge.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.hedge.fees.service = props.contract.fees
+        .map(fee => fee?.satoshis)
+        .filter(satoshis => !isNaN(satoshis))
+        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
+    }
     if (apiMetadata?.liquidityFee) {
       data.hedge.fees.premium = apiMetadata.liquidityFee
       data.long.fees.premium = apiMetadata.liquidityFee * -1
     }
   } else if (apiMetadata?.positionTaker === 'long') {
     data.long.fees.network = apiMetadata?.networkFee || 0
-    data.long.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (Array.isArray(props.contract?.fees)) {
+      data.long.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.long.fees.service = props.contract.fees
+        .map(fee => fee?.satoshis)
+        .filter(satoshis => !isNaN(satoshis))
+        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
+    }
     if (apiMetadata?.liquidityFee) {
       data.long.fees.premium = apiMetadata.liquidityFee
       data.hedge.fees.premium = apiMetadata.liquidityFee * -1
@@ -669,7 +682,13 @@ const fundingMetadata = computed(() => {
     }
   } else {
     data.fees.network = apiMetadata?.networkFee || 0
-    data.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (Array.isArray(props.contract?.fees)) {
+      data.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.fees.service = props.contract?.fees
+        .map(fee => fee?.satoshis)
+        .filter(satoshis => !isNaN(satoshis))
+        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
+    }
     data.fees.premium = apiMetadata?.liquidityFee || 0
     data.fees.premiumTaker = apiMetadata?.positionTaker || 'unknown'
   }
@@ -685,7 +704,7 @@ const calculatedFundingAmounts = computed(() => {
   })
 })
 const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.maturityTimestamp)
-const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
+const settled = computed(() => props.contract?.settlements?.[0]?.settlementTransactionHash)
 const summaryDataAvailable = computed(() => {
   if (props.viewAs === 'hedge' && settlementMetadata.value.summary.hedge) return true
   if (props.viewAs === 'long' && settlementMetadata.value.summary.long) return true
@@ -924,7 +943,7 @@ async function verifyFundingProposalUtxo(position) {
 }
 
 const mutualRedemptionAllowed = computed(() => {
-  return props.contract?.metadata?.enableMutualRedemption &&
+  return props.contract?.parameters?.enableMutualRedemption &&
     props.contract?.hedgeWalletHash &&
     props.contract?.longWalletHash && 
     (viewAsHedge.value || viewAsLong.value)
@@ -973,7 +992,7 @@ const mutualRedemptionData = computed(() => {
 
 
 async function validateContractFunding() {
-  if (!props?.contract?.funding?.[0]?.fundingTransaction) throw new Exception('No funding transaction found')
+  if (!props?.contract?.fundings?.[0]?.fundingTransactionHash) throw new Exception('No funding transaction found')
   const contractAddress = props?.contract?.address
 
   if (!contractAddress) throw new Exception('Contract address not found')
@@ -1077,10 +1096,10 @@ async function signMutualRedemption(position) {
     return
   }
 
-  const hedgeAddress = props?.contract?.metadata?.hedgeAddress
-  const longAddress = props?.contract?.metadata?.longAddress
-  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgeAddress)?.amount
-  const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longAddress)?.amount
+  const hedgePayoutAddress = props?.contract?.metadata?.hedgePayoutAddress
+  const longPayoutAddress = props?.contract?.metadata?.longPayoutAddress
+  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgePayoutAddress)?.amount
+  const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longPayoutAddress)?.amount
 
   if (signedHedgeSats !== mutualRedemptionData.value.hedgeSatoshis) {
     dialog.update({

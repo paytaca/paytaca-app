@@ -193,24 +193,24 @@ async function dialogPromise(qDialogOptions) {
 const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
 const oracleInfo = computed(() => {
   const oracles = store.getters['anyhedge/oracles']
-  return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
+  return oracles?.[props.contract?.parameters?.oraclePublicKey] || defaultOracleInfo
 })
 const assetDecimals = computed(() => oracleInfo.value?.assetDecimals || 0)
 
 const totalPayoutSats = computed(() => {
   return Math.round(
-    props?.contract?.metadata?.hedgeInputSats + props?.contract?.metadata?.longInputSats
+    props?.contract?.metadata?.hedgeInputInSatoshis + props?.contract?.metadata?.longInputInSatoshis
   )
 })
 const fundingSatoshis = computed(() => {
-  if (props?.contract?.funding?.[0]?.fundingSatoshis) return props?.contract?.funding?.[0]?.fundingSatoshis
+  if (props?.contract?.fundings?.[0]?.fundingSatoshis) return props?.contract?.fundings?.[0]?.fundingSatoshis
   return manager.calculateTotalRequiredFundingSatoshis(props.contract)
 })
 
 const refundBchPayout = computed(() => {
   return {
-    hedge: (props?.contract?.metadata?.hedgeInputSats) / 10 ** 8,
-    long: (props?.contract?.metadata?.longInputSats) / 10 ** 8,
+    hedge: (props?.contract?.metadata?.hedgeInputInSatoshis) / 10 ** 8,
+    long: (props?.contract?.metadata?.longInputInSatoshis) / 10 ** 8,
   }
 })
 
@@ -308,7 +308,7 @@ const loading = ref(false)
 const loadingMsg = ref('')
 const errors = ref([])
 async function validateContractFunding() {
-  if (!props?.contract?.funding?.[0]?.fundingTransaction) throw new Exception('No funding transaction found')
+  if (!props?.contract?.fundings?.[0]?.fundingTransactionHash) throw new Exception('No funding transaction found')
   const contractAddress = props?.contract?.address
 
   if (!contractAddress) throw new Exception('Contract address not found')
@@ -331,7 +331,7 @@ async function createMutualRedemption() {
   }
 
 
-  if (!props?.contract?.funding?.[0]?.fundingSatoshis) {
+  if (!props?.contract?.fundings?.[0]?.fundingSatoshis) {
     try {
       loading.value = true
       loadingMsg.value = 'Verifying contract funding'
@@ -411,10 +411,10 @@ async function createMutualRedemption() {
     return
   }
 
-  const hedgeAddress = props?.contract?.metadata?.hedgeAddress
-  const longAddress = props?.contract?.metadata?.longAddress
-  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgeAddress)?.amount
-  const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longAddress)?.amount
+  const hedgePayoutAddress = props?.contract?.metadata?.hedgePayoutAddress
+  const longPayoutAddress = props?.contract?.metadata?.longPayoutAddress
+  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgePayoutAddress)?.amount
+  const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longPayoutAddress)?.amount
 
   if (signedHedgeSats !== data.hedge_satoshis) {
     errors.value = [`Invalid hedge satoshis, expected ${signedHedgeSats}`]

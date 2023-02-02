@@ -11,11 +11,11 @@ export async function signMutualRefund(contractData, privateKey) {
 
   const signMutualRefundData = {
     privateKeyWIF: privateKey,
-    contractFunding: contractData?.funding?.[0],
+    contractFunding: contractData?.fundings?.[0],
     contractParameters: contractData?.parameters,
     contractMetadata: contractData?.metadata,
-    hedgeRefundAddress: contractData?.metadata?.hedgeAddress,
-    longRefundAddress: contractData?.metadata?.longAddress,
+    hedgeRefundAddress: contractData?.metadata?.hedgePayoutAddress,
+    longRefundAddress: contractData?.metadata?.longPayoutAddress,
   }
 
   try {
@@ -41,7 +41,7 @@ export async function signMutualEarlyMaturation(contractData,  privateKey, settl
 
   const signMutualEarlyMaturationData = {
     privateKeyWIF: privateKey,
-    contractFunding: contractData?.funding?.[0],
+    contractFunding: contractData?.fundings?.[0],
     settlementPrice: settlementPrice,
     contractParameters: contractData?.parameters,
   }
@@ -71,13 +71,13 @@ export async function signMutualEarlyMaturation(contractData,  privateKey, settl
 
   const transactionProposal = {
     inputs: [{
-      txid: contractData?.funding?.[0]?.fundingTransaction,
-      vout: contractData?.funding?.[0]?.fundingOutput,
-      satoshis: contractData?.funding?.[0]?.fundingSatoshis,
+      txid: contractData?.fundings?.[0]?.fundingTransactionHash,
+      vout: contractData?.fundings?.[0]?.fundingOutputIndex,
+      satoshis: contractData?.fundings?.[0]?.fundingSatoshis,
     }],
     outputs: [
-      { to: contractData?.metadata?.hedgeAddress, amount: hedgeSatoshis },
-      { to: contractData?.metadata?.longAddress, amount: longSatoshis },
+      { to: contractData?.metadata?.hedgePayoutAddress, amount: hedgeSatoshis },
+      { to: contractData?.metadata?.longPayoutAddress, amount: longSatoshis },
     ],
   }
 

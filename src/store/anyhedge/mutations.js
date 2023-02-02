@@ -6,7 +6,7 @@
  * @param {String} oracleInfo.assetName
  * @param {String} oracleInfo.assetCurrency
  * @param {Number} oracleInfo.assetDecimals
- * @param {{ priceValue:Number, messageTimestamp:Number, messageSequence:Number }} oracleInfo.latestPrice
+ * @param {{ priceValue:Number, messageTimestamp:Number, messageSequence:Number, message: String, signature: String }} oracleInfo.latestPrice
  */
 export function setOracle(state, oracleInfo) {
   if (!oracleInfo.pubkey) return
@@ -19,6 +19,8 @@ export function setOracle(state, oracleInfo) {
     newOracleInfo.latestPrice.priceValue = oracleInfo.latestPrice.priceValue
     newOracleInfo.latestPrice.messageTimestamp = oracleInfo.latestPrice.messageTimestamp
     newOracleInfo.latestPrice.messageSequence = oracleInfo.latestPrice.messageSequence
+    newOracleInfo.latestPrice.message = oracleInfo.latestPrice.message
+    newOracleInfo.latestPrice.signature = oracleInfo.latestPrice.signature
   }
   state.oracles[oracleInfo.pubkey] = newOracleInfo
 }
@@ -36,6 +38,8 @@ export function removeOracle(state, oraclePubkey) {
  * @param {Number} latestPriceInfo.priceValue
  * @param {Number} latestPriceInfo.messageTimestamp
  * @param {Number} latestPriceInfo.messageSequence
+ * @param {String} latestPriceInfo.message
+ * @param {String} latestPriceInfo.signature
  */
 export function updateOracleLatestPrice(state, latestPriceInfo) {
   const oracleInfo = state?.oracles?.[latestPriceInfo.oraclePubkey]
@@ -45,6 +49,8 @@ export function updateOracleLatestPrice(state, latestPriceInfo) {
   oracleInfo.latestPrice.priceValue = latestPriceInfo.priceValue
   oracleInfo.latestPrice.messageTimestamp = latestPriceInfo.messageTimestamp
   oracleInfo.latestPrice.messageSequence = latestPriceInfo.messageSequence
+  oracleInfo.latestPrice.message = latestPriceInfo.message
+  oracleInfo.latestPrice.signature = latestPriceInfo.signature
 
   state.oracles[latestPriceInfo.oraclePubkey] = oracleInfo
 }
