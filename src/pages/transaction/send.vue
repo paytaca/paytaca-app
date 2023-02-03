@@ -9,14 +9,14 @@
         :title="$t('Send') + ' ' + asset.symbol"
         backnavpath="/send/select-asset"
       ></header-nav>
-      <JppPaymentPanel
-        v-if="jpp && !jpp.txids?.length"
-        :jpp="jpp"
-        :wallet="wallet"
-        class="q-mx-md"
-        style="margin-top:5.5rem"
-        @paid="onJppPaymentSucess()"
-      />
+      <div v-if="jpp && !jpp.txids?.length" style="padding-top:5.5rem;padding-bottom:5.5rem">
+        <JppPaymentPanel
+          :jpp="jpp"
+          :wallet="wallet"
+          class="q-mx-md"
+          @paid="onJppPaymentSucess()"
+        />
+      </div>
       <div v-else class="q-mt-xl">
         <div class="q-pa-md" style="padding-top: 70px;">
           <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
