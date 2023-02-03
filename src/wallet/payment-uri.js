@@ -246,6 +246,7 @@ export class JPPSourceTypes {
   static DEFAULT = 'default'
   static BITCOIN_COM = 'bitcoin.com'
   static BITPAY = 'bitpay'
+  static WATCHTOWER = 'watchtower'
 
   /**
    * 
@@ -256,6 +257,7 @@ export class JPPSourceTypes {
       let link = new URL(paymentUrl)
       if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
       if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
+      if (link.host.indexOf('watchtower.cash') >= 0) return this.WATCHTOWER
       return this.DEFAULT
     } catch(error) {
       console.error(error)
@@ -486,6 +488,13 @@ export class JSONPaymentProtocol {
         }],
         currency: this.parsed.currency,
       }
+    } else if (this.source === JPPSourceTypes.WATCHTOWER) {
+      if (!requestOpts.url.endsWith('/')) requestOpts.url += '/'
+      requestOpts.url += 'verify/'
+      requestOpts.headers['Content-Type'] = 'application/json'
+      requestOpts.data = {
+        raw_tx_hex: unsignedTransaction,
+      }
     }
 
     try {
@@ -501,6 +510,7 @@ export class JSONPaymentProtocol {
     } catch(error) {
       console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
+      if (typeof error?.response?.data?.error === 'string') throw JsonPaymentProtocolError(error?.response?.data?.error)
       throw error
     }
   }
@@ -541,6 +551,13 @@ export class JSONPaymentProtocol {
           weightedSize: transactions[0]?.length/2
         }],
       }
+    } else if (this.source == JPPSourceTypes.WATCHTOWER) {
+      if (!requestOpts.url.endsWith('/')) requestOpts.url += '/'
+      requestOpts.url += 'pay/'
+      requestOpts.headers['Content-Type'] = 'application/json'
+      requestOpts.data = {
+        raw_tx_hex: transactions[0],
+      }
     }
     try {
       const watchtower = new Watchtower()
@@ -574,6 +591,9 @@ export class JSONPaymentProtocol {
 
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
       if (error?.response?.data?.message) throw JsonPaymentProtocolError(error?.response?.data?.message)
+      if (Array.isArray(error?.response?.data?.non_field_errors) && error?.response?.data?.non_field_errors.length) {
+        throw JsonPaymentProtocolError(error?.response?.data?.non_field_errors?.[0])
+      }
       throw error
     }
   }
@@ -663,6 +683,8 @@ export class JSONPaymentProtocol {
       delete headers['Accept']
       headers['Content-Type'] = 'application/payment-request'
       headers['X-Paypro-Version'] = 2
+    } else if (jppSource === JPPSourceTypes.WATCHTOWER) {
+      headers.Accept = 'application/json'
     }
 
     let parsedData
@@ -680,9 +702,9 @@ export class JSONPaymentProtocol {
       const watchtower = new Watchtower()
       const response = await watchtower.BCH._api.request({method: method, data: data, url: String(link), headers, params })
       parsedData = response.data
+      parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
+      parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
       if (proxy && parsedData) {
-        parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
-        parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
         if (!parsedData.paymentId) {
           const splitPath = paymentUrl.pathname.split('/')	
           parsedData.paymentId = splitPath[splitPath.length-1]
