@@ -22,13 +22,18 @@
           v-ripple
         >
           <q-item-section>
-            <q-item-label>{{ formatAddress(chat.message.to) }}</q-item-label>
-            <q-item-label caption>{{ formatTimestamp(chat.message.timestamp) }}</q-item-label>
+            <template v-if="getAddress() === chat.creator">
+              <q-item-label>{{ formatAddress(chat.recipient) }}</q-item-label>
+            </template>
+            <template v-else>
+              <q-item-label>{{ formatAddress(chat.creator) }}</q-item-label>
+            </template>
+            <q-item-label caption>{{ formatTimestamp(chat.last_messaged) }}</q-item-label>
           </q-item-section>
         </q-item>
       </q-list>
     </div>
-    <div v-if="chats.length === 0" class="q-mt-lg row justify-center text-black">
+    <div v-if="chats && chats.length === 0" class="q-mt-lg row justify-center text-black">
       <p style="font-size: 18px;" class="q-mt-lg" :class="{ 'text-white': darkMode }">
         No existing conversations
       </p>
@@ -37,7 +42,9 @@
 </template>
 
 <script>
+import { loadWallet } from '../../../wallet'
 import HeaderNav from '../../../components/header-nav'
+import axios from 'axios'
 const ago = require('s-ago')
 
 export default {
@@ -45,7 +52,7 @@ export default {
   components: { HeaderNav },
   data () {
     return {
-      chats: [],
+      chats: null,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -60,10 +67,10 @@ export default {
     loadConversation (chat) {
       const me = this.getAddress()
       let recipientAddress
-      if (chat.message.from === me) {
-        recipientAddress = chat.message.to
+      if (chat.creator === me) {
+        recipientAddress = chat.recipient
       } else {
-        recipientAddress = chat.message.from
+        recipientAddress = chat.creator
       }
       return this.$router.push(`/apps/chat/conversation/?presetTopic=${chat.topic}&presetRecipientAddress=${recipientAddress}`)
     },
@@ -76,8 +83,14 @@ export default {
       return 'bitcoincash:' + addr.substring(0, 10) + '...' + addr.substring(addr.length - 10)
     }
   },
-  mounted () {
-    this.chats = this.$store.getters['chat/getChatsList']
+  async mounted () {
+    const wallet = await loadWallet()
+    const walletHash = wallet.BCH.getWalletHash()
+    const url = `https://watchtower.cash/api/chat/conversations/${walletHash}`
+    const vm = this
+    axios.get(url).then((resp) => {
+      vm.chats = resp.data
+    })
   }
 }
 </script>
