@@ -4,7 +4,7 @@
         <div class="text-h6 ellipsis">Payment</div>
         <div class="row items-center no-wrap q-gutter-xs">
           <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">PaymentID:</div>
-          <div>#{{ jpp?.parsed?.paymentId }}</div>
+          <div class="ellipsis">#{{ jpp?.parsed?.paymentId }}</div>
           <q-btn
             flat
             icon="content_copy"
