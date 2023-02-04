@@ -130,7 +130,7 @@ const badges = computed(() => {
       case('anyhedge_funding_tx'):
         badges.push({
           icon: 'img:anyhedge-logo.png',
-          text: 'Anyhedge funding transaction',
+          text: 'AnyHedge funding transaction',
           data: { address: attribute?.value },
         })
         break
@@ -138,14 +138,14 @@ const badges = computed(() => {
       case('anyhedge_long_funding_utxo'):
         badges.push({
           icon: 'img:anyhedge-logo.png',
-          text: 'Anyhedge funding UTXO',
+          text: 'AnyHedge funding UTXO',
           data: { address: attribute?.value },
         })
         break
       case('anyhedge_settlement_tx'):
         badges.push({
           icon: 'img:anyhedge-logo.png',
-          text: 'Anyhedge settlement transaction',
+          text: 'AnyHedge settlement transaction',
           data: { address: attribute?.value },
         })
         break

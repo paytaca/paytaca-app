@@ -13,7 +13,7 @@
         <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
           <q-item clickable v-close-popup>
             <q-item-section :class="[darkMode ? 'text-white' : 'text-black']" @click="confirmDeletion = true">
-              Delete Conversation
+              Clear History
             </q-item-section>
           </q-item>
         </q-list>
@@ -22,16 +22,16 @@
     <q-dialog class="text-black" v-model="confirmDeletion" persistent>
       <q-card :dark="darkMode">
         <q-card-section class="row items-center">
-          <span class="q-ml-sm">Are you sure you want to delete this conversation?</span>
+          <span class="q-ml-sm">Are you sure you want to clear chat history?</span>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat label="Cancel" color="primary" v-close-popup />
-          <q-btn flat label="Yes, Delete" color="red" @click="deleteConversation(topic)" v-close-popup />
+          <q-btn flat label="Yes, Delete" color="red" @click="deleteHistory(topic)" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <div class="q-pa-md row justify-center text-black" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '0px'}">
+    <div class="q-pa-lg row justify-center text-black" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '0px'}">
       <template v-if="!connected && !topic">
         <div class="q-pa-md row justify-center">
           <p :class="{'text-white': darkMode}">You are chatting as:</p>
@@ -91,7 +91,7 @@
           :stamp="formatTimestamp(message.timestamp)"
         />
       </div>
-      <div v-if="connected" class="send-container" style="width: 100%; padding: 12px;">
+      <div v-if="connected" class="send-container" style="width: 100%;">
         <div class="q-pt-lg">
           <q-input
             v-model="message"
@@ -101,7 +101,7 @@
             autogrow
           />
         </div>
-        <div ref="sendButton" class="q-pt-md" style="width: 100%;">
+        <div ref="sendButton" class="q-pt-md" style="width: 100%; padding-bottom: 12px;">
           <q-btn
             color="blue"
             icon-right="send"
@@ -267,41 +267,43 @@ export default {
           'msg': Buffer.from(encrypted).toString('base64'),
           'timestamp': Date.now()
         }
-        vm.mqttClient.publish(vm.topic, JSON.stringify(message), { qos: 2, retain: true })
+        vm.mqttClient.publish(vm.topic, JSON.stringify(message), { qos: 0, retain: false })
         vm.message = null
       }
     },
     async decryptChatMessage (payload) {
-      const message = await openpgp.readMessage({
-        armoredMessage: Buffer.from(payload.msg, 'base64').toString()
-      })
-    
-      let decrypted, signatures, verificationKey
-      try {
-        if (payload.from === this.me) {
-          verificationKey = await openpgp.readKey({ armoredKey: this.pgpKeys.public })
-        } else {
-          verificationKey = await openpgp.readKey({ armoredKey: this.recipientPublicKey })
-        }
-        const privateKey = await openpgp.readPrivateKey({ armoredKey: this.pgpKeys.private })
-        const { data: decrypted, signatures } = await openpgp.decrypt({
-          message,
-          decryptionKeys: privateKey,
-          expectSigned: true,
-          verificationKeys: verificationKey,
+      if (payload.from && payload.to) {
+        const message = await openpgp.readMessage({
+          armoredMessage: Buffer.from(payload.msg, 'base64').toString()
         })
+      
+        let decrypted, signatures, verificationKey
+        try {
+          if (payload.from === this.me) {
+            verificationKey = await openpgp.readKey({ armoredKey: this.pgpKeys.public })
+          } else {
+            verificationKey = await openpgp.readKey({ armoredKey: this.recipientPublicKey })
+          }
+          const privateKey = await openpgp.readPrivateKey({ armoredKey: this.pgpKeys.private })
+          const { data: decrypted, signatures } = await openpgp.decrypt({
+            message,
+            decryptionKeys: privateKey,
+            expectSigned: true,
+            verificationKeys: verificationKey,
+          })
 
-        payload.msg = decrypted
-        this.$store.dispatch(
-          'chat/appendMessage',
-          { topic: this.topic, message: payload }
-        )
-        const vm = this
-        setTimeout(function () {
-          vm.scrollToTop()
-        }, 100)
-      } catch (e) {
-        throw new Error('Message could not be decrypted: ' + e.message)
+          payload.msg = decrypted
+          this.$store.dispatch(
+            'chat/appendMessage',
+            { topic: this.topic, message: payload }
+          )
+          const vm = this
+          setTimeout(function () {
+            vm.scrollToTop()
+          }, 100)
+        } catch (e) {
+          throw new Error('Message could not be decrypted: ' + e.message)
+        }
       }
     },
     formatTimestamp (timestamp) {
@@ -322,12 +324,12 @@ export default {
       const options = {
         clientId: this.me.split(':')[1]
       }
-      vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + '/mqtt')
+      vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + '/mqtt', options)
       vm.mqttClient.on('connect', function () {
-        if (!topic) {
-          vm.buildTopic()
-        } else {
+        if (topic) {
           vm.topic = topic
+        } else {
+          vm.buildTopic()
         }
         vm.mqttClient.subscribe(vm.topic, function (err) {
           if (err) {
@@ -340,6 +342,7 @@ export default {
       })
 
       vm.mqttClient.on('message', function (topic, message, packet) {
+        console.log('Message received')
         const msg = JSON.parse(message.toString())
         const timeNow = Date.now()
         if (!msg.timestamp) {
@@ -353,7 +356,7 @@ export default {
       const divBounds = document.body.getBoundingClientRect()
       return divBounds.width
     },
-    deleteConversation () {
+    deleteHistory () {
       this.$store.dispatch('chat/deleteHistory', this.topic)
       this.$router.push('/apps/chat')
     },
