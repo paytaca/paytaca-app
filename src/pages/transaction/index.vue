@@ -312,13 +312,10 @@ export default {
         vm.transactions = []
         vm.transactionsLoaded = false
         vm.transactionsPage = 0
-        vm.wallet = null
-        vm.loadWallets().then(() => {
-          vm.assets.map(function (asset) {
-            return vm.getBalance(asset.id)
-          })
-          vm.getTransactions()
+        vm.assets.map(function (asset) {
+          return vm.getBalance(asset.id)
         })
+        vm.getTransactions()
       }
     },
     selectBch () {
@@ -766,27 +763,25 @@ export default {
         }
       }
     },
-    onConnectivityChange (online) {
+    async onConnectivityChange (online) {
       const vm = this
       vm.$store.dispatch('global/updateConnectivityStatus', online)
       if (online === true) {
-        // Load wallets
-        this.loadWallets().then(() => {
-          vm.assets.map(function (asset) {
-            return vm.getBalance(asset.id)
-          })
-
-          if (Array.isArray(vm.assets) && vm.assets.length > 0) {
-            if (!vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)) {
-              vm.selectedAsset = vm.bchAsset
-            }
-            vm.getBalance(vm.selectedAsset.id)
-            vm.getTransactions()
-          }
-
-          vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-          vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+        if (!vm.wallet) await vm.loadWallets()
+        vm.assets.map(function (asset) {
+          return vm.getBalance(asset.id)
         })
+
+        if (Array.isArray(vm.assets) && vm.assets.length > 0) {
+          if (!vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)) {
+            vm.selectedAsset = vm.bchAsset
+          }
+          vm.getBalance(vm.selectedAsset.id)
+          vm.getTransactions()
+        }
+
+        vm.$store.dispatch('assets/updateTokenIcons', { all: false })
+        vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
       } else {
         vm.balanceLoaded = true
         vm.transactionsLoaded = true
