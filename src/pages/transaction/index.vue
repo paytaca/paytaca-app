@@ -493,7 +493,7 @@ export default {
         .then(response => {
           vm.transactionsPageHasNext = false
           if (Array.isArray(response.transactions)) {
-            vm.transactionsPageHasNext = response.transactions.length > 0
+            vm.transactionsPageHasNext = response.hasNextPage
             if (!appendResults) vm.transactions = []
             vm.transactions.push(...response.transactions
               .map(tx => {

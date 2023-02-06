@@ -156,6 +156,7 @@ export class SmartBchWallet {
 
     return {
       success: true,
+      hasNextPage: parsedTxs.length > 0,
       transactions: parsedTxs
     }
   }
@@ -279,6 +280,7 @@ export class SmartBchWallet {
       //   name: await tokenContract.name(),
       //   symbol: await tokenContract.symbol(),
       // },
+      hasNextPage: parsedTxs.length > 0,
       transactions: parsedTxs
     }
   }
@@ -686,10 +688,12 @@ class WatchtowerSBCH {
     }
 
     let unparsedTxs = []
+    let hasNextPage = false
     try {
       const response = await this._watchtower.Wallet._api('smartbch/transactions/transfers/', { params: queryParams })
       if (Array.isArray(response?.data?.results)) unparsedTxs = response?.data?.results
       else if (Array.isArray(response?.data)) unparsedTxs = response.data
+      if (response?.data?.next) hasNextPage = true
     } catch (err) {
       return {
         success: false,
@@ -721,6 +725,7 @@ class WatchtowerSBCH {
 
     return {
       success: true,
+      hasNextPage: hasNextPage,
       transactions: parsedTxs
     }
   }
