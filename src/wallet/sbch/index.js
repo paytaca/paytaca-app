@@ -89,7 +89,7 @@ export class SmartBchWallet {
 
   async getSep20TokenBalance (contractAddress, address) {
     if (!utils.isAddress(contractAddress)) return 0
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
     const balance = await tokenContract.balanceOf(address)
 
     const asset = Store.getters['sep20/getAsset'](`sep20/${contractAddress}`)?.[0]
@@ -163,7 +163,7 @@ export class SmartBchWallet {
   async _getSep20Transaction (contractAddress, { before = 'latest', after = '0x0', limit = 10 }) {
     if (!utils.isAddress(contractAddress)) return []
 
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
     const decimals = await tokenContract.decimals()
     const eventFilter = tokenContract.filters.Transfer(this._wallet.address, this._wallet.address)
 
@@ -222,7 +222,7 @@ export class SmartBchWallet {
       }
     }
 
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
     const parsedTxs = []
     let pseudoBefore = before
 
@@ -410,7 +410,7 @@ export class SmartBchWallet {
       }
     }
 
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
     const decimals = await tokenContract.decimals()
     const parsedAmount = utils.parseUnits(amount, decimals)
     const contractWithSigner = tokenContract.connect(this._wallet)
@@ -459,7 +459,7 @@ export class SmartBchWallet {
         error: 'Invalid Token ID'
       }
     }
-    const tokenContract = getERC721Contract(contractAddress)
+    const tokenContract = getERC721Contract(contractAddress, { provider: this.provider })
     const address = await tokenContract.ownerOf(tokenId)
     if (address !== this._wallet.address) {
       return {
@@ -506,7 +506,7 @@ export class SmartBchWallet {
         error: 'Invalid token address'
       }
     }
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
 
     const tokenName = await tokenContract.name()
     const tokenSymbol = await tokenContract.symbol()
@@ -531,7 +531,7 @@ export class SmartBchWallet {
       }
     }
 
-    const contract = getERC721Contract(contractAddress)
+    const contract = getERC721Contract(contractAddress, { provider: this.provider })
     const uri = await contract.tokenURI(tokenID)
     let success = false
     let data = null
@@ -589,7 +589,7 @@ export class SmartBchWallet {
       }
     }
 
-    const contract = getERC721Contract(contractAddress)
+    const contract = getERC721Contract(contractAddress, { provider: this.provider })
     var balance
     if (address) balance = await contract.balanceOf(ownerAddress)
     else balance = await contract.totalSupply()
