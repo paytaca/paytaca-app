@@ -5,6 +5,7 @@ import sha256 from 'js-sha256'
 // import { hdkey } from 'ethereumjs-wallet'
 import BCHJS from '@psf/bch-js'
 import { BigNumber, ethers, utils } from 'ethers'
+import { Store } from '../../store'
 
 import { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
 
@@ -90,7 +91,12 @@ export class SmartBchWallet {
     if (!utils.isAddress(contractAddress)) return 0
     const tokenContract = getSep20Contract(contractAddress)
     const balance = await tokenContract.balanceOf(address)
-    const decimals = await tokenContract.decimals()
+
+    const asset = Store.getters['sep20/getAsset'](`sep20/${contractAddress}`)?.[0]
+    let decimals = asset?.decimals
+    if (Number.isNaN(decimals)) decimals = await tokenContract.decimals()
+    if (asset?.id && asset?.decimals != decimals) Store.commit('sep20/addNewAsset', Object.assign(asset, { decimals }))
+
     return utils.formatUnits(balance, decimals)
   }
 
@@ -504,13 +510,15 @@ export class SmartBchWallet {
 
     const tokenName = await tokenContract.name()
     const tokenSymbol = await tokenContract.symbol()
+    const tokenDecimals = await tokenContract.decimals().catch(() => null)
 
     return {
       success: true,
       token: {
         address: tokenContract.address,
         name: tokenName,
-        symbol: tokenSymbol
+        symbol: tokenSymbol,
+        decimals: tokenDecimals,
       }
     }
   }

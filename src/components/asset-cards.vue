@@ -156,6 +156,7 @@ export default {
             id: `sep20/${response.token.address}`,
             symbol: response.token.symbol,
             name: response.token.name,
+            decimals: response.token.decimals,
             logo: '',
             balance: 0
           }
