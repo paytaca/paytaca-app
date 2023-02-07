@@ -784,17 +784,14 @@ export default {
       vm.$store.dispatch('global/updateConnectivityStatus', online)
       if (online === true) {
         if (!vm.wallet) await vm.loadWallets()
-        vm.assets.map(function (asset) {
-          return vm.getBalance(asset.id)
-        })
+        vm.assets.map((asset) => vm.getBalance(asset.id))
 
         if (Array.isArray(vm.assets) && vm.assets.length > 0) {
-          if (!vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)) {
-            vm.selectedAsset = vm.bchAsset
-          }
-          vm.getBalance(vm.selectedAsset.id)
-          vm.getTransactions()
+          const selectedAssetExists = vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)
+          if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
+        vm.getBalance(vm.selectedAsset.id)
+        vm.getTransactions()
 
         vm.$store.dispatch('assets/updateTokenIcons', { all: false })
         vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
@@ -908,7 +905,7 @@ export default {
       vm.startPageStatus = false
     }
 
-    vm.adjustTransactionsDivHeight()
+    vm.adjustTransactionsDivHeight({ timeout: 50 })
 
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
