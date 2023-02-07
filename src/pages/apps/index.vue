@@ -86,6 +86,12 @@ export default {
           active: true
         },
         {
+          name: this.$t('Deposit'),
+          iconName: 'mdi-bank-transfer-in',
+          path: 'apps/deposit-coin',
+          active: true
+        },
+        {
           name: this.$t('Settings'),
           iconName: 'settings',
           path: '/apps/settings',

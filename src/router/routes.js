@@ -25,6 +25,11 @@ const routes = [
         component: () => import('pages/transaction/select-asset-send.vue')
       },
       {
+        path: 'deposit',
+        name: 'transaction-deposit',
+        component: () => import('pages/transaction/deposit.vue')
+      },
+      {
         path: 'send/',
         name: 'transaction-send',
         props: route => {
@@ -67,7 +72,9 @@ const routes = [
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
-      { path: 'gifts/show-qr', props: route => route.query, component: () => import('src/pages/apps/gifts/show-qr.vue'), name: 'show-qr' }
+      { path: 'gifts/show-qr', props: route => route.query, component: () => import('src/pages/apps/gifts/show-qr.vue'), name: 'show-qr' },
+      { path: 'deposit-coin', component: () => import('src/pages/apps/deposit/index.vue'), name: 'app-deposit-coin'},
+      { path: 'deposit-coin/process-shift', props: route => route.query, component: () => import('src/pages/apps/deposit/process-shift.vue'), name: 'process-shift'}
     ]
   },
   // Always leave this as last one,

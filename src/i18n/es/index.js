@@ -26,6 +26,7 @@ export default {
   Data: 'Datos',
   Decoded: 'Decodificado',
   Deadline: 'Fecha límite',
+  Deposit: 'Depósito',
   Disconnected: 'Desconectado',
   Dismiss: 'Desestimación',
   English: 'Inglés',

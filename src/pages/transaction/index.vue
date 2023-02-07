@@ -810,13 +810,13 @@ export default {
         this.$store.commit('notification/clearOpenedNotification')
       }
     },
-    async findAndOpenTransaction(data={txid: '', tokenId: '', logIndex: null, chain: 'BCH'}){
+    async findAndOpenTransaction(data={txid: '', tokenId: '', logIndex: null, chain: 'BCH' }) {
       if (!data) return
       const {txid, tokenId, logIndex, chain } = data
       const isToken = tokenId && String(tokenId) != 'bch'
       const tokenPrefix = chain === 'sBCH' ? 'sep20' : 'slp'
       const assetId = isToken ? `${tokenPrefix}/${tokenId}` : 'bch'
-      
+
       const assets = chain === 'sBCH' ? this.smartchainAssets : this.mainchainAssets
       const asset = isToken ? assets.find(asset => asset?.id == assetId) : this.bchAsset
 
