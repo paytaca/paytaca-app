@@ -76,6 +76,10 @@
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
               :network="selectedNetwork"
+              :wallet="wallet"
+              @select-asset="asset => setSelectedAsset(asset)"
+              @show-asset-info="asset => showAssetInfo(asset)"
+              @hide-asset-info="hideAssetInfo()"
             >
             </asset-cards>
           </template>
@@ -88,6 +92,10 @@
               :balance-loaded="balanceLoaded"
               v-dragscroll.x="true"
               :network="selectedNetwork"
+              :wallet="wallet"
+              @select-asset="asset => setSelectedAsset(asset)"
+              @show-asset-info="asset => showAssetInfo(asset)"
+              @hide-asset-info="hideAssetInfo()"
             >
             </asset-cards>
           </template>
@@ -398,6 +406,17 @@ export default {
           clearInterval(txCheck)
         }
       }, 100)
+    },
+    setSelectedAsset(asset) {
+      const assetExists = this.assets.find(a => a?.id == asset?.id)
+      if (!assetExists) return
+      this.$refs['asset-info'].hide()
+      this.selectedAsset = asset
+      this.transactions = []
+      this.transactionsPage = 0
+      this.transactionsPageHasNext = false
+      this.getBalance()
+      this.getTransactions()
     },
     getBalance (id) {
       this.balanceLoaded = false
