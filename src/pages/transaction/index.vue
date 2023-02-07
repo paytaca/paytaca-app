@@ -107,10 +107,10 @@
           <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
             {{ selectedAsset.symbol }} {{ $t('Transactions') }}
           </p>
-          <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
-            <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-all')" id="btn-all">{{ $t('All') }}</button>
-            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-sent')" id="btn-sent">{{ $t('Sent') }}</button>
-            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-received')" id="btn-received">{{ $t('Received') }}</button>
+          <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
+            <button class="btn-custom q-mt-none btn-all" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'all' }" @click="setTransactionsFilter('all')">{{ $t('All') }}</button>
+            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'sent'}" @click="setTransactionsFilter('sent')">{{ $t('Sent') }}</button>
+            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'received'}" @click="setTransactionsFilter('received')">{{ $t('Received') }}</button>
           </div>
           <div class="transaction-list">
             <template v-if="transactionsLoaded">
@@ -596,20 +596,10 @@ export default {
       this.getTransactions()
       done()
     },
-    switchActiveBtn (btn) {
-      const customBtn = document.getElementById(this.activeBtn)
-      customBtn.classList.remove('active-transaction-btn')
+    setTransactionsFilter(value) {
+      if (['sent', 'received'].indexOf(value) >= 0) this.transactionsFilter = value
+      else this.transactionsFilter = 'all'
 
-      const element = document.getElementById(btn)
-      const name = 'active-transaction-btn'
-      const arr = element.className.split(' ')
-      if (arr.indexOf(name) === -1) {
-        element.className += ' ' + name
-      }
-      this.activeBtn = btn
-
-      // change transactions filter
-      this.transactionsFilter = btn.split('-')[1]
       this.transactions = []
       this.transactionsPage = 0
       this.transactionsLoaded = false
