@@ -236,10 +236,19 @@ export default {
   },
 
   watch: {
+    'assets.length': {
+      handler(before, after) {
+        // e.g. if one network has assets but the other has none then changes network,
+        // the spacing becomes off
+        const assetsWasEmpty = before == 0
+        const assetsIsEmpty = after == 0
+        if (assetsWasEmpty !== assetsIsEmpty) this.adjustTransactionsDivHeight({ timeout: 100 })
+      }
+    },
     manageAssets() {
       // must adjust height when asset list is empty
       // the add button is hidden behind tx list & unclickable without this
-      this.adjustTransactionsDivHeight({ timeout: 100 })
+      if (!this.assets?.length) this.adjustTransactionsDivHeight({ timeout: 100 })
     },
     startPageStatus (n, o) {
       this.adjustTransactionsDivHeight()
