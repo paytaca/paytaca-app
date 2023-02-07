@@ -126,7 +126,7 @@
                 <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
               </div>
               <div v-else-if="transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
-                <p @click="() => { getTransactions(transactionsPage + 1) }">{{ $t('ShowMore') }}</p>
+                <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
               </div>
               <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
                 <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
@@ -483,28 +483,28 @@ export default {
     scrollToBottomTransactionList() {
       this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
     },
-    getTransactions (page = 1) {
+    getTransactions (page = 1, opts={ scrollToBottom: false }) {
       if (this.selectedNetwork === 'sBCH') {
         const address = this.$store.getters['global/getAddress']('sbch')
-        return this.getSbchTransactions(address)
+        return this.getSbchTransactions(address, opts)
       }
-      return this.getBchTransactions(page)
+      return this.getBchTransactions(page, opts)
     },
-    getSbchTransactions (address) {
+    getSbchTransactions (address, opts={ scrollToBottom: false }) {
       const vm = this
       const asset = vm.selectedAsset
       const id = String(vm.selectedAsset.id)
 
-      const opts = { limit: 10, includeTimestamp: true }
+      const filterOpts = { limit: 10, includeTimestamp: true }
       if (vm.transactionsFilter === 'sent') {
-        opts.type = 'outgoing'
+        filterOpts.type = 'outgoing'
       } else if (vm.transactionsFilter === 'received') {
-        opts.type = 'incoming'
+        filterOpts.type = 'incoming'
       }
 
       let appendResults = false
       if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
-        opts.before = '0x' + (this.earliestBlock - 1).toString(16)
+        filterOpts.before = '0x' + (this.earliestBlock - 1).toString(16)
         appendResults = true
       }
 
@@ -514,12 +514,12 @@ export default {
         requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
           contractAddress,
           address,
-          opts
+          filterOpts
         )
       } else {
         requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
           address,
-          opts
+          filterOpts
         )
       }
 
@@ -540,7 +540,7 @@ export default {
                 return tx
               })
             )
-            if (appendResults) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
+            if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
           }
         })
         .finally(() => {
@@ -548,7 +548,7 @@ export default {
           vm.transactionsLoaded = true
         })
     },
-    getBchTransactions (page) {
+    getBchTransactions (page, opts={ scrollToBottom: false }) {
       const vm = this
       const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
@@ -584,7 +584,7 @@ export default {
           setTimeout(() => {
             vm.transactionsPageHasNext = hasNext
           }, 250)
-          if (page > 1) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
+          if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
         })
         .finally(() => {
           vm.transactionsAppending = false
