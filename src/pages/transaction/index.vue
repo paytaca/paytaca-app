@@ -453,26 +453,37 @@ export default {
           })
       }
     },
-    getBchBalance (id) {
+    async getBchBalance (id) {
       const vm = this
       if (!id) {
         id = vm.selectedAsset.id
       }
+
+      const tokenId = id.split('/')[1]
       vm.transactionsPageHasNext = false
+
       if (id.indexOf('slp/') > -1) {
-        const tokenId = id.split('/')[1]
         vm.wallet.SLP.getBalance(tokenId).then(function (response) {
           vm.$store.commit('assets/updateAssetBalance', {
-            id: id,
+            id,
             balance: response.balance
           })
           vm.balanceLoaded = true
         })
+      } else if (id.indexOf('ct') > -1) {
+        const wallet = await window.TestNetWallet.named("mywallet")
+        const balance = await wallet.getTokenBalance(tokenId)
+
+        vm.$store.commit('assets/updateAssetBalance', { id, balance })
+        vm.balanceLoaded = true
       } else {
+        const wallet = await window.TestNetWallet.named("mywallet")
+        const chipNetBal = await wallet.getBalance()
+
         vm.wallet.BCH.getBalance().then(function (response) {
           vm.$store.commit('assets/updateAssetBalance', {
             id: id,
-            balance: response.balance,
+            balance: response.balance + chipNetBal.bch,
             spendable: response.spendable
           })
           vm.balanceLoaded = true
@@ -571,6 +582,8 @@ export default {
             vm.transactionsPageHasNext = transactions.has_next
           }, 1000)
         })
+      } else if (id.indexOf('ct/') > -1) {
+        vm.transactionsLoaded = true
       } else {
         vm.wallet.BCH.getTransactions(page, recordType).then(function (transactions) {
           if (transactions.history) {
@@ -856,7 +869,7 @@ export default {
     })
   },
 
-  mounted () {
+  async mounted () {
     const vm = this
 
     if (vm.prevPath === '/') {
@@ -880,6 +893,22 @@ export default {
       vm.balanceLoaded = true
       vm.transactionsLoaded = true
     })
+
+    // TODO: remove (for testing only)
+    let w = vm.$store.getters['assets/getCashTokenWallet']
+    if (w !== null) {
+      w = await window.TestNetWallet.named("mywallet")
+      vm.$store.commit('assets/updateCashTokenWallet', w)
+    }
+    console.log(w)
+
+    const tokenBalances = await w.getAllTokenBalances()
+    const tokenCategories = Object.keys(tokenBalances)
+
+    for (const tc of tokenCategories) {
+      const tokenBal = await w.getTokenUtxos(tc)
+      console.log(tokenBal)
+    }
   }
 }
 </script>

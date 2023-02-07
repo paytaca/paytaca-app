@@ -965,6 +965,11 @@ export default {
             addressIsValid = false
           }
         }
+        if (vm.walletType === 'ct') {
+          // TODO: validate token address (no validator function in mainnet-js for now)
+          addressIsValid = true
+          formattedAddress = address
+        }
       } catch (err) {
         addressIsValid = false
         console.log(err)
@@ -1050,7 +1055,6 @@ export default {
             slp: vm.getChangeAddress('slp')
           }
           vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, this.tokenType, address, feeFunder, changeAddresses).then(function (result) {
-            vm.sendData.sending = false
             if (result.success) {
               vm.sendData.txid = result.txid
               vm.playSound(true)
@@ -1064,6 +1068,7 @@ export default {
               } else {
                 vm.sendErrors.push(result.error)
               }
+              vm.sendData.sending = false
             }
           })
         } else if (vm.walletType === 'bch') {
@@ -1109,6 +1114,23 @@ export default {
               }
             }
           })
+        } else {
+          try {
+            const w = await window.TestNetWallet.named("mywallet")
+            const { txId } = await w.send([
+              new TokenSendRequest({
+                cashaddr: address,
+                amount: vm.sendData.amount,
+                tokenId: vm.assetId.split('/')[1],
+              }),
+            ])
+            vm.sendData.txid = txId
+            vm.sendData.sent = true
+            vm.playSound(true)
+          } catch (e) {
+            vm.sendErrors.push(e.message)
+          }
+          vm.sendData.sending = false
         }
       } else {
         vm.sendData.sending = false
@@ -1133,6 +1155,8 @@ export default {
       vm.walletType = sBCHWalletType
     } else if (vm.assetId.indexOf('slp/') > -1) {
       vm.walletType = 'slp'
+    } else if (vm.assetId.indexOf('ct/') > -1) {
+      vm.walletType = 'ct'
     } else {
       vm.walletType = 'bch'
     }

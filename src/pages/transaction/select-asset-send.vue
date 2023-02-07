@@ -14,15 +14,18 @@
     </q-tabs>
     <template v-if="assets">
       <div class="row">
-        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
+        <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToSend') }}</p>
+        </div>
+        <div class="col-3 q-mt-sm" v-show="selectedNetwork === networks.BCH.name">
+          <AssetFilter @filterTokens="filterTokens" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
         <div
           v-for="(asset, index) in assets"
           :key="index"
-          @click="$router.push({ name: 'transaction-send', query: { assetId: asset.id, tokenType: 1, network: selectedNetwork } })"
+          @click="redirectToSend(asset)"
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
@@ -58,13 +61,17 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
+import AssetFilter from '../../components/AssetFilter'
 
 export default {
   name: 'Send-select-asset',
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav },
+  components: {
+    HeaderNav,
+    AssetFilter,
+  },
   data () {
     return {
       networks: {
@@ -73,7 +80,8 @@ export default {
       },
       activeBtn: 'btn-bch',
       result: '',
-      error: ''
+      error: '',
+      isCashToken: false,
     }
   },
   computed: {
@@ -92,21 +100,38 @@ export default {
       if (this.selectedNetwork === 'sBCH') {
         return this.$store.getters['sep20/getAssets'].filter(Boolean)
       }
-
+      const vm = this
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
-          return item
+          const isBch = item.id === 'bch'
+          if (vm.isCashToken) 
+            return item.id.split('/')[0] === 'ct' || isBch
+          return item.id.split('/')[0] === 'slp' || isBch
         }
       })
     }
   },
   methods: {
+    filterTokens (tokenType) {
+      this.isCashToken = tokenType === 'ct'
+    },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
+    },
+    redirectToSend (asset) {
+      let query = {
+        assetId: asset.id,
+        tokenType: 1,
+        network: this.selectedNetwork
+      }
+      this.$router.push({
+        name: 'transaction-send',
+        query
+      })
     }
   },
   mounted () {

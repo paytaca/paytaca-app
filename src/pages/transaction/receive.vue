@@ -7,7 +7,7 @@
     <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu anchor="bottom right" self="top end">
         <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
-          <q-item clickable v-close-popup>
+          <q-item clickable v-close-popup v-if="walletType !== 'ct'">
             <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">{{ $t('GenerateNewAddress') }}</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
@@ -199,6 +199,14 @@ export default {
     async copyPrivateKey () {
       try {
         this.copying = true
+
+        if (this.walletType === 'ct') {
+          const w = await TestNetWallet.named('mywallet')
+          this.copyToClipboard(w.privateKeyWif)
+          this.copying = false
+          return
+        }
+
         const mnemonic = await getMnemonic()
         const wallet = new Wallet(mnemonic, this.network)
         const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
@@ -220,6 +228,9 @@ export default {
         // else return ''
       } else if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
+      } else if (this.assetId.indexOf('ct/') > -1) {
+        this.walletType = 'ct'
+        return this.$store.getters['assets/getCashTokenWallet'].tokenaddr
       } else {
         this.walletType = 'bch'
       }
@@ -381,8 +392,18 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
     const vm = this
+    const wallet = await window.TestNetWallet.named('mywallet')
+    wallet.watchAddressTokenTransactions(async (tx) => {
+      console.log(tx.vout[0].tokenData.amount)
+      vm.notifyOnReceive(
+        tx.vout[0].tokenData.amount,
+        vm.asset.symbol,
+        vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
+      )
+    })
+
     if (!vm.assetId.endsWith('unlisted')) {
       vm.setupListener()
     }

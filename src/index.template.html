@@ -15,9 +15,25 @@
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
     <link rel="icon" type="image/ico" href="favicon.ico">
+    <script defer src="https://cdn.mainnet.cash/mainnet-1.0.10.js"></script>
   </head>
   <body>
     <!-- DO NOT touch the following DIV -->
     <div id="q-app"></div>
+    <script>
+      document.addEventListener("DOMContentLoaded", async (event) => {
+        // Make sure rest of code executes after mainnet-js has been imported properly
+        Object.assign(globalThis, await __mainnetPromise);
+
+        // Test that indexedDB is available
+        var db = window.indexedDB.open('test');
+        db.onerror = () => alert("Can't use indexedDB, might be because of private window.")
+
+        // Initialize wallet
+        DefaultProvider.servers.testnet = ["wss://chipnet.imaginary.cash:50004"]
+        const wallet = await TestNetWallet.named("mywallet");
+        Config.EnforceCashTokenReceiptAddresses = true;
+      })
+    </script>
   </body>
 </html>

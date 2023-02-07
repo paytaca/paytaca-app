@@ -41,6 +41,9 @@
                   </q-popup-proxy>
                 </q-icon>
               </q-item-label>
+              <div v-if="!transaction.asset.id.startsWith('bch')">
+                <TokenTypeBadge :assetId="transaction.asset.id" />
+              </div>
             </q-item-section>
           </q-item>
         </q-card-section>
@@ -144,12 +147,17 @@
 </template>
 
 <script>
+import TokenTypeBadge from './TokenTypeBadge'
+
 export default {
   name: 'transaction',
   props: {
     hideCallback: {
       type: Function
     }
+  },
+  components: {
+    TokenTypeBadge,
   },
   data () {
     return {

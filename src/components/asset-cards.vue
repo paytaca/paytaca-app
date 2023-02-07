@@ -29,12 +29,18 @@
           <q-skeleton type="rect"/>
         </div>
         <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
-          {{ String(asset.balance).substring(0, 10) }}
+          {{ String(num2shortStr(asset.balance)).substring(0, 10) }}
         </p>
+      </div>
+      <div v-if="balanceLoaded" style="margin-top: -16px;">
+        <TokenTypeBadge
+          :assetId="asset.id"
+          class="float-left q-mr-sm"
+        />
       </div>
       <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
         <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
-          {{ getAssetMarketBalance(asset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          {{ num2shortStr(getAssetMarketBalance(asset)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
         </template>
       </div>
     </div>
@@ -45,9 +51,13 @@
 <script>
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
+import TokenTypeBadge from './TokenTypeBadge'
 
 export default {
   name: 'asset-cards',
+  components: {
+    TokenTypeBadge,
+  },
   props: {
     network: {
       type: String,
@@ -75,6 +85,22 @@ export default {
     }
   },
   methods: {
+    num2shortStr(number) {
+      const SI_SYMBOL = ["", "k", "M", "G", "T", "P", "E"]
+      const tier = Math.log10(Math.abs(number)) / 3 | 0
+
+      if (tier === 0) return number
+
+      const suffix = SI_SYMBOL[tier]
+      const scale = Math.pow(10, tier * 3)
+      const scaled = number / scale
+      let numStr = scaled.toFixed(1)
+
+      if (numStr.endsWith('0'))
+        numStr = numStr.substring(0, numStr.length - 2)
+
+       return numStr + suffix
+    },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 
@@ -128,11 +154,26 @@ export default {
         home.getTransactions()
       }
     },
-    addAsset (tokenId) {
+    async addAsset (asset) {
       const vm = this
-      const home = vm.$parent.$parent
-      home.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
-        const asset = {
+      const wallet = vm.$parent.$parent.wallet
+
+      if (asset.isCashToken) {
+        const tokenId = asset.tokenId
+        const a = await window.TestNetWallet.named("mywallet")
+        const balance = await a.getTokenBalance(tokenId)
+
+        this.$store.commit('assets/addNewAsset', {
+          id: `ct/${tokenId}`,
+          name: tokenId.substring(0,5) + '...' + tokenId.substring(tokenId.length - 5, tokenId.length),
+          symbol: 'CT',
+          balance,
+        })
+        return
+      }
+
+      wallet.SLP.getSlpTokenDetails(asset.tokenId).then(function (details) {
+        const token = {
           id: details.id,
           symbol: details.symbol,
           name: details.name,
@@ -140,9 +181,9 @@ export default {
           balance: 0
         }
         if (details.symbol.length > 0 && details.token_type === 1) {
-          vm.$store.commit('assets/addNewAsset', asset)
+          vm.$store.commit('assets/addNewAsset', token)
           vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
-          vm.$store.dispatch('assets/updateTokenIcon', { assetId: asset.id })
+          vm.$store.dispatch('assets/updateTokenIcon', { assetId: token.id })
         }
       })
     },
@@ -170,10 +211,9 @@ export default {
       vm.$q.dialog({
         // need both in passing props for now for backwards compatibility
         componentProps: { network: this.network, darkMode: this.darkMode },
-
         component: AddNewAsset
       }).onOk((asset) => {
-        if (this.isSep20) return this.addSep20Asset(asset)
+        if (this.isSep20) return this.addSep20Asset(asset.tokenId)
         vm.addAsset(asset)
       }).onCancel(() => {
       })
