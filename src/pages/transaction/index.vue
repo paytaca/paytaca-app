@@ -113,7 +113,11 @@
                 :selected-asset="selectedAsset"
                 @click="showTransactionDetails(transaction)"
               />
-              <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+              <div ref="bottom-transactions-list"></div>
+              <div v-if="transactionsAppending" style="text-align: center;">
+                <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
+              </div>
+              <div v-else-if="transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
                 <p @click="() => { getTransactions(transactionsPage + 1) }">{{ $t('ShowMore') }}</p>
               </div>
               <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
@@ -209,6 +213,7 @@ export default {
       transactionsPage: 0,
       transactionsPageHasNext: false,
       transactionsLoaded: false,
+      transactionsAppending: false,
       balanceLoaded: false,
       wallet: null,
       manageAssets: false,
@@ -446,7 +451,9 @@ export default {
         })
       }
     },
-
+    scrollToBottomTransactionList() {
+      this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
+    },
     getTransactions (page = 1) {
       if (this.selectedNetwork === 'sBCH') {
         const address = this.$store.getters['global/getAddress']('sbch')
@@ -458,7 +465,6 @@ export default {
       const vm = this
       const asset = vm.selectedAsset
       const id = String(vm.selectedAsset.id)
-      vm.transactionsLoaded = false
 
       const opts = { limit: 10, includeTimestamp: true }
       if (vm.transactionsFilter === 'sent') {
@@ -489,6 +495,8 @@ export default {
       }
 
       if (!requestPromise) return
+      if (!appendResults) vm.transactionsLoaded = false
+      vm.transactionsAppending = true
       requestPromise
         .then(response => {
           vm.transactionsPageHasNext = false
@@ -503,9 +511,11 @@ export default {
                 return tx
               })
             )
+            if (appendResults) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
           }
         })
         .finally(() => {
+          vm.transactionsAppending = false
           vm.transactionsLoaded = true
         })
     },
@@ -513,32 +523,25 @@ export default {
       const vm = this
       const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
-      vm.transactionsLoaded = false
+      if (page == 1) vm.transactionsLoaded = false
       let recordType = 'all'
       if (vm.transactionsFilter === 'sent') {
         recordType = 'outgoing'
       } else if (vm.transactionsFilter === 'received') {
         recordType = 'incoming'
       }
+      let requestPromise
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getTransactions(tokenId, page, recordType).then(function (response) {
-          const transactions = response.history || response
-          const page = Number(response?.page)
-          const hasNext = response?.has_next
-          if (!Array.isArray(transactions)) return
-          if (page > vm.transactionsPage) vm.transactionsPage = page
-          transactions.map(function (item) {
-            item.asset = asset
-            return vm.transactions.push(item)
-          })
-          vm.transactionsLoaded = true
-          setTimeout(() => {
-            vm.transactionsPageHasNext = hasNext
-          }, 250)
-        })
+        requestPromise = vm.wallet.SLP.getTransactions(tokenId, page, recordType)
       } else {
-        vm.wallet.BCH.getTransactions(page, recordType).then(function (response) {
+        requestPromise = vm.wallet.BCH.getTransactions(page, recordType)
+      }
+
+      if (!requestPromise) return
+      vm.transactionsAppending = true
+      requestPromise
+        .then(function (response) {
           const transactions = response.history || response
           const page = Number(response?.page)
           const hasNext = response?.has_next
@@ -552,8 +555,11 @@ export default {
           setTimeout(() => {
             vm.transactionsPageHasNext = hasNext
           }, 250)
+          if (page > 1) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
         })
-      }
+        .finally(() => {
+          vm.transactionsAppending = false
+        })
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
