@@ -186,6 +186,7 @@ export default {
             symbol: token.symbol || '',
             logo: token.image_url || '',
             balance: token.balance || 0,
+            decimals: token.decimals || null,
             isSep20: true
           }
         })

@@ -76,6 +76,10 @@
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
               :network="selectedNetwork"
+              :wallet="wallet"
+              @select-asset="asset => setSelectedAsset(asset)"
+              @show-asset-info="asset => showAssetInfo(asset)"
+              @hide-asset-info="hideAssetInfo()"
             >
             </asset-cards>
           </template>
@@ -88,6 +92,10 @@
               :balance-loaded="balanceLoaded"
               v-dragscroll.x="true"
               :network="selectedNetwork"
+              :wallet="wallet"
+              @select-asset="asset => setSelectedAsset(asset)"
+              @show-asset-info="asset => showAssetInfo(asset)"
+              @hide-asset-info="hideAssetInfo()"
             >
             </asset-cards>
           </template>
@@ -99,10 +107,10 @@
           <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
             {{ selectedAsset.symbol }} {{ $t('Transactions') }}
           </p>
-          <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
-            <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-all')" id="btn-all">{{ $t('All') }}</button>
-            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-sent')" id="btn-sent">{{ $t('Sent') }}</button>
-            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-received')" id="btn-received">{{ $t('Received') }}</button>
+          <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
+            <button class="btn-custom q-mt-none btn-all" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'all' }" @click="setTransactionsFilter('all')">{{ $t('All') }}</button>
+            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'sent'}" @click="setTransactionsFilter('sent')">{{ $t('Sent') }}</button>
+            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'received'}" @click="setTransactionsFilter('received')">{{ $t('Received') }}</button>
           </div>
           <div class="transaction-list">
             <template v-if="transactionsLoaded">
@@ -113,8 +121,12 @@
                 :selected-asset="selectedAsset"
                 @click="showTransactionDetails(transaction)"
               />
-              <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
-                <p @click="() => { getTransactions(transactionsPage + 1) }">{{ $t('ShowMore') }}</p>
+              <div ref="bottom-transactions-list"></div>
+              <div v-if="transactionsAppending" style="text-align: center;">
+                <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
+              </div>
+              <div v-else-if="transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+                <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
               </div>
               <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
                 <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
@@ -209,6 +221,7 @@ export default {
       transactionsPage: 0,
       transactionsPageHasNext: false,
       transactionsLoaded: false,
+      transactionsAppending: false,
       balanceLoaded: false,
       wallet: null,
       manageAssets: false,
@@ -223,6 +236,20 @@ export default {
   },
 
   watch: {
+    'assets.length': {
+      handler(before, after) {
+        // e.g. if one network has assets but the other has none then changes network,
+        // the spacing becomes off
+        const assetsWasEmpty = before == 0
+        const assetsIsEmpty = after == 0
+        if (assetsWasEmpty !== assetsIsEmpty) this.adjustTransactionsDivHeight({ timeout: 100 })
+      }
+    },
+    manageAssets() {
+      // must adjust height when asset list is empty
+      // the add button is hidden behind tx list & unclickable without this
+      if (!this.assets?.length) this.adjustTransactionsDivHeight({ timeout: 100 })
+    },
     startPageStatus (n, o) {
       this.adjustTransactionsDivHeight()
     },
@@ -294,11 +321,16 @@ export default {
     }
   },
   methods: {
-    adjustTransactionsDivHeight () {
+    adjustTransactionsDivHeight (opts={timeout: 500}) {
+      let timeout = opts?.timeout
+      if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
         const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
-      }, 500)
+        this.$refs.transactionSection.setAttribute(
+          'style',
+          `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1; transition: margin-top 0.25s ease-in-out`
+        )
+      }, timeout)
     },
     changeNetwork (newNetwork = 'BCH', setAsset) {
       const vm = this
@@ -312,13 +344,10 @@ export default {
         vm.transactions = []
         vm.transactionsLoaded = false
         vm.transactionsPage = 0
-        vm.wallet = null
-        vm.loadWallets().then(() => {
-          vm.assets.map(function (asset) {
-            return vm.getBalance(asset.id)
-          })
-          vm.getTransactions()
+        vm.assets.map(function (asset) {
+          return vm.getBalance(asset.id)
         })
+        vm.getTransactions()
       }
     },
     selectBch () {
@@ -387,6 +416,17 @@ export default {
         }
       }, 100)
     },
+    setSelectedAsset(asset) {
+      const assetExists = this.assets.find(a => a?.id == asset?.id)
+      if (!assetExists) return
+      this.$refs['asset-info'].hide()
+      this.selectedAsset = asset
+      this.transactions = []
+      this.transactionsPage = 0
+      this.transactionsPageHasNext = false
+      this.getBalance()
+      this.getTransactions()
+    },
     getBalance (id) {
       this.balanceLoaded = false
       if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
@@ -449,30 +489,31 @@ export default {
         })
       }
     },
-
-    getTransactions (page = 1) {
+    scrollToBottomTransactionList() {
+      this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
+    },
+    getTransactions (page = 1, opts={ scrollToBottom: false }) {
       if (this.selectedNetwork === 'sBCH') {
         const address = this.$store.getters['global/getAddress']('sbch')
-        return this.getSbchTransactions(address)
+        return this.getSbchTransactions(address, opts)
       }
-      return this.getBchTransactions(page)
+      return this.getBchTransactions(page, opts)
     },
-    getSbchTransactions (address) {
+    getSbchTransactions (address, opts={ scrollToBottom: false }) {
       const vm = this
       const asset = vm.selectedAsset
       const id = String(vm.selectedAsset.id)
-      vm.transactionsLoaded = false
 
-      const opts = { limit: 10, includeTimestamp: true }
+      const filterOpts = { limit: 10, includeTimestamp: true }
       if (vm.transactionsFilter === 'sent') {
-        opts.type = 'outgoing'
+        filterOpts.type = 'outgoing'
       } else if (vm.transactionsFilter === 'received') {
-        opts.type = 'incoming'
+        filterOpts.type = 'incoming'
       }
 
       let appendResults = false
       if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
-        opts.before = '0x' + (this.earliestBlock - 1).toString(16)
+        filterOpts.before = '0x' + (this.earliestBlock - 1).toString(16)
         appendResults = true
       }
 
@@ -482,21 +523,23 @@ export default {
         requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
           contractAddress,
           address,
-          opts
+          filterOpts
         )
       } else {
         requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
           address,
-          opts
+          filterOpts
         )
       }
 
       if (!requestPromise) return
+      if (!appendResults) vm.transactionsLoaded = false
+      vm.transactionsAppending = true
       requestPromise
         .then(response => {
           vm.transactionsPageHasNext = false
           if (Array.isArray(response.transactions)) {
-            vm.transactionsPageHasNext = response.transactions.length > 0
+            vm.transactionsPageHasNext = response.hasNextPage
             if (!appendResults) vm.transactions = []
             vm.transactions.push(...response.transactions
               .map(tx => {
@@ -506,42 +549,37 @@ export default {
                 return tx
               })
             )
+            if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
           }
         })
         .finally(() => {
+          vm.transactionsAppending = false
           vm.transactionsLoaded = true
         })
     },
-    getBchTransactions (page) {
+    getBchTransactions (page, opts={ scrollToBottom: false }) {
       const vm = this
       const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
-      vm.transactionsLoaded = false
+      if (page == 1) vm.transactionsLoaded = false
       let recordType = 'all'
       if (vm.transactionsFilter === 'sent') {
         recordType = 'outgoing'
       } else if (vm.transactionsFilter === 'received') {
         recordType = 'incoming'
       }
+      let requestPromise
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getTransactions(tokenId, page, recordType).then(function (response) {
-          const transactions = response.history || response
-          const page = Number(response?.page)
-          const hasNext = response?.has_next
-          if (!Array.isArray(transactions)) return
-          if (page > vm.transactionsPage) vm.transactionsPage = page
-          transactions.map(function (item) {
-            item.asset = asset
-            return vm.transactions.push(item)
-          })
-          vm.transactionsLoaded = true
-          setTimeout(() => {
-            vm.transactionsPageHasNext = hasNext
-          }, 250)
-        })
+        requestPromise = vm.wallet.SLP.getTransactions(tokenId, page, recordType)
       } else {
-        vm.wallet.BCH.getTransactions(page, recordType).then(function (response) {
+        requestPromise = vm.wallet.BCH.getTransactions(page, recordType)
+      }
+
+      if (!requestPromise) return
+      vm.transactionsAppending = true
+      requestPromise
+        .then(function (response) {
           const transactions = response.history || response
           const page = Number(response?.page)
           const hasNext = response?.has_next
@@ -555,8 +593,11 @@ export default {
           setTimeout(() => {
             vm.transactionsPageHasNext = hasNext
           }, 250)
+          if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
         })
-      }
+        .finally(() => {
+          vm.transactionsAppending = false
+        })
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
@@ -564,20 +605,10 @@ export default {
       this.getTransactions()
       done()
     },
-    switchActiveBtn (btn) {
-      const customBtn = document.getElementById(this.activeBtn)
-      customBtn.classList.remove('active-transaction-btn')
+    setTransactionsFilter(value) {
+      if (['sent', 'received'].indexOf(value) >= 0) this.transactionsFilter = value
+      else this.transactionsFilter = 'all'
 
-      const element = document.getElementById(btn)
-      const name = 'active-transaction-btn'
-      const arr = element.className.split(' ')
-      if (arr.indexOf(name) === -1) {
-        element.className += ' ' + name
-      }
-      this.activeBtn = btn
-
-      // change transactions filter
-      this.transactionsFilter = btn.split('-')[1]
       this.transactions = []
       this.transactionsPage = 0
       this.transactionsLoaded = false
@@ -766,27 +797,22 @@ export default {
         }
       }
     },
-    onConnectivityChange (online) {
+    async onConnectivityChange (online) {
       const vm = this
       vm.$store.dispatch('global/updateConnectivityStatus', online)
       if (online === true) {
-        // Load wallets
-        this.loadWallets().then(() => {
-          vm.assets.map(function (asset) {
-            return vm.getBalance(asset.id)
-          })
+        if (!vm.wallet) await vm.loadWallets()
+        vm.assets.map((asset) => vm.getBalance(asset.id))
 
-          if (Array.isArray(vm.assets) && vm.assets.length > 0) {
-            if (!vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)) {
-              vm.selectedAsset = vm.bchAsset
-            }
-            vm.getBalance(vm.selectedAsset.id)
-            vm.getTransactions()
-          }
+        if (Array.isArray(vm.assets) && vm.assets.length > 0) {
+          const selectedAssetExists = vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)
+          if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
+        }
+        vm.getBalance(vm.selectedAsset.id)
+        vm.getTransactions()
 
-          vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-          vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
-        })
+        vm.$store.dispatch('assets/updateTokenIcons', { all: false })
+        vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
       } else {
         vm.balanceLoaded = true
         vm.transactionsLoaded = true
@@ -897,7 +923,7 @@ export default {
       vm.startPageStatus = false
     }
 
-    vm.adjustTransactionsDivHeight()
+    vm.adjustTransactionsDivHeight({ timeout: 50 })
 
     if (navigator.onLine) {
       vm.onConnectivityChange(true)

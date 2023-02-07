@@ -5,6 +5,7 @@ import sha256 from 'js-sha256'
 // import { hdkey } from 'ethereumjs-wallet'
 import BCHJS from '@psf/bch-js'
 import { BigNumber, ethers, utils } from 'ethers'
+import { Store } from '../../store'
 
 import { getProvider, toChecksumAddress, getERC721Contract, getSep20Contract, decodeEIP681URI, watchTransactions } from './utils'
 
@@ -88,9 +89,14 @@ export class SmartBchWallet {
 
   async getSep20TokenBalance (contractAddress, address) {
     if (!utils.isAddress(contractAddress)) return 0
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
     const balance = await tokenContract.balanceOf(address)
-    const decimals = await tokenContract.decimals()
+
+    const asset = Store.getters['sep20/getAsset'](`sep20/${contractAddress}`)?.[0]
+    let decimals = asset?.decimals
+    if (Number.isNaN(decimals)) decimals = await tokenContract.decimals()
+    if (asset?.id && asset?.decimals != decimals) Store.commit('sep20/addNewAsset', Object.assign(asset, { decimals }))
+
     return utils.formatUnits(balance, decimals)
   }
 
@@ -150,6 +156,7 @@ export class SmartBchWallet {
 
     return {
       success: true,
+      hasNextPage: parsedTxs.length > 0,
       transactions: parsedTxs
     }
   }
@@ -157,7 +164,7 @@ export class SmartBchWallet {
   async _getSep20Transaction (contractAddress, { before = 'latest', after = '0x0', limit = 10 }) {
     if (!utils.isAddress(contractAddress)) return []
 
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
     const decimals = await tokenContract.decimals()
     const eventFilter = tokenContract.filters.Transfer(this._wallet.address, this._wallet.address)
 
@@ -216,7 +223,7 @@ export class SmartBchWallet {
       }
     }
 
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
     const parsedTxs = []
     let pseudoBefore = before
 
@@ -273,6 +280,7 @@ export class SmartBchWallet {
       //   name: await tokenContract.name(),
       //   symbol: await tokenContract.symbol(),
       // },
+      hasNextPage: parsedTxs.length > 0,
       transactions: parsedTxs
     }
   }
@@ -404,7 +412,7 @@ export class SmartBchWallet {
       }
     }
 
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
     const decimals = await tokenContract.decimals()
     const parsedAmount = utils.parseUnits(amount, decimals)
     const contractWithSigner = tokenContract.connect(this._wallet)
@@ -453,7 +461,7 @@ export class SmartBchWallet {
         error: 'Invalid Token ID'
       }
     }
-    const tokenContract = getERC721Contract(contractAddress)
+    const tokenContract = getERC721Contract(contractAddress, { provider: this.provider })
     const address = await tokenContract.ownerOf(tokenId)
     if (address !== this._wallet.address) {
       return {
@@ -500,17 +508,19 @@ export class SmartBchWallet {
         error: 'Invalid token address'
       }
     }
-    const tokenContract = getSep20Contract(contractAddress)
+    const tokenContract = getSep20Contract(contractAddress, { provider: this.provider })
 
     const tokenName = await tokenContract.name()
     const tokenSymbol = await tokenContract.symbol()
+    const tokenDecimals = await tokenContract.decimals().catch(() => null)
 
     return {
       success: true,
       token: {
         address: tokenContract.address,
         name: tokenName,
-        symbol: tokenSymbol
+        symbol: tokenSymbol,
+        decimals: tokenDecimals,
       }
     }
   }
@@ -523,7 +533,7 @@ export class SmartBchWallet {
       }
     }
 
-    const contract = getERC721Contract(contractAddress)
+    const contract = getERC721Contract(contractAddress, { provider: this.provider })
     const uri = await contract.tokenURI(tokenID)
     let success = false
     let data = null
@@ -581,7 +591,7 @@ export class SmartBchWallet {
       }
     }
 
-    const contract = getERC721Contract(contractAddress)
+    const contract = getERC721Contract(contractAddress, { provider: this.provider })
     var balance
     if (address) balance = await contract.balanceOf(ownerAddress)
     else balance = await contract.totalSupply()
@@ -678,10 +688,12 @@ class WatchtowerSBCH {
     }
 
     let unparsedTxs = []
+    let hasNextPage = false
     try {
       const response = await this._watchtower.Wallet._api('smartbch/transactions/transfers/', { params: queryParams })
       if (Array.isArray(response?.data?.results)) unparsedTxs = response?.data?.results
       else if (Array.isArray(response?.data)) unparsedTxs = response.data
+      if (response?.data?.next) hasNextPage = true
     } catch (err) {
       return {
         success: false,
@@ -713,6 +725,7 @@ class WatchtowerSBCH {
 
     return {
       success: true,
+      hasNextPage: hasNextPage,
       transactions: parsedTxs
     }
   }
