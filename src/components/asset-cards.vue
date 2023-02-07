@@ -48,6 +48,10 @@ import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 
 export default {
   name: 'asset-cards',
+  emits: [
+    'show-asset-info',
+    'select-asset',
+  ],
   props: {
     network: {
       type: String,
@@ -216,7 +220,7 @@ export default {
     padding: 34px 20px 34px 20px;
     border-radius: 16px;
     font-size: 20px;
-    height: 100px;
+    height: 97px;
     margin-left: 2px;
     margin-right: 12px;
   }

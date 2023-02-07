@@ -228,6 +228,11 @@ export default {
   },
 
   watch: {
+    manageAssets() {
+      // must adjust height when asset list is empty
+      // the add button is hidden behind tx list & unclickable without this
+      this.adjustTransactionsDivHeight({ timeout: 100 })
+    },
     startPageStatus (n, o) {
       this.adjustTransactionsDivHeight()
     },
@@ -299,11 +304,16 @@ export default {
     }
   },
   methods: {
-    adjustTransactionsDivHeight () {
+    adjustTransactionsDivHeight (opts={timeout: 500}) {
+      let timeout = opts?.timeout
+      if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
         const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
-      }, 500)
+        this.$refs.transactionSection.setAttribute(
+          'style',
+          `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1; transition: margin-top 0.25s ease-in-out`
+        )
+      }, timeout)
     },
     changeNetwork (newNetwork = 'BCH', setAsset) {
       const vm = this
