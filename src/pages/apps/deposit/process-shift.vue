@@ -4,8 +4,14 @@
       :title="$t('Deposit')"
       backnavpath="/apps"
     ></header-nav>
-
-    <div class="row">
+    <div>
+      <div class="row justify-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'" style="margin-top: 65px;">
+        <div class="text-nowrap text-weight-light text-center">
+          <p style="font-size: 12px; margin-top: 7px;">Exchange Rate</p>
+          <p>1 &nbsp; {{ depositCoin }}&nbsp; = &nbsp;{{ exchangeRate }}&nbsp; BCH</p>
+        </div>
+      </div>
+      <div class="row">
         <div class="col qr-code-container">
           <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
             <div class="row text-center">
@@ -17,49 +23,43 @@
           </div>
         </div>
       </div>
-
-  </div>
-  <!-- <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
-  >
-    <HeaderNav
-      :title="$t('Deposit')"
-      backnavpath="/apps"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
-    <div class="row items-center justify-center q-mb-md">
-      <h5>Please send to this address:</h5>
-
-      <div class="flex flex-center">
-        <qr-code :text="tempData.depositAddress" />
-      </div>
-
-      <div class="address-text" style="padding-top: 15px;">
-        {{ tempData.depositAddress }}
-      </div>
-    </div> -->
-    <!-- Card -->
-    <!-- <q-card  class="br-15 q-pt-sm"
-      :class="[
-        darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
-    >
-
-      <q-card-section>
-        <div class="row items-center justify-center q-mb-md">
-          <h5>Please send to this address:</h5>
-          <div class="flex flex-center">
-              <qr-code :text="tempData.depositAddress" />
+      <div class="row">
+        <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
+          <span class="qr-code-text text-weight-light text-center">
+            <div class="text-nowrap" style="letter-spacing: 1px" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+              {{ depositAddress }}
+              <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
             </div>
-          <div class="address-text" style="padding-top: 15px;">
-            {{ tempData.depositAddress }}
-          </div>
+          </span>
         </div>
-      </q-card-section>
-    </q-card> -->
-    <!-- Card end -->
-  <!-- </div> -->
+      </div>
+    </div>
+    <div class="q-mx-md q-pt-md">
+      <q-card
+        class="q-pt-sm"
+        :class="$store.getters['darkmode/getStatus'] ? 'text-white pt-dark-card' : 'text-black'"
+      >
+        <q-card-section>
+          <div class="q-py-sm text-center">
+            <p>Please send &nbsp; <b>{{ depositCoin }}</b> &nbsp; to the address above</p>
+          </div>
+          <div class="row text-left">
+            <span>Minimum: <b>{{ tempData.depositMin }} {{ depositCoin }}</b></span>
+          </div>
+          <div class="row text-left">
+            <span>Maximum: <b>{{ tempData.depositMax }} {{ depositCoin }}</b></span>
+          </div>
+        </q-card-section>
+
+        <q-card-section>
+          <div :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text'" class="row justify-between no-wrap">
+            <span>Status: {{ tempData.status }}</span>
+            <span class="text-nowrap q-ml-xs">Date Created: {{ tempData.createdAt }}</span>
+          </div>
+        </q-card-section>
+      </q-card>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -72,6 +72,8 @@ export default {
   data () {
     return {
       depositCoin: '',
+      depositAddress: '',
+      exchangeRate: '~',
       error: false,
       tempData: {
         id: '4cbedc8a3112fc276c1a',
@@ -98,32 +100,35 @@ export default {
     // const url = 'https://sideshift.ai/api/v2/shifts/variable'
 
     vm.depositCoin = vm.selectedCoin
-    // const resp = await vm.$axios.get(url).catch(function () {
-    //   vm.error = true
-    // })
+    vm.depositAddress = vm.tempData.depositAddress
 
-    // vm.logo = resp.data
-    // console.log(vm.logo)
-    // console.log(resp.data)
-    // const body = {
-    //   settleAddress: 'bitcoincash:qrry9hqfzhmkxlzf5m3f45y92l9gk5msgyustqp7vh',
-    //   depositCoin: vm.depositCoin,
-    //   settleCoin: 'BCH'
-    // }
+    const url = 'https://sideshift.ai/api/v2/pair/' + vm.tempData.depositNetwork + '/BCH?amount=1'
+    const resp = await vm.$axios.get(url).catch(function () {
+      vm.error = true
+    })
 
-    // const config = {
-    //   header: {
-    //     'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
-    //     'x-user-ip': '1.2.3.5',
-    //     'Content-type': 'application/json'
+    if (resp) {
+      if (resp.status === 200) {
+        vm.exchangeRate = resp.data.rate
+      }
+    }
+
+    // const res = await vm.$axios.post(url,
+    //   {
+    //     settleAddress: '3213dAuUQB9CFK1s9vUJLSmhTxdHPSCRne',
+    //     depositCoin: vm.depositCoin,
+    //     settleCoin: 'BCH'
+    //   },
+    //   {
+    //     headers: {
+    //       'content-type': 'application/json',
+    //       'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
+    //       'x-user-ip': '1.2.3.7'
+    //     }
     //   }
-    // }
+    // )
 
-
-    // // request shift
-    // const response = await vm.$axios.post(url, body, config).catch(function () {
-    //   vm.error = true
-    // })
+    // console.log(res.data)
   }
 }
 </script>
@@ -134,7 +139,6 @@ export default {
     color: #000;
  }
  .qr-code-container {
-    margin-top: 120px;
     padding-left: 28px;
     padding-right: 28px;
   }
@@ -148,4 +152,20 @@ export default {
     padding: 25px 10px 32px 10px;
     background: white;
   }
+  .qr-code-text {
+    font-size: 18px;
+    color: #000;
+  }
+  .text-subtitle1 {
+  font-size: 14px;
+}
+.text-nowrap {
+  white-space: nowrap;
+}
+.pp-text {
+  color: #000 !important;
+}
+.text-nowrap {
+  white-space: nowrap;
+}
 </style>

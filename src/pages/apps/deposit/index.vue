@@ -60,31 +60,6 @@ export default {
     processShift () {
       const vm = this
 
-      // if (vm.selectedCoin) {
-      //   const config = {
-      //     headers: {
-      //       'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
-      //       'x-user-ip': '   ',
-      //       'Content-type': 'application/json'
-      //     }
-      //   }
-
-      //   const resp = vm.$axios.post(
-      //     'https://sideshift.ai/api/v2/shifts/variable',
-      //     {
-      //       settleAddress: 'bitcoincash:qrry9hqfzhmkxlzf5m3f45y92l9gk5msgyustqp7vh',
-      //       depositCoin: vm.selectedCoin,
-      //       settleCoin: 'BCH'
-      //     },
-      //     config)
-      //     .catch(function () {
-      //       console.log('error')
-      //       vm.error = true
-      //       vm.show = false
-      //       console.log(resp)
-      //     })
-      // }
-
       if (vm.selectedCoin) {
         this.$router.push({
           name: 'process-shift',
