@@ -152,7 +152,7 @@ async function generateLinkCode(opts) {
     })
 }
 
-const qrCodeDataLink = computed(() => `com.paytaca.pos://link?code=${qrCodeDataB64.value}`)
+const qrCodeDataLink = computed(() => `app://com.paytaca.pos/link?code=${qrCodeDataB64.value}`)
 const qrCodeDataB64 = computed(() => btoa(qrCodeData.value))
 const qrCodeData = computed(() => {
   return JSON.stringify({
