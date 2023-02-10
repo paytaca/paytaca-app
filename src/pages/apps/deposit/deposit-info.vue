@@ -5,12 +5,6 @@
       backnavpath="/apps"
     ></header-nav>
     <div>
-      <!-- <div class="row justify-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'" style="margin-top: 65px;">
-        <div class="text-nowrap text-weight-light text-center">
-          <p style="font-size: 12px; margin-top: 7px;">Exchange Rate</p>
-          <p>1 &nbsp; {{ depositCoin }}&nbsp; = &nbsp;{{ exchangeRate }}&nbsp; BCH</p>
-        </div>
-      </div> -->
       <div class="q-pb-lg text-center" style="margin-top: 80px;" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
         <i>Please send &nbsp; <b>{{ depositCoin }}</b> &nbsp; to the address below</i>
       </div>
@@ -115,7 +109,8 @@ export default {
     }
   },
   props: {
-    selectedCoin: String
+    selectedCoin: String,
+    depositInfoType: String
   },
   async mounted () {
     const vm = this
@@ -124,10 +119,9 @@ export default {
     vm.depositCoin = vm.selectedCoin
     vm.depositAddress = vm.tempData.depositAddress
 
-
     // Getting Exchange Rate
     let url = 'https://sideshift.ai/api/v2/pair/' + vm.tempData.depositNetwork + '/BCH?amount=1'
-    let resp = await vm.$axios.get(url).catch(function () {
+    const resp = await vm.$axios.get(url).catch(function () {
       vm.error = true
     })
 
@@ -137,27 +131,37 @@ export default {
       }
     }
 
-    // Getting Shift Order Data
-    // const res = await vm.$axios.post(url,
-    //   {
-    //     settleAddress: '3213dAuUQB9CFK1s9vUJLSmhTxdHPSCRne',
-    //     depositCoin: vm.depositCoin,
-    //     settleCoin: 'BCH'
-    //   },
-    //   {
-    //     headers: {
-    //       'content-type': 'application/json',
-    //       'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
-    //       'x-user-ip': '1.2.3.7'
-    //     }
-    //   }
-    // )
-
-    // console.log(res.data)
-
-    // get create date
     const d = new Date(vm.tempData.createdAt)
     vm.dateCreated = d.getMonth() + '-' + d.getDate() + '-' + d.getFullYear() + ' ' + d.getHours() + ':' + d.getMinutes()
+
+    console.log(vm.depositInfoType)
+    // Getting NEW Shift Order Data
+    if (vm.depositInfoType === 'new') {
+      url = 'https://sideshift.ai/api/v2/shifts/variable'
+      console.log(url)
+      // const address = vm.$store.getters['global/getAddress']('bch')
+      // resp = await vm.$axios.post(url,
+      //   {
+      //     settleAddress: address,
+      //     depositCoin: vm.depositCoin,
+      //     settleCoin: 'BCH'
+      //   },
+      //   {
+      //     headers: {
+      //       'content-type': 'application/json',
+      //       'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
+      //       'x-user-ip': '1.2.3.7'
+      //     }
+      //   }
+      // )
+
+      // console.log(resp.data)
+    } else if (vm.depositInfoType === 'created') {
+      url = 'https://sideshift.ai/api/v2/shifts/4cbedc8a3112fc276c1a'
+      console.log(url)
+    }
+
+    // get create date
   }
 }
 </script>

@@ -50,6 +50,7 @@ export default {
       data: null,
       show: true,
       error: false,
+      address: '',
       selectedCoin: '',
       coins: {},
       coinName: [],
@@ -62,9 +63,10 @@ export default {
 
       if (vm.selectedCoin) {
         this.$router.push({
-          name: 'process-shift',
+          name: 'deposit-info',
           query: {
-            selectedCoin: this.selectedCoin
+            selectedCoin: this.selectedCoin,
+            depositInfoType: 'created'
           }
         })
       }
@@ -72,7 +74,9 @@ export default {
   },
   async mounted () {
     const vm = this
+    vm.address = vm.$store.getters['global/getAddress']('bch')
 
+    // get coin list
     const response = await vm.$axios.get('https://sideshift.ai/api/v2/coins').catch(function () {
       vm.error = true
     })
