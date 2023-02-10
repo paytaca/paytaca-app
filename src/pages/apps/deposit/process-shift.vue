@@ -5,11 +5,14 @@
       backnavpath="/apps"
     ></header-nav>
     <div>
-      <div class="row justify-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'" style="margin-top: 65px;">
+      <!-- <div class="row justify-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'" style="margin-top: 65px;">
         <div class="text-nowrap text-weight-light text-center">
           <p style="font-size: 12px; margin-top: 7px;">Exchange Rate</p>
           <p>1 &nbsp; {{ depositCoin }}&nbsp; = &nbsp;{{ exchangeRate }}&nbsp; BCH</p>
         </div>
+      </div> -->
+      <div class="q-pb-lg text-center" style="margin-top: 80px;" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+        <i>Please send &nbsp; <b>{{ depositCoin }}</b> &nbsp; to the address below</i>
       </div>
       <div class="row">
         <div class="col qr-code-container">
@@ -34,29 +37,46 @@
         </div>
       </div>
     </div>
-    <div class="q-mx-md q-pt-md">
+    <div class="q-mx-md q-pt-sm">
       <q-card
         class="q-pt-sm"
         :class="$store.getters['darkmode/getStatus'] ? 'text-white pt-dark-card' : 'text-black'"
       >
         <q-card-section>
-          <div class="q-py-sm text-center">
-            <p>Please send &nbsp; <b>{{ depositCoin }}</b> &nbsp; to the address above</p>
-          </div>
-          <div class="row text-left">
-            <span>Minimum: <b>{{ tempData.depositMin }} {{ depositCoin }}</b></span>
-          </div>
-          <div class="row text-left">
-            <span>Maximum: <b>{{ tempData.depositMax }} {{ depositCoin }}</b></span>
-          </div>
-        </q-card-section>
+          <div class="row justify-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+            <div class="text-nowrap text-weight-light text-center q-mb-md">
+              <div>
+                <span style="font-size: 12px;">Exchange Rate</span>
+              </div>
+              <div>
+                <span><i>1 &nbsp; {{ depositCoin }}&nbsp; = &nbsp;{{ exchangeRate }}&nbsp; BCH</i></span>
+              </div>
+            </div>
 
-        <q-card-section>
-          <div :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text'" class="row justify-between no-wrap">
-            <span>Status: {{ tempData.status }}</span>
-            <span class="text-nowrap q-ml-xs">Date Created: {{ tempData.createdAt }}</span>
+          </div>
+          <div class="row justify-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+            <div class="text-nowrap text-weight-light text-center">
+              <div class="q-pb-xs ">
+                <span>Min Amount: <b>{{ tempData.depositMin }} {{ depositCoin }}</b></span>
+              </div>
+              <div>
+                <span>
+                  Max Amount: <b>{{ tempData.depositMax }} {{ depositCoin }}</b>
+                </span>
+              </div>
+            </div>
           </div>
         </q-card-section>
+        <q-separator/>
+        <q-card-section>
+          <div :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text'" class="row justify-between no-wrap q-mx-md">
+            <span>Status: <b>{{ tempData.status }}</b></span>
+            <span class="text-nowrap q-ml-xs">Created At: <b>{{ dateCreated }}</b></span>
+          </div>
+        </q-card-section>
+        <div class="row justify-center q-pt-md" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+            <p style="font-size: 12px; color: gray">Order Id: {{ tempData.id }}</p>
+          </div>
       </q-card>
     </div>
   </div>
@@ -74,6 +94,8 @@ export default {
       depositCoin: '',
       depositAddress: '',
       exchangeRate: '~',
+      dateCreated: '~',
+      depositCoinLogo: null,
       error: false,
       tempData: {
         id: '4cbedc8a3112fc276c1a',
@@ -102,8 +124,10 @@ export default {
     vm.depositCoin = vm.selectedCoin
     vm.depositAddress = vm.tempData.depositAddress
 
-    const url = 'https://sideshift.ai/api/v2/pair/' + vm.tempData.depositNetwork + '/BCH?amount=1'
-    const resp = await vm.$axios.get(url).catch(function () {
+
+    // Getting Exchange Rate
+    let url = 'https://sideshift.ai/api/v2/pair/' + vm.tempData.depositNetwork + '/BCH?amount=1'
+    let resp = await vm.$axios.get(url).catch(function () {
       vm.error = true
     })
 
@@ -113,6 +137,7 @@ export default {
       }
     }
 
+    // Getting Shift Order Data
     // const res = await vm.$axios.post(url,
     //   {
     //     settleAddress: '3213dAuUQB9CFK1s9vUJLSmhTxdHPSCRne',
@@ -129,6 +154,10 @@ export default {
     // )
 
     // console.log(res.data)
+
+    // get create date
+    const d = new Date(vm.tempData.createdAt)
+    vm.dateCreated = d.getMonth() + '-' + d.getDate() + '-' + d.getFullYear() + ' ' + d.getHours() + ':' + d.getMinutes()
   }
 }
 </script>
