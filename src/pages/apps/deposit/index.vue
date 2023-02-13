@@ -27,12 +27,46 @@
               >
               </q-btn>
             </div>
+            <!-- Transactions -->
+            <div class="q-pt-lg ">
+              <q-card
+                class="q-pt-sm"
+                :class="$store.getters['darkmode/getStatus'] ? 'text-white pt-dark-card' : 'text-black'"
+              >
+                <div class="q-space text-h5 text-left">
+                  <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+                    {{ $t('Transactions') }}
+                  </p>
+                </div>
+
+                <q-separator :color="$store.getters['darkmode/getStatus'] ? 'white' : 'grey-7'" class="q-mt-md q-mb-lg q-mx-md"/>
+                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="$store.getters['darkmode/getStatus'] ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="row justify-between">
+                    <div class="col-8 ">
+                      <div class="row">
+                        .00001 BTC to 20 BCH
+                     </div>
+                     <div class="row">[date here]</div>
+                    </div>
+                    <div class="col-4">Status: waiting</div>
+                  </div>
+                </div>
+                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="$store.getters['darkmode/getStatus'] ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="row q-pb-md">
+                    <div class="col-6 ">.00001 BTC to 20 BCH</div>
+                    <div class="col-3">Date</div>
+                    <div class="col-3">Status</div>
+                  </div>
+                </div>
+              </q-card>
+            </div>
+
           </div>
           <div class="col q-mt-sm pt-internet-required" v-else>
-              <div v-if="error">
-                {{ $t('NoInternetConnectionNotice') }} &#128533;
-              </div>
+            <div v-if="error">
+              {{ $t('NoInternetConnectionNotice') }} &#128533;
             </div>
+          </div>
         </div>
       </div>
     </div>
@@ -51,6 +85,7 @@ export default {
       show: true,
       error: false,
       address: '',
+      imgURL: 'https://sideshift.ai/api/v2/coins/icon/bitcoin',
       selectedCoin: '',
       coins: {},
       coinName: [],
@@ -66,7 +101,7 @@ export default {
           name: 'deposit-info',
           query: {
             selectedCoin: this.selectedCoin,
-            depositInfoType: 'created'
+            depositInfoType: 'new'
           }
         })
       }
@@ -96,5 +131,11 @@ export default {
       vm.coinName = vm.coinName.sort()
     }
   }
-};
+}
 </script>
+<style lang="scss" scoped>
+  .transaction-wallet {
+    font-size: 20px;
+    color: #444646;
+  }
+</style>

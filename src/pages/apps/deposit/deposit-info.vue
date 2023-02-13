@@ -140,7 +140,7 @@ export default {
       url = 'https://sideshift.ai/api/v2/shifts/variable'
       console.log(url)
       // const address = vm.$store.getters['global/getAddress']('bch')
-      // resp = await vm.$axios.post(url,
+      // const response = await vm.$axios.post(url,
       //   {
       //     settleAddress: address,
       //     depositCoin: vm.depositCoin,
@@ -150,14 +150,15 @@ export default {
       //     headers: {
       //       'content-type': 'application/json',
       //       'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
-      //       'x-user-ip': '1.2.3.7'
+      //       'x-user-ip': '1.2.3.9'
       //     }
       //   }
       // )
 
-      // console.log(resp.data)
+      // console.log(response.data)
     } else if (vm.depositInfoType === 'created') {
-      url = 'https://sideshift.ai/api/v2/shifts/4cbedc8a3112fc276c1a'
+      // fetch id
+      url = 'https://sideshift.ai/api/v2/shifts/[ID Here]'
       console.log(url)
     }
 
@@ -197,8 +198,5 @@ export default {
 }
 .pp-text {
   color: #000 !important;
-}
-.text-nowrap {
-  white-space: nowrap;
 }
 </style>
