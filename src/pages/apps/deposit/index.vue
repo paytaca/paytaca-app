@@ -30,32 +30,40 @@
             <!-- Transactions -->
             <div class="q-pt-lg ">
               <q-card
-                class="q-pt-sm"
+                class="q-mt-md"
                 :class="$store.getters['darkmode/getStatus'] ? 'text-white pt-dark-card' : 'text-black'"
               >
-                <div class="q-space text-h5 text-left">
-                  <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
-                    {{ $t('Transactions') }}
-                  </p>
-                </div>
-
-                <q-separator :color="$store.getters['darkmode/getStatus'] ? 'white' : 'grey-7'" class="q-mt-md q-mb-lg q-mx-md"/>
-                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="$store.getters['darkmode/getStatus'] ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                  <div class="row justify-between">
-                    <div class="col-8 ">
-                      <div class="row">
-                        .00001 BTC to 20 BCH
-                     </div>
-                     <div class="row">[date here]</div>
-                    </div>
-                    <div class="col-4">Status: waiting</div>
+                <div class="row">
+                  <div class="col-9 q-space text-h5 text-left">
+                    <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" style="font-size: 15px">
+                      Recent Transaction
+                    </p>
+                  </div>
+                  <div class="col-3 q-py-lg">
+                    <q-btn
+                      round
+                      color="blue-9"
+                      padding="xs"
+                      icon="history"
+                      class="q-ml-md"
+                    />
                   </div>
                 </div>
-                <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="$store.getters['darkmode/getStatus'] ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                  <div class="row q-pb-md">
-                    <div class="col-6 ">.00001 BTC to 20 BCH</div>
-                    <div class="col-3">Date</div>
-                    <div class="col-3">Status</div>
+
+                <q-separator :color="$store.getters['darkmode/getStatus'] ? 'white' : 'grey-7'" class="q-mb-lg q-mx-md"/>
+                <div class="col q-mr-lg q-ml-lg q-pt-none q-pb-sm">
+                  <div class="row">
+                    <div class="col-8 ">
+                      <div class="row text-h5">
+                        <span style="font-size: 15px">.00001 BTC to 20 BCH</span>
+                      </div>
+                      <div class="row">
+                        <span style="color: gray; font-size: 12px;">1-8-2023 11:31</span>
+                      </div>
+                    </div>
+                    <div class="col-4 q-pt-xs">
+                      <span style="font-size: 13px">Status: waiting</span>
+                    </div>
                   </div>
                 </div>
               </q-card>
@@ -73,6 +81,7 @@
   </div>
 </template>
 <script>
+// import { addressContentsToLockingBytecode, compactSizeToBigInt } from '@bitauth/libauth'
 import HeaderNav from '../../../components/header-nav'
 
 export default {
@@ -87,7 +96,7 @@ export default {
       address: '',
       imgURL: 'https://sideshift.ai/api/v2/coins/icon/bitcoin',
       selectedCoin: '',
-      coins: {},
+      coins: [],
       coinName: [],
       darkMode: this.$store.getters['darkmode/getStatus']
     }
@@ -95,7 +104,9 @@ export default {
   methods: {
     processShift () {
       const vm = this
-
+      const index = vm.coinName.indexOf(this.selectedCoin)
+      const coinInfo = vm.coins[index]
+      console.log(coinInfo)
       if (vm.selectedCoin) {
         this.$router.push({
           name: 'deposit-info',
@@ -108,6 +119,7 @@ export default {
     }
   },
   async mounted () {
+    // check permission First
     const vm = this
     vm.address = vm.$store.getters['global/getAddress']('bch')
 
@@ -121,14 +133,41 @@ export default {
     }
     vm.data = response.data
 
+    // arrange coin data
     if (vm.data) {
       for (const item in vm.data) {
         const coin = vm.data[item]
         if (coin.coin !== 'BCH') {
-          vm.coinName.push(coin.coin)
+          for (const item2 in coin.networks) {
+            const network = coin.networks[item2]
+            let isFixedOnly = false
+            if (coin.fixedOnly) {
+              if (coin.fixedOnly.includes(network)) {
+                isFixedOnly = true
+              }
+            }
+
+            let temp = {
+              coin: coin.coin,
+              name: coin.name,
+              network: network,
+              isFixedOnly: isFixedOnly
+            }
+
+            let str = temp.coin
+            if (coin.networks.length !== 1) {
+              str = temp.coin + ' (' + temp.network + ')'
+            }
+            console.log(str)
+
+            temp.optionName = str
+
+            vm.coins.push(temp)
+            vm.coinName.push(str)
+          }
         }
       }
-      vm.coinName = vm.coinName.sort()
+      // vm.coinName = vm.coinName
     }
   }
 }

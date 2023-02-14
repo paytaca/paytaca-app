@@ -2,7 +2,7 @@
   <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
     <header-nav
       :title="$t('Deposit')"
-      backnavpath="/apps"
+      backnavpath="/apps/deposit-coin"
     ></header-nav>
     <div>
       <div class="q-pb-lg text-center" style="margin-top: 80px;" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
@@ -24,7 +24,7 @@
         <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
           <span class="qr-code-text text-weight-light text-center">
             <div class="text-nowrap" style="letter-spacing: 1px" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
-              {{ depositAddress }}
+              {{ tempData.depositAddress }}
               <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
             </div>
           </span>
@@ -91,6 +91,7 @@ export default {
       dateCreated: '~',
       depositCoinLogo: null,
       error: false,
+      address: '',
       tempData: {
         id: '4cbedc8a3112fc276c1a',
         createdAt: '2023-02-08T03:31:16.033Z',
@@ -150,12 +151,16 @@ export default {
       //     headers: {
       //       'content-type': 'application/json',
       //       'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
-      //       'x-user-ip': '1.2.3.9'
+      //       'x-user-ip': '1.2.3.8'
       //     }
       //   }
       // )
 
       // console.log(response.data)
+      // vm.address = response.data.depositAddress
+      // console.log(vm.address)
+      // this.tempData = response.data
+
     } else if (vm.depositInfoType === 'created') {
       // fetch id
       url = 'https://sideshift.ai/api/v2/shifts/[ID Here]'
