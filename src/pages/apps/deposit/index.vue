@@ -51,18 +51,23 @@
                 </div>
 
                 <q-separator :color="$store.getters['darkmode/getStatus'] ? 'white' : 'grey-7'" class="q-mb-lg q-mx-md"/>
-                <div class="col q-mr-lg q-ml-lg q-pt-none q-pb-sm">
+                <div class="col q-mr-lg q-ml-lg q-pt-none q-pb-sm" @click="openDepositInfo()">
                   <div class="row">
-                    <div class="col-8 ">
+                    <div class="col-7 ">
                       <div class="row text-h5">
-                        <span style="font-size: 15px">.00001 BTC to 20 BCH</span>
+                        <span style="font-size: 15px">{{ recentTransaction.depositCoin }} to BCH</span>
                       </div>
                       <div class="row">
-                        <span style="color: gray; font-size: 12px;">1-8-2023 11:31</span>
+                        <span style="color: gray; font-size: 12px;">{{ date }}</span>
                       </div>
                     </div>
-                    <div class="col-4 q-pt-xs">
-                      <span style="font-size: 13px">Status: waiting</span>
+                    <div class="col-5 q-pt-xs">
+                      <div class="row">
+                        <span style="font-size: 13px">Status: {{ recentTransaction.status }}</span>
+                      </div>
+                      <div class="row q-pt-sm">
+                        <span style="color: gray; font-size: 12px;">{{ recentTransaction.id }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -94,11 +99,27 @@ export default {
       show: true,
       error: false,
       address: '',
+      date: '~',
       imgURL: 'https://sideshift.ai/api/v2/coins/icon/bitcoin',
       selectedCoin: '',
       coins: [],
       coinName: [],
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      recentTransaction: {
+        id: '0f8a65ee2819cf1e77c9',
+        createdAt: '2023-02-14T03:15:32.268Z',
+        depositCoin: 'BNB',
+        settleCoin: 'BCH',
+        depositNetwork: 'bsc',
+        settleNetwork: 'bitcoincash',
+        depositAddress: '0x6798A1dC7C99B3d23644518763241A9E8f894594',
+        settleAddress: 'bitcoincash:qzvn7qemhd9m4sw333pke04me5v0uja2tgnvldj7l2',
+        depositMin: '0.03421412465',
+        depositMax: '136.8564986',
+        type: 'variable',
+        expiresAt: '2023-02-21T03:15:32.268Z',
+        status: 'waiting'
+      }
     }
   },
   methods: {
@@ -112,13 +133,24 @@ export default {
           name: 'deposit-info',
           query: {
             selectedCoin: this.selectedCoin,
-            depositInfoType: 'create',
+            depositInfoType: 'new',
             network: coinInfo.network,
             isFixedShift: coinInfo.isFixedOnly,
             coin: coinInfo.coin
           }
         })
       }
+    },
+    openDepositInfo () {
+      const vm = this
+
+      this.$router.push({
+        name: 'deposit-info',
+        query: {
+          depositInfoType: 'created',
+          depositID: this.recentTransaction.id
+        }
+      })
     }
   },
   async mounted () {
@@ -172,6 +204,9 @@ export default {
       }
       // vm.coinName = vm.coinName
     }
+
+    const tempDate = vm.recentTransaction.createdAt.split('T')
+    vm.date = tempDate[0] + ' ' + tempDate[1].substring(0, 5)
   }
 }
 </script>
