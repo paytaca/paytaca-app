@@ -818,7 +818,7 @@ function confirmRemovePosDevice(posDevice) {
  * @param {{ walletHash:String, posid:Number }} posDevice 
  */
 function deletePosDevice(posDevice) {
-  const handle = `${posDevice?.walletHash}:${posDevice?.posid + 100}`
+  const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
   return posBackend.delete(`paytacapos/devices/${handle}/`).then(() => fetchPosDevices())
 }
 

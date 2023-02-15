@@ -71,7 +71,7 @@ export function getERC721Contract (contractAddress, opts={ test: false, provider
   return new ethers.Contract(
     contractAddress,
     erc721Abi,
-    getProvider(test)
+    provider,
   )
 }
 
@@ -95,7 +95,7 @@ export async function getERC721ContractDetails (contractAddress, test = false) {
       error: 'Invalid token address'
     }
   }
-  const tokenContract = getERC721Contract(contractAddress, test)
+  const tokenContract = getERC721Contract(contractAddress, { test })
 
   const tokenName = await tokenContract.name()
   const tokenSymbol = await tokenContract.symbol()
