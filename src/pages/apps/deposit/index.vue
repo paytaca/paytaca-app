@@ -112,7 +112,10 @@ export default {
           name: 'deposit-info',
           query: {
             selectedCoin: this.selectedCoin,
-            depositInfoType: 'new'
+            depositInfoType: 'create',
+            network: coinInfo.network,
+            isFixedShift: coinInfo.isFixedOnly,
+            coin: coinInfo.coin
           }
         })
       }
@@ -158,7 +161,7 @@ export default {
             if (coin.networks.length !== 1) {
               str = temp.coin + ' (' + temp.network + ')'
             }
-            console.log(str)
+            // console.log(str)
 
             temp.optionName = str
 
@@ -177,4 +180,11 @@ export default {
     font-size: 20px;
     color: #444646;
   }
+  .pt-internet-required {
+  text-align: center;
+  width: 100%;
+  font-size: 24px;
+  padding: 30px;
+  color: gray;
+}
 </style>
