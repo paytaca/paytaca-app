@@ -1,14 +1,14 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
+  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="darkMode ? 'pt-dark' : ''">
     <header-nav :title="$t('Deposit')" backnavpath="/apps" ></header-nav>
 
     <div class="q-mt-xl">
       <div class="q-pa-md" style="padding-top: 70px;">
         <div class="row justify-center q-mt-xl">
-          <div class="col-12" style="text-align: center;" v-if="show">
+          <div class="col-12" style="text-align: center;" v-if="isloaded && isAllowed">
             <q-select
               filled
-              :dark="$store.getters['darkmode/getStatus']"
+              :dark="darkMode"
               v-model="selectedCoin"
               :options="coinName"
               label="Select Asset"
@@ -31,11 +31,11 @@
             <div class="q-pt-lg ">
               <q-card
                 class="q-mt-md"
-                :class="$store.getters['darkmode/getStatus'] ? 'text-white pt-dark-card' : 'text-black'"
+                :class="darkMode ? 'text-white pt-dark-card' : 'text-black'"
               >
                 <div class="row">
                   <div class="col-9 q-space text-h5 text-left">
-                    <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}" style="font-size: 15px">
+                    <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}" style="font-size: 15px">
                       Recent Transaction
                     </p>
                   </div>
@@ -46,12 +46,13 @@
                       padding="xs"
                       icon="history"
                       class="q-ml-md"
+                      @click="openTransactionHistory()"
                     />
                   </div>
                 </div>
 
-                <q-separator :color="$store.getters['darkmode/getStatus'] ? 'white' : 'grey-7'" class="q-mb-lg q-mx-md"/>
-                <div class="col q-mr-lg q-ml-lg q-pt-none q-pb-sm" @click="openDepositInfo()">
+                <q-separator :color="darkMode ? 'white' : 'grey-7'" class="q-mb-lg q-mx-md"/>
+                <div class="col q-mr-lg q-ml-lg q-pb-md" @click="openDepositInfo()">
                   <div class="row">
                     <div class="col-7 ">
                       <div class="row text-h5">
@@ -75,10 +76,18 @@
             </div>
 
           </div>
-          <div class="col q-mt-sm pt-internet-required" v-else>
-            <div v-if="error">
+          <div class="col q-mt-sm pt-internet-required" v-if="error">
+            <div>
               {{ $t('NoInternetConnectionNotice') }} &#128533;
             </div>
+          </div>
+          <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
+            <div>
+              Sorry. This feature is blocked in your country &#128533;
+            </div>
+          </div>
+          <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
+            <ProgressLoader/>
           </div>
         </div>
       </div>
@@ -88,15 +97,21 @@
 <script>
 // import { addressContentsToLockingBytecode, compactSizeToBigInt } from '@bitauth/libauth'
 import HeaderNav from '../../../components/header-nav'
+import ProgressLoader from '../../../components/ProgressLoader'
+import DepositHistoryDialog from '../../../components/DepositHistoryDialog'
 
 export default {
   components: {
-    HeaderNav
+    HeaderNav,
+    ProgressLoader,
+    DepositHistoryDialog
   },
   data () {
     return {
+      userIP: '',
+      isloaded: false,
+      isAllowed: true,
       data: null,
-      show: true,
       error: false,
       address: '',
       date: '~',
@@ -148,65 +163,76 @@ export default {
         name: 'deposit-info',
         query: {
           depositInfoType: 'created',
-          depositID: this.recentTransaction.id
+          depositID: vm.recentTransaction.id
         }
+      })
+    },
+    openTransactionHistory () {
+      this.$q.dialog({
+        component: DepositHistoryDialog
       })
     }
   },
   async mounted () {
-    // check permission First
     const vm = this
-    vm.address = vm.$store.getters['global/getAddress']('bch')
 
-    // get coin list
-    const response = await vm.$axios.get('https://sideshift.ai/api/v2/coins').catch(function () {
-      vm.error = true
-    })
+    // check permission first
+    const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
 
-    if (response.status !== 200) {
-      vm.show = false
+    if (!permission.data.createShift) {
+      vm.isAllowed = false
+      vm.isloaded = true
     }
-    vm.data = response.data
 
-    // arrange coin data
-    if (vm.data) {
-      for (const item in vm.data) {
-        const coin = vm.data[item]
-        if (coin.coin !== 'BCH') {
-          for (const item2 in coin.networks) {
-            const network = coin.networks[item2]
-            let isFixedOnly = false
-            if (coin.fixedOnly) {
-              if (coin.fixedOnly.includes(network)) {
-                isFixedOnly = true
+    if (vm.isAllowed) {
+      vm.address = vm.$store.getters['global/getAddress']('bch')
+      // get coin list
+      const response = await vm.$axios.get('https://sideshift.ai/api/v2/coins').catch(function () { vm.error = true })
+
+      if (!vm.error) {
+        vm.data = response.data
+      }
+
+      if (vm.data) {
+        // arrange coin data
+        for (const item in vm.data) {
+          const coin = vm.data[item]
+          if (coin.coin !== 'BCH') {
+            for (const item2 in coin.networks) {
+              const network = coin.networks[item2]
+              let isFixedOnly = false
+              if (coin.fixedOnly) {
+                if (coin.fixedOnly.includes(network)) {
+                  isFixedOnly = true
+                }
               }
+
+              let temp = {
+                coin: coin.coin,
+                name: coin.name,
+                network: network,
+                isFixedOnly: isFixedOnly
+              }
+
+              let str = temp.coin
+              if (coin.networks.length !== 1) {
+                str = temp.coin + ' (' + temp.network + ')'
+              }
+
+              temp.optionName = str
+              vm.coins.push(temp)
+              vm.coinName.push(str)
             }
-
-            let temp = {
-              coin: coin.coin,
-              name: coin.name,
-              network: network,
-              isFixedOnly: isFixedOnly
-            }
-
-            let str = temp.coin
-            if (coin.networks.length !== 1) {
-              str = temp.coin + ' (' + temp.network + ')'
-            }
-            // console.log(str)
-
-            temp.optionName = str
-
-            vm.coins.push(temp)
-            vm.coinName.push(str)
           }
         }
+        vm.isloaded = true
+      } else {
+        vm.error = true
       }
-      // vm.coinName = vm.coinName
-    }
 
-    const tempDate = vm.recentTransaction.createdAt.split('T')
-    vm.date = tempDate[0] + ' ' + tempDate[1].substring(0, 5)
+      const tempDate = vm.recentTransaction.createdAt.split('T')
+      vm.date = tempDate[0] + ' ' + tempDate[1].substring(0, 5)
+    }
   }
 }
 </script>

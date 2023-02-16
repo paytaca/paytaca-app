@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
+  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="darkMode ? 'pt-dark' : ''">
     <header-nav
       :title="$t('Deposit')"
       backnavpath="/apps/deposit-coin"
@@ -7,15 +7,14 @@
     <div style="margin-top: 80px;">
       <div v-if="isloaded">
         <div v-if="infoType !== 'created'">
-          <div class="q-pb-lg text-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+          <div class="q-pb-lg text-center" :class="darkMode ? 'text-white' : 'pp-text'">
             <i>Please send &nbsp; <b>{{ depositCoinType }}</b> &nbsp; to the address below</i>
           </div>
           <div class="row">
             <div class="col qr-code-container">
               <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
                 <div class="row text-center">
-                  <div class="col row justify-center q-pt-md">
-                    <!-- <img :src="logo" height="50" class="receive-icon-asset"> -->
+                  <div class="col row justify-center q-pt-md" @click="copyToClipboard(tempData.depositAddress)">
                     <qr-code :text="tempData.depositAddress" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                   </div>
                 </div>
@@ -23,9 +22,9 @@
             </div>
           </div>
           <div class="row">
-            <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
+            <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;"  @click="copyToClipboard(tempData.depositAddress)">
               <span class="qr-code-text text-weight-light text-center">
-                <div class="text-nowrap" style="letter-spacing: 1px" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+                <div style="letter-spacing: 1px" :class="darkMode ? 'text-white' : 'pp-text'">
                   {{ tempData.depositAddress }}
                   <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
                 </div>
@@ -36,10 +35,10 @@
         <div class="q-mx-md q-pt-sm">
           <q-card
             class="q-pt-sm"
-            :class="$store.getters['darkmode/getStatus'] ? 'text-white pt-dark-card' : 'text-black'"
+            :class="darkMode ? 'text-white pt-dark-card' : 'text-black'"
           >
             <q-card-section>
-              <div class="row justify-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+              <div class="row justify-center" :class="darkMode ? 'text-white' : 'pp-text'">
                 <div class="text-nowrap text-weight-light text-center q-mb-md">
                   <div>
                     <span style="font-size: 12px;">Exchange Rate</span>
@@ -50,7 +49,7 @@
                 </div>
 
               </div>
-              <div class="row justify-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+              <div class="row justify-center" :class="darkMode ? 'text-white' : 'pp-text'">
                 <div class="text-nowrap text-weight-light text-center">
                   <div class="q-pb-xs ">
                     <span>Min Amount: <b>{{ tempData.depositMin }} {{ tempData.depositCoin }}</b></span>
@@ -65,12 +64,12 @@
             </q-card-section>
             <q-separator/>
             <q-card-section>
-              <div :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text'" class="row justify-between no-wrap q-mx-md" style="font-size: 13px;">
+              <div :class="darkMode ? 'pt-dark-label' : 'pp-text'" class="row justify-between no-wrap q-mx-md" style="font-size: 13px;">
                 <span>Status: <b>{{ tempData.status }}</b></span>
                 <span class="text-nowrap q-ml-xs">Created At: <b>{{ dateCreated }}</b></span>
               </div>
             </q-card-section>
-              <div class="row justify-center q-pt-md" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+              <div class="row justify-center q-pt-md" :class="darkMode ? 'text-white' : 'pp-text'">
                 <p style="font-size: 12px; color: gray">Order Id: {{ tempData.id }}</p>
               </div>
           </q-card>
@@ -107,7 +106,8 @@ export default {
       error: false,
       address: '',
       tempData: null,
-      isloaded: false
+      isloaded: false,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   props: {
@@ -117,21 +117,34 @@ export default {
     network: String,
     depositID: String
   },
+  methods: {
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    }
+  },
   async mounted () {
     const vm = this
-    // const url = 'https://sideshift.ai/api/v2/shifts/variable'
 
     vm.depositCoin = vm.coin
     vm.depositNetwork = vm.network
     vm.depositCoinType = vm.selectedCoin
     vm.infoType = vm.depositInfoType
 
-
     // Getting NEW Shift Order Data
     if (vm.depositInfoType === 'new') {
-      let url = 'https://sideshift.ai/api/v2/shifts/variable'
-
+      const url = 'https://sideshift.ai/api/v2/shifts/variable'
       const address = vm.$store.getters['global/getAddress']('bch')
+
+      const IPurl = 'https://api.ipify.org?format=json'
+      const test = await vm.$axios.get(IPurl).catch(function () { console.log('error') })
+      const userIP = test.data.ip
+
       const response = await vm.$axios.post(url,
         {
           settleAddress: address,
@@ -143,21 +156,20 @@ export default {
           headers: {
             'content-type': 'application/json',
             'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
-            'x-user-ip': '1.2.4.1'
+            'x-user-ip': userIP//'1.2.4.1' //userIP
           }
         }
       )
 
-      console.log(response)
+      console.log(response.data)
       if (response.status === 200 || response.status === 201) {
         vm.tempData = response.data
-        vm.isloaded = true
       } else {
         vm.error = true
       }
     } else if (vm.depositInfoType === 'created') {
       // fetch id
-      let url = 'https://sideshift.ai/api/v2/shifts/' + vm.depositID
+      const url = 'https://sideshift.ai/api/v2/shifts/' + vm.depositID
 
       const resp = await vm.$axios.get(url).catch(function () {
         vm.error = true
@@ -165,7 +177,6 @@ export default {
 
       if (resp.status === 200 || resp.status === 201) {
         vm.tempData = resp.data
-        vm.isloaded = true
       } else {
         vm.error = true
       }
@@ -189,6 +200,8 @@ export default {
           vm.exchangeRate = resp.data.rate
         }
       }
+
+      vm.isloaded = true
     } else {
       vm.error = true
     }
