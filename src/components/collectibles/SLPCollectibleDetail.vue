@@ -50,7 +50,7 @@ export default {
   },
   methods: {
     verify () {
-      const url = 'https://simpleledger.info/#token/' + this.collectible.token_id
+      const url = 'https://blockchair.com/bitcoin-cash/transaction/' + this.collectible.token_id
       openURL(url)
     },
     getImageUrl (collectible) {
