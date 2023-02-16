@@ -383,6 +383,10 @@ export default {
     image: {
       type: String,
       required: false
+    },
+    paymentUrl: {
+      type: String,
+      required: false,
     }
   },
   data () {
@@ -1147,6 +1151,8 @@ export default {
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
+
+    if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
   },
 
   created () {
