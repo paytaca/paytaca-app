@@ -39,7 +39,9 @@
             class="full-width"
           >
             <template v-slot:control>
-              <div class="ellipsis" style="direction: rtl;">{{ qrCodeDataLink }}</div>
+              <a :href="qrCodeDataLink" target="_blank" class="ellipsis" style="direction: rtl;">
+                {{ qrCodeDataLink }}
+              </a>
             </template>
             <template v-slot:append>
               <q-btn
