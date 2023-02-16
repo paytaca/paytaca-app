@@ -14,7 +14,7 @@
           <q-img :src="getImageUrl(collectible)" fit="fill"></q-img>
         </template>
         <template v-else>
-          <gravatar :hash="collectible.token_id"/>
+          <vue-gravatar :email="collectible.token_id"/>
         </template>
       </q-card>
     </div>
@@ -29,12 +29,11 @@
 <script>
 import ProgressLoader from 'components/ProgressLoader'
 import Collectible from 'components/collectibles/SLPCollectibleDetail'
-import Gravatar from 'vue-gravatar'
 
 export default {
   name: 'SLPCollectibles',
 
-  components: { ProgressLoader, Collectible, Gravatar },
+  components: { ProgressLoader, Collectible },
 
   props: {
     wallet: {}
@@ -71,6 +70,7 @@ export default {
           this.fetchingCollectibles = false
         })
         .then(collectibles => {
+          console.log(collectibles)
           if (Array.isArray(collectibles)) this.collectibles = collectibles
           else this.collectibles = []
         })
