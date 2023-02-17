@@ -6,9 +6,9 @@
     ></header-nav>
     <div style="margin-top: 80px;">
       <div v-if="isloaded">
-        <div v-if="infoType !== 'created'">
+        <div v-if="tempData.status === 'waiting'">
           <div class="q-pb-lg text-center" :class="darkMode ? 'text-white' : 'pp-text'">
-            <i>Please send &nbsp; <b>{{ depositCoinType }}</b> &nbsp; to the address below</i>
+            <i>Please send &nbsp; <b>{{ tempData.depositCoin }} ({{ tempData.depositNetwork }})</b> &nbsp; to the address below</i>
           </div>
           <div class="row">
             <div class="col qr-code-container">
@@ -64,13 +64,13 @@
             </q-card-section>
             <q-separator/>
             <q-card-section>
-              <div :class="darkMode ? 'pt-dark-label' : 'pp-text'" class="row justify-between no-wrap q-mx-md" style="font-size: 13px;">
+              <div :class="darkMode ? 'pt-dark-label' : 'pp-text'" class="row justify-between no-wrap q-mx-md" style="font-size: 12px;">
                 <span>Status: <b>{{ tempData.status }}</b></span>
                 <span class="text-nowrap q-ml-xs">Created At: <b>{{ dateCreated }}</b></span>
               </div>
             </q-card-section>
               <div class="row justify-center q-pt-md" :class="darkMode ? 'text-white' : 'pp-text'">
-                <p style="font-size: 12px; color: gray">Order Id: {{ tempData.id }}</p>
+                <p style="font-size: 11px; color: gray">Order Id: {{ tempData.id }}</p>
               </div>
           </q-card>
         </div>
@@ -80,7 +80,7 @@
       </div>
     </div>
     <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
-      <ProgressLoader></ProgressLoader>
+      <ProgressLoader/>
     </div>
   </div>
 </template>

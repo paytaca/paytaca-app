@@ -52,7 +52,7 @@
                 </div>
 
                 <q-separator :color="darkMode ? 'white' : 'grey-7'" class="q-mb-lg q-mx-md"/>
-                <div class="col q-mr-lg q-ml-lg q-pb-md" @click="openDepositInfo()">
+                <div class="col q-mr-lg q-ml-lg q-pb-md" @click="openDepositInfo(recentTransaction.id)">
                   <div class="row">
                     <div class="col-7 ">
                       <div class="row text-h5">
@@ -133,7 +133,7 @@ export default {
         depositMax: '136.8564986',
         type: 'variable',
         expiresAt: '2023-02-21T03:15:32.268Z',
-        status: 'waiting'
+        status: 'completed'
       }
     }
   },
@@ -142,7 +142,7 @@ export default {
       const vm = this
       const index = vm.coinName.indexOf(this.selectedCoin)
       const coinInfo = vm.coins[index]
-      console.log(coinInfo)
+
       if (vm.selectedCoin) {
         this.$router.push({
           name: 'deposit-info',
@@ -156,20 +156,52 @@ export default {
         })
       }
     },
-    openDepositInfo () {
-      const vm = this
+    openDepositInfo (id) {
 
       this.$router.push({
         name: 'deposit-info',
         query: {
           depositInfoType: 'created',
-          depositID: vm.recentTransaction.id
+          depositID: id
         }
       })
     },
     openTransactionHistory () {
+      const test = [{
+        id: '1ef5b1b0a65b1ef78b79',
+        createdAt: '2023-02-15T03:42:42.732Z',
+        depositCoin: 'BTC',
+        settleCoin: 'BCH',
+        depositNetwork: 'liquid',
+        settleNetwork: 'bitcoincash',
+        depositAddress: 'lq1qqt8cr4h5fmydl2cvedufujeuhlnutg75wwxuznfh39kpgulavaa8myl9ygv52udq4lp2rgd2txr9fs9agthvjwx2wlcr5ms7x',
+        settleAddress: 'bitcoincash:qzvn7qemhd9m4sw333pke04me5v0uja2tgnvldj7l2',
+        depositMin: '0.00045264',
+        depositMax: '1.81057616',
+        type: 'variable',
+        expiresAt: '2023-02-22T03:42:42.730Z',
+        status: 'waiting'
+      }, {
+        id: 'b3dd81e5d22ef4d8945a',
+        createdAt: '2023-02-15T08:03:28.217Z',
+        depositCoin: 'USDC',
+        settleCoin: 'BCH',
+        depositNetwork: 'polygon',
+        settleNetwork: 'bitcoincash',
+        depositAddress: '0x06Bfc0ace86Dde33F82c1fB80DBc284e592A7c79',
+        settleAddress: 'bitcoincash:qzvn7qemhd9m4sw333pke04me5v0uja2tgnvldj7l2',
+        depositMin: '10',
+        depositMax: '40000',
+        type: 'variable',
+        expiresAt: '2023-02-22T08:03:28.218Z',
+        status: 'waiting'
+      }]
+      // get transaction list
       this.$q.dialog({
-        component: DepositHistoryDialog
+        component: DepositHistoryDialog,
+        componentProps: {
+          transactionList: test
+        }
       })
     }
   },
