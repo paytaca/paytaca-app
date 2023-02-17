@@ -217,7 +217,7 @@
           <q-card-section v-if="fetchingHedgeOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="hedgeOffers" @removed="removedHedgeOffer"/>
+          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="hedgeOffers" @removed="removedHedgeOffer" @updated="updateHedgeOffersCount()"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -303,7 +303,7 @@
           <q-card-section v-if="fetchingLongOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="longOffers" @removed="removedHedgeOffer"/>
+          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="longOffers" @removed="removedHedgeOffer" @updated="updateLongOffer()"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -627,6 +627,7 @@ function updatePendingHedgeOffersCount() {
         wallet_hash: walletHash,
         position: 'hedge',
         statuses: 'pending',
+        expired: false,
         limit: 1,
         offset: 999,
       }
@@ -815,6 +816,7 @@ function updatePendingLongOffersCount() {
         wallet_hash: walletHash,
         position: 'long',
         statuses: 'pending',
+        expired: false,
         limit: 1,
         offset: 999,
       }
