@@ -31,6 +31,7 @@ module.exports = function (/* ctx */) {
       'qrcodereader',
       'clipboard',
       'footer',
+      'gravatar',
       'websocket',
       'walletconnect',
       'confetti'

@@ -10,7 +10,7 @@
         <q-img :src="imageUrl" fit="fill" width="75"></q-img>
       </template>
       <template v-else>
-        <gravatar :hash="collectible && collectible.token_id"/>
+        <vue-gravatar :email="collectible.token_id"/>
       </template>
       <q-card-section style="text-align: center; margin-bottom: 10px;">
         <q-btn-group push style="color: rgb(60, 100, 246) !important;">
@@ -23,12 +23,10 @@
 </template>
 
 <script>
-import Gravatar from 'vue-gravatar'
 import { openURL } from 'quasar'
 
 export default {
   name: 'collectible',
-  components: { Gravatar },
   props: {
     modelValue: {
       type: Boolean,
@@ -52,7 +50,7 @@ export default {
   },
   methods: {
     verify () {
-      const url = 'https://simpleledger.info/#token/' + this.collectible.token_id
+      const url = 'https://blockchair.com/bitcoin-cash/transaction/' + this.collectible.token_id
       openURL(url)
     },
     getImageUrl (collectible) {
