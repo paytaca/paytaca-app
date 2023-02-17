@@ -217,7 +217,7 @@
           <q-card-section v-if="fetchingHedgeOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="hedgeOffers" @removed="removedHedgeOffer"/>
+          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="hedgeOffers" @removed="removedHedgeOffer" @updated="updateHedgeOffersCount()"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -303,7 +303,7 @@
           <q-card-section v-if="fetchingLongOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="longOffers" @removed="removedHedgeOffer"/>
+          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="longOffers" @removed="removedHedgeOffer" @updated="updateLongOffer()"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -627,6 +627,7 @@ function updatePendingHedgeOffersCount() {
         wallet_hash: walletHash,
         position: 'hedge',
         statuses: 'pending',
+        expired: false,
         limit: 1,
         offset: 999,
       }
@@ -670,6 +671,7 @@ function fetchHedgeOffers(pagination) {
 
   if (Array.isArray(hedgeOffersFilter.value.statuses) && hedgeOffersFilter.value.statuses.length) {
     params.statuses = hedgeOffersFilter.value.statuses.join(',')
+    if (typeof params.expired !== 'boolean') params.expired = false
   }
   return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
@@ -815,6 +817,7 @@ function updatePendingLongOffersCount() {
         wallet_hash: walletHash,
         position: 'long',
         statuses: 'pending',
+        expired: false,
         limit: 1,
         offset: 999,
       }
@@ -857,6 +860,7 @@ function fetchLongOffers(pagination) {
   }
   if (Array.isArray(longOffersFilter.value.statuses) && longOffersFilter.value.statuses.length) {
     params.statuses = longOffersFilter.value.statuses.join(',')
+    if (typeof params.expired !== 'boolean') params.expired = false
   }
   return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
