@@ -671,6 +671,7 @@ function fetchHedgeOffers(pagination) {
 
   if (Array.isArray(hedgeOffersFilter.value.statuses) && hedgeOffersFilter.value.statuses.length) {
     params.statuses = hedgeOffersFilter.value.statuses.join(',')
+    if (typeof params.expired !== 'boolean') params.expired = false
   }
   return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
@@ -859,6 +860,7 @@ function fetchLongOffers(pagination) {
   }
   if (Array.isArray(longOffersFilter.value.statuses) && longOffersFilter.value.statuses.length) {
     params.statuses = longOffersFilter.value.statuses.join(',')
+    if (typeof params.expired !== 'boolean') params.expired = false
   }
   return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
