@@ -150,6 +150,7 @@ export default {
   MnemonicBackupPhrase: 'Mnemonic Backup Phrase',
   MnemonicBackupPhraseDescription1: 'Verificación doble si esto coincide con la frase de respaldo mnemonic',
   MnemonicBackupPhraseDescription2: 'Escriba en papel o tome una captura de pantalla y mantenerlo en algún lugar seguro',
+  VerifyMnemonicBackupPhrase: 'Verifique el mnemotécnico barajado para continuar',
   NativeBiometricReason1: 'Para facilitar el registro de entrada',
   NativeBiometricReason2: 'Para la verificación de la propiedad',
   NativeBiometricSubtitle: 'Verifique su cuenta usando huellas digitales',

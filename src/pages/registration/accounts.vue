@@ -60,16 +60,33 @@
         <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
 
         <div class="row" id="mnemonic">
-          <div class="col q-mb-sm text-caption" v-if="steps === totalSteps">
-            <ul>
-              <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
-                <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
-              </li>
-            </ul>
-          </div>
+          <template v-if="steps === totalSteps">
+            <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
+              <ul>
+                <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
+                  <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
+                </li>
+              </ul>
+            </div>
+            <div v-else>
+              <div>
+                <q-btn
+                  flat
+                  no-caps
+                  padding="xs sm"
+                  icon="arrow_back"
+                  color="black"
+                  :label="$t('MnemonicBackupPhrase')"
+                  @click="showMnemonicTest = false"
+                />
+              </div>
+              <MnemonicTest :mnemonic="mnemonic" class="q-mb-md" @matched="mnemonicVerified = true" />
+            </div>
+          </template>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <q-btn class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" :label="$t('Continue')" rounded />
+          <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" :label="$t('Continue')" rounded />
+          <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
         </div>
       </div>
     </div>
@@ -84,6 +101,7 @@
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
+import MnemonicTest from 'src/components/MnemonicTest.vue'
 import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { utils } from 'ethers'
@@ -91,7 +109,7 @@ import { Device } from '@capacitor/device'
 
 export default {
   name: 'registration-accounts',
-  components: { ProgressLoader, pinDialog, securityOptionDialog },
+  components: { ProgressLoader, pinDialog, securityOptionDialog, MnemonicTest },
   data () {
     return {
       serverOnline: null,
@@ -100,6 +118,8 @@ export default {
       mnemonic: '',
       steps: -1,
       totalSteps: 5,
+      mnemonicVerified: false,
+      showMnemonicTest: false,
       pinDialogAction: '',
       pin: '',
       securityOptionDialogStatus: 'dismiss'
@@ -144,6 +164,7 @@ export default {
 
       // Create mnemonic seed, encrypt, and store
       if (vm.importSeedPhrase) {
+        vm.mnemonicVerified = true
         vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup))
       } else {
         vm.mnemonic = await generateMnemonic()
