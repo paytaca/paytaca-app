@@ -7,7 +7,7 @@
       </div>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
-      <div v-if="show" v-cloak>
+      <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
           <div class="row">
             <div class="col-12 q-py-sm">
@@ -23,7 +23,7 @@
         </div>
       </div>
       <div class="row" v-else style="margin-top: 60px;">
-        <div class="col" v-if="error">
+        <div class="col" v-if="serverOnline === false">
           <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
             {{ $t('NoInternetConnectionNotice') }} &#128533;
           </div>
@@ -94,20 +94,14 @@ export default {
   components: { ProgressLoader, pinDialog, securityOptionDialog },
   data () {
     return {
-      show: false,
-      error: false,
+      serverOnline: null,
       importSeedPhrase: false,
       seedPhraseBackup: null,
       mnemonic: '',
       steps: -1,
       totalSteps: 5,
-      seedInput: true,
       pinDialogAction: '',
       pin: '',
-      counter: 0,
-      validationMsg: '',
-      pinKeys: [{ key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }],
-      countKeys: 0,
       securityOptionDialogStatus: 'dismiss'
     }
   },
@@ -316,11 +310,10 @@ export default {
     const vm = this
 
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {
-      if (response.status === 200) {
-        vm.show = true
-      }
+      if (response.status !== 200) return Promise.reject()
+      vm.serverOnline = true
     }).catch(function () {
-      vm.error = true
+      vm.serverOnline = false
     })
   }
 }
