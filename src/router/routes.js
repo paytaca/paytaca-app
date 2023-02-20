@@ -69,7 +69,8 @@ const routes = [
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
       { path: 'gifts/show-qr', props: route => route.query, component: () => import('src/pages/apps/gifts/show-qr.vue'), name: 'show-qr' },
       { path: 'deposit-coin', component: () => import('src/pages/apps/deposit/index.vue'), name: 'app-deposit-coin'},
-      { path: 'deposit-coin/deposit-info', props: route => route.query, component: () => import('src/pages/apps/deposit/deposit-info.vue'), name: 'deposit-info'}
+      { path: 'deposit-coin/deposit-info', props: route => route.query, component: () => import('src/pages/apps/deposit/deposit-info.vue'), name: 'deposit-info' },
+      { path: 'ramp', component: () => import('src/pages/apps/ramp/index.vue'), name: 'ramp' }
     ]
   },
   // Always leave this as last one,

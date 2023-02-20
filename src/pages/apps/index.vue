@@ -44,6 +44,12 @@ export default {
           active: true
         },
         {
+          name: 'Ramp',
+          iconName: 'mdi-call-split', //'mdi-cash-multiple',
+          path: '/apps/ramp',
+          active: true
+        },
+        {
           name: this.$t('WalletConnect'),
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
@@ -83,12 +89,6 @@ export default {
           name: this.$t('WalletInfo'),
           iconName: 'info',
           path: '/apps/wallet-info',
-          active: true
-        },
-        {
-          name: this.$t('Deposit'),
-          iconName: 'mdi-bank-transfer-in',
-          path: 'apps/deposit-coin',
           active: true
         },
         {

@@ -52,6 +52,7 @@
                 </div>
 
                 <q-separator :color="darkMode ? 'white' : 'grey-7'" class="q-mb-lg q-mx-md"/>
+
                 <div class="col q-mr-lg q-ml-lg q-pb-md" @click="openDepositInfo(recentTransaction.id)">
                   <div class="row">
                     <div class="col-7 ">
@@ -157,7 +158,6 @@ export default {
       }
     },
     openDepositInfo (id) {
-
       this.$router.push({
         name: 'deposit-info',
         query: {
@@ -203,6 +203,9 @@ export default {
           transactionList: test
         }
       })
+    },
+    testing (value) {
+      console.log(value)
     }
   },
   async mounted () {

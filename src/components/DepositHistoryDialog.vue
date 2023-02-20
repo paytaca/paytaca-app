@@ -8,7 +8,7 @@
         <q-separator class="q-my-md" :color="darkMode ? 'white' : 'grey-7'"/>
         <div>
           <div v-for="deposit in depositList">
-            <div class="row q-my-sm text-h5" :class="darkMode ? 'text-white' : 'pp-text'">
+            <div class="row q-my-sm text-h5" :class="darkMode ? 'text-white' : 'pp-text'" @click="$event => $emit('testing', 'hello world')">
               <div class="col-6 q-pl-md">
                 <div class="row">
                   <span style="font-size: 13px">{{ deposit.depositCoin }} to BCH</span>
@@ -40,7 +40,7 @@ export default {
   data () {
     return {
       depositList: [],
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: c
     }
   },
   methods: {
