@@ -27,8 +27,9 @@
               You cannot send funds while offline. Please connect to the internet.
             </q-banner>
           </v-offline>
-          <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
-            <img :src="image" width="150" />
+          <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
+            <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/> 
+            <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
           </div>
           <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
             <q-icon name="error" left/>
@@ -395,6 +396,8 @@ export default {
       wallet: null,
       walletType: '',
 
+      forceUseDefaultNftImage: false,
+
       fetchingTokenStats: false,
       tokenStats: null,
 
@@ -480,6 +483,12 @@ export default {
       if (this.isSep20 && erc721IdRegexp.test(this.assetId)) return true
 
       return this.tokenType === 65
+    },
+    defaultNftImage() {
+      if (!this.isNFT) return ''
+      if (this.image && !this.forceUseDefaultNftImage) return ''
+      const tokenId = this.assetId.split('slp/')[1]
+      return this.$store.getters['global/getDefaultAssetLogo']?.(tokenId)
     },
     selectedAssetMarketPrice () {
       if (!this.assetId) return
