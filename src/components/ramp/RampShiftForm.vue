@@ -14,20 +14,27 @@
         <q-item-label>
           {{deposit.coin }}<q-icon name="expand_more"/>
         </q-item-label>
+        <q-item-label class="text-center" style="font-size: 10px; color: gray;" >
+          {{getNetwork(deposit)}}
+        </q-item-label>
       </q-item-section>
       <q-item-section>
         <q-input
           dense
           filled
           :dark="darkMode"
-          :modelValue="shiftAmount"
+          v-model="shiftAmount"
+          @update:modelValue="function(){
+              updateConvertionRate()
+            }"
         />
         <q-item-label
           class="text-right q-mt-sm"
           caption
           :class="darkMode ? 'text-grey-6' : ''"
+          v-if="deposit.coin==='BCH'"
         >
-          Balance Daw
+          Balance {{ bchBalance }}
         </q-item-label>
       </q-item-section>
     </q-item>
@@ -46,11 +53,14 @@
       {{ $t('SwapTo') }}:
     </div>
 
-    <q-item clickable class="q-mx-md">
+    <q-item class="q-mx-md">
       <q-item-section avatar class="item-center" @click="selectSettleToken">
         <div style="height: 30px; width: 30px; border-radius: 50%;" class="q-mb-sm" v-html="settle.icon"></div>
-        <q-item-label>
+        <q-item-label class="">
           {{ settle.coin }} <q-icon name="expand_more"/>
+        </q-item-label>
+        <q-item-label class="text-center" style="font-size: 10px; color: gray;" >
+          {{getNetwork(settle)}}
         </q-item-label>
       </q-item-section>
 
@@ -75,8 +85,7 @@
 <script>
 import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import ProgressLoader from '../ProgressLoader.vue'
-import { compactSizePrefixToSize } from '@bitauth/libauth'
-import { ConstantTypes } from '@vue/compiler-core'
+import { debounce } from 'quasar'
 
 export default {
   components: {
@@ -114,8 +123,16 @@ export default {
           title: 'Select Source',
           type: 'source'
         }
-
       })
+        .onOk(coin => {
+          // console.log(coin)
+
+          if (coin.coin === this.settle.coin && coin.network === this.settle.network) {
+            this.swapCoin()
+          } else {
+            this.deposit = coin
+          }
+        })
     },
     selectSettleToken () {
       this.$q.dialog({
@@ -126,6 +143,16 @@ export default {
           type: 'settle'
         }
       })
+        .onOk(coin => {
+          // console.log(coin)
+          //check token
+
+          if (coin.coin === this.deposit.coin && coin.network === this.deposit.network) {
+            this.swapCoin()
+          } else {
+            this.settle = coin
+          }
+        })
     },
     swapCoin () {
       const vm = this
@@ -135,6 +162,26 @@ export default {
       vm.deposit = vm.settle
       vm.settle = temp
     },
+    getNetwork (token) {
+      const network = token.network.toLowerCase()
+      const coin = token.coin.toLowerCase()
+      //check ethereum
+      if (network === 'ethereum' && coin !== 'eth') {
+        return 'ERC-20'
+      } else if (network === 'tron' && coin !== 'trx') {
+        return 'TRC-20'
+      } else if (network === 'bsc' && coin !== 'bnb') {
+        return 'BEP-20'
+      } else {
+        return token.network.toUpperCase()
+      }
+    },
+    updateConvertionRate: debounce(async function () {
+      this.convertionRate = this.shiftAmount
+      console.log(this.convertionRate)
+      console.log(this.shiftAmount)
+
+    }, 500),
     async loadIcon () {
       const vm = this
 
@@ -143,7 +190,7 @@ export default {
         if (item === '0') {
           vm.tokenList[item].icon = await vm.getCoinImage(token.coin, token.network)
         } else {
-          const last = vm.tokenList[item-1]
+          const last = vm.tokenList[item - 1]
           if (last) {
             if (vm.tokenList[item].coin === vm.tokenList[item - 1].coin) {
               vm.tokenList[item].icon = vm.tokenList[item - 1].icon
@@ -152,6 +199,20 @@ export default {
             }
           }
         }
+        // console.log(vm.tokenList[item].icon)
+        //remove: width + height
+        let icon = vm.tokenList[item].icon
+        const heightRegex = /height="\d+"\s/
+        const widthRegex = /width="\d+"\s/
+
+        if (heightRegex.test(icon)) {
+          icon = icon.replace(heightRegex, '')
+        }
+        if (widthRegex.test(icon)) {
+          icon = icon.replace(widthRegex, '')
+        }
+
+        vm.tokenList[item].icon = icon
       }
     },
     async getTokenList () {
@@ -167,14 +228,13 @@ export default {
             const temp = {
               coin: coinData.coin,
               network: coinData.networks[item2],
-              icon: ''//await vm.getCoinImage(coinData.coin, coinData.networks[item2])
+              icon: ''
             }
             vm.tokenList.push(temp)
-
-            //vm.tokenList[vm.tokenList.length-1].icon = await vm.getCoinImage(coinData.coin, coinData.networks[item2])
           }
         }
-        vm.tokenListLoaded = true
+        vm.isloaded = true
+        // vm.tokenList.sort()
 
         await this.loadIcon()
       }
@@ -189,6 +249,11 @@ export default {
       return resp.data
     }
   },
+  computed: {
+    bchBalance () {
+      return this.$store.getters['assets/getAssets'][0].balance
+    }
+  },
   async mounted () {
     const vm = this
 
@@ -197,8 +262,14 @@ export default {
     vm.settle.icon = await vm.getCoinImage(vm.settle.coin, vm.settle.network)
 
     vm.getTokenList()
-    vm.isloaded = true
-    console.log(vm.isloaded)
+    // vm.isloaded = true
+    // console.log('testing')
+    // let dummyString = '<svg width="512" height="512" viewBox="0 0 512 512"'
+    // const widthRegex = /width="\d+"\s/
+    // const heightRegex = /height="\d+"\s/
+    // dummyString = dummyString.replace(widthRegex, '')
+    // dummyString = dummyString.replace(heightRegex, '')
+    // console.log(dummyString)
   }
 }
 </script>

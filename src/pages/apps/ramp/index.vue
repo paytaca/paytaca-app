@@ -35,10 +35,7 @@
       />
     </q-tabs>
 
-    <RampShiftForm
-    :darkMode="darkMode"
-      class="q-mx-md"
-    />
+    <RampShiftForm/>
 
   </div>
 </template>
