@@ -80,8 +80,16 @@
             dense
             filled
             :dark="darkMode"
-            :modelValue="convertionRate"
+            :modelValue="settleAmount"
           />
+          <q-item-label
+            class="text-right q-mt-sm"
+            caption
+            :class="darkMode ? 'text-grey-6' : ''"
+            v-if="convertionRate && shiftAmount"
+          >
+            <i>1 {{ deposit.coin }} = {{ convertionRate }} {{ settle.coin }}</i>
+          </q-item-label>
       </q-item-section>
     </q-item>
   </q-card>
@@ -98,7 +106,7 @@ import { debounce } from 'quasar'
 export default {
   components: {
     ProgressLoader
-},
+  },
   data () {
     return {
       error: false,
@@ -120,7 +128,8 @@ export default {
       test: null,
       amountLoaded: false,
       shiftAmount: 0.0,
-      convertionRate: 0.0
+      convertionRate: 0.0,
+      settleAmount: 0.0
     }
   },
   methods: {
@@ -141,6 +150,8 @@ export default {
           } else {
             this.deposit = coin
           }
+
+          this.updateConvertionRate()
         })
     },
     selectSettleToken () {
@@ -161,6 +172,7 @@ export default {
           } else {
             this.settle = coin
           }
+          this.updateConvertionRate()
         })
     },
     swapCoin () {
@@ -170,6 +182,8 @@ export default {
 
       vm.deposit = vm.settle
       vm.settle = temp
+
+      vm.updateConvertionRate()
     },
     getNetwork (token) {
       const network = token.network.toLowerCase()
@@ -203,22 +217,30 @@ export default {
       if (vm.shiftAmount) {
         if (vm.isAmountValid(vm.shiftAmount)) {
           vm.invalidAmount = false
+          vm.convertionRate = 0.0
 
           // check exchange rate
-          const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network + '?amount=1'
-
+          const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network
+          console.log(url)
           const resp = await vm.$axios.get(url).catch(function () { vm.error = true })
 
           if (resp.status === 200 || resp.status === 201) {
-            const exchange = parseFloat(resp.data.rate)
+            console.log(resp.data)
+            vm.convertionRate = parseFloat(resp.data.rate)
             const shift = parseFloat(vm.shiftAmount)
-            console.log(exchange)
+            console.log(vm.convertionRate)
 
-            vm.convertionRate = shift * exchange
+            vm.settleAmount = shift * vm.convertionRate
+
+            if (vm.settleAmount < 0) {
+              vm.settleAmount *= -1
+            }
           }
         } else {
           vm.invalidAmount = true
         }
+      } else {
+        vm.settleAmount = ''
       }
     }, 500),
     async loadIcon () {
