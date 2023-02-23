@@ -176,11 +176,26 @@ export default {
         return token.network.toUpperCase()
       }
     },
-    updateConvertionRate: debounce(async function () {
-      this.convertionRate = this.shiftAmount
-      console.log(this.convertionRate)
-      console.log(this.shiftAmount)
+    isAmountValid (value) {
+      // amount with comma and decimal regex
+      const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
 
+      if (regex.test(value)) {
+        return 'matched ' + value
+      } else {
+        return 'not match ' + value
+      }
+    },
+    updateConvertionRate: debounce(async function () {
+      const vm = this
+      vm.convertionRate = vm.shiftAmount
+
+      console.log(vm.isAmountValid(vm.shiftAmount))
+
+      // exchange rate
+
+      const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network + '?amount=1'
+      console.log(url)
     }, 500),
     async loadIcon () {
       const vm = this
@@ -270,6 +285,11 @@ export default {
     // dummyString = dummyString.replace(widthRegex, '')
     // dummyString = dummyString.replace(heightRegex, '')
     // console.log(dummyString)
+
+    const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.d+)?)$/
+    const test = '1,001'
+
+    console.log(regex.test(test))
   }
 }
 </script>
