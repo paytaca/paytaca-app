@@ -97,7 +97,7 @@
                       padding="2px sm"
                       size="sm"
                       label="Recover"
-                      @click="() => recoverGift(gift?.gift_code_hash)"
+                      @click="() => confirmRecoverGift(gift)"
                     />
                   </div>
                   <div v-if="getQrShare(gift?.gift_code_hash)">
@@ -204,6 +204,16 @@ export default {
     },
     getQrShare (giftCodeHash) {
       return this.$store.getters['gifts/getQrShare'](giftCodeHash)
+    },
+    confirmRecoverGift(gift) {
+      this.$q.dialog({
+        title: 'Recover gift',
+        message: `Recover gift of ${gift.amount} BCH. Proceed?`,
+        ok: true,
+        cancel: true,
+        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+      })
+        .onOk(() => this.recoverGift(gift?.gift_code_hash))
     },
     recoverGift (giftCodeHash) {
       const localShare = this.getGiftShare(giftCodeHash)
