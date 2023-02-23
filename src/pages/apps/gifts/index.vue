@@ -106,7 +106,7 @@
                       padding="2px sm"
                       size="sm"
                       label="Show QR"
-                      @click="() => showQr(gift?.gift_code_hash)"
+                      @click="() => displayGift(gift)"
                     />
                   </div>
                 </div>
@@ -129,6 +129,7 @@
 
 <script>
 import HeaderNav from '../../../components/header-nav'
+import GiftDialog from 'src/components/gifts/GiftDialog.vue'
 // import { date } from 'quasar'
 // import { defineComponent, ref } from 'vue'
 import { capitalize } from 'vue'
@@ -191,6 +192,12 @@ export default {
         .finally(() => {
           this.fetchingGifts = false
         })
+    },
+    displayGift(gift) {
+      this.$q.dialog({
+        component: GiftDialog,
+        componentProps: { gift: gift },
+      })
     },
     getGiftShare (giftCodeHash) {
       return this.$store.getters['gifts/getGiftShare'](giftCodeHash)
