@@ -36,6 +36,14 @@
         >
           Balance {{ bchBalance }}
         </q-item-label>
+        <q-item-label
+          class="text-right q-mt-sm"
+          caption
+          style="color:red"
+          v-if="invalidAmount"
+        >
+          Not a valid amount, please try again.
+        </q-item-label>
       </q-item-section>
     </q-item>
     <div class="q-px-md q-my-xs row items-center justify-center">
@@ -94,6 +102,7 @@ export default {
   data () {
     return {
       error: false,
+      invalidAmount: false,
       isloaded: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       deposit: {
@@ -181,21 +190,36 @@ export default {
       const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
 
       if (regex.test(value)) {
-        return 'matched ' + value
+        return true
       } else {
-        return 'not match ' + value
+        return false
       }
     },
     updateConvertionRate: debounce(async function () {
       const vm = this
-      vm.convertionRate = vm.shiftAmount
+      vm.invalidAmount = false
 
-      console.log(vm.isAmountValid(vm.shiftAmount))
+      //check if valid amount
+      if (vm.shiftAmount) {
+        if (vm.isAmountValid(vm.shiftAmount)) {
+          vm.invalidAmount = false
 
-      // exchange rate
+          // check exchange rate
+          const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network + '?amount=1'
 
-      const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network + '?amount=1'
-      console.log(url)
+          const resp = await vm.$axios.get(url).catch(function () { vm.error = true })
+
+          if (resp.status === 200 || resp.status === 201) {
+            const exchange = parseFloat(resp.data.rate)
+            const shift = parseFloat(vm.shiftAmount)
+            console.log(exchange)
+
+            vm.convertionRate = shift * exchange
+          }
+        } else {
+          vm.invalidAmount = true
+        }
+      }
     }, 500),
     async loadIcon () {
       const vm = this
@@ -286,10 +310,7 @@ export default {
     // dummyString = dummyString.replace(heightRegex, '')
     // console.log(dummyString)
 
-    const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.d+)?)$/
-    const test = '1,001'
-
-    console.log(regex.test(test))
+    // console.log(regex.test(test))
   }
 }
 </script>
