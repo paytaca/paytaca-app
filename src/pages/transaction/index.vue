@@ -122,9 +122,7 @@
                 @click="showTransactionDetails(transaction)"
               />
               <div ref="bottom-transactions-list"></div>
-              <div v-if="transactionsAppending" style="text-align: center;">
-                <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
-              </div>
+              <TransactionListItemSkeleton v-if="transactionsAppending"/>
               <div v-else-if="transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
                 <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
               </div>
@@ -133,8 +131,8 @@
                 <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
               </div>
             </template>
-            <div style="text-align: center;" v-else>
-              <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
+            <div v-else>
+              <TransactionListItemSkeleton v-for="i in 5"/>
             </div>
           </div>
         </div>
@@ -159,7 +157,6 @@ import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
-import ProgressLoader from '../../components/ProgressLoader'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
@@ -167,6 +164,7 @@ import startPage from '../../pages/transaction/dialog/StartPage.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
+import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -185,8 +183,8 @@ export default {
   name: 'Transaction-page',
   components: {
     TransactionListItem,
+    TransactionListItemSkeleton,
     TokenSuggestionsDialog,
-    ProgressLoader,
     Transaction,
     AssetInfo,
     AssetCards,
