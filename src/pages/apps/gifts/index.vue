@@ -21,7 +21,7 @@
             <q-btn color="primary">Claim Gift</q-btn>
           </div>
         </div>
-        <div v-if="rows.length > 0" class="row q-pa-md" :class="{'text-black': !darkMode}" style="margin-top: -10px;">
+        <div class="row q-pa-md" :class="{'text-black': !darkMode}" style="margin-top: -10px;">
           <q-table
             grid
             title="Gifts you created"
@@ -30,26 +30,23 @@
             row-key="name"
             style="width: 100%"
             :dark="darkMode"
-            :pagination="pageNumber"
+            :loading="loading"
+            :pagination.sync="pageNumber"
           >
             <template v-slot:top-right>
-              <q-btn-dropdown color="primary" :label="label" dense class="q-pl-sm" :dark="darkMode" content-style="color: black;">
+              <q-btn-dropdown color="primary" no-caps :label="capitalize(filterOpts.recordType.active)" dense class="q-pl-sm" :dark="darkMode" content-style="color: black;">
                 <q-list dense>
-                <q-item clickable v-close-popup @click="claim"  >
-                  <q-item-section>
-                    <q-item-label>Claimed</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup @click="unclaim" >
-                  <q-item-section>
-                    <q-item-label>Unclaimed</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup @click="getRows" active>
-                  <q-item-section>
-                    <q-item-label>All</q-item-label>
-                  </q-item-section>
-                </q-item>
+                  <q-item
+                    v-for="recordType in filterOpts.recordType.options"
+                    :index="recordType"
+                    clickable v-close-popup
+                    :active="recordType === filterOpts.recordType.active"
+                    @click="() => fetchGifts({ recordType: recordType })"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ capitalize(recordType) }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
                 </q-list>
               </q-btn-dropdown>
             </template>
@@ -114,6 +111,7 @@
 import HeaderNav from '../../../components/header-nav'
 // import { date } from 'quasar'
 // import { defineComponent, ref } from 'vue'
+import { capitalize } from 'vue'
 import { formatDistance } from 'date-fns'
 import axios from 'axios'
 
@@ -149,93 +147,65 @@ const columns = [
     sortable: true
   }
 ]
-const rows = []
 
 export default {
   name: 'Gift',
   components: { HeaderNav },
-  props: {
-    uri: {
-      type: String,
-      default: ''
-    }
-  },
-  setup () {
+  data () {
     return {
+      walletHash: this.getWallet('bch').walletHash,
       pageNumber: {
         rowsPerPage: 20
       },
-      label: 'Filter'
-    }
-  },
-  data () {
-    return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      info: null,
-      walletHash: this.getWallet('bch').walletHash,
-      response: null,
+      filterOpts: {
+        recordType: {
+          active: 'all',
+          default: 'all',
+          options: ['claimed', 'unclaimed', 'all'],
+        }
+      },
+      label: 'Filter',
+      loading: false,
       columns,
-      rows,
+      rows: [],
       qrConfirm: false
     }
   },
 
+  computed: {
+    darkMode() {
+      return this.$store.getters['darkmode/getStatus']
+    }
+  },
+
   methods: {
-    claim () {
-      const vm = this
-      vm.label = 'Claimed'
-      const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
-      axios.get(url).then(function (response) {
-        if (response.status === 200) {
-          vm.rows = response.data.gifts
-          const rowArray = vm.rows
-          const storeRow = []
-          for (let i = 0; i < vm.rows.length; i++) {
-            // console.log(rowArray[i].date_claimed)
-            if (rowArray[i].date_claimed !== 'None') {
-              storeRow.push(rowArray[i])
-            }
+    capitalize: capitalize,
+    fetchGifts(opts = { recordType: 'all' }) {
+      const recordType = opts?.recordType || 'all'
+      const url = `https://gifts.paytaca.com/api/gifts/${this.walletHash}/list`
+      this.loading = true
+      axios.get(url)
+        .then(response => {
+          if (!Array.isArray(response?.data?.gifts)) return Promise.reject({ response })
+
+          this.rows = response.data.gifts.filter(gift => {
+            if (recordType === 'unclaimed') return gift.date_claimed === 'None'
+            if (recordType === 'claimed') return gift.date_claimed !== 'None'
+
+            if (gift.date_claimed !== 'None') this.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
+            return true
+          })
+          return Promise.resolve(response)
+        })
+        .then(() => {
+          this.filterOpts.recordType.active = recordType
+          if (this.filterOpts.recordType.options.indexOf(recordType) < 0) {
+            this.filterOpts.recordType.active = this.filterOpts.recordType.default
           }
-          vm.rows = storeRow
-          // console.log(storeRow)
-        }
-      })
-    },
-    unclaim () {
-      const vm = this
-      vm.label = 'Unclaimed'
-      const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
-      axios.get(url).then(function (response) {
-        if (response.status === 200) {
-          vm.rows = response.data.gifts
-          const rowArray = vm.rows
-          const storeRow = []
-          for (let i = 0; i < vm.rows.length; i++) {
-            if (rowArray[i].date_claimed === 'None') {
-              storeRow.push(rowArray[i])
-            }
-          }
-          vm.rows = storeRow
-        }
-      })
-    },
-    getRows () {
-      const vm = this
-      vm.label = 'Filter'
-      const url = `https://gifts.paytaca.com/api/gifts/${vm.walletHash}/list`
-      axios.get(url).then(function (response) {
-        if (response.status === 200) {
-          vm.rows = response.data.gifts
-          // console.log(vm.rows)
-          for (let i = 0; i < vm.rows.length; i++) {
-            const gift = vm.rows[i]
-            // console.log(vm.rows[i].date_claimed)
-            if (gift.date_claimed !== 'None') {
-              vm.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
-            }
-          }
-        }
-      })
+        })
+        .finally(() => {
+          this.loading = false
+        })
     },
     getGiftShare (giftCodeHash) {
       return this.$store.getters['gifts/getGiftShare'](giftCodeHash)
@@ -277,7 +247,7 @@ export default {
   mounted () {
     // this.getItemsWithSort()
     // this.getItems()
-    this.getRows()
+    this.fetchGifts()
     // console.log(this.getGiftShare(this.giftCodeHash))
   }
 }
