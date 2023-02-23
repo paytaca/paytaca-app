@@ -61,7 +61,7 @@
       {{ $t('SwapTo') }}:
     </div>
 
-    <q-item class="q-mx-md">
+    <q-item class="q-mx-md q-mb-lg">
       <q-item-section avatar class="item-center" @click="selectSettleToken">
         <div style="height: 30px; width: 30px; border-radius: 50%;" class="q-mb-sm" v-html="settle.icon"></div>
         <q-item-label class="">
@@ -73,7 +73,7 @@
       </q-item-section>
 
       <q-item-section>
-        <q-skeleton v-if="amountLoaded" type="rect"/>
+        <q-skeleton v-if="!amountLoaded && shiftAmount" type="rect"/>
         <q-input
             v-else
             disable
@@ -92,6 +92,28 @@
           </q-item-label>
       </q-item-section>
     </q-item>
+    <q-separator spaced class="q-mx-lg" :color="darkMode ? 'white' : 'grey-7'"/>
+    <q-item class="q-mx-md q-py-lg">
+      <q-item-section side>
+        <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Minimum:</q-item-label>
+        <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Maximum:</q-item-label>
+      </q-item-section>
+      <q-item-section class="text-right">
+        <q-item-label>{{ minimum }} {{ deposit.coin }}</q-item-label>
+        <q-item-label>{{ maximum }} {{ deposit.coin }}</q-item-label>
+      </q-item-section>
+    </q-item>
+
+    <div class="row q-mx-md q-py-lg">
+      <q-btn
+        disable
+        rounded
+        no-caps
+        :label="$t('EnterAmount')"
+        color="brandblue"
+        class="q-space"
+      />
+    </div>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
     <ProgressLoader/>
@@ -126,10 +148,12 @@ export default {
       tokenList: [],
       tokenListLoaded: false,
       test: null,
-      amountLoaded: false,
+      amountLoaded: true,
       shiftAmount: 0.0,
       convertionRate: 0.0,
-      settleAmount: 0.0
+      settleAmount: 0.0,
+      minimum: '~',
+      maximum: '~'
     }
   },
   methods: {
@@ -152,6 +176,7 @@ export default {
           }
 
           this.updateConvertionRate()
+          this.resetMinMax()
         })
     },
     selectSettleToken () {
@@ -173,6 +198,7 @@ export default {
             this.settle = coin
           }
           this.updateConvertionRate()
+          this.resetMinMax()
         })
     },
     swapCoin () {
@@ -184,6 +210,10 @@ export default {
       vm.settle = temp
 
       vm.updateConvertionRate()
+    },
+    resetMinMax() {
+      this.minimum = '~'
+      this.maximum = '~'
     },
     getNetwork (token) {
       const network = token.network.toLowerCase()
@@ -212,6 +242,7 @@ export default {
     updateConvertionRate: debounce(async function () {
       const vm = this
       vm.invalidAmount = false
+      vm.amountLoaded = false
 
       //check if valid amount
       if (vm.shiftAmount) {
@@ -221,20 +252,17 @@ export default {
 
           // check exchange rate
           const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network
-          console.log(url)
           const resp = await vm.$axios.get(url).catch(function () { vm.error = true })
 
           if (resp.status === 200 || resp.status === 201) {
-            console.log(resp.data)
             vm.convertionRate = parseFloat(resp.data.rate)
             const shift = parseFloat(vm.shiftAmount)
-            console.log(vm.convertionRate)
 
             vm.settleAmount = shift * vm.convertionRate
+            vm.minimum = resp.data.min
+            vm.maximum = resp.data.max
 
-            if (vm.settleAmount < 0) {
-              vm.settleAmount *= -1
-            }
+            vm.amountLoaded = true
           }
         } else {
           vm.invalidAmount = true

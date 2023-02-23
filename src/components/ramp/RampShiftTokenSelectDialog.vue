@@ -17,7 +17,7 @@
               dense
               outlined
               rounded
-              v-model="coin"
+              v-model="searchText"
               :input-class="darkMode ? 'text-white' : 'text-black'"
             >
               <template v-slot:append>
@@ -26,7 +26,7 @@
             </q-input>
           </q-card-section>
           <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
-            <q-virtual-scroll :items="matchedCoin">
+            <q-virtual-scroll :items="filteredCoinList">
               <template v-slot="{ item: token, index }">
                 <q-item clickable @click="onOKClick(token)">
                   <q-item-section avatar>
@@ -90,12 +90,29 @@ export default {
       }
     }
   },
+  computed: {
+    filteredCoinList () {
+      if (!this.searchText) return this.tokenList
+
+      const needle = String(this.searchText).toLowerCase()
+      console.log(needle)
+
+      return this.tokenList
+        .filter(token => {
+          if (!this.searchText) return true
+          if (!token) return false
+          if (/0x[0-9a-f]+/.test(needle) && token.coin.toLowerCase() === needle) return true
+
+          return String(token.coin).toLowerCase().includes(needle) ||
+                  String(token.network).toLowerCase().includes(needle)
+        })
+        // console.log(list)
+        // return this.tokenList
+    }
+  },
   async mounted () {
     const vm = this
     vm.matchedCoin = vm.tokenList
-    // console.log(vm.tokenList)
-    // console.log(vm.type)
-    //@update:model-value="!matchedTokensListFromCustomAddress.length ? updateCustomTokenInfo() : null"
   }
 }
 </script>
