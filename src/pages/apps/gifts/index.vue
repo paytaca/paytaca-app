@@ -52,10 +52,10 @@
                 v-for="i in 3"
                 class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               >
-                <q-card class="q-py-sm q-px-md">
+                <q-card :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
                   <q-skeleton height="1.25em" class="q-mb-sm"/>
                   <q-skeleton height="1.25em" class="q-mb-sm"/>
-                  <q-separator spaced/>
+                  <q-separator spaced :dark="darkMode"/>
                   <q-skeleton type="rect"/>
                 </q-card>
               </div>
@@ -73,7 +73,7 @@
               :key="gift?.gift_code_hash"
               class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
             >
-              <q-card class="q-py-sm q-px-md">
+              <q-card :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
                 <div class="row">
                   <div class="q-space">Amount</div>
                   <div class="text-caption text-grey">
@@ -86,7 +86,7 @@
                     {{formatRelativeTimestamp(gift?.date_created)}}
                   </div>
                 </div>
-                <q-separator spaced/>
+                <q-separator spaced :dark="darkMode"/>
                 <div v-if="gift.date_claimed === 'None'" class="row items-center q-gutter-sm">
                   <div class="q-space">
                     <q-badge color="grey" class="q-my-xs">Unclaimed</q-badge>
@@ -101,7 +101,7 @@
                       @click="() => confirmRecoverGift(gift)"
                     />
                   </div>
-                  <q-separator v-if="getGiftShare(gift?.gift_code_hash) && getQrShare(gift?.gift_code_hash)" vertical/>
+                  <q-separator v-if="getGiftShare(gift?.gift_code_hash) && getQrShare(gift?.gift_code_hash)" vertical :dark="darkMode"/>
                   <div v-if="getQrShare(gift?.gift_code_hash)">
                     <q-btn
                       flat
@@ -112,7 +112,7 @@
                       @click="() => displayGift(gift)"
                     />
                   </div>
-                  <q-separator vertical/>
+                  <q-separator vertical :dark="darkMode"/>
                   <div v-if="getQrShare(gift?.gift_code_hash) || true">
                     <q-btn
                       flat

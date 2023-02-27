@@ -11,13 +11,13 @@
         style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
         class="q-px-sm"
       />
-      <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '65px' : '0px'}">
-        <div class="text-center" v-if="processing" style="margin-top: 80px;">
+      <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '145px' : '80px'}">
+        <div class="text-center" v-if="processing">
           <p :class="{'text-white': darkMode}" >Creating gift...</p>
           <progress-loader />
         </div>
-        <div class="q-pt-lg" :class="{'text-white': darkMode}" v-if="!processing && !completed">
-          <h5>Create Gift</h5>
+        <div :class="{'text-white': darkMode}" v-if="!processing && !completed">
+          <div class="text-h5 q-mb-md">Create Gift</div>
           <label>
             Enter Amount Per Gift:
           </label>
@@ -31,14 +31,31 @@
             v-model="amountBCH"
             @input="this.amountBCH"
             :dark="darkMode"
+            hide-bottom-space
           >
             <template v-slot:append>BCH</template>
           </q-input>
-          <p style="margin-top: -12px;">
-            ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          <p class="q-mt-sm">
+            <template v-if="sendAmountMarketValue">
+              ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+            </template>
           </p>
 
           <template v-if="createNewCampaign">
+            <div v-if="campaignOptions.length > 1" class="row items-center justify-end">
+              <q-btn
+                flat
+                no-caps
+                padding="1px xs"
+                @click="() => {
+                  createNewCampaign = false
+                  selectedCampaign = null
+                }"
+              >
+                <q-icon size="1.25em" name="arrow_back" class="q-mr-xs"/>
+                Select existing campaign
+              </q-btn>
+            </div>
             <label>
               Campaign Name
             </label>
@@ -94,7 +111,7 @@
             </q-btn>
           </div>
         </div>
-        <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}" style="margin-top: 80px;">
+        <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}">
           <p style="font-size: 22px;">Amount:<br>{{ amountBCH }} BCH</p>
           <div class="flex flex-center" >
             <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
@@ -144,7 +161,7 @@ export default {
   },
   watch: {
     selectedCampaign (val) {
-      if (val.value === 'create-new') {
+      if (val?.value === 'create-new') {
         this.createNewCampaign = true
       }
     }
@@ -234,29 +251,29 @@ export default {
     },
     processRequest () {
       this.generateGift()
+    },
+    async fetchCampaigns() {
+      let walletHash = this.$store.getters['global/getWallet']?.('bch')?.walletHash
+      if (!walletHash) {
+        const mnemonic = await getMnemonic()
+        const wallet = new Wallet(mnemonic)
+        walletHash = wallet.BCH.getWalletHash()
+      }
+
+      const url = `https://gifts.paytaca.com/api/campaigns/${walletHash}/list/`
+      axios.get(url).then((resp) => {
+        this.campaignOptions = resp.data.campaigns.map(function (item, index) {
+          return { label: item.name, value: item.id }
+        })
+        this.campaignOptions.push({
+          label: '--- Create New Campaign ---',
+          value: 'create-new'
+        })
+      })
     }
   },
-  // wallet call function when mounted
   mounted () {
-    const vm = this
-    getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic)
-      wallet.sBCH.getOrInitWallet()
-        .then(() => {
-          vm.wallet = wallet
-          const walletHash = vm.wallet.BCH.getWalletHash()
-          const url = `https://gifts.paytaca.com/api/campaigns/${walletHash}/list/`
-          axios.get(url).then((resp) => {
-            vm.campaignOptions = resp.data.campaigns.map(function (item, index) {
-              return { label: item.name, value: item.id }
-            })
-            vm.campaignOptions.push({
-              label: '--- Create New Campaign ---',
-              value: 'create-new'
-            })
-          })
-        })
-    })
+    this.fetchCampaigns()
   }
 }
 </script>
