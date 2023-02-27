@@ -2,7 +2,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
-    v-if="isloaded"
+    v-if="isloaded && !confirmData"
   >
     <div class="text-center q-py-md">
       {{ $t('SwapFrom') }}:
@@ -40,9 +40,9 @@
           class="text-right q-mt-sm"
           caption
           style="color:red"
-          v-if="invalidAmount"
+          v-if="errorMsg"
         >
-          Not a valid amount, please try again.
+          {{ errorMsg }}
         </q-item-label>
       </q-item-section>
     </q-item>
@@ -86,54 +86,83 @@
             class="text-right q-mt-sm"
             caption
             :class="darkMode ? 'text-grey-6' : ''"
-            v-if="convertionRate && shiftAmount"
+            v-if="settleAmount && shiftAmount"
           >
             <i>1 {{ deposit.coin }} = {{ convertionRate }} {{ settle.coin }}</i>
           </q-item-label>
       </q-item-section>
     </q-item>
-    <q-separator spaced class="q-mx-lg" :color="darkMode ? 'white' : 'grey-7'"/>
+    <q-separator spaced class="q-mx-lg" :color="darkMode ? 'white' : 'gray'"/>
     <q-item class="q-mx-md q-py-lg">
-      <q-item-section side>
-        <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Minimum:</q-item-label>
-        <q-item-label :class="darkMode ? 'text-grey-6' : 'text-dark'">Maximum:</q-item-label>
-      </q-item-section>
-      <q-item-section class="text-right">
-        <q-item-label>{{ minimum }} {{ deposit.coin }}</q-item-label>
-        <q-item-label>{{ maximum }} {{ deposit.coin }}</q-item-label>
+      <q-item-section class="justify-center text-center">
+        <div class="q-pb-sm">
+          Recieving Address
+        </div>
+        <q-input
+          dense
+          filled
+          :dark="darkMode"
+          v-model="settleAddress"
+        >
+        <template v-slot:append>
+          <q-icon name="close" @click="settleAddress = ''"/>
+        </template>
+      </q-input>
+        <q-item-label class="text-right q-pr-sm q-pt-sm" v-if="settle.coin === 'BCH'">
+          <q-btn
+                no-caps
+                flat
+                icon-right="mdi-arrow-right"
+                label="Enter BCH address"
+                color="blue-9"
+                padding="none xs"
+                size="12px"
+                @click="addBCHAddress()"
+              />
+        </q-item-label>
       </q-item-section>
     </q-item>
-
     <div class="row q-mx-md q-py-lg">
       <q-btn
-        disable
+        :disable="hasError || !shiftAmount || !settleAddress || !amountLoaded"
         rounded
         no-caps
-        :label="$t('EnterAmount')"
+        label='Enter'
         color="brandblue"
         class="q-space"
+        @click="checkData()"
       />
     </div>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
     <ProgressLoader/>
   </div>
+  <div v-if="confirmData">
+    <RampConfirmation
+    :info="settleInfo"
+  />
+  </div>
+
 </template>
 
 <script>
 import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
+import RampConfirmation from './RampConfirmation.vue'
 import ProgressLoader from '../ProgressLoader.vue'
 import { debounce } from 'quasar'
 
 export default {
   components: {
-    ProgressLoader
+    ProgressLoader,
+    RampConfirmation
   },
   data () {
     return {
       error: false,
+      hasError: false,
       invalidAmount: false,
       isloaded: false,
+      confirmData: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       deposit: {
         coin: 'BTC',
@@ -147,13 +176,14 @@ export default {
       },
       tokenList: [],
       tokenListLoaded: false,
-      test: null,
       amountLoaded: true,
       shiftAmount: 0.0,
-      convertionRate: 0.0,
       settleAmount: 0.0,
       minimum: '~',
-      maximum: '~'
+      maximum: '~',
+      settleAddress: '',
+      settleInfo: {},
+      convertionRate: ''
     }
   },
   methods: {
@@ -176,7 +206,6 @@ export default {
           }
 
           this.updateConvertionRate()
-          this.resetMinMax()
         })
     },
     selectSettleToken () {
@@ -197,8 +226,8 @@ export default {
           } else {
             this.settle = coin
           }
+          this.settleAddress = ''
           this.updateConvertionRate()
-          this.resetMinMax()
         })
     },
     swapCoin () {
@@ -209,11 +238,11 @@ export default {
       vm.deposit = vm.settle
       vm.settle = temp
 
+      vm.settleAddress = ''
       vm.updateConvertionRate()
     },
-    resetMinMax() {
-      this.minimum = '~'
-      this.maximum = '~'
+    addBCHAddress () {
+      this.settleAddress = this.$store.getters['global/getAddress']('bch')
     },
     getNetwork (token) {
       const network = token.network.toLowerCase()
@@ -229,6 +258,18 @@ export default {
         return token.network.toUpperCase()
       }
     },
+    checkData () {
+      const vm = this
+
+      vm.settleInfo = {
+        deposit: vm.deposit,
+        settle: vm.settle,
+        depositAmount: vm.shiftAmount,
+        settleAddress: vm.settleAddress
+      }
+
+      vm.confirmData = true
+    },
     isAmountValid (value) {
       // amount with comma and decimal regex
       const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
@@ -243,6 +284,7 @@ export default {
       const vm = this
       vm.invalidAmount = false
       vm.amountLoaded = false
+      vm.hasError = false
 
       //check if valid amount
       if (vm.shiftAmount) {
@@ -266,6 +308,7 @@ export default {
           }
         } else {
           vm.invalidAmount = true
+          vm.hasError = true
         }
       } else {
         vm.settleAmount = ''
@@ -288,7 +331,6 @@ export default {
             }
           }
         }
-        // console.log(vm.tokenList[item].icon)
         //remove: width + height
         let icon = vm.tokenList[item].icon
         const heightRegex = /height="\d+"\s/
@@ -341,6 +383,26 @@ export default {
   computed: {
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
+    },
+    errorMsg () {
+      const vm = this
+      const min = parseFloat(vm.minimum)
+      const max = parseFloat(vm.maximum)
+
+      if (vm.invalidAmount) {
+        vm.hasError = true
+        return 'Not a valid amount, please try again.'
+      }
+      const amount = parseFloat(vm.shiftAmount)
+      if (min > amount) {
+        vm.hasError = true
+        return 'Minimum ' + vm.minimum + ' ' + vm.deposit.coin
+      }
+      if (max < amount) {
+        vm.hasError = true
+        return 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
+      }
+      return null
     }
   },
   async mounted () {
@@ -351,16 +413,6 @@ export default {
     vm.settle.icon = await vm.getCoinImage(vm.settle.coin, vm.settle.network)
 
     vm.getTokenList()
-    // vm.isloaded = true
-    // console.log('testing')
-    // let dummyString = '<svg width="512" height="512" viewBox="0 0 512 512"'
-    // const widthRegex = /width="\d+"\s/
-    // const heightRegex = /height="\d+"\s/
-    // dummyString = dummyString.replace(widthRegex, '')
-    // dummyString = dummyString.replace(heightRegex, '')
-    // console.log(dummyString)
-
-    // console.log(regex.test(test))
   }
 }
 </script>
