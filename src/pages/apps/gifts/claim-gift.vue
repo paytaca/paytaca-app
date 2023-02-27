@@ -16,8 +16,9 @@
             <q-form v-if="!processing && !completed" class="text-center" style="margin-top: 25px;">
               <textarea
                 v-model="scannedShare"
-                style="width: 100%; font-size: 18px; color: black; background: white;" rows="2"
+                rows="2"
                 placeholder="Paste gift code here"
+                class="full-width text-black bg-white rounded-borders text-subtitle1 q-px-sm"
                 :disabled="error"
               >
               </textarea>
@@ -28,7 +29,7 @@
                 </div>
                 <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
-              <div style="margin-top: 20px; ">
+              <div style="margin-top: 20px;">
                 <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift(null)">
                   <span class="text-capitalize">{{ action }}</span>
                 </q-btn>
@@ -66,6 +67,7 @@ export default {
       default: 'Claim'
     },
     giftCodeHash: String,
+    claimShare: String,
     localShare: String
   },
   components: {
@@ -147,6 +149,9 @@ export default {
       vm.wallet = markRaw(new Wallet(mnemonic))
       if (vm.action === 'Recover') {
         vm.claimGift(vm.giftCodeHash)
+      } else if (vm.claimShare) {
+        vm.scannedShare = vm.claimShare
+        vm.claimGift(null)
       }
     })
   }

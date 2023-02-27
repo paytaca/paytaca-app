@@ -73,6 +73,8 @@ export default function ({ store }) {
         query.network = parsedPaymentUri.asset.chain === 'smart' ? 'sBCH' : 'BCH'
       } catch(error) { console.error(error) }
       Router.push({ name: 'transaction-send', query: query })
+    } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
+      Router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
     }
   })
 
