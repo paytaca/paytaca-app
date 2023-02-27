@@ -108,6 +108,18 @@ export default {
       }
     }
   },
+  created() {
+    try {
+      if (this.$router.resolve({name: 'apps-sandbox'})) {
+        this.apps.unshift({
+          name: 'Sandbox',
+          iconName: '',
+          path: '/apps/sandbox',
+          active: true
+        })
+      }
+    } catch { }
+  },
   mounted () {
     const htmlTag1 = document.querySelector('.pt-app')
     const htmlTag = document.getElementsByClassName('pt-app')

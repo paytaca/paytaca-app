@@ -66,6 +66,7 @@ export default {
       default: 'Claim'
     },
     giftCodeHash: String,
+    claimShare: String,
     localShare: String
   },
   components: {
@@ -147,6 +148,9 @@ export default {
       vm.wallet = markRaw(new Wallet(mnemonic))
       if (vm.action === 'Recover') {
         vm.claimGift(vm.giftCodeHash)
+      } else if (vm.claimShare) {
+        vm.scannedShare = vm.claimShare
+        vm.claimGift(null)
       }
     })
   }

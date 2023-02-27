@@ -13,7 +13,7 @@
         class="q-px-sm"
       />
       <div :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '30px'}">
-        <div class="row items-center justify-end q-mx-lg q-mb-md q-px-sm q-gutter-sm">
+        <div class="row items-center justify-end q-mx-md q-mb-md q-px-xs q-gutter-sm">
           <q-btn 
             no-caps
             color="primary"
@@ -28,7 +28,7 @@
           />
         </div>
         <div class="q-pa-md" :class="{'text-black': !darkMode}" style="margin-top: -10px;">
-          <div class="q-px-md row items-start">
+          <div class="q-px-xs row items-start">
             <div class="q-table__title q-space">Gifts you created</div>
             <q-btn-dropdown color="primary" no-caps :label="capitalize(filterOpts.recordType.active)" dense class="q-pl-sm" :dark="darkMode" content-style="color: black;">
               <q-list dense>
@@ -93,20 +93,34 @@
                   </div>
                   <div v-if="getGiftShare(gift?.gift_code_hash)">
                     <q-btn
+                      flat
                       no-caps
-                      padding="2px sm"
+                      padding="2px 0.75rem"
                       size="sm"
-                      label="Recover"
+                      icon="mdi-cash-refund"
                       @click="() => confirmRecoverGift(gift)"
                     />
                   </div>
+                  <q-separator v-if="getGiftShare(gift?.gift_code_hash) && getQrShare(gift?.gift_code_hash)" vertical/>
                   <div v-if="getQrShare(gift?.gift_code_hash)">
                     <q-btn
+                      flat
                       no-caps
-                      padding="2px sm"
+                      padding="2px 0.75rem"
                       size="sm"
-                      label="Show QR"
+                      icon="mdi-qrcode"
                       @click="() => displayGift(gift)"
+                    />
+                  </div>
+                  <q-separator vertical/>
+                  <div v-if="getQrShare(gift?.gift_code_hash) || true">
+                    <q-btn
+                      flat
+                      no-caps
+                      padding="2px 0.75rem"
+                      size="sm"
+                      icon="share"
+                      @click="() => shareGift(gift)"
                     />
                   </div>
                 </div>
@@ -130,6 +144,7 @@
 <script>
 import HeaderNav from '../../../components/header-nav'
 import GiftDialog from 'src/components/gifts/GiftDialog.vue'
+import ShareGiftDialog from 'src/components/gifts/ShareGiftDialog.vue'
 // import { date } from 'quasar'
 // import { defineComponent, ref } from 'vue'
 import { capitalize } from 'vue'
@@ -192,6 +207,12 @@ export default {
         .finally(() => {
           this.fetchingGifts = false
         })
+    },
+    shareGift(gift) {
+      this.$q.dialog({
+        component: ShareGiftDialog,
+        componentProps: { gift: gift },
+      })
     },
     displayGift(gift) {
       this.$q.dialog({
