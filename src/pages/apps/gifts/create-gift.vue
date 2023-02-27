@@ -157,6 +157,7 @@ export default {
       qrCodeContents: null,
       processing: false,
       completed: false,
+      wallet: null,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -254,11 +255,11 @@ export default {
       this.generateGift()
     },
     async fetchCampaigns() {
+      const mnemonic = await getMnemonic()
+      this.wallet = new Wallet(mnemonic)
       let walletHash = this.$store.getters['global/getWallet']?.('bch')?.walletHash
       if (!walletHash) {
-        const mnemonic = await getMnemonic()
-        const wallet = new Wallet(mnemonic)
-        walletHash = wallet.BCH.getWalletHash()
+        walletHash = this.wallet.BCH.getWalletHash()
       }
 
       const url = `https://gifts.paytaca.com/api/campaigns/${walletHash}/list/`
