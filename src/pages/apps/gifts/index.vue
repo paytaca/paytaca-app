@@ -64,76 +64,97 @@
               class="row items-center justify-center q-space text-center text-grey q-my-md q-gutter-sm"
               style="font-size:2rem"
             >
-            <div>No gifts</div>
-            <q-icon name="mdi-gift" size="1.25em"/>
+              <div>No gifts</div>
+              <q-icon name="mdi-gift" size="1.25em"/>
             </div>
-            <div
-              v-else
-              v-for="gift in gifts"
-              :key="gift?.gift_code_hash"
-              class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
-            >
-              <q-card :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
-                <div class="row">
-                  <div class="q-space">Amount</div>
-                  <div class="text-caption text-grey">
-                    {{gift?.amount}} BCH
+            <template v-else>
+              <div
+                v-for="gift in gifts"
+                :key="gift?.gift_code_hash"
+                class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
+              >
+                <q-card :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
+                  <div class="row">
+                    <div class="q-space">Amount</div>
+                    <div class="text-caption text-grey">
+                      {{gift?.amount}} BCH
+                    </div>
                   </div>
-                </div>
-                <div class="row">
-                  <div class="q-space">Date Created</div>
-                  <div class="text-caption text-grey">
-                    {{formatRelativeTimestamp(gift?.date_created)}}
+                  <div class="row">
+                    <div class="q-space">Date Created</div>
+                    <div class="text-caption text-grey">
+                      {{formatRelativeTimestamp(gift?.date_created)}}
+                    </div>
                   </div>
-                </div>
-                <q-separator spaced :dark="darkMode"/>
-                <div v-if="gift.date_claimed === 'None'" class="row items-center q-gutter-sm">
-                  <div class="q-space">
-                    <q-badge color="grey" class="q-my-xs">Unclaimed</q-badge>
+                  <q-separator spaced :dark="darkMode"/>
+                  <div v-if="gift.date_claimed === 'None'" class="row items-center q-gutter-sm">
+                    <div class="q-space">
+                      <q-badge color="grey" class="q-my-xs">Unclaimed</q-badge>
+                    </div>
+                    <div v-if="getGiftShare(gift?.gift_code_hash)">
+                      <q-btn
+                        flat
+                        no-caps
+                        padding="2px 0.75rem"
+                        size="sm"
+                        icon="mdi-cash-refund"
+                        @click="() => confirmRecoverGift(gift)"
+                      />
+                    </div>
+                    <q-separator v-if="getGiftShare(gift?.gift_code_hash) && getQrShare(gift?.gift_code_hash)" vertical :dark="darkMode"/>
+                    <template v-if="getQrShare(gift?.gift_code_hash)">
+                      <div>
+                        <q-btn
+                          flat
+                          no-caps
+                          padding="2px 0.75rem"
+                          size="sm"
+                          icon="mdi-qrcode"
+                          @click="() => displayGift(gift)"
+                        />
+                      </div>
+                      <q-separator vertical :dark="darkMode"/>
+                      <div>
+                        <q-btn
+                          flat
+                          no-caps
+                          padding="2px 0.75rem"
+                          size="sm"
+                          icon="share"
+                          @click="() => shareGift(gift)"
+                        />
+                      </div>
+                    </template>
                   </div>
-                  <div v-if="getGiftShare(gift?.gift_code_hash)">
-                    <q-btn
-                      flat
-                      no-caps
-                      padding="2px 0.75rem"
-                      size="sm"
-                      icon="mdi-cash-refund"
-                      @click="() => confirmRecoverGift(gift)"
-                    />
+                  <div v-else class="row items-center q-gutter-sm">
+                    <div class="q-space">
+                      <q-badge color="green" class="q-my-xs">Claimed</q-badge>
+                    </div>
+                    <div class="text-caption text-grey">
+                      {{formatRelativeTimestamp(gift?.date_claimed)}}
+                    </div>
                   </div>
-                  <q-separator v-if="getGiftShare(gift?.gift_code_hash) && getQrShare(gift?.gift_code_hash)" vertical :dark="darkMode"/>
-                  <div v-if="getQrShare(gift?.gift_code_hash)">
-                    <q-btn
-                      flat
-                      no-caps
-                      padding="2px 0.75rem"
-                      size="sm"
-                      icon="mdi-qrcode"
-                      @click="() => displayGift(gift)"
-                    />
-                  </div>
-                  <q-separator vertical :dark="darkMode"/>
-                  <div v-if="getQrShare(gift?.gift_code_hash) || true">
-                    <q-btn
-                      flat
-                      no-caps
-                      padding="2px 0.75rem"
-                      size="sm"
-                      icon="share"
-                      @click="() => shareGift(gift)"
-                    />
-                  </div>
-                </div>
-                <div v-else class="row items-center q-gutter-sm">
-                  <div class="q-space">
-                    <q-badge color="green" class="q-my-xs">Claimed</q-badge>
-                  </div>
-                  <div class="text-caption text-grey">
-                    {{formatRelativeTimestamp(gift?.date_claimed)}}
-                  </div>
-                </div>
-              </q-card>
-            </div>
+                </q-card>
+              </div>
+              <div class="full-width row q-mt-sm items-center justify-center">
+                <q-pagination
+                  v-if="pageNumberPaginationData?.pageCount > 1"
+                  :modelValue="pageNumberPaginationData.currentPage"
+                  :max="pageNumberPaginationData.pageCount"
+                  :max-pages="6"
+                  :dark="darkMode"
+                  padding="xs"
+                  boundary-numbers
+                  @update:modelValue="
+                    (val) => fetchGifts({
+                      recordType: filterOpts.recordType.active,
+                      limit: pageNumberPaginationData.pageSize,
+                      offset: pageNumberPaginationData.pageSize * (val - 1)
+                    })
+                  "
+                />
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -166,12 +187,31 @@ export default {
       },
       fetchingGifts: false,
       gifts: [],
+      pagination: {
+        count: 0,
+        limit: 0,
+        offset: 0,
+      },
     }
   },
 
   computed: {
     darkMode() {
       return this.$store.getters['darkmode/getStatus']
+    },
+    pageNumberPaginationData () {
+      if (
+        !this.pagination ||
+        !Number.isSafeInteger(this.pagination.count) ||
+        !Number.isSafeInteger(this.pagination.limit) ||
+        !Number.isSafeInteger(this.pagination.offset)
+      ) return
+
+      return {
+        pageCount: Math.ceil(this.pagination.count / this.pagination.limit),
+        currentPage: Math.ceil(this.pagination.offset / this.pagination.limit) + 1,
+        pageSize: this.pagination.limit
+      }
     }
   },
 
@@ -181,11 +221,19 @@ export default {
       if (isNaN(new Date(val).valueOf())) return ''
       return `${formatDistance(new Date(val), new Date(), { addSuffix: true })}`
     },
-    fetchGifts(opts = { recordType: 'all' }) {
+    fetchGifts(opts = { recordType: 'all', limit: 10, offset: 0 }) {
       const recordType = opts?.recordType || 'all'
       const url = `https://gifts.paytaca.com/api/gifts/${this.walletHash}/list`
+      const query = { limit: undefined, offset: undefined, claimed: undefined }
+      if (recordType === 'claimed') query.claimed = true
+      if (recordType === 'unclaimed') query.claimed = false
+      if (!isNaN(opts?.limit) || !isNaN(opts?.offset)) {
+        query.limit = opts.limit
+        query.offset = opts.offset
+      }
+
       this.fetchingGifts = true
-      axios.get(url)
+      axios.get(url, { params: query })
         .then(response => {
           if (!Array.isArray(response?.data?.gifts)) return Promise.reject({ response })
 
@@ -196,13 +244,16 @@ export default {
             if (gift.date_claimed !== 'None') this.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
             return true
           })
+
           return Promise.resolve(response)
         })
-        .then(() => {
+        .then(response => {
           this.filterOpts.recordType.active = recordType
           if (this.filterOpts.recordType.options.indexOf(recordType) < 0) {
             this.filterOpts.recordType.active = this.filterOpts.recordType.default
           }
+
+          if (response?.data?.pagination) this.pagination = response?.data?.pagination
         })
         .finally(() => {
           this.fetchingGifts = false

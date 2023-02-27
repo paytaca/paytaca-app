@@ -90,6 +90,7 @@
             </label>
             <q-select
               filled
+              clearable
               v-model="selectedCampaign"
               :dark="darkMode"
               :options="campaignOptions"
