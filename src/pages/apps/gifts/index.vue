@@ -37,7 +37,7 @@
                   :index="recordType"
                   clickable v-close-popup
                   :active="recordType === filterOpts.recordType.active"
-                  @click="() => fetchGifts({ recordType: recordType })"
+                  @click="() => fetchGifts({ recordType: recordType, limit: 10 })"
                 >
                   <q-item-section>
                     <q-item-label>{{ capitalize(recordType) }}</q-item-label>
