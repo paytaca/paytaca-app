@@ -365,6 +365,11 @@ export default {
       required: false,
       default: 1
     },
+    simpleNft: {
+      type: Boolean,
+      required: false,
+      default: false
+    },
     symbol: {
       type: String,
       required: false
@@ -481,6 +486,7 @@ export default {
     },
     isNFT () {
       if (this.isSep20 && erc721IdRegexp.test(this.assetId)) return true
+      if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65
     },
