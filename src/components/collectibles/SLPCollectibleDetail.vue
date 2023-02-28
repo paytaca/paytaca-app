@@ -61,11 +61,13 @@ export default {
       openURL(url)
     },
     send () {
+      const isSimpleNft = this.collectible.type === 1
       this.$router.push({
         name: 'transaction-send',
         query: {
           assetId: 'slp/' + this.collectible.token_id,
-          tokenType: 65,
+          tokenType: isSimpleNft ? 1 : 65,
+          simpleNft: isSimpleNft,
           amount: 1,
           symbol: this.collectible.symbol,
           image: this.imageUrl,

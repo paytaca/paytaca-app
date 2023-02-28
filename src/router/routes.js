@@ -33,6 +33,8 @@ const routes = [
           if (!isNaN(props.amount)) props.amount = Number(props.amount)
           if (props.fixed === 'true') props.fixed = true
           else if (props.fixed === 'false') props.fixed = false
+          if (props.simpleNft === 'true') props.simpleNft = true
+          else if (props.simpleNft === 'false') props.simpleNft = false
           return props
         },
         component: () => import('pages/transaction/send.vue')
