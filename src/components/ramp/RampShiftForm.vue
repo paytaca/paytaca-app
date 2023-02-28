@@ -113,7 +113,7 @@
                 no-caps
                 flat
                 icon-right="mdi-arrow-right"
-                label="Enter BCH address"
+                label="Enter Wallet address"
                 color="blue-9"
                 padding="none xs"
                 size="12px"
@@ -140,6 +140,7 @@
   <div v-if="confirmData">
     <RampConfirmation
     :info="settleInfo"
+    v-on:close="updateConfirmData"
   />
   </div>
 
@@ -204,7 +205,7 @@ export default {
           } else {
             this.deposit = coin
           }
-
+          console.log(this.deposit)
           this.updateConvertionRate()
         })
     },
@@ -265,6 +266,7 @@ export default {
         deposit: vm.deposit,
         settle: vm.settle,
         depositAmount: vm.shiftAmount,
+        settleAmount: vm.settleAmount,
         settleAddress: vm.settleAddress
       }
 
@@ -279,6 +281,9 @@ export default {
       } else {
         return false
       }
+    },
+    updateConfirmData () {
+      this.confirmData = !this.confirmData
     },
     updateConvertionRate: debounce(async function () {
       const vm = this

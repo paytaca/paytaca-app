@@ -35,7 +35,13 @@
       />
     </q-tabs>
 
-    <RampShiftForm/>
+    <!-- CRYPTO Tab -->
+    <RampShiftForm v-if="isAllowed"/>
+    <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
+      <div>
+        Sorry. This feature is blocked in your country &#128533;
+      </div>
+    </div>
 
   </div>
 </template>
@@ -51,8 +57,27 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: 'Crypto'
+      selectedCurrency: 'Crypto',
+      isAllowed: true
+    }
+  },
+  async mounted () {
+    const vm = this
+    // check permission first
+    const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
+
+    if (!permission.data.createShift) {
+      vm.isAllowed = false
     }
   }
 }
 </script>
+<style lang="scss" scoped>
+  .pt-internet-required {
+  text-align: center;
+  width: 100%;
+  font-size: 24px;
+  padding: 30px;
+  color: gray;
+}
+</style>>
