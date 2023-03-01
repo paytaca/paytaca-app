@@ -95,7 +95,6 @@ export default {
       if (!this.searchText) return this.tokenList
 
       const needle = String(this.searchText).toLowerCase()
-      console.log(needle)
 
       return this.tokenList
         .filter(token => {

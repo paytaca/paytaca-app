@@ -2,7 +2,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
-    v-if="isloaded"
+    v-if="isloaded && !networkError"
   >
     <div class="q-pl-sm q-pt-sm">
       <q-btn
@@ -56,16 +56,27 @@
    </div>
     <q-separator spaced class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
     <q-item>
-      <q-item-section class="text-center q-pb-lg q-pt-sm">
+      <q-item-section class="text-center q-pb-sm q-pt-sm">
         <q-item-label>Recieving Address: </q-item-label>
         <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
           <span style="font-size: 13px;">{{ rampData.settleAddress }}</span>
         </q-item-label>
       </q-item-section>
     </q-item>
+    <q-item>
+      <q-item-section class="text-center q-pb-lg">
+        <q-item-label>Refund Address: </q-item-label>
+        <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
+          <span style="font-size: 13px;">{{ rampData.refundAddress }}</span>
+        </q-item-label>
+      </q-item-section>
+    </q-item>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
     <ProgressLoader/>
+  </div>
+  <div class="col q-mt-sm pt-internet-required" v-if="networkError">
+    {{ $t('NoInternetConnectionNotice') }} &#128533;
   </div>
   <DragSlide
     :style="{
@@ -77,6 +88,7 @@
     }"
     @swiped="dataConfirmed"
     text="Swipe To Confirm"
+    v-if="!networkError"
   />
 </template>
 <script>
@@ -87,8 +99,12 @@ export default {
   data () {
     return {
       isloaded: false,
+      networkError: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      rampData: {}
+      rampData: {},
+      shiftData: {
+        hello: 'world'
+      }
     }
   },
   emits: ['close', 'confirmed'],
@@ -114,19 +130,76 @@ export default {
         return token.network.toUpperCase()
       }
     },
-    dataConfirmed () {
-      console.log('test')
-      this.getQuote()
+    async dataConfirmed () {
+      await this.getQuote()
 
-      this.$emit('confirmed')
+      this.$emit('confirmed', this.shiftData)
     },
     async getQuote () {
       const vm = this
       console.log('Getting Quote')
       vm.isloaded = false
-      // const url = 'https://sideshift.ai/api/v2/quotes'
 
-      // const response = await vm.$axios.post()
+      // get IP
+      const IPurl = 'https://api.ipify.org?format=json'
+      const test = await vm.$axios.get(IPurl).catch(function () { console.log('error') })
+
+      if (test.status !== 500) {
+        console.log('getting IP')
+        const userIP = test.data.ip
+        const amount = parseFloat(vm.rampData.depositAmount).toFixed(8)
+
+        // Get Quote
+        const quoteUrl = 'https:///sideshift.ai/api/v2/quotes'
+        const response = await vm.$axios.post(quoteUrl,
+          {
+            depositCoin: vm.rampData.deposit.coin,
+            depositNetwork: vm.rampData.deposit.network,
+            settleCoin: vm.rampData.settle.coin,
+            settleNetwork: vm.rampData.settle.network,
+            depositAmount: amount
+          },
+          {
+            headers: {
+              'content-type': 'application/json',
+              'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
+              'x-user-ip': userIP//'1.2.4.1' //userIP
+            }
+          }
+        )
+
+        if (response.status === 200 || response.status === 201) {
+          console.log('getting quote')
+          const quote = response.data
+
+          // fixed Shift
+          const shiftUrl = 'https://sideshift.ai/api/v2/shifts/fixed'
+          const resp = await vm.$axios.post(shiftUrl,
+            {
+              settleAddress: vm.rampData.settleAddress,
+              quoteId: quote.id,
+              refundAddress: vm.refundAddress
+            },
+            {
+              headers: {
+                'content-type': 'application/json',
+                'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
+                'x-user-ip': userIP
+              }
+            }
+          )
+
+          if (resp.status === 200 || resp.status === 201) {
+            console.log('fixed shift')
+            console.log(resp)
+            vm.shiftData = resp.data
+          }
+        } else {
+          vm.networkError = true
+        }
+      } else {
+        vm.networkError = true
+      }
     }
   },
   async mounted () {
@@ -134,6 +207,7 @@ export default {
 
     vm.rampData = vm.info
     vm.isloaded = true
+    console.log(vm.rampData)
   }
 }
 </script>
@@ -143,5 +217,12 @@ export default {
 }
 .text-subtitle1 {
   font-size: 14px;
+}
+.pt-internet-required {
+  text-align: center;
+  width: 100%;
+  font-size: 24px;
+  padding: 30px;
+  color: gray;
 }
 </style>>

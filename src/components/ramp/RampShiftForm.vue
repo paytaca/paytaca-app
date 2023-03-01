@@ -93,10 +93,10 @@
       </q-item-section>
     </q-item>
     <q-separator spaced class="q-mx-lg" :color="darkMode ? 'white' : 'gray'"/>
-    <q-item class="q-mx-md q-py-lg">
-      <q-item-section class="justify-center text-center">
-        <div class="q-pb-sm">
-          Recieving Address
+    <q-item class="q-mx-md q-pt-lg">
+      <q-item-section class="justify-center">
+        <div class="q-pb-sm q-pl-sm">
+          Receiving Address
         </div>
         <q-input
           dense
@@ -104,10 +104,10 @@
           :dark="darkMode"
           v-model="settleAddress"
         >
-        <template v-slot:append>
-          <q-icon name="close" @click="settleAddress = ''"/>
-        </template>
-      </q-input>
+          <template v-slot:append>
+            <q-icon name="close" @click="settleAddress = ''"/>
+          </template>
+       </q-input>
         <q-item-label class="text-right q-pr-sm q-pt-sm" v-if="settle.coin === 'BCH'">
           <q-btn
                 no-caps
@@ -117,14 +117,43 @@
                 color="blue-9"
                 padding="none xs"
                 size="12px"
-                @click="addBCHAddress()"
+                @click="addBCHAddress('receive')"
+              />
+        </q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item class="q-mx-md q-pb-lg">
+      <q-item-section class="justify-center">
+        <div class="q-pb-sm q-pl-sm">
+          Refund Address
+        </div>
+        <q-input
+          dense
+          filled
+          :dark="darkMode"
+          v-model="refundAddress"
+        >
+          <template v-slot:append>
+            <q-icon name="close" @click="refundAddress = ''"/>
+          </template>
+       </q-input>
+        <q-item-label class="text-right q-pr-sm q-pt-sm" v-if="deposit.coin === 'BCH'">
+          <q-btn
+                no-caps
+                flat
+                icon-right="mdi-arrow-right"
+                label="Enter Wallet address"
+                color="blue-9"
+                padding="none xs"
+                size="12px"
+                @click="addBCHAddress('refund')"
               />
         </q-item-label>
       </q-item-section>
     </q-item>
     <div class="row q-mx-md q-py-lg">
       <q-btn
-        :disable="hasError || !shiftAmount || !settleAddress || !amountLoaded"
+        :disable="hasError || !shiftAmount || !settleAddress || !amountLoaded || !refundAddress"
         rounded
         no-caps
         label='Enter'
@@ -141,12 +170,14 @@
     <RampConfirmation
     :info="settleInfo"
     v-on:close="updateState('form')"
-    v-on:confirmed="updateState('deposit')"
+    v-on:confirmed="openDepositInfo"
   />
   </div>
 
   <div v-if="state === 'deposit'">
-    <RampDepositInfo/>
+    <RampDepositInfo
+      :shiftData="shiftData"
+    />
   </div>
 
 </template>
@@ -190,7 +221,9 @@ export default {
       minimum: '~',
       maximum: '~',
       settleAddress: '',
+      refundAddress: '',
       settleInfo: {},
+      shiftData: {},
       convertionRate: ''
     }
   },
@@ -205,14 +238,12 @@ export default {
         }
       })
         .onOk(coin => {
-          // console.log(coin)
-
           if (coin.coin === this.settle.coin && coin.network === this.settle.network) {
             this.swapCoin()
           } else {
             this.deposit = coin
           }
-          console.log(this.deposit)
+          this.refundAddress = ''
           this.updateConvertionRate()
         })
     },
@@ -226,7 +257,6 @@ export default {
         }
       })
         .onOk(coin => {
-          // console.log(coin)
           //check token
 
           if (coin.coin === this.deposit.coin && coin.network === this.deposit.network) {
@@ -247,10 +277,16 @@ export default {
       vm.settle = temp
 
       vm.settleAddress = ''
+      vm.refundAddress = ''
       vm.updateConvertionRate()
     },
-    addBCHAddress () {
-      this.settleAddress = this.$store.getters['global/getAddress']('bch')
+    addBCHAddress (type) {
+      if (type === 'receive') {
+        this.settleAddress = this.$store.getters['global/getAddress']('bch')
+      }
+      if (type === 'refund') {
+        this.refundAddress = this.$store.getters['global/getAddress']('bch')
+      }
     },
     getNetwork (token) {
       const network = token.network.toLowerCase()
@@ -274,7 +310,8 @@ export default {
         settle: vm.settle,
         depositAmount: vm.shiftAmount,
         settleAmount: vm.settleAmount,
-        settleAddress: vm.settleAddress
+        settleAddress: vm.settleAddress,
+        refundAddress: vm.refundAddress
       }
 
       vm.state = 'confirmation'
@@ -292,8 +329,10 @@ export default {
     updateState (state) {
       this.state = state
     },
-    openDepositInfo () {
-      console.log('Deposit Info')
+    openDepositInfo (info) {
+      this.updateState('deposit')
+      this.shiftData = info
+      console.log(info)
     },
     updateConvertionRate: debounce(async function () {
       const vm = this
