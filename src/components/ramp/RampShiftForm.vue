@@ -2,7 +2,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
-    v-if="isloaded && !confirmData"
+    v-if="isloaded && state === 'form'"
   >
     <div class="text-center q-py-md">
       {{ $t('SwapFrom') }}:
@@ -137,11 +137,16 @@
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
     <ProgressLoader/>
   </div>
-  <div v-if="confirmData">
+  <div v-if="state === 'confirmation'">
     <RampConfirmation
     :info="settleInfo"
-    v-on:close="updateConfirmData"
+    v-on:close="updateState('form')"
+    v-on:confirmed="updateState('deposit')"
   />
+  </div>
+
+  <div v-if="state === 'deposit'">
+    <RampDepositInfo/>
   </div>
 
 </template>
@@ -149,13 +154,15 @@
 <script>
 import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampConfirmation from './RampConfirmation.vue'
+import RampDepositInfo from './RampDepositInfo.vue'
 import ProgressLoader from '../ProgressLoader.vue'
 import { debounce } from 'quasar'
 
 export default {
   components: {
     ProgressLoader,
-    RampConfirmation
+    RampConfirmation,
+    RampDepositInfo
   },
   data () {
     return {
@@ -163,7 +170,7 @@ export default {
       hasError: false,
       invalidAmount: false,
       isloaded: false,
-      confirmData: false,
+      state: 'form', // confirmation, deposit
       darkMode: this.$store.getters['darkmode/getStatus'],
       deposit: {
         coin: 'BTC',
@@ -270,7 +277,7 @@ export default {
         settleAddress: vm.settleAddress
       }
 
-      vm.confirmData = true
+      vm.state = 'confirmation'
     },
     isAmountValid (value) {
       // amount with comma and decimal regex
@@ -282,8 +289,11 @@ export default {
         return false
       }
     },
-    updateConfirmData () {
-      this.confirmData = !this.confirmData
+    updateState (state) {
+      this.state = state
+    },
+    openDepositInfo () {
+      console.log('Deposit Info')
     },
     updateConvertionRate: debounce(async function () {
       const vm = this
@@ -324,6 +334,7 @@ export default {
 
       for (const item in vm.tokenList) {
         const token = vm.tokenList[item]
+
         if (item === '0') {
           vm.tokenList[item].icon = await vm.getCoinImage(token.coin, token.network)
         } else {

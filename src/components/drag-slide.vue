@@ -30,7 +30,7 @@ export default {
   data () {
     return {
       swiped: false,
-      sliderText: ''
+      sliderText: this.$t('SwipeToSend')
     }
   },
   props: {
@@ -55,10 +55,7 @@ export default {
 
     if (vm.text) {
       vm.sliderText = vm.text
-    } else {
-      vm.sliderText = vm.$t('SwipeToSend')
     }
-    console.log(vm.sliderText)
   }
 }
 </script>

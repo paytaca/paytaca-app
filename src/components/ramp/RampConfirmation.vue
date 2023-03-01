@@ -91,7 +91,7 @@ export default {
       rampData: {}
     }
   },
-  emits: ['close'],
+  emits: ['close', 'confirmed'],
   components: {
     ProgressLoader,
     DragSlide
@@ -117,6 +117,8 @@ export default {
     dataConfirmed () {
       console.log('test')
       this.getQuote()
+
+      this.$emit('confirmed')
     },
     async getQuote () {
       const vm = this
