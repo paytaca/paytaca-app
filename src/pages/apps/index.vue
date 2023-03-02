@@ -67,12 +67,12 @@ export default {
           path: '/apps/gifts/',
           active: true
         },
-        // {
-        //   name: 'Chat',
-        //   iconName: 'mdi-chat',
-        //   path: '/apps/chat/',
-        //   active: true
-        // },
+        {
+          name: 'Chat',
+          iconName: 'mdi-chat',
+          path: '/apps/chat/',
+          active: true
+        },
         {
           name: 'POS Admin',
           iconName: 'point_of_sale',
