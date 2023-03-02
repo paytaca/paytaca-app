@@ -85,7 +85,7 @@
         <ProgressLoader />
       </div>
     </div>
-    <div v-if="connected" id="messages-container" style="width: 100%;">
+    <div v-if="connected" id="messages-container" ref="messagesContainer" style="width: 100%;">
       <div style="overflow-y: auto; padding: 7px;">
         <div v-for="message in messages" style="width: 100%; max-width: 400px;">
           <q-chat-message
@@ -95,6 +95,8 @@
           />
         </div>
       </div>
+    </div>
+    <div id="send-container">
       <div class="q-pt-lg">
         <q-input
           v-model="message"
@@ -104,7 +106,7 @@
           autogrow
         />
       </div>
-      <div ref="sendButton" class="q-pt-md" style="width: 100%; padding-bottom: 12px;">
+      <div class="q-pt-md" style="width: 100%; padding-bottom: 12px;">
         <q-btn
           color="blue"
           icon-right="send"
@@ -299,6 +301,12 @@ export default {
             'chat/appendMessage',
             { topic: this.topic, message: payload }
           )
+          this.$nextTick(() => {
+            try {
+              const div = this.$refs.messagesContainer
+              div.scrollTop = div.scrollHeight
+            } catch {}
+          })
         } catch (e) {
           throw new Error('Message could not be decrypted: ' + e.message)
         }
@@ -340,7 +348,6 @@ export default {
       })
 
       vm.mqttClient.on('message', function (topic, message, packet) {
-        console.log('Message received')
         const msg = JSON.parse(message.toString())
         const timeNow = Date.now()
         if (!msg.timestamp) {
@@ -451,7 +458,16 @@ export default {
     position: fixed;
     bottom: 0;
     padding: 0 15px;
-    border-top: 1px solid lightgray;
     overflow-y: scroll;
+    padding-top: 90px;
+    padding-bottom: 140px;
+    height: 100vh;
+  }
+  #send-container {
+    position: fixed;
+    background-color: #ECF3F3;
+    bottom: 0;
+    width: 100%;
+    padding: 0 10px;
   }
 </style>
