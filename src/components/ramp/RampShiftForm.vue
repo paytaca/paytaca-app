@@ -1,4 +1,8 @@
 <template>
+  <QrScanner
+    v-model="showQrScanner"
+    @decode="onScannerDecode"
+  />
   <q-card
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
@@ -105,7 +109,8 @@
           v-model="settleAddress"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="settleAddress = ''"/>
+            <q-icon name="close" @click="settleAddress = ''"/>&nbsp
+            <q-icon name="mdi-qrcode-scan" @click="displayScanner('receive')"/>
           </template>
        </q-input>
         <q-item-label class="text-right q-pr-sm q-pt-sm" v-if="settle.coin === 'BCH'">
@@ -134,7 +139,8 @@
           v-model="refundAddress"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="refundAddress = ''"/>
+            <q-icon name="close" @click="refundAddress = ''"/>&nbsp
+            <q-icon name="mdi-qrcode-scan" @click="displayScanner('refund')"/>
           </template>
        </q-input>
         <q-item-label class="text-right q-pr-sm q-pt-sm" v-if="deposit.coin === 'BCH'">
@@ -177,9 +183,9 @@
   <div v-if="state === 'deposit'">
     <RampDepositInfo
       :shiftData="shiftData"
+      v-on:retry="updateState('form')"
     />
   </div>
-
 </template>
 
 <script>
@@ -187,13 +193,16 @@ import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampConfirmation from './RampConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
 import ProgressLoader from '../ProgressLoader.vue'
+import QrScanner from '../qr-scanner.vue'
 import { debounce } from 'quasar'
+import { vmNumberToBigInt } from '@bitauth/libauth'
 
 export default {
   components: {
     ProgressLoader,
     RampConfirmation,
-    RampDepositInfo
+    RampDepositInfo,
+    QrScanner
   },
   data () {
     return {
@@ -201,7 +210,8 @@ export default {
       hasError: false,
       invalidAmount: false,
       isloaded: false,
-      state: 'form', // confirmation, deposit
+      state: 'form', // confirmation, deposit,
+      showQrScanner: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       deposit: {
         coin: 'BTC',
@@ -224,7 +234,8 @@ export default {
       refundAddress: '',
       settleInfo: {},
       shiftData: {},
-      convertionRate: ''
+      convertionRate: '',
+      addrType: ''
     }
   },
   methods: {
@@ -267,6 +278,11 @@ export default {
           this.settleAddress = ''
           this.updateConvertionRate()
         })
+    },
+    displayScanner (type = '') {
+      const vm = this
+      vm.showQrScanner = !vm.showQrScanner
+      vm.addrType = type
     },
     swapCoin () {
       const vm = this
@@ -332,7 +348,17 @@ export default {
     openDepositInfo (info) {
       this.updateState('deposit')
       this.shiftData = info
-      console.log(info)
+    },
+    onScannerDecode (content) {
+      const vm = this
+      vm.showQrScanner = false
+
+      if (vm.addrType === 'receive') {
+        vm.settleAddress = content
+      }
+      if (vm.addrType === 'refund') {
+        vm.refundAddress = content
+      }
     },
     updateConvertionRate: debounce(async function () {
       const vm = this
@@ -374,31 +400,35 @@ export default {
       for (const item in vm.tokenList) {
         const token = vm.tokenList[item]
 
-        if (item === '0') {
-          vm.tokenList[item].icon = await vm.getCoinImage(token.coin, token.network)
+        if (vm.tokenList[item].coin === 'MANA') {
+          vm.tokenList[item].icon = '<img src="https://cryptologos.cc/logos/decentraland-mana-logo.png?v=024" style="height: 30px; width: 30px"/>'
         } else {
-          const last = vm.tokenList[item - 1]
-          if (last) {
-            if (vm.tokenList[item].coin === vm.tokenList[item - 1].coin) {
-              vm.tokenList[item].icon = vm.tokenList[item - 1].icon
-            } else {
-              vm.tokenList[item].icon = await vm.getCoinImage(token.coin, token.network)
+          if (item === '0') {
+            vm.tokenList[item].icon = await vm.getCoinImage(token.coin, token.network)
+          } else {
+            const last = vm.tokenList[item - 1]
+            if (last) {
+              if (vm.tokenList[item].coin === vm.tokenList[item - 1].coin) {
+                vm.tokenList[item].icon = vm.tokenList[item - 1].icon
+              } else {
+                vm.tokenList[item].icon = await vm.getCoinImage(token.coin, token.network)
+              }
             }
           }
-        }
-        //remove: width + height
-        let icon = vm.tokenList[item].icon
-        const heightRegex = /height="\d+"\s/
-        const widthRegex = /width="\d+"\s/
+          //remove: width + height
+          let icon = vm.tokenList[item].icon
+          const heightRegex = /height="\d+"\s/
+          const widthRegex = /width="\d+"\s/
 
-        if (heightRegex.test(icon)) {
-          icon = icon.replace(heightRegex, '')
-        }
-        if (widthRegex.test(icon)) {
-          icon = icon.replace(widthRegex, '')
-        }
+          if (heightRegex.test(icon)) {
+            icon = icon.replace(heightRegex, '')
+          }
+          if (widthRegex.test(icon)) {
+            icon = icon.replace(widthRegex, '')
+          }
 
-        vm.tokenList[item].icon = icon
+          vm.tokenList[item].icon = icon
+        }
       }
     },
     async getTokenList () {

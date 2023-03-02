@@ -137,12 +137,14 @@ export default {
     },
     async getQuote () {
       const vm = this
-      console.log('Getting Quote')
       vm.isloaded = false
 
       // get IP
       const IPurl = 'https://api.ipify.org?format=json'
-      const test = await vm.$axios.get(IPurl).catch(function () { console.log('error') })
+      const test = await vm.$axios.get(IPurl).catch(function () {
+        vm.networkError = true
+        vm.isloaded = true
+      })
 
       if (test.status !== 500) {
         console.log('getting IP')
@@ -166,7 +168,10 @@ export default {
               'x-user-ip': userIP//'1.2.4.1' //userIP
             }
           }
-        )
+        ).catch(function () {
+          vm.networkError = true
+          vm.isloaded = true
+        })
 
         if (response.status === 200 || response.status === 201) {
           console.log('getting quote')
@@ -187,18 +192,25 @@ export default {
                 'x-user-ip': userIP
               }
             }
-          )
+          ).catch(function () {
+            vm.networkError = true
+            vm.isloaded = true
+          })
 
           if (resp.status === 200 || resp.status === 201) {
             console.log('fixed shift')
-            console.log(resp)
             vm.shiftData = resp.data
+          } else {
+            vm.networkError = true
+            vm.loaded = true
           }
         } else {
           vm.networkError = true
+          vm.loaded = true
         }
       } else {
         vm.networkError = true
+        vm.loaded = true
       }
     }
   },
@@ -207,7 +219,6 @@ export default {
 
     vm.rampData = vm.info
     vm.isloaded = true
-    console.log(vm.rampData)
   }
 }
 </script>
