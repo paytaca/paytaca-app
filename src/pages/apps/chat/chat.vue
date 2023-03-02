@@ -31,7 +31,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <div class="q-pa-lg row justify-center text-black" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '0px'}">
+    <div id="main-container" class="q-pa-lg row justify-center text-black" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '0px'}">
       <template v-if="!connected && !topic">
         <div class="q-pa-md row justify-center">
           <p :class="{'text-white': darkMode}">You are chatting as:</p>
@@ -84,32 +84,34 @@
       <div v-if="connecting">
         <ProgressLoader />
       </div>
-      <div v-for="message in messages" style="width: 100%; max-width: 400px">
-        <q-chat-message
-          :text="[message.msg]"
-          :sent="message.from === me"
-          :stamp="formatTimestamp(message.timestamp)"
+    </div>
+    <div v-if="connected" id="messages-container" style="width: 100%;">
+      <div style="overflow-y: auto; padding: 7px;">
+        <div v-for="message in messages" style="width: 100%; max-width: 400px;">
+          <q-chat-message
+            :text="[message.msg]"
+            :sent="message.from === me"
+            :stamp="formatTimestamp(message.timestamp)"
+          />
+        </div>
+      </div>
+      <div class="q-pt-lg">
+        <q-input
+          v-model="message"
+          :dark="darkMode"
+          style="width: 100%;"
+          filled
+          autogrow
         />
       </div>
-      <div v-if="connected" class="send-container" style="width: 100%;">
-        <div class="q-pt-lg">
-          <q-input
-            v-model="message"
-            :dark="darkMode"
-            style="width: 100%;"
-            filled
-            autogrow
-          />
-        </div>
-        <div ref="sendButton" class="q-pt-md" style="width: 100%; padding-bottom: 12px;">
-          <q-btn
-            color="blue"
-            icon-right="send"
-            label="Send"
-            @click.prevent="sendEncryptedChatMessage"
-            :disable="!message"
-          />
-        </div>
+      <div ref="sendButton" class="q-pt-md" style="width: 100%; padding-bottom: 12px;">
+        <q-btn
+          color="blue"
+          icon-right="send"
+          label="Send"
+          @click.prevent="sendEncryptedChatMessage"
+          :disable="!message"
+        />
       </div>
     </div>
   </div>
@@ -267,7 +269,7 @@ export default {
           'msg': Buffer.from(encrypted).toString('base64'),
           'timestamp': Date.now()
         }
-        vm.mqttClient.publish(vm.topic, JSON.stringify(message), { qos: 0, retain: false })
+        vm.mqttClient.publish(vm.topic, JSON.stringify(message), { qos: 2, retain: true })
         vm.message = null
       }
     },
@@ -297,10 +299,6 @@ export default {
             'chat/appendMessage',
             { topic: this.topic, message: payload }
           )
-          const vm = this
-          setTimeout(function () {
-            vm.scrollToTop()
-          }, 100)
         } catch (e) {
           throw new Error('Message could not be decrypted: ' + e.message)
         }
@@ -359,14 +357,6 @@ export default {
     deleteHistory () {
       this.$store.dispatch('chat/deleteHistory', this.topic)
       this.$router.push('/apps/chat')
-    },
-    scrollToTop () {
-      const sendContainer = document.body.getElementsByClassName('send-container')[0]
-      if (sendContainer) {
-        this.$nextTick(() => {
-          sendContainer.scrollIntoView({ block: 'end',  behavior: 'smooth' })
-        })
-      }
     }
   },
   async mounted () {
@@ -451,5 +441,17 @@ export default {
     top: 16px;
     color: #3b7bf6;
     z-index: 150;
+  }
+  #main-container {
+    border-top: 1px solid rgb(240, 231, 231);
+    padding-top: 20px !important;
+    padding-bottom: 200px;
+  }
+  #messages-container {
+    position: fixed;
+    bottom: 0;
+    padding: 0 15px;
+    border-top: 1px solid lightgray;
+    overflow-y: scroll;
   }
 </style>
