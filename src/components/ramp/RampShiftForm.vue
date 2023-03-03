@@ -183,8 +183,12 @@
   <div v-if="state === 'deposit'">
     <RampDepositInfo
       :shiftData="shiftData"
+      :refundAddress="refundAddress"
       v-on:retry="updateState('form')"
     />
+  </div>
+  <div class="col q-mt-sm pt-internet-required" v-if="error">
+    {{ $t('NoInternetConnectionNotice') }} &#128533;
   </div>
 </template>
 
@@ -208,6 +212,7 @@ export default {
     return {
       error: false,
       hasError: false,
+      errorMsg: '',
       invalidAmount: false,
       isloaded: false,
       state: 'form', // confirmation, deposit,
@@ -301,18 +306,11 @@ export default {
         this.settleAddress = this.$store.getters['global/getAddress']('bch')
       }
       if (type === 'refund') {
+        if (this.deposit.coin === 'BCH') {
+          this.updateConvertionRate()
+        }
         this.refundAddress = this.$store.getters['global/getAddress']('bch')
       }
-    },
-    checkBalance () {
-      const vm = this
-      console.log(vm.bchBalance)
-      console.log(vm.shiftAmount)
-
-      if (parseFloat(vm.shiftAmount) > vm.bchBalance) {
-        console.log('Wallet balance not enough')
-      }
-      // return false
     },
     getNetwork (token) {
       const network = token.network.toLowerCase()
@@ -330,7 +328,6 @@ export default {
     },
     checkData () {
       const vm = this
-      vm.checkBalance()
 
       vm.settleInfo = {
         deposit: vm.deposit,
@@ -371,11 +368,36 @@ export default {
         vm.refundAddress = content
       }
     },
+    checkErrorMsg () {
+      const vm = this
+      const min = parseFloat(vm.minimum)
+      const max = parseFloat(vm.maximum)
+
+      if (vm.invalidAmount) {
+        vm.errorMsg = 'Not a valid amount, please try again.'
+      }
+      const amount = parseFloat(vm.shiftAmount)
+      if (min > amount) {
+        vm.errorMsg = 'Minimum ' + vm.minimum + ' ' + vm.deposit.coin
+      }
+      if (max < amount) {
+        vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
+      }
+      // if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {
+      //   vm.errorMsg = 'Wallet Balance not enough'
+      // }
+
+      if (vm.errorMsg) {
+        vm.hasError = true
+        vm.amountLoaded = true
+      }
+    },
     updateConvertionRate: debounce(async function () {
       const vm = this
       vm.invalidAmount = false
       vm.amountLoaded = false
       vm.hasError = false
+      vm.errorMsg = ''
 
       //check if valid amount
       if (vm.shiftAmount) {
@@ -399,11 +421,12 @@ export default {
           }
         } else {
           vm.invalidAmount = true
-          vm.hasError = true
+          vm.settleAmount = ''
         }
       } else {
         vm.settleAmount = ''
       }
+      vm.checkErrorMsg()
     }, 500),
     async loadIcon () {
       const vm = this
@@ -480,31 +503,6 @@ export default {
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
-    errorMsg () {
-      const vm = this
-      const min = parseFloat(vm.minimum)
-      const max = parseFloat(vm.maximum)
-
-      if (vm.invalidAmount) {
-        vm.hasError = true
-        return 'Not a valid amount, please try again.'
-      }
-      const amount = parseFloat(vm.shiftAmount)
-      if (parseFloat(vm.shiftAmount) > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
-        vm.hasError = true
-        return 'Wallet Balance not enough'
-      }
-      if (min > amount) {
-        vm.hasError = true
-        return 'Minimum ' + vm.minimum + ' ' + vm.deposit.coin
-      }
-      if (max < amount) {
-        vm.hasError = true
-        return 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
-      }
-
-      return null
-    }
   },
   async mounted () {
     const vm = this

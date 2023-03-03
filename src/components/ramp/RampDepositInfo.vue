@@ -3,47 +3,58 @@
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white' : 'text-black',]"
   >
-    <div v-if="!shiftExpired">
-      <div class="text-center justify-center text-h5" style="font-size:20px;">
-        Please send exactly <br><b style="letter-spacing: 1px;">{{ shiftInfo.depositAmount}} {{ shiftInfo.depositCoin }}</b> to...
-      </div>
+    <div v-if="!sendBCH">
+      <div v-if="!shiftExpired">
+        <div class="text-center justify-center text-h5" style="font-size:20px;">
+          Please send exactly <br><b style="letter-spacing: 1px;">{{ shiftInfo.depositAmount}} {{ shiftInfo.depositCoin }}</b> to...
+        </div>
 
-      <div class="row q-pt-md">
-        <div class="col qr-code-container">
-          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
-            <div class="row text-center">
-              <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.depositAddress)">
-                <qr-code :text="shiftInfo.depositAddress" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+        <div class="row q-pt-md">
+          <div class="col qr-code-container">
+            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+              <div class="row text-center">
+                <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.depositAddress)">
+                  <qr-code :text="shiftInfo.depositAddress" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="row">
-        <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;"  @click="copyToClipboard(shiftInfo.depositAddress)">
-          <span class="qr-code-text text-weight-light text-center">
-            <div style="letter-spacing: 1px" :class="darkMode ? 'text-white' : 'pp-text'">
-              {{ shiftInfo.depositAddress }}
-              <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
-            </div>
-          </span>
+        <div class="row">
+          <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;"  @click="copyToClipboard(shiftInfo.depositAddress)">
+            <span class="qr-code-text text-weight-light text-center">
+              <div style="letter-spacing: 1px" :class="darkMode ? 'text-white' : 'pp-text'">
+                {{ shiftInfo.depositAddress }}
+                <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
+              </div>
+            </span>
+          </div>
+        </div>
+        <div class="text-center q-pt-md text-h2 text-blue-5">
+          {{ countDown }}
         </div>
       </div>
-      <div class="text-center q-pt-md text-h2 text-blue-5">
-        {{ countDown }}
+      <div class="text-center" v-if="shiftExpired">
+        <div class="q-pt-md text-h2 text-red-5 q-py-lg">
+          Expired
+        </div>
+        <div class="q-pt-lg">
+          <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
+        </div>
       </div>
     </div>
-    <div class="text-center" v-if="shiftExpired">
-      <div class="q-pt-md text-h2 text-red-5 q-py-lg">
-        Expired
+    <div v-if="sendBCH">
+      <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
+        Sending <b>{{ shiftInfo.depositAmount }}</b> BCH to <b>{{ shiftInfo.settleAddress }}</b>
       </div>
-      <div class="q-pt-lg">
-        <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
+      <div class="row justify-center q-py-lg">
+        <ProgressLoader/>
       </div>
     </div>
   </div>
 </template>
 <script>
+import ProgressLoader from '../ProgressLoader.vue'
 
 export default {
   data () {
@@ -51,13 +62,21 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       shiftInfo: {},
       countDown: '',
-      shiftExpired: false
+      shiftExpired: false,
+      sendBCH: false
     }
   },
   props: {
-    shiftData: Object
+    shiftData: Object,
+    refundAddress: {
+      type: String,
+      default: ''
+    }
   },
   emits: ['retry'],
+  components: {
+    ProgressLoader
+  },
   methods: {
     copyToClipboard (value) {
       this.$copyText(value)
@@ -93,20 +112,21 @@ export default {
           vm.shiftExpired = true
         }
       }, 1000)
-    },
-    tryAgain () {
-      console.log('try again')
-      this.$router.push({
-        name: 'ramp'
-      })
     }
   },
   async mounted () {
     const vm = this
-    console.log(this.shiftData)
 
     vm.shiftInfo = vm.shiftData
-    vm.countingDown()
+
+    if (vm.shiftInfo.depositCoin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
+      console.log('this wallet')
+      vm.sendBCH = true
+    } else {
+      console.log('others')
+      vm.countingDown()
+    }
+    console.log(vm.shiftData)
   }
 }
 </script>
