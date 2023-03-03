@@ -38,16 +38,16 @@
           :class="darkMode ? 'text-grey-6' : ''"
           v-if="deposit.coin==='BCH'"
         >
-          Balance {{ bchBalance }}
+          Balance: {{ bchBalance }}
         </q-item-label>
-        <q-item-label
-          class="text-right q-mt-sm"
-          caption
-          style="color:red"
-          v-if="errorMsg"
-        >
-          {{ errorMsg }}
-        </q-item-label>
+          <q-item-label
+            class="text-right q-mt-sm"
+            caption
+            style="color:red"
+            v-if="errorMsg"
+          >
+            {{ errorMsg }}
+          </q-item-label>
       </q-item-section>
     </q-item>
     <div class="q-px-md q-my-xs row items-center justify-center">
@@ -304,6 +304,16 @@ export default {
         this.refundAddress = this.$store.getters['global/getAddress']('bch')
       }
     },
+    checkBalance () {
+      const vm = this
+      console.log(vm.bchBalance)
+      console.log(vm.shiftAmount)
+
+      if (parseFloat(vm.shiftAmount) > vm.bchBalance) {
+        console.log('Wallet balance not enough')
+      }
+      // return false
+    },
     getNetwork (token) {
       const network = token.network.toLowerCase()
       const coin = token.coin.toLowerCase()
@@ -320,6 +330,7 @@ export default {
     },
     checkData () {
       const vm = this
+      vm.checkBalance()
 
       vm.settleInfo = {
         deposit: vm.deposit,
@@ -479,6 +490,10 @@ export default {
         return 'Not a valid amount, please try again.'
       }
       const amount = parseFloat(vm.shiftAmount)
+      if (parseFloat(vm.shiftAmount) > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
+        vm.hasError = true
+        return 'Wallet Balance not enough'
+      }
       if (min > amount) {
         vm.hasError = true
         return 'Minimum ' + vm.minimum + ' ' + vm.deposit.coin
@@ -487,6 +502,7 @@ export default {
         vm.hasError = true
         return 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
       }
+
       return null
     }
   },
