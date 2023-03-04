@@ -22,7 +22,7 @@
     <q-dialog class="text-black" v-model="confirmDeletion" persistent>
       <q-card :dark="darkMode">
         <q-card-section class="row items-center">
-          <span class="q-ml-sm">Are you sure you want to clear chat history?</span>
+          <span class="q-ml-sm">This will delete your local copy of this conversation except the last message. Do you want to proceed?</span>
         </q-card-section>
 
         <q-card-actions align="right">
@@ -363,7 +363,7 @@ export default {
     },
     deleteHistory () {
       this.$store.dispatch('chat/deleteHistory', this.topic)
-      this.$router.push('/apps/chat')
+      // this.$router.push('/apps/chat')
     }
   },
   async mounted () {
