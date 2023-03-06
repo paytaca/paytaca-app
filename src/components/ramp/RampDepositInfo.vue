@@ -44,17 +44,29 @@
       </div>
     </div>
     <div v-if="sendBCH">
-      <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
-        Sending <b>{{ shiftInfo.depositAmount }}</b> BCH to <b>{{ shiftInfo.settleAddress }}</b>
+      <div v-if="processing">
+        <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
+          Sending <b>{{ shiftInfo.depositAmount }}</b> BCH to <b>{{ shiftInfo.settleAddress }}</b>
+        </div>
+        <div class="row justify-center q-py-lg">
+          <ProgressLoader/>
+        </div>
       </div>
-      <div class="row justify-center q-py-lg">
-        <ProgressLoader/>
+      <div v-else>
+        <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
+          <b>{{ shiftInfo.depositAmount }} BCH</b> Sent!
+        </div>
+        <div class="q-pt-lg text-center">
+          <q-btn color="blue-9" label="Back" @click="$emit('done')"></q-btn>
+        </div>
       </div>
     </div>
   </div>
 </template>
 <script>
 import ProgressLoader from '../ProgressLoader.vue'
+import { getMnemonic, Wallet, Address } from '../../wallet'
+import { getMemoedVNodeCall } from '@vue/compiler-core'
 
 export default {
   data () {
@@ -63,7 +75,9 @@ export default {
       shiftInfo: {},
       countDown: '',
       shiftExpired: false,
-      sendBCH: false
+      sendBCH: false,
+      processing: false,
+      sendFailed: false
     }
   },
   props: {
@@ -112,6 +126,28 @@ export default {
           vm.shiftExpired = true
         }
       }, 1000)
+    },
+    async sendingBCH () {
+      console.log('sending bch')
+      const vm = this
+      vm.processing = true
+      const mnemonic = await getMnemonic()
+      const wallet = new Wallet(mnemonic)
+
+      const amount = parseFloat(vm.shiftInfo.depositAmount)
+
+      await wallet.BCH.sendBch(amount, vm.shiftInfo.depositAddress).then(function (result, err) {
+        if (result.success) {
+          console.log(result)
+        } else {
+          console.log('failed')
+          vm.sendFailed = true
+        }
+      }).catch((error) => {
+        console.log(error)
+        vm.sendFailed = true
+      })
+      vm.processing = false
     }
   },
   async mounted () {
@@ -122,6 +158,7 @@ export default {
     if (vm.shiftInfo.depositCoin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
       console.log('this wallet')
       vm.sendBCH = true
+      await vm.sendingBCH()
     } else {
       console.log('others')
       vm.countingDown()

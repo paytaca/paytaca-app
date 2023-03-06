@@ -22,7 +22,7 @@
         <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           {{ rampData.deposit.coin}}
         </div>
-        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">({{ getNetwork(rampData.deposit) }})</div>
+        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">({{ $parent.getNetwork(rampData.deposit) }})</div>
       </div>
 
       <q-btn
@@ -40,7 +40,7 @@
         <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           {{ rampData.settle.coin }}
         </div>
-        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">({{ getNetwork(rampData.settle) }})</div>
+        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">({{ $parent.getNetwork(rampData.settle) }})</div>
       </div>
     </div>
 
@@ -116,20 +116,20 @@ export default {
     info: Object
   },
   methods: {
-    getNetwork (token) {
-      const network = token.network.toLowerCase()
-      const coin = token.coin.toLowerCase()
-      //check ethereum
-      if (network === 'ethereum' && coin !== 'eth') {
-        return 'ERC-20'
-      } else if (network === 'tron' && coin !== 'trx') {
-        return 'TRC-20'
-      } else if (network === 'bsc' && coin !== 'bnb') {
-        return 'BEP-20'
-      } else {
-        return token.network.toUpperCase()
-      }
-    },
+    // getNetwork (token) {
+    //   const network = token.network.toLowerCase()
+    //   const coin = token.coin.toLowerCase()
+    //   //check ethereum
+    //   if (network === 'ethereum' && coin !== 'eth') {
+    //     return 'ERC-20'
+    //   } else if (network === 'tron' && coin !== 'trx') {
+    //     return 'TRC-20'
+    //   } else if (network === 'bsc' && coin !== 'bnb') {
+    //     return 'BEP-20'
+    //   } else {
+    //     return token.network.toUpperCase()
+    //   }
+    // },
     async dataConfirmed () {
       await this.getQuote()
 

@@ -16,7 +16,7 @@
       <q-item-section avatar class="items-center" @click="selectSourceToken">
         <div style="height: 30px; width: 30px; border-radius: 50%;" class="q-mb-sm" v-html="deposit.icon"></div>
         <q-item-label>
-          {{deposit.coin }}<q-icon name="expand_more"/>
+          {{deposit.coin }}<q-icon v-show="!isFromBCH" name="expand_more"/>
         </q-item-label>
         <q-item-label class="text-center" style="font-size: 10px; color: gray;" >
           {{getNetwork(deposit)}}
@@ -69,7 +69,7 @@
       <q-item-section avatar class="item-center" @click="selectSettleToken">
         <div style="height: 30px; width: 30px; border-radius: 50%;" class="q-mb-sm" v-html="settle.icon"></div>
         <q-item-label class="">
-          {{ settle.coin }} <q-icon name="expand_more"/>
+          {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
         </q-item-label>
         <q-item-label class="text-center" style="font-size: 10px; color: gray;" >
           {{getNetwork(settle)}}
@@ -139,7 +139,7 @@
           v-model="refundAddress"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="refundAddress = ''"/>&nbsp
+            <q-icon name="close" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp
             <q-icon name="mdi-qrcode-scan" @click="displayScanner('refund')"/>
           </template>
        </q-input>
@@ -185,6 +185,7 @@
       :shiftData="shiftData"
       :refundAddress="refundAddress"
       v-on:retry="updateState('form')"
+      v-on:done="reset()"
     />
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="error">
@@ -240,54 +241,83 @@ export default {
       settleInfo: {},
       shiftData: {},
       convertionRate: '',
-      addrType: ''
+      addrType: '',
+      walletAddress: this.$store.getters['global/getAddress']('bch')
     }
   },
   methods: {
     selectSourceToken () {
-      this.$q.dialog({
-        component: RampShiftTokenSelectDialog,
-        componentProps: {
-          tokenList: this.tokenList,
-          title: 'Select Source',
-          type: 'source'
-        }
-      })
-        .onOk(coin => {
-          if (coin.coin === this.settle.coin && coin.network === this.settle.network) {
-            this.swapCoin()
-          } else {
-            this.deposit = coin
+      if (!this.isFromBCH) {
+        this.$q.dialog({
+          component: RampShiftTokenSelectDialog,
+          componentProps: {
+            tokenList: this.tokenList,
+            title: 'Select Source',
+            type: 'source'
           }
-          this.refundAddress = ''
-          this.updateConvertionRate()
         })
+          .onOk(coin => {
+            if (coin.coin === this.settle.coin && coin.network === this.settle.network) {
+              this.swapCoin()
+            } else {
+              this.deposit = coin
+            }
+            this.refundAddress = ''
+            this.updateConvertionRate()
+          })
+      }
     },
     selectSettleToken () {
-      this.$q.dialog({
-        component: RampShiftTokenSelectDialog,
-        componentProps: {
-          tokenList: this.tokenList,
-          title: 'Select Destination',
-          type: 'settle'
-        }
-      })
-        .onOk(coin => {
-          //check token
-
-          if (coin.coin === this.deposit.coin && coin.network === this.deposit.network) {
-            this.swapCoin()
-          } else {
-            this.settle = coin
+      if (!this.isToBCH) {
+        this.$q.dialog({
+          component: RampShiftTokenSelectDialog,
+          componentProps: {
+            tokenList: this.tokenList,
+            title: 'Select Destination',
+            type: 'settle'
           }
-          this.settleAddress = ''
-          this.updateConvertionRate()
         })
+          .onOk(coin => {
+            //check token
+
+            if (coin.coin === this.deposit.coin && coin.network === this.deposit.network) {
+              this.swapCoin()
+            } else {
+              this.settle = coin
+            }
+            this.settleAddress = ''
+            this.updateConvertionRate()
+          })
+      }
     },
     displayScanner (type = '') {
       const vm = this
       vm.showQrScanner = !vm.showQrScanner
       vm.addrType = type
+    },
+    reset () {
+      const vm = this
+
+      vm.updateState('form')
+
+      vm.shiftAmount = 0
+      vm.settleAmount = 0
+      vm.settleAddress = ''
+      vm.refundAddress = ''
+    },
+    isActive (type) {
+      const vm = this
+      if (type === 'receive') {
+        if (!vm.deposit.coin === 'BCH') {
+          return true
+        }
+      }
+      if (type === 'refund') {
+        if (!vm.settle.coin === 'BCH') {
+          return true
+        }
+      }
+      return false
     },
     swapCoin () {
       const vm = this
@@ -372,6 +402,7 @@ export default {
       const vm = this
       const min = parseFloat(vm.minimum)
       const max = parseFloat(vm.maximum)
+      vm.errorMsg = ''
 
       if (vm.invalidAmount) {
         vm.errorMsg = 'Not a valid amount, please try again.'
@@ -383,6 +414,7 @@ export default {
       if (max < amount) {
         vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
       }
+      // balance checking
       // if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {
       //   vm.errorMsg = 'Wallet Balance not enough'
       // }
@@ -397,7 +429,7 @@ export default {
       vm.invalidAmount = false
       vm.amountLoaded = false
       vm.hasError = false
-      vm.errorMsg = ''
+      // vm.errorMsg = ''
 
       //check if valid amount
       if (vm.shiftAmount) {
@@ -503,6 +535,19 @@ export default {
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
+    isFromBCH () {
+      const vm = this
+      if (vm.deposit.coin === 'BCH') {
+        return true
+      }
+      return false
+    },
+    isToBCH () {
+      if (this.settle.coin === 'BCH') {
+        return true
+      }
+      return false
+    }
   },
   async mounted () {
     const vm = this
