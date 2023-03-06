@@ -52,7 +52,7 @@
           <ProgressLoader/>
         </div>
       </div>
-      <div v-else>
+      <div v-if="!sendFailed && !processing">
         <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
           <b>{{ shiftInfo.depositAmount }} BCH</b> Sent!
         </div>
@@ -60,12 +60,20 @@
           <q-btn color="blue-9" label="Back" @click="$emit('done')"></q-btn>
         </div>
       </div>
+      <div v-if="sendFailed && !processing">
+        <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
+          Sorry, failed to send BCH...
+        </div>
+        <div class="q-pt-lg text-center">
+          <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 <script>
 import ProgressLoader from '../ProgressLoader.vue'
-import { getMnemonic, Wallet, Address } from '../../wallet'
+import { getMnemonic, Wallet } from '../../wallet'
 import { getMemoedVNodeCall } from '@vue/compiler-core'
 
 export default {
@@ -131,6 +139,7 @@ export default {
       console.log('sending bch')
       const vm = this
       vm.processing = true
+      vm.sendFailed = false
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
@@ -163,7 +172,7 @@ export default {
       console.log('others')
       vm.countingDown()
     }
-    console.log(vm.shiftData)
+    // console.log(vm.shiftData)
   }
 }
 </script>

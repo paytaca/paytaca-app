@@ -97,7 +97,7 @@
       </q-item-section>
     </q-item>
     <q-separator spaced class="q-mx-lg" :color="darkMode ? 'white' : 'gray'"/>
-    <q-item class="q-mx-md q-pt-lg">
+    <q-item class="q-mx-md q-pt-lg" v-show="!isToBCH">
       <q-item-section class="justify-center">
         <div class="q-pb-sm q-pl-sm">
           Receiving Address
@@ -109,25 +109,13 @@
           v-model="settleAddress"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="settleAddress = ''"/>&nbsp
+            <q-icon name="close" @click="settleAddress = ''"/>&nbsp;
             <q-icon name="mdi-qrcode-scan" @click="displayScanner('receive')"/>
           </template>
        </q-input>
-        <q-item-label class="text-right q-pr-sm q-pt-sm" v-if="settle.coin === 'BCH'">
-          <q-btn
-                no-caps
-                flat
-                icon-right="mdi-arrow-right"
-                label="Enter Wallet address"
-                color="blue-9"
-                padding="none xs"
-                size="12px"
-                @click="addBCHAddress('receive')"
-              />
-        </q-item-label>
       </q-item-section>
     </q-item>
-    <q-item class="q-mx-md q-pb-lg">
+    <q-item class="q-mx-md q-pt-lg" v-show="!isFromBCH">
       <q-item-section class="justify-center">
         <div class="q-pb-sm q-pl-sm">
           Refund Address
@@ -139,22 +127,10 @@
           v-model="refundAddress"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp
+            <q-icon name="close" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp;
             <q-icon name="mdi-qrcode-scan" @click="displayScanner('refund')"/>
           </template>
        </q-input>
-        <q-item-label class="text-right q-pr-sm q-pt-sm" v-if="deposit.coin === 'BCH'">
-          <q-btn
-                no-caps
-                flat
-                icon-right="mdi-arrow-right"
-                label="Enter Wallet address"
-                color="blue-9"
-                padding="none xs"
-                size="12px"
-                @click="addBCHAddress('refund')"
-              />
-        </q-item-label>
       </q-item-section>
     </q-item>
     <div class="row q-mx-md q-py-lg">
@@ -200,7 +176,7 @@ import RampDepositInfo from './RampDepositInfo.vue'
 import ProgressLoader from '../ProgressLoader.vue'
 import QrScanner from '../qr-scanner.vue'
 import { debounce } from 'quasar'
-import { vmNumberToBigInt } from '@bitauth/libauth'
+import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
 export default {
   components: {
@@ -266,6 +242,7 @@ export default {
             this.updateConvertionRate()
           })
       }
+      this.setBCHAddress()
     },
     selectSettleToken () {
       if (!this.isToBCH) {
@@ -289,6 +266,7 @@ export default {
             this.updateConvertionRate()
           })
       }
+      this.setBCHAddress()
     },
     displayScanner (type = '') {
       const vm = this
@@ -329,18 +307,8 @@ export default {
 
       vm.settleAddress = ''
       vm.refundAddress = ''
+      vm.setBCHAddress()
       vm.updateConvertionRate()
-    },
-    addBCHAddress (type) {
-      if (type === 'receive') {
-        this.settleAddress = this.$store.getters['global/getAddress']('bch')
-      }
-      if (type === 'refund') {
-        if (this.deposit.coin === 'BCH') {
-          this.updateConvertionRate()
-        }
-        this.refundAddress = this.$store.getters['global/getAddress']('bch')
-      }
     },
     getNetwork (token) {
       const network = token.network.toLowerCase()
@@ -398,6 +366,17 @@ export default {
         vm.refundAddress = content
       }
     },
+    setBCHAddress () {
+      const vm = this
+      if (vm.deposit.coin === 'BCH') {
+        // console.log('deposit')
+        vm.refundAddress = vm.bchAddress
+      }
+      if (vm.settle.coin === 'BCH') {
+        // console.log('settle')
+        vm.settleAddress = vm.bchAddress
+      }
+    },
     checkErrorMsg () {
       const vm = this
       const min = parseFloat(vm.minimum)
@@ -415,9 +394,9 @@ export default {
         vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
       }
       // balance checking
-      // if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {
-      //   vm.errorMsg = 'Wallet Balance not enough'
-      // }
+      if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {
+        vm.errorMsg = 'Wallet Balance not enough'
+      }
 
       if (vm.errorMsg) {
         vm.hasError = true
@@ -459,6 +438,7 @@ export default {
         vm.settleAmount = ''
       }
       vm.checkErrorMsg()
+      vm.setBCHAddress()
     }, 500),
     async loadIcon () {
       const vm = this
@@ -532,6 +512,9 @@ export default {
     }
   },
   computed: {
+    bchAddress () {
+      return this.$store.getters['global/getAddress']('bch')
+    },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
@@ -555,6 +538,8 @@ export default {
     //initial
     vm.deposit.icon = await vm.getCoinImage(vm.deposit.coin, vm.deposit.network)
     vm.settle.icon = await vm.getCoinImage(vm.settle.coin, vm.settle.network)
+
+    vm.settleAddress = this.bchAddress
 
     vm.getTokenList()
   }
