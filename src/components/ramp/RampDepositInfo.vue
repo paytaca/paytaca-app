@@ -6,7 +6,7 @@
     <div v-if="!sendBCH">
       <div v-if="!shiftExpired">
         <div class="text-center justify-center text-h5" style="font-size:20px;">
-          Please send exactly <br><b style="letter-spacing: 1px;">{{ shiftInfo.depositAmount}} {{ shiftInfo.depositCoin }}</b> to...
+          Please send exactly <br><b style="letter-spacing: 1px;">{{ parseFloat(shiftInfo.depositAmount) }} {{ shiftInfo.depositCoin }}</b> to...
         </div>
 
         <div class="row q-pt-md">
@@ -14,7 +14,7 @@
             <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.depositAddress)">
-                  <qr-code :text="shiftInfo.depositAddress" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+                  <qr-code :text="depositAddress" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
             </div>
@@ -85,7 +85,8 @@ export default {
       shiftExpired: false,
       sendBCH: false,
       processing: false,
-      sendFailed: false
+      sendFailed: false,
+      depositAddress: ''
     }
   },
   props: {
@@ -163,16 +164,16 @@ export default {
     const vm = this
 
     vm.shiftInfo = vm.shiftData
+    vm.depositAddress = vm.shiftInfo.depositAddress
 
     if (vm.shiftInfo.depositCoin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
-      console.log('this wallet')
+      // console.log('this wallet')
       vm.sendBCH = true
       await vm.sendingBCH()
     } else {
-      console.log('others')
+      // console.log('others')
       vm.countingDown()
     }
-    // console.log(vm.shiftData)
   }
 }
 </script>

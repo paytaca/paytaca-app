@@ -77,6 +77,9 @@
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
     {{ $t('NoInternetConnectionNotice') }} &#128533;
+    <div class="q-pt-lg text-center">
+      <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
+    </div>
   </div>
   <DragSlide
     :style="{
@@ -107,7 +110,7 @@ export default {
       }
     }
   },
-  emits: ['close', 'confirmed'],
+  emits: ['close', 'confirmed', 'retry'],
   components: {
     ProgressLoader,
     DragSlide

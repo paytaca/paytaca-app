@@ -8,7 +8,17 @@
     :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
     v-if="isloaded && state === 'form'"
   >
-    <div class="text-center q-py-md">
+    <div class="row items-center justify-end q-mt-md q-mr-lg">
+      <q-btn
+        round
+        color="blue-9"
+        padding="xs"
+        icon="mdi-history"
+        class="q-ml-md"
+        @click="openHistory"
+      />
+    </div>
+    <div class="text-center q-pb-md q-mt-sm">
       {{ $t('SwapFrom') }}:
     </div>
 
@@ -145,7 +155,7 @@
       />
     </div>
   </q-card>
-  <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
+  <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded && !error">
     <ProgressLoader/>
   </div>
   <div v-if="state === 'confirmation'">
@@ -153,6 +163,7 @@
     :info="settleInfo"
     v-on:close="updateState('form')"
     v-on:confirmed="openDepositInfo"
+    v-on:retry="updateState('form')"
   />
   </div>
 
@@ -164,7 +175,7 @@
       v-on:done="reset()"
     />
   </div>
-  <div class="col q-mt-sm pt-internet-required" v-if="error">
+  <div class="text-center col q-mt-sm pt-internet-required" v-if="error">
     {{ $t('NoInternetConnectionNotice') }} &#128533;
   </div>
 </template>
@@ -173,6 +184,7 @@
 import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampConfirmation from './RampConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
+import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from '../ProgressLoader.vue'
 import QrScanner from '../qr-scanner.vue'
 import { debounce } from 'quasar'
@@ -183,6 +195,7 @@ export default {
     ProgressLoader,
     RampConfirmation,
     RampDepositInfo,
+    RampHistoryDialog,
     QrScanner
   },
   data () {
@@ -217,8 +230,7 @@ export default {
       settleInfo: {},
       shiftData: {},
       convertionRate: '',
-      addrType: '',
-      walletAddress: this.$store.getters['global/getAddress']('bch')
+      addrType: ''
     }
   },
   methods: {
@@ -267,6 +279,11 @@ export default {
           })
       }
       this.setBCHAddress()
+    },
+    openHistory () {
+      this.$q.dialog({
+        component: RampHistoryDialog
+      })
     },
     displayScanner (type = '') {
       const vm = this
@@ -545,3 +562,12 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+  .pt-internet-required {
+  text-align: center;
+  width: 100%;
+  font-size: 24px;
+  padding: 30px;
+  color: gray;
+}
+</style>
