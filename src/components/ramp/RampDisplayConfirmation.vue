@@ -13,7 +13,8 @@
         @click="$emit('close')"
       />
     </div>
-    <div class="text-h5 text-center q-pb-md" style="font-size: 15px;">Please check to confirm...</div>
+    <div class="text-h5 text-center q-pb-md" style="font-size: 15px;" v-if="state === 'confirmation'">Please check to confirm...</div>
+    <div class="text-h5 text-center q-pb-md" style="font-size: 15px;" v-if="state === 'display'">Transaction</div>
 
     <div class="row no-wrap justify-around items-baseline">
       <div class="col-5 column items-center">
@@ -22,7 +23,9 @@
         <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           {{ rampData.deposit.coin}}
         </div>
-        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">({{ $parent.getNetwork(rampData.deposit) }})</div>
+        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
+          ({{ $parent.getNetwork(rampData.deposit) }}
+        )</div>
       </div>
 
       <q-btn
@@ -40,7 +43,9 @@
         <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           {{ rampData.settle.coin }}
         </div>
-        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">({{ $parent.getNetwork(rampData.settle) }})</div>
+        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
+          ({{ $parent.getNetwork(rampData.settle) }})
+        </div>
       </div>
     </div>
 
@@ -91,7 +96,7 @@
     }"
     @swiped="dataConfirmed"
     text="Swipe To Confirm"
-    v-if="!networkError"
+    v-if="!networkError && state === 'confirmation'"
   />
 </template>
 <script>
@@ -107,7 +112,8 @@ export default {
       rampData: {},
       shiftData: {
         hello: 'world'
-      }
+      },
+      state: ''
     }
   },
   emits: ['close', 'confirmed', 'retry'],
@@ -116,23 +122,10 @@ export default {
     DragSlide
   },
   props: {
-    info: Object
+    info: Object,
+    type: String
   },
   methods: {
-    // getNetwork (token) {
-    //   const network = token.network.toLowerCase()
-    //   const coin = token.coin.toLowerCase()
-    //   //check ethereum
-    //   if (network === 'ethereum' && coin !== 'eth') {
-    //     return 'ERC-20'
-    //   } else if (network === 'tron' && coin !== 'trx') {
-    //     return 'TRC-20'
-    //   } else if (network === 'bsc' && coin !== 'bnb') {
-    //     return 'BEP-20'
-    //   } else {
-    //     return token.network.toUpperCase()
-    //   }
-    // },
     async dataConfirmed () {
       await this.getQuote()
 
@@ -168,7 +161,7 @@ export default {
             headers: {
               'content-type': 'application/json',
               'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
-              'x-user-ip': userIP//'1.2.4.1' //userIP
+              'x-user-ip': userIP
             }
           }
         ).catch(function () {
@@ -221,6 +214,7 @@ export default {
     const vm = this
 
     vm.rampData = vm.info
+    vm.state = vm.type
     vm.isloaded = true
   }
 }

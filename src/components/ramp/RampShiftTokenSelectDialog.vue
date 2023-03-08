@@ -1,5 +1,5 @@
 <template>
-   <q-dialog ref="dialog" full-width>
+   <q-dialog ref="dialog" persistent full-width>
     <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space q-mt-sm">{{ title }}</div>

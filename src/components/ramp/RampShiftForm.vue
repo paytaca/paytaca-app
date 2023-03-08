@@ -6,7 +6,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
-    v-if="isloaded && state === 'form'"
+    v-if="isloaded && state === 'form' && !error"
   >
     <div class="row items-center justify-end q-mt-md q-mr-lg">
       <q-btn
@@ -159,8 +159,9 @@
     <ProgressLoader/>
   </div>
   <div v-if="state === 'confirmation'">
-    <RampConfirmation
+    <RampDisplayConfirmation
     :info="settleInfo"
+    type="confirmation"
     v-on:close="updateState('form')"
     v-on:confirmed="openDepositInfo"
     v-on:retry="updateState('form')"
@@ -182,7 +183,7 @@
 
 <script>
 import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
-import RampConfirmation from './RampConfirmation.vue'
+import RampDisplayConfirmation from './RampDisplayConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
 import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from '../ProgressLoader.vue'
@@ -193,7 +194,7 @@ import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 export default {
   components: {
     ProgressLoader,
-    RampConfirmation,
+    RampDisplayConfirmation,
     RampDepositInfo,
     RampHistoryDialog,
     QrScanner
