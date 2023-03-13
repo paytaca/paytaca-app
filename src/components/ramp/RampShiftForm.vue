@@ -504,13 +504,29 @@ export default {
       if (resp.status === 200 || resp.status === 201) {
         for (const item in resp.data) {
           const coinData = resp.data[item]
+          // check if has offline network
+          let offlineNetwork = []
+          if (coinData.depositOffline.length) {
+            offlineNetwork = coinData.depositOffline
+          }
+
           for (const item2 in coinData.networks) {
-            const temp = {
-              coin: coinData.coin,
-              network: coinData.networks[item2],
-              icon: ''
+            // remove offline network
+            let cont = true
+            if (offlineNetwork.length !== 0) {
+              if (offlineNetwork.includes(coinData.networks[item2])) {
+                cont = false
+              }
             }
-            vm.tokenList.push(temp)
+
+            if (cont) {
+              const temp = {
+                coin: coinData.coin,
+                network: coinData.networks[item2],
+                icon: ''
+              }
+              vm.tokenList.push(temp)
+            }
           }
         }
         vm.isloaded = true
