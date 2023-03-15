@@ -189,6 +189,7 @@ import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from '../ProgressLoader.vue'
 import QrScanner from '../qr-scanner.vue'
 import { debounce } from 'quasar'
+import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
 import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
 export default {
@@ -576,6 +577,7 @@ export default {
     vm.settleAddress = this.bchAddress
 
     vm.getTokenList()
+    console.log(process.env.ANYHEDGE_BACKEND_BASE_URL)
   }
 }
 </script>

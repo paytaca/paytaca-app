@@ -100,6 +100,7 @@
   />
 </template>
 <script>
+import { getMnemonic, Wallet } from '../../wallet'
 import ProgressLoader from '../ProgressLoader.vue'
 import DragSlide from '../drag-slide.vue'
 
@@ -126,10 +127,58 @@ export default {
     type: String
   },
   methods: {
+    rampType () {
+      const vm = this
+      if (vm.rampData.settle.coin === 'BCH') {
+        return 'on'
+      } else {
+        return 'off'
+      }
+    },
     async dataConfirmed () {
       await this.getQuote()
 
       this.$emit('confirmed', this.shiftData)
+    },
+    async saveShift (data) {
+      const vm = this
+      console.log(data)
+      const mnemonic = await getMnemonic()
+      const wallet = new Wallet(mnemonic)
+
+      const walletHash = wallet.BCH.getWalletHash()
+
+      let info = {
+        wallet_hash: walletHash,
+        bch_address: vm.$store.getters['global/getAddress']('bch'),
+        ramp_type: vm.rampType(),
+        shift_id: data.id,
+        quote_id: data.quoteId,
+        shift_info: {
+          deposit: {
+            address: data.depositAddress,
+            amount: data.depositAmount,
+            coin: data.depositCoin,
+            network: data.depositNetwork
+          },
+          settle: {
+            address: data.settleAddress,
+            amount: data.settleAmount,
+            coin: data.settleCoin,
+            network: data.settleNetwork
+          }
+        },
+        shift_status: data.status
+      }
+
+      // vm.rampType()
+      console.log(info)
+
+      const baseUrl = 'https://olive-donkeys-tickle-49-145-106-154.loca.lt/api'
+      // console.log(baseUrl + '/ramp/shift')
+      const response = await vm.$axios.post(baseUrl + '/ramp/shift', info)
+
+      console.log(response)
     },
     async getQuote () {
       const vm = this
@@ -196,6 +245,9 @@ export default {
           if (resp.status === 200 || resp.status === 201) {
             console.log('fixed shift')
             vm.shiftData = resp.data
+
+            // save to db
+            await vm.saveShift(vm.shiftData)
           } else {
             vm.networkError = true
             vm.loaded = true
@@ -233,4 +285,4 @@ export default {
   padding: 30px;
   color: gray;
 }
-</style>>
+</style>
