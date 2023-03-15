@@ -321,7 +321,7 @@
         no-caps
         :loading="loading"
         :disable="loading"
-        label="Create"
+        label="Calculate"
         type="submit"
         color="brandblue"
         class="full-width"
