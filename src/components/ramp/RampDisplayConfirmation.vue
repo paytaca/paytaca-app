@@ -172,13 +172,13 @@ export default {
       }
 
       // vm.rampType()
-      console.log(info)
+      // console.log(info)
 
-      const baseUrl = 'https://olive-donkeys-tickle-49-145-106-154.loca.lt/api'
+      const baseUrl = 'https://lazy-beers-do-49-145-106-154.loca.lt/api'
       // console.log(baseUrl + '/ramp/shift')
       const response = await vm.$axios.post(baseUrl + '/ramp/shift', info)
 
-      console.log(response)
+      // console.log(response)
     },
     async getQuote () {
       const vm = this
