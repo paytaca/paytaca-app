@@ -154,6 +154,7 @@ export default {
         ramp_type: vm.rampType(),
         shift_id: data.id,
         quote_id: data.quoteId,
+        date_shift_created: data.createdAt,
         shift_info: {
           deposit: {
             address: data.depositAddress,
@@ -174,9 +175,15 @@ export default {
       // vm.rampType()
       // console.log(info)
 
-      const baseUrl = 'https://lazy-beers-do-49-145-106-154.loca.lt/api'
+      const baseUrl = 'https://gentle-pots-repair-49-145-106-154.loca.lt/api'
       // console.log(baseUrl + '/ramp/shift')
-      const response = await vm.$axios.post(baseUrl + '/ramp/shift', info)
+      const response = await vm.$axios.post(
+        baseUrl + '/ramp/shift',
+        info
+      ).catch(function () {
+        vm.networkError = true
+        vm.isloaded = true
+      })
 
       // console.log(response)
     },
@@ -222,6 +229,7 @@ export default {
           console.log('getting quote')
           const quote = response.data
 
+          console.log(quote)
           // fixed Shift
           const shiftUrl = 'https://sideshift.ai/api/v2/shifts/fixed'
           const resp = await vm.$axios.post(shiftUrl,

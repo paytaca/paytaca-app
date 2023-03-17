@@ -544,6 +544,9 @@ export default {
         vm.error = true
       })
       return resp.data
+    },
+    async getShiftHistory (page = 1) {
+      console.log(page)
     }
   },
   computed: {
