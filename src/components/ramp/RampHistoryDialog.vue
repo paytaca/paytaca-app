@@ -14,32 +14,40 @@
       </div>
       <div v-if="isloaded">
         <q-card-section>
-          <div v-if="test.length === 0" class="relative text-center q-pt-sm">
+          <div v-if="transactions.length === 0" class="relative text-center q-pt-sm">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
           </div>
           <div v-else>
-            <div v-for="transaction in test">
-              <div class="row q-my-sm text-h5" :class="darkMode ? 'text-white' : 'pp-text'">
-                <div class="col-8 q-pl-md">
-                  <div class="row">
-                    <span style="font-size: 13px; overflow-wrap: break-word;">{{ parseFloat(transaction.depositAmount) }} {{ transaction.depositCoin }} to {{ parseFloat(transaction.settleAmount) }} BCH</span>
-                  </div>
-                  <div class="row">
-                    <span style="color: gray; font-size: 11px;">{{ getDate(transaction.createdAt) }}</span>
-                  </div>
-                </div>
-                <div class="col-4 q-pr-md" style="text-align: right;">
-                  <div class="row">
-                    <span style="font-size: 13px; color: gray;">Status: {{ transaction.status }}</span>
-                  </div>
-                  <div class="row">
-                    <span style="color: gray; font-size: 10px; overflow-wrap: break-word;">{{ transaction.id }}</span>
-                  </div>
-                </div>
-              </div>
-              <q-separator class="q-my-md"  :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'"/>
-            </div>
+            <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
+            <q-virtual-scroll :items="transactions">
+              <template v-slot="{ item: transaction, index }">
+                <q-item clickable>
+                  <q-item-section>
+                    <div class="row q-pt-sm text-h5" :class="darkMode ? 'text-white' : 'pp-text'">
+                      <div class="col-6 ">
+                        <div class="row">
+                          <span style="font-size: 13px; overflow-wrap: break-word;">{{ transactionType(transaction.ramp_type)}}</span>
+                        </div>
+                        <div class="row">
+                          <span style="color: gray; font-size: 11px;">{{ getDate(transaction.date_shift_created) }}</span>
+                        </div>
+                      </div>
+                      <div class="col-6" style="text-align: right;">
+                        <div class="row">
+                          <span style="font-size: 13px; color: gray;">{{ getAmount(transaction.ramp_type, transaction.shift_info) }} BCH</span>
+                        </div>
+                        <div class="row">
+                          <span style="font-size: 11px; color: gray;">{{ transaction.shift_status.toUpperCase() }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <q-separator :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'"/>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-virtual-scroll>
+          </q-card-section>
           </div>
         </q-card-section>
       </div>
@@ -63,40 +71,10 @@ export default {
       transactions: [],
       networkError: false,
       isloaded: false,
-      test: [{
-        createdAt: '2023-03-07T07:29:28.844Z',
-        depositAddress: '3C1Lddx276BdxXfpA16p6Lb3LHV8iCHMGU',
-        depositAmount: '1.00000000',
-        depositCoin: 'BTC',
-        depositNetwork: 'bitcoin',
-        expiresAt: '2023-03-07T07:44:25.699Z',
-        id: 'cf5e53fbddb5e14d0738',
-        quoteId: 'd5a2c54d-9751-4687-ba03-79b23bc996ff',
-        rate: '175.34632241',
-        settleAddress: 'bitcoincash:qzvn7qemhd9m4sw333pke04me5v0uja2tgnvldj7l2',
-        settleAmount: '175.34632241',
-        settleCoin: 'BCH',
-        settleNetwork: 'bitcoincash',
-        status: 'waiting',
-        type: 'fixed'
-      },
-      {
-        createdAt: '2023-03-07T07:29:28.844Z',
-        depositAddress: '3C1Lddx276BdxXfpA16p6Lb3LHV8iCHMGU',
-        depositAmount: '1.00000000',
-        depositCoin: 'BTC',
-        depositNetwork: 'bitcoin',
-        expiresAt: '2023-03-07T07:44:25.699Z',
-        id: 'cf5e53fbddb5e14d0738',
-        quoteId: 'd5a2c54d-9751-4687-ba03-79b23bc996ff',
-        rate: '175.34632241',
-        settleAddress: 'bitcoincash:qzvn7qemhd9m4sw333pke04me5v0uja2tgnvldj7l2',
-        settleAmount: '175.34632241',
-        settleCoin: 'BCH',
-        settleNetwork: 'bitcoincash',
-        status: 'waiting',
-        type: 'fixed'
-      }]
+      page: 1,
+      has_next: false,
+      total_page: 1,
+      test: []
     }
   },
   methods: {
@@ -106,30 +84,46 @@ export default {
 
       return depositDate
     },
+    transactionType (ramp) {
+      if (ramp === 'on') {
+        return 'RECIEVED'
+      } else {
+        return 'SENT'
+      }
+    },
+    getAmount (ramp, info) {
+      if (ramp === 'on') {
+        return parseFloat(info.settle.amount)
+      } else {
+        return parseFloat(info.deposit.amount)
+      }
+    },
     async getTransactions () {
       const vm = this
       console.log('Getting Transactions')
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
-      const baseUrl = 'https://twelve-guests-tan-49-145-106-154.loca.lt/api'
+      const baseUrl = 'https://loose-peas-rest-49-145-106-154.loca.lt/api'
       const walletHash = wallet.BCH.getWalletHash()
-      const url = baseUrl + '/ramp/history/' + walletHash
+      const url = baseUrl + '/ramp/history/' + walletHash + '/?page=' + vm.page
 
-      console.log(url)
-      // vm.$parent.getShiftHistory()
-      // const response = await vm.$axios.post(baseUrl + '/ramp/shift', info)
       const response = await vm.$axios.get(url).catch(function () {
         vm.networkError = true
         vm.isloaded = true
       })
 
+      // console.log(response)
       if (response.status === 200 || response.status === 201) {
-        console.log('history data')
-        // console.log(response.data)
+        const data = response.data
 
-        vm.transactions = response.data
-        console.log(vm.transactions)
+        vm.transactions = data.history
+        vm.has_next = data.has_next
+        vm.total_page = data.num_pages
+
+        vm.isloaded = true
+      } else {
+        vm.networkError = true
         vm.isloaded = true
       }
     }

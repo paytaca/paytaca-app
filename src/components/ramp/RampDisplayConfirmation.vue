@@ -167,7 +167,8 @@ export default {
             amount: data.settleAmount,
             coin: data.settleCoin,
             network: data.settleNetwork
-          }
+          },
+          shift_expiration: data.expiresAt
         },
         shift_status: data.status
       }
@@ -175,7 +176,7 @@ export default {
       // vm.rampType()
       // console.log(info)
 
-      const baseUrl = 'https://gentle-pots-repair-49-145-106-154.loca.lt/api'
+      const baseUrl = 'https://loose-peas-rest-49-145-106-154.loca.lt/api'
       // console.log(baseUrl + '/ramp/shift')
       const response = await vm.$axios.post(
         baseUrl + '/ramp/shift',
