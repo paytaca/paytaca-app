@@ -160,12 +160,12 @@
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
-    :info="settleInfo"
-    type="confirmation"
-    v-on:close="updateState('form')"
-    v-on:confirmed="openDepositInfo"
-    v-on:retry="updateState('form')"
-  />
+      :info="settleInfo"
+      type="confirmation"
+      v-on:close="updateState('form')"
+      v-on:confirmed="openDepositInfo"
+      v-on:retry="updateState('form')"
+    />
   </div>
 
   <div v-if="state === 'deposit'">

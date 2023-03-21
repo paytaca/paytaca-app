@@ -1,7 +1,7 @@
 <template>
   <q-dialog ref="dialog" persistent full-width>
     <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" class="br-15">
-      <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
+      <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg" v-if="!showInfo">
         <div class="text-subtitle1 q-space q-mt-sm">
           Transaction History
         </div>
@@ -19,35 +19,157 @@
             <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
           </div>
           <div v-else>
-            <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
-            <q-virtual-scroll :items="transactions">
-              <template v-slot="{ item: transaction, index }">
-                <q-item clickable>
-                  <q-item-section>
-                    <div class="row q-pt-sm text-h5" :class="darkMode ? 'text-white' : 'pp-text'">
-                      <div class="col-6 ">
-                        <div class="row">
-                          <span style="font-size: 13px; overflow-wrap: break-word;">{{ transactionType(transaction.ramp_type)}}</span>
+            <q-card-section style="max-height:50vh;overflow-y:auto;">
+              <div v-if="!showInfo">
+                <q-virtual-scroll :items="transactions">
+                  <template v-slot="{ item: transaction, index }">
+                    <q-item clickable @click="showInfo = true; selectedData = transaction;">
+                      <q-item-section>
+                        <div class="col q-pt-none" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                          <div class="row">
+                            <div class="col col-transaction">
+                              <div>
+                                <p
+                                  :class="{'pt-dark-label': darkMode}"
+                                  class="q-mb-none transactions-wallet ib-text text-uppercase"
+                                  style="font-size: 15px;"
+                                >
+                                  {{ transactionType(transaction.ramp_type, transaction.shift_status)}}
+                                </p>
+                                <p
+                                  :class="{'text-grey': darkMode}"
+                                  class="q-mb-none transactions-wallet float-right ib-text text-right"
+                                >
+                                  <div class="text-grey">{{ getAmount(transaction.ramp_type, transaction.shift_info) }} BCH</div>
+                                  <div
+                                    class="subtext text-grey"
+                                    :class="{'pt-dark-label': darkMode}"
+                                    style="font-size: 11px;"
+                                  >
+                                    {{ transaction.shift_status.toUpperCase() }}
+                                  </div>
+                                </p>
+                              </div>
+                              <div class="col">
+                                <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
+                                  {{ getDate(transaction.date_shift_created) }}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div class="row">
-                          <span style="color: gray; font-size: 11px;">{{ getDate(transaction.date_shift_created) }}</span>
-                        </div>
-                      </div>
-                      <div class="col-6" style="text-align: right;">
-                        <div class="row">
-                          <span style="font-size: 13px; color: gray;">{{ getAmount(transaction.ramp_type, transaction.shift_info) }} BCH</span>
-                        </div>
-                        <div class="row">
-                          <span style="font-size: 11px; color: gray;">{{ transaction.shift_status.toUpperCase() }}</span>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-virtual-scroll>
+                <div class="q-pt-sm" v-if="has_next" :class="{'pt-dark-label': darkMode}" style="width: 100%; text-align: center; color: #3b7bf6;">
+                  <p v-if="!loadingNextPage" @click="loadingNextPage = true; getTransactions();">{{ $t('ShowMore') }}</p>
+                  <div class="row justify-center q-pt-sm" v-if="loadingNextPage">
+                    <ProgressLoader/>
+                  </div>
+                </div>
+              </div>
+
+            </q-card-section>
+              <div v-if="showInfo">
+                <q-btn
+                  flat
+                  icon="arrow_back"
+                  @click="showInfo = false"
+                />
+
+                <!-- Transaction Info -->
+
+                <div class="text-h5 text-center" style="font-size: 18px;">{{ transactionType(selectedData.ramp_type, selectedData.shift_status).toUpperCase() }}</div>
+                <div class="q-pt-sm" v-if="selectedData.ramp_type === 'off' && selectedData.shift_status !== 'expired'" :class="{'pt-dark-label': darkMode}" style="width: 100%; text-align: center; color: #3b7bf6;">
+                  <p>Show QR Code</p>
+                </div>
+
+                <div class="row no-wrap justify-around items-baseline">
+                  <div class="col-5 column items-center">
+                    <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px">{{ $t('From') }}</div>
+                    <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="selectedData.shift_info.deposit.icon"></div>
+                    <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+                      {{ selectedData.shift_info.deposit.coin}}
+                    </div>
+                    <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
+                      ({{ getNetwork(selectedData.shift_info.deposit) }})
+                    </div>
+                  </div>
+
+                  <q-btn
+                    rounded
+                    flat
+                    padding="sm"
+                    icon="arrow_forward"
+                    disable
+                    :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
+                  />
+
+                  <div class="col-5 column items-center">
+                    <div class="q-mt-sm text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px;">{{ $t('To') }}</div>
+                    <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="selectedData.shift_info.settle.icon"></div>
+                    <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+                      {{ selectedData.shift_info.settle.coin }}
+                    </div>
+                    <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
+                      ({{ getNetwork(selectedData.shift_info.settle) }})
+                    </div>
+                  </div>
+                </div>
+
+                <div class="q-py-lg">
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+                    <span>Deposit Amount:</span>
+                    <span class="text-nowrap q-ml-xs" style="font-size: 13px">{{ selectedData.shift_info.deposit.amount }} {{ selectedData.shift_info.deposit.coin }}</span>
+                  </div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+                    <span>Receiving Amount:</span>
+                    <span class="text-nowrap q-ml-xs" style="font-size: 13px">{{ selectedData.shift_info.settle.amount }} {{ selectedData.shift_info.settle.coin }}</span>
+                  </div>
+                </div>
+                <q-separator spaced class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
+                <q-item>
+                  <q-item-section class="text-center q-pb-sm q-pt-sm">
+                    <q-item-label>Recieving Address: </q-item-label>
+                    <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
+                      <span style="font-size: 13px;">{{ selectedData.shift_info.deposit.address }}</span>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section class="text-center q-pb-lg">
+                    <q-item-label>Refund Address: </q-item-label>
+                    <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
+                      <span style="font-size: 13px;">{{ selectedData.shift_info.settle.address }}</span>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </div>
+              <!-- <div v-if="showQR">
+                <div class="row q-pt-md">
+                  <div class="col qr-code-container">
+                    <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+                      <div class="row text-center">
+                        <div class="col row justify-center q-pt-md" @click="copyToClipboard(selectedData.shift_info.deposit.address)">
+                          <qr-code :text="selectedData.shift_info.deposit.address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                         </div>
                       </div>
                     </div>
-                    <q-separator :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'"/>
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-virtual-scroll>
-          </q-card-section>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;"  @click="copyToClipboard(selectedData.shift_info.deposit.address)">
+                    <span class="qr-code-text text-weight-light text-center">
+                      <div style="letter-spacing: 1px" :class="darkMode ? 'text-white' : 'pp-text'">
+                        {{ selectedData.shift_info.deposit.address }}
+                        <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
+                      </div>
+                    </span>
+                  </div>
+                </div>
+              </div> -->
+            <!-- </q-card-section> -->
           </div>
         </q-card-section>
       </div>
@@ -68,13 +190,16 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      selectedData: {},
       transactions: [],
       networkError: false,
       isloaded: false,
-      page: 1,
+      loadingNextPage: false,
+      page: 0,
       has_next: false,
       total_page: 1,
-      test: []
+      showInfo: false,
+      showQR: false
     }
   },
   methods: {
@@ -84,11 +209,23 @@ export default {
 
       return depositDate
     },
-    transactionType (ramp) {
+    transactionType (ramp, status) {
       if (ramp === 'on') {
-        return 'RECIEVED'
+        if (status === 'waiting') {
+          return 'To Recieve'
+        } else if (status === 'expired') {
+          return 'failed'
+        } else {
+          return 'recieved'
+        }
       } else {
-        return 'SENT'
+        if (status === 'waiting') {
+          return 'to send'
+        } else if (status === 'expired') {
+          return 'failed'
+        } else {
+          return 'sent'
+        }
       }
     },
     getAmount (ramp, info) {
@@ -98,13 +235,28 @@ export default {
         return parseFloat(info.deposit.amount)
       }
     },
+    getNetwork (info) {
+      const network = info.network.toLowerCase()
+      const coin = info.coin.toLowerCase()
+      //check ethereum
+      if (network === 'ethereum' && coin !== 'eth') {
+        return 'ERC-20'
+      } else if (network === 'tron' && coin !== 'trx') {
+        return 'TRC-20'
+      } else if (network === 'bsc' && coin !== 'bnb') {
+        return 'BEP-20'
+      } else {
+        return info.network.toUpperCase()
+      }
+    },
     async getTransactions () {
       const vm = this
-      console.log('Getting Transactions')
+      // console.log('Getting Transactions')
+      vm.page += 1
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
-      const baseUrl = 'https://loose-peas-rest-49-145-106-154.loca.lt/api'
+      const baseUrl = 'https://evil-falcons-sing-49-145-106-154.loca.lt/api'
       const walletHash = wallet.BCH.getWalletHash()
       const url = baseUrl + '/ramp/history/' + walletHash + '/?page=' + vm.page
 
@@ -117,15 +269,16 @@ export default {
       if (response.status === 200 || response.status === 201) {
         const data = response.data
 
-        vm.transactions = data.history
+        vm.transactions.push(...data.history)
         vm.has_next = data.has_next
         vm.total_page = data.num_pages
 
-        vm.isloaded = true
+        // console.log(vm.transactions)
       } else {
         vm.networkError = true
-        vm.isloaded = true
       }
+      vm.loadingNextPage = false
+      vm.isloaded = true
     }
   },
   async mounted () {
@@ -140,4 +293,40 @@ export default {
   padding-top: 2px;
   font-weight: 500;
 }
+.transactions-wallet {
+  color: #4C4F4F;
+}
+.ib-text {
+  display: inline-block;
+}
+
+.subtext {
+  font-size: 11px;
+  color: #4C4F4F;
+  opacity: .5;
+}
+.text-nowrap {
+  white-space: nowrap;
+}
+.text-subtitle1 {
+  font-size: 14px;
+}
+.qr-code-container {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+.col-qr-code {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  width: 300px;
+  border-radius: 16px;
+  border: 4px solid #ed5f59;
+  padding: 25px 10px 32px 10px;
+  background: white;
+}
+.qr-code-text {
+  font-size: 18px;
+  color: #000;
+  }
 </style>

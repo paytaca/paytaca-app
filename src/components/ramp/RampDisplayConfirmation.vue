@@ -142,7 +142,7 @@ export default {
     },
     async saveShift (data) {
       const vm = this
-      console.log(data)
+      // console.log(data)
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
@@ -160,13 +160,15 @@ export default {
             address: data.depositAddress,
             amount: data.depositAmount,
             coin: data.depositCoin,
-            network: data.depositNetwork
+            network: data.depositNetwork,
+            icon: vm.rampData.deposit.icon
           },
           settle: {
             address: data.settleAddress,
             amount: data.settleAmount,
             coin: data.settleCoin,
-            network: data.settleNetwork
+            network: data.settleNetwork,
+            icon: vm.rampData.settle.icon
           },
           shift_expiration: data.expiresAt
         },
@@ -176,7 +178,7 @@ export default {
       // vm.rampType()
       // console.log(info)
 
-      const baseUrl = 'https://loose-peas-rest-49-145-106-154.loca.lt/api'
+      const baseUrl = 'https://evil-falcons-sing-49-145-106-154.loca.lt/api'
       // console.log(baseUrl + '/ramp/shift')
       const response = await vm.$axios.post(
         baseUrl + '/ramp/shift',
@@ -230,7 +232,7 @@ export default {
           console.log('getting quote')
           const quote = response.data
 
-          console.log(quote)
+          // console.log(quote)
           // fixed Shift
           const shiftUrl = 'https://sideshift.ai/api/v2/shifts/fixed'
           const resp = await vm.$axios.post(shiftUrl,
