@@ -70,6 +70,7 @@
 
 <script>
 import { objectTypeAnnotation } from '@babel/types';
+import RampDepositInfo from './RampDepositInfo.vue'
 
 
 export default {
@@ -91,6 +92,9 @@ export default {
       type: String,
       default: 'confirmation'
     }
+  },
+  components: {
+    RampDepositInfo
   },
   methods: {
     getNetwork (type) {
