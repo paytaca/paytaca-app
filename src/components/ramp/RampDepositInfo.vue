@@ -1,7 +1,11 @@
 <template>
+  <div v-if="state === 'history'">
+    Hello World
+  </div>
   <div
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white' : 'text-black',]"
+    v-if="state !== 'history'"
   >
     <div v-if="!sendBCH">
       <div v-if="!shiftExpired">
@@ -86,7 +90,8 @@ export default {
       sendBCH: false,
       processing: false,
       sendFailed: false,
-      depositAddress: ''
+      depositAddress: '',
+      state: ''
     }
   },
   props: {
@@ -94,6 +99,10 @@ export default {
     refundAddress: {
       type: String,
       default: ''
+    },
+    type: {
+      type: String,
+      default: 'created'
     }
   },
   emits: ['retry'],
@@ -165,15 +174,22 @@ export default {
 
     vm.shiftInfo = vm.shiftData
     vm.depositAddress = vm.shiftInfo.depositAddress
+    vm.state = vm.type
 
-    if (vm.shiftInfo.depositCoin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
-      // console.log('this wallet')
-      vm.sendBCH = true
-      await vm.sendingBCH()
-    } else {
-      // console.log('others')
-      vm.countingDown()
+    console.log(vm.shiftInfo)
+    if (vm.state === 'created') {
+      if (vm.shiftInfo.depositCoin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
+        // console.log('this wallet')
+        vm.sendBCH = true
+        await vm.sendingBCH()
+      } else {
+        // console.log('others')
+        vm.countingDown()
+      }
+    } else if (vm.state === 'history') {
+      vm.countDown()
     }
+    console.log(vm.state)
   }
 }
 </script>

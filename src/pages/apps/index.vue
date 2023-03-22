@@ -45,8 +45,9 @@ export default {
         },
         {
           name: 'Ramp',
-          iconName: 'mdi-call-split', //'mdi-cash-multiple',
+          iconName: 'img:ramp_icon_white.png',
           path: '/apps/ramp',
+          iconStyle: 'width:50%',
           active: true
         },
         {

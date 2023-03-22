@@ -12,6 +12,21 @@
           v-close-popup
         />
       </div>
+      <div v-if="showInfo">
+        <q-btn
+          flat
+          padding="md"
+          icon="arrow_back"
+          @click="showInfo = false"
+        />
+
+        <div>
+          <RampShiftInfo
+            type="history"
+            :info="selectedData"
+          />
+        </div>
+      </div>
       <div v-if="isloaded">
         <q-card-section>
           <div v-if="transactions.length === 0" class="relative text-center q-pt-sm">
@@ -23,7 +38,7 @@
               <div v-if="!showInfo">
                 <q-virtual-scroll :items="transactions">
                   <template v-slot="{ item: transaction, index }">
-                    <q-item clickable @click="showInfo = true; selectedData = transaction;">
+                    <q-item clickable @click="openShiftInfo(transaction)"> <!-- @click="showInfo = true; selectedData = transaction;"> -->
                       <q-item-section>
                         <div class="col q-pt-none" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                           <div class="row">
@@ -62,7 +77,7 @@
                     </q-item>
                   </template>
                 </q-virtual-scroll>
-                <div class="q-pt-sm" v-if="has_next" :class="{'pt-dark-label': darkMode}" style="width: 100%; text-align: center; color: #3b7bf6;">
+                <div class="q-pt-sm" v-if="has_next" style="width: 100%; text-align: center; color: #3b7bf6;">
                   <p v-if="!loadingNextPage" @click="loadingNextPage = true; getTransactions();">{{ $t('ShowMore') }}</p>
                   <div class="row justify-center q-pt-sm" v-if="loadingNextPage">
                     <ProgressLoader/>
@@ -70,106 +85,7 @@
                 </div>
               </div>
 
-            </q-card-section>
-              <div v-if="showInfo">
-                <q-btn
-                  flat
-                  icon="arrow_back"
-                  @click="showInfo = false"
-                />
-
-                <!-- Transaction Info -->
-
-                <div class="text-h5 text-center" style="font-size: 18px;">{{ transactionType(selectedData.ramp_type, selectedData.shift_status).toUpperCase() }}</div>
-                <div class="q-pt-sm" v-if="selectedData.ramp_type === 'off' && selectedData.shift_status !== 'expired'" :class="{'pt-dark-label': darkMode}" style="width: 100%; text-align: center; color: #3b7bf6;">
-                  <p>Show QR Code</p>
-                </div>
-
-                <div class="row no-wrap justify-around items-baseline">
-                  <div class="col-5 column items-center">
-                    <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px">{{ $t('From') }}</div>
-                    <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="selectedData.shift_info.deposit.icon"></div>
-                    <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-                      {{ selectedData.shift_info.deposit.coin}}
-                    </div>
-                    <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
-                      ({{ getNetwork(selectedData.shift_info.deposit) }})
-                    </div>
-                  </div>
-
-                  <q-btn
-                    rounded
-                    flat
-                    padding="sm"
-                    icon="arrow_forward"
-                    disable
-                    :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
-                  />
-
-                  <div class="col-5 column items-center">
-                    <div class="q-mt-sm text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px;">{{ $t('To') }}</div>
-                    <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="selectedData.shift_info.settle.icon"></div>
-                    <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-                      {{ selectedData.shift_info.settle.coin }}
-                    </div>
-                    <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
-                      ({{ getNetwork(selectedData.shift_info.settle) }})
-                    </div>
-                  </div>
-                </div>
-
-                <div class="q-py-lg">
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-                    <span>Deposit Amount:</span>
-                    <span class="text-nowrap q-ml-xs" style="font-size: 13px">{{ selectedData.shift_info.deposit.amount }} {{ selectedData.shift_info.deposit.coin }}</span>
-                  </div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-                    <span>Receiving Amount:</span>
-                    <span class="text-nowrap q-ml-xs" style="font-size: 13px">{{ selectedData.shift_info.settle.amount }} {{ selectedData.shift_info.settle.coin }}</span>
-                  </div>
-                </div>
-                <q-separator spaced class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
-                <q-item>
-                  <q-item-section class="text-center q-pb-sm q-pt-sm">
-                    <q-item-label>Recieving Address: </q-item-label>
-                    <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
-                      <span style="font-size: 13px;">{{ selectedData.shift_info.deposit.address }}</span>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item>
-                  <q-item-section class="text-center q-pb-lg">
-                    <q-item-label>Refund Address: </q-item-label>
-                    <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
-                      <span style="font-size: 13px;">{{ selectedData.shift_info.settle.address }}</span>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </div>
-              <!-- <div v-if="showQR">
-                <div class="row q-pt-md">
-                  <div class="col qr-code-container">
-                    <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
-                      <div class="row text-center">
-                        <div class="col row justify-center q-pt-md" @click="copyToClipboard(selectedData.shift_info.deposit.address)">
-                          <qr-code :text="selectedData.shift_info.deposit.address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;"  @click="copyToClipboard(selectedData.shift_info.deposit.address)">
-                    <span class="qr-code-text text-weight-light text-center">
-                      <div style="letter-spacing: 1px" :class="darkMode ? 'text-white' : 'pp-text'">
-                        {{ selectedData.shift_info.deposit.address }}
-                        <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
-                      </div>
-                    </span>
-                  </div>
-                </div>
-              </div> -->
-            <!-- </q-card-section> -->
+             </q-card-section>
           </div>
         </q-card-section>
       </div>
@@ -182,10 +98,12 @@
 <script>
 import { getMnemonic, Wallet } from '../../wallet'
 import ProgressLoader from '../ProgressLoader.vue'
+import RampShiftInfo from './RampShiftInfo.vue'
 
 export default {
   components: {
-    ProgressLoader
+    ProgressLoader,
+    RampShiftInfo
   },
   data () {
     return {
@@ -198,8 +116,7 @@ export default {
       page: 0,
       has_next: false,
       total_page: 1,
-      showInfo: false,
-      showQR: false
+      showInfo: false
     }
   },
   methods: {
@@ -235,6 +152,11 @@ export default {
         return parseFloat(info.deposit.amount)
       }
     },
+    async openShiftInfo (data) {
+      const vm = this
+      vm.selectedData = data
+      vm.showInfo = true
+    },
     getNetwork (info) {
       const network = info.network.toLowerCase()
       const coin = info.coin.toLowerCase()
@@ -256,7 +178,7 @@ export default {
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
-      const baseUrl = 'https://evil-falcons-sing-49-145-106-154.loca.lt/api'
+      const baseUrl = 'https://chatty-zebras-win-49-145-106-154.loca.lt/api'
       const walletHash = wallet.BCH.getWalletHash()
       const url = baseUrl + '/ramp/history/' + walletHash + '/?page=' + vm.page
 

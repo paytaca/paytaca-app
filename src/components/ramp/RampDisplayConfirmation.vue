@@ -13,69 +13,9 @@
         @click="$emit('close')"
       />
     </div>
-    <div class="text-h5 text-center q-pb-md" style="font-size: 15px;" v-if="state === 'confirmation'">Please check to confirm...</div>
-    <div class="text-h5 text-center q-pb-md" style="font-size: 15px;" v-if="state === 'display'">Transaction</div>
-
-    <div class="row no-wrap justify-around items-baseline">
-      <div class="col-5 column items-center">
-        <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px">{{ $t('From') }}</div>
-        <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="rampData.deposit.icon"></div>
-        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-          {{ rampData.deposit.coin}}
-        </div>
-        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
-          ({{ $parent.getNetwork(rampData.deposit) }}
-        )</div>
-      </div>
-
-      <q-btn
-        rounded
-        flat
-        padding="sm"
-        icon="arrow_forward"
-        disable
-        :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
-      />
-
-      <div class="col-5 column items-center">
-        <div class="q-mt-sm text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px;">{{ $t('To') }}</div>
-        <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="rampData.settle.icon"></div>
-        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-          {{ rampData.settle.coin }}
-        </div>
-        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
-          ({{ $parent.getNetwork(rampData.settle) }})
-        </div>
-      </div>
-    </div>
-
-    <div class="q-py-lg">
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-        <span>Deposit Amount:</span>
-        <span class="text-nowrap q-ml-xs" style="font-size: 13px">{{ rampData.depositAmount }} {{ rampData.deposit.coin }}</span>
-      </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-        <span>Receiving Amount:</span>
-        <span class="text-nowrap q-ml-xs" style="font-size: 13px">{{ rampData.settleAmount }} {{ rampData.settle.coin }}</span>
-      </div>
-   </div>
-    <q-separator spaced class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
-    <q-item>
-      <q-item-section class="text-center q-pb-sm q-pt-sm">
-        <q-item-label>Recieving Address: </q-item-label>
-        <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
-          <span style="font-size: 13px;">{{ rampData.settleAddress }}</span>
-        </q-item-label>
-      </q-item-section>
-    </q-item>
-    <q-item>
-      <q-item-section class="text-center q-pb-lg">
-        <q-item-label>Refund Address: </q-item-label>
-        <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
-          <span style="font-size: 13px;">{{ rampData.refundAddress }}</span>
-        </q-item-label>
-      </q-item-section>
-    </q-item>
+    <RampShiftInfo
+      :info="rampData"
+    />
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
     <ProgressLoader/>
@@ -103,6 +43,7 @@
 import { getMnemonic, Wallet } from '../../wallet'
 import ProgressLoader from '../ProgressLoader.vue'
 import DragSlide from '../drag-slide.vue'
+import RampShiftInfo from './RampShiftInfo.vue'
 
 export default {
   data () {
@@ -120,7 +61,8 @@ export default {
   emits: ['close', 'confirmed', 'retry'],
   components: {
     ProgressLoader,
-    DragSlide
+    DragSlide,
+    RampShiftInfo
   },
   props: {
     info: Object,
@@ -178,7 +120,7 @@ export default {
       // vm.rampType()
       // console.log(info)
 
-      const baseUrl = 'https://evil-falcons-sing-49-145-106-154.loca.lt/api'
+      const baseUrl = 'https://chatty-zebras-win-49-145-106-154.loca.lt/api'
       // console.log(baseUrl + '/ramp/shift')
       const response = await vm.$axios.post(
         baseUrl + '/ramp/shift',
