@@ -41,14 +41,29 @@
     <div class="q-py-lg">
       <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
         <span>Deposit Amount:</span>
-        <span class="text-nowrap q-ml-xs" style="font-size: 13px">{{ shiftInfo.depositAmount }} {{ shiftInfo.deposit.coin }}</span>
+        <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.depositAmount }} {{ shiftInfo.deposit.coin }}</span>
       </div>
       <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
         <span>Receiving Amount:</span>
-        <span class="text-nowrap q-ml-xs" style="font-size: 13px">{{ shiftInfo.settleAmount }} {{ shiftInfo.settle.coin }}</span>
+        <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.settleAmount }} {{ shiftInfo.settle.coin }}</span>
       </div>
     </div>
+    <!-- <q-separator spaced class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/> -->
+
+    <div v-if="state === 'history'">
+      <q-item clickable @click="copyToClipboard(historyInfo.shift_info.deposit.address)" v-if="historyInfo.shift_status !== 'expired' && historyInfo.ramp_type === 'on'">
+        <q-item-section class="text-center q-px-md">
+          <q-item-label>Deposit Address: </q-item-label>
+          <q-item-label class="q-px-lg text-h5" style="overflow-wrap: break-word">
+            <span style="font-size: 15px;">{{ historyInfo.shift_info.deposit.address }}</span>
+            <p style="font-size: 12px; margin-top: 5px;">{{ $t('ClickToCopyAddress') }}</p>
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+    </div>
+
     <q-separator spaced class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
+
     <q-item>
       <q-item-section class="text-center q-pb-sm q-pt-sm">
         <q-item-label>Recieving Address: </q-item-label>
@@ -58,7 +73,7 @@
       </q-item-section>
     </q-item>
     <q-item>
-      <q-item-section class="text-center q-pb-lg">
+      <q-item-section class="text-center">
         <q-item-label>Refund Address: </q-item-label>
         <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
           <span style="font-size: 13px;">{{ shiftInfo.refundAddress }}</span>
@@ -80,7 +95,7 @@ export default {
       shiftInfo: {},
       historyInfo: {},
       state: '',
-      darkMode: this.$store.getters['darkmode/getStatus'],
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   props: {
@@ -122,17 +137,28 @@ export default {
         }
       } else {
         if (status === 'waiting') {
-          return 'to send'
+          return 'sending'
         } else if (status === 'expired') {
-          return 'failed'
+          return 'send failed'
         } else {
           return 'sent'
         }
       }
     },
     openDepositInfo () {
-      console.log('Opeing QR Code')
-    }
+      this.$emit('open-qr')
+    },
+    copyToClipboard (value) {
+      if (this.historyInfo.shift_status !== 'expired') {
+        this.$copyText(value)
+        this.$q.notify({
+          message: this.$t('CopiedToClipboard'),
+          timeout: 800,
+          color: 'blue-9',
+          icon: 'mdi-clipboard-check'
+        })
+      }
+    },
   },
   async mounted () {
     const vm = this
@@ -155,8 +181,6 @@ export default {
         settleAmount: temp.settle.amount
       }
     }
-    console.log(vm.state)
-    // console.log(vm.shiftInfo)
     vm.isloaded = true
   }
 }

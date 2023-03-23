@@ -105,8 +105,6 @@ export default {
           return String(token.coin).toLowerCase().includes(needle) ||
                   String(token.network).toLowerCase().includes(needle)
         })
-        // console.log(list)
-        // return this.tokenList
     }
   },
   async mounted () {

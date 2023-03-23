@@ -1,12 +1,16 @@
 <template>
-  <div v-if="state === 'history'">
-    Hello World
-  </div>
   <div
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white' : 'text-black',]"
-    v-if="state !== 'history'"
   >
+    <div>
+      <q-btn
+        flat
+        padding="md"
+        icon="arrow_back"
+        @click="$emit('retry')"
+      />
+    </div>
     <div v-if="!sendBCH">
       <div v-if="!shiftExpired">
         <div class="text-center justify-center text-h5" style="font-size:20px;">
@@ -92,7 +96,8 @@ export default {
       sendFailed: false,
       depositAddress: '',
       state: '',
-      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL
+      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
+      error: false
     }
   },
   props: {
@@ -147,7 +152,6 @@ export default {
       }, 1000)
     },
     async sendingBCH () {
-      console.log('sending bch')
       const vm = this
       vm.processing = true
       vm.sendFailed = false
@@ -158,9 +162,8 @@ export default {
 
       await wallet.BCH.sendBch(amount, vm.shiftInfo.depositAddress).then(function (result, err) {
         if (result.success) {
-          console.log(result)
+          console.log('success')
         } else {
-          console.log('failed')
           vm.sendFailed = true
           vm.expireShift()
         }
@@ -175,19 +178,14 @@ export default {
       const vm = this
       const shiftId = vm.shiftData.id
 
-      vm.baseUrl = 'https://soft-regions-shake-49-145-106-154.loca.lt/api'
-      console.log('Sending BCH Failed: Expiring Shift')
-
       const response = await vm.$axios.post(
         vm.baseUrl + '/ramp/expire',
         {
           shift_id: shiftId
         }
       ).catch(function () {
-        console.log('expiring shift failed')
+        vm.error = true
       })
-
-      console.log(response)
     }
   },
   async mounted () {
@@ -197,20 +195,22 @@ export default {
     vm.depositAddress = vm.shiftInfo.depositAddress
     vm.state = vm.type
 
-    console.log(vm.shiftInfo)
     if (vm.state === 'created') {
       if (vm.shiftInfo.depositCoin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
-        // console.log('this wallet')
+        console.log('this wallet')
         vm.sendBCH = true
         await vm.sendingBCH()
       } else {
-        // console.log('others')
+        console.log('others')
         vm.countingDown()
       }
     } else if (vm.state === 'history') {
-      vm.countDown()
+      if (this.shiftData.status === 'expired') {
+        vm.shiftExpired = true
+      } else {
+        vm.countingDown()
+      }
     }
-    console.log(vm.state)
   }
 }
 </script>

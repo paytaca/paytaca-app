@@ -172,6 +172,7 @@
     <RampDepositInfo
       :shiftData="shiftData"
       :refundAddress="refundAddress"
+      :type="depositInfoState"
       v-on:retry="updateState('form')"
       v-on:done="reset()"
     />
@@ -232,7 +233,8 @@ export default {
       settleInfo: {},
       shiftData: {},
       convertionRate: '',
-      addrType: ''
+      addrType: '',
+      depositInfoState: 'created'
     }
   },
   methods: {
@@ -286,6 +288,18 @@ export default {
       this.$q.dialog({
         component: RampHistoryDialog
       })
+        .onOk(data => {
+          this.depositInfoState = 'history'
+          this.shiftData = {
+            depositAddress: data.shift_info.deposit.address,
+            depositCoin: data.shift_info.deposit.coin,
+            depositAmount: data.shift_info.deposit.amount,
+            settleAddress: data.shift_info.settle.address,
+            expiresAt: data.shift_info.shift_expiration,
+            status: data.shift_status
+          }
+          this.state = 'deposit'
+        })
     },
     displayScanner (type = '') {
       const vm = this
@@ -388,11 +402,9 @@ export default {
     setBCHAddress () {
       const vm = this
       if (vm.deposit.coin === 'BCH') {
-        // console.log('deposit')
         vm.refundAddress = vm.bchAddress
       }
       if (vm.settle.coin === 'BCH') {
-        // console.log('settle')
         vm.settleAddress = vm.bchAddress
       }
     },
@@ -540,13 +552,14 @@ export default {
       const vm = this
       const url = 'https://sideshift.ai/api/v2/coins/icon/' + coin + '-' + network
 
-      const resp = await vm.$axios.get(url).catch(function () {
-        vm.error = true
-      })
-      return resp.data
-    },
-    async getShiftHistory (page = 1) {
-      console.log(page)
+      let icon = null
+      const resp = await vm.$axios.get(url)
+
+      if (resp) {
+        icon = resp.data
+      }
+
+      return icon
     }
   },
   computed: {
@@ -580,7 +593,6 @@ export default {
     vm.settleAddress = this.bchAddress
 
     vm.getTokenList()
-    console.log(process.env.ANYHEDGE_BACKEND_BASE_URL)
   }
 }
 </script>

@@ -13,9 +13,12 @@
         @click="$emit('close')"
       />
     </div>
-    <RampShiftInfo
-      :info="rampData"
-    />
+    <div class="q-pb-lg">
+      <RampShiftInfo
+        class="q-pb-md"
+        :info="rampData"
+      />
+    </div>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
     <ProgressLoader/>
@@ -85,7 +88,6 @@ export default {
     },
     async saveShift (data) {
       const vm = this
-      // console.log(data)
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
@@ -117,12 +119,6 @@ export default {
         },
         shift_status: data.status
       }
-
-      // vm.rampType()
-      // console.log(info)
-
-      vm.baseUrl = 'https://soft-regions-shake-49-145-106-154.loca.lt/api'
-      // console.log(baseUrl + '/ramp/shift')
       const response = await vm.$axios.post(
         vm.baseUrl + '/ramp/shift',
         info
@@ -130,8 +126,6 @@ export default {
         vm.networkError = true
         vm.isloaded = true
       })
-
-      // console.log(response)
     },
     async getQuote () {
       const vm = this
@@ -145,7 +139,7 @@ export default {
       })
 
       if (test.status !== 500) {
-        console.log('getting IP')
+        // console.log('getting IP')
         const userIP = test.data.ip
         const amount = parseFloat(vm.rampData.depositAmount).toFixed(8)
 
@@ -162,7 +156,7 @@ export default {
           {
             headers: {
               'content-type': 'application/json',
-              'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
+              'x-sideshift-secret': process.env.SIDESHIFT_SECRET_KEY,
               'x-user-ip': userIP
             }
           }
@@ -172,10 +166,9 @@ export default {
         })
 
         if (response.status === 200 || response.status === 201) {
-          console.log('getting quote')
+          // console.log('getting quote')
           const quote = response.data
 
-          // console.log(quote)
           // fixed Shift
           const shiftUrl = 'https://sideshift.ai/api/v2/shifts/fixed'
           const resp = await vm.$axios.post(shiftUrl,
@@ -187,7 +180,7 @@ export default {
             {
               headers: {
                 'content-type': 'application/json',
-                'x-sideshift-secret': '70f2972189e0dcd6b0c008a360693adf',
+                'x-sideshift-secret': process.env.SIDESHIFT_SECRET_KEY,
                 'x-user-ip': userIP
               }
             }
@@ -197,7 +190,7 @@ export default {
           })
 
           if (resp.status === 200 || resp.status === 201) {
-            console.log('fixed shift')
+            // console.log('fixed shift')
             vm.shiftData = resp.data
 
             // save to db

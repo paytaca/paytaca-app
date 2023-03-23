@@ -24,6 +24,7 @@
           <RampShiftInfo
             type="history"
             :info="selectedData"
+            v-on:open-qr="onOKClick()"
           />
         </div>
       </div>
@@ -44,16 +45,16 @@
                           <div class="row">
                             <div class="col col-transaction">
                               <div>
-                                <p
+                                <div
                                   :class="{'pt-dark-label': darkMode}"
-                                  class="q-mb-none transactions-wallet ib-text text-uppercase"
-                                  style="font-size: 15px;"
+                                  class="q-mb-none transactions-wallet ib-text"
                                 >
-                                  {{ transactionType(transaction.ramp_type, transaction.shift_status)}}
-                                </p>
+                                  <div class="col" style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.deposit.icon"></div>
+                                  <div class="col" style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.settle.icon"></div>
+                                </div>
                                 <p
                                   :class="{'text-grey': darkMode}"
-                                  class="q-mb-none transactions-wallet float-right ib-text text-right"
+                                  class="q-mb-none transactions-wallet float-right text-right"
                                 >
                                   <div class="text-grey">{{ getAmount(transaction.ramp_type, transaction.shift_info) }} BCH</div>
                                   <div
@@ -121,6 +122,10 @@ export default {
     }
   },
   methods: {
+    onOKClick () {
+      this.$emit('ok', this.selectedData)
+      this.$refs.dialog.hide()
+    },
     getDate (date) {
       const tempDate = date.split('T')
       const depositDate = tempDate[0] + ' ' + tempDate[1].substring(0, 5)
@@ -138,9 +143,9 @@ export default {
         }
       } else {
         if (status === 'waiting') {
-          return 'to send'
+          return 'sending'
         } else if (status === 'expired') {
-          return 'failed'
+          return 'send failed'
         } else {
           return 'sent'
         }
@@ -150,14 +155,13 @@ export default {
       if (ramp === 'on') {
         return parseFloat(info.settle.amount)
       } else {
-        return parseFloat(info.deposit.amount)
+        return -parseFloat(info.deposit.amount)
       }
     },
     async openShiftInfo (data) {
       const vm = this
       vm.selectedData = data
       vm.showInfo = true
-      console.log(vm.selectedData)
     },
     getNetwork (info) {
       const network = info.network.toLowerCase()
@@ -175,12 +179,10 @@ export default {
     },
     async getTransactions () {
       const vm = this
-      // console.log('Getting Transactions')
       vm.page += 1
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
-      vm.baseUrl = 'https://soft-regions-shake-49-145-106-154.loca.lt/api'
       const walletHash = wallet.BCH.getWalletHash()
       const url = vm.baseUrl + '/ramp/history/' + walletHash + '/?page=' + vm.page
 
@@ -188,16 +190,12 @@ export default {
         vm.networkError = true
         vm.isloaded = true
       })
-
-      // console.log(response)
       if (response.status === 200 || response.status === 201) {
         const data = response.data
 
         vm.transactions.push(...data.history)
         vm.has_next = data.has_next
         vm.total_page = data.num_pages
-
-        // console.log(vm.transactions)
       } else {
         vm.networkError = true
       }
