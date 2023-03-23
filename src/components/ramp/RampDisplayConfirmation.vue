@@ -55,7 +55,8 @@ export default {
       shiftData: {
         hello: 'world'
       },
-      state: ''
+      state: '',
+      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL
     }
   },
   emits: ['close', 'confirmed', 'retry'],
@@ -120,10 +121,10 @@ export default {
       // vm.rampType()
       // console.log(info)
 
-      const baseUrl = 'https://chatty-zebras-win-49-145-106-154.loca.lt/api'
+      vm.baseUrl = 'https://soft-regions-shake-49-145-106-154.loca.lt/api'
       // console.log(baseUrl + '/ramp/shift')
       const response = await vm.$axios.post(
-        baseUrl + '/ramp/shift',
+        vm.baseUrl + '/ramp/shift',
         info
       ).catch(function () {
         vm.networkError = true

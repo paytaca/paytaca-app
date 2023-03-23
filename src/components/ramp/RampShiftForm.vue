@@ -580,7 +580,7 @@ export default {
     vm.settleAddress = this.bchAddress
 
     vm.getTokenList()
-    // console.log(process.env.ANYHEDGE_BACKEND_BASE_URL)
+    console.log(process.env.ANYHEDGE_BACKEND_BASE_URL)
   }
 }
 </script>

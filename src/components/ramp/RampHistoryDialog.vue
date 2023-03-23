@@ -116,7 +116,8 @@ export default {
       page: 0,
       has_next: false,
       total_page: 1,
-      showInfo: false
+      showInfo: false,
+      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL
     }
   },
   methods: {
@@ -156,6 +157,7 @@ export default {
       const vm = this
       vm.selectedData = data
       vm.showInfo = true
+      console.log(vm.selectedData)
     },
     getNetwork (info) {
       const network = info.network.toLowerCase()
@@ -178,9 +180,9 @@ export default {
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
-      const baseUrl = 'https://chatty-zebras-win-49-145-106-154.loca.lt/api'
+      vm.baseUrl = 'https://soft-regions-shake-49-145-106-154.loca.lt/api'
       const walletHash = wallet.BCH.getWalletHash()
-      const url = baseUrl + '/ramp/history/' + walletHash + '/?page=' + vm.page
+      const url = vm.baseUrl + '/ramp/history/' + walletHash + '/?page=' + vm.page
 
       const response = await vm.$axios.get(url).catch(function () {
         vm.networkError = true

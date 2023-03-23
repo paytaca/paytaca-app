@@ -91,7 +91,8 @@ export default {
       processing: false,
       sendFailed: false,
       depositAddress: '',
-      state: ''
+      state: '',
+      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL
     }
   },
   props: {
@@ -105,7 +106,7 @@ export default {
       default: 'created'
     }
   },
-  emits: ['retry'],
+  emits: ['retry', 'done'],
   components: {
     ProgressLoader
   },
@@ -161,12 +162,32 @@ export default {
         } else {
           console.log('failed')
           vm.sendFailed = true
+          vm.expireShift()
         }
       }).catch((error) => {
         console.log(error)
         vm.sendFailed = true
+        vm.expireShift()
       })
       vm.processing = false
+    },
+    async expireShift () {
+      const vm = this
+      const shiftId = vm.shiftData.id
+
+      vm.baseUrl = 'https://soft-regions-shake-49-145-106-154.loca.lt/api'
+      console.log('Sending BCH Failed: Expiring Shift')
+
+      const response = await vm.$axios.post(
+        vm.baseUrl + '/ramp/expire',
+        {
+          shift_id: shiftId
+        }
+      ).catch(function () {
+        console.log('expiring shift failed')
+      })
+
+      console.log(response)
     }
   },
   async mounted () {
