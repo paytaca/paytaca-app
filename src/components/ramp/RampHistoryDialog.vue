@@ -39,26 +39,28 @@
               <div v-if="!showInfo">
                 <q-virtual-scroll :items="transactions">
                   <template v-slot="{ item: transaction, index }">
-                    <q-item clickable @click="openShiftInfo(transaction)"> <!-- @click="showInfo = true; selectedData = transaction;"> -->
+                    <q-item clickable @click="openShiftInfo(transaction)">
                       <q-item-section>
                         <div class="col q-pt-none" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                           <div class="row">
                             <div class="col col-transaction">
                               <div>
-                                <div
-                                  :class="{'pt-dark-label': darkMode}"
-                                  class="q-mb-none transactions-wallet ib-text"
-                                >
-                                  <div class="col" style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.deposit.icon"></div>
-                                  <div class="col" style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.settle.icon"></div>
+                                <div class="q-gutter-sm ib-text">
+                                  <q-avatar>
+                                    <div style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.deposit.icon"></div>
+                                  </q-avatar>
+                                  <q-icon name="mdi-arrow-right" />
+                                  <q-avatar>
+                                    <div style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.settle.icon"></div>
+                                  </q-avatar>
                                 </div>
                                 <p
                                   :class="{'text-grey': darkMode}"
-                                  class="q-mb-none transactions-wallet float-right text-right"
+                                  class="q-pt-md q-mb-none transactions-wallet float-right text-right"
                                 >
                                   <div class="text-grey">{{ getAmount(transaction.ramp_type, transaction.shift_info) }} BCH</div>
                                   <div
-                                    class="subtext text-grey"
+                                    class="q-pt-sm subtext text-grey"
                                     :class="{'pt-dark-label': darkMode}"
                                     style="font-size: 11px;"
                                   >
@@ -67,7 +69,7 @@
                                 </p>
                               </div>
                               <div class="col">
-                                <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
+                                <span class="q-pb-sm float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
                                   {{ getDate(transaction.date_shift_created) }}
                                 </span>
                               </div>
@@ -86,7 +88,7 @@
                 </div>
               </div>
 
-             </q-card-section>
+            </q-card-section>
           </div>
         </q-card-section>
       </div>
