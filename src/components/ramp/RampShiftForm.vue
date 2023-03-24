@@ -456,6 +456,7 @@ export default {
             const shift = parseFloat(vm.shiftAmount)
 
             vm.settleAmount = shift * vm.convertionRate
+            vm.settleAmount = vm.settleAmount.toFixed(8)
             vm.minimum = resp.data.min
             vm.maximum = resp.data.max
 

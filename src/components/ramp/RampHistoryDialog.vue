@@ -45,7 +45,7 @@
                           <div class="row">
                             <div class="col col-transaction">
                               <div>
-                                <div class="q-gutter-sm ib-text">
+                                <div class="q-gutter-xs ib-text q-mb-none">
                                   <q-avatar>
                                     <div style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.deposit.icon"></div>
                                   </q-avatar>
@@ -60,9 +60,9 @@
                                 >
                                   <div class="text-grey">{{ getAmount(transaction.ramp_type, transaction.shift_info) }} BCH</div>
                                   <div
-                                    class="q-pt-sm subtext text-grey"
+                                    class="subtext text-grey"
                                     :class="{'pt-dark-label': darkMode}"
-                                    style="font-size: 11px;"
+                                    style="font-size: 11px; padding-top: 10px;"
                                   >
                                     {{ transaction.shift_status.toUpperCase() }}
                                   </div>
@@ -120,7 +120,8 @@ export default {
       has_next: false,
       total_page: 1,
       showInfo: false,
-      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL
+      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
+      bchAddress: this.$store.getters['global/getAddress']('bch')
     }
   },
   methods: {
@@ -186,9 +187,13 @@ export default {
       const wallet = new Wallet(mnemonic)
 
       const walletHash = wallet.BCH.getWalletHash()
-      const url = vm.baseUrl + '/ramp/history/' + walletHash + '/?page=' + vm.page
-
-      const response = await vm.$axios.get(url).catch(function () {
+      const url = vm.baseUrl + '/ramp/history/' + walletHash
+      const response = await vm.$axios.get(url, {
+        params: {
+          page: vm.page,
+          address: vm.bchAddress
+        }
+      }).catch(function () {
         vm.networkError = true
         vm.isloaded = true
       })

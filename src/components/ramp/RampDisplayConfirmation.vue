@@ -24,7 +24,7 @@
     <ProgressLoader/>
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
-    {{ $t('NoInternetConnectionNotice') }} &#128533;
+    {{error_msg }} &#128533;
     <div class="q-pt-lg text-center">
       <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
     </div>
@@ -59,7 +59,8 @@ export default {
         hello: 'world'
       },
       state: '',
-      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL
+      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
+      error_msg: this.$t('NoInternetConnectionNotice')
     }
   },
   emits: ['close', 'confirmed', 'retry'],
@@ -168,7 +169,7 @@ export default {
         if (response.status === 200 || response.status === 201) {
           // console.log('getting quote')
           const quote = response.data
-
+          console.log(quote)
           // fixed Shift
           const shiftUrl = 'https://sideshift.ai/api/v2/shifts/fixed'
           const resp = await vm.$axios.post(shiftUrl,
@@ -184,7 +185,17 @@ export default {
                 'x-user-ip': userIP
               }
             }
-          ).catch(function () {
+          ).catch(function (error) {
+            console.log(error.response)
+            if (error.response) {
+              const errorMsg = error.response.data.error.message.toLowerCase()
+              console.log(errorMsg)
+
+              if (errorMsg.includes('invalid receiving address')) {
+                console.log('invalid address')
+                vm.error_msg = "You've entered an invalid receiving address.Please try again."
+              }
+            }
             vm.networkError = true
             vm.isloaded = true
           })
@@ -192,6 +203,7 @@ export default {
           if (resp.status === 200 || resp.status === 201) {
             // console.log('fixed shift')
             vm.shiftData = resp.data
+            console.log(resp)
 
             // save to db
             await vm.saveShift(vm.shiftData)
