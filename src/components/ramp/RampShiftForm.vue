@@ -474,12 +474,17 @@ export default {
     }, 500),
     async loadIcon () {
       const vm = this
+      const unstableIcon = ['MANA', 'ARB']
+      const unstableIconImg = [
+        'https://cryptologos.cc/logos/decentraland-mana-logo.png?v=024',
+        'https://offchainlabs.com/wp-content/themes/offchain/images/home/arbitrum/arbirtum_logo.svg'
+      ]
 
       for (const item in vm.tokenList) {
         const token = vm.tokenList[item]
-
-        if (vm.tokenList[item].coin === 'MANA') {
-          vm.tokenList[item].icon = '<img src="https://cryptologos.cc/logos/decentraland-mana-logo.png?v=024" style="height: 30px; width: 30px"/>'
+        if (unstableIcon.includes(vm.tokenList[item].coin)) {
+          const index = unstableIcon.indexOf(vm.tokenList[item].coin)
+          vm.tokenList[item].icon = '<img src="' + unstableIconImg[index] + '" style="height: 30px; width: 30px"/>'
         } else {
           if (item === '0') {
             vm.tokenList[item].icon = await vm.getCoinImage(token.coin, token.network)

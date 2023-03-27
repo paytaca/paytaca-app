@@ -169,7 +169,7 @@ export default {
         if (response.status === 200 || response.status === 201) {
           // console.log('getting quote')
           const quote = response.data
-          console.log(quote)
+          // console.log(quote)
           // fixed Shift
           const shiftUrl = 'https://sideshift.ai/api/v2/shifts/fixed'
           const resp = await vm.$axios.post(shiftUrl,
@@ -203,7 +203,7 @@ export default {
           if (resp.status === 200 || resp.status === 201) {
             // console.log('fixed shift')
             vm.shiftData = resp.data
-            console.log(resp)
+            // console.log(resp)
 
             // save to db
             await vm.saveShift(vm.shiftData)
