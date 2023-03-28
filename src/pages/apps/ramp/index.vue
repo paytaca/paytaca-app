@@ -17,7 +17,7 @@
       :style="{ 'margin-top': $q.platform.is.ios ? '10px' : '-35px'}"
     >
       <q-tab
-        name="Fiat"
+        name="fiat"
         :class="{'text-blue-5': darkMode}"
         disable
         label="fiat"
@@ -29,23 +29,28 @@
         </q-popup-proxy>
       </q-tab>
       <q-tab
-        name="Crypto"
+        name="crypto"
         :class="{'text-blue-5': darkMode}"
         label="crypto"
       />
     </q-tabs>
 
     <!-- CRYPTO Tab -->
-    <RampShiftForm v-if="isAllowed"/>
-    <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
-      <div>
-        Sorry. This feature is blocked in your country &#128533;
+    <div v-if="selectedCurrency === 'crypto'">
+      <RampShiftForm v-if="isAllowed"/>
+      <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
+        <div>
+          Sorry. This feature is blocked in your country &#128533;
+        </div>
       </div>
     </div>
+
+    <!-- Add FIAT tab content here -->
 
   </div>
 </template>
 <script>
+import { ref } from 'vue'
 import HeaderNav from '../../../components/header-nav'
 import RampShiftForm from '../../../components/ramp/RampShiftForm'
 
@@ -57,7 +62,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: 'Crypto',
+      selectedCurrency: ref('crypto'),
       isAllowed: true
     }
   },

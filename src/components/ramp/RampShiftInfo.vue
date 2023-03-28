@@ -13,8 +13,8 @@
           {{ shiftInfo.deposit.coin}}
         </div>
         <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
-          ({{ getNetwork(shiftInfo.deposit) }}
-        )</div>
+          ({{ getNetwork(shiftInfo.deposit) }})
+        </div>
       </div>
 
       <q-btn
