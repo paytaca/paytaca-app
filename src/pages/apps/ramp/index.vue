@@ -63,7 +63,8 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: ref('crypto'),
-      isAllowed: true
+      isAllowed: true,
+      error: false
     }
   },
   async mounted () {

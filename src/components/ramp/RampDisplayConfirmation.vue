@@ -82,8 +82,59 @@ export default {
         return 'off'
       }
     },
+    async getIPAddr () {
+      const vm = this
+      const IPurl = 'https://api.ipify.org?format=json'
+      const test = await vm.$axios.get(IPurl).catch(function () {
+        vm.networkError = true
+      })
+      if (test.status !== 500) {
+        return test.data.ip
+      } else {
+        return null
+      }
+    },
+    async createShift () {
+      const vm = this
+      vm.isloaded = false
+      const ip = await this.getIPAddr()
+      const mnemonic = await getMnemonic()
+      const wallet = new Wallet(mnemonic)
+
+      const walletHash = wallet.BCH.getWalletHash()
+
+      let info = {
+        deposit: vm.rampData.deposit,
+        settle: vm.rampData.settle,
+        amount: parseFloat(vm.rampData.depositAmount).toFixed(8),
+        refund_address: vm.rampData.refundAddress,
+        settle_address: vm.rampData.settleAddress,
+        ramp_settings: {
+          type: vm.rampType(),
+          user_ip: ip,
+          wallet_hash: walletHash,
+          bch_address: vm.$store.getters['global/getAddress']('bch')
+        }
+      }
+      console.log(info)
+
+      const response = await vm.$axios.post(
+        vm.baseUrl + '/ramp/shift',
+        info
+      ).catch(function () {
+        vm.networkError = true
+        vm.isloaded = true
+      })
+
+      console.log(response)
+      if (response.status === 200) {
+        vm.shiftData = response.data
+      }
+    },
     async dataConfirmed () {
-      await this.getQuote()
+      // await this.getQuote()
+      await this.createShift()
+      this.isloaded = true
 
       this.$emit('confirmed', this.shiftData)
     },
@@ -145,7 +196,7 @@ export default {
         const amount = parseFloat(vm.rampData.depositAmount).toFixed(8)
 
         // Get Quote
-        const quoteUrl = 'https:///sideshift.ai/api/v2/quotes'
+        const quoteUrl = 'https://sideshift.ai/api/v2/quotes'
         const response = await vm.$axios.post(quoteUrl,
           {
             depositCoin: vm.rampData.deposit.coin,
