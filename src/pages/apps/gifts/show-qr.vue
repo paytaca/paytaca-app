@@ -24,7 +24,7 @@
             <div>{{ this.$store.state.gifts.qr }}</div> -->
             <div class="flex flex-center myStyle"></div>
           </div>
-          <p style="font-size: 18px;">Scan to claim the gift</p>
+          <p style="font-size: 18px;">Scan to claim the gift XXX</p>
       </div>
     </div>
     </div>
@@ -63,7 +63,8 @@ export default {
   },
   methods: {
     getQrShare (giftCodeHash) {
-      return this.$store.getters['gifts/getQrShare'](giftCodeHash)
+      const url = 'https://gifts.paytaca.com/claim/?code='
+      return url + this.$store.getters['gifts/getQrShare'](giftCodeHash)
     },
     getAmount (giftCodeHash) {
       const vm = this

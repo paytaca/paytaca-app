@@ -132,7 +132,11 @@ export default {
     },
     onScannerDecode (content) {
       this.showQrScanner = false
-      this.scannedShare = content
+      if (content.split('?code=').length === 2) {
+        this.scannedShare = content.split('?code=')[1]
+      } else {
+        this.scannedShare = content
+      }
       this.claimGift(null)
     }
   },
