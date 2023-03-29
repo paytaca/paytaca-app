@@ -94,18 +94,25 @@ export default {
       const vm = this
       vm.processing = true
       const sss = require('shamirs-secret-sharing')
+      let giftCode
       if (!giftCodeHash) {
-        giftCodeHash = sha256(this.scannedShare)
+        if (this.scannedShare.split('?code=').length === 2) {
+          giftCode = this.scannedShare.split('?code=')[1]
+        } else {
+          giftCode = this.scannedShare
+        }
+        console.log('Gift code: ', giftCode)
+        giftCodeHash = sha256(giftCode)
       }
 
       if (vm.action === 'Recover') {
-        vm.scannedShare = vm.localShare
+        giftCode = vm.localShare
       }
       console.log('Gift code hash:', giftCodeHash)
       const url = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
       const walletHash = this.wallet.BCH.getWalletHash()
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
-        const privateKey = sss.combine([vm.scannedShare, resp.data.share])
+        const privateKey = sss.combine([giftCode, resp.data.share])
         vm.sweeper = new SweepPrivateKey(privateKey.toString())
         vm.sweeper.getBchBalance().then(function (data) {
           vm.bchAmount = data.spendable || 0
