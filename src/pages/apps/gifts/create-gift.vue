@@ -118,10 +118,14 @@
             <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
               <qr-code :text="qrCodeContents" />
             </div>
-            <div class="flex flex-center myStyle">
-            </div>
+            <!-- <div class="flex flex-center myStyle">
+            </div> -->
           </div>
           <p style="font-size: 18px;">Scan to claim the gift</p>
+          <div class="">
+            <div class="text-subtitle1 text-left">Share gift link:</div>
+            <ShareGiftPanel :qr-share="qrCodeContents" :amount="amountBCH"/>
+          </div>
         </div>
       </div>
     </div>
@@ -130,8 +134,9 @@
 
 <script>
 import HeaderNav from '../../../components/header-nav'
-import { getMnemonic, Wallet } from '../../../wallet'
 import ProgressLoader from '../../../components/ProgressLoader'
+import ShareGiftPanel from '../../../components/gifts/ShareGiftPanel.vue'
+import { getMnemonic, Wallet } from '../../../wallet'
 import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
@@ -139,7 +144,11 @@ import sha256 from 'js-sha256'
 
 export default {
   name: 'Gifts',
-  components: { HeaderNav, ProgressLoader },
+  components: {
+    HeaderNav,
+    ProgressLoader,
+    ShareGiftPanel,
+  },
   props: {
     uri: {
       type: String,
