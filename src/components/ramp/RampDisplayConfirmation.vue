@@ -116,7 +116,6 @@ export default {
           bch_address: vm.$store.getters['global/getAddress']('bch')
         }
       }
-      console.log(info)
 
       const response = await vm.$axios.post(
         vm.baseUrl + '/ramp/shift',
@@ -125,150 +124,33 @@ export default {
         vm.networkError = true
         vm.isloaded = true
       })
-
-      console.log(response)
+      // console.log(response.data)
       if (response.status === 200) {
-        vm.shiftData = response.data
-      }
-    },
-    async dataConfirmed () {
-      // await this.getQuote()
-      await this.createShift()
-      this.isloaded = true
-
-      this.$emit('confirmed', this.shiftData)
-    },
-    async saveShift (data) {
-      const vm = this
-      const mnemonic = await getMnemonic()
-      const wallet = new Wallet(mnemonic)
-
-      const walletHash = wallet.BCH.getWalletHash()
-
-      let info = {
-        wallet_hash: walletHash,
-        bch_address: vm.$store.getters['global/getAddress']('bch'),
-        ramp_type: vm.rampType(),
-        shift_id: data.id,
-        quote_id: data.quoteId,
-        date_shift_created: data.createdAt,
-        shift_info: {
-          deposit: {
-            address: data.depositAddress,
-            amount: data.depositAmount,
-            coin: data.depositCoin,
-            network: data.depositNetwork,
-            icon: vm.rampData.deposit.icon
-          },
-          settle: {
-            address: data.settleAddress,
-            amount: data.settleAmount,
-            coin: data.settleCoin,
-            network: data.settleNetwork,
-            icon: vm.rampData.settle.icon
-          },
-          shift_expiration: data.expiresAt
-        },
-        shift_status: data.status
-      }
-      const response = await vm.$axios.post(
-        vm.baseUrl + '/ramp/shift',
-        info
-      ).catch(function () {
-        vm.networkError = true
-        vm.isloaded = true
-      })
-    },
-    async getQuote () {
-      const vm = this
-      vm.isloaded = false
-
-      // get IP
-      const IPurl = 'https://api.ipify.org?format=json'
-      const test = await vm.$axios.get(IPurl).catch(function () {
-        vm.networkError = true
-        vm.isloaded = true
-      })
-
-      if (test.status !== 500) {
-        // console.log('getting IP')
-        const userIP = test.data.ip
-        const amount = parseFloat(vm.rampData.depositAmount).toFixed(8)
-
-        // Get Quote
-        const quoteUrl = 'https://sideshift.ai/api/v2/quotes'
-        const response = await vm.$axios.post(quoteUrl,
-          {
-            depositCoin: vm.rampData.deposit.coin,
-            depositNetwork: vm.rampData.deposit.network,
-            settleCoin: vm.rampData.settle.coin,
-            settleNetwork: vm.rampData.settle.network,
-            depositAmount: amount
-          },
-          {
-            headers: {
-              'content-type': 'application/json',
-              'x-sideshift-secret': process.env.SIDESHIFT_SECRET_KEY,
-              'x-user-ip': userIP
-            }
+        // Invalid Address Errors
+        if ('error' in response.data) {
+          const errorMsg = response.data.error.message.toLowerCase()
+          if (errorMsg.includes('invalid refunddestination')) {
+            vm.error_msg = "You've entered an invalid Refund Address. Please try again."
+          } else if (errorMsg.includes('invalid receiving address')) {
+            vm.error_msg = vm.error_msg = "You've entered an invalid Receiving Address. Please try again."
           }
-        ).catch(function () {
           vm.networkError = true
           vm.isloaded = true
-        })
-
-        if (response.status === 200 || response.status === 201) {
-          // console.log('getting quote')
-          const quote = response.data
-          // console.log(quote)
-          // fixed Shift
-          const shiftUrl = 'https://sideshift.ai/api/v2/shifts/fixed'
-          const resp = await vm.$axios.post(shiftUrl,
-            {
-              settleAddress: vm.rampData.settleAddress,
-              quoteId: quote.id,
-              refundAddress: vm.refundAddress
-            },
-            {
-              headers: {
-                'content-type': 'application/json',
-                'x-sideshift-secret': process.env.SIDESHIFT_SECRET_KEY,
-                'x-user-ip': userIP
-              }
-            }
-          ).catch(function (error) {
-            console.log(error.response)
-            if (error.response) {
-              const errorMsg = error.response.data.error.message.toLowerCase()
-              console.log(errorMsg)
-
-              if (errorMsg.includes('invalid receiving address')) {
-                console.log('invalid address')
-                vm.error_msg = "You've entered an invalid receiving address.Please try again."
-              }
-            }
-            vm.networkError = true
-            vm.isloaded = true
-          })
-
-          if (resp.status === 200 || resp.status === 201) {
-            // console.log('fixed shift')
-            vm.shiftData = resp.data
-            // console.log(resp)
-
-            // save to db
-            await vm.saveShift(vm.shiftData)
-          } else {
-            vm.networkError = true
-            vm.loaded = true
-          }
         } else {
-          vm.networkError = true
-          vm.loaded = true
+          vm.shiftData = response.data
         }
       } else {
         vm.networkError = true
-        vm.loaded = true
+        vm.isloaded = true
+      }
+    },
+    async dataConfirmed () {
+      const vm = this
+      await vm.createShift()
+      vm.isloaded = true
+
+      if (!vm.networkError) {
+        vm.$emit('confirmed', vm.shiftData)
       }
     }
   },

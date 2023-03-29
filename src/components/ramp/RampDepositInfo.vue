@@ -197,11 +197,11 @@ export default {
 
     if (vm.state === 'created') {
       if (vm.shiftInfo.depositCoin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
-        console.log('this wallet')
+        // console.log('this wallet')
         vm.sendBCH = true
         await vm.sendingBCH()
       } else {
-        console.log('others')
+        // console.log('others')
         vm.countingDown()
       }
     } else if (vm.state === 'history') {
