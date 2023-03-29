@@ -27,7 +27,7 @@
         {{ error }}
       </div>
       <template v-else>
-        <qrcode-stream
+        <qr-stream
           v-if="val"
           :camera="frontCamera ? 'front': 'auto'"
           @decode="onScannerDecode"
@@ -45,11 +45,14 @@
 
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
-import { QrcodeStream } from 'vue3-qrcode-reader'
+import { QrStream } from 'vue3-qr-reader'
 import ScannerUI from 'components/scanner-ui/scanner.vue'
 
 export default {
-  components: { QrcodeStream, ScannerUI },
+  components: {
+    QrStream,
+    ScannerUI,
+  },
   data () {
     return {
       val: this.modelValue,
