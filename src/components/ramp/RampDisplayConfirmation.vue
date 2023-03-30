@@ -24,7 +24,7 @@
     <ProgressLoader/>
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
-    {{error_msg }} &#128533;
+    <div class="q-px-lg">{{error_msg }} &#128533;</div>
     <div class="q-pt-lg text-center">
       <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
     </div>
