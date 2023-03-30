@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^2.1.1",
+    "@capacitor-community/native-audio": "^3.0.4",
     "@capacitor/app": "^1.1.0",
     "@capacitor/camera": "^1.0.3",
     "@capacitor/cli": "^3.0.0",

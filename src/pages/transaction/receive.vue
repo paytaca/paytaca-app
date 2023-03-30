@@ -82,6 +82,14 @@ import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
+import { NativeAudio } from '@capacitor-community/native-audio'
+
+NativeAudio.preload({
+    assetId: 'send-success',
+    assetPath: 'send-success.wav',
+    audioChannelNum: 1,
+    isUrl: false
+})
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -256,8 +264,9 @@ export default {
     },
     playSound (success) {
       if (success) {
-        const audio = new Audio('/audio/send-success.wav')
-        audio.play()
+        NativeAudio.play({
+          assetId: 'send-success'
+        })
       }
     },
     notifyOnReceive (amount, symbol, logo) {
@@ -381,6 +390,10 @@ export default {
       this.$disconnect()
       delete this?.$options?.sockets
     }
+
+    NativeAudio.unload({
+      assetId: 'send-success',
+    })
   },
 
   mounted () {

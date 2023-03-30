@@ -13,6 +13,7 @@
     "@capacitor/device": "^1.1.2",
     "@capacitor/ios": "^3.7.0",
     "@capacitor/push-notifications": "^1.0.9",
-    "capacitor-native-biometric": "^3.0.3"
+    "capacitor-native-biometric": "^3.0.3",
+    "@capacitor-community/native-audio": "^3.0.4"
   }
 }
