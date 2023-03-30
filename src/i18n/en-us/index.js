@@ -106,6 +106,7 @@ export default {
   Data: 'Data',
   Decoded: 'Decoded',
   Deadline: 'Deadline',
+  Deposit: 'Deposit',
   Disconnected: 'Disconnected',
   Dismiss: 'Dismiss',
   English: 'English',

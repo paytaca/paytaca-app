@@ -44,6 +44,13 @@ export default {
           active: true
         },
         {
+          name: 'Ramp',
+          iconName: 'img:ramp_icon_white.png',
+          path: '/apps/ramp',
+          iconStyle: 'width:50%',
+          active: true
+        },
+        {
           name: this.$t('WalletConnect'),
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
