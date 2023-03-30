@@ -290,14 +290,7 @@ export default {
       })
         .onOk(data => {
           this.depositInfoState = 'history'
-          this.shiftData = {
-            depositAddress: data.shift_info.deposit.address,
-            depositCoin: data.shift_info.deposit.coin,
-            depositAmount: data.shift_info.deposit.amount,
-            settleAddress: data.shift_info.settle.address,
-            expiresAt: data.shift_info.shift_expiration,
-            status: data.shift_status
-          }
+          this.shiftData = data
           this.state = 'deposit'
         })
     },

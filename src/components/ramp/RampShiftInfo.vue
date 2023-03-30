@@ -2,9 +2,9 @@
   <div v-if="isloaded">
     <div class="text-h5 text-center q-pb-md" style="font-size: 15px;" v-if="state === 'confirmation'">Please check to confirm...</div>
     <div class="text-h5 text-center" style="font-size: 18px;" v-if="state === 'history'">{{ transactionType(historyInfo.ramp_type, historyInfo.shift_status).toUpperCase() }}</div>
-    <div v-if="historyInfo.ramp_type === 'on' && historyInfo.shift_status !== 'expired'" style="width: 100%; text-align: center; color: #3b7bf6;">
+    <!-- <div v-if="historyInfo.ramp_type === 'on' && historyInfo.shift_status !== 'expired'" style="width: 100%; text-align: center; color: #3b7bf6;">
       <p style="font-size: 15px;" @click="openDepositInfo()">Show QR Code</p>
-    </div>
+    </div> -->
     <div class="row no-wrap justify-around items-baseline">
       <div class="col-5 column items-center">
         <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px">{{ $t('From') }}</div>
@@ -48,27 +48,48 @@
         <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.settleAmount }} {{ shiftInfo.settle.coin }}</span>
       </div>
     </div>
-    <!-- <q-separator spaced class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/> -->
+
+    <div class="q-pb-lg" v-if="historyInfo.shift_status == 'settled'">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+        <span>Date Completed:</span>
+        <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ getDate(historyInfo.date_shift_completed) }}</span>
+      </div>
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-center q-pt-md q-px-lg">
+        <span>Transaction Id ({{ historyInfo.shift_info.txn_details.type }}):</span><br>
+        <div class="q-pt-sm q-px-lg" @click="copyToClipboard(historyInfo.shift_info.txn_details.txid)">
+          <span style="font-size: 15px; overflow-wrap: break-word;">{{ historyInfo.shift_info.txn_details.txid }}</span>
+        </div>
+      </div>
+    </div>
 
     <div v-if="state === 'history'">
-      <q-item clickable @click="copyToClipboard(historyInfo.shift_info.deposit.address)" v-if="historyInfo.shift_status !== 'expired' && historyInfo.ramp_type === 'on'">
+      <q-item clickable @click="copyToClipboard(historyInfo.shift_info.deposit.address)" v-if="historyInfo.shift_status === 'waiting' && historyInfo.ramp_type === 'on'">
         <q-item-section class="text-center q-px-md">
           <q-item-label>Deposit Address: </q-item-label>
+
           <q-item-label class="q-px-lg text-h5" style="overflow-wrap: break-word">
-            <span style="font-size: 15px;">{{ historyInfo.shift_info.deposit.address }}</span>
-            <p style="font-size: 12px; margin-top: 5px;">{{ $t('ClickToCopyAddress') }}</p>
+            <span class="qr-code-text text-weight-light text-center">
+              <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(historyInfo.shift_info.deposit.address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+                {{ historyInfo.shift_info.deposit.address }}<br>
+                <span style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</span><br>
+                <span style="font-size: 12px">or</span>
+              </div>
+              <div class="text-center q-py-sm">
+                <q-btn round size="md" class="btn-scan text-white" icon="mdi-qrcode" @click="openDepositInfo()"/>
+              </div>
+            </span>
           </q-item-label>
         </q-item-section>
       </q-item>
     </div>
 
-    <q-separator spaced class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
+    <q-separator class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
 
     <q-item>
       <q-item-section class="text-center q-pb-sm q-pt-sm">
         <q-item-label>Recieving Address: </q-item-label>
         <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
-          <span style="font-size: 13px;">{{ shiftInfo.settleAddress }}</span>
+        <span style="font-size: 13px;">{{ shiftInfo.settleAddress }}</span>
         </q-item-label>
       </q-item-section>
     </q-item>
@@ -132,7 +153,9 @@ export default {
           return 'To Recieve'
         } else if (status === 'expired') {
           return 'failed'
-        } else {
+        } else if (status === 'processing') {
+          return 'processing'
+        } else if (status === 'settled') {
           return 'recieved'
         }
       } else {
@@ -140,7 +163,9 @@ export default {
           return 'sending'
         } else if (status === 'expired') {
           return 'send failed'
-        } else {
+        } else if (status === 'processing') {
+          return 'processing'
+        } else if (status === 'settled') {
           return 'sent'
         }
       }
@@ -158,6 +183,12 @@ export default {
           icon: 'mdi-clipboard-check'
         })
       }
+    },
+    getDate (date) {
+      const tempDate = date.split('T')
+      const depositDate = tempDate[0] + ' ' + tempDate[1].substring(0, 5)
+
+      return depositDate
     },
   },
   async mounted () {
@@ -185,3 +216,16 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+  .qr-code-text {
+    font-size: 18px;
+    color: #000;
+  }
+  .pp-text {
+    color: #000 !important;
+  }
+  .btn-scan {
+    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    color: white;
+  }
+</style>
