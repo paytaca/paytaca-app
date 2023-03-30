@@ -32,7 +32,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <!-- not: any combination of scheme, host, & pathPrefix will be captured -->
+                <!-- note: any combination of scheme, host, & pathPrefix will be captured -->
                 <data android:scheme="app" />
                 <data android:scheme="http" />
                 <data android:scheme="https" />
@@ -49,6 +49,18 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="wc" />
+                <data android:scheme="bitcoincash" />
+                <data android:scheme="paytaca" />
+                <data android:scheme="ethereum" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="gifts.paytaca.com" pathPrefix="/claim"/>
             </intent-filter>
         </activity>
 

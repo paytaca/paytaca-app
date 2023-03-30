@@ -48,11 +48,17 @@ import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 
 export default {
   name: 'asset-cards',
+  emits: [
+    'hide-asset-info',
+    'show-asset-info',
+    'select-asset',
+  ],
   props: {
     network: {
       type: String,
       default: 'BCH'
     },
+    wallet: { type: Object },
     assets: { type: Array },
     manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
@@ -91,47 +97,29 @@ export default {
     },
     selectAsset (event, asset) {
       const vm = this
-      const home = vm.$parent.$parent
       vm.assetClickCounter += 1
-      if (home.selectedAsset.id === asset.id) {
-        if (vm.assetClickCounter >= 2) {
-          home.showAssetInfo(asset)
-          vm.assetClickTimer = setTimeout(() => {
-            clearTimeout(vm.assetClickTimer)
-            vm.assetClickTimer = null
-            vm.assetClickCounter = 0
-          }, 600)
-        } else {
-          home.hideAssetInfo()
-          vm.assetClickTimer = setTimeout(() => {
-            if (vm.assetClickCounter === 1) {
-              home.getBalance(asset.id)
-              home.getTransactions()
-            }
-            clearTimeout(vm.assetClickTimer)
-            vm.assetClickTimer = null
-            vm.assetClickCounter = 0
-          }, 600)
-        }
-      } else {
+      if (vm.assetClickCounter >= 2) {
+        vm.$emit('show-asset-info', asset)
         vm.assetClickTimer = setTimeout(() => {
           clearTimeout(vm.assetClickTimer)
           vm.assetClickTimer = null
           vm.assetClickCounter = 0
         }, 600)
-        home.$refs['asset-info'].hide()
-        home.selectedAsset = asset
-        home.transactions = []
-        home.transactionsPage = 0
-        home.transactionsPageHasNext = false
-        home.getBalance()
-        home.getTransactions()
+      } else {
+        vm.$emit('hide-asset-info')
+        vm.assetClickTimer = setTimeout(() => {
+          if (vm.assetClickCounter === 1) {
+            vm.$emit('select-asset', asset)
+          }
+          clearTimeout(vm.assetClickTimer)
+          vm.assetClickTimer = null
+          vm.assetClickCounter = 0
+        }, 600)
       }
     },
     addAsset (tokenId) {
       const vm = this
-      const home = vm.$parent.$parent
-      home.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
+      this.wallet.SLP.getSlpTokenDetails(tokenId).then(function (details) {
         const asset = {
           id: details.id,
           symbol: details.symbol,
@@ -148,14 +136,14 @@ export default {
     },
     addSep20Asset (contractAddress) {
       const vm = this
-      const home = vm.$parent.$parent
-      home.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
+      this.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
         if (response.success && response.token) {
           const commitName = 'sep20/addNewAsset'
           const asset = {
             id: `sep20/${response.token.address}`,
             symbol: response.token.symbol,
             name: response.token.name,
+            decimals: response.token.decimals,
             logo: '',
             balance: 0
           }
@@ -215,7 +203,7 @@ export default {
     padding: 34px 20px 34px 20px;
     border-radius: 16px;
     font-size: 20px;
-    height: 100px;
+    height: 97px;
     margin-left: 2px;
     margin-right: 12px;
   }

@@ -62,23 +62,29 @@ export function toChecksumAddress (address = '') {
   return utils.getAddress(address)
 }
 
-export function getERC721Contract (contractAddress, test = false) {
+export function getERC721Contract (contractAddress, opts={ test: false, provider: null }) {
   if (!utils.isAddress(contractAddress)) return
+
+  let provider = opts?.provider
+  if (!provider) provider = getProvider(opts?.test)
 
   return new ethers.Contract(
     contractAddress,
     erc721Abi,
-    getProvider(test)
+    provider,
   )
 }
 
-export function getSep20Contract (contractAddress, test = false) {
+export function getSep20Contract (contractAddress, opts={ test: false, provider: null }) {
   if (!utils.isAddress(contractAddress)) return
+
+  let provider = opts?.provider
+  if (!provider) provider = getProvider(opts?.test)
 
   return new ethers.Contract(
     contractAddress,
     sep20Abi,
-    getProvider(test)
+    provider,
   )
 }
 
@@ -89,7 +95,7 @@ export async function getERC721ContractDetails (contractAddress, test = false) {
       error: 'Invalid token address'
     }
   }
-  const tokenContract = getERC721Contract(contractAddress, test)
+  const tokenContract = getERC721Contract(contractAddress, { test })
 
   const tokenName = await tokenContract.name()
   const tokenSymbol = await tokenContract.symbol()
@@ -131,7 +137,7 @@ export async function getSep20ContractDetails (contractAddress, test) {
   } catch {}
 
   if (!token.name && !token.symbol) {
-    const tokenContract = getSep20Contract(parsedAddress, test)
+    const tokenContract = getSep20Contract(parsedAddress, { test })
     // tokenContract // necessary for not getting reference error
     const data = await Promise.all([
       tokenContract.name(),

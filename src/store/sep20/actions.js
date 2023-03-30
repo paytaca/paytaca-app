@@ -113,7 +113,7 @@ export async function getMissingAssets (context, { address, filterWithBalance = 
   const contracts = data.results
     .map(tokenInfo => tokenInfo && tokenInfo.address)
     .filter(Boolean)
-    .map(tokenAddress => getSep20Contract(tokenAddress, false))
+    .map(tokenAddress => getSep20Contract(tokenAddress))
 
   const addresses = await Promise.all(contracts.map(async (contract) => {
     try {

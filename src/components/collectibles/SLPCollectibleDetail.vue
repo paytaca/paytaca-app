@@ -6,12 +6,14 @@
         <q-space/>
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
-      <template v-if="imageUrl">
-        <q-img :src="imageUrl" fit="fill" width="75"></q-img>
-      </template>
-      <template v-else>
-        <gravatar :hash="collectible && collectible.token_id"/>
-      </template>
+
+      <q-img
+        v-if="imageUrl && !forceUseDefaultImg"
+        :src="imageUrl" fit="fill" width="75"
+        @error="() => forceUseDefaultImg = true"
+      />
+      <q-img v-else :src="defaultImageUrl" fit="fill" width="75"></q-img>
+
       <q-card-section style="text-align: center; margin-bottom: 10px;">
         <q-btn-group push style="color: rgb(60, 100, 246) !important;">
           <q-btn @click="verify" push :label="$t('Verify')" icon="visibility" />
@@ -23,12 +25,10 @@
 </template>
 
 <script>
-import Gravatar from 'vue-gravatar'
 import { openURL } from 'quasar'
 
 export default {
   name: 'collectible',
-  components: { Gravatar },
   props: {
     modelValue: {
       type: Boolean,
@@ -39,6 +39,7 @@ export default {
   data () {
     return {
       val: this.modelValue,
+      forceUseDefaultImg: false,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -46,35 +47,38 @@ export default {
     imageUrl () {
       if (!this.collectible) return ''
       return this.collectible.thumbnail_image_url ||
-            this.collectible.thumbnail_image_url ||
+            this.collectible.medium_image_url ||
             this.collectible.original_image_url
+    },
+    defaultImageUrl() {
+      if (this.imageUrl && !this.forceUseDefaultImg) return ''
+      return this.$store.getters['global/getDefaultAssetLogo']?.(this.collectible?.token_id)
     }
   },
   methods: {
     verify () {
-      const url = 'https://simpleledger.info/#token/' + this.collectible.token_id
+      const url = 'https://blockchair.com/bitcoin-cash/transaction/' + this.collectible.token_id
       openURL(url)
     },
-    getImageUrl (collectible) {
-      if (!collectible) return ''
-      return collectible.thumbnail_image_url ||
-            collectible.thumbnail_image_url ||
-            collectible.original_image_url
-    },
     send () {
+      const isSimpleNft = this.collectible.type === 1
       this.$router.push({
         name: 'transaction-send',
         query: {
           assetId: 'slp/' + this.collectible.token_id,
-          tokenType: 65,
+          tokenType: isSimpleNft ? 1 : 65,
+          simpleNft: isSimpleNft,
           amount: 1,
           symbol: this.collectible.symbol,
-          image: this.getImageUrl(this.collectible)
+          image: this.imageUrl,
         }
       })
     }
   },
   watch: {
+    imageUrl() {
+      this.forceUseDefaultImg = false
+    },
     val () {
       this.$emit('update:modelValue', this.val)
     },

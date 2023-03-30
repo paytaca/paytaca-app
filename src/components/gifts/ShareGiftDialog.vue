@@ -1,0 +1,33 @@
+<template>
+  <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
+    <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
+      <q-card-section>
+        <div class="text-h5 q-mb-md">Share Gift</div>
+        <ShareGiftPanel :qr-share="qrCodeContents" :amount="gift?.amount"/>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+</template>
+<script setup>
+import { computed } from 'vue'
+import { useStore } from 'vuex'
+import { useDialogPluginComponent } from 'quasar'
+import ShareGiftPanel from './ShareGiftPanel.vue'
+
+// dialog plugins requirement
+defineEmits([
+  // REQUIRED; need to specify some events that your
+  // component will emit through useDialogPluginComponent()
+  ...useDialogPluginComponent.emits
+])
+const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+
+const $store = useStore()
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const props = defineProps({
+  gift: Object,
+})
+
+const qrCodeContents = computed(() => $store.getters['gifts/getQrShare'](props.gift?.gift_code_hash))
+</script>

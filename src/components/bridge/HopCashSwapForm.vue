@@ -51,12 +51,17 @@
       <q-form ref="form" @submit="onSwapSubmit()">
         <q-card class="q-mt-sm br-15" :class="{'pt-dark-card': darkMode}">
           <q-card-section>
+            <q-banner v-if="bridgeDisabled" inline-actions class="text-white bg-red text-center">
+              The bridge is temporarily disabled until further notice
+            </q-banner>
+          </q-card-section>
+          <q-card-section>
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
               <span>{{ $t('BridgeBalance') }}:</span>
               <q-btn
                 padding="xs sm"
                 flat
-                :disable="lockInputs"
+                :disable="lockInputs || bridgeDisabled"
                 :label="maxBridgeBalance + ' BCH'"
                 :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                 @click="amount = maxBridgeBalance"
@@ -67,7 +72,7 @@
               <q-btn
                 padding="xs sm"
                 flat
-                :disable="lockInputs"
+                :disable="lockInputs || bridgeDisabled"
                 :label="sourceTransferBalance + ' BCH'"
                 :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                 @click="amount = sourceTransferBalance"
@@ -87,7 +92,7 @@
                   dense: true,
                   filled: true,
                   dark: darkMode,
-                  disable: lockInputs || maxBridgeBalance === 0,
+                  disable: lockInputs || maxBridgeBalance === 0 || bridgeDisabled,
                   wait: maxBridgeBalance === 0,
                   rules: [
                     val => Number(val) >= 0.01 || $t('BridgeError1'),
@@ -125,7 +130,7 @@
                   dense: true,
                   filled: true,
                   dark: darkMode,
-                  disable: lockInputs || maxBridgeBalance === 0,
+                  disable: lockInputs || maxBridgeBalance === 0 || bridgeDisabled,
                   wait: maxBridgeBalance === 0,
                   bottomSlots: true,
                 }"
@@ -325,6 +330,7 @@ export default {
       recipientAddress: '',
       errors: [],
 
+      bridgeDisabled: true,  // Temporarily disable BCH-sBCH bridge
       bridgeBalances: {
         bch: 0,
         sbch: 0

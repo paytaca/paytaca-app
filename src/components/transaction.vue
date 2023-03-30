@@ -120,7 +120,7 @@
             </q-item>
             <q-item v-if="anyhedgeContracts?.length">
               <q-item-section>
-                <q-item-label class="text-gray" caption>Anyhedge</q-item-label>
+                <q-item-label class="text-gray" caption>AnyHedge</q-item-label>
                 <q-item-label
                   v-for="(contractInfo, index) in anyhedgeContracts"
                   :key="index"
