@@ -55,7 +55,7 @@
         <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ getDate(historyInfo.date_shift_completed) }}</span>
       </div>
       <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-center q-pt-md q-px-lg">
-        <span>Transaction Id ({{ historyInfo.shift_info.txn_details.type }}):</span><br>
+        <span>Transaction ID:</span><br>
         <div class="q-pt-sm q-px-lg" @click="copyToClipboard(historyInfo.shift_info.txn_details.txid)">
           <span style="font-size: 15px; overflow-wrap: break-word;">{{ historyInfo.shift_info.txn_details.txid }}</span>
         </div>

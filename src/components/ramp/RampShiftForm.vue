@@ -143,12 +143,15 @@
        </q-input>
       </q-item-section>
     </q-item>
+    <div class="row justify-center q-mt-md" style="color: gray;">
+      <span>{{ $t('PoweredBy') }} SideShift.ai</span>
+    </div>
     <div class="row q-mx-md q-py-lg">
       <q-btn
         :disable="hasError || !shiftAmount || !settleAddress || !amountLoaded || !refundAddress"
         rounded
         no-caps
-        label='Enter'
+        label='Submit'
         color="brandblue"
         class="q-space"
         @click="checkData()"
