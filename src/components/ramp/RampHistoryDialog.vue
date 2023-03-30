@@ -64,12 +64,15 @@
                                     :class="{'pt-dark-label': darkMode}"
                                     style="font-size: 11px; padding-top: 10px;"
                                   >
-                                    {{ transaction.shift_status.toUpperCase() }}
+                                    {{ transactionType(transaction.ramp_type, transaction.shift_status).toUpperCase() }}
                                   </div>
                                 </p>
                               </div>
                               <div class="col">
-                                <span class="q-pb-sm float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
+                                <span class="q-pb-sm float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;" v-if="transaction.shift_status === 'settled'">
+                                  {{ getDate(transaction.date_shift_completed) }}
+                                </span>
+                                <span class="q-pb-sm float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;" v-else>
                                   {{ getDate(transaction.date_shift_created) }}
                                 </span>
                               </div>
@@ -141,7 +144,9 @@ export default {
           return 'To Recieve'
         } else if (status === 'expired') {
           return 'failed'
-        } else {
+        } else if (status === 'processing') {
+          return 'processing'
+        } else if (status === 'settled') {
           return 'recieved'
         }
       } else {
@@ -149,7 +154,9 @@ export default {
           return 'sending'
         } else if (status === 'expired') {
           return 'send failed'
-        } else {
+        } else if (status === 'processing') {
+          return 'processing'
+        } else if (status === 'settled') {
           return 'sent'
         }
       }

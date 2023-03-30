@@ -124,7 +124,6 @@ export default {
         vm.networkError = true
         vm.isloaded = true
       })
-      // console.log(response.data)
       if (response.status === 200) {
         // Invalid Address Errors
         if ('error' in response.data) {
