@@ -363,7 +363,7 @@ export default {
     },
     deleteHistory () {
       this.$store.dispatch('chat/deleteHistory', this.topic)
-      // this.$router.push('/apps/chat')
+      this.$router.push('/apps/chat')
     }
   },
   async mounted () {
