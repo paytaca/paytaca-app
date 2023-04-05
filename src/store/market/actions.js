@@ -72,6 +72,7 @@ export function getAllAssetList (context) {
 }
 
 export async function updateAssetPrices (context, { clearExisting = false }) {
+  const selectedCurrency = context.state.selectedCurrency?.symbol
   const assetList = await context.dispatch('getAllAssetList')
   const coinIds = []
   coinIds.push(
@@ -85,12 +86,15 @@ export async function updateAssetPrices (context, { clearExisting = false }) {
       .filter((e, i, s) => s.indexOf(e) === i)
   )
 
+  const vsCurrencies = ['usd']
+  if (selectedCurrency && selectedCurrency != 'ARS') vsCurrencies.push(selectedCurrency)
+
   const { data: prices } = await axios.get(
     'https://api.coingecko.com/api/v3/simple/price',
     {
       params: {
         ids: coinIds.join(','),
-        vs_currencies: 'usd'
+        vs_currencies: vsCurrencies.join(','),
       }
     }
   )
@@ -108,8 +112,6 @@ export async function updateAssetPrices (context, { clearExisting = false }) {
 
   if (clearExisting) context.commit('clearAssetPrices')
   context.commit('updateAssetPrices', newAssetPrices)
-  let selectedCurrency = null
-  if (context.state.selectedCurrency && context.state.selectedCurrency.symbol) selectedCurrency = context.state.selectedCurrency.symbol
   context.dispatch('updateUsdRates', { currency: selectedCurrency })
 }
 
