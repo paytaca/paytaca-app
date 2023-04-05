@@ -99,6 +99,12 @@ export async function updateAssetPrices (context, { clearExisting = false }) {
     }
   )
 
+  let fetchUsdRate = false
+  if (selectedCurrency) {
+    const loweredSelectedCurrency = String(selectedCurrency).toLowerCase()
+    fetchUsdRate = !coinIds.map(coinId => prices?.[coinId]?.[loweredSelectedCurrency]).every(Boolean)
+  }
+
   const newAssetPrices = [...assetList.mainchain, ...assetList.smartchain]
     .filter(({ coin }) => coin && coin.id)
     .filter(({ asset }) => asset && asset.id)
@@ -112,7 +118,7 @@ export async function updateAssetPrices (context, { clearExisting = false }) {
 
   if (clearExisting) context.commit('clearAssetPrices')
   context.commit('updateAssetPrices', newAssetPrices)
-  context.dispatch('updateUsdRates', { currency: selectedCurrency })
+  if (fetchUsdRate) context.dispatch('updateUsdRates', { currency: selectedCurrency })
 }
 
 /**
