@@ -48,21 +48,29 @@ export function getAllAssetList (context) {
   const smartchainAssets = context.rootGetters['sep20/getAssets'].filter(asset => asset.id.indexOf('/') === -1)
 
   const mainchain = mainchainAssets.map(asset => {
+    if (asset?.id == 'bch') return {
+      asset,
+      coin: { id: 'bitcoin-cash', symbol: 'BCH', name: 'Bitcoin Cash' },
+    }
+
     const filteredSymbol = context.state.coinsList
       .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
     const filteredPlatform = filteredSymbol
-      .filter(coin => !coin.platforms || Object.getOwnPropertyNames(coin.platforms).length <= 1)
+      .filter(coin => Object.getOwnPropertyNames(coin?.platforms || {}).length <= 1)
     const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
     return { asset, coin }
   })
 
   const smartchain = smartchainAssets.map(asset => {
+    if (asset?.id == 'bch') return {
+      asset,
+      coin: { id: 'bitcoin-cash', symbol: 'BCH', name: 'Bitcoin Cash' },
+    }
+
     const filteredSymbol = context.state.coinsList
       .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
     const filteredPlatform = filteredSymbol
-      .filter(coin => {
-        return coin.platforms && coin.platforms.smartbch
-      })
+      .filter(coin => coin?.platforms?.smartbch)
 
     const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
     return { asset, coin }
@@ -74,17 +82,10 @@ export function getAllAssetList (context) {
 export async function updateAssetPrices (context, { clearExisting = false }) {
   const selectedCurrency = context.state.selectedCurrency?.symbol
   const assetList = await context.dispatch('getAllAssetList')
-  const coinIds = []
-  coinIds.push(
-    ...assetList.mainchain
-      .map(({ coin }) => coin && coin.id)
-      .filter(Boolean)
-      .filter((e, i, s) => s.indexOf(e) === i),
-    ...assetList.smartchain
-      .map(({ coin }) => coin && coin.id)
-      .filter(Boolean)
-      .filter((e, i, s) => s.indexOf(e) === i)
-  )
+  const coinIds = [...assetList.mainchain, ...assetList.smartchain]
+    .map(({ coin }) => coin && coin.id)
+    .filter(Boolean)
+    .filter((e, i, s) => s.indexOf(e) === i)
 
   const vsCurrencies = ['usd']
   if (selectedCurrency && selectedCurrency != 'ARS') vsCurrencies.push(selectedCurrency)
@@ -106,8 +107,7 @@ export async function updateAssetPrices (context, { clearExisting = false }) {
   }
 
   const newAssetPrices = [...assetList.mainchain, ...assetList.smartchain]
-    .filter(({ coin }) => coin && coin.id)
-    .filter(({ asset }) => asset && asset.id)
+    .filter(({ coin, asset }) => coin?.id && asset?.id)
     .map(({ asset, coin }) => {
       return {
         assetId: asset.id,
