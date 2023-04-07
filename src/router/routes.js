@@ -36,6 +36,24 @@ const routes = [
           return props
         },
         component: () => import('pages/transaction/send.vue')
+      },
+      {
+        path: 'connect/',
+        name: 'connect',
+        props: route => route.query,
+        component: () => import('pages/connect/connect.vue')
+      },
+      {
+        path: 'signMessage/',
+        name: 'sign-message',
+        props: route => route.query,
+        component: () => import('pages/sign/message.vue')
+      },
+      {
+        path: 'signTransaction/',
+        name: 'sign-transaction',
+        props: route => route.query,
+        component: () => import('pages/sign/transaction.vue')
       }
     ]
   },

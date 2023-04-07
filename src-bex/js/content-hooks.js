@@ -23,4 +23,23 @@ export default function attachContentHooks (bridge) {
   bridge.on('window.paytaca.connecta', event => {
     bridge.send('background.paytaca.connecta', event.data)
   })
+
+  bridge.on('window.paytaca.connect', async ({ data, respond }) => {
+    const response = await bridge.send('background.paytaca.connect', data)
+    respond(response.data)
+  })
+
+  bridge.on('window.paytaca.address', async ({ data, respond }) => {
+    respond(JSON.parse(localStorage.getItem("vuex"))?.global.wallets[data.assetId].lastAddress)
+  })
+
+  bridge.on('window.paytaca.signMessage', async ({ data, respond }) => {
+    const response = await bridge.send('background.paytaca.signMessage', data)
+    respond(response.data)
+  })
+
+  bridge.on('window.paytaca.signTransaction', async ({ data, respond }) => {
+    const response = await bridge.send('background.paytaca.signTransaction', data)
+    respond(response.data)
+  })
 }

@@ -20,6 +20,53 @@ class Paytaca {
       orderId
     })
   }
+
+  async connect() {
+    const response = await this.bridge.send('window.paytaca.connect', {
+      origin: window.location.origin
+    })
+    return response.data
+  }
+
+  async address (assetId) {
+    const connected = await this.connect()
+    if (!connected) {
+      return undefined;
+    }
+
+    const response = await this.bridge.send('window.paytaca.address', {
+      assetId: assetId
+    })
+    return response.data
+  }
+
+  async signMessage (assetId, message) {
+    const connected = await this.connect()
+    if (!connected) {
+      return undefined;
+    }
+
+    const response = await this.bridge.send('window.paytaca.signMessage', {
+      origin: window.location.origin,
+      assetId: assetId,
+      message: message
+    })
+    return response.data
+  }
+
+  async signTransaction (assetId, transaction) {
+    const connected = await this.connect()
+    if (!connected) {
+      return undefined;
+    }
+
+    const response = await this.bridge.send('window.paytaca.signTransaction', {
+      origin: window.location.origin,
+      assetId: assetId,
+      transaction: transaction
+    })
+    return response.data
+  }
 }
 
 export default function attachDomHooks (bridge) {

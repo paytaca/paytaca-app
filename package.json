@@ -10,6 +10,7 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@bitauth/libauth": "^2.0.0-alpha.7",
     "@capacitor-community/barcode-scanner": "^2.1.1",
     "@capacitor/app": "^1.1.0",
     "@capacitor/camera": "^1.0.3",
