@@ -1,6 +1,8 @@
 // Hooks added here have a bridge allowing communication between the Web Page and the BEX Content Script.
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/dom-hooks
 
+import { stringify } from "@bitauth/libauth";
+
 class Paytaca {
   constructor (bridge) {
     this.bridge = bridge
@@ -54,7 +56,7 @@ class Paytaca {
     return response.data
   }
 
-  async signTransaction (assetId, transaction) {
+  async signTransaction (assetId, transaction, sourceOutputs) {
     const connected = await this.connect()
     if (!connected) {
       return undefined;
@@ -63,7 +65,8 @@ class Paytaca {
     const response = await this.bridge.send('window.paytaca.signTransaction', {
       origin: window.location.origin,
       assetId: assetId,
-      transaction: transaction
+      transaction: typeof transaction === "string" ? transaction : stringify(transaction, 0),
+      sourceOutputs: stringify(sourceOutputs, 0),
     })
     return response.data
   }

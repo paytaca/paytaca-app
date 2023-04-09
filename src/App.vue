@@ -140,6 +140,7 @@ export default {
             origin: event.data.origin,
             assetId: event.data.assetId,
             transaction: event.data.transaction,
+            sourceOutputs: event.data.sourceOutputs,
             eventResponseKey: event.data.eventResponseKey,
           },
         })

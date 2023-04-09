@@ -2,13 +2,16 @@
   <div id="app-container" class="" :class="{'pt-dark': darkMode}">
     <header-nav
       backnavpath="/"
-      :title="$t('Connect')"
+      :title="$t('')"
     ></header-nav>
     <div class="">
       <div class="q-pa-md" style="padding-top: 70px;">
+        <div class="connect-tittle">Connect with Paytaca</div>
         <div class="col-12 q-mt-lg items-center">
           <p class="text-lg">Origin:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
           <p class="text-lg">Signer:</p><textarea readonly class="ro-text" v-text="lastAddress"></textarea>
+          <p>Permissions: see address, account balance, activity and suggest transactions to approve</p>
+          <p>Only connect with sites you trust.</p>
         </div>
       </div>
       <hr />
@@ -104,6 +107,13 @@ export default {
     min-height: 100vh;
     flex-direction: column;
     display: flex;
+  }
+  .connect-tittle {
+    color: #3B7BF6;
+    font-size: 30px;
+    font-weight: 400;
+    display: flex;
+    justify-content: center;
   }
   .text-sm {
     font-size: 12px;
