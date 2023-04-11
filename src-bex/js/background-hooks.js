@@ -106,13 +106,15 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     })
   })
 
+
+
   bridge.on('background.paytaca.connect', ({ data, respond, eventResponseKey }) => {
-    const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
-    const connected = !!connectedSites[data.origin];
-    if (connected) {
-      bridge.send(eventResponseKey, true);
-      return;
-    }
+    // const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
+    // const connected = !!connectedSites[data.origin];
+    // if (connected) {
+    //   bridge.send(eventResponseKey, true);
+    //   return;
+    // }
 
     chrome.windows.getCurrent(function (parentWindow) {
       const windowWidth = 375
@@ -151,12 +153,41 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
   bridge.on('background.paytaca.connectResponse', event => {
     if (event.data.connected) {
       const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
-      connectedSites[event.data.origin] = {};
+      if (!connectedSites[event.data.origin]) {
+        connectedSites[event.data.origin] = {};
+      }
+      connectedSites[event.data.origin][event.data.address] = true;
       localStorage.setItem("connectedSites", JSON.stringify(connectedSites));
+      localStorage.setItem("selectedAddress", event.data.address);
+      localStorage.setItem("selectedAddressIndex", event.data.addressIndex);
     }
 
     bridge.send(event.data.eventResponseKey, event.data.connected)
   });
+
+  bridge.on('background.paytaca.connected', ({ data, eventResponseKey }) => {
+    const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
+    const connected = !!connectedSites[data.origin];
+    bridge.send(eventResponseKey, connected);
+  })
+
+  bridge.on('background.paytaca.disconnect', ({ data, respond, eventResponseKey }) => {
+    const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
+    delete connectedSites[data.origin];
+    localStorage.setItem("connectedSites", JSON.stringify(connectedSites));
+    bridge.send(eventResponseKey, true);
+  })
+
+  bridge.on('background.paytaca.address', ({ data, respond }) => {
+    for (const connId in allActiveConnections) {
+      const connection = allActiveConnections[connId]
+      if (connection.contentScript.connected) {
+        respond(localStorage.getItem("selectedAddress") || undefined);
+        return
+      }
+    }
+    respond(undefined);
+  })
 
   bridge.on('background.paytaca.signMessage', ({ data, respond, eventResponseKey }) => {
     chrome.windows.getCurrent(function (parentWindow) {

@@ -2,14 +2,19 @@
   <div id="app-container" class="" :class="{'pt-dark': darkMode}">
     <header-nav
       backnavpath="/"
-      :title="$t('')"
+      :title="$t('Connect to Paytaca')"
     ></header-nav>
     <div class="">
       <div class="q-pa-md" style="padding-top: 70px;">
-        <div class="connect-tittle">Connect with Paytaca</div>
         <div class="col-12 q-mt-lg items-center">
           <p class="text-lg">Origin:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
-          <p class="text-lg">Signer:</p><textarea readonly class="ro-text" v-text="lastAddress"></textarea>
+
+          <p>Select the addresses to use on this site</p>
+          <div v-for="(address, index) in addresses" :key="index">
+            <input type="radio" v-model="selectedAddressIndex" :id="address" name="selectedAddressIndex" :value="index">
+            <label style="padding-left: 5px" :for="address">{{ address.split(':')[1] }}</label>
+          </div>
+          <hr />
           <p>Permissions: see address, account balance, activity and suggest transactions to approve</p>
           <p>Only connect with sites you trust.</p>
         </div>
@@ -51,6 +56,9 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       lastAddress: '',
       lastAddressIndex: 0,
+      addresses: [],
+      assetId: "bch",
+      selectedAddressIndex: 0,
     }
   },
 
@@ -67,7 +75,7 @@ export default {
     },
 
     async connect () {
-      this.$q.bex.send('background.paytaca.connectResponse', {origin: this.origin, connected: true, eventResponseKey: this.eventResponseKey})
+      this.$q.bex.send('background.paytaca.connectResponse', {origin: this.origin, connected: true, address: this.addresses[this.selectedAddressIndex], addressIndex: '0/' + this.selectedAddressIndex, eventResponseKey: this.eventResponseKey})
       window.close()
     },
   },
@@ -85,7 +93,14 @@ export default {
     const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
     const wallet = new Wallet(mnemonic, network)
     this.wallet = markRaw(wallet)
-    if (this.assetId === 'sbch') this.wallet.sBCH.getOrInitWallet()
+    if (this.assetId === 'sbch') {
+      await this.wallet.sBCH.getOrInitWallet();
+      this.addresses = [this.wallet.sBCH._wallet.address]
+    } else {
+      for (let i = 0; i <= this.lastAddressIndex; i++) {
+        this.addresses = [...this.addresses, (await this.wallet.BCH.getAddressSetAt(i)).receiving];
+      }
+    }
   },
 }
 </script>

@@ -23,27 +23,44 @@ class Paytaca {
     })
   }
 
-  async connect() {
+  async connect () {
     const response = await this.bridge.send('window.paytaca.connect', {
       origin: window.location.origin
     })
     return response.data
   }
 
+  async connected () {
+    const response = await this.bridge.send('window.paytaca.connected', {
+      origin: window.location.origin
+    })
+    return response.data
+  }
+
+  async disconnect () {
+    const response = await this.bridge.send('window.paytaca.disconnect', {
+      origin: window.location.origin
+    })
+    return response.data
+  }
+
   async address (assetId) {
-    const connected = await this.connect()
+    const connected = await this.connected();
+
     if (!connected) {
       return undefined;
     }
 
     const response = await this.bridge.send('window.paytaca.address', {
+      origin: window.location.origin,
       assetId: assetId
     })
     return response.data
   }
 
   async signMessage (assetId, message) {
-    const connected = await this.connect()
+    const connected = await this.connected();
+
     if (!connected) {
       return undefined;
     }
@@ -57,7 +74,8 @@ class Paytaca {
   }
 
   async signTransaction (assetId, transaction, sourceOutputs) {
-    const connected = await this.connect()
+    const connected = await this.connected();
+
     if (!connected) {
       return undefined;
     }
