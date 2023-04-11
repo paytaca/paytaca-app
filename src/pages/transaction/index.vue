@@ -149,6 +149,9 @@
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
     />
+
+  <!-- <script defer src="https://www.livecoinwatch.com/static/lcw-widget.js"></script>
+  <div class="livecoinwatch-widget-1" lcw-coin="BCH" lcw-base="USD" lcw-secondary="BCH" lcw-period="d" lcw-color-tx="#ffffff" lcw-color-pr="#58c7c5" lcw-color-bg="#1f2434" lcw-border-w="1" ></div> -->
   </div>
 </template>
 

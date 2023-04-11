@@ -9,8 +9,23 @@
         <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
       </div>
       <q-card-section v-if="asset">
+        <div class="q-py-lg q-pr-md" style="text-align: center;" v-if="asset.id === 'bch'">
+          <div
+            style="width: 275px;"
+            class="livecoinwatch-widget-1"
+            lcw-coin="BCH"
+            :lcw-base="selectedCurrency.symbol"
+            lcw-secondary="BCH"
+            lcw-period="d"
+            :lcw-color-tx="priceText"
+            lcw-color-pr="#ed5f59"
+            :lcw-color-bg="bgColor"
+            lcw-border-w="0" >
+          </div>
+        </div>
+        <!-- <div class="btcwdgt-chart" bw-cash="true" bw-theme="light"></div> -->
         <div style="text-align: center; font-size: 20px;">
-          <p :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text'">
+          <p :class="darkMode ? 'pt-dark-label' : 'pp-text'">
             {{ asset.symbol }}
           </p>
         </div>
@@ -51,6 +66,7 @@
 </template>
 
 <script>
+import darkmode from 'src/store/darkmode'
 export default {
   name: 'AssetInfo',
   emits: [
@@ -65,7 +81,9 @@ export default {
   },
   data () {
     return {
-      asset: null
+      asset: null,
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
 
@@ -81,11 +99,30 @@ export default {
     fallbackAssetLogo () {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(this.asset && this.asset.id))
+    },
+    priceText () {
+      if (this.darkMode === true) {
+        return '#ffffff'
+      } else {
+        return '#000'
+      }
+    },
+    bgColor () {
+      if (this.darkMode === true) {
+        return '#212f3d'
+      } else {
+        return '#f2f5f5'
+      }
     }
   },
 
   methods: {
     show (asset) {
+      const widgetScript = document.createElement('script')
+      widgetScript.setAttribute('defer', '')
+      widgetScript.setAttribute('src', 'https://www.livecoinwatch.com/static/lcw-widget.js')
+
+      document.head.appendChild(widgetScript)
       try {
         this.asset = asset
         this.$refs.dialog.show()
@@ -122,6 +159,11 @@ export default {
         }
       })
     }
+  },
+  async mounted () {
+    console.log(this.priceText)
+    console.log(this.bgColor)
+    console.log(this.darkMode)
   }
 }
 </script>
