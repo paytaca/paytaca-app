@@ -206,10 +206,11 @@ export default {
       })
       if (response.status === 200 || response.status === 201) {
         const data = response.data
-
-        vm.transactions.push(...data.history)
-        vm.has_next = data.has_next
-        vm.total_page = data.num_pages
+        if (data.history) {
+          vm.transactions.push(...data.history)
+          vm.has_next = data.has_next
+          vm.total_page = data.num_pages
+        }
       } else {
         vm.networkError = true
       }
