@@ -89,6 +89,14 @@ export default {
       let _assets
       if (this.selectedNetwork === 'sBCH') {
         _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
+        _assets = _assets.map((item) => {
+          if (item.id === 'bch') {
+            item.name = 'Smart Bitcoin Cash'
+            item.symbol = 'sBCH'
+            item.logo = 'sep20-logo.png'
+          }
+          return item
+        })
         const unlistedAsset = {
           id: 'sep20/unlisted',
           name: this.$t('NewUnlisted'),
