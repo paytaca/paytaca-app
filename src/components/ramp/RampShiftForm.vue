@@ -510,6 +510,21 @@ export default {
         }
       }
     },
+    checkCoinOffline (network, coinData) {
+      let depositOffline, settleOffline
+      if (typeof coinData.depositOffline === 'boolean') {
+        depositOffline = coinData.depositOffline
+      } else if (typeof coinData.depositOffline === 'object') {
+        depositOffline = coinData.depositOffline.indexOf(network) > -1
+      }
+
+      if (typeof coinData.settleOffline === 'boolean') {
+        settleOffline = coinData.settleOffline
+      } else if (typeof coinData.settleOffline === 'object') {
+        settleOffline = coinData.settleOffline.indexOf(network) > -1
+      }
+      return depositOffline || settleOffline
+    },
     async getTokenList () {
       const vm = this
       const url = 'https://sideshift.ai/api/v2/coins'
@@ -535,11 +550,12 @@ export default {
             }
 
             if (cont) {
+              const network = coinData.networks[item2]
               const temp = {
                 coin: coinData.coin,
-                network: coinData.networks[item2],
+                network: network,
                 icon: '',
-                offline: coinData.depositOffline || coinData.settleOffline
+                offline: this.checkCoinOffline(network, coinData)
               }
               vm.tokenList.push(temp)
             }

@@ -39,7 +39,7 @@
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>{{ token.coin }}</q-item-label>
-                    <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ token.coin }} ({{ getNetwork(token) }})</q-item-label>
+                    <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ token.network.toUpperCase() }}</q-item-label>
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>
@@ -81,20 +81,6 @@ export default {
         this.$emit('ok', coin)
         this.hide()
       }
-    },
-    getNetwork (token) {
-      const network = token.network.toLowerCase()
-      const coin = token.coin.toLowerCase()
-      //check ethereum
-      if (network === 'ethereum' && coin !== 'eth') {
-        return 'ERC-20'
-      } else if (network === 'tron' && coin !== 'trx') {
-        return 'TRC-20'
-      } else if (network === 'bsc' && coin !== 'bnb') {
-        return 'BEP-20'
-      } else {
-        return token.network.toUpperCase()
-      }
     }
   },
   computed: {
@@ -109,8 +95,7 @@ export default {
           if (!token) return false
           if (/0x[0-9a-f]+/.test(needle) && token.coin.toLowerCase() === needle) return true
 
-          return String(token.coin).toLowerCase().includes(needle) ||
-                  String(token.network).toLowerCase().includes(needle)
+          return String(token.coin).toLowerCase().includes(needle)
         })
     }
   },
