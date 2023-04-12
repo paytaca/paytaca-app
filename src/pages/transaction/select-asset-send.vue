@@ -73,7 +73,8 @@ export default {
       },
       activeBtn: 'btn-bch',
       result: '',
-      error: ''
+      error: '',
+      assets: null
     }
   },
   computed: {
@@ -87,17 +88,11 @@ export default {
       set (value) {
         return this.$store.commit('global/setNetwork', value)
       }
-    },
-    assets () {
-      if (this.selectedNetwork === 'sBCH') {
-        return this.$store.getters['sep20/getAssets'].filter(Boolean)
-      }
-
-      return this.$store.getters['assets/getAssets'].filter(function (item) {
-        if (item) {
-          return item
-        }
-      })
+    }
+  },
+  watch: {
+    selectedNetwork (val) {
+      this.assets = this.getAssets()
     }
   },
   methods: {
@@ -107,9 +102,29 @@ export default {
     },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
+    },
+    getAssets () {
+      if (this.selectedNetwork === 'sBCH') {
+        const assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
+        return assets.map((item) => {
+          if (item.id === 'bch') {
+            item.name = 'Smart Bitcoin Cash'
+            item.symbol = 'sBCH'
+            item.logo = 'sep20-logo.png'
+          }
+          return item
+        })
+      }
+
+      return this.$store.getters['assets/getAssets'].filter(function (item) {
+        if (item) {
+          return item
+        }
+      })
     }
   },
   mounted () {
+    this.assets = this.getAssets()
     this.$store.dispatch('market/updateAssetPrices', {})
   }
 }

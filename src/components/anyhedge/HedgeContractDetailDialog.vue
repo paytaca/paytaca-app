@@ -1198,7 +1198,6 @@ async function cancelMutualRedemption(position) {
     const message = initiator === 'hedge'
       ? mutualRedemptionData.value.hedgeSchnorrSig
       : mutualRedemptionData.value.longSchnorrSig
-    console.log('Sign:', privkey, message)
     signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
   } catch(error) {
     console.error(error)

@@ -101,14 +101,12 @@ export default {
         } else {
           giftCode = this.scannedShare
         }
-        console.log('Gift code: ', giftCode)
         giftCodeHash = sha256(giftCode)
       }
 
       if (vm.action === 'Recover') {
         giftCode = vm.localShare
       }
-      console.log('Gift code hash:', giftCodeHash)
       const url = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
       const walletHash = this.wallet.BCH.getWalletHash()
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
