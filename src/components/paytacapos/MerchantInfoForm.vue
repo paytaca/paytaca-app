@@ -27,7 +27,7 @@
         hide-bottom-space
         clearable
         :rules="[
-          val => Boolean(val),
+          // val => Boolean(val),
           val => !val || String(val).match(/(0|(\+\d+))\d{3}-?\d{3}-?\d{4}/) || $t('InvalidPhoneNumber', {}, 'Invalid phone number'),
         ]"
         @update:model-value="() => merchantInfoForm.showContactNumberCodeSelector = true"
