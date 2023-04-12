@@ -19,7 +19,7 @@
         <div class="col-5 column items-center">
           <img
             height="40"
-            src="bch-logo.png"
+            :src="transferType === 'c2s' ? 'bch-logo.png' : 'sep20-logo.png'"
           />
           <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('From') }}</div>
           <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
@@ -39,7 +39,7 @@
         />
 
         <div class="col-5 column items-center">
-          <img height="40" src="bch-logo.png"/>
+          <img height="40" :src="transferType === 'c2s' ? 'sep20-logo.png' : 'bch-logo.png'"/>
           <div class="q-mt-sm text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('To') }}</div>
           <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
@@ -80,10 +80,10 @@
             </div>
             <div class="row no-wrap items-start">
               <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-                <img height="40" src="bch-logo.png"/>
+                <img height="40" :src="transferType === 'c2s' ? 'bch-logo.png' : 'sep20-logo.png'"/>
                 <div class="q-ml-sm">
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouSend') }}:</div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ transferType === 'c2s' ? 'BCH' : 'sBCH' }}</div>
                 </div>
               </div>
               <CustomKeyboardInput
@@ -118,10 +118,10 @@
 
             <div class="row no-wrap items-start" style="margin-top: -10px;">
               <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-                <img height="40" src="bch-logo.png"/>
+                <img height="40" :src="transferType === 'c2s' ? 'sep20-logo.png' : 'bch-logo.png'"/>
                 <div class="q-ml-sm">
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouReceive') }}:</div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">BCH</div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ transferType === 'c2s' ? 'sBCH' : 'BCH' }}</div>
                 </div>
               </div>
               <CustomKeyboardInput

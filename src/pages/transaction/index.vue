@@ -28,15 +28,15 @@
           </div>
           <div class="row q-mt-sm">
             <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-              <img src="../../assets/bch-logo.png" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+              <img :src="selectedNetwork === 'sBCH' ? '/sep20-logo.png' : '/bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
               <q-card id="bch-card">
                 <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
-                  <div class="text-h6">Bitcoin Cash</div>
+                  <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
                   <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
                     <q-skeleton style="font-size: 22px;" type="rect"/>
                   </div>
                   <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                    <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} BCH</p>
+                    <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} {{ selectedNetwork }}</p>
                     <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
                   </div>
                 </q-card-section>
