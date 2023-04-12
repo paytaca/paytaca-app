@@ -8,10 +8,23 @@
       <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
         <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
       </div>
+
+      <div class="text-center" style="margin-top: 50px;">
+        <div
+          class="livecoinwatch-widget-1 q-pt-lg"
+          lcw-coin="BCH"
+          :lcw-base="selectedCurrency.symbol"
+          lcw-secondary="BCH"
+          lcw-period="d"
+          :lcw-color-tx="priceText"
+          lcw-color-pr="#ed5f59"
+          :lcw-color-bg="bgColor"
+          lcw-border-w="0" >
+        </div>
+      </div>
       <q-card-section v-if="asset">
-        <div class="q-py-lg q-pr-md" style="text-align: center;" v-if="asset.id === 'bch'">
+        <!-- <div class="q-pt-lg text-center" style="text-align: center;" v-if="asset.id === 'bch'">
           <div
-            style="width: 275px;"
             class="livecoinwatch-widget-1"
             lcw-coin="BCH"
             :lcw-base="selectedCurrency.symbol"
@@ -22,8 +35,7 @@
             :lcw-color-bg="bgColor"
             lcw-border-w="0" >
           </div>
-        </div>
-        <!-- <div class="btcwdgt-chart" bw-cash="true" bw-theme="light"></div> -->
+        </div> -->
         <div style="text-align: center; font-size: 20px;">
           <p :class="darkMode ? 'pt-dark-label' : 'pp-text'">
             {{ asset.symbol }}
@@ -163,13 +175,16 @@ export default {
   async mounted () {
     console.log(this.priceText)
     console.log(this.bgColor)
-    console.log(this.darkMode)
   }
 }
 </script>
 
-<style>
+<style lang="scss" scoped>
 .pp-text {
   color: #000 !important;
+}
+.price-chart {
+  height: 200px;
+  width: 300px;
 }
 </style>
