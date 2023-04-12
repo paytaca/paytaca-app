@@ -73,7 +73,7 @@
                 :key="gift?.gift_code_hash"
                 class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               >
-                <q-card :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
+                <q-card v-if="getGiftShare(gift?.gift_code_hash) || gift?.date_claimed !== 'None'" :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
                   <div class="row">
                     <div class="q-space">Amount</div>
                     <div class="text-caption text-grey">
