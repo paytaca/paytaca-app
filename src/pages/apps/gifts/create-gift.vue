@@ -139,7 +139,7 @@
           </div>
           <div class="flex flex-center" style="margin-top: 30px;">
             <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
-              <qr-code :text="qrCodeContents" />
+              <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" />
             </div>
             <!-- <div class="flex flex-center myStyle">
             </div> -->
