@@ -24,7 +24,7 @@
       >
         <q-popup-proxy>
           <q-banner :class="darkMode ? 'pt-dark text-white' : 'text-black'" class="q-pa-md br-15 text-center">
-            Coming Soon
+            Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!
           </q-banner>
         </q-popup-proxy>
       </q-tab>

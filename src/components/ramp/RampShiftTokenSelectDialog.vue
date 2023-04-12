@@ -41,6 +41,11 @@
                     <q-item-label>{{ token.coin }}</q-item-label>
                     <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ token.coin }} ({{ getNetwork(token) }})</q-item-label>
                   </q-item-section>
+                  <q-item-section>
+                    <q-item-label>
+                      <span v-if="token.offline" style="color: red;">Temporarily disabled</span>
+                    </q-item-label>
+                  </q-item-section>
                 </q-item>
               </template>
             </q-virtual-scroll>
@@ -72,8 +77,10 @@ export default {
       this.$refs.dialog.hide()
     },
     onOKClick (coin) {
-      this.$emit('ok', coin)
-      this.hide()
+      if (coin.offline === false) {
+        this.$emit('ok', coin)
+        this.hide()
+      }
     },
     getNetwork (token) {
       const network = token.network.toLowerCase()

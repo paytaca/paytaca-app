@@ -538,7 +538,8 @@ export default {
               const temp = {
                 coin: coinData.coin,
                 network: coinData.networks[item2],
-                icon: ''
+                icon: '',
+                offline: coinData.depositOffline || coinData.settleOffline
               }
               vm.tokenList.push(temp)
             }
