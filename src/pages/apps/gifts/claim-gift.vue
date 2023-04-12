@@ -126,6 +126,15 @@ export default {
             if (vm.action === 'Recover') {
               vm.$store.dispatch('gifts/deleteGift', giftCodeHash)
             }
+
+            vm.wallet.BCH.getBalance().then(function (response) {
+              vm.$store.commit('assets/updateAssetBalance', {
+                id: 'bch',
+                balance: response.balance,
+                spendable: response.spendable
+              })
+            })
+
             vm.completed = true
           } else {
             vm.error = 'This gift has been claimed! Try another one.'

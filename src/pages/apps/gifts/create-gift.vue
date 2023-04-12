@@ -18,20 +18,27 @@
         </div>
         <div :class="{'text-white': darkMode}" v-if="!processing && !completed">
           <div class="text-h5 q-mb-md">Create Gift</div>
+          <div class="q-mb-lg">
+            Balance: {{ spendableBch }} BCH
+          </div>
           <label>
-            Enter Amount Per Gift:
+            Enter Amount:
           </label>
           <q-input
+            ref="amountInput"
             required
             placeholder="Amount"
             filled
             clearable
+            class="q-mt-sm"
             :rules="[val => !!val || 'Field is required']"
             type="number"
             v-model="amountBCH"
             @input="this.amountBCH"
             :dark="darkMode"
             hide-bottom-space
+            :error="amountBCH > spendableBch"
+            :error-message="amountBCH > spendableBch ? 'Amount is greater than your balance' : null"
           >
             <template v-slot:append>BCH</template>
           </q-input>
@@ -76,26 +83,36 @@
               Max Amount Per Wallet
             </label>
             <q-input
+              ref="maxAmountInput"
               placeholder="Amount"
               filled
               type="text"
               clearable
               v-model="maxPerCampaign"
               :dark="darkMode"
-            ></q-input>
+              :error="maxPerCampaign > 0 && maxPerCampaign < amountBCH"
+              :error-message="maxPerCampaign > 0 && maxPerCampaign < amountBCH ? 'This cannot be lower than the gift amount' : null"
+            >
+              <template v-slot:append>BCH</template>
+            </q-input>
           </template>
           <template v-else>
             <label>
-              Campaign (optional):
+              Campaign (optional): <q-icon name="info" @click=" showCampaignInfo = !showCampaignInfo " />
             </label>
+            <p v-if="showCampaignInfo" class="q-mt-md">You can group together gifts under a campaign where you can set the maximum sum of gifts that a wallet user can claim within the same campaign.</p>
             <q-select
               filled
+              ref="campaignInput"
               clearable
+              class="q-mt-sm"
               v-model="selectedCampaign"
               :dark="darkMode"
               :options="campaignOptions"
               label="Select Campaign"
               popup-content-style="color: black;"
+              :error="campaignSelectionError !== null"
+              :error-message="campaignSelectionError"
             />
           </template>
 
@@ -107,6 +124,7 @@
               type="submit"
               label="Generate"
               class="flex flex-center"
+              :disable="disableGenerateButton()"
               @click="processRequest()"
             >
             </q-btn>
@@ -164,12 +182,14 @@ export default {
       campaignOptions: [],
       createNewCampaign: false,
       selectedCampaign: null,
+      campaignSelectionError: null,
       campaignName: null,
       maxPerCampaign: null,
       qrCodeContents: null,
       processing: false,
       completed: false,
       wallet: null,
+      showCampaignInfo: false,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
@@ -177,6 +197,19 @@ export default {
     selectedCampaign (val) {
       if (val?.value === 'create-new') {
         this.createNewCampaign = true
+        this.maxPerCampaign = this.amountBCH
+      } else {
+        if (this.amountBCH > val?.limit) {
+          this.campaignSelectionError = 'Campaign limit per wallet cannot be greater than the gift amount'
+        } else {
+          this.campaignSelectionError = null
+        }
+      }
+    },
+    amountBCH (oldVal, newVal) {
+      if (oldVal !== newVal) {
+        this.selectedCampaign = null
+        this.createNewCampaign = false
       }
     }
   },
@@ -197,9 +230,33 @@ export default {
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
+    },
+    spendableBch () {
+      const asset = this.$store.getters['assets/getAsset']('bch')
+      const balance = asset[0].spendable
+      if (!Number.isFinite(balance)) return null
+      return balance
     }
   },
   methods: {
+    disableGenerateButton () {
+      if (this.amountBCH > 0) {
+        if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {
+          if (this.$refs.campaignInput) {
+            if (this.$refs.campaignInput.hasError) {
+              return true
+            } else {
+              return false
+            }
+          }
+          if (this.$refs.maxAmountInput && !this.$refs.maxAmountInput.hasError) {
+            return false
+          }
+        }
+        return true
+      }
+      return true
+    },
     generateGift () {
       const vm = this
       vm.processing = true
@@ -247,6 +304,14 @@ export default {
               vm.$store.dispatch('gifts/saveGift', { giftCodeHash: vm.giftCodeHash, share: shares[2] })
               vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: shares[0] })
               vm.completed = true
+
+              vm.wallet.BCH.getBalance().then(function (response) {
+                vm.$store.commit('assets/updateAssetBalance', {
+                  id: 'bch',
+                  balance: response.balance,
+                  spendable: response.spendable
+                })
+              })
             }
           })
         }
@@ -278,7 +343,11 @@ export default {
       const url = `https://gifts.paytaca.com/api/campaigns/${walletHash}/list/`
       axios.get(url).then((resp) => {
         this.campaignOptions = resp.data.campaigns.map(function (item, index) {
-          return { label: item.name, value: item.id }
+          return {
+            label: `${item.name} -- ${item.limit_per_wallet} BCH per wallet`,
+            limit: item.limit_per_wallet,
+            value: item.id
+          }
         })
         this.campaignOptions.push({
           label: '--- Create New Campaign ---',
