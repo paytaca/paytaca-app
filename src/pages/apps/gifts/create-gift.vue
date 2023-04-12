@@ -64,23 +64,25 @@
               </q-btn>
             </div>
             <label>
-              Campaign Name
+              Campaign Name <sup>*</sup>
             </label>
             <q-input
+              ref="campaignNameInput"
               placeholder="Campaign Name"
               filled
               type="string"
+              :rules="[val => !!val || 'Field is required']"
               v-model="campaignName"
               clearable
               :dark="darkMode"
             >
-            </q-input>
+            </q-input>Name: {{ campaignName }}
 
             <div class="q-pa-sm q-pb-xs">
             </div>
 
             <label>
-              Max Amount Per Wallet
+              Max Amount Per Wallet <sup>*</sup>
             </label>
             <q-input
               ref="maxAmountInput"
@@ -124,7 +126,7 @@
               type="submit"
               label="Generate"
               class="flex flex-center"
-              :disable="disableGenerateButton()"
+              :disable="(createNewCampaign && !campaignName) || disableGenerateButton()"
               @click="processRequest()"
             >
             </q-btn>
