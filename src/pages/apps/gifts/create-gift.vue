@@ -296,8 +296,7 @@ export default {
       const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
       axios.post(url, payload).then((resp) => {
         if (resp.status === 200) {
-          const url = 'https://gifts.paytaca.com/claim/?code='
-          vm.qrCodeContents = url + shares[0]
+          vm.qrCodeContents = shares[0]
           vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
             if (result.success) {
               vm.processing = false
