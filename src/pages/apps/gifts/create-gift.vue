@@ -114,7 +114,10 @@
         </div>
         <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}">
           <p style="font-size: 22px;">Amount:<br>{{ amountBCH }} BCH</p>
-          <div class="flex flex-center" >
+          <div v-if="amountBCH" style="margin-top: -10px;">
+            ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          </div>
+          <div class="flex flex-center" style="margin-top: 30px;">
             <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
               <qr-code :text="qrCodeContents" />
             </div>
