@@ -46,6 +46,9 @@
               </q-list>
             </q-btn-dropdown>
           </div>
+          <div v-if="campaign_filter.id" class="text-center q-mt-md">
+            <q-chip removable @remove="$event => { campaign_filter = {}; fetchGifts({ recordType: 'all', limit: 10, offset: 0}) } ">{{ campaign_filter.name }}</q-chip>
+          </div>
           <div class="row items-start q-mt-sm">
             <template v-if="fetchingGifts">
               <div
@@ -77,13 +80,19 @@
                   <div class="row">
                     <div class="q-space">Amount</div>
                     <div class="text-caption text-grey">
-                      {{gift?.amount}} BCH
+                      {{gift?.amount}} BCH XX
                     </div>
                   </div>
                   <div class="row">
                     <div class="q-space">Date Created</div>
                     <div class="text-caption text-grey">
                       {{formatRelativeTimestamp(gift?.date_created)}}
+                    </div>
+                  </div>
+                  <div class="row" v-if="gift?.campaign_name">
+                    <div class="q-space">Campaign</div>
+                    <div class="text-caption text-grey">
+                      <a style="text-decoration: underline;" @click="filterByCampaign(gift)">{{ gift?.campaign_name }}</a>
                     </div>
                   </div>
                   <q-separator spaced :dark="darkMode"/>
@@ -192,6 +201,7 @@ export default {
         limit: 0,
         offset: 0,
       },
+      campaign_filter: {}
     }
   },
 
@@ -230,6 +240,7 @@ export default {
       if (!isNaN(opts?.limit) || !isNaN(opts?.offset)) {
         query.limit = opts.limit
         query.offset = opts.offset
+        query.campaign = this.campaign_filter ? this.campaign_filter.id : null
       }
 
       this.fetchingGifts = true
@@ -264,6 +275,10 @@ export default {
         component: ShareGiftDialog,
         componentProps: { gift: gift },
       })
+    },
+    filterByCampaign (gift) {
+      this.campaign_filter = { id: gift?.campaign_id, name: gift?.campaign_name }
+      this.fetchGifts({ recordType: 'all', limit: 10, offset: 0 })
     },
     displayGift(gift) {
       this.$q.dialog({
