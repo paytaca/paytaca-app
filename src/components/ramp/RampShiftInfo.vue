@@ -1,7 +1,7 @@
 <template>
   <div v-if="isloaded">
     <div class="text-h5 text-center q-pb-md" style="font-size: 15px;" v-if="state === 'confirmation'">Please check to confirm...</div>
-    <div class="text-h5 text-center" style="font-size: 18px;" v-if="state === 'history'">{{ transactionType(historyInfo.ramp_type, historyInfo.shift_status).toUpperCase() }}</div>
+    <div class="text-h5 text-center" style="font-size: 18px;" v-if="state === 'history'">{{ historyInfo.shift_status.toUpperCase() }}</div>
     <!-- <div v-if="historyInfo.ramp_type === 'on' && historyInfo.shift_status !== 'expired'" style="width: 100%; text-align: center; color: #3b7bf6;">
       <p style="font-size: 15px;" @click="openDepositInfo()">Show QR Code</p>
     </div> -->
@@ -24,6 +24,7 @@
         icon="arrow_forward"
         disable
         :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
+        style="position: absolute; top: 120px;"
       />
 
       <div class="col-5 column items-center">
@@ -145,29 +146,6 @@ export default {
         return 'BEP-20'
       } else {
         return type.network.toUpperCase()
-      }
-    },
-    transactionType (ramp, status) {
-      if (ramp === 'on') {
-        if (status === 'waiting') {
-          return 'To Recieve'
-        } else if (status === 'expired') {
-          return 'failed'
-        } else if (status === 'processing') {
-          return 'processing'
-        } else if (status === 'settled') {
-          return 'recieved'
-        }
-      } else {
-        if (status === 'waiting') {
-          return 'sending'
-        } else if (status === 'expired') {
-          return 'send failed'
-        } else if (status === 'processing') {
-          return 'processing'
-        } else if (status === 'settled') {
-          return 'sent'
-        }
       }
     },
     openDepositInfo () {

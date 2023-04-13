@@ -64,7 +64,7 @@
                                     :class="{'pt-dark-label': darkMode}"
                                     style="font-size: 11px; padding-top: 10px;"
                                   >
-                                    {{ transactionType(transaction.ramp_type, transaction.shift_status).toUpperCase() }}
+                                    {{ transaction.shift_status.toUpperCase() }}
                                   </div>
                                 </p>
                               </div>
@@ -138,29 +138,6 @@ export default {
 
       return depositDate
     },
-    transactionType (ramp, status) {
-      if (ramp === 'on') {
-        if (status === 'waiting') {
-          return 'To Recieve'
-        } else if (status === 'expired') {
-          return 'failed'
-        } else if (status === 'processing') {
-          return 'processing'
-        } else if (status === 'settled') {
-          return 'recieved'
-        }
-      } else {
-        if (status === 'waiting') {
-          return 'sending'
-        } else if (status === 'expired') {
-          return 'send failed'
-        } else if (status === 'processing') {
-          return 'processing'
-        } else if (status === 'settled') {
-          return 'sent'
-        }
-      }
-    },
     getAmount (ramp, info) {
       if (ramp === 'on') {
         return parseFloat(info.settle.amount)
@@ -193,12 +170,13 @@ export default {
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
-      const walletHash = wallet.BCH.getWalletHash()
+      // const walletHash = wallet.BCH.getWalletHash()
+      const walletHash = '6379055ed329ab96f85e570fa6d9e8d5a58514add8b63c85ee320718f40ea4ee'
       const url = vm.baseUrl + '/ramp/history/' + walletHash
       const response = await vm.$axios.get(url, {
         params: {
           page: vm.page,
-          address: vm.bchAddress
+          address: 'bitcoincash:qrpeshczzngkvtq42cgdv5f43lpsejgdzyemrx62r7' // vm.bchAddress
         }
       }).catch(function () {
         vm.networkError = true

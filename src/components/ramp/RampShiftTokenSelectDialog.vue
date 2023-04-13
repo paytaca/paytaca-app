@@ -39,7 +39,7 @@
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>{{ token.coin }}</q-item-label>
-                    <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ token.network.toUpperCase() }}</q-item-label>
+                    <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ getNetwork(token) }}</q-item-label>
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>
@@ -80,6 +80,20 @@ export default {
       if (coin.offline === false) {
         this.$emit('ok', coin)
         this.hide()
+      }
+    },
+    getNetwork (info) {
+      const network = info.network.toLowerCase()
+      const coin = info.coin.toLowerCase()
+      //check ethereum
+      if (network === 'ethereum' && coin !== 'eth') {
+        return 'ERC-20'
+      } else if (network === 'tron' && coin !== 'trx') {
+        return 'TRC-20'
+      } else if (network === 'bsc' && coin !== 'bnb') {
+        return 'BEP-20'
+      } else {
+        return info.network.toUpperCase()
       }
     }
   },
