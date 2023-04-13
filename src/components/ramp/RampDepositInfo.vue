@@ -15,7 +15,7 @@
     <div v-if="!sendBCH">
       <div v-if="!shiftExpired">
         <div class="text-center justify-center text-h5" style="font-size:20px;">
-          Please send exactly <br><b style="letter-spacing: 1px;">{{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }} ({{ getNetwork(shiftInfo.ramp_type, shiftInfo.shift_info.deposit.network) }})</b> to...
+          Please send exactly <br><b style="letter-spacing: 1px;">{{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }} ({{ getNetwork(shiftInfo) }})</b> to...
         </div>
 
         <div class="row q-pt-md">
@@ -88,7 +88,7 @@
 import ProgressLoader from '../ProgressLoader.vue'
 import { getMnemonic, Wallet } from '../../wallet'
 import { getMemoedVNodeCall } from '@vue/compiler-core'
-import { getNetwork } from '@ethersproject/networks'
+// import { getNetwork } from '@ethersproject/networks'
 
 export default {
   data () {
@@ -132,9 +132,20 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    getNetwork (coin, network) {
-      const token = { coin: coin, network: network }
-      return this.$parent.getNetwork(token).toLowerCase()
+    getNetwork (info) {
+      console.log(info)
+      const network = info.shift_info.deposit.network.toLowerCase()
+      const coin = info.shift_info.deposit.coin.toLowerCase()
+      //check ethereum
+      if (network === 'ethereum' && coin !== 'eth') {
+        return 'ERC-20'
+      } else if (network === 'tron' && coin !== 'trx') {
+        return 'TRC-20'
+      } else if (network === 'bsc' && coin !== 'bnb') {
+        return 'BEP-20'
+      } else {
+        return network.toUpperCase()
+      }
     },
     countingDown () {
       const vm = this

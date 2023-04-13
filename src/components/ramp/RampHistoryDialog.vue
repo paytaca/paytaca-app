@@ -170,13 +170,12 @@ export default {
       const mnemonic = await getMnemonic()
       const wallet = new Wallet(mnemonic)
 
-      // const walletHash = wallet.BCH.getWalletHash()
-      const walletHash = '6379055ed329ab96f85e570fa6d9e8d5a58514add8b63c85ee320718f40ea4ee'
+      const walletHash = wallet.BCH.getWalletHash()
       const url = vm.baseUrl + '/ramp/history/' + walletHash
       const response = await vm.$axios.get(url, {
         params: {
           page: vm.page,
-          address: 'bitcoincash:qrpeshczzngkvtq42cgdv5f43lpsejgdzyemrx62r7' // vm.bchAddress
+          address: vm.bchAddress
         }
       }).catch(function () {
         vm.networkError = true
