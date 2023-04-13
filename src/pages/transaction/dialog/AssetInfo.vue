@@ -9,9 +9,9 @@
         <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
       </div>
 
-      <div class="text-center" style="margin-top: 50px;">
+      <div style="text-align: center; margin-top: 50px; height: 200px; width: 350px;" v-if="asset.id === 'bch'">
         <div
-          class="livecoinwatch-widget-1 q-pt-lg"
+          class="livecoinwatch-widget-1"
           lcw-coin="BCH"
           :lcw-base="selectedCurrency.symbol"
           lcw-secondary="BCH"
@@ -23,19 +23,6 @@
         </div>
       </div>
       <q-card-section v-if="asset">
-        <!-- <div class="q-pt-lg text-center" style="text-align: center;" v-if="asset.id === 'bch'">
-          <div
-            class="livecoinwatch-widget-1"
-            lcw-coin="BCH"
-            :lcw-base="selectedCurrency.symbol"
-            lcw-secondary="BCH"
-            lcw-period="d"
-            :lcw-color-tx="priceText"
-            lcw-color-pr="#ed5f59"
-            :lcw-color-bg="bgColor"
-            lcw-border-w="0" >
-          </div>
-        </div> -->
         <div style="text-align: center; font-size: 20px;">
           <p :class="darkMode ? 'pt-dark-label' : 'pp-text'">
             {{ asset.symbol }}
@@ -54,7 +41,7 @@
             <q-icon name="exit_to_app" :color="$store.getters['darkmode/getStatus'] ? 'blue-5' : 'blue-9'" size="sm" />
           </a>
         </div>
-        <div style="margin-top: 20px; text-align: center;">
+        <div style="margin-top: 20px; margin-bottom: 20px; text-align: center;">
           <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded :label="$t('Send')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
@@ -172,10 +159,10 @@ export default {
       })
     }
   },
-  async mounted () {
-    console.log(this.priceText)
-    console.log(this.bgColor)
-  }
+  // async mounted () {
+  //   console.log(this.priceText)
+  //   console.log(this.bgColor)
+  // }
 }
 </script>
 
