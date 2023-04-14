@@ -5,11 +5,17 @@
       style="padding: 5px 0;"
       :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}"
     >
-      <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
-        <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
-      </div>
-
-      <div style="text-align: center; margin-top: 50px; height: 200px; width: 350px;" v-if="asset.id === 'bch'">
+      <div class="text-center" style="text-align: center; margin-top: 30px;" v-if="asset.id === 'bch'">
+      <!-- marquee -->
+        <div
+          class="livecoinwatch-widget-5"
+          :lcw-base="selectedCurrency.symbol"
+          :lcw-color-tx="priceText"
+          lcw-marquee-1="coins"
+          lcw-marquee-2="none"
+          lcw-marquee-items="30" >
+        </div>
+        <!-- price chart -->
         <div
           class="livecoinwatch-widget-1"
           lcw-coin="BCH"
@@ -22,12 +28,17 @@
           lcw-border-w="0" >
         </div>
       </div>
+
+      <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
+        <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
+      </div>
+
       <q-card-section v-if="asset">
-        <div style="text-align: center; font-size: 20px;">
+        <!-- <div style="text-align: center; font-size: 20px;">
           <p :class="darkMode ? 'pt-dark-label' : 'pp-text'">
             {{ asset.symbol }}
           </p>
-        </div>
+        </div> -->
         <div style="text-align: center;">
           <img :src="asset.logo || fallbackAssetLogo" height="50" class="q-mr-xs">
         </div>
