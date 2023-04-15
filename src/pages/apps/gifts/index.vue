@@ -80,7 +80,7 @@
                   <div class="row">
                     <div class="q-space">Amount</div>
                     <div class="text-caption text-grey">
-                      {{gift?.amount}} BCH XX
+                      {{gift?.amount}} BCH
                     </div>
                   </div>
                   <div class="row">
