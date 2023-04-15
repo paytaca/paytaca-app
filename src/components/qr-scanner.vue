@@ -69,7 +69,7 @@ export default {
   },
   computed: {
     isMobile() {
-      return !(this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios)
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     }
   },
   watch: {
