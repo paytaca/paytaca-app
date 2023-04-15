@@ -600,6 +600,7 @@ export default {
     refresh (done) {
       this.getBalance(this.bchAsset.id)
       this.getBalance(this.selectedAsset.id)
+      this.transactions = []
       this.getTransactions()
       done()
     },
