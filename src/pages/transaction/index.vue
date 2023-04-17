@@ -104,9 +104,21 @@
       <div ref="transactionSection" class="row transaction-row">
         <transaction ref="transaction" :wallet="wallet"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
-          <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
-            {{ selectedAsset.symbol }} {{ $t('Transactions') }}
-          </p>
+          <div class="row no-wrap justify-between">
+            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
+              {{ selectedAsset.symbol }} {{ $t('Transactions') }}
+            </p>
+            <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
+              <q-btn
+                round
+                color="blue-9"
+                padding="xs"
+                icon="mdi-chart-line-variant"
+                class="q-ml-md"
+                @click="openPriceChart"
+              />
+            </div>
+          </div>
           <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
             <button class="btn-custom q-mt-none btn-all" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'all' }" @click="setTransactionsFilter('all')">{{ $t('All') }}</button>
             <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'sent'}" @click="setTransactionsFilter('sent')">{{ $t('Sent') }}</button>
@@ -149,9 +161,6 @@
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
     />
-
-  <!-- <script defer src="https://www.livecoinwatch.com/static/lcw-widget.js"></script>
-  <div class="livecoinwatch-widget-1" lcw-coin="BCH" lcw-base="USD" lcw-secondary="BCH" lcw-period="d" lcw-color-tx="#ffffff" lcw-color-pr="#58c7c5" lcw-color-bg="#1f2434" lcw-border-w="1" ></div> -->
   </div>
 </template>
 
@@ -164,6 +173,7 @@ import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import startPage from '../../pages/transaction/dialog/StartPage.vue'
+import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
@@ -194,7 +204,8 @@ export default {
     pinDialog,
     securityOptionDialog,
     startPage,
-    VOffline
+    VOffline,
+    PriceChart
   },
   directives: {
     dragscroll
@@ -322,6 +333,12 @@ export default {
     }
   },
   methods: {
+    openPriceChart () {
+      // console.log('opening price chart')
+      this.$q.dialog({
+        component: PriceChart
+      })
+    },
     adjustTransactionsDivHeight (opts={timeout: 500}) {
       let timeout = opts?.timeout
       if (Number.isNaN(timeout)) timeout = 500

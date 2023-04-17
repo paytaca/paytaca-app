@@ -5,40 +5,16 @@
       style="padding: 5px 0;"
       :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}"
     >
-      <div class="text-center" style="text-align: center; margin-top: 30px;" v-if="asset.id === 'bch'">
-      <!-- marquee -->
-        <div
-          class="livecoinwatch-widget-5"
-          :lcw-base="selectedCurrency.symbol"
-          :lcw-color-tx="priceText"
-          lcw-marquee-1="coins"
-          lcw-marquee-2="none"
-          lcw-marquee-items="30" >
-        </div>
-        <!-- price chart -->
-        <div
-          class="livecoinwatch-widget-1"
-          lcw-coin="BCH"
-          :lcw-base="selectedCurrency.symbol"
-          lcw-secondary="BCH"
-          lcw-period="d"
-          :lcw-color-tx="priceText"
-          lcw-color-pr="#ed5f59"
-          :lcw-color-bg="bgColor"
-          lcw-border-w="0" >
-        </div>
-      </div>
-
       <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
         <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
       </div>
 
       <q-card-section v-if="asset">
-        <!-- <div style="text-align: center; font-size: 20px;">
+        <div style="text-align: center; font-size: 20px;">
           <p :class="darkMode ? 'pt-dark-label' : 'pp-text'">
             {{ asset.symbol }}
           </p>
-        </div> -->
+        </div>
         <div style="text-align: center;">
           <img :src="asset.logo || fallbackAssetLogo" height="50" class="q-mr-xs">
         </div>
@@ -52,7 +28,7 @@
             <q-icon name="exit_to_app" :color="$store.getters['darkmode/getStatus'] ? 'blue-5' : 'blue-9'" size="sm" />
           </a>
         </div>
-        <div style="margin-top: 20px; margin-bottom: 20px; text-align: center;">
+        <div style="margin-top: 20px; margin-bottom: 10px; text-align: center;">
           <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded :label="$t('Send')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
@@ -109,30 +85,11 @@ export default {
     fallbackAssetLogo () {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(this.asset && this.asset.id))
-    },
-    priceText () {
-      if (this.darkMode === true) {
-        return '#ffffff'
-      } else {
-        return '#000'
-      }
-    },
-    bgColor () {
-      if (this.darkMode === true) {
-        return '#212f3d'
-      } else {
-        return '#f2f5f5'
-      }
     }
   },
 
   methods: {
     show (asset) {
-      const widgetScript = document.createElement('script')
-      widgetScript.setAttribute('defer', '')
-      widgetScript.setAttribute('src', 'https://www.livecoinwatch.com/static/lcw-widget.js')
-
-      document.head.appendChild(widgetScript)
       try {
         this.asset = asset
         this.$refs.dialog.show()
@@ -169,11 +126,7 @@ export default {
         }
       })
     }
-  },
-  // async mounted () {
-  //   console.log(this.priceText)
-  //   console.log(this.bgColor)
-  // }
+  }
 }
 </script>
 
