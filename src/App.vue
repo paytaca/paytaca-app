@@ -141,6 +141,7 @@ export default {
             assetId: event.data.assetId,
             transaction: event.data.transaction,
             sourceOutputs: event.data.sourceOutputs,
+            broadcast: event.data.broadcast,
             eventResponseKey: event.data.eventResponseKey,
           },
         })

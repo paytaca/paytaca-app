@@ -109,13 +109,6 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
 
 
   bridge.on('background.paytaca.connect', ({ data, respond, eventResponseKey }) => {
-    // const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
-    // const connected = !!connectedSites[data.origin];
-    // if (connected) {
-    //   bridge.send(eventResponseKey, true);
-    //   return;
-    // }
-
     chrome.windows.getCurrent(function (parentWindow) {
       const windowWidth = 375
       const params = {
@@ -135,7 +128,6 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
               if (connection.app.connected) {
                 clearInterval(check)
                 // this will never return from the app
-                // instead app will send background.paytaca.signTransactionResponse with the result
                 bridge.send('bex.paytaca.connect', {...data, eventResponseKey} )
               }
             }
@@ -264,6 +256,9 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
   })
 
   bridge.on('background.paytaca.signTransactionResponse', event => {
-    bridge.send(event.data.eventResponseKey, event.data.signedTransaction)
+    bridge.send(event.data.eventResponseKey, {
+      signedTransaction: event.data.signedTransaction,
+      signedTransactionHash: event.data.signedTransactionHash
+    })
   });
 }

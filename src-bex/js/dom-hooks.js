@@ -73,7 +73,7 @@ class Paytaca {
     return response.data
   }
 
-  async signTransaction (assetId, transaction, sourceOutputs) {
+  async signTransaction (assetId, transaction, sourceOutputs, broadcast) {
     const connected = await this.connected();
 
     if (!connected) {
@@ -85,6 +85,7 @@ class Paytaca {
       assetId: assetId,
       transaction: typeof transaction === "string" ? transaction : stringify(transaction, 0),
       sourceOutputs: stringify(sourceOutputs, 0),
+      broadcast: broadcast,
     })
     return response.data
   }
