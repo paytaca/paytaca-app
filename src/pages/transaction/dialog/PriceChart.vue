@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" persistent v-if="loaded">
+  <q-dialog ref="dialog" persistent>
     <q-card :class="darkmode ? 'text-white pt-dark-card' : 'text-black'" class="br-15" style="padding-bottom: 25px;">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-subtitle1 q-space q-mt-sm">
@@ -12,9 +12,17 @@
           v-close-popup
         />
       </div>
+      <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
+        <ProgressLoader/>
+      </div>
 
+      <div class="row justify-center q-px-lg q-pt-lg">
+        <div style="height: 200px; width: 350px;">
+          <canvas ref="chart"></canvas>
+        </div>
+      </div>
       <!-- marquee -->
-      <div class="q-pl-lg q-pt-md q-pr-lg" style="width: 375px;">
+      <!-- <div class="q-pl-lg q-pt-md q-pr-lg" style="width: 375px;">
         <coingecko-coin-price-marquee-widget
           coin-ids="bitcoin-cash,bitcoin,eos,ethereum,litecoin"
           :currency="selectedCurrency.symbol.toLowerCase()"
@@ -22,15 +30,6 @@
           locale="en">
         </coingecko-coin-price-marquee-widget>
       </div>
-      <!-- <div
-        class="livecoinwatch-widget-5"
-        :lcw-base="selectedCurrency.symbol"
-        :lcw-color-tx="priceText"
-        lcw-marquee-1="coins"
-        lcw-marquee-2="none"
-        lcw-marquee-items="30" >
-      </div> -->
-      <!-- price chart -->
       <div class="q-pl-lg q-pt-lg q-pr-lg">
         <coingecko-coin-price-chart-widget
           coin-id="bitcoin-cash"
@@ -40,17 +39,6 @@
           width="325"
           background-color="#ffffff">
         </coingecko-coin-price-chart-widget>
-      </div>
-      <!-- <div
-        class="livecoinwatch-widget-1"
-        lcw-coin="BCH"
-        :lcw-base="selectedCurrency.symbol"
-        lcw-secondary="BCH"
-        lcw-period="d"
-        :lcw-color-tx="priceText"
-        lcw-color-pr="#ed5f59"
-        :lcw-color-bg="bgColor"
-        lcw-border-w="0">
       </div> -->
     </q-card>
   </q-dialog>
@@ -58,47 +46,90 @@
 <script>
 import { load } from 'dotenv'
 import darkmode from 'src/store/darkmode'
+import Chart from 'chart.js/auto'
+import ProgressLoader from '../../../components/ProgressLoader'
 
 export default {
   data () {
     return {
       darkmode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      loaded: false,
+      selectedCurrency: this.$store.getters['market/selectedCurrency'].symbol.toLowerCase(),
+      isloaded: false,
       chartScript: null,
-      marqueeScript: null
+      marqueeScript: null,
+      info: [
+        { year: 2010, count: 10 },
+        { year: 2011, count: 20 },
+        { year: 2012, count: 15 },
+        { year: 2013, count: 25 },
+        { year: 2014, count: 22 },
+        { year: 2015, count: 30 },
+        { year: 2016, count: 28 }
+      ],
+      date: [],
+      bchPrice: []
     }
   },
+  components: {
+    ProgressLoader
+  },
   methods: {
-    loadScripts () {
-      const chartUrl = 'https://widgets.coingecko.com/coingecko-coin-price-chart-widget.js'
-      const marqueeUrl = 'https://widgets.coingecko.com/coingecko-coin-price-marquee-widget.js'
-      let cont = false
-      const scripts = document.getElementsByTagName('script')
-      // console.log(scripts)
+    // loadScripts () {
+    //   const chartUrl = 'https://widgets.coingecko.com/coingecko-coin-price-chart-widget.js'
+    //   const marqueeUrl = 'https://widgets.coingecko.com/coingecko-coin-price-marquee-widget.js'
+    //   let cont = false
+    //   const scripts = document.getElementsByTagName('script')
+    //   // console.log(scripts)
 
-      for (let i = scripts.length; i--;) {
-        if (cont === true) {
-          break
-        }
-        // console.log(scripts[i])
-        if (scripts[i].src === chartUrl || scripts[i].src === marqueeUrl) {
-          cont = true
-        }
-      }
-      // loading scripts once
-      if (!cont) {
-        // Loading livecoinwatch widget js
-        const chartWidget = document.createElement('script')
-        chartWidget.setAttribute('defer', '')
-        chartWidget.setAttribute('src', 'https://widgets.coingecko.com/coingecko-coin-price-chart-widget.js')
-        this.chartScript = document.head.appendChild(chartWidget)
+    //   for (let i = scripts.length; i--;) {
+    //     if (cont === true) {
+    //       break
+    //     }
+    //     // console.log(scripts[i])
+    //     if (scripts[i].src === chartUrl || scripts[i].src === marqueeUrl) {
+    //       cont = true
+    //     }
+    //   }
+    //   // loading scripts once
+    //   if (!cont) {
+    //     // Loading livecoinwatch widget js
+    //     const chartWidget = document.createElement('script')
+    //     chartWidget.setAttribute('defer', '')
+    //     chartWidget.setAttribute('src', 'https://widgets.coingecko.com/coingecko-coin-price-chart-widget.js')
+    //     this.chartScript = document.head.appendChild(chartWidget)
 
-        const marqueeWidget = document.createElement('script')
-        marqueeWidget.setAttribute('defer', '')
-        marqueeWidget.setAttribute('src', 'https://widgets.coingecko.com/coingecko-coin-price-marquee-widget.js')
-        this.marqueeScript = document.head.appendChild(marqueeWidget)
+    //     const marqueeWidget = document.createElement('script')
+    //     marqueeWidget.setAttribute('defer', '')
+    //     marqueeWidget.setAttribute('src', 'https://widgets.coingecko.com/coingecko-coin-price-marquee-widget.js')
+    //     this.marqueeScript = document.head.appendChild(marqueeWidget)
+    //   }
+    // },
+    async loadData () {
+      const vm = this
+      console.log(vm.selectedCurrency)
+
+      const url = 'https://api.coingecko.com/api/v3/coins/bitcoin-cash/market_chart?vs_currency=' + vm.selectedCurrency + '&days=1.25&interval=hourly'
+      console.log(url)
+
+      const resp = await vm.$axios.get(url)
+
+      if (resp.status === 200 || resp.status === 201) {
+        const prices = resp.data.prices
+
+        vm.date = prices.map(d => d[0]).reverse()
+        vm.bchPrice = prices.map(d => d[1]).reverse()
+
+        vm.date.forEach(vm.arrangeDate)
+        console.log(vm.bchPrice)
+        console.log(vm.date)
       }
+    },
+    arrangeDate (value, index, array) {
+      // console.log(value)
+      // const temp_date = value
+
+      let time = new Date(value)
+      array[index] = time
     }
   },
   computed: {
@@ -118,13 +149,26 @@ export default {
     }
   },
   async mounted () {
-    this.loadScripts()
+    await this.loadData()
 
-    this.loaded = true
-  },
-//   beforeUnmount () {
-//     document.head.removeChild(this.chartScript)
-//     document.head.removeChild(this.marqueeScript)
-// }
+    setTimeout(() => {
+      new Chart(
+      this.$refs.chart,
+      {
+        type: 'bar',
+        data: {
+          labels: this.info.map(row => row.year),
+          datasets: [
+            {
+              label: 'Acquisitions by year',
+              data: this.info.map(row => row.count)
+            }
+          ]
+        }
+      }
+    )
+    }, 50)
+    this.isloaded = true
+  }
 }
 </script>
