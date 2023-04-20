@@ -1,10 +1,8 @@
 <template>
   <q-dialog ref="dialog" persistent>
-    <q-card :class="darkmode ? 'text-white pt-dark-card' : 'text-black'" class="br-15" style="padding-bottom: 25px;">
+    <q-card :class="darkmode ? 'text-white pt-dark  ' : 'text-black'" class="br-15" style="padding-bottom: 10px; background-color: #ECF3F3">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
-        <div class="text-subtitle1 q-space q-mt-sm">
-          BCH Price
-        </div>
+        <div class="text-subtitle1 q-space q-mt-sm"></div>
         <q-btn
           flat
           padding="sm"
@@ -12,34 +10,19 @@
           v-close-popup
         />
       </div>
-      <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
+      <div class="row justify-center q-py-lg" style="margin-top: 100px; width: 100%;" v-if="!isloaded">
         <ProgressLoader/>
       </div>
-
-      <div class="row justify-center q-px-lg q-pt-lg">
-        <div style="height: 200px; width: 350px;">
-          <canvas ref="chart"></canvas>
+      <div v-if="isloaded">
+        <div class="row justify-center text-h5 q-pb-md" style="font-size: 15px;">
+          Bitcoin Cash Price Chart
+        </div>
+        <div class="row justify-center q-px-md">
+          <div style="height: 200px; width: 375px;">
+            <canvas ref="chart"></canvas>
+          </div>
         </div>
       </div>
-      <!-- marquee -->
-      <!-- <div class="q-pl-lg q-pt-md q-pr-lg" style="width: 375px;">
-        <coingecko-coin-price-marquee-widget
-          coin-ids="bitcoin-cash,bitcoin,eos,ethereum,litecoin"
-          :currency="selectedCurrency.symbol.toLowerCase()"
-          background-color="#ffffff"
-          locale="en">
-        </coingecko-coin-price-marquee-widget>
-      </div>
-      <div class="q-pl-lg q-pt-lg q-pr-lg">
-        <coingecko-coin-price-chart-widget
-          coin-id="bitcoin-cash"
-          :currency="selectedCurrency.symbol.toLowerCase()"
-          height="275"
-          locale="en"
-          width="325"
-          background-color="#ffffff">
-        </coingecko-coin-price-chart-widget>
-      </div> -->
     </q-card>
   </q-dialog>
 </template>
@@ -55,17 +38,6 @@ export default {
       darkmode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: this.$store.getters['market/selectedCurrency'].symbol.toLowerCase(),
       isloaded: false,
-      chartScript: null,
-      marqueeScript: null,
-      info: [
-        { year: 2010, count: 10 },
-        { year: 2011, count: 20 },
-        { year: 2012, count: 15 },
-        { year: 2013, count: 25 },
-        { year: 2014, count: 22 },
-        { year: 2015, count: 30 },
-        { year: 2016, count: 28 }
-      ],
       date: [],
       bchPrice: []
     }
@@ -74,62 +46,37 @@ export default {
     ProgressLoader
   },
   methods: {
-    // loadScripts () {
-    //   const chartUrl = 'https://widgets.coingecko.com/coingecko-coin-price-chart-widget.js'
-    //   const marqueeUrl = 'https://widgets.coingecko.com/coingecko-coin-price-marquee-widget.js'
-    //   let cont = false
-    //   const scripts = document.getElementsByTagName('script')
-    //   // console.log(scripts)
-
-    //   for (let i = scripts.length; i--;) {
-    //     if (cont === true) {
-    //       break
-    //     }
-    //     // console.log(scripts[i])
-    //     if (scripts[i].src === chartUrl || scripts[i].src === marqueeUrl) {
-    //       cont = true
-    //     }
-    //   }
-    //   // loading scripts once
-    //   if (!cont) {
-    //     // Loading livecoinwatch widget js
-    //     const chartWidget = document.createElement('script')
-    //     chartWidget.setAttribute('defer', '')
-    //     chartWidget.setAttribute('src', 'https://widgets.coingecko.com/coingecko-coin-price-chart-widget.js')
-    //     this.chartScript = document.head.appendChild(chartWidget)
-
-    //     const marqueeWidget = document.createElement('script')
-    //     marqueeWidget.setAttribute('defer', '')
-    //     marqueeWidget.setAttribute('src', 'https://widgets.coingecko.com/coingecko-coin-price-marquee-widget.js')
-    //     this.marqueeScript = document.head.appendChild(marqueeWidget)
-    //   }
-    // },
     async loadData () {
       const vm = this
-      console.log(vm.selectedCurrency)
-
-      const url = 'https://api.coingecko.com/api/v3/coins/bitcoin-cash/market_chart?vs_currency=' + vm.selectedCurrency + '&days=1.25&interval=hourly'
-      console.log(url)
+      const url = 'https://api.coingecko.com/api/v3/coins/bitcoin-cash/market_chart?vs_currency=' + vm.selectedCurrency + '&days=1&interval=hourly'
 
       const resp = await vm.$axios.get(url)
 
       if (resp.status === 200 || resp.status === 201) {
-        const prices = resp.data.prices
+        const prices = resp.data.prices.reverse()
 
         vm.date = prices.map(d => d[0]).reverse()
         vm.bchPrice = prices.map(d => d[1]).reverse()
 
         vm.date.forEach(vm.arrangeDate)
-        console.log(vm.bchPrice)
-        console.log(vm.date)
       }
     },
     arrangeDate (value, index, array) {
-      // console.log(value)
-      // const temp_date = value
+      const time = new Date(value)
+      let hour = time.getHours()
 
-      let time = new Date(value)
-      array[index] = time
+      if (index === 23) {
+        const prev = array[index - 1].split(':')[0]
+        if (hour === parseInt(prev)) {
+          hour = hour + 1
+        }
+      }
+
+      if (hour >= 12) {
+        array[index] = (hour === 12) ? '12 pm' : (hour - 12) + ' pm'
+      } else {
+        array[index] = (hour === 0) ? '12 am' : hour + ' am'
+      }
     }
   },
   computed: {
@@ -151,24 +98,57 @@ export default {
   async mounted () {
     await this.loadData()
 
+    Chart.defaults.color = this.darkmode ? '#ffffff' : '#000'
+    const plugin = {
+      id: 'canvasBackgroundColor',
+      beforeDraw: (chart, args, options) => {
+        const { ctx } = chart
+        ctx.save()
+        ctx.globalCompositeOperation = 'destination-over'
+        ctx.fillStyle = options.color || '#99ffff'
+        ctx.fillRect(0, 0, chart.width, chart.height)
+        ctx.restore()
+      }
+    }
     setTimeout(() => {
       new Chart(
       this.$refs.chart,
       {
-        type: 'bar',
+        type: 'line',
         data: {
-          labels: this.info.map(row => row.year),
+          labels: this.date,
           datasets: [
             {
-              label: 'Acquisitions by year',
-              data: this.info.map(row => row.count)
+              // label: 'BCH to ' + this.selectedCurrency.toUpperCase(),
+              data: this.bchPrice,
+              backgroundColor: 'rgba(71,131,246, 0.2)',// 'rgba(237, 88, 105, 0.2)',
+              borderColor: 'rgb(71,131,246)',
+              fill: true
             }
           ]
-        }
+        },
+        options: {
+          layout: {
+            padding: 10
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            canvasBackgroundColor: {
+              color: this.darkmode ? '#212F3D' : '#F9F8FF'
+            }
+          }
+        },
+        plugins: [plugin]
       }
     )
+
+
     }, 50)
     this.isloaded = true
+
+    // if (this,darkmode)
   }
 }
 </script>
