@@ -10,7 +10,7 @@
           v-close-popup
         />
       </div>
-      <div class="row justify-center q-py-lg" style="margin-top: 100px; width: 100%;" v-if="!isloaded">
+      <div class="row justify-center q-pb-lg" style="width: 350px;" v-if="!isloaded">
         <ProgressLoader/>
       </div>
       <div v-if="isloaded">
