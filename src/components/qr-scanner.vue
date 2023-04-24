@@ -104,9 +104,9 @@ export default {
       }
     },
     async prepareScanner () {
-      BarcodeScanner.prepare()
       const status = await this.checkPermission()
       if (status) {
+        BarcodeScanner.prepare()
         this.scanBarcode()
       } else {
         this.$emit('input', false)
