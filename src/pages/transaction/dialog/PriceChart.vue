@@ -13,9 +13,12 @@
       <div class="row justify-center q-pb-lg" style="width: 350px;" v-if="!isloaded">
         <ProgressLoader/>
       </div>
-      <div v-if="isloaded">
+      <div class="text-center col pt-internet-required" v-if="networkError && isloaded">
+        {{ $t('NoInternetConnectionNotice') }} &#128533;
+      </div>
+      <div v-if="isloaded && !networkError">
         <div class="row justify-center text-h5 q-pb-md" style="font-size: 15px;">
-          Bitcoin Cash Price Chart
+          Bitcoin Cash to {{ selectedCurrency.toUpperCase() }} Price Chart
         </div>
         <div class="row justify-center q-px-md">
           <div style="height: 200px; width: 375px;">
@@ -39,7 +42,8 @@ export default {
       selectedCurrency: this.$store.getters['market/selectedCurrency'].symbol.toLowerCase(),
       isloaded: false,
       date: [],
-      bchPrice: []
+      bchPrice: [],
+      networkError: false
     }
   },
   components: {
@@ -48,9 +52,14 @@ export default {
   methods: {
     async loadData () {
       const vm = this
+      vm.networkError = false
       const url = 'https://api.coingecko.com/api/v3/coins/bitcoin-cash/market_chart?vs_currency=' + vm.selectedCurrency + '&days=1&interval=hourly'
 
       const resp = await vm.$axios.get(url)
+        .catch(function () {
+          vm.networkError = true
+          vm.isloaded = true
+        })
 
       if (resp.status === 200 || resp.status === 201) {
         const prices = resp.data.prices.reverse()
@@ -59,6 +68,8 @@ export default {
         vm.bchPrice = prices.map(d => d[1]).reverse()
 
         vm.date.forEach(vm.arrangeDate)
+      } else {
+        vm.networkError = true
       }
     },
     arrangeDate (value, index, array) {
@@ -99,6 +110,7 @@ export default {
     await this.loadData()
 
     Chart.defaults.color = this.darkmode ? '#ffffff' : '#000'
+    // Chart.defaults.global.tooltipTemplate = "<%if (label){%><%=label%>: <%}%><%= value %>"
     const plugin = {
       id: 'canvasBackgroundColor',
       beforeDraw: (chart, args, options) => {
@@ -110,41 +122,46 @@ export default {
         ctx.restore()
       }
     }
+    const currency = this.selectedCurrency.toUpperCase()
     setTimeout(() => {
-      new Chart(
-      this.$refs.chart,
-      {
-        type: 'line',
-        data: {
-          labels: this.date,
-          datasets: [
-            {
-              // label: 'BCH to ' + this.selectedCurrency.toUpperCase(),
-              data: this.bchPrice,
-              backgroundColor: 'rgba(71,131,246, 0.2)',// 'rgba(237, 88, 105, 0.2)',
-              borderColor: 'rgb(71,131,246)',
-              fill: true
-            }
-          ]
-        },
-        options: {
-          layout: {
-            padding: 10
+      const chart = new Chart(
+        this.$refs.chart,
+        {
+          type: 'line',
+          data: {
+            labels: this.date,
+            datasets: [
+              {
+                data: this.bchPrice,
+                backgroundColor: 'rgba(71,131,246, 0.2)', // 'rgba(237, 88, 105, 0.2)',
+                borderColor: 'rgb(71,131,246)',
+                fill: true
+              }
+            ]
           },
-          plugins: {
-            legend: {
-              display: false
+          options: {
+            layout: {
+              padding: 10
             },
-            canvasBackgroundColor: {
-              color: this.darkmode ? '#212F3D' : '#F9F8FF'
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: function(tooltipItems) {
+                    return tooltipItems.formattedValue + ' ' + currency
+                  }
+                }
+              },
+              legend: {
+                display: false
+              },
+              canvasBackgroundColor: {
+                color: this.darkmode ? '#212F3D' : '#F9F8FF'
+              }
             }
-          }
-        },
-        plugins: [plugin]
-      }
-    )
-
-
+          },
+          plugins: [plugin]
+        }
+      )
     }, 50)
     this.isloaded = true
 
@@ -152,3 +169,12 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+  .pt-internet-required {
+  text-align: center;
+  width: 100%;
+  font-size: 24px;
+  padding: 30px;
+  color: gray;
+}
+</style>
