@@ -20,7 +20,7 @@
         <div class="row justify-center text-h5 q-pb-md" style="font-size: 15px;">
           Bitcoin Cash to {{ selectedCurrency.toUpperCase() }} Price Chart
         </div>
-        <div class="row justify-center q-px-md">
+        <div class="row justify-center q-mx-sm q-pt-md q-mb-md br-15 light-bg"  :class="[ darkmode ? 'pt-dark-card-2' : '']">
           <div style="height: 200px; width: 375px;">
             <canvas ref="chart"></canvas>
           </div>
@@ -110,7 +110,7 @@ export default {
     await this.loadData()
 
     Chart.defaults.color = this.darkmode ? '#ffffff' : '#000'
-    // Chart.defaults.global.tooltipTemplate = "<%if (label){%><%=label%>: <%}%><%= value %>"
+    // Chart.defaults.font.size = 12
     const plugin = {
       id: 'canvasBackgroundColor',
       beforeDraw: (chart, args, options) => {
@@ -133,7 +133,7 @@ export default {
             datasets: [
               {
                 data: this.bchPrice,
-                backgroundColor: 'rgba(71,131,246, 0.2)', // 'rgba(237, 88, 105, 0.2)',
+                backgroundColor: 'rgba(71,131,246, 0.2)',
                 borderColor: 'rgb(71,131,246)',
                 fill: true
               }
@@ -146,9 +146,15 @@ export default {
             plugins: {
               tooltip: {
                 callbacks: {
-                  label: function(tooltipItems) {
+                  label: function (tooltipItems) {
                     return tooltipItems.formattedValue + ' ' + currency
                   }
+                },
+                titleFont: {
+                  size: 12
+                },
+                bodyFont: {
+                  size: 15
                 }
               },
               legend: {
@@ -176,5 +182,8 @@ export default {
   font-size: 24px;
   padding: 30px;
   color: gray;
+}
+.light-bg {
+  background-color: #F9F8FF;
 }
 </style>
