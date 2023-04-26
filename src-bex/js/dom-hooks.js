@@ -3,9 +3,31 @@
 
 import { stringify } from "@bitauth/libauth";
 
-class Paytaca {
+class Paytaca extends EventTarget {
   constructor (bridge) {
+    super();
     this.bridge = bridge
+  }
+
+  callbackMap = {};
+
+  addEventListener (event, callback, ) {
+    const wrapper = (event => callback(event.detail));
+    this.callbackMap[callback] = wrapper;
+    super.addEventListener(event, wrapper);
+  }
+
+  on (event, callback, options) {
+    this.addEventListener(event, callback, options);
+  }
+
+  once (event, callback, options) {
+    this.addEventListener(event, callback, { ...options, once: true });
+  }
+
+  off (event, callback) {
+    this.removeEventListener(event, this.callbackMap[callback]);
+    delete this.callbackMap[callback];
   }
 
   send (assetId, amount, recipient) {
@@ -28,6 +50,8 @@ class Paytaca {
       origin: window.location.origin
     })
 
+    this.dispatchEvent(new CustomEvent("addressChanged", { detail: response.data.address }));
+
     return response.data
   }
 
@@ -42,6 +66,9 @@ class Paytaca {
     const response = await this.bridge.send('window.paytaca.disconnect', {
       origin: window.location.origin
     })
+
+    this.dispatchEvent(new CustomEvent("addressChanged", { detail: response.data.address }));
+
     return response.data
   }
 

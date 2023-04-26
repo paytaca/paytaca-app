@@ -157,7 +157,7 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
       localStorage.setItem("vuex", JSON.stringify(vuex));
     }
 
-    bridge.send(data.eventResponseKey, { connected: data.connected, address: data.connectedAddress });
+    bridge.send(data.eventResponseKey, { connected: data.connected, address: data.address });
   });
 
   bridge.on('background.paytaca.connected', ({ data, eventResponseKey }) => {
@@ -175,16 +175,17 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     delete connectedSites[data.origin][connectedAddress];
     if (Object.keys(connectedSites[data.origin]).length === 0) {
       delete connectedSites[data.origin];
+      delete wallet.connectedAddress;
+      delete wallet.connectedAddressIndex;
     } else {
       const nextConnectedAddress = Object.keys(connectedSites[data.origin])[0];
       const nextConnectedAddressIndex = connectedSites[data.origin][nextConnectedAddress];
-      console.log(nextConnectedAddress, nextConnectedAddressIndex);
       wallet.connectedAddress = nextConnectedAddress;
       wallet.connectedAddressIndex = nextConnectedAddressIndex;
     }
     wallet.connectedSites = connectedSites;
     localStorage.setItem("vuex", JSON.stringify(vuex));
-    bridge.send(eventResponseKey, true);
+    bridge.send(eventResponseKey, { connected: !!wallet.connectedAddress, address: wallet.connectedAddress });
   })
 
   bridge.on('background.paytaca.address', ({ data, respond }) => {
