@@ -17,14 +17,16 @@
         {{ $t('NoInternetConnectionNotice') }} &#128533;
       </div>
       <div v-if="isloaded && !networkError">
-        <div class="row justify-center text-h5 q-pb-md" style="font-size: 15px;">
+        <div class="row justify-center text-h6 q-pb-sm" style="font-size: 15px;">
           Bitcoin Cash to {{ selectedCurrency.toUpperCase() }} Price Chart
         </div>
-        <div class="row justify-center q-mx-sm q-pt-md q-mb-md br-15 light-bg"  :class="[ darkmode ? 'pt-dark-card-2' : '']">
-          <div style="height: 200px; width: 375px;">
+        <q-card class="row justify-center q-mx-md q-pt-md q-mb-md br-15 light-bg"  :class="[ darkmode ? 'pt-dark-card-2' : '']">
+          <q-card-section>
+            <div style="height: 180px ; width: 360px;">
             <canvas ref="chart"></canvas>
           </div>
-        </div>
+          </q-card-section>
+        </q-card>
       </div>
     </q-card>
   </q-dialog>
@@ -76,17 +78,19 @@ export default {
       const time = new Date(value)
       let hour = time.getHours()
 
-      if (index === 23) {
-        const prev = array[index - 1].split(':')[0]
-        if (hour === parseInt(prev)) {
-          hour = hour + 1
-        }
-      }
-
       if (hour >= 12) {
         array[index] = (hour === 12) ? '12 pm' : (hour - 12) + ' pm'
       } else {
         array[index] = (hour === 0) ? '12 am' : hour + ' am'
+      }
+
+      if (index === array.length - 1) {
+        array[index] = 'now'
+        // console.log(hour + ':' + time.getMinutes())
+        // const prev = array[index - 1].split(' ')[0]
+        // if (hour === parseInt(prev)) {
+        //   hour = hour + 1
+        // }
       }
     }
   },
@@ -133,8 +137,8 @@ export default {
             datasets: [
               {
                 data: this.bchPrice,
-                backgroundColor: 'rgba(71,131,246, 0.2)',
-                borderColor: 'rgb(71,131,246)',
+                backgroundColor: 'rgba(59, 123, 246, 0.2)', //'rgba(71,131,246, 0.2)',
+                borderColor: 'rgb(59, 123, 246)',
                 fill: true
               }
             ]
@@ -143,8 +147,14 @@ export default {
             layout: {
               padding: 10
             },
+            interaction: {
+              intersect: false
+            },
+            radius: 0,
             plugins: {
               tooltip: {
+                mode: 'index',
+                intersect: false,
                 callbacks: {
                   label: function (tooltipItems) {
                     return tooltipItems.formattedValue + ' ' + currency
@@ -156,6 +166,10 @@ export default {
                 bodyFont: {
                   size: 15
                 }
+              },
+              hover: {
+                mode: 'nearest',
+                intersect: false
               },
               legend: {
                 display: false
