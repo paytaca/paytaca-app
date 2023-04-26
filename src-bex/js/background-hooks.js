@@ -142,31 +142,48 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     })
   })
 
-  bridge.on('background.paytaca.connectResponse', event => {
-    if (event.data.connected) {
-      const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
-      if (!connectedSites[event.data.origin]) {
-        connectedSites[event.data.origin] = {};
+  bridge.on('background.paytaca.connectResponse', ({ data, eventResponseKey}) => {
+    if (data.connected) {
+      const vuex = JSON.parse(localStorage.getItem("vuex"));
+      const wallet = vuex?.global?.wallets?.[data.assetId || "bch"];
+      const connectedSites = wallet.connectedSites || {};
+      if (!connectedSites[data.origin]) {
+        connectedSites[data.origin] = {};
       }
-      connectedSites[event.data.origin][event.data.address] = true;
-      localStorage.setItem("connectedSites", JSON.stringify(connectedSites));
-      localStorage.setItem("selectedAddress", event.data.address);
-      localStorage.setItem("selectedAddressIndex", event.data.addressIndex);
+      connectedSites[data.origin][data.address] = data.addressIndex;
+      wallet.connectedSites = connectedSites;
+      wallet.connectedAddress = data.address;
+      wallet.connectedAddressIndex = data.addressIndex;
+      localStorage.setItem("vuex", JSON.stringify(vuex));
     }
 
-    bridge.send(event.data.eventResponseKey, event.data.connected)
+    bridge.send(data.eventResponseKey, { connected: data.connected, address: data.connectedAddress });
   });
 
   bridge.on('background.paytaca.connected', ({ data, eventResponseKey }) => {
-    const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
+    const vuex = JSON.parse(localStorage.getItem("vuex"));
+    const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
     const connected = !!connectedSites[data.origin];
     bridge.send(eventResponseKey, connected);
   })
 
   bridge.on('background.paytaca.disconnect', ({ data, respond, eventResponseKey }) => {
-    const connectedSites = JSON.parse(localStorage.getItem("connectedSites") || "{}");
-    delete connectedSites[data.origin];
-    localStorage.setItem("connectedSites", JSON.stringify(connectedSites));
+    const vuex = JSON.parse(localStorage.getItem("vuex"));
+    const wallet = vuex?.global?.wallets?.[data.assetId || "bch"];
+    const connectedAddress = wallet.connectedAddress;
+    const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
+    delete connectedSites[data.origin][connectedAddress];
+    if (Object.keys(connectedSites[data.origin]).length === 0) {
+      delete connectedSites[data.origin];
+    } else {
+      const nextConnectedAddress = Object.keys(connectedSites[data.origin])[0];
+      const nextConnectedAddressIndex = connectedSites[data.origin][nextConnectedAddress];
+      console.log(nextConnectedAddress, nextConnectedAddressIndex);
+      wallet.connectedAddress = nextConnectedAddress;
+      wallet.connectedAddressIndex = nextConnectedAddressIndex;
+    }
+    wallet.connectedSites = connectedSites;
+    localStorage.setItem("vuex", JSON.stringify(vuex));
     bridge.send(eventResponseKey, true);
   })
 
@@ -174,7 +191,8 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     for (const connId in allActiveConnections) {
       const connection = allActiveConnections[connId]
       if (connection.contentScript.connected) {
-        respond(localStorage.getItem("selectedAddress") || undefined);
+        const vuex = JSON.parse(localStorage.getItem("vuex"));
+        respond(vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedAddress);
         return
       }
     }

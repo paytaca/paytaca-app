@@ -134,3 +134,15 @@ export function getDefaultAssetLogo () {
     return canvas.toDataURL('image/png')
   }
 }
+
+export function getconnectedAddress (state) {
+  return function (walletType) {
+    return state.wallets[walletType].connectedAddress
+  }
+}
+
+export function getconnectedAddressIndex (state) {
+  return function (walletType) {
+    return state.wallets[walletType].connectedAddressIndex
+  }
+}

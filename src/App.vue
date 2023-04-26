@@ -142,6 +142,7 @@ export default {
             transaction: event.data.transaction,
             sourceOutputs: event.data.sourceOutputs,
             broadcast: event.data.broadcast,
+            userPrompt: event.data.userPrompt,
             eventResponseKey: event.data.eventResponseKey,
           },
         })

@@ -27,6 +27,7 @@ class Paytaca {
     const response = await this.bridge.send('window.paytaca.connect', {
       origin: window.location.origin
     })
+
     return response.data
   }
 
@@ -73,8 +74,12 @@ class Paytaca {
     return response.data
   }
 
-  async signTransaction (assetId, transaction, sourceOutputs, broadcast) {
+  async signTransaction ({assetId, transaction, sourceOutputs, broadcast, userPrompt}) {
     const connected = await this.connected();
+
+    if (assetId?.toLowerCase() === "sbch") {
+      throw Error("Not supported yet");
+    }
 
     if (!connected) {
       return undefined;
@@ -86,6 +91,7 @@ class Paytaca {
       transaction: typeof transaction === "string" ? transaction : stringify(transaction, 0),
       sourceOutputs: stringify(sourceOutputs, 0),
       broadcast: broadcast,
+      userPrompt: userPrompt,
     })
     return response.data
   }

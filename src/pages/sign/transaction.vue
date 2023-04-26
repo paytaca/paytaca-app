@@ -7,12 +7,13 @@
     <div class="">
       <div class="q-pa-md" style="padding-top: 40px;">
         <div class="col-12 q-mt-lg items-center">
+          <span v-if="userPrompt" class="text-lg text-bold span-text-center" v-text="userPrompt"></span>
           <p class="text-lg">Origin:</p><textarea rows="1" readonly class="ro-text" v-text="origin"></textarea>
           <p class="text-lg">Signer:</p><textarea rows="1" readonly class="ro-text" v-text="connectedAddress.split(':')[1]"></textarea>
           <p class="text-lg">Inputs:</p>
           <div v-for="(input,idx) of tx.inputs">
             <span class="font-normal">{{`#${idx}:`}}</span>
-            {{`${satoshiToBCHString(input.valueSatoshis)} (${binToHex(input.outpointTransactionHash).slice(0,4)}...${binToHex(input.outpointTransactionHash).slice(-4)}:${input.outpointIndex} ${sighashText(input.sighash)}) ${input.address?.split("bitcoincash:")[1]}` }}
+            {{`${satoshiToBCHString(input.valueSatoshis)} (${binToHex(input.outpointTransactionHash).slice(0,4)}...${binToHex(input.outpointTransactionHash).slice(-4)}:${input.outpointIndex}) ${input.address?.split("bitcoincash:")[1]}` }}
             <span v-if="input.token">
               <br/>
               <hr/>
@@ -213,6 +214,10 @@ export default {
       type: String,
       required: true
     },
+    userPrompt: {
+      type: String,
+      required: false,
+    }
   },
   data () {
     return {
@@ -331,8 +336,8 @@ export default {
 
   async beforeMount () {
     // use the currently selected address as signer
-    this.connectedAddress = localStorage.getItem("selectedAddress");
-    this.connectedAddressIndex = localStorage.getItem("selectedAddressIndex");
+    this.connectedAddress = localStorage.getItem("connectedAddress");
+    this.connectedAddressIndex = localStorage.getItem("connectedAddressIndex");
 
     // decode the transaction, either a hex string or a json string
     if (typeof this.transaction === "string") {
@@ -361,11 +366,6 @@ export default {
 
       }
     }
-
-    // debug placeholders
-    this.tx.inputs.forEach(val => val.address = "bitcoincash:qqsxtesttesttesttesttesttest");
-    this.tx.inputs.forEach(val => val.sighash = SigningSerializationAlgorithmIdentifier.allOutputs);
-    this.tx.inputs.forEach(val => val.valueSatoshis = 0n);
 
     // let's figure out the satoshi value and token information for the inputs
     this.sourceOutputsUnpacked.forEach((sourceOutput, index) => {
@@ -452,6 +452,15 @@ export default {
   }
   .text-lg {
     font-size: 20px;
+  }
+  .text-bold {
+    font-weight: 400;
+  }
+  .span-text-center {
+    justify-content: center;
+    display: flex;
+    width: 100%;
+    text-align: center;
   }
   .btn {
     background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);

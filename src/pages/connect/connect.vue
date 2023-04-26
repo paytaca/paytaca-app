@@ -11,7 +11,7 @@
 
           <p>Select the addresses to use on this site</p>
           <div v-for="(address, index) in addresses" :key="index">
-            <input type="radio" v-model="selectedAddressIndex" :id="address" name="selectedAddressIndex" :value="index">
+            <input type="radio" v-model="connectedAddressIndex" :id="address" name="connectedAddressIndex" :value="index">
             <label style="padding-left: 5px" :for="address">{{ address.split(':')[1] }}</label>
           </div>
           <hr />
@@ -22,7 +22,7 @@
       <hr />
       <div class="q-mt-lg text-center row justify-evenly">
         <q-btn size="lg" class="btn text-white" :label="$t('Cancel')" @click="cancel" />
-        <q-btn size="lg" class="btn text-white" :label="$t('Connect')" @click="connect" />
+        <q-btn :disable="!addresses.length" size="lg" class="btn text-white" :label="$t('Connect')" @click="connect" />
       </div>
     </div>
   </div>
@@ -54,11 +54,10 @@ export default {
       wallet: null,
 
       darkMode: this.$store.getters['darkmode/getStatus'],
-      lastAddress: '',
       lastAddressIndex: 0,
       addresses: [],
       assetId: "bch",
-      selectedAddressIndex: 0,
+      connectedAddressIndex: 0,
     }
   },
 
@@ -75,7 +74,7 @@ export default {
     },
 
     async connect () {
-      this.$q.bex.send('background.paytaca.connectResponse', {origin: this.origin, connected: true, address: this.addresses[this.selectedAddressIndex], addressIndex: '0/' + this.selectedAddressIndex, eventResponseKey: this.eventResponseKey})
+      this.$q.bex.send('background.paytaca.connectResponse', {origin: this.origin, connected: true, address: this.addresses[this.connectedAddressIndex], addressIndex: '0/' + this.connectedAddressIndex, eventResponseKey: this.eventResponseKey})
       window.close()
     },
   },
@@ -83,8 +82,7 @@ export default {
   async mounted () {
     const walletInfo = this.$store.getters['global/getWallet'](this.assetId)
     if (walletInfo) {
-      const { lastAddress, lastAddressIndex } = walletInfo
-      this.lastAddress = lastAddress
+      const { lastAddressIndex } = walletInfo
       this.lastAddressIndex = lastAddressIndex
     }
 
@@ -97,9 +95,11 @@ export default {
       await this.wallet.sBCH.getOrInitWallet();
       this.addresses = [this.wallet.sBCH._wallet.address]
     } else {
+      const addresses = [];
       for (let i = 0; i <= this.lastAddressIndex; i++) {
-        this.addresses = [...this.addresses, (await this.wallet.BCH.getAddressSetAt(i)).receiving];
+        addresses.push((await this.wallet.BCH.getAddressSetAt(i)).receiving);
       }
+      this.addresses = [...addresses];
     }
   },
 }
