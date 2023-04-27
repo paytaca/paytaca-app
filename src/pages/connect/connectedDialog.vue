@@ -18,7 +18,7 @@
               </q-avatar>
             </q-item-section>
             <q-item-section :class="darkMode ? 'text-white' : 'pp-text'" class="address-section">
-              <div>{{ address.split(":")[1] }}</div>
+              <div>{{ address.split(':')[1] }}</div>
               <div v-if="address == activeAddress" style="color: grey">Active</div>
               <div v-else class="text-brandblue" style="font-weight: 400" @click="switchAddress(address)">Switch to this address</div>
             </q-item-section>
@@ -51,8 +51,10 @@ export default {
   mounted () {
     chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
       const url = tabs[0].url;
-      this.origin = url.split('/')[2];
-      this.fetchAddressInfo();
+      if (url) {
+        this.origin = url.split('/')[2];
+        this.fetchAddressInfo();
+      }
     });
   },
   computed: {
