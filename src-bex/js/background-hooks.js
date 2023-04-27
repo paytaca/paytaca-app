@@ -218,6 +218,13 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         left: parentWindow.width - windowWidth
       }
       chrome.windows.create(params, function (window) {
+        const tabId = window.tabs[0].id;
+        chrome.tabs.onRemoved.addListener(function(tabid) {
+          if (tabid == tabId) {
+            respond(undefined);
+          }
+        });
+
         let counter = 0
         const check = setInterval(function () {
           for (const connId in allActiveConnections) {
@@ -257,6 +264,13 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         left: parentWindow.width - windowWidth
       }
       chrome.windows.create(params, function (window) {
+        const tabId = window.tabs[0].id;
+        chrome.tabs.onRemoved.addListener(function(tabid) {
+          if (tabid == tabId) {
+            respond(undefined);
+          }
+        });
+
         let counter = 0
         const check = setInterval(function () {
           for (const connId in allActiveConnections) {
@@ -280,10 +294,14 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     })
   })
 
-  bridge.on('background.paytaca.signTransactionResponse', event => {
-    bridge.send(event.data.eventResponseKey, {
-      signedTransaction: event.data.signedTransaction,
-      signedTransactionHash: event.data.signedTransactionHash
-    })
+  bridge.on('background.paytaca.signTransactionResponse', ({ data }) => {
+    if (!data.signedTransaction && !data.signedTransactionHash) {
+      bridge.send(data.eventResponseKey, undefined);
+    } else {
+      bridge.send(data.eventResponseKey, {
+        signedTransaction: data.signedTransaction,
+        signedTransactionHash: data.signedTransactionHash
+      });
+    }
   });
 }
