@@ -6,7 +6,11 @@ import { stringify } from "@bitauth/libauth";
 class Paytaca extends EventTarget {
   constructor (bridge) {
     super();
-    this.bridge = bridge
+    this.bridge = bridge;
+
+    this.bridge.on("window.paytaca.addressChanged", (event) => {
+      this.dispatchEvent(new CustomEvent("addressChanged", { detail: event.data.address }));
+    });
   }
 
   callbackMap = {};

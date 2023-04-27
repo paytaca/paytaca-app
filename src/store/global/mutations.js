@@ -19,6 +19,16 @@ export function updateWallet (state, details) {
   state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
   state.wallets[details.type].connectedAddress = details.connectedAddress ?? state.wallets[details.type].connectedAddress
   state.wallets[details.type].connectedAddressIndex = details.connectedAddressIndex ?? state.wallets[details.type].connectedAddressIndex
+  state.wallets[details.type].connectedSites = details.connectedSites ?? state.wallets[details.type].connectedSites
+}
+
+export function setConnectedAddress (state, details) {
+  state.wallets[details.type].connectedAddress = details.connectedAddress
+  state.wallets[details.type].connectedAddressIndex = details.connectedAddressIndex
+}
+
+export function setConnectedSites (state, details) {
+  state.wallets[details.type].connectedSites = details.connectedSites
 }
 
 export function setWalletSubscribed (state, details) {

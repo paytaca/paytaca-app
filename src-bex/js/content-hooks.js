@@ -1,7 +1,9 @@
 // Hooks added here have a bridge allowing communication between the BEX Content Script and the Quasar Application.
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/content-hooks
 
-export default function attachContentHooks (bridge) {
+import { bexContent } from 'quasar/wrappers'
+
+export default bexContent((bridge) => {
   // Hook into the bridge to listen for events sent from the client BEX.
   /*
   bridge.on('some.event', event => {
@@ -53,4 +55,9 @@ export default function attachContentHooks (bridge) {
     const response = await bridge.send('background.paytaca.signTransaction', data)
     respond(response.data)
   })
-}
+
+  bridge.on('window.paytaca.addressChanged', async ({ data, respond }) => {
+    bridge.send('window.paytaca.addressChanged', data);
+    respond();
+  });
+});

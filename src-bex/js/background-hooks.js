@@ -106,8 +106,6 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     })
   })
 
-
-
   bridge.on('background.paytaca.connect', ({ data, respond, eventResponseKey }) => {
     chrome.windows.getCurrent(function (parentWindow) {
       const windowWidth = 375
@@ -147,10 +145,11 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
       const vuex = JSON.parse(localStorage.getItem("vuex"));
       const wallet = vuex?.global?.wallets?.[data.assetId || "bch"];
       const connectedSites = wallet.connectedSites || {};
-      if (!connectedSites[data.origin]) {
-        connectedSites[data.origin] = {};
+      const origin = data.origin.split('/')[2] ?? data.origin;
+      if (!connectedSites[origin]) {
+        connectedSites[origin] = {};
       }
-      connectedSites[data.origin][data.address] = data.addressIndex;
+      connectedSites[origin][data.address] = data.addressIndex;
       wallet.connectedSites = connectedSites;
       wallet.connectedAddress = data.address;
       wallet.connectedAddressIndex = data.addressIndex;
@@ -163,7 +162,8 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
   bridge.on('background.paytaca.connected', ({ data, eventResponseKey }) => {
     const vuex = JSON.parse(localStorage.getItem("vuex"));
     const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
-    const connected = !!connectedSites[data.origin];
+    const origin = data.origin.split('/')[2] ?? data.origin;
+    const connected = !!connectedSites[origin];
     bridge.send(eventResponseKey, connected);
   })
 
@@ -172,20 +172,26 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     const wallet = vuex?.global?.wallets?.[data.assetId || "bch"];
     const connectedAddress = wallet.connectedAddress;
     const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
-    delete connectedSites[data.origin][connectedAddress];
-    if (Object.keys(connectedSites[data.origin]).length === 0) {
-      delete connectedSites[data.origin];
+    const origin = data.origin.split('/')[2] ?? data.origin;
+    delete connectedSites[origin][connectedAddress];
+    if (Object.keys(connectedSites[origin]).length === 0) {
+      delete connectedSites[origin];
       delete wallet.connectedAddress;
       delete wallet.connectedAddressIndex;
     } else {
-      const nextConnectedAddress = Object.keys(connectedSites[data.origin])[0];
-      const nextConnectedAddressIndex = connectedSites[data.origin][nextConnectedAddress];
+      const nextConnectedAddress = Object.keys(connectedSites[origin])[0];
+      const nextConnectedAddressIndex = connectedSites[origin][nextConnectedAddress];
       wallet.connectedAddress = nextConnectedAddress;
       wallet.connectedAddressIndex = nextConnectedAddressIndex;
     }
     wallet.connectedSites = connectedSites;
     localStorage.setItem("vuex", JSON.stringify(vuex));
     bridge.send(eventResponseKey, { connected: !!wallet.connectedAddress, address: wallet.connectedAddress });
+  })
+
+  bridge.on('background.paytaca.addressChanged', ({ data, respond, eventResponseKey }) => {
+    bridge.send("window.paytaca.addressChanged", { connected: !!data.address, address: data.address });
+    respond();
   })
 
   bridge.on('background.paytaca.address', ({ data, respond }) => {

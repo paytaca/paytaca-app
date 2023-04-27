@@ -10,7 +10,8 @@ export default function () {
         lastChangeAddress: '',
         lastAddressIndex: 0,
         connectedAddress: '',
-        connectedAddressIndex: '0/0'
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       },
       slp: {
         walletHash: '',
@@ -20,7 +21,8 @@ export default function () {
         lastChangeAddress: '',
         lastAddressIndex: 0,
         connectedAddress: '',
-        connectedAddressIndex: '0/0'
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       },
       sbch: {
         subscribed: false,
@@ -28,7 +30,8 @@ export default function () {
         derivationPath: '',
         lastAddress: '',
         connectedAddress: '',
-        connectedAddressIndex: '0/0'
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       }
     },
     utxoScanTasks: {

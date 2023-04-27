@@ -135,14 +135,20 @@ export function getDefaultAssetLogo () {
   }
 }
 
-export function getconnectedAddress (state) {
+export function getConnectedAddress (state) {
   return function (walletType) {
     return state.wallets[walletType].connectedAddress
   }
 }
 
-export function getconnectedAddressIndex (state) {
+export function getConnectedAddressIndex (state) {
   return function (walletType) {
     return state.wallets[walletType].connectedAddressIndex
+  }
+}
+
+export function getConnectedSites (state) {
+  return function (walletType) {
+    return state.wallets[walletType].connectedSites
   }
 }
