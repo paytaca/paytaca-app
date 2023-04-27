@@ -127,13 +127,13 @@ export default {
             origin: event.data.origin,
             assetId: event.data.assetId,
             message: event.data.message,
+            userPrompt: event.data.userPrompt,
             eventResponseKey: event.data.eventResponseKey,
           },
         })
       })
 
       vm.$q.bex.on('bex.paytaca.signTransaction', async (event) => {
-        console.log(event);
         vm.$router.push({
           name: 'sign-transaction',
           query: {

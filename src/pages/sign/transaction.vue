@@ -191,7 +191,8 @@ export default {
     },
     assetId: {
       type: String,
-      required: true
+      required: false,
+      default: "bch",
     },
     transaction: {
       type: String,
@@ -336,8 +337,10 @@ export default {
 
   async beforeMount () {
     // use the currently selected address as signer
-    this.connectedAddress = localStorage.getItem("connectedAddress");
-    this.connectedAddressIndex = localStorage.getItem("connectedAddressIndex");
+    const walletInfo = this.$store.getters['global/getWallet'](this.assetId)
+    const { connectedAddress, connectedAddressIndex } = walletInfo
+    this.connectedAddress = connectedAddress;
+    this.connectedAddressIndex = connectedAddressIndex;
 
     // decode the transaction, either a hex string or a json string
     if (typeof this.transaction === "string") {

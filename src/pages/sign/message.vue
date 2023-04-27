@@ -6,14 +6,15 @@
     ></header-nav>
     <div class="">
       <div class="q-pa-md" style="padding-top: 70px;">
-        <div class="col-12 q-mt-lg items-center">
-          <p class="text-lg">Signer:</p><textarea readonly class="ro-text" v-text="lastAddress"></textarea>
+        <div class="col-12 q-mt-sm items-center">
+          <span v-if="userPrompt" class="text-lg text-bold span-text-center" v-text="userPrompt"></span>
+          <p class="text-lg">Signer:</p><textarea readonly class="ro-text" v-text="connectedAddress.split(':')[1]"></textarea>
           <p class="text-lg">Origin:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
           <p class="text-lg">Message:</p><textarea readonly class="ro-text" v-text="message"></textarea>
         </div>
       </div>
       <hr />
-      <div class="row q-pa-md">
+      <div v-if="false" class="row q-pa-md">
         <textarea readonly class="ro-text signed" v-text="signedMessage"></textarea>
       </div>
       <div class="q-mt-lg text-center row justify-evenly">
@@ -42,11 +43,16 @@ export default {
     },
     assetId: {
       type: String,
-      required: true
+      required: false,
+      default: "bch",
     },
     message: {
       type: String,
       required: true
+    },
+    userPrompt: {
+      type: String,
+      required: false,
     },
     eventResponseKey: {
       type: String,
@@ -59,8 +65,8 @@ export default {
       wallet: null,
 
       darkMode: this.$store.getters['darkmode/getStatus'],
-      lastAddress: '',
-      lastAddressIndex: 0,
+      connectedAddress: '',
+      connectedAddressIndex: '0/0',
       signedMessage: '',
       sentResponse: false,
     }
@@ -99,7 +105,7 @@ export default {
       }
 
       let messageHash = hash_message(this.message)
-      const privateKeyWif = await this.wallet.BCH.getPrivateKey(`0/${this.lastAddressIndex}`)
+      const privateKeyWif = await this.wallet.BCH.getPrivateKey(this.connectedAddressIndex)
       const decodeResult = decodePrivateKeyWif(privateKeyWif)
       const privateKey = decodeResult.privateKey
       let rs = secp256k1.signMessageHashRecoverableCompact(
@@ -126,12 +132,11 @@ export default {
   },
 
   async mounted () {
+    // use the currently selected address as signer
     const walletInfo = this.$store.getters['global/getWallet'](this.assetId)
-    if (walletInfo) {
-      const { lastAddress, lastAddressIndex } = walletInfo
-      this.lastAddress = lastAddress
-      this.lastAddressIndex = lastAddressIndex
-    }
+    const { connectedAddress, connectedAddressIndex } = walletInfo
+    this.connectedAddress = connectedAddress;
+    this.connectedAddressIndex = connectedAddressIndex;
 
     // Load wallets
     const mnemonic = await getMnemonic()
@@ -166,6 +171,15 @@ export default {
   }
   .text-lg {
     font-size: 20px;
+  }
+  .text-bold {
+    font-weight: 400;
+  }
+  .span-text-center {
+    justify-content: center;
+    display: flex;
+    width: 100%;
+    text-align: center;
   }
   .btn {
     background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);

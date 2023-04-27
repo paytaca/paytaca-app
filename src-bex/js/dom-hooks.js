@@ -90,7 +90,7 @@ class Paytaca extends EventTarget {
     return response.data
   }
 
-  async signMessage (assetId, message) {
+  async signMessage ({assetId, message, userPrompt}) {
     const connected = await this.connected();
 
     if (!connected) {
@@ -100,7 +100,8 @@ class Paytaca extends EventTarget {
     const response = await this.bridge.send('window.paytaca.signMessage', {
       origin: window.location.origin,
       assetId: assetId,
-      message: message
+      message: message,
+      userPrompt: userPrompt,
     })
     return response.data
   }
