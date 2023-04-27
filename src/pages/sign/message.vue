@@ -19,9 +19,11 @@
       </div>
       <div class="q-mt-lg text-center row justify-evenly">
         <q-btn size="lg" class="btn text-white" :label="$t('Cancel')" @click="cancel" />
-        <q-btn size="lg" class="btn text-white" :label="$t('Sign')" @click="sign" />
+        <q-btn size="lg" class="btn text-white" :label="$t('Sign')" @click="executeSecurityChecking" />
       </div>
     </div>
+
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="onPinDialogCompletion" />
   </div>
 </template>
 
@@ -30,11 +32,14 @@ import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
 import { secp256k1, sha256, binToBase64, utf8ToBin, hexToBin, decodePrivateKeyWif } from "@bitauth/libauth"
+import pinDialog from '../../components/pin'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 export default {
   name: 'sign-message',
   components: {
-    HeaderNav
+    HeaderNav,
+    pinDialog,
   },
   props: {
     origin: {
@@ -69,6 +74,7 @@ export default {
       connectedAddressIndex: '0/0',
       signedMessage: '',
       sentResponse: false,
+      pinDialogAction: '',
     }
   },
 
@@ -79,6 +85,24 @@ export default {
   },
 
   methods: {
+    async executeSecurityChecking () {
+      try {
+        await SecureStoragePlugin.get({ key: 'pin' })
+        setTimeout(() => {
+          if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+            this.pinDialogAction = 'VERIFY'
+          }
+        }, 500);
+      } catch {}
+    },
+
+    async onPinDialogCompletion (action) {
+      this.pinDialogAction = "";
+      if (action === "proceed") {
+        this.sign();
+      }
+    },
+
     async sign () {
       this.signedMessage = this.assetId === "sbch" ?
         await this.signSmartBCH() :

@@ -13,7 +13,7 @@
           <p class="text-lg">Inputs:</p>
           <div v-for="(input,idx) of tx.inputs">
             <span class="font-normal">{{`#${idx}:`}}</span>
-            {{`${satoshiToBCHString(input.valueSatoshis)} (${binToHex(input.outpointTransactionHash).slice(0,4)}...${binToHex(input.outpointTransactionHash).slice(-4)}:${input.outpointIndex}) ${input.address?.split("bitcoincash:")[1]}` }}
+            {{`${satoshiToBCHString(input.valueSatoshis)} (${binToHex(input.outpointTransactionHash).slice(0,4)}...${binToHex(input.outpointTransactionHash).slice(-4)}:${input.outpointIndex}) ${input.address?.split(':')[1]}` }}
             <span v-if="input.token">
               <br/>
               <hr/>
@@ -32,7 +32,7 @@
           <p class="text-lg">Outputs:</p>
           <div v-for="(output,idx) of tx.outputs"> 
             <span class="font-normal">{{`#${idx}:`}}</span>
-            {{`${satoshiToBCHString(output.valueSatoshis)} ${output.address?.split("bitcoincash:")[1]}` }}
+            {{`${satoshiToBCHString(output.valueSatoshis)} ${output.address?.split(':')[1]}` }}
             <span v-if="output.token">
               <br/>
               <hr/>
@@ -48,9 +48,11 @@
       <hr />
       <div class="q-mt-lg q-mb-lg text-center row justify-evenly">
         <q-btn size="lg" class="btn text-white" :label="$t('Cancel')" @click="cancel" />
-        <q-btn size="lg" class="btn text-white" :label="broadcast === 'false' ? $t('Sign') : $t('Sign and Send')" @click="sign" />
+        <q-btn size="lg" class="btn text-white" :label="broadcast === 'false' ? $t('Sign') : $t('Sign and Send')" @click="executeSecurityChecking" />
       </div>
     </div>
+
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="onPinDialogCompletion" />
   </div>
 </template>
 
@@ -59,130 +61,14 @@ import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
 import { authenticationTemplateP2pkhNonHd, importAuthenticationTemplate, decodeAuthenticationInstructions, authenticationTemplateToCompilerBCH, generateTransaction, sha256, hexToBin, decodePrivateKeyWif, SigningSerializationAlgorithmIdentifier, decodeTransaction, binToHex, lockingBytecodeToCashAddress, encodeTransaction, vmNumberToBigInt, encodeAuthenticationInstruction, encodeAuthenticationInstructions } from "@bitauth/libauth"
 import Watchtower from 'watchtower-cash-js';
-
-// contract lookup map, allows to figure out the contract name and function name
-const artifactMap = {"127183cef4d91bde0bb655f7a0092835319a23cf": {
-  contractName: "MintingCovenant",
-  constructorInputs: [
-    {
-      name: "mintCost",
-      type: "int"
-    },
-    {
-      name: "maxAmount",
-      type: "int"
-    },
-    {
-      name: "owner",
-      type: "bytes20"
-    },
-    {
-      name: "nonce",
-      type: "int"
-    }
-  ],
-  abi: [
-    {
-      name: "mint",
-      inputs: []
-    },
-    {
-      name: "withdraw",
-      inputs: [
-        {
-          name: "pk",
-          type: "pubkey"
-        },
-        {
-          name: "s",
-          type: "sig"
-        }
-      ]
-    }
-  ],
-  bytecode: "OP_4 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_0 OP_UTXOTOKENCATEGORY OP_SIZE OP_NIP 21 OP_NUMEQUALVERIFY OP_3 OP_PICK OP_4 OP_ROLL OP_NUMEQUALVERIFY OP_TXINPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE OP_0 OP_UTXOVALUE OP_2 OP_PICK OP_ADD OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCOMMITMENT OP_2 OP_SPLIT OP_NIP OP_BIN2NUM OP_DUP OP_1ADD OP_3 OP_ROLL OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_OUTPUTTOKENCOMMITMENT feed OP_2 OP_PICK OP_1ADD OP_2 OP_NUM2BIN OP_CAT OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY e803 OP_1 OP_OUTPUTVALUE OP_OVER OP_NUMEQUALVERIFY OP_1 OP_OUTPUTBYTECODE OP_1 OP_UTXOBYTECODE OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_0 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENCOMMITMENT OP_ROT OP_2 OP_NUM2BIN OP_EQUALVERIFY 2003 OP_1 OP_UTXOVALUE OP_3 OP_ROLL OP_SUB OP_SWAP OP_SUB OP_SWAP OP_SUB OP_DUP 2202 OP_LESSTHAN OP_IF OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_ELSE OP_1 OP_UTXOBYTECODE OP_2 OP_OUTPUTBYTECODE OP_OVER OP_EQUALVERIFY OP_2 OP_OUTPUTVALUE OP_2 OP_PICK OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY OP_2 OP_OUTPUTTOKENCATEGORY OP_BIN2NUM OP_0 OP_NUMEQUALVERIFY OP_DROP OP_ENDIF OP_2DROP OP_DROP OP_1 OP_ELSE OP_4 OP_ROLL OP_1 OP_NUMEQUALVERIFY OP_4 OP_PICK OP_HASH160 OP_3 OP_ROLL OP_EQUALVERIFY OP_4 OP_ROLL OP_4 OP_ROLL OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCATEGORY OP_SIZE OP_NIP OP_0 OP_NUMNOTEQUAL OP_IF OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE e803 OP_NUMEQUALVERIFY OP_ENDIF OP_2DROP OP_DROP OP_1 OP_ENDIF",
-  source: "\n  contract MintingCovenant(int mintCost, int maxAmount, bytes20 owner, int nonce) {\n    function mint() {\n      require(tx.inputs[0].tokenCategory.length == 33);\n      // remove nonce after debug?\n      require(nonce == nonce);\n\n      // require(mintCost == mintCost);\n      // require(owner == owner);\n      // require(maxAmount == maxAmount);\n\n      // allow only 2 inputs\n      require(tx.inputs.length == 2);\n\n      // require the covenant contract always lives at index zero with a minting NFT\n      require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\n      require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\n\n      // require minting cost is payed to covenant\n      require(tx.outputs[0].value == tx.inputs[0].value + mintCost);\n\n      // get minted amount and validate it does not exceed max amount\n      int currentAmount = int(tx.inputs[0].nftCommitment.split(2)[1]);\n      require(currentAmount + 1 <= maxAmount);\n\n      // require new currentAmount is updated by one on the covenant, ft amount 0\n      require(tx.outputs[0].nftCommitment == 0xfeed + bytes2(currentAmount + 1));\n      require(tx.outputs[0].tokenAmount == 0);\n\n      // Check that the first output sends to the recipient a token of the same category, ft 0, commitment is as current minted amount\n      int tokenValue = 1000;\n      require(tx.outputs[1].value == tokenValue);\n      require(tx.outputs[1].lockingBytecode == tx.inputs[1].lockingBytecode);\n      require(tx.outputs[1].tokenAmount == 0);\n      require(tx.outputs[1].tokenCategory.split(32)[0] == tx.inputs[0].tokenCategory.split(32)[0]);\n      require(tx.outputs[1].nftCommitment == bytes2(currentAmount));\n\n      // Calculate the value that's left\n      int minerFee = 800;\n      int sentValue = tx.inputs[1].value;\n      int changeValue = sentValue - mintCost - minerFee - tokenValue;\n\n      // handle change\n      if (changeValue < 546) {\n        // discard change\n        require(tx.outputs.length == 2);\n      } else {\n        bytes changeBytecode = tx.inputs[1].lockingBytecode;\n        require(tx.outputs[2].lockingBytecode == changeBytecode);\n        require(tx.outputs[2].value == changeValue);\n        require(tx.outputs.length == 3);\n\n        // Require that the change output does not mint any NFTs\n        require(int(tx.outputs[2].tokenCategory) == 0);\n      }\n    }\n\n    function withdraw(pubkey pk, sig s) {\n      require(hash160(pk) == owner);\n      require(checkSig(s, pk));\n\n      require(tx.inputs.length == 1);\n\n      // if (tx.inputs[0].tokenCategory != bytes(0)) {\n      if (tx.inputs[0].tokenCategory.length != 0) {\n        // require covenant will not be closed\n        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\n        // require token will not be burned\n        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\n        require(tx.outputs[0].value == 1000);\n      }\n\n      // polluting non-covenant (with no minting NFT) p2sh outputs can be safely spent\n    }\n  }\n  ",
-  compiler: {
-    name: "cashc",
-    version: "0.8.0-next.2"
-  },
-  updatedAt: "2023-04-09T18:30:58.714Z",
-  bytecodeHex: "04f1535f231456b6b22042b90dd67bf2fbfb9aff7d37fbee1124520390d0035479009c6300ce827701219d5379547a9dc3529d00cd00c78800d100ce8800cc00c65279939d00cf527f7781768b537aa16900d202feed52798b52807e8800d3009d02e80351cc789d51cd51c78851d3009d51d101207f7500ce01207f758851d27b52808802200351c6537a947c947c94760222029f63c4529d6751c752cd788852cc52799dc4539d52d181009d75686d755167547a519d5479a9537a88547a547aadc3519d00ce8277009e6300cd00c78800d100ce8800cc02e8039d686d755168"
-},
-"5479009c6300ce827701219d5379547a9dc3529d00cd00c78800d100ce8800cc00c65279939d00cf527f7781768b537aa16900d202feed52798b52807e8800d3009d02e80351cc789d51cd51c78851d3009d51d101207f7500ce01207f758851d27b52808802200351c6537a947c947c94760222029f63c4529d6751c752cd788852cc52799dc4539d52d181009d75686d755167547a519d5479a9537a88547a547aadc3519d00ce8277009e6300cd00c78800d100ce8800cc02e8039d686d755168": {
-  contractName: "MintingCovenant",
-  constructorInputs: [
-    {
-      name: "mintCost",
-      type: "int"
-    },
-    {
-      name: "maxAmount",
-      type: "int"
-    },
-    {
-      name: "owner",
-      type: "bytes20"
-    },
-    {
-      name: "nonce",
-      type: "int"
-    }
-  ],
-  abi: [
-    {
-      name: "mint",
-      inputs: []
-    },
-    {
-      name: "withdraw",
-      inputs: [
-        {
-          name: "pk",
-          type: "pubkey"
-        },
-        {
-          name: "s",
-          type: "sig"
-        }
-      ]
-    }
-  ],
-  bytecode: "OP_4 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_0 OP_UTXOTOKENCATEGORY OP_SIZE OP_NIP 21 OP_NUMEQUALVERIFY OP_3 OP_PICK OP_4 OP_ROLL OP_NUMEQUALVERIFY OP_TXINPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE OP_0 OP_UTXOVALUE OP_2 OP_PICK OP_ADD OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCOMMITMENT OP_2 OP_SPLIT OP_NIP OP_BIN2NUM OP_DUP OP_1ADD OP_3 OP_ROLL OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_OUTPUTTOKENCOMMITMENT feed OP_2 OP_PICK OP_1ADD OP_2 OP_NUM2BIN OP_CAT OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY e803 OP_1 OP_OUTPUTVALUE OP_OVER OP_NUMEQUALVERIFY OP_1 OP_OUTPUTBYTECODE OP_1 OP_UTXOBYTECODE OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_0 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENCOMMITMENT OP_ROT OP_2 OP_NUM2BIN OP_EQUALVERIFY 2003 OP_1 OP_UTXOVALUE OP_3 OP_ROLL OP_SUB OP_SWAP OP_SUB OP_SWAP OP_SUB OP_DUP 2202 OP_LESSTHAN OP_IF OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_ELSE OP_1 OP_UTXOBYTECODE OP_2 OP_OUTPUTBYTECODE OP_OVER OP_EQUALVERIFY OP_2 OP_OUTPUTVALUE OP_2 OP_PICK OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY OP_2 OP_OUTPUTTOKENCATEGORY OP_BIN2NUM OP_0 OP_NUMEQUALVERIFY OP_DROP OP_ENDIF OP_2DROP OP_DROP OP_1 OP_ELSE OP_4 OP_ROLL OP_1 OP_NUMEQUALVERIFY OP_4 OP_PICK OP_HASH160 OP_3 OP_ROLL OP_EQUALVERIFY OP_4 OP_ROLL OP_4 OP_ROLL OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCATEGORY OP_SIZE OP_NIP OP_0 OP_NUMNOTEQUAL OP_IF OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE e803 OP_NUMEQUALVERIFY OP_ENDIF OP_2DROP OP_DROP OP_1 OP_ENDIF",
-  source: "\n  contract MintingCovenant(int mintCost, int maxAmount, bytes20 owner, int nonce) {\n    function mint() {\n      require(tx.inputs[0].tokenCategory.length == 33);\n      // remove nonce after debug?\n      require(nonce == nonce);\n\n      // require(mintCost == mintCost);\n      // require(owner == owner);\n      // require(maxAmount == maxAmount);\n\n      // allow only 2 inputs\n      require(tx.inputs.length == 2);\n\n      // require the covenant contract always lives at index zero with a minting NFT\n      require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\n      require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\n\n      // require minting cost is payed to covenant\n      require(tx.outputs[0].value == tx.inputs[0].value + mintCost);\n\n      // get minted amount and validate it does not exceed max amount\n      int currentAmount = int(tx.inputs[0].nftCommitment.split(2)[1]);\n      require(currentAmount + 1 <= maxAmount);\n\n      // require new currentAmount is updated by one on the covenant, ft amount 0\n      require(tx.outputs[0].nftCommitment == 0xfeed + bytes2(currentAmount + 1));\n      require(tx.outputs[0].tokenAmount == 0);\n\n      // Check that the first output sends to the recipient a token of the same category, ft 0, commitment is as current minted amount\n      int tokenValue = 1000;\n      require(tx.outputs[1].value == tokenValue);\n      require(tx.outputs[1].lockingBytecode == tx.inputs[1].lockingBytecode);\n      require(tx.outputs[1].tokenAmount == 0);\n      require(tx.outputs[1].tokenCategory.split(32)[0] == tx.inputs[0].tokenCategory.split(32)[0]);\n      require(tx.outputs[1].nftCommitment == bytes2(currentAmount));\n\n      // Calculate the value that's left\n      int minerFee = 800;\n      int sentValue = tx.inputs[1].value;\n      int changeValue = sentValue - mintCost - minerFee - tokenValue;\n\n      // handle change\n      if (changeValue < 546) {\n        // discard change\n        require(tx.outputs.length == 2);\n      } else {\n        bytes changeBytecode = tx.inputs[1].lockingBytecode;\n        require(tx.outputs[2].lockingBytecode == changeBytecode);\n        require(tx.outputs[2].value == changeValue);\n        require(tx.outputs.length == 3);\n\n        // Require that the change output does not mint any NFTs\n        require(int(tx.outputs[2].tokenCategory) == 0);\n      }\n    }\n\n    function withdraw(pubkey pk, sig s) {\n      require(hash160(pk) == owner);\n      require(checkSig(s, pk));\n\n      require(tx.inputs.length == 1);\n\n      // if (tx.inputs[0].tokenCategory != bytes(0)) {\n      if (tx.inputs[0].tokenCategory.length != 0) {\n        // require covenant will not be closed\n        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\n        // require token will not be burned\n        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\n        require(tx.outputs[0].value == 1000);\n      }\n\n      // polluting non-covenant (with no minting NFT) p2sh outputs can be safely spent\n    }\n  }\n  ",
-  compiler: {
-    name: "cashc",
-    version: "0.8.0-next.2"
-  },
-  updatedAt: "2023-04-09T18:30:58.714Z",
-  bytecodeHex: "04f1535f231456b6b22042b90dd67bf2fbfb9aff7d37fbee1124520390d0035479009c6300ce827701219d5379547a9dc3529d00cd00c78800d100ce8800cc00c65279939d00cf527f7781768b537aa16900d202feed52798b52807e8800d3009d02e80351cc789d51cd51c78851d3009d51d101207f7500ce01207f758851d27b52808802200351c6537a947c947c94760222029f63c4529d6751c752cd788852cc52799dc4539d52d181009d75686d755167547a519d5479a9537a88547a547aadc3519d00ce8277009e6300cd00c78800d100ce8800cc02e8039d686d755168"
-},
-}
-
-// an extended json parser compatible with `stringify` from libauth
-const parseExtendedJson = (jsonString) => {
-  const uint8ArrayRegex = /^<Uint8Array: 0x(?<hex>[0-9a-f]*)>$/u;
-  const bigIntRegex = /^<bigint: (?<bigint>[0-9]*)n>$/;
-
-  return JSON.parse(jsonString, (_key, value) => {
-    if (typeof value === "string") {
-      const bigintMatch = value.match(bigIntRegex);
-      if (bigintMatch) {
-        return BigInt(bigintMatch[1]);
-      }
-      const uint8ArrayMatch = value.match(uint8ArrayRegex);
-      if (uint8ArrayMatch) {
-        return hexToBin(uint8ArrayMatch[1]);
-      }
-    }
-    return value;
-  });
-}
+import pinDialog from '../../components/pin'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 export default {
   name: 'sign-transaction',
   components: {
-    HeaderNav
+    HeaderNav,
+    pinDialog,
   },
   props: {
     origin: {
@@ -232,6 +118,7 @@ export default {
       sourceOutputsUnpacked: [],
       contractName: "",
       functionName: "",
+      pinDialogAction: "",
     }
   },
 
@@ -242,6 +129,25 @@ export default {
   },
 
   methods: {
+    async executeSecurityChecking () {
+      try {
+        await SecureStoragePlugin.get({ key: 'pin' })
+        setTimeout(() => {
+          if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+            this.pinDialogAction = 'VERIFY'
+          }
+        }, 500);
+      } catch {
+      }
+    },
+
+    async onPinDialogCompletion (action) {
+      this.pinDialogAction = "";
+      if (action === "proceed") {
+        this.sign();
+      }
+    },
+
     binToHex(val) {
       return binToHex(val);
     },
@@ -422,6 +328,126 @@ export default {
     });
   },
 }
+
+// an extended json parser compatible with `stringify` from libauth
+const parseExtendedJson = (jsonString) => {
+  const uint8ArrayRegex = /^<Uint8Array: 0x(?<hex>[0-9a-f]*)>$/u;
+  const bigIntRegex = /^<bigint: (?<bigint>[0-9]*)n>$/;
+
+  return JSON.parse(jsonString, (_key, value) => {
+    if (typeof value === "string") {
+      const bigintMatch = value.match(bigIntRegex);
+      if (bigintMatch) {
+        return BigInt(bigintMatch[1]);
+      }
+      const uint8ArrayMatch = value.match(uint8ArrayRegex);
+      if (uint8ArrayMatch) {
+        return hexToBin(uint8ArrayMatch[1]);
+      }
+    }
+    return value;
+  });
+}
+
+// contract lookup map, allows to figure out the contract name and function name
+const artifactMap = {"127183cef4d91bde0bb655f7a0092835319a23cf": {
+  contractName: "MintingCovenant",
+  constructorInputs: [
+    {
+      name: "mintCost",
+      type: "int"
+    },
+    {
+      name: "maxAmount",
+      type: "int"
+    },
+    {
+      name: "owner",
+      type: "bytes20"
+    },
+    {
+      name: "nonce",
+      type: "int"
+    }
+  ],
+  abi: [
+    {
+      name: "mint",
+      inputs: []
+    },
+    {
+      name: "withdraw",
+      inputs: [
+        {
+          name: "pk",
+          type: "pubkey"
+        },
+        {
+          name: "s",
+          type: "sig"
+        }
+      ]
+    }
+  ],
+  bytecode: "OP_4 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_0 OP_UTXOTOKENCATEGORY OP_SIZE OP_NIP 21 OP_NUMEQUALVERIFY OP_3 OP_PICK OP_4 OP_ROLL OP_NUMEQUALVERIFY OP_TXINPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE OP_0 OP_UTXOVALUE OP_2 OP_PICK OP_ADD OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCOMMITMENT OP_2 OP_SPLIT OP_NIP OP_BIN2NUM OP_DUP OP_1ADD OP_3 OP_ROLL OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_OUTPUTTOKENCOMMITMENT feed OP_2 OP_PICK OP_1ADD OP_2 OP_NUM2BIN OP_CAT OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY e803 OP_1 OP_OUTPUTVALUE OP_OVER OP_NUMEQUALVERIFY OP_1 OP_OUTPUTBYTECODE OP_1 OP_UTXOBYTECODE OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_0 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENCOMMITMENT OP_ROT OP_2 OP_NUM2BIN OP_EQUALVERIFY 2003 OP_1 OP_UTXOVALUE OP_3 OP_ROLL OP_SUB OP_SWAP OP_SUB OP_SWAP OP_SUB OP_DUP 2202 OP_LESSTHAN OP_IF OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_ELSE OP_1 OP_UTXOBYTECODE OP_2 OP_OUTPUTBYTECODE OP_OVER OP_EQUALVERIFY OP_2 OP_OUTPUTVALUE OP_2 OP_PICK OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY OP_2 OP_OUTPUTTOKENCATEGORY OP_BIN2NUM OP_0 OP_NUMEQUALVERIFY OP_DROP OP_ENDIF OP_2DROP OP_DROP OP_1 OP_ELSE OP_4 OP_ROLL OP_1 OP_NUMEQUALVERIFY OP_4 OP_PICK OP_HASH160 OP_3 OP_ROLL OP_EQUALVERIFY OP_4 OP_ROLL OP_4 OP_ROLL OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCATEGORY OP_SIZE OP_NIP OP_0 OP_NUMNOTEQUAL OP_IF OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE e803 OP_NUMEQUALVERIFY OP_ENDIF OP_2DROP OP_DROP OP_1 OP_ENDIF",
+  source: "\n  contract MintingCovenant(int mintCost, int maxAmount, bytes20 owner, int nonce) {\n    function mint() {\n      require(tx.inputs[0].tokenCategory.length == 33);\n      // remove nonce after debug?\n      require(nonce == nonce);\n\n      // require(mintCost == mintCost);\n      // require(owner == owner);\n      // require(maxAmount == maxAmount);\n\n      // allow only 2 inputs\n      require(tx.inputs.length == 2);\n\n      // require the covenant contract always lives at index zero with a minting NFT\n      require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\n      require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\n\n      // require minting cost is payed to covenant\n      require(tx.outputs[0].value == tx.inputs[0].value + mintCost);\n\n      // get minted amount and validate it does not exceed max amount\n      int currentAmount = int(tx.inputs[0].nftCommitment.split(2)[1]);\n      require(currentAmount + 1 <= maxAmount);\n\n      // require new currentAmount is updated by one on the covenant, ft amount 0\n      require(tx.outputs[0].nftCommitment == 0xfeed + bytes2(currentAmount + 1));\n      require(tx.outputs[0].tokenAmount == 0);\n\n      // Check that the first output sends to the recipient a token of the same category, ft 0, commitment is as current minted amount\n      int tokenValue = 1000;\n      require(tx.outputs[1].value == tokenValue);\n      require(tx.outputs[1].lockingBytecode == tx.inputs[1].lockingBytecode);\n      require(tx.outputs[1].tokenAmount == 0);\n      require(tx.outputs[1].tokenCategory.split(32)[0] == tx.inputs[0].tokenCategory.split(32)[0]);\n      require(tx.outputs[1].nftCommitment == bytes2(currentAmount));\n\n      // Calculate the value that's left\n      int minerFee = 800;\n      int sentValue = tx.inputs[1].value;\n      int changeValue = sentValue - mintCost - minerFee - tokenValue;\n\n      // handle change\n      if (changeValue < 546) {\n        // discard change\n        require(tx.outputs.length == 2);\n      } else {\n        bytes changeBytecode = tx.inputs[1].lockingBytecode;\n        require(tx.outputs[2].lockingBytecode == changeBytecode);\n        require(tx.outputs[2].value == changeValue);\n        require(tx.outputs.length == 3);\n\n        // Require that the change output does not mint any NFTs\n        require(int(tx.outputs[2].tokenCategory) == 0);\n      }\n    }\n\n    function withdraw(pubkey pk, sig s) {\n      require(hash160(pk) == owner);\n      require(checkSig(s, pk));\n\n      require(tx.inputs.length == 1);\n\n      // if (tx.inputs[0].tokenCategory != bytes(0)) {\n      if (tx.inputs[0].tokenCategory.length != 0) {\n        // require covenant will not be closed\n        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\n        // require token will not be burned\n        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\n        require(tx.outputs[0].value == 1000);\n      }\n\n      // polluting non-covenant (with no minting NFT) p2sh outputs can be safely spent\n    }\n  }\n  ",
+  compiler: {
+    name: "cashc",
+    version: "0.8.0-next.2"
+  },
+  updatedAt: "2023-04-09T18:30:58.714Z",
+  bytecodeHex: "04f1535f231456b6b22042b90dd67bf2fbfb9aff7d37fbee1124520390d0035479009c6300ce827701219d5379547a9dc3529d00cd00c78800d100ce8800cc00c65279939d00cf527f7781768b537aa16900d202feed52798b52807e8800d3009d02e80351cc789d51cd51c78851d3009d51d101207f7500ce01207f758851d27b52808802200351c6537a947c947c94760222029f63c4529d6751c752cd788852cc52799dc4539d52d181009d75686d755167547a519d5479a9537a88547a547aadc3519d00ce8277009e6300cd00c78800d100ce8800cc02e8039d686d755168"
+},
+"5479009c6300ce827701219d5379547a9dc3529d00cd00c78800d100ce8800cc00c65279939d00cf527f7781768b537aa16900d202feed52798b52807e8800d3009d02e80351cc789d51cd51c78851d3009d51d101207f7500ce01207f758851d27b52808802200351c6537a947c947c94760222029f63c4529d6751c752cd788852cc52799dc4539d52d181009d75686d755167547a519d5479a9537a88547a547aadc3519d00ce8277009e6300cd00c78800d100ce8800cc02e8039d686d755168": {
+  contractName: "MintingCovenant",
+  constructorInputs: [
+    {
+      name: "mintCost",
+      type: "int"
+    },
+    {
+      name: "maxAmount",
+      type: "int"
+    },
+    {
+      name: "owner",
+      type: "bytes20"
+    },
+    {
+      name: "nonce",
+      type: "int"
+    }
+  ],
+  abi: [
+    {
+      name: "mint",
+      inputs: []
+    },
+    {
+      name: "withdraw",
+      inputs: [
+        {
+          name: "pk",
+          type: "pubkey"
+        },
+        {
+          name: "s",
+          type: "sig"
+        }
+      ]
+    }
+  ],
+  bytecode: "OP_4 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_0 OP_UTXOTOKENCATEGORY OP_SIZE OP_NIP 21 OP_NUMEQUALVERIFY OP_3 OP_PICK OP_4 OP_ROLL OP_NUMEQUALVERIFY OP_TXINPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE OP_0 OP_UTXOVALUE OP_2 OP_PICK OP_ADD OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCOMMITMENT OP_2 OP_SPLIT OP_NIP OP_BIN2NUM OP_DUP OP_1ADD OP_3 OP_ROLL OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_OUTPUTTOKENCOMMITMENT feed OP_2 OP_PICK OP_1ADD OP_2 OP_NUM2BIN OP_CAT OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY e803 OP_1 OP_OUTPUTVALUE OP_OVER OP_NUMEQUALVERIFY OP_1 OP_OUTPUTBYTECODE OP_1 OP_UTXOBYTECODE OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_0 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENCOMMITMENT OP_ROT OP_2 OP_NUM2BIN OP_EQUALVERIFY 2003 OP_1 OP_UTXOVALUE OP_3 OP_ROLL OP_SUB OP_SWAP OP_SUB OP_SWAP OP_SUB OP_DUP 2202 OP_LESSTHAN OP_IF OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_ELSE OP_1 OP_UTXOBYTECODE OP_2 OP_OUTPUTBYTECODE OP_OVER OP_EQUALVERIFY OP_2 OP_OUTPUTVALUE OP_2 OP_PICK OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY OP_2 OP_OUTPUTTOKENCATEGORY OP_BIN2NUM OP_0 OP_NUMEQUALVERIFY OP_DROP OP_ENDIF OP_2DROP OP_DROP OP_1 OP_ELSE OP_4 OP_ROLL OP_1 OP_NUMEQUALVERIFY OP_4 OP_PICK OP_HASH160 OP_3 OP_ROLL OP_EQUALVERIFY OP_4 OP_ROLL OP_4 OP_ROLL OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCATEGORY OP_SIZE OP_NIP OP_0 OP_NUMNOTEQUAL OP_IF OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE e803 OP_NUMEQUALVERIFY OP_ENDIF OP_2DROP OP_DROP OP_1 OP_ENDIF",
+  source: "\n  contract MintingCovenant(int mintCost, int maxAmount, bytes20 owner, int nonce) {\n    function mint() {\n      require(tx.inputs[0].tokenCategory.length == 33);\n      // remove nonce after debug?\n      require(nonce == nonce);\n\n      // require(mintCost == mintCost);\n      // require(owner == owner);\n      // require(maxAmount == maxAmount);\n\n      // allow only 2 inputs\n      require(tx.inputs.length == 2);\n\n      // require the covenant contract always lives at index zero with a minting NFT\n      require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\n      require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\n\n      // require minting cost is payed to covenant\n      require(tx.outputs[0].value == tx.inputs[0].value + mintCost);\n\n      // get minted amount and validate it does not exceed max amount\n      int currentAmount = int(tx.inputs[0].nftCommitment.split(2)[1]);\n      require(currentAmount + 1 <= maxAmount);\n\n      // require new currentAmount is updated by one on the covenant, ft amount 0\n      require(tx.outputs[0].nftCommitment == 0xfeed + bytes2(currentAmount + 1));\n      require(tx.outputs[0].tokenAmount == 0);\n\n      // Check that the first output sends to the recipient a token of the same category, ft 0, commitment is as current minted amount\n      int tokenValue = 1000;\n      require(tx.outputs[1].value == tokenValue);\n      require(tx.outputs[1].lockingBytecode == tx.inputs[1].lockingBytecode);\n      require(tx.outputs[1].tokenAmount == 0);\n      require(tx.outputs[1].tokenCategory.split(32)[0] == tx.inputs[0].tokenCategory.split(32)[0]);\n      require(tx.outputs[1].nftCommitment == bytes2(currentAmount));\n\n      // Calculate the value that's left\n      int minerFee = 800;\n      int sentValue = tx.inputs[1].value;\n      int changeValue = sentValue - mintCost - minerFee - tokenValue;\n\n      // handle change\n      if (changeValue < 546) {\n        // discard change\n        require(tx.outputs.length == 2);\n      } else {\n        bytes changeBytecode = tx.inputs[1].lockingBytecode;\n        require(tx.outputs[2].lockingBytecode == changeBytecode);\n        require(tx.outputs[2].value == changeValue);\n        require(tx.outputs.length == 3);\n\n        // Require that the change output does not mint any NFTs\n        require(int(tx.outputs[2].tokenCategory) == 0);\n      }\n    }\n\n    function withdraw(pubkey pk, sig s) {\n      require(hash160(pk) == owner);\n      require(checkSig(s, pk));\n\n      require(tx.inputs.length == 1);\n\n      // if (tx.inputs[0].tokenCategory != bytes(0)) {\n      if (tx.inputs[0].tokenCategory.length != 0) {\n        // require covenant will not be closed\n        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\n        // require token will not be burned\n        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\n        require(tx.outputs[0].value == 1000);\n      }\n\n      // polluting non-covenant (with no minting NFT) p2sh outputs can be safely spent\n    }\n  }\n  ",
+  compiler: {
+    name: "cashc",
+    version: "0.8.0-next.2"
+  },
+  updatedAt: "2023-04-09T18:30:58.714Z",
+  bytecodeHex: "04f1535f231456b6b22042b90dd67bf2fbfb9aff7d37fbee1124520390d0035479009c6300ce827701219d5379547a9dc3529d00cd00c78800d100ce8800cc00c65279939d00cf527f7781768b537aa16900d202feed52798b52807e8800d3009d02e80351cc789d51cd51c78851d3009d51d101207f7500ce01207f758851d27b52808802200351c6537a947c947c94760222029f63c4529d6751c752cd788852cc52799dc4539d52d181009d75686d755167547a519d5479a9537a88547a547aadc3519d00ce8277009e6300cd00c78800d100ce8800cc02e8039d686d755168"
+},
+}
+
 </script>
 
 <style lang="scss">
