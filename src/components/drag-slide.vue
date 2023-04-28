@@ -15,29 +15,46 @@
           <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
         </q-item-section>
         <q-item-section class="text-right">
-          <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
+          <h5 class="q-my-sm text-grey-4 text-uppercase">{{ sliderText }}</h5>
         </q-item-section>
       </q-item>
     </q-slide-item>
   </q-list>
 </template>
 <script>
+import { addressContentsToLockingBytecode } from '@bitauth/libauth'
+import { runInThisContext } from 'vm'
+
 export default {
   name: 'drag-slide',
   data () {
     return {
-      swiped: false
+      swiped: false,
+      sliderText: this.$t('SwipeToSend')
+    }
+  },
+  props: {
+    text: {
+      type: String,
+      default: ''
     }
   },
   methods: {
     slide ({ reset }) {
       setTimeout(() => {
-        try{
+        try {
           reset()
         } catch {}
       }, 2000)
       this.swiped = true
       this.$emit('swiped')
+    }
+  },
+  async mounted () {
+    const vm = this
+
+    if (vm.text) {
+      vm.sliderText = vm.text
     }
   }
 }

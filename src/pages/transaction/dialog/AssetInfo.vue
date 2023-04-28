@@ -8,9 +8,10 @@
       <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
         <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
       </div>
+
       <q-card-section v-if="asset">
         <div style="text-align: center; font-size: 20px;">
-          <p :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text'">
+          <p :class="darkMode ? 'pt-dark-label' : 'pp-text'">
             {{ asset.symbol }}
           </p>
         </div>
@@ -27,7 +28,7 @@
             <q-icon name="exit_to_app" :color="$store.getters['darkmode/getStatus'] ? 'blue-5' : 'blue-9'" size="sm" />
           </a>
         </div>
-        <div style="margin-top: 20px; text-align: center;">
+        <div style="margin-top: 20px; margin-bottom: 10px; text-align: center;">
           <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded :label="$t('Send')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
@@ -51,6 +52,7 @@
 </template>
 
 <script>
+import darkmode from 'src/store/darkmode'
 export default {
   name: 'AssetInfo',
   emits: [
@@ -65,7 +67,9 @@ export default {
   },
   data () {
     return {
-      asset: null
+      asset: null,
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
 
@@ -126,8 +130,12 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss" scoped>
 .pp-text {
   color: #000 !important;
+}
+.price-chart {
+  height: 200px;
+  width: 300px;
 }
 </style>

@@ -16,8 +16,9 @@
             <q-form v-if="!processing && !completed" class="text-center" style="margin-top: 25px;">
               <textarea
                 v-model="scannedShare"
-                style="width: 100%; font-size: 18px; color: black; background: white;" rows="2"
+                rows="2"
                 placeholder="Paste gift code here"
+                class="full-width text-black bg-white rounded-borders text-subtitle1 q-px-sm"
                 :disabled="error"
               >
               </textarea>
@@ -28,7 +29,7 @@
                 </div>
                 <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
-              <div style="margin-top: 20px; ">
+              <div style="margin-top: 20px;">
                 <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift(null)">
                   <span class="text-capitalize">{{ action }}</span>
                 </q-btn>
@@ -66,6 +67,7 @@ export default {
       default: 'Claim'
     },
     giftCodeHash: String,
+    claimShare: String,
     localShare: String
   },
   components: {
@@ -92,18 +94,23 @@ export default {
       const vm = this
       vm.processing = true
       const sss = require('shamirs-secret-sharing')
+      let giftCode
       if (!giftCodeHash) {
-        giftCodeHash = sha256(this.scannedShare)
+        if (this.scannedShare.split('?code=').length === 2) {
+          giftCode = this.scannedShare.split('?code=')[1]
+        } else {
+          giftCode = this.scannedShare
+        }
+        giftCodeHash = sha256(giftCode)
       }
 
       if (vm.action === 'Recover') {
-        vm.scannedShare = vm.localShare
+        giftCode = vm.localShare
       }
-      console.log('Gift code hash:', giftCodeHash)
       const url = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
       const walletHash = this.wallet.BCH.getWalletHash()
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
-        const privateKey = sss.combine([vm.scannedShare, resp.data.share])
+        const privateKey = sss.combine([giftCode, resp.data.share])
         vm.sweeper = new SweepPrivateKey(privateKey.toString())
         vm.sweeper.getBchBalance().then(function (data) {
           vm.bchAmount = data.spendable || 0
@@ -117,6 +124,15 @@ export default {
             if (vm.action === 'Recover') {
               vm.$store.dispatch('gifts/deleteGift', giftCodeHash)
             }
+
+            vm.wallet.BCH.getBalance().then(function (response) {
+              vm.$store.commit('assets/updateAssetBalance', {
+                id: 'bch',
+                balance: response.balance,
+                spendable: response.spendable
+              })
+            })
+
             vm.completed = true
           } else {
             vm.error = 'This gift has been claimed! Try another one.'
@@ -130,7 +146,11 @@ export default {
     },
     onScannerDecode (content) {
       this.showQrScanner = false
-      this.scannedShare = content
+      if (content.split('?code=').length === 2) {
+        this.scannedShare = content.split('?code=')[1]
+      } else {
+        this.scannedShare = content
+      }
       this.claimGift(null)
     }
   },
@@ -147,6 +167,9 @@ export default {
       vm.wallet = markRaw(new Wallet(mnemonic))
       if (vm.action === 'Recover') {
         vm.claimGift(vm.giftCodeHash)
+      } else if (vm.claimShare) {
+        vm.scannedShare = vm.claimShare
+        vm.claimGift(null)
       }
     })
   }

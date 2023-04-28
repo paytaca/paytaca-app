@@ -38,13 +38,17 @@ const bchjs = new BCHJS()
  * @returns {ContractData}
  */
 export async function getContractStatus(contractAddress, signature, publicKey, managerConfig) {
-    const { data } = await axios.get(
-        `${managerConfig.serviceScheme}://${managerConfig.serviceDomain}:${managerConfig.servicePort}/status`,
-        {
-            params: { contractAddress, signature, publicKey },
-            headers: { Authorization: managerConfig.authenticationToken },
-        }
-    )
+    const url = new URL(`${managerConfig.serviceScheme}://${managerConfig.serviceDomain}:${managerConfig.servicePort}/api/v1/contractStatus`)
+    const opts = {
+        params: { contractAddress, signature, publicKey },
+        headers: { Authorization: managerConfig.authenticationToken },
+    }
+    const { data } = await axios.get(String(url), opts)
+        .catch(error => {
+            if (error?.response?.status != 404) return Promise.reject(error)
+            url.pathname = '/status'
+            return axios.get(String(url), opts)
+        })
     return data
 }
 
@@ -67,8 +71,8 @@ export async function getPrivateKey(contractData, position, wallet) {
     // accessed properties are from when 
     const addressPath = position === 'hedge' ? contractData.hedgeAddressPath : contractData.longAddressPath
     const pubkey = position === 'hedge'
-        ? contractData.metadata.hedgePublicKey
-        : contractData.metadata.longPublicKey
+        ? contractData.parameters.hedgeMutualRedeemPublicKey
+        : contractData.parameters.longMutualRedeemPublicKey
     
     if (addressPath) {
         const privkey = await wallet.BCH.getPrivateKey(addressPath)
@@ -76,4 +80,22 @@ export async function getPrivateKey(contractData, position, wallet) {
     }
     const defaultPathPrivkey = await wallet.BCH.getPrivateKey(`0/0`)
     if (checkPrivAndPubkey(defaultPathPrivkey, pubkey)) return defaultPathPrivkey
+}
+
+/**
+ * 
+ * @param {Object} opts 
+ * @param {'hedge' | 'long'} opts.position
+ * @param {Number} opts.satoshis 
+ * @param {Number} opts.lowLiquidationPriceMultiplier
+ */
+export function estimateCounterPartySats(opts) {
+    let sats = 0
+    const multiplier = ((1 - opts.lowLiquidationPriceMultiplier) / opts.lowLiquidationPriceMultiplier)
+    if (opts?.position === 'hedge') {
+        sats = opts.satoshis * multiplier
+    } else if (opts?.position === 'long') {
+        sats = opts.satoshis / multiplier
+    }
+    return Math.round(sats)
 }

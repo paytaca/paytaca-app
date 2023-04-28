@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense
@@ -9,13 +9,13 @@
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
-      <q-tab name="BCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name"/>
+      <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
+      <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
     </q-tabs>
     <template v-if="assets">
       <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToBeReceived') }}</p>
+          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode}">{{ $t('SelectAssetToBeReceived') }}</p>
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -26,14 +26,14 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-card' : 'bg-white'">
+          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
-                <p class="q-ma-none text-token text-weight-regular" :class="$store.getters['darkmode/getStatus'] ? 'text-pink-5' : 'text-dark'" style="font-size: 18px;">
+                <p class="q-ma-none text-token text-weight-regular" :class="darkMode ? 'text-pink-5' : 'text-dark'" style="font-size: 18px;">
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none" :class="$store.getters['darkmode/getStatus'] ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
+                <p class="q-ma-none" :class="darkMode ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
                   <span v-if="asset.balance">{{ String(asset.balance).substring(0, 16) }}</span>
                   {{ asset.symbol }}
                 </p>
@@ -72,7 +72,8 @@ export default {
       },
       activeBtn: 'btn-bch',
       result: '',
-      error: ''
+      error: '',
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
@@ -88,11 +89,19 @@ export default {
       let _assets
       if (this.selectedNetwork === 'sBCH') {
         _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
+        _assets = _assets.map((item) => {
+          if (item.id === 'bch') {
+            item.name = 'Smart Bitcoin Cash'
+            item.symbol = 'sBCH'
+            item.logo = 'sep20-logo.png'
+          }
+          return item
+        })
         const unlistedAsset = {
           id: 'sep20/unlisted',
           name: this.$t('NewUnlisted'),
           symbol: 'SEP20 token',
-          logo: 'sep20-logo.png'
+          logo: 'new-token.png'
         }
         _assets.push(unlistedAsset)
         return _assets
@@ -107,7 +116,7 @@ export default {
         id: 'slp/unlisted',
         name: this.$t('NewUnlisted'),
         symbol: 'SLP token',
-        logo: 'slp-logo.png'
+        logo: 'new-token.png'
       }
       _assets.push(unlistedAsset)
       return _assets

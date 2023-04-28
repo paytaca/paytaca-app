@@ -1,7 +1,51 @@
 import axios from 'axios'
-import { ethers, utils } from 'ethers'
+import { ethers, utils, BigNumber } from 'ethers'
 
 import { sep20Abi, erc721Abi } from './abi'
+
+/**
+ * Parses transaction to fit index page's expected structure for a transaction
+ * @param {Object} tx
+ * @param {Number} tx.id
+ * @param {String} tx.txid
+ * @param {String} tx.block_number
+ * @param {String} tx.timestamp
+ * @param {String} tx.from_addr
+ * @param {String} tx.to_addr
+ * @param {Number} tx.tx_fee
+ * @param {String | null} tx.amount
+ * @param {Number | null} tx.token_id
+ * @param {Number | null} tx.log_index
+ * @param {Object} [tx.token_contract]
+ * @param {Number} tx.token_contract.id
+ * @param {String} tx.token_contract.address
+ * @param {String} tx.token_contract.name
+ * @param {String} tx.token_contract.symbol
+ * @param {Number} tx.token_contract.decimals
+ * @param {String} tx.token_contract.image_url
+ * @param {Object} opts
+ * @param {String} opts.address - for determining if incoming/outgoing
+ */
+export function parseTransactionTransfer(tx, opts={ address: '' }) {
+  const address = opts?.address
+  const received = String(tx.to_addr).toLowerCase() === String(address).toLowerCase()
+  const data = Object.assign({}, tx, {
+    record_type: received ? 'incoming' : 'outgoing',
+    hash: tx?.txid,
+    block: BigNumber.from(tx?.block_number).toNumber(),
+
+    gas: tx?.tx_fee,
+    amount: received ? tx?.amount : (tx?.amount * -1),
+
+    from: tx?.from_addr,
+    to: tx?.to_addr,
+    senders: [tx?.from_addr],
+    recipients: [tx?.to_addr],
+
+    date_created: new Date(tx?.timestamp) * 1,
+  })
+  return data
+}
 
 export function getProvider (test = false) {
   const rpcUrls = {
@@ -18,23 +62,29 @@ export function toChecksumAddress (address = '') {
   return utils.getAddress(address)
 }
 
-export function getERC721Contract (contractAddress, test = false) {
+export function getERC721Contract (contractAddress, opts={ test: false, provider: null }) {
   if (!utils.isAddress(contractAddress)) return
+
+  let provider = opts?.provider
+  if (!provider) provider = getProvider(opts?.test)
 
   return new ethers.Contract(
     contractAddress,
     erc721Abi,
-    getProvider(test)
+    provider,
   )
 }
 
-export function getSep20Contract (contractAddress, test = false) {
+export function getSep20Contract (contractAddress, opts={ test: false, provider: null }) {
   if (!utils.isAddress(contractAddress)) return
+
+  let provider = opts?.provider
+  if (!provider) provider = getProvider(opts?.test)
 
   return new ethers.Contract(
     contractAddress,
     sep20Abi,
-    getProvider(test)
+    provider,
   )
 }
 
@@ -45,7 +95,7 @@ export async function getERC721ContractDetails (contractAddress, test = false) {
       error: 'Invalid token address'
     }
   }
-  const tokenContract = getERC721Contract(contractAddress, test)
+  const tokenContract = getERC721Contract(contractAddress, { test })
 
   const tokenName = await tokenContract.name()
   const tokenSymbol = await tokenContract.symbol()
@@ -87,7 +137,7 @@ export async function getSep20ContractDetails (contractAddress, test) {
   } catch {}
 
   if (!token.name && !token.symbol) {
-    const tokenContract = getSep20Contract(parsedAddress, test)
+    const tokenContract = getSep20Contract(parsedAddress, { test })
     // tokenContract // necessary for not getting reference error
     const data = await Promise.all([
       tokenContract.name(),

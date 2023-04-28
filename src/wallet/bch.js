@@ -1,6 +1,7 @@
 import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
+import * as openpgp from 'openpgp/lightweight'
 
 const bchjs = new BCHJS()
 
@@ -60,24 +61,56 @@ export class BchWallet {
     const childNode = masterHDNode.derivePath(this.derivationPath)
     const receivingAddressNode = childNode.derivePath('0/' + index)
     const changeAddressNode = childNode.derivePath('1/' + index)
+    const receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
+    const changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+
+    // Generate a new PGP key
+    const userID = receivingAddress.split(':')[1]
+    const email = userID + '@bchmail.site'
+    const { privateKey, publicKey, revocationCertificate } = await openpgp.generateKey({
+      curve: 'p521',
+      userIDs: [{ name: userID, email: email }]
+    })
+
+    const public_key_hash = sha256(publicKey)
+    const signature = await this.signMessage(public_key_hash, index)
+    const pgpInfo = {
+      bch_address: receivingAddress,
+      user_id: userID,
+      email: email,
+      public_key: Buffer.from(publicKey).toString('base64'),
+      public_key_hash: public_key_hash,
+      signature: Buffer.from(signature).toString('base64')
+    }
+    const pgpIdentity = {
+      address: receivingAddress,
+      userId: userID,
+      email: email,
+      publicKey: publicKey,
+      privateKey: privateKey
+    }
     return {
-      receiving: bchjs.HDNode.toCashAddress(receivingAddressNode),
-      change: bchjs.HDNode.toCashAddress(changeAddressNode)
+      receiving: receivingAddress,
+      change: changeAddress,
+      pgpInfo: pgpInfo,
+      pgpIdentity: pgpIdentity
     }
   }
 
   async getNewAddressSet (index) {
     const addresses = await this.getAddressSetAt(index)
+    const addressSet = { receiving: addresses.receiving, change: addresses.change }
     const data = {
-      addresses,
+      addresses: addressSet,
       projectId: this.projectId,
       walletHash: this.walletHash,
-      addressIndex: index
+      addressIndex: index,
+      chatIdentity: addresses.pgpInfo
     }
     const result = await this.watchtower.subscribe(data)
 
     if (result.success) {
-      return addresses
+      return { addresses: addressSet, pgpIdentity: addresses.pgpIdentity }
     } else {
       return null
     }
@@ -262,6 +295,22 @@ export class BchWallet {
 
     const result = await this.watchtower.BCH.send(data)
     return result
+  }
+
+  async signMessage (message, lastAddressIndex) {
+    const privateKey = await this.getPrivateKey('0/' + String(lastAddressIndex))
+    return bchjs.BitcoinCash.signMessageWithPrivKey(
+      privateKey,
+      message
+    )
+  }
+
+  async verifyMessage (address, signature, message) {
+    return bchjs.BitcoinCash.verifyMessage(
+      address,
+      signature,
+      message
+    )
   }
 }
 

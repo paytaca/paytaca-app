@@ -11,73 +11,110 @@
         style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
         class="q-px-sm"
       />
-      <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '65px' : '0px'}">
-        <div class="text-center" v-if="processing" style="margin-top: 80px;">
+      <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '145px' : '80px'}">
+        <div class="text-center" v-if="processing">
           <p :class="{'text-white': darkMode}" >Creating gift...</p>
           <progress-loader />
         </div>
-        <div class="q-pt-lg" :class="{'text-white': darkMode}" v-if="!processing && !completed">
-          <h5>Create Gift</h5>
+        <div :class="{'text-white': darkMode}" v-if="!processing && !completed">
+          <div class="text-h5 q-mb-md">Create Gift</div>
+          <div class="q-mb-lg">
+            Balance: {{ spendableBch }} BCH
+          </div>
           <label>
-            Enter Amount Per Gift:
+            Enter Amount:
           </label>
           <q-input
+            ref="amountInput"
             required
             placeholder="Amount"
             filled
             clearable
+            class="q-mt-sm"
             :rules="[val => !!val || 'Field is required']"
             type="number"
             v-model="amountBCH"
             @input="this.amountBCH"
             :dark="darkMode"
+            hide-bottom-space
+            :error="amountBCH > spendableBch"
+            :error-message="amountBCH > spendableBch ? 'Amount is greater than your balance' : null"
           >
             <template v-slot:append>BCH</template>
           </q-input>
-          <p style="margin-top: -12px;">
-            ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          <p class="q-mt-sm">
+            <template v-if="sendAmountMarketValue">
+              ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+            </template>
           </p>
 
           <template v-if="createNewCampaign">
+            <div v-if="campaignOptions.length > 1" class="row items-center justify-end">
+              <q-btn
+                flat
+                no-caps
+                padding="1px xs"
+                @click="() => {
+                  createNewCampaign = false
+                  selectedCampaign = null
+                }"
+              >
+                <q-icon size="1.25em" name="arrow_back" class="q-mr-xs"/>
+                Select existing campaign
+              </q-btn>
+            </div>
             <label>
-              Campaign Name
+              Campaign Name <sup>*</sup>
             </label>
             <q-input
+              ref="campaignNameInput"
               placeholder="Campaign Name"
               filled
               type="string"
+              :rules="[val => !!val || 'Field is required']"
               v-model="campaignName"
               clearable
               :dark="darkMode"
             >
-            </q-input>
+            </q-input>Name: {{ campaignName }}
 
             <div class="q-pa-sm q-pb-xs">
             </div>
 
             <label>
-              Max Amount Per Wallet
+              Max Amount Per Wallet <sup>*</sup>
             </label>
             <q-input
+              ref="maxAmountInput"
               placeholder="Amount"
               filled
               type="text"
               clearable
               v-model="maxPerCampaign"
               :dark="darkMode"
-            ></q-input>
+              :error="maxPerCampaign > 0 && maxPerCampaign < amountBCH"
+              :error-message="maxPerCampaign > 0 && maxPerCampaign < amountBCH ? 'This cannot be lower than the gift amount' : null"
+            >
+              <template v-slot:append>BCH</template>
+            </q-input>
           </template>
           <template v-else>
             <label>
-              Campaign (optional):
+              Campaign (optional): <q-icon name="info" @click=" showCampaignInfo = !showCampaignInfo " />
             </label>
+            <p v-if="showCampaignInfo" class="q-mt-md">You can group together gifts under a campaign where you can set the maximum sum of gifts that a wallet user can claim within the same campaign.</p>
             <q-select
               filled
+              ref="campaignInput"
+              clearable
+              class="q-mt-sm"
               v-model="selectedCampaign"
               :dark="darkMode"
               :options="campaignOptions"
               label="Select Campaign"
               popup-content-style="color: black;"
+              :error="campaignSelectionError !== null"
+              :error-message="campaignSelectionError"
             />
           </template>
 
@@ -89,21 +126,29 @@
               type="submit"
               label="Generate"
               class="flex flex-center"
+              :disable="(createNewCampaign && !campaignName) || disableGenerateButton()"
               @click="processRequest()"
             >
             </q-btn>
           </div>
         </div>
-        <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}" style="margin-top: 80px;">
+        <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}">
           <p style="font-size: 22px;">Amount:<br>{{ amountBCH }} BCH</p>
-          <div class="flex flex-center" >
+          <div v-if="amountBCH" style="margin-top: -10px;">
+            ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          </div>
+          <div class="flex flex-center" style="margin-top: 30px;">
             <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
-              <qr-code :text="qrCodeContents" />
+              <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" />
             </div>
-            <div class="flex flex-center myStyle">
-            </div>
+            <!-- <div class="flex flex-center myStyle">
+            </div> -->
           </div>
           <p style="font-size: 18px;">Scan to claim the gift</p>
+          <div class="">
+            <div class="text-subtitle1 text-left">Share gift link:</div>
+            <ShareGiftPanel :qr-share="qrCodeContents" :amount="amountBCH"/>
+          </div>
         </div>
       </div>
     </div>
@@ -112,8 +157,9 @@
 
 <script>
 import HeaderNav from '../../../components/header-nav'
-import { getMnemonic, Wallet } from '../../../wallet'
 import ProgressLoader from '../../../components/ProgressLoader'
+import ShareGiftPanel from '../../../components/gifts/ShareGiftPanel.vue'
+import { getMnemonic, Wallet } from '../../../wallet'
 import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
@@ -121,7 +167,11 @@ import sha256 from 'js-sha256'
 
 export default {
   name: 'Gifts',
-  components: { HeaderNav, ProgressLoader },
+  components: {
+    HeaderNav,
+    ProgressLoader,
+    ShareGiftPanel,
+  },
   props: {
     uri: {
       type: String,
@@ -134,18 +184,34 @@ export default {
       campaignOptions: [],
       createNewCampaign: false,
       selectedCampaign: null,
+      campaignSelectionError: null,
       campaignName: null,
       maxPerCampaign: null,
       qrCodeContents: null,
       processing: false,
       completed: false,
+      wallet: null,
+      showCampaignInfo: false,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   watch: {
     selectedCampaign (val) {
-      if (val.value === 'create-new') {
+      if (val?.value === 'create-new') {
         this.createNewCampaign = true
+        this.maxPerCampaign = this.amountBCH
+      } else {
+        if (this.amountBCH > val?.limit) {
+          this.campaignSelectionError = 'Campaign limit per wallet cannot be greater than the gift amount'
+        } else {
+          this.campaignSelectionError = null
+        }
+      }
+    },
+    amountBCH (oldVal, newVal) {
+      if (oldVal !== newVal) {
+        this.selectedCampaign = null
+        this.createNewCampaign = false
       }
     }
   },
@@ -166,9 +232,33 @@ export default {
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
+    },
+    spendableBch () {
+      const asset = this.$store.getters['assets/getAsset']('bch')
+      const balance = asset[0].spendable
+      if (!Number.isFinite(balance)) return null
+      return balance
     }
   },
   methods: {
+    disableGenerateButton () {
+      if (this.amountBCH > 0) {
+        if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {
+          if (this.$refs.campaignInput) {
+            if (this.$refs.campaignInput.hasError) {
+              return true
+            } else {
+              return false
+            }
+          }
+          if (this.$refs.maxAmountInput && !this.$refs.maxAmountInput.hasError) {
+            return false
+          }
+        }
+        return true
+      }
+      return true
+    },
     generateGift () {
       const vm = this
       vm.processing = true
@@ -215,6 +305,14 @@ export default {
               vm.$store.dispatch('gifts/saveGift', { giftCodeHash: vm.giftCodeHash, share: shares[2] })
               vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: shares[0] })
               vm.completed = true
+
+              vm.wallet.BCH.getBalance().then(function (response) {
+                vm.$store.commit('assets/updateAssetBalance', {
+                  id: 'bch',
+                  balance: response.balance,
+                  spendable: response.spendable
+                })
+              })
             }
           })
         }
@@ -234,29 +332,33 @@ export default {
     },
     processRequest () {
       this.generateGift()
+    },
+    async fetchCampaigns() {
+      const mnemonic = await getMnemonic()
+      this.wallet = new Wallet(mnemonic)
+      let walletHash = this.$store.getters['global/getWallet']?.('bch')?.walletHash
+      if (!walletHash) {
+        walletHash = this.wallet.BCH.getWalletHash()
+      }
+
+      const url = `https://gifts.paytaca.com/api/campaigns/${walletHash}/list/`
+      axios.get(url).then((resp) => {
+        this.campaignOptions = resp.data.campaigns.map(function (item, index) {
+          return {
+            label: `${item.name} -- ${item.limit_per_wallet} BCH per wallet`,
+            limit: item.limit_per_wallet,
+            value: item.id
+          }
+        })
+        this.campaignOptions.push({
+          label: '--- Create New Campaign ---',
+          value: 'create-new'
+        })
+      })
     }
   },
-  // wallet call function when mounted
   mounted () {
-    const vm = this
-    getMnemonic().then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic)
-      wallet.sBCH.getOrInitWallet()
-        .then(() => {
-          vm.wallet = wallet
-          const walletHash = vm.wallet.BCH.getWalletHash()
-          const url = `https://gifts.paytaca.com/api/campaigns/${walletHash}/list/`
-          axios.get(url).then((resp) => {
-            vm.campaignOptions = resp.data.campaigns.map(function (item, index) {
-              return { label: item.name, value: item.id }
-            })
-            vm.campaignOptions.push({
-              label: '--- Create New Campaign ---',
-              value: 'create-new'
-            })
-          })
-        })
-    })
+    this.fetchCampaigns()
   }
 }
 </script>

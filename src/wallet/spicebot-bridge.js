@@ -4,7 +4,7 @@ import { getProvider } from './sbch/utils'
 import { bigNumberToCurrency } from './smartswap'
 
 // const SPICEBOT_API_BASE_URL = 'http:localhost:8080/api'
-const SPICEBOT_API_BASE_URL = 'https:spicebot.scibizinformatics.com/api'
+const SPICEBOT_API_BASE_URL = 'https://spicebot.scibizinformatics.com/api'
 
 /**
  *

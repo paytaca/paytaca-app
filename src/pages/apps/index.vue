@@ -44,6 +44,13 @@ export default {
           active: true
         },
         {
+          name: 'Ramp',
+          iconName: 'img:ramp_icon_white.png',
+          path: '/apps/ramp',
+          iconStyle: 'width:50%',
+          active: true
+        },
+        {
           name: this.$t('WalletConnect'),
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
@@ -67,6 +74,12 @@ export default {
           path: '/apps/gifts/',
           active: true
         },
+        // {
+        //   name: 'Chat',
+        //   iconName: 'mdi-chat',
+        //   path: '/apps/chat/',
+        //   active: true
+        // },
         {
           name: 'POS Admin',
           iconName: 'point_of_sale',
@@ -101,6 +114,18 @@ export default {
         this.$router.push(app.path)
       }
     }
+  },
+  created() {
+    try {
+      if (this.$router.resolve({name: 'apps-sandbox'})) {
+        this.apps.unshift({
+          name: 'Sandbox',
+          iconName: '',
+          path: '/apps/sandbox',
+          active: true
+        })
+      }
+    } catch { }
   },
   mounted () {
     const htmlTag1 = document.querySelector('.pt-app')

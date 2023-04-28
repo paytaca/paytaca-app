@@ -33,6 +33,8 @@ const routes = [
           if (!isNaN(props.amount)) props.amount = Number(props.amount)
           if (props.fixed === 'true') props.fixed = true
           else if (props.fixed === 'false') props.fixed = false
+          if (props.simpleNft === 'true') props.simpleNft = true
+          else if (props.simpleNft === 'false') props.simpleNft = false
           return props
         },
         component: () => import('pages/transaction/send.vue')
@@ -77,13 +79,17 @@ const routes = [
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep' },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
+      { path: 'chat', component: () => import('src/pages/apps/chat/index.vue'), name: 'app-chats-list' },
+      { path: 'chat/conversation', component: () => import('src/pages/apps/chat/chat.vue'), name: 'app-chat-conversation', props: route => route.query },
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
       { path: 'settings/ignored-tokens', component: () => import('src/pages/apps/ignored-tokens-list.vue'), name: 'ignored-tokens-list' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
-      { path: 'gifts/show-qr', props: route => route.query, component: () => import('src/pages/apps/gifts/show-qr.vue'), name: 'show-qr' }
+      // { path: 'deposit-coin', component: () => import('src/pages/apps/deposit/index.vue'), name: 'app-deposit-coin'},
+      // { path: 'deposit-coin/deposit-info', props: route => route.query, component: () => import('src/pages/apps/deposit/deposit-info.vue'), name: 'deposit-info' },
+      { path: 'ramp', component: () => import('src/pages/apps/ramp/index.vue'), name: 'ramp' }
     ]
   },
   // Always leave this as last one,

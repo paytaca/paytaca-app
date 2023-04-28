@@ -62,7 +62,7 @@ export async function getExpectedReturnWithGas (sourceTokenAddress, destTokenAdd
  * @param {String} walletAddress
  */
 export async function hasApprovedSmartswap (sourceTokenAddress, walletAddress) {
-  const tokenContract = getSep20Contract(sourceTokenAddress, false)
+  const tokenContract = getSep20Contract(sourceTokenAddress)
   if (!tokenContract) return false
 
   const eventFilter = tokenContract.filters.Approval(walletAddress, contract.address)
@@ -86,7 +86,7 @@ export async function hasApprovedSmartswap (sourceTokenAddress, walletAddress) {
  * @returns {{ success:Boolean, error:String|undefined, transaction: ethers.providers.TransactionReceipt }}
 */
 export async function approveTokenOnSmartswap (sourceTokenAddress, signer) {
-  const tokenContract = getSep20Contract(sourceTokenAddress, false)
+  const tokenContract = getSep20Contract(sourceTokenAddress)
   if (!tokenContract) {
     return {
       success: false,

@@ -46,6 +46,7 @@ export class Wallet {
 
   loadSBCH() {
     this._sBCH = new SmartBchWallet(projectId, this.mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
+    this._sBCH.initWallet()
   }
 }
 
@@ -66,15 +67,17 @@ export async function storeMnemonic (mnemonic) {
 }
 
 export async function getMnemonic () {
-  let mnemonic
+  let mnemonic = null
   try {
     // For versions up to v0.9.1 that used to have aes256-encrypted mnemonic
     const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
     const encryptedMnemonic = await SecureStoragePlugin.get({ key: 'mn' })
     mnemonic = aes256.decrypt(secretKey.value, encryptedMnemonic.value)
   } catch (err) {
-    mnemonic = await SecureStoragePlugin.get({ key: 'mn' })
-    mnemonic = mnemonic.value
+    try {
+      mnemonic = await SecureStoragePlugin.get({ key: 'mn' })
+      mnemonic = mnemonic.value
+    } catch (err) {}
   }
   return mnemonic
 }

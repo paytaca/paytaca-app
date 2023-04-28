@@ -29,15 +29,15 @@
           </div>
           <div class="row q-mt-sm">
             <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-              <img src="../../assets/bch-logo.png" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+              <img :src="selectedNetwork === 'sBCH' ? '/sep20-logo.png' : '/bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
               <q-card id="bch-card">
                 <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
-                  <div class="text-h6">Bitcoin Cash</div>
+                  <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
                   <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
                     <q-skeleton style="font-size: 22px;" type="rect"/>
                   </div>
                   <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                    <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} BCH</p>
+                    <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} {{ selectedNetwork }}</p>
                     <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
                   </div>
                 </q-card-section>
@@ -77,6 +77,10 @@
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
               :network="selectedNetwork"
+              :wallet="wallet"
+              @select-asset="asset => setSelectedAsset(asset)"
+              @show-asset-info="asset => showAssetInfo(asset)"
+              @hide-asset-info="hideAssetInfo()"
             >
             </asset-cards>
           </template>
@@ -89,70 +93,59 @@
               :balance-loaded="balanceLoaded"
               v-dragscroll.x="true"
               :network="selectedNetwork"
+              :wallet="wallet"
+              @select-asset="asset => setSelectedAsset(asset)"
+              @show-asset-info="asset => showAssetInfo(asset)"
+              @hide-asset-info="hideAssetInfo()"
             >
             </asset-cards>
           </template>
         </div>
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
-        <transaction ref="transaction"></transaction>
+        <transaction ref="transaction" :wallet="wallet"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
-          <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
-            {{ selectedAsset.symbol }} {{ $t('Transactions') }}
-          </p>
-          <div class="col q-gutter-xs q-ml-lg q-mr-lg q-mb-sm q-pa-none q-pl-none text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
-            <button class="btn-custom q-mt-none active-transaction-btn btn-all" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-all')" id="btn-all">{{ $t('All') }}</button>
-            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-sent')" id="btn-sent">{{ $t('Sent') }}</button>
-            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode}" @click="switchActiveBtn('btn-received')" id="btn-received">{{ $t('Received') }}</button>
+          <div class="row no-wrap justify-between">
+            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
+              {{ selectedAsset.symbol }} {{ $t('Transactions') }}
+            </p>
+            <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
+              <q-btn
+                round
+                color="blue-9"
+                padding="xs"
+                icon="mdi-chart-line-variant"
+                class="q-ml-md"
+                @click="openPriceChart"
+              />
+            </div>
+          </div>
+          <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
+            <button class="btn-custom q-mt-none btn-all" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'all' }" @click="setTransactionsFilter('all')">{{ $t('All') }}</button>
+            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'sent'}" @click="setTransactionsFilter('sent')">{{ $t('Sent') }}</button>
+            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'received'}" @click="setTransactionsFilter('received')">{{ $t('Received') }}</button>
           </div>
           <div class="transaction-list">
             <template v-if="transactionsLoaded">
-              <div class="row" v-for="(transaction, index) in transactions" :key="'tx-' + index">
-                  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div class="row" @click="showTransactionDetails(transaction)">
-                      <!-- <div class="q-mr-sm">
-                        <img :src="selectedAsset.logo" width="40">
-                      </div> -->
-                      <div class="col col-transaction ">
-                        <div>
-                          <p :class="{'pt-dark-label': darkMode}" class="q-mb-none transactions-wallet ib-text text-uppercase" style="font-size: 15px;">{{ recordTypeMap[transaction.record_type] }}</p>
-                          <p
-                            :class="{'text-grey': darkMode, 'q-mt-sm': !marketValue(transaction)?.marketValue }"
-                            class="q-mb-none transactions-wallet float-right ib-text text-right"
-                          >
-                            <div>{{ +(transaction.amount) }} {{ selectedAsset.symbol }}</div>
-
-                            <div 
-                              v-if="marketValue(transaction)?.marketValue"
-                              class="text-caption text-grey"
-                              :class="[darkMode ? 'text-weight-light' : '']"
-                              style="margin-top:-0.25em;"
-                            >
-                              {{ marketValue(transaction)?.marketValue }} {{ selectedMarketCurrency }}
-                            </div>
-                          </p>
-                        </div>
-                        <div class="col">
-                            <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
-                              <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
-                              <template v-else>{{ formatDate(transaction.date_created) }}</template>
-                            </span>
-                            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-              </div>
-              <div v-if="transactionsLoaded && transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
-                <p @click="() => { getTransactions(transactionsPage + 1) }">{{ $t('ShowMore') }}</p>
+              <TransactionListItem
+                v-for="(transaction, index) in transactions"
+                :key="'tx-' + index"
+                :transaction="transaction"
+                :selected-asset="selectedAsset"
+                @click="showTransactionDetails(transaction)"
+              />
+              <div ref="bottom-transactions-list"></div>
+              <TransactionListItemSkeleton v-if="transactionsAppending"/>
+              <div v-else-if="transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+                <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
               </div>
               <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
                 <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
                 <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
               </div>
             </template>
-            <div style="text-align: center;" v-else>
-              <ProgressLoader :hideCallback="toggleHideBalances"></ProgressLoader>
+            <div v-else>
+              <TransactionListItemSkeleton v-for="i in 5"/>
             </div>
           </div>
         </div>
@@ -177,18 +170,23 @@ import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
-import ProgressLoader from '../../components/ProgressLoader'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import startPage from '../../pages/transaction/dialog/StartPage.vue'
+import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import connectedDialog from '../connect/connectedDialog.vue'
+import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
+import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
+import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { VOffline } from 'v-offline'
+import axios from 'axios'
+import Watchtower from 'watchtower-cash-js'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -199,8 +197,9 @@ const sep20IdRegexp = /sep20\/(.*)/
 export default {
   name: 'Transaction-page',
   components: {
+    TransactionListItem,
+    TransactionListItemSkeleton,
     TokenSuggestionsDialog,
-    ProgressLoader,
     Transaction,
     AssetInfo,
     AssetCards,
@@ -208,7 +207,8 @@ export default {
     securityOptionDialog,
     startPage,
     VOffline,
-    connectedDialog
+    connectedDialog,
+    PriceChart
   },
   directives: {
     dragscroll
@@ -218,7 +218,6 @@ export default {
   ],
   data () {
     return {
-      today: new Date().toDateString(),
       hideBalances: false,
       networks: {
         BCH: { name: 'BCH' },
@@ -231,19 +230,15 @@ export default {
         logo: 'bitcoin-cash-bch-logo.png',
         balance: 0
       },
-      recordTypeMap: {
-        incoming: this.$t('Received'),
-        outgoing: this.$t('Sent')
-      },
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       transactions: [],
       transactionsPage: 0,
       transactionsPageHasNext: false,
       transactionsLoaded: false,
+      transactionsAppending: false,
       balanceLoaded: false,
       wallet: null,
-      paymentMethods: null,
       manageAssets: false,
       assetInfoShown: false,
       pinDialogAction: '',
@@ -256,15 +251,38 @@ export default {
   },
 
   watch: {
+    'assets.length': {
+      handler(before, after) {
+        // e.g. if one network has assets but the other has none then changes network,
+        // the spacing becomes off
+        const assetsWasEmpty = before == 0
+        const assetsIsEmpty = after == 0
+        if (assetsWasEmpty !== assetsIsEmpty) this.adjustTransactionsDivHeight({ timeout: 100 })
+      }
+    },
+    manageAssets() {
+      // must adjust height when asset list is empty
+      // the add button is hidden behind tx list & unclickable without this
+      if (!this.assets?.length) this.adjustTransactionsDivHeight({ timeout: 100 })
+    },
     startPageStatus (n, o) {
       this.adjustTransactionsDivHeight()
     },
     selectedAsset () {
       this.transactions = []
+    },
+    'openedNotification.id': {
+      handler() {
+        if (!this.openedNotification?.id) return
+        this.handleOpenedNotification()
+      }
     }
   },
 
   computed: {
+    openedNotification() {
+      return this.$store.getters['notification/openedNotification']
+    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -280,20 +298,23 @@ export default {
 
       return this.$store.getters['assets/getAssets'][0]
     },
-    assets () {
-      if (this.selectedNetwork === 'sBCH') {
-        return this.$store.getters['sep20/getAssets'].filter(function (item) {
-          if (item && item.id !== 'bch') {
-            return item
-          }
-        })
-      }
-
+    mainchainAssets () {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item && item.id !== 'bch') {
           return item
         }
       })
+    },
+    smartchainAssets() {
+      return this.$store.getters['sep20/getAssets'].filter(function (item) {
+        if (item && item.id !== 'bch') {
+          return item
+        }
+      })
+    },
+    assets () {
+      if (this.selectedNetwork === 'sBCH') return this.smartchainAssets
+      return this.mainchainAssets
     },
     selectedAssetMarketPrice () {
       if (!this.selectedAsset || !this.selectedAsset.id) return
@@ -303,13 +324,6 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    selectedAssetMarketBalance () {
-      if (!this.selectedAsset) return ''
-      if (!this.selectedAssetMarketPrice) return ''
-      const computedBalance = Number(this.selectedAsset.balance || 0) * Number(this.selectedAssetMarketPrice)
-
-      return computedBalance.toFixed(2)
     },
     earliestBlock () {
       if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
@@ -322,35 +336,39 @@ export default {
     }
   },
   methods: {
-    adjustTransactionsDivHeight () {
+    openPriceChart () {
+      // console.log('opening price chart')
+      this.$q.dialog({
+        component: PriceChart
+      })
+    },
+    adjustTransactionsDivHeight (opts={timeout: 500}) {
+      let timeout = opts?.timeout
+      if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
         const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute('style', `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1`)
-      }, 500)
+        this.$refs.transactionSection.setAttribute(
+          'style',
+          `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1; transition: margin-top 0.25s ease-in-out`
+        )
+      }, timeout)
     },
-    formatDate (date) {
-      return ago(new Date(date))
-    },
-    getFallbackAssetLogo (asset) {
-      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
-      return logoGenerator(String(asset && asset.id))
-    },
-    changeNetwork (newNetwork = 'BCH') {
+    changeNetwork (newNetwork = 'BCH', setAsset) {
       const vm = this
       const prevNetwork = vm.selectedNetwork
       vm.selectedNetwork = newNetwork
       if (prevNetwork !== vm.selectedNetwork) {
         vm.selectedAsset = vm.bchAsset
+        if (setAsset?.id && vm.assets.find(asset => asset?.id == setAsset?.id)) {
+          vm.selectedAsset = setAsset
+        }
         vm.transactions = []
         vm.transactionsLoaded = false
         vm.transactionsPage = 0
-        vm.wallet = null
-        vm.loadWallets().then(() => {
-          vm.assets.map(function (asset) {
-            return vm.getBalance(asset.id)
-          })
-          vm.getTransactions()
+        vm.assets.map(function (asset) {
+          return vm.getBalance(asset.id)
         })
+        vm.getTransactions()
       }
     },
     selectBch () {
@@ -412,12 +430,23 @@ export default {
       vm.hideAssetInfo()
       const txCheck = setInterval(function () {
         if (transaction) {
-          transaction.asset = vm.selectedAsset
+          if (!transaction?.asset) transaction.asset = vm.selectedAsset
           vm.$refs.transaction.show(transaction, vm.darkMode)
           vm.hideBalances = true
           clearInterval(txCheck)
         }
       }, 100)
+    },
+    setSelectedAsset(asset) {
+      const assetExists = this.assets.find(a => a?.id == asset?.id)
+      if (!assetExists) return
+      this.$refs['asset-info'].hide()
+      this.selectedAsset = asset
+      this.transactions = []
+      this.transactionsPage = 0
+      this.transactionsPageHasNext = false
+      this.getBalance()
+      this.getTransactions()
     },
     getBalance (id) {
       this.balanceLoaded = false
@@ -481,29 +510,31 @@ export default {
         })
       }
     },
-
-    getTransactions (page = 1) {
+    scrollToBottomTransactionList() {
+      this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
+    },
+    getTransactions (page = 1, opts={ scrollToBottom: false }) {
       if (this.selectedNetwork === 'sBCH') {
         const address = this.$store.getters['global/getAddress']('sbch')
-        return this.getSbchTransactions(address)
+        return this.getSbchTransactions(address, opts)
       }
-      return this.getBchTransactions(page)
+      return this.getBchTransactions(page, opts)
     },
-    getSbchTransactions (address) {
+    getSbchTransactions (address, opts={ scrollToBottom: false }) {
       const vm = this
+      const asset = vm.selectedAsset
       const id = String(vm.selectedAsset.id)
-      vm.transactionsLoaded = false
 
-      const opts = { limit: 10, includeTimestamp: true }
+      const filterOpts = { limit: 10, includeTimestamp: true }
       if (vm.transactionsFilter === 'sent') {
-        opts.type = 'outgoing'
+        filterOpts.type = 'outgoing'
       } else if (vm.transactionsFilter === 'received') {
-        opts.type = 'incoming'
+        filterOpts.type = 'incoming'
       }
 
       let appendResults = false
       if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
-        opts.before = '0x' + (this.earliestBlock - 1).toString(16)
+        filterOpts.before = '0x' + (this.earliestBlock - 1).toString(16)
         appendResults = true
       }
 
@@ -513,130 +544,93 @@ export default {
         requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
           contractAddress,
           address,
-          opts
+          filterOpts
         )
       } else {
         requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
           address,
-          opts
+          filterOpts
         )
       }
 
       if (!requestPromise) return
+      if (!appendResults) vm.transactionsLoaded = false
+      vm.transactionsAppending = true
       requestPromise
         .then(response => {
           vm.transactionsPageHasNext = false
           if (Array.isArray(response.transactions)) {
-            vm.transactionsPageHasNext = response.transactions.length > 0
+            vm.transactionsPageHasNext = response.hasNextPage
             if (!appendResults) vm.transactions = []
             vm.transactions.push(...response.transactions
               .map(tx => {
                 tx.senders = [tx.from]
                 tx.recipients = [tx.to]
+                tx.asset = asset
                 return tx
               })
             )
+            if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
           }
         })
         .finally(() => {
+          vm.transactionsAppending = false
           vm.transactionsLoaded = true
         })
     },
-    getBchTransactions (page) {
+    getBchTransactions (page, opts={ scrollToBottom: false }) {
       const vm = this
+      const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
-      vm.transactionsLoaded = false
+      if (page == 1) vm.transactionsLoaded = false
       let recordType = 'all'
       if (vm.transactionsFilter === 'sent') {
         recordType = 'outgoing'
       } else if (vm.transactionsFilter === 'received') {
         recordType = 'incoming'
       }
+      let requestPromise
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getTransactions(tokenId, page, recordType).then(function (transactions) {
-          if (transactions.history) {
-            if (Number(transactions.page) > vm.transactionsPage) {
-              vm.transactionsPage = Number(transactions.page)
+        requestPromise = vm.wallet.SLP.getTransactions(tokenId, page, recordType)
+      } else {
+        requestPromise = vm.wallet.BCH.getTransactions(page, recordType)
+      }
 
-              transactions.history.map(function (item) {
-                return vm.transactions.push(item)
-              })
-            }
-          } else {
-            transactions.map(function (item) {
-              return vm.transactions.push(item)
-            })
-          }
+      if (!requestPromise) return
+      vm.transactionsAppending = true
+      requestPromise
+        .then(function (response) {
+          const transactions = response.history || response
+          const page = Number(response?.page)
+          const hasNext = response?.has_next
+          if (!Array.isArray(transactions)) return
+          if (page > vm.transactionsPage) vm.transactionsPage = page
+          transactions.map(function (item) {
+            item.asset = asset
+            return vm.transactions.push(item)
+          })
           vm.transactionsLoaded = true
           setTimeout(() => {
-            vm.transactionsPageHasNext = transactions.has_next
-          }, 1000)
+            vm.transactionsPageHasNext = hasNext
+          }, 250)
+          if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
         })
-      } else {
-        vm.wallet.BCH.getTransactions(page, recordType).then(function (transactions) {
-          if (transactions.history) {
-            if (Number(transactions.page) > vm.transactionsPage) {
-              vm.transactionsPage = Number(transactions.page)
-
-              transactions.history.map(function (item) {
-                return vm.transactions.push(item)
-              })
-            }
-          } else {
-            transactions.map(function (item) {
-              return vm.transactions.push(item)
-            })
-          }
-          vm.transactionsLoaded = true
-          setTimeout(() => {
-            vm.transactionsPageHasNext = transactions.has_next
-          }, 1000)
+        .finally(() => {
+          vm.transactionsAppending = false
         })
-      }
-    },
-    marketValue (transaction) {
-      const data = {
-        marketAssetPrice: null,
-        isHistoricalPrice: false,
-        marketValue: null
-      }
-      if (this.selectedMarketCurrency === 'USD' && transaction?.usd_price) {
-        data.marketAssetPrice = transaction.usd_price
-        data.isHistoricalPrice = true
-      } else if (transaction?.market_prices?.[this.selectedMarketCurrency]) {
-        data.marketAssetPrice = transaction?.market_prices?.[this.selectedMarketCurrency]
-        data.isHistoricalPrice = true
-      } else {
-        data.marketAssetPrice = this.selectedAssetMarketPrice
-        data.isHistoricalPrice = false
-      }
-
-      if (data.marketAssetPrice) {
-        data.marketValue = (Number(transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
-      }
-      return data
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
       this.getBalance(this.selectedAsset.id)
+      this.transactions = []
       this.getTransactions()
       done()
     },
-    switchActiveBtn (btn) {
-      const customBtn = document.getElementById(this.activeBtn)
-      customBtn.classList.remove('active-transaction-btn')
+    setTransactionsFilter(value) {
+      if (['sent', 'received'].indexOf(value) >= 0) this.transactionsFilter = value
+      else this.transactionsFilter = 'all'
 
-      const element = document.getElementById(btn)
-      const name = 'active-transaction-btn'
-      const arr = element.className.split(' ')
-      if (arr.indexOf(name) === -1) {
-        element.className += ' ' + name
-      }
-      this.activeBtn = btn
-
-      // change transactions filter
-      this.transactionsFilter = btn.split('-')[1]
       this.transactions = []
       this.transactionsPage = 0
       this.transactionsLoaded = false
@@ -774,7 +768,7 @@ export default {
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
         if (bchChangeAddress.length === 0) {
-          vm.wallet.BCH.getNewAddressSet(0).then(function (addresses) {
+          vm.wallet.BCH.getNewAddressSet(0).then(function ({ addresses }) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
               walletHash: vm.wallet.BCH.walletHash,
@@ -825,31 +819,113 @@ export default {
         }
       }
     },
-    onConnectivityChange (online) {
+    async onConnectivityChange (online) {
       const vm = this
       vm.$store.dispatch('global/updateConnectivityStatus', online)
       if (online === true) {
-        // Load wallets
-        this.loadWallets().then(() => {
-          vm.assets.map(function (asset) {
-            return vm.getBalance(asset.id)
-          })
+        if (!vm.wallet) await vm.loadWallets()
+        vm.assets.map((asset) => vm.getBalance(asset.id))
 
-          if (Array.isArray(vm.assets) && vm.assets.length > 0) {
-            vm.selectedAsset = vm.bchAsset
-            vm.getBalance(vm.selectedAsset.id)
-            vm.getTransactions()
-          }
+        if (Array.isArray(vm.assets) && vm.assets.length > 0) {
+          const selectedAssetExists = vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)
+          if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
+        }
+        vm.getBalance(vm.selectedAsset.id)
+        vm.getTransactions()
 
-          vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-          vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
-        })
+        vm.$store.dispatch('assets/updateTokenIcons', { all: false })
+        vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
       } else {
         vm.balanceLoaded = true
         vm.transactionsLoaded = true
       }
       this.adjustTransactionsDivHeight()
-    }
+    },
+    async handleOpenedNotification() {
+      console.log('Handling opened notification')
+      const openedNotification = this.$store.getters['notification/openedNotification']
+      const notificationTypes = this.$store.getters['notification/types']
+      if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {
+        const txid = openedNotification?.data?.txid
+        const tokenId = openedNotification?.data?.token_id
+        this.findAndOpenTransaction({txid, tokenId, chain: 'BCH' })
+        this.$store.commit('notification/clearOpenedNotification')
+      } else if (openedNotification?.data?.type === notificationTypes.SBCH_TRANSACTION) {
+        const txid = openedNotification?.data?.txid
+        const tokenId = openedNotification?.data?.token_address
+        const logIndex = openedNotification?.data?.log_index
+        this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
+        this.$store.commit('notification/clearOpenedNotification')
+      }
+    },
+    async findAndOpenTransaction(data={txid: '', tokenId: '', logIndex: null, chain: 'BCH' }) {
+      if (!data) return
+      const {txid, tokenId, logIndex, chain } = data
+      const isToken = tokenId && String(tokenId) != 'bch'
+      const tokenPrefix = chain === 'sBCH' ? 'sep20' : 'slp'
+      const assetId = isToken ? `${tokenPrefix}/${tokenId}` : 'bch'
+
+      const assets = chain === 'sBCH' ? this.smartchainAssets : this.mainchainAssets
+      const asset = isToken ? assets.find(asset => asset?.id == assetId) : this.bchAsset
+
+      const transaction = await this.findTransaction({ txid, assetId, logIndex, chain })
+
+      if (!transaction) {
+        this.$q.dialog({
+          message: 'Transaction not found',
+          class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+        })
+        return
+      }
+      if (asset?.id) {
+        if (this.selectedNetwork != chain) this.changeNetwork(chain, asset)
+        const refetchTxList = this.selectedAsset?.id != asset?.id
+        this.selectedAsset = asset
+        if (refetchTxList) {
+          this.transactions = []
+          this.transactionsPage = 0
+          this.transactionsLoaded = false
+          this.getTransactions()
+        }
+      } else {
+        transaction.asset = {
+          id: assetId,
+        }
+      }
+      this.showTransactionDetails(transaction)
+    },
+    async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
+      if (!data) return
+      const { txid, assetId, chain, logIndex } = data
+      const transaction = this.transactions?.find?.(tx => (tx?.txid || tx?.tx_hash) === txid)
+      if (transaction) return transaction
+
+      const watchtower = new Watchtower()
+      if (chain === 'sBCH') {
+        return watchtower.BCH._api(`smartbch/transactions/${txid}/transfers/`)
+          .then(response => {
+            const txTransfer = response?.data?.find?.(tx => {
+              if (typeof logIndex === 'number') return tx?.log_index === logIndex
+              return true
+            })
+            const address = this.$store.getters['global/getAddress']('sbch')
+            return parseTransactionTransfer(txTransfer, { address })
+          })
+          .catch(error => {
+            console.error(error)
+            return null
+          })
+      } else {
+        const isToken = assetId != 'bch'
+        const tokenId = isToken ? assetId.split('/')[1] : assetId
+        const walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
+        const apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
+        return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+          .then(response => {
+            return response?.data?.history?.find?.(tx => tx?.txid === txid)
+          })
+      }
+    },
   },
 
   beforeRouteEnter (to, from, next) {
@@ -859,6 +935,8 @@ export default {
   },
 
   mounted () {
+    window.vm = this
+    this.handleOpenedNotification()
     const vm = this
 
     if (vm.prevPath === '/') {
@@ -867,16 +945,26 @@ export default {
       vm.startPageStatus = false
     }
 
-    vm.adjustTransactionsDivHeight()
+    vm.adjustTransactionsDivHeight({ timeout: 50 })
 
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
+
+    // Check for slow internet and/or accessibility of the backend
+    axios.get('https://watchtower.cash', { timeout: 1000 * 60 }).then((resp) => {
+      console.log('ONLINE')
+    }).catch((error) => {
+      console.log(error)
+      vm.$store.dispatch('global/updateConnectivityStatus', false)
+      vm.balanceLoaded = true
+      vm.transactionsLoaded = true
+    })
   }
 }
 </script>
 
-<style>
+<style scoped>
   .fixed-container {
     position: fixed;
     top: 0 !important;
@@ -900,43 +988,9 @@ export default {
       height: 430px;
     }
   }
-  .p-label {
-    margin-bottom: 0px !important;
-  }
-  .default-text-color {
-    color: rgb(60, 100, 246) !important;
-  }
-  .text-light {
-    color: #BAC2C2;
-  }
-  .text-number-balance {
-    font-size: 45px;
-  }
   .payment-methods {
     color: #000;
     font-size: 20px;
-  }
-  .pp-fcolor {
-    color: #000 !important;
-  }
-  .selected {
-    box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;
-  }
-  .ib-text {
-    display: inline-block;
-  }
-  .pay-text {
-    font-size: 24px;
-    color: #DBE7E7;
-  }
-  .text-num-lg {
-    font-size: 18px;
-    color: #DBE7E7;
-  }
-  .text-num-md {
-    margin-top: 13px;
-    font-size: 12px;
-    color: #DBE7E7;
   }
   .transaction-container {
     min-height: 80vh;
@@ -945,21 +999,9 @@ export default {
     background-color: #F9F8FF;
     margin-top: 24px;
   }
-  .col-transaction {
-    padding-top: 2px;
-    font-weight: 500;
-  }
   .transaction-wallet {
     font-size: 20px;
     color: #444646;
-  }
-  .transactions-wallet {
-    color: #4C4F4F;
-  }
-  .subtext {
-    font-size: 11px;
-    color: #4C4F4F;
-    opacity: .5;
   }
   .btn-all {
     margin-left: 0px;

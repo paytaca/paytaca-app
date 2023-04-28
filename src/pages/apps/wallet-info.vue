@@ -229,7 +229,7 @@
               <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable @click="executeSecurityChecking">
                   <q-item-section>
-                    <q-item-label :class="[darkMode && !showMnemonic ? 'blurry-text-d' : darkMode ? 'pp-text-d' : '', !darkMode && !showMnemonic ? 'blurry-text' : !darkMode ? 'pp-text' : '']">{{ mnemonic }}</q-item-label>
+                    <q-item-label :class="[darkMode && !showMnemonic ? 'blurry-text-d' : darkMode ? 'pp-text-d' : '', !darkMode && !showMnemonic ? 'blurry-text' : !darkMode ? 'pp-text' : '']">{{ mnemonicDisplay }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -365,6 +365,27 @@ export default {
       }
       return false
     },
+    mnemonicDisplay() {
+      if (this.showMnemonic) {
+        return this.mnemonic
+      } else {
+        const wordList = [
+          'brick',
+          'zebra',
+          'tunnel',
+          'cactus',
+          'mosaic',
+          'juggle',
+          'truffle',
+          'vortex',
+          'glimmer',
+          'grind',
+          'silver',
+          'patience'
+        ]
+        return wordList.join(' ')
+      }
+    }
   },
   methods: {
     formatTimestampToText(timestamp) {

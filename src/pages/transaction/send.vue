@@ -9,14 +9,14 @@
         :title="$t('Send') + ' ' + asset.symbol"
         backnavpath="/send/select-asset"
       ></header-nav>
-      <JppPaymentPanel
-        v-if="jpp && !jpp.txids?.length"
-        :jpp="jpp"
-        :wallet="wallet"
-        class="q-mx-md"
-        style="margin-top:5.5rem"
-        @paid="onJppPaymentSucess()"
-      />
+      <div v-if="jpp && !jpp.txids?.length" style="padding-top:5.5rem;padding-bottom:5.5rem">
+        <JppPaymentPanel
+          :jpp="jpp"
+          :wallet="wallet"
+          class="q-mx-md"
+          @paid="onJppPaymentSucess()"
+        />
+      </div>
       <div v-else class="q-mt-xl">
         <div class="q-pa-md" style="padding-top: 70px;">
           <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
@@ -27,8 +27,9 @@
               You cannot send funds while offline. Please connect to the internet.
             </q-banner>
           </v-offline>
-          <div v-if="isNFT && image && !sendData.sent" style="width: 150px; margin: 0 auto;">
-            <img :src="image" width="150" />
+          <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
+            <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/> 
+            <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
           </div>
           <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
             <q-icon name="error" left/>
@@ -77,7 +78,7 @@
               {{ $t('or') }}
             </div>
             <div class="col-12 q-mt-lg text-center">
-              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+              <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
             </div>
           </div>
           <div class="q-pa-md text-center text-weight-medium">
@@ -364,6 +365,11 @@ export default {
       required: false,
       default: 1
     },
+    simpleNft: {
+      type: Boolean,
+      required: false,
+      default: false
+    },
     symbol: {
       type: String,
       required: false
@@ -383,6 +389,10 @@ export default {
     image: {
       type: String,
       required: false
+    },
+    paymentUrl: {
+      type: String,
+      required: false,
     }
   },
   data () {
@@ -390,6 +400,8 @@ export default {
       asset: {},
       wallet: null,
       walletType: '',
+
+      forceUseDefaultNftImage: false,
 
       fetchingTokenStats: false,
       tokenStats: null,
@@ -474,8 +486,15 @@ export default {
     },
     isNFT () {
       if (this.isSep20 && erc721IdRegexp.test(this.assetId)) return true
+      if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65
+    },
+    defaultNftImage() {
+      if (!this.isNFT) return ''
+      if (this.image && !this.forceUseDefaultNftImage) return ''
+      const tokenId = this.assetId.split('slp/')[1]
+      return this.$store.getters['global/getDefaultAssetLogo']?.(tokenId)
     },
     selectedAssetMarketPrice () {
       if (!this.assetId) return
@@ -1147,6 +1166,8 @@ export default {
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
+
+    if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
   },
 
   created () {

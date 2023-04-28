@@ -30,6 +30,30 @@
             class="q-mb-sm"
           />
         </div>
+        <div v-if="qrCodeData" class="row items-center justify-end q-gutter-sm">
+          <q-field
+            dense
+            outlined
+            readonly
+            :dark="darkMode"
+            class="full-width"
+          >
+            <template v-slot:control>
+              <a :href="qrCodeDataLink" target="_blank" class="ellipsis" style="direction: rtl;">
+                {{ qrCodeDataLink }}
+              </a>
+            </template>
+            <template v-slot:append>
+              <q-btn
+                padding="sm"
+                flat
+                icon="content_copy"
+                :dark="darkMode"
+                @click="copyToClipboard(qrCodeDataLink, 'Link code url copied')"
+              />
+            </template>
+          </q-field>
+        </div>
         <div class="row items-center justify-center q-gutter-xs">
           <span v-if="linkExpiresIn > 0" class="text-grey">
             Link expires in
@@ -60,13 +84,16 @@
 </template>
 <script setup>
 import BCHJS from '@psf/bch-js';
-import { loadWallet, Wallet } from 'src/wallet'
+import { Wallet } from 'src/wallet'
 import { padPosId, aes } from 'src/wallet/pos'
-import { useDialogPluginComponent } from 'quasar'
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue';
 import { useStore } from 'vuex';
 
 const bchjs = new BCHJS()
+
+const $copyText = inject('$copyText')
+const $q = useQuasar()
 
 // dialog plugins requirement
 defineEmits([
@@ -127,6 +154,8 @@ async function generateLinkCode(opts) {
     })
 }
 
+const qrCodeDataLink = computed(() => `app://com.paytaca.pos/link?code=${qrCodeDataB64.value}`)
+const qrCodeDataB64 = computed(() => btoa(qrCodeData.value))
 const qrCodeData = computed(() => {
   return JSON.stringify({
     code: linkCode.value?.code,
@@ -150,6 +179,15 @@ function updateLinkExpiration() {
   linkExpiresIn.value = Math.round(linkCode.value?.expiresAt - Date.now() / 1000)
 }
 
+function copyToClipboard(value, message) {
+  $copyText(value)
+  $q.notify({
+    message: message || 'Copied to clipboard',
+    timeout: 800,
+    color: 'blue-9',
+    icon: 'mdi-clipboard-check'
+  })
+}
 </script>
 <style scoped>
 .qr-code-container {

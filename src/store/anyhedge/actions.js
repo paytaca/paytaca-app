@@ -33,6 +33,8 @@ export function updateOracleLatestPrice(ctx, opts) {
         priceValue: latestPrice?.price_value,
         messageTimestamp: latestPrice?.message_timestamp,
         messageSequence: latestPrice?.message_sequence,
+        message: latestPrice?.message,
+        signature: latestPrice?.signature,
       }
       ctx.commit('updateOracleLatestPrice', mutationPayload)
     })

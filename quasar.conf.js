@@ -26,10 +26,12 @@ module.exports = function (/* ctx */) {
       'i18n',
       'axios',
       'leaflet',
+      'push-notifications',
       'qrcodecomponent',
       'qrcodereader',
       'clipboard',
       'footer',
+      'gravatar',
       'websocket',
       'walletconnect',
       'confetti'
@@ -45,6 +47,7 @@ module.exports = function (/* ctx */) {
     extras: [
       // 'ionicons-v4',
       'mdi-v5',
+      'fontawesome-v5',
       // 'fontawesome-v6',
       // 'eva-icons',
       // 'themify',
