@@ -61,7 +61,8 @@ export default {
       timer: '',
       priceChart: null,
       ishigher: false,
-      percentage: ''
+      percentage: '',
+      updateChart: false
     }
   },
   components: {
@@ -85,7 +86,17 @@ export default {
         const prices = resp.data.prices.reverse()
 
         vm.date = prices.map(d => d[0]).reverse()
+        const temp = vm.bchPrice.toString()
         vm.bchPrice = prices.map(d => d[1]).reverse()
+        const temp2 = vm.bchPrice.toString()
+
+        if (temp === temp2) {
+          // console.log('same')
+          vm.updateChart = false
+        } else {
+          // console.log('different')
+          vm.updateChart = true
+        }
 
         vm.date.forEach(vm.arrangeDate)
 
@@ -124,31 +135,21 @@ export default {
         array[index] = 'now'
       }
     },
-    // async updateData() {
-    //   console.log('updating')
-    //   const vm = this
-    //   await vm.loadData()
-
-    //   vm.priceChart.data.labels = this.date
-    //   vm.priceChart.data.datasets.data = this.bchPrice
-
-    //   vm.priceChart.update()
-    // },
     async refreshData () {
-      let count = 0
       this.timer = setInterval(async () => {
-        count = count + 1
+        await this.loadData()
 
-        this.priceChart.destroy()
-        this.createChart()
+        if (this.updateChart) {
+          // console.log('updating chart')
+          this.priceChart.destroy()
+          this.createChart()
+        }
       }, 5000)
     },
     cancelAutoUpdate () {
       clearInterval(this.timer)
     },
     async createChart () {
-      await this.loadData()
-
       Chart.defaults.color = this.darkmode ? '#ffffff' : '#000'
       const plugin = {
         id: 'canvasBackgroundColor',
@@ -242,6 +243,7 @@ export default {
     }
   },
   async mounted () {
+    await this.loadData()
     this.createChart()
     this.refreshData()
   },
