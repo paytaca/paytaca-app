@@ -59,7 +59,7 @@
 <script>
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
-import { authenticationTemplateP2pkhNonHd, importAuthenticationTemplate, decodeAuthenticationInstructions, authenticationTemplateToCompilerBCH, generateTransaction, sha256, hexToBin, decodePrivateKeyWif, SigningSerializationAlgorithmIdentifier, decodeTransaction, binToHex, lockingBytecodeToCashAddress, encodeTransaction, vmNumberToBigInt, encodeAuthenticationInstruction, encodeAuthenticationInstructions } from "@bitauth/libauth"
+import { SigningSerializationFlag, hash256, generateSigningSerializationBCH, secp256k1, authenticationTemplateP2pkhNonHd, importAuthenticationTemplate, decodeAuthenticationInstructions, authenticationTemplateToCompilerBCH, generateTransaction, sha256, hexToBin, decodePrivateKeyWif, SigningSerializationAlgorithmIdentifier, decodeTransaction, binToHex, lockingBytecodeToCashAddress, encodeTransaction, vmNumberToBigInt, encodeAuthenticationInstruction, encodeAuthenticationInstructions } from "@bitauth/libauth"
 import Watchtower from 'watchtower-cash-js';
 import pinDialog from '../../components/pin'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
@@ -203,12 +203,45 @@ export default {
       const privateKeyWif = await wallet.BCH.getPrivateKey(this.connectedAddressIndex);
       const decodeResult = decodePrivateKeyWif(privateKeyWif);
       const privateKey = decodeResult.privateKey;
-
+      const pubkeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey);
       // instruct compiler to produce signatures for relevant inputs
-      this.tx.inputs.forEach((val, index) => {
-        const sourceOutput = this.sourceOutputsUnpacked[index];
-        if (!val.unlockingBytecode?.length && val.address === this.connectedAddress) {
-          val.unlockingBytecode = {
+      for (const [index, input] of this.tx.inputs.entries()) {
+        if (input.isContract) {
+          // replace pubkey and sig placeholders
+          let unlockingBytecodeHex = binToHex(input.unlockingBytecode);
+          const sigPlaceholder = "41" + binToHex(Uint8Array.from(Array(65)));
+          const pubkeyPlaceholder = "21" + binToHex(Uint8Array.from(Array(33)));
+          if (unlockingBytecodeHex.indexOf(sigPlaceholder) !== -1) {
+            // compute the signature argument
+            const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId;
+            const context = { inputIndex: index, sourceOutputs: this.sourceOutputsUnpacked, transaction: this.tx };
+            const signingSerializationType = new Uint8Array([hashType]);
+
+            const coveredBytecode = this.sourceOutputsUnpacked[index]?.contract?.redeemScript;
+            if (!coveredBytecode) {
+              await vm.$q.dialog({
+                message: "Not enough information provided, please include contract redeemScript",
+                title: "Error"
+              });
+              return;
+            }
+            const sighashPreimage = generateSigningSerializationBCH(context, { coveredBytecode, signingSerializationType });
+            const sighash = hash256(sighashPreimage);
+            const signature = secp256k1.signMessageHashSchnorr(privateKey, sighash);
+            const sig = Uint8Array.from([...signature, hashType]);
+
+            unlockingBytecodeHex = unlockingBytecodeHex.replace(sigPlaceholder, "41" + binToHex(sig));
+          }
+          if (unlockingBytecodeHex.indexOf(pubkeyPlaceholder) !== -1) {
+            unlockingBytecodeHex = unlockingBytecodeHex.replace(pubkeyPlaceholder, "21" + binToHex(pubkeyCompressed));
+          }
+
+          input.unlockingBytecode = hexToBin(unlockingBytecodeHex);
+        }
+
+        if (!input.unlockingBytecode?.length && input.address === this.connectedAddress) {
+          const sourceOutput = this.sourceOutputsUnpacked[index];
+          input.unlockingBytecode = {
             compiler,
             data: {
               keys: { privateKeys: { key: privateKey } },
@@ -218,7 +251,7 @@ export default {
             token: sourceOutput.token,
           }
         }
-      });
+      };
 
       // generate and encode transaction
       const generated = generateTransaction(this.tx);
@@ -292,13 +325,20 @@ export default {
       output.address = lockingBytecodeToCashAddress(output.lockingBytecode);
     });
 
-    this.tx.inputs.forEach(input => {
+    this.tx.inputs.forEach((input, index) => {
+      input.contractName = this.sourceOutputsUnpacked[index].contract?.artifact?.contractName;
+      input.functionName = this.sourceOutputsUnpacked[index].contract?.abiFunction?.name;
+
+      if (input.contractName && input.functionName) {
+        input.isContract = true;
+        return;
+      }
+
       // let us look at the inputs
       const decoded = decodeAuthenticationInstructions(input.unlockingBytecode);
       const redeemScript = decoded.splice(-1)[0]?.data;
       if (redeemScript?.length > 33) {
         // if input is a contract interaction, let's lookup the contract map and update UI
-
         // let's remove any contract constructor parameters 1 by 1 to get to the contract body
         let script = redeemScript.slice();
         let artifact = artifactMap[binToHex(script)];
@@ -320,7 +360,7 @@ export default {
           const abiFunctionIndex = Number(vmNumberToBigInt(decoded.splice(-1)[0].data));
           abiFunction = artifact.abi[abiFunctionIndex];
         } else {
-          abiFunction = artifact[0];
+          abiFunction = artifact.abi[0];
         }
         input.contractName = artifact.contractName;
         input.functionName = abiFunction.name;
