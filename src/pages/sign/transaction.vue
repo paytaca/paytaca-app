@@ -11,34 +11,34 @@
           <p class="text-lg">Origin:</p><textarea rows="1" readonly class="ro-text" v-text="origin"></textarea>
           <p class="text-lg">Signer:</p><textarea rows="1" readonly class="ro-text" v-text="connectedAddress.split(':')[1]"></textarea>
           <p class="text-lg">Inputs:</p>
-          <div v-for="(input,idx) of tx.inputs">
+          <div v-for="(input,idx) of sourceOutputsUnpacked">
             <span class="font-normal">{{`#${idx}:`}}</span>
             {{`${satoshiToBCHString(input.valueSatoshis)} (${binToHex(input.outpointTransactionHash).slice(0,4)}...${binToHex(input.outpointTransactionHash).slice(-4)}:${input.outpointIndex}) ${input.address?.split(':')[1]}` }}
             <span v-if="input.token">
               <br/>
               <hr/>
               Token: <span :style="{'background-color': `#${binToHex(input.token.category.slice(0, 3))}`}">{{ binToHex(input.token.category.slice(0, 3)) }} <br/></span>
-              <span v-if="input.token.nft.commitment.length"> Commitment: {{ binToHex(input.token.nft.commitment) }} <br/></span>
-              <span v-if="input.token.nft.capability"> Capability: {{ input.token.nft.capability }} <br/></span>
+              <span v-if="input.token.nft?.commitment.length"> Commitment: {{ binToHex(input.token.nft.commitment) }} <br/></span>
+              <span v-if="input.token.nft?.capability"> Capability: {{ input.token.nft.capability }} <br/></span>
               <span v-if="input.token.amount > 0n"> Fungible amount: {{ input.token.amount }} <br/></span>
             </span>
-            <span v-if="input.contractName">
+            <span v-if="input.contract?.artifact.contractName">
               <hr/>
-              Contract: {{ input.contractName }} <br/>
-              Function: {{ input.functionName }} <br/>
+              Contract: {{ input.contract?.artifact.contractName }} <br/>
+              Function: {{ input.contract?.abiFunction.name }} <br/>
             </span>
             <p/>
           </div>
           <p class="text-lg">Outputs:</p>
-          <div v-for="(output,idx) of tx.outputs"> 
+          <div v-for="(output,idx) of tx.outputs">
             <span class="font-normal">{{`#${idx}:`}}</span>
-            {{`${satoshiToBCHString(output.valueSatoshis)} ${output.address?.split(':')[1]}` }}
+            {{`${satoshiToBCHString(output.valueSatoshis)} ${toCashaddr(output.lockingBytecode).split(':')[1]}` }}
             <span v-if="output.token">
               <br/>
               <hr/>
               Token: <span :style="{'background-color': `#${binToHex(output.token.category.slice(0, 3))}`}">{{ binToHex(output.token.category.slice(0, 3)) }} <br/></span>
-              <span v-if="output.token.nft.commitment.length"> Commitment: {{ binToHex(output.token.nft.commitment) }} <br/></span>
-              <span v-if="output.token.nft.capability"> Capability: {{ output.token.nft.capability }} <br/></span>
+              <span v-if="output.token.nft?.commitment.length"> Commitment: {{ binToHex(output.token.nft.commitment) }} <br/></span>
+              <span v-if="output.token.nft?.capability"> Capability: {{ output.token.nft.capability }} <br/></span>
               <span v-if="output.token.amount > 0n"> Fungible amount: {{ output.token.amount }} <br/></span>
             </span>
             <p/>
@@ -56,15 +56,50 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+export interface AbiInput {
+    name: string;
+    type: string;
+}
+export interface AbiFunction {
+    name: string;
+    covenant?: boolean;
+    inputs: AbiInput[];
+}
+export interface Artifact {
+    contractName: string;
+    constructorInputs: AbiInput[];
+    abi: AbiFunction[];
+    bytecode: string;
+    source: string;
+    compiler: {
+        name: string;
+        version: string;
+    };
+    updatedAt: string;
+}
+export interface ContractInfo {
+  contract?: {
+    abiFunction: AbiFunction;
+    redeemScript: Uint8Array;
+    artifact: Partial<Artifact>;
+  }
+}
+
+export interface AddressInfo {
+  address: string;
+}
+
 import { getMnemonic, Wallet } from '../../wallet'
-import HeaderNav from '../../components/header-nav'
-import { SigningSerializationFlag, hash256, generateSigningSerializationBCH, secp256k1, authenticationTemplateP2pkhNonHd, importAuthenticationTemplate, decodeAuthenticationInstructions, authenticationTemplateToCompilerBCH, generateTransaction, sha256, hexToBin, decodePrivateKeyWif, SigningSerializationAlgorithmIdentifier, decodeTransaction, binToHex, lockingBytecodeToCashAddress, encodeTransaction, vmNumberToBigInt, encodeAuthenticationInstruction, encodeAuthenticationInstructions } from "@bitauth/libauth"
+import HeaderNav from '../../components/header-nav.vue'
+import { Input, Output, SigningSerializationFlag, hash256, generateSigningSerializationBCH, secp256k1, authenticationTemplateP2pkhNonHd, importAuthenticationTemplate, decodeAuthenticationInstructions, authenticationTemplateToCompilerBCH, generateTransaction, sha256, hexToBin, decodePrivateKeyWif, SigningSerializationAlgorithmIdentifier, decodeTransaction, binToHex, lockingBytecodeToCashAddress, encodeTransaction, vmNumberToBigInt, encodeAuthenticationInstruction, encodeAuthenticationInstructions, TransactionBCH, TransactionTemplate, CompilationContextBCH, TransactionTemplateFixed, AuthenticationInstructionPush } from "@bitauth/libauth"
 import Watchtower from 'watchtower-cash-js';
-import pinDialog from '../../components/pin'
+import pinDialog from '../../components/pin/index.vue'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
-export default {
+import { defineComponent } from "vue";
+
+export default defineComponent({
   name: 'sign-transaction',
   components: {
     HeaderNav,
@@ -110,12 +145,12 @@ export default {
     return {
       asset: {},
 
-      darkMode: this.$store.getters['darkmode/getStatus'],
+      darkMode: (this as any).$store.getters['darkmode/getStatus'],
       connectedAddress: '',
       connectedAddressIndex: '0/0',
       fetchedInputs: [],
-      tx: {},
-      sourceOutputsUnpacked: [],
+      tx: {} as TransactionBCH,
+      sourceOutputsUnpacked: [] as (Input & Output & ContractInfo & AddressInfo)[],
       contractName: "",
       functionName: "",
       pinDialogAction: "",
@@ -129,6 +164,14 @@ export default {
   },
 
   methods: {
+    toCashaddr(lockingBytecode: Uint8Array) {
+      const result = lockingBytecodeToCashAddress(lockingBytecode);
+      if (typeof result !== "string") {
+        throw result;
+      }
+      return result;
+    },
+
     async executeSecurityChecking () {
       try {
         await SecureStoragePlugin.get({ key: 'pin' })
@@ -152,7 +195,7 @@ export default {
       return binToHex(val);
     },
 
-    satoshiToBCHString (amount = 0) {
+    satoshiToBCHString (amount: Number | bigint) {
       const bchAmount = Number(amount) * (10 ** -8)
       return `${bchAmount.toFixed(8)} BCH`
     },
@@ -170,6 +213,10 @@ export default {
       const result = this.assetId === "sbch" ?
         await this.signSmartBCH() :
         await this.signBCH()
+
+      if (result === undefined) {
+        return;
+      }
 
       if (this.broadcast !== "false") {
         const watchtower = new Watchtower()
@@ -195,31 +242,47 @@ export default {
       // configure compiler
       const compiler = authenticationTemplateToCompilerBCH(template);
 
+      const txTemplate = {...this.tx} as TransactionTemplateFixed<typeof compiler>;
+
       const mnemonic = await getMnemonic()
       const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
       const wallet = new Wallet(mnemonic, network)
 
       // decode private key for current signer
-      const privateKeyWif = await wallet.BCH.getPrivateKey(this.connectedAddressIndex);
+      const privateKeyWif = await wallet?.BCH?.getPrivateKey(this.connectedAddressIndex);
       const decodeResult = decodePrivateKeyWif(privateKeyWif);
+      if (typeof decodeResult === "string") {
+        this.$q.dialog({
+          message: "Not enough information provided, please include contract redeemScript",
+          title: "Error"
+        });
+        return;
+      }
       const privateKey = decodeResult.privateKey;
       const pubkeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey);
+      if (typeof pubkeyCompressed === "string") {
+        this.$q.dialog({
+          message: pubkeyCompressed,
+          title: "Error",
+        });
+        return;
+      }
       // instruct compiler to produce signatures for relevant inputs
-      for (const [index, input] of this.tx.inputs.entries()) {
-        if (input.isContract) {
+      for (const [index, input] of txTemplate.inputs.entries()) {
+        if (this.sourceOutputsUnpacked[index].contract?.artifact.contractName) {
           // replace pubkey and sig placeholders
-          let unlockingBytecodeHex = binToHex(input.unlockingBytecode);
+          let unlockingBytecodeHex = binToHex(this.sourceOutputsUnpacked[index].unlockingBytecode);
           const sigPlaceholder = "41" + binToHex(Uint8Array.from(Array(65)));
           const pubkeyPlaceholder = "21" + binToHex(Uint8Array.from(Array(33)));
           if (unlockingBytecodeHex.indexOf(sigPlaceholder) !== -1) {
             // compute the signature argument
             const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId;
-            const context = { inputIndex: index, sourceOutputs: this.sourceOutputsUnpacked, transaction: this.tx };
+            const context: CompilationContextBCH = { inputIndex: index, sourceOutputs: this.sourceOutputsUnpacked, transaction: this.tx };
             const signingSerializationType = new Uint8Array([hashType]);
 
-            const coveredBytecode = this.sourceOutputsUnpacked[index]?.contract?.redeemScript;
+            const coveredBytecode = this.sourceOutputsUnpacked[index].contract?.redeemScript;
             if (!coveredBytecode) {
-              await vm.$q.dialog({
+              this.$q.dialog({
                 message: "Not enough information provided, please include contract redeemScript",
                 title: "Error"
               });
@@ -228,6 +291,13 @@ export default {
             const sighashPreimage = generateSigningSerializationBCH(context, { coveredBytecode, signingSerializationType });
             const sighash = hash256(sighashPreimage);
             const signature = secp256k1.signMessageHashSchnorr(privateKey, sighash);
+            if (typeof signature === "string") {
+              this.$q.dialog({
+                message: signature,
+                title: "Error",
+              });
+              return;
+            }
             const sig = Uint8Array.from([...signature, hashType]);
 
             unlockingBytecodeHex = unlockingBytecodeHex.replace(sigPlaceholder, "41" + binToHex(sig));
@@ -239,8 +309,8 @@ export default {
           input.unlockingBytecode = hexToBin(unlockingBytecodeHex);
         }
 
-        if (!input.unlockingBytecode?.length && input.address === this.connectedAddress) {
-          const sourceOutput = this.sourceOutputsUnpacked[index];
+        const sourceOutput = this.sourceOutputsUnpacked[index];
+        if (!sourceOutput.unlockingBytecode?.length && sourceOutput.address === this.connectedAddress) {
           input.unlockingBytecode = {
             compiler,
             data: {
@@ -254,18 +324,18 @@ export default {
       };
 
       // generate and encode transaction
-      const generated = generateTransaction(this.tx);
+      const generated = generateTransaction(txTemplate);
       if (!generated.success) {
-        throw Error(generated.errors);
+        throw Error(JSON.stringify(generated.errors, null, 2));
       }
 
       const encoded = encodeTransaction(generated.transaction);
-      const hash = binToHex(sha256.hash(sha256.hash(generated.transaction)).reverse());
+      const hash = binToHex(sha256.hash(sha256.hash(encoded)).reverse());
       return { signedTransaction: binToHex(encoded), signedTransactionHash: hash };
     },
 
     async signSmartBCH () {
-      return this.wallet.sBCH._wallet.signMessage(this.message)
+      return undefined;
     },
 
     async cancel () {
@@ -276,7 +346,7 @@ export default {
 
   async beforeMount () {
     // use the currently selected address as signer
-    const walletInfo = this.$store.getters['global/getWallet'](this.assetId)
+    const walletInfo = (this as any).$store.getters['global/getWallet'](this.assetId)
     const { connectedAddress, connectedAddressIndex } = walletInfo
     this.connectedAddress = connectedAddress;
     this.connectedAddressIndex = connectedAddressIndex;
@@ -309,35 +379,36 @@ export default {
       }
     }
 
-    // let's figure out the satoshi value and token information for the inputs
-    this.sourceOutputsUnpacked.forEach((sourceOutput, index) => {
-      const input = this.tx.inputs[index];
-      input.valueSatoshis = sourceOutput.valueSatoshis;
-      const cashaddr = lockingBytecodeToCashAddress(sourceOutput.lockingBytecode);
-      if (typeof cashaddr !== "string") {
-        throw cashaddr;
-      }
-      input.address = cashaddr;
-      input.token = sourceOutput.token;
-    });
+    // // let's figure out the satoshi value and token information for the inputs
+    // this.sourceOutputsUnpacked.forEach((sourceOutput, index) => {
+    //   const input = this.tx.inputs[index];
+    //   input.valueSatoshis = sourceOutput.valueSatoshis;
+    //   const cashaddr = lockingBytecodeToCashAddress(sourceOutput.lockingBytecode);
+    //   if (typeof cashaddr !== "string") {
+    //     throw cashaddr;
+    //   }
+    //   input.address = cashaddr;
+    //   input.token = sourceOutput.token;
+    // });
 
-    this.tx.outputs.forEach((output) => {
-      output.address = lockingBytecodeToCashAddress(output.lockingBytecode);
-    });
+    // this.tx.outputs.forEach((output) => {
+    //   output.address = lockingBytecodeToCashAddress(output.lockingBytecode);
+    // });
 
-    this.tx.inputs.forEach((input, index) => {
-      input.contractName = this.sourceOutputsUnpacked[index].contract?.artifact?.contractName;
-      input.functionName = this.sourceOutputsUnpacked[index].contract?.abiFunction?.name;
+    this.sourceOutputsUnpacked.forEach((input, index) => {
+      const contractName = this.sourceOutputsUnpacked[index].contract?.artifact?.contractName;
+      const functionName = this.sourceOutputsUnpacked[index].contract?.abiFunction?.name;
 
-      if (input.contractName && input.functionName) {
-        input.isContract = true;
+      if (contractName) {
         return;
       }
 
       // let us look at the inputs
       const decoded = decodeAuthenticationInstructions(input.unlockingBytecode);
-      const redeemScript = decoded.splice(-1)[0]?.data;
-      if (redeemScript?.length > 33) {
+      const redeemScript = (
+        decoded.splice(-1)[0] as AuthenticationInstructionPush
+      )?.data;
+      if (redeemScript?.length) {
         // if input is a contract interaction, let's lookup the contract map and update UI
         // let's remove any contract constructor parameters 1 by 1 to get to the contract body
         let script = redeemScript.slice();
@@ -357,17 +428,26 @@ export default {
         let abiFunction;
         if (artifact.abi.length > 1) {
           // expect to N abi parameters + 1 function index push
-          const abiFunctionIndex = Number(vmNumberToBigInt(decoded.splice(-1)[0].data));
+          const abiFunctionIndex = Number(vmNumberToBigInt((decoded.splice(-1)[0] as AuthenticationInstructionPush).data));
           abiFunction = artifact.abi[abiFunctionIndex];
         } else {
           abiFunction = artifact.abi[0];
         }
-        input.contractName = artifact.contractName;
-        input.functionName = abiFunction.name;
+        input.contract = {
+          ...input.contract,
+          artifact: {
+            contractName: artifact.contractName
+          },
+          abiFunction: {
+            name: abiFunction.name,
+            inputs: undefined as any
+          },
+          redeemScript: undefined as any
+        }
       }
     });
   },
-}
+})
 
 // an extended json parser compatible with `stringify` from libauth
 const parseExtendedJson = (jsonString) => {
