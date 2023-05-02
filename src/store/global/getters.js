@@ -63,6 +63,10 @@ export function getDefaultAssetLogo () {
       '#90be6d',
       '#43aa8b'
     ]
+    const colorShiftCount = parseInt(string.substring(0, 2), 16) % colorPallete.length
+    for (var i = 0; i < colorShiftCount; i++) {
+      colorPallete.push(colorPallete.shift())
+    }
 
     const bgColor = '#577590'
 

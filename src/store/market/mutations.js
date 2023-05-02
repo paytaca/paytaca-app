@@ -32,7 +32,10 @@ export function updateSelectedCurrency (state, currency) {
  * @param {{ assetId: String, prices: Map<String, Number>, coinId: String }[]} assetPrices
  */
 export function updateAssetPrices (state, assetPrices) {
-  if (!Array.isArray(state.assetPrices)) state.assetPrices = []
+  if (assetPrices.length) {
+    // Always clear prior to update
+    state.assetPrices = []
+  }
 
   assetPrices.forEach(assetPrice => {
     let updated = false

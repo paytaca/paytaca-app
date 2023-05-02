@@ -60,7 +60,7 @@
               </q-item-section>
               <q-item-section avatar>
                 <q-item-label>
-                  {{ record?.total }} BCH
+                  {{ Math.round(record?.total * 10 ** 8) / 10 ** 8 }} BCH
                 </q-item-label>
                 <q-item-label v-if="(record?.total_market_value && record?.currency)" caption>
                   {{ Number(record.total_market_value).toFixed(2) }} {{ record.currency }}

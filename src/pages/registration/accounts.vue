@@ -7,7 +7,7 @@
       </div>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
-      <div v-if="show" v-cloak>
+      <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
           <div class="row">
             <div class="col-12 q-py-sm">
@@ -23,7 +23,7 @@
         </div>
       </div>
       <div class="row" v-else style="margin-top: 60px;">
-        <div class="col" v-if="error">
+        <div class="col" v-if="serverOnline === false">
           <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
             {{ $t('NoInternetConnectionNotice') }} &#128533;
           </div>
@@ -60,16 +60,33 @@
         <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
 
         <div class="row" id="mnemonic">
-          <div class="col q-mb-sm text-caption" v-if="steps === totalSteps">
-            <ul>
-              <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
-                <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
-              </li>
-            </ul>
-          </div>
+          <template v-if="steps === totalSteps">
+            <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
+              <ul>
+                <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
+                  <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
+                </li>
+              </ul>
+            </div>
+            <div v-else>
+              <div>
+                <q-btn
+                  flat
+                  no-caps
+                  padding="xs sm"
+                  icon="arrow_back"
+                  color="black"
+                  :label="$t('MnemonicBackupPhrase')"
+                  @click="showMnemonicTest = false"
+                />
+              </div>
+              <MnemonicTest :mnemonic="mnemonic" class="q-mb-md" @matched="mnemonicVerified = true" />
+            </div>
+          </template>
         </div>
         <div class="row" v-if="steps === totalSteps">
-          <q-btn class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" :label="$t('Continue')" rounded />
+          <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" :label="$t('Continue')" rounded />
+          <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
         </div>
       </div>
     </div>
@@ -84,6 +101,7 @@
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
+import MnemonicTest from 'src/components/MnemonicTest.vue'
 import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { utils } from 'ethers'
@@ -91,23 +109,19 @@ import { Device } from '@capacitor/device'
 
 export default {
   name: 'registration-accounts',
-  components: { ProgressLoader, pinDialog, securityOptionDialog },
+  components: { ProgressLoader, pinDialog, securityOptionDialog, MnemonicTest },
   data () {
     return {
-      show: false,
-      error: false,
+      serverOnline: null,
       importSeedPhrase: false,
       seedPhraseBackup: null,
       mnemonic: '',
       steps: -1,
       totalSteps: 5,
-      seedInput: true,
+      mnemonicVerified: false,
+      showMnemonicTest: false,
       pinDialogAction: '',
       pin: '',
-      counter: 0,
-      validationMsg: '',
-      pinKeys: [{ key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }, { key: '' }],
-      countKeys: 0,
       securityOptionDialogStatus: 'dismiss'
     }
   },
@@ -150,30 +164,32 @@ export default {
 
       // Create mnemonic seed, encrypt, and store
       if (vm.importSeedPhrase) {
+        vm.mnemonicVerified = true
         vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup))
       } else {
         vm.mnemonic = await generateMnemonic()
       }
       vm.steps += 1
 
-      const bchWallet = new Wallet(this.mnemonic, 'BCH')
+      const wallet = new Wallet(this.mnemonic)
 
-      bchWallet.BCH.getNewAddressSet(0).then(function (addresses) {
+      wallet.BCH.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
         vm.$store.commit('global/updateWallet', {
           type: 'bch',
-          walletHash: bchWallet.BCH.walletHash,
-          derivationPath: bchWallet.BCH.derivationPath,
+          walletHash: wallet.BCH.walletHash,
+          derivationPath: wallet.BCH.derivationPath,
           lastAddress: addresses !== null ? addresses.receiving : '',
           lastChangeAddress: addresses !== null ? addresses.change : '',
           lastAddressIndex: 0
         })
+        vm.$store.dispatch('chat/addIdentity', pgpIdentity)
         vm.steps += 1
         try {
           vm.$store.dispatch('global/refetchWalletPreferences')
         } catch(error) { console.error(error) }
       })
 
-      bchWallet.BCH.getXPubKey().then(function (xpub) {
+      wallet.BCH.getXPubKey().then(function (xpub) {
         vm.$store.commit('global/updateXPubKey', {
           type: 'bch',
           xPubKey: xpub
@@ -181,11 +197,11 @@ export default {
         vm.steps += 1
       })
 
-      bchWallet.SLP.getNewAddressSet(0).then(function (addresses) {
+      wallet.SLP.getNewAddressSet(0).then(function (addresses) {
         vm.$store.commit('global/updateWallet', {
           type: 'slp',
-          walletHash: bchWallet.SLP.walletHash,
-          derivationPath: bchWallet.SLP.derivationPath,
+          walletHash: wallet.SLP.walletHash,
+          derivationPath: wallet.SLP.derivationPath,
           lastAddress: addresses !== null ? addresses.receiving : '',
           lastChangeAddress: addresses !== null ? addresses.change : '',
           lastAddressIndex: 0
@@ -193,7 +209,7 @@ export default {
         vm.steps += 1
       })
 
-      bchWallet.SLP.getXPubKey().then(function (xpub) {
+      wallet.SLP.getXPubKey().then(function (xpub) {
         vm.$store.commit('global/updateXPubKey', {
           type: 'slp',
           xPubKey: xpub
@@ -201,21 +217,19 @@ export default {
         vm.steps += 1
       })
 
-      const sbchWallet = new Wallet(this.mnemonic, 'sBCH')
-      sbchWallet.sBCH.getOrInitWallet().then(function () {
-        sbchWallet.sBCH.subscribeWallet()
+      wallet.sBCH.subscribeWallet().then(function () {
         vm.$store.commit('global/updateWallet', {
           type: 'sbch',
-          derivationPath: sbchWallet.sBCH.derivationPath,
-          walletHash: sbchWallet.sBCH.walletHash,
-          lastAddress: sbchWallet.sBCH._wallet ? sbchWallet.sBCH._wallet.address : ''
+          derivationPath: wallet.sBCH.derivationPath,
+          walletHash: wallet.sBCH.walletHash,
+          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
         })
       })
 
       const walletHashes = [
-        bchWallet.BCH.getWalletHash(),
-        bchWallet.SLP.getWalletHash(),
-        sbchWallet.sBCH.getWalletHash(),
+        wallet.BCH.getWalletHash(),
+        wallet.SLP.getWalletHash(),
+        wallet.sBCH.getWalletHash(),
       ]
       this.$pushNotifications?.subscribe?.(walletHashes)
     },
@@ -315,11 +329,10 @@ export default {
     const vm = this
 
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {
-      if (response.status === 200) {
-        vm.show = true
-      }
+      if (response.status !== 200) return Promise.reject()
+      vm.serverOnline = true
     }).catch(function () {
-      vm.error = true
+      vm.serverOnline = false
     })
   }
 }

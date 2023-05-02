@@ -16,3 +16,6 @@ project(':capacitor-push-notifications').projectDir = new File('../../node_modul
 
 include ':capacitor-native-biometric'
 project(':capacitor-native-biometric').projectDir = new File('../node_modules/capacitor-native-biometric/android')
+
+include ':capacitor-community-native-audio'
+project(':capacitor-community-native-audio').projectDir = new File('../../node_modules/@capacitor-community/native-audio/android')

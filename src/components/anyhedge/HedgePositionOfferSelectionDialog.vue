@@ -21,7 +21,7 @@
             clickable
             :dark="darkMode"
             v-ripple
-            @click="selectedOffer = hedgePositionOffer?.id === selectedOffer?.id ? null : hedgePositionOffer"
+            @click="toggleSelectedOffer(hedgePositionOffer)"
             :class="[
               hedgePositionOffer?.id === selectedOffer?.id ? 'selected' : '',
               'q-px-sm q-py-xs',
@@ -32,6 +32,7 @@
                 size="sm"
                 :model-value="hedgePositionOffer?.id === selectedOffer?.id"
                 :dark="darkMode"
+                @click="toggleSelectedOffer(hedgePositionOffer)"
               />
             </q-item-section>
             <q-item-section>
@@ -114,4 +115,7 @@ const props = defineProps({
   },
 })
 const selectedOffer = ref(null)
+function toggleSelectedOffer(hedgePositionOffer) {
+  selectedOffer.value = hedgePositionOffer?.id === selectedOffer.value?.id ? null : hedgePositionOffer
+}
 </script>

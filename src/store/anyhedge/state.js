@@ -10,6 +10,8 @@ export default function () {
           priceValue: 0,
           messageTimestamp: 0,
           messageSequence: 0,
+          message: '',
+          signature: '',
         }
       }
     },

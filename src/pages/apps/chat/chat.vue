@@ -13,7 +13,7 @@
         <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
           <q-item clickable v-close-popup>
             <q-item-section :class="[darkMode ? 'text-white' : 'text-black']" @click="confirmDeletion = true">
-              Delete Conversation
+              Clear History
             </q-item-section>
           </q-item>
         </q-list>
@@ -22,16 +22,16 @@
     <q-dialog class="text-black" v-model="confirmDeletion" persistent>
       <q-card :dark="darkMode">
         <q-card-section class="row items-center">
-          <span class="q-ml-sm">Are you sure you want to delete this conversation?</span>
+          <span class="q-ml-sm">This will delete your local copy of this conversation except the last message. Do you want to proceed?</span>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat label="Cancel" color="primary" v-close-popup />
-          <q-btn flat label="Yes, Delete" color="red" @click="deleteConversation(topic)" v-close-popup />
+          <q-btn flat label="Yes, Delete" color="red" @click="deleteHistory(topic)" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <div class="q-pa-md row justify-center text-black" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '0px'}">
+    <div id="main-container" class="q-pa-lg row justify-center text-black" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '0px'}">
       <template v-if="!connected && !topic">
         <div class="q-pa-md row justify-center">
           <p :class="{'text-white': darkMode}">You are chatting as:</p>
@@ -84,32 +84,36 @@
       <div v-if="connecting">
         <ProgressLoader />
       </div>
-      <div v-for="message in messages" style="width: 100%; max-width: 400px">
-        <q-chat-message
-          :text="[message.msg]"
-          :sent="message.from === me"
-          :stamp="formatTimestamp(message.timestamp)"
+    </div>
+    <div v-if="connected" id="messages-container" ref="messagesContainer" style="width: 100%;">
+      <div style="overflow-y: auto; padding: 7px;">
+        <div v-for="message in messages" style="width: 100%; max-width: 400px;">
+          <q-chat-message
+            :text="[message.msg]"
+            :sent="message.from === me"
+            :stamp="formatTimestamp(message.timestamp)"
+          />
+        </div>
+      </div>
+    </div>
+    <div id="send-container">
+      <div class="q-pt-lg">
+        <q-input
+          v-model="message"
+          :dark="darkMode"
+          style="width: 100%;"
+          filled
+          autogrow
         />
       </div>
-      <div v-if="connected" class="send-container" style="width: 100%; padding: 12px;">
-        <div class="q-pt-lg">
-          <q-input
-            v-model="message"
-            :dark="darkMode"
-            style="width: 100%;"
-            filled
-            autogrow
-          />
-        </div>
-        <div ref="sendButton" class="q-pt-md" style="width: 100%;">
-          <q-btn
-            color="blue"
-            icon-right="send"
-            label="Send"
-            @click.prevent="sendEncryptedChatMessage"
-            :disable="!message"
-          />
-        </div>
+      <div class="q-pt-md" style="width: 100%; padding-bottom: 12px;">
+        <q-btn
+          color="blue"
+          icon-right="send"
+          label="Send"
+          @click.prevent="sendEncryptedChatMessage"
+          :disable="!message"
+        />
       </div>
     </div>
   </div>
@@ -124,8 +128,7 @@ import * as openpgp from 'openpgp/lightweight'
 import * as mqtt from 'mqtt'
 import axios from 'axios'
 import sha256 from 'js-sha256'
-import BCHJS from '@psf/bch-js';
-import { timeouts } from 'retry'
+import BCHJS from '@psf/bch-js'
 
 const bchjs = new BCHJS()
 const ago = require('s-ago')
@@ -217,7 +220,7 @@ export default {
     async retrievePublicKey (address) {
       const vm = this
       // Get the public key and verify
-      const url = `/chat/info/${address}`
+      const url = `/chat/identity/${address}`
       let resp
       try {
         resp = await chatBackend.get(url)
@@ -273,36 +276,40 @@ export default {
       }
     },
     async decryptChatMessage (payload) {
-      const message = await openpgp.readMessage({
-        armoredMessage: Buffer.from(payload.msg, 'base64').toString()
-      })
-    
-      let decrypted, signatures, verificationKey
-      try {
-        if (payload.from === this.me) {
-          verificationKey = await openpgp.readKey({ armoredKey: this.pgpKeys.public })
-        } else {
-          verificationKey = await openpgp.readKey({ armoredKey: this.recipientPublicKey })
-        }
-        const privateKey = await openpgp.readPrivateKey({ armoredKey: this.pgpKeys.private })
-        const { data: decrypted, signatures } = await openpgp.decrypt({
-          message,
-          decryptionKeys: privateKey,
-          expectSigned: true,
-          verificationKeys: verificationKey,
+      if (payload.from && payload.to) {
+        const message = await openpgp.readMessage({
+          armoredMessage: Buffer.from(payload.msg, 'base64').toString()
         })
+      
+        let decrypted, signatures, verificationKey
+        try {
+          if (payload.from === this.me) {
+            verificationKey = await openpgp.readKey({ armoredKey: this.pgpKeys.public })
+          } else {
+            verificationKey = await openpgp.readKey({ armoredKey: this.recipientPublicKey })
+          }
+          const privateKey = await openpgp.readPrivateKey({ armoredKey: this.pgpKeys.private })
+          const { data: decrypted, signatures } = await openpgp.decrypt({
+            message,
+            decryptionKeys: privateKey,
+            expectSigned: true,
+            verificationKeys: verificationKey,
+          })
 
-        payload.msg = decrypted
-        this.$store.dispatch(
-          'chat/appendMessage',
-          { topic: this.topic, message: payload }
-        )
-        const vm = this
-        setTimeout(function () {
-          vm.scrollToTop()
-        }, 100)
-      } catch (e) {
-        throw new Error('Message could not be decrypted: ' + e.message)
+          payload.msg = decrypted
+          this.$store.dispatch(
+            'chat/appendMessage',
+            { topic: this.topic, message: payload }
+          )
+          this.$nextTick(() => {
+            try {
+              const div = this.$refs.messagesContainer
+              div.scrollTop = div.scrollHeight
+            } catch {}
+          })
+        } catch (e) {
+          throw new Error('Message could not be decrypted: ' + e.message)
+        }
       }
     },
     formatTimestamp (timestamp) {
@@ -323,12 +330,12 @@ export default {
       const options = {
         clientId: this.me.split(':')[1]
       }
-      vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + '/mqtt')
+      vm.mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL + '/mqtt', options)
       vm.mqttClient.on('connect', function () {
-        if (!topic) {
-          vm.buildTopic()
-        } else {
+        if (topic) {
           vm.topic = topic
+        } else {
+          vm.buildTopic()
         }
         vm.mqttClient.subscribe(vm.topic, function (err) {
           if (err) {
@@ -354,17 +361,9 @@ export default {
       const divBounds = document.body.getBoundingClientRect()
       return divBounds.width
     },
-    deleteConversation () {
+    deleteHistory () {
       this.$store.dispatch('chat/deleteHistory', this.topic)
       this.$router.push('/apps/chat')
-    },
-    scrollToTop () {
-      const sendContainer = document.body.getElementsByClassName('send-container')[0]
-      if (sendContainer) {
-        this.$nextTick(() => {
-          sendContainer.scrollIntoView({ block: 'end',  behavior: 'smooth' })
-        })
-      }
     }
   },
   async mounted () {
@@ -418,7 +417,7 @@ export default {
         signature: Buffer.from(signature).toString('base64')
       }
 
-      const url = `/chat/info/`
+      const url = `/chat/identity/`
       chatBackend.post(url, payload).then(function (resp) {
         if (resp.status === 201) {
           vm.$store.dispatch('chat/addIdentity', newIdentity)
@@ -449,5 +448,26 @@ export default {
     top: 16px;
     color: #3b7bf6;
     z-index: 150;
+  }
+  #main-container {
+    border-top: 1px solid rgb(240, 231, 231);
+    padding-top: 20px !important;
+    padding-bottom: 200px;
+  }
+  #messages-container {
+    position: fixed;
+    bottom: 0;
+    padding: 0 15px;
+    overflow-y: scroll;
+    padding-top: 90px;
+    padding-bottom: 140px;
+    height: 100vh;
+  }
+  #send-container {
+    position: fixed;
+    background-color: #ECF3F3;
+    bottom: 0;
+    width: 100%;
+    padding: 0 10px;
   }
 </style>

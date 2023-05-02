@@ -166,6 +166,12 @@ export class SlpWallet {
     return request
   }
 
+  async getCollectibleGroups() {
+    const walletHash = this.getWalletHash()
+    const request = await this.watchtower.Wallet.getTokens({ walletHash, tokenType: 129 })
+    return request
+  }
+
   async getSlpTokenDetails (tokenId) {
     const url = `https://watchtower.cash/api/tokens/${tokenId}/`
     const request = await axios.get(url)

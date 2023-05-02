@@ -4,6 +4,7 @@ import { getMnemonic } from '../wallet'
 import routes from './routes'
 
 import { parseWalletConnectUri } from '../wallet/walletconnect'
+import { parsePaymentUri } from 'src/wallet/payment-uri'
 
 /*
  * If not building with SSR mode, you can
@@ -62,6 +63,18 @@ export default function ({ store }) {
           openCallRequest: true
         }
       })
+    } else if (['ethereum:', 'bitcoincash:', 'paytaca:'].indexOf(url.protocol) >= 0) {
+      const query = { assetId: 'bch', paymentUrl: String(url) }
+      try {
+        const parsedPaymentUri = parsePaymentUri(
+          String(url),
+          { chain: url.protocol === 'ethereum:' ? 'smart' : 'main' },
+        )
+        query.network = parsedPaymentUri.asset.chain === 'smart' ? 'sBCH' : 'BCH'
+      } catch(error) { console.error(error) }
+      Router.push({ name: 'transaction-send', query: query })
+    } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
+      Router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
     }
   })
 

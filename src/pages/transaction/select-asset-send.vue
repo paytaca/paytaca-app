@@ -82,6 +82,7 @@ export default {
       result: '',
       error: '',
       isCashToken: false,
+      assets: null
     }
   },
   computed: {
@@ -95,20 +96,11 @@ export default {
       set (value) {
         return this.$store.commit('global/setNetwork', value)
       }
-    },
-    assets () {
-      if (this.selectedNetwork === 'sBCH') {
-        return this.$store.getters['sep20/getAssets'].filter(Boolean)
-      }
-      const vm = this
-      return this.$store.getters['assets/getAssets'].filter(function (item) {
-        if (item) {
-          const isBch = item.id === 'bch'
-          if (vm.isCashToken) 
-            return item.id.split('/')[0] === 'ct' || isBch
-          return item.id.split('/')[0] === 'slp' || isBch
-        }
-      })
+    }
+  },
+  watch: {
+    selectedNetwork (val) {
+      this.assets = this.getAssets()
     }
   },
   methods: {
@@ -132,9 +124,29 @@ export default {
         name: 'transaction-send',
         query
       })
+    },
+    getAssets () {
+      if (this.selectedNetwork === 'sBCH') {
+        const assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
+        return assets.map((item) => {
+          if (item.id === 'bch') {
+            item.name = 'Smart Bitcoin Cash'
+            item.symbol = 'sBCH'
+            item.logo = 'sep20-logo.png'
+          }
+          return item
+        })
+      }
+
+      return this.$store.getters['assets/getAssets'].filter(function (item) {
+        if (item) {
+          return item
+        }
+      })
     }
   },
   mounted () {
+    this.assets = this.getAssets()
     this.$store.dispatch('market/updateAssetPrices', {})
   }
 }

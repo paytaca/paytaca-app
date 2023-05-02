@@ -1,78 +1,79 @@
 <template>
   <q-card-section v-ripple style="position:relative">
     <div class="row q-mb-sm">
-        <q-badge :color="resolvePositionOfferColor(hedgePositionOffer?.status)">{{ formatPositionOfferStatus(hedgePositionOffer?.status) }}</q-badge>
-        <q-badge v-if="hedgePositionOffer?.id" color="grey" class="q-ml-xs">#{{ hedgePositionOffer?.id }}</q-badge>
-        <div class="q-space"></div>
-        <div class="text-grey">{{ formatDate(hedgePositionOffer?.createdAt * 1000) }}</div>
+      <q-badge v-if="isPending && isExpired" color="red">Expired</q-badge>
+      <q-badge v-else :color="resolvePositionOfferColor(hedgePositionOffer?.status)">{{ formatPositionOfferStatus(hedgePositionOffer?.status) }}</q-badge>
+      <q-badge v-if="hedgePositionOffer?.id" color="grey" class="q-ml-xs">#{{ hedgePositionOffer?.id }}</q-badge>
+      <div class="q-space"></div>
+      <div class="text-grey">{{ formatDate(hedgePositionOffer?.createdAt * 1000) }}</div>
+    </div>
+    <div v-if="hedgePositionOffer?.expiresAt">
+      Expires at: {{ formatTimestampToText(hedgePositionOffer?.expiresAt * 1000) }}
+    </div>
+    <div class="row">
+      <div class="col">
+        <div>{{ hedgePositionOffer?.satoshis / (10**8) }} BCH</div>
       </div>
-      <div v-if="hedgePositionOffer?.expiresAt">
-        Expires at: {{ formatTimestampToText(hedgePositionOffer?.expiresAt * 1000) }}
+      <div class="col" style="text-align:right">
+        {{ hedgePositionOffer?.lowLiquidationPriceMultiplier * 100 }}% -
+        {{ hedgePositionOffer?.highLiquidationPriceMultiplier * 100 }}%
       </div>
-      <div class="row">
-        <div class="col">
-          <div>{{ hedgePositionOffer?.satoshis / (10**8) }} BCH</div>
-        </div>
-        <div class="col" style="text-align:right">
-          {{ hedgePositionOffer?.lowLiquidationPriceMultiplier * 100 }}% -
-          {{ hedgePositionOffer?.highLiquidationPriceMultiplier * 100 }}%
-        </div>
-      </div>
-      <div>
-        <q-icon name="mdi-timer-sand"/>
-        {{ formatDuration(hedgePositionOffer?.durationSeconds) }}
-      </div>
-      <q-menu
-        touch-position
-        :class="{
-          'pt-dark': darkMode,
-          'text-black': !darkMode,
-        }"
-      >
-        <q-list>
-          <q-item
-            v-if="hedgePositionOffer?.hedgePosition"
-            clickable
-            v-ripple
-            v-close-popup
-            @click="viewHedgePosition()"
-          >
-            <q-item-section>
-              <q-item-label>View contract</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item
-            v-if="isPending"
-            clickable
-            v-ripple
-            v-close-popup
-            @click="openUpdateExpirationForm()"
-          >
-            <q-item-section>
-              <q-item-label>
-                <template v-if="hedgePositionOffer?.expiresAt">Update expiry</template>
-                <template v-else>Set expiration</template>
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item
-            v-if="isPending"
-            clickable
-            v-ripple
-            v-close-popup
-            @click="confirmRemoveHedgeOffer()"
-          >
-            <q-item-section>
-              <q-item-label>Remove offer</q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-menu>
+    </div>
+    <div>
+      <q-icon name="mdi-timer-sand"/>
+      {{ formatDuration(hedgePositionOffer?.durationSeconds) }}
+    </div>
+    <q-menu
+      touch-position
+      :class="{
+        'pt-dark': darkMode,
+        'text-black': !darkMode,
+      }"
+    >
+      <q-list>
+        <q-item
+          v-if="hedgePositionOffer?.hedgePosition"
+          clickable
+          v-ripple
+          v-close-popup
+          @click="viewHedgePosition()"
+        >
+          <q-item-section>
+            <q-item-label>View contract</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item
+          v-if="isPending"
+          clickable
+          v-ripple
+          v-close-popup
+          @click="openUpdateExpirationForm()"
+        >
+          <q-item-section>
+            <q-item-label>
+              <template v-if="hedgePositionOffer?.expiresAt">Update expiry</template>
+              <template v-else>Set expiration</template>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item
+          v-if="isPending"
+          clickable
+          v-ripple
+          v-close-popup
+          @click="confirmRemoveHedgeOffer()"
+        >
+          <q-item-section>
+            <q-item-label>Remove offer</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-menu>
   </q-card-section>
 </template>
 <script setup>
 import { formatTimestampToText, formatDate, formatDuration, parseHedgePositionOffer, formatPositionOfferStatus, resolvePositionOfferColor } from 'src/wallet/anyhedge/formatters'
-import { computed } from 'vue'
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { format, useQuasar } from 'quasar'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
@@ -92,6 +93,21 @@ const props = defineProps({
   hedgePositionOffer: Object,
 })
 const isPending = computed(() => props.hedgePositionOffer?.status === 'pending')
+
+const nowTimestamp = ref(Date.now())
+const updateNowTimeoutId = ref(null)
+onUnmounted(() => clearTimeout(updateNowTimeoutId))
+onMounted(() => updateNowTimestamp())
+function updateNowTimestamp() {
+  nowTimestamp.value = Date.now()
+
+  // incase there is an existing timeout, must clear before updating
+  clearTimeout(updateNowTimeoutId.value)
+  updateNowTimeoutId.value = setTimeout(() => updateNowTimestamp(), 60 * 1000)
+}
+
+const isExpired = computed(() => props.hedgePositionOffer?.expiresAt && nowTimestamp.value / 1000 > props.hedgePositionOffer?.expiresAt)
+watch(isExpired, () => $emit('updated', props.hedgePositionOffer))
 
 function openUpdateExpirationForm() {
   console.log(props.hedgePositionOffer?.expiresAt * 1000)

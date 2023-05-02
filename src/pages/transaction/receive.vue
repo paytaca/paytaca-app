@@ -82,6 +82,14 @@ import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
+import { NativeAudio } from '@capacitor-community/native-audio'
+
+NativeAudio.preload({
+    assetId: 'send-success',
+    assetPath: 'send-success.wav',
+    audioChannelNum: 1,
+    isUrl: false
+})
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -165,7 +173,8 @@ export default {
       getMnemonic().then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
-          wallet.BCH.getNewAddressSet(newAddressIndex).then(function (addresses) {
+          wallet.BCH.getNewAddressSet(newAddressIndex).then(function (result) {
+            const addresses = result.addresses
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'bch',
               lastAddress: addresses.receiving,
@@ -173,6 +182,7 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             vm.generatingAddress = false
+            vm.$store.dispatch('chat/addIdentity', result.pgpIdentity)
             try { vm.setupListener() } catch {}
           })
         }
@@ -265,8 +275,9 @@ export default {
     },
     playSound (success) {
       if (success) {
-        const audio = new Audio('/audio/send-success.wav')
-        audio.play()
+        NativeAudio.play({
+          assetId: 'send-success'
+        })
       }
     },
     notifyOnReceive (amount, symbol, logo) {
@@ -390,6 +401,10 @@ export default {
       this.$disconnect()
       delete this?.$options?.sockets
     }
+
+    NativeAudio.unload({
+      assetId: 'send-success',
+    })
   },
 
   async mounted () {

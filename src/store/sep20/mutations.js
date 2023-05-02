@@ -11,13 +11,18 @@ export function updateAssetBalance (state, data) {
 /**
  *
  * @param {Object} state
- * @param {{ id:String, symbol:String, name:String, logo:String, balance: Number }} asset
+ * @param {{ id:String, symbol:String, name:String, logo:String, balance: Number, decimals: Number }} asset
  * @returns
  */
 export function addNewAsset (state, asset) {
   if (!Array.isArray(state.assets)) state.assets = []
 
-  if (state.assets.some(_asset => String(_asset && _asset.id).toLowerCase() === String(asset.id).toLowerCase())) {
+  const existingAsset = state.assets.find(_asset => String(_asset && _asset.id).toLowerCase() === String(asset.id).toLowerCase())
+  if (existingAsset) {
+    existingAsset.name = existingAsset?.name || asset?.name
+    existingAsset.symbol = existingAsset?.symbol || asset?.symbol
+    existingAsset.logo = existingAsset?.logo || asset?.logo
+    existingAsset.decimals = existingAsset?.decimals || asset?.decimals
     return
   }
 
@@ -39,7 +44,7 @@ export function removeAsset (state, assetId) {
 /**
  *
  * @param {Object} state
- * @param {{ id:String, symbol:String, name:String, logo: String }} asset
+ * @param {{ id:String, symbol:String, name:String, decimals:Number, logo: String }} asset
  */
 export function addIgnoredAsset (state, asset) {
   if (!asset || !asset.id) return

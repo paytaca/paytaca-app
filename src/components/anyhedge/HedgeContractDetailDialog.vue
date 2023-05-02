@@ -2,7 +2,11 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide">
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">AnyHedge Contract</div>
+        <div class="text-h6 q-space q-mt-sm">
+          <template v-if="viewAsHedge && viewPositionInTitle">Stabilize</template>
+          <template v-else-if="viewAsLong && viewPositionInTitle">Leverage</template>
+          <template v-else>AnyHedge Contract</template>
+        </div>
         <q-btn
           flat
           padding="sm"
@@ -10,7 +14,7 @@
           v-close-popup
         />
       </div>
-      <q-card-section class="q-gutter-y-sm">
+      <q-card-section class="q-gutter-y-sm" style="max-height:calc(95vh - 10rem);overflow:auto;">
         <div>
           <div class="text-grey text-subtitle1">Address</div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
@@ -36,7 +40,7 @@
                 {{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
               </div>
               <div>
-                {{ contract.metadata.hedgeInputSats / (10**8) }} BCH
+                {{ contract.metadata.hedgeInputInSatoshis / (10**8) }} BCH
               </div>
               <div
                 v-if="isFinite(hedgeMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
@@ -49,10 +53,10 @@
             <div class="col-6">
               <div class="text-grey-7">Long</div>
               <div>
-                {{ formatUnits(contract.metadata.longInputUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
+                {{ formatUnits(contract.metadata.longInputInOracleUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
               </div>
               <div>
-                {{ contract.metadata.longInputSats / (10**8) }} BCH
+                {{ contract.metadata.longInputInSatoshis / (10**8) }} BCH
               </div>
               <div
                 v-if="isFinite(longMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
@@ -81,45 +85,53 @@
               />
             </div>
             <FundingAmountsPanel
-              v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.settlementService"
+              v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.service"
               :dark-mode="darkMode"
               label="Hedge" :data="fundingMetadata.hedge"
               class="q-pr-md"
             />
             <FundingAmountsPanel
-              v-if="fundingMetadata.long.fees.network || fundingMetadata.long.fees.premium || fundingMetadata.long.fees.settlementService"
+              v-if="fundingMetadata.long.fees.network || fundingMetadata.long.fees.premium || fundingMetadata.long.fees.service"
               :dark-mode="darkMode"
               label="Long" :data="fundingMetadata.long"
               class="q-pr-md"
             />
             <FundingAmountsPanel
-              v-if="fundingMetadata.fees.network || fundingMetadata.fees.premium || fundingMetadata.fees.settlementService"
+              v-if="fundingMetadata.fees.network || fundingMetadata.fees.premium || fundingMetadata.fees.service"
               :dark-mode="darkMode"
               label="Other fees" :data="fundingMetadata"
               class="q-pr-md"
             />
           </div>
           <div v-else>
+            <q-badge v-if="isCancelled" color="red" class="q-mr-xs">
+              Contract cancelled
+              <span v-if="contract?.cancelled?.at > 0" class="q-ml-xs">
+                ({{ formatDate(contract?.cancelled?.at * 1000) }})
+              </span>
+            </q-badge>
             <q-badge color="grey-7">
               Not yet funded
             </q-badge>
             <div class="row no-wrap items-center q-gutter-x-xs q-py-xs">
               <div class="col-3 text-body1">Hedge</div>
-              <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
-              <template v-else>
-                <q-btn
-                  v-if="viewAsHedge"
-                  :disable="matured"
-                  no-caps
-                  label="Submit funding proposal"
-                  color="brandblue"
-                  padding="none sm"
-                  @click="fundHedgeProposal('hedge')"
-                />
-                <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+              <template v-if="!isCancelled">
+                <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">Submitted</q-badge>
+                <template v-else>
+                  <q-btn
+                    v-if="viewAsHedge"
+                    :disable="matured"
+                    no-caps
+                    label="Submit funding proposal"
+                    color="brandblue"
+                    padding="none sm"
+                    @click="fundHedgeProposal('hedge')"
+                  />
+                  <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+                </template>
               </template>
               <q-space/>
-              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured && !isCancelled" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -150,21 +162,23 @@
 
             <div class="row items-center q-gutter-x-xs">
               <div class="col-3 text-body1">Long</div>
-              <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
-              <template v-else>
-                <q-btn
-                  v-if="viewAsLong"
-                  :disable="matured"
-                  no-caps
-                  label="Submit funding proposal"
-                  color="brandblue"
-                  padding="none sm"
-                  @click="fundHedgeProposal('long')"
-                />
-                <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+              <template v-if="!isCancelled">
+                <q-badge v-if="contract.longFundingProposal" color="brandblue">Submitted</q-badge>
+                <template v-else>
+                  <q-btn
+                    v-if="viewAsLong"
+                    :disable="matured"
+                    no-caps
+                    label="Submit funding proposal"
+                    color="brandblue"
+                    padding="none sm"
+                    @click="fundHedgeProposal('long')"
+                  />
+                  <q-badge v-else color="grey-7">Not yet submitted</q-badge>
+                </template>
               </template>
               <q-space/>
-              <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured && !isCancelled" icon="more_vert" flat size="sm">
                 <q-menu
                   anchor="bottom right" self="top right"
                   :class="{
@@ -191,6 +205,17 @@
               total-bottom
               :data="calculatedFundingAmounts.long"
               class="q-pl-sm q-pr-md"
+            />
+            <q-btn
+              v-if="canCancelContract"
+              outline
+              padding="xs sm"
+              no-caps
+              color="red"
+              label="Cancel contract"
+              icon="block"
+              class="full-width q-mt-sm"
+              @click="cancelContractConfirm(viewAs)"
             />
           </div>
 
@@ -229,28 +254,28 @@
         <div>
           <div class="text-grey text-subtitle1">Payout Addresses</div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
-            <div @click="copyText(contract.metadata.hedgeAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
-              Hedge: {{ ellipsisText(contract.metadata.hedgeAddress) }}
+            <div @click="copyText(contract.metadata.hedgePayoutAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
+              Hedge: {{ ellipsisText(contract.metadata.hedgePayoutAddress) }}
             </div>
             <q-btn
               flat
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.hedgeAddress"
+              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.hedgePayoutAddress"
               target="_blank"
             />
           </div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
-            <div @click="copyText(contract.metadata.longAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
-              Long: {{ ellipsisText(contract.metadata.longAddress) }}
+            <div @click="copyText(contract.metadata.longPayoutAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
+              Long: {{ ellipsisText(contract.metadata.longPayoutAddress) }}
             </div>
             <q-btn
               flat
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.longAddress"
+              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.longPayoutAddress"
               target="_blank"
             />
           </div>
@@ -311,18 +336,18 @@
                 {{ formatUnits(settlementMetadata.hedge.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
               <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
-                {{ contract?.metadata?.hedgeInputSats / 10 ** 8 }} -
+                {{ contract?.metadata?.hedgeInputInSatoshis / 10 ** 8 }} -
                 {{ settlementMetadata.hedge.satoshis / 10 ** 8 }} BCH
               </div>
             </div>
             <div class="col">
               <div class="text-grey-7">Long</div>
               <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.long.assetChangePctg)}` + ' text-weight-medium'">
-                {{ formatUnits(contract?.metadata?.longInputUnits, oracleInfo.assetDecimals) }} -
+                {{ formatUnits(contract?.metadata?.longInputInOracleUnits, oracleInfo.assetDecimals) }} -
                 {{ formatUnits(settlementMetadata.long.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
               <div :class="`text-${resolveColor(settlementMetadata.long.bchChangePctg)}` + ' text-weight-medium'">
-                {{ contract?.metadata?.longInputSats / 10 ** 8 }} -
+                {{ contract?.metadata?.longInputInSatoshis / 10 ** 8 }} -
                 {{ settlementMetadata.long.satoshis / 10 ** 8 }} BCH
               </div>
             </div>
@@ -396,69 +421,63 @@
               <div>Hedge:</div>
               <div class="row q-gutter-x-xs items-center q-space no-wrap">
                 <div>{{ mutualRedemptionData.hedgeSatoshis / 10 ** 8 }} BCH</div>
-                <template v-if="mutualRedemptionData.hedgeSchnorrSig">
-                  <div class="q-space">
-                    <q-badge color="brandblue">Signed</q-badge>
-                  </div>
-                  <q-btn v-if="viewAsHedge && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
-                    <q-menu
-                      anchor="bottom right" self="top right"
-                      :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
-                    >
-                      <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('hedge')">
-                        <q-item-section>
-                          <q-item-label>Resubmit</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </q-menu>
-                  </q-btn>
-                </template>
-                <template v-else>
-                  <q-btn
-                    v-if="viewAsHedge && !mutualRedemptionData.txHash"
-                    no-caps label="Approve"
-                    color="brandblue" padding="none sm"
-                    @click="signMutualRedemptionConfirm('hedge')"
-                  />
+                <div class="q-space">
+                  <q-badge v-if="mutualRedemptionData.hedgeSchnorrSig" color="brandblue">Signed</q-badge>
                   <q-badge v-else color="grey-7">Pending</q-badge>
-                </template>
+                </div>
+                <q-btn v-if="viewAsHedge && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
+                  <q-menu
+                    anchor="bottom right" self="top right"
+                    :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
+                  >
+                    <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('hedge')">
+                      <q-item-section>
+                        <q-item-label>
+                          {{ mutualRedemptionData.hedgeSchnorrSig ? 'Resubmit' : 'Accept'  }}
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable v-ripple v-close-popup @click="cancelMutualRedemptionConfirm('hedge')">
+                      <q-item-section>
+                        <q-item-label>{{ mutualRedemptionData.hedgeSchnorrSig ? 'Cancel' : 'Decline' }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-menu>
+                </q-btn>
               </div>
             </div>
             <div class="row q-gutter-x-xs items-center">
               <div>Long:</div>
               <div class="row q-gutter-x-xs items-center q-space no-wrap">
                 <div>{{ mutualRedemptionData.longSatoshis / 10 ** 8 }} BCH</div>
-                <template v-if="mutualRedemptionData.longSchnorrSig">
-                  <div class="q-space">
-                    <q-badge color="brandblue">Signed</q-badge>
-                  </div>
-                  <q-btn v-if="viewAsLong && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
-                    <q-menu
-                      anchor="bottom right" self="top right"
-                      :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
-                    >
-                      <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('long')">
-                        <q-item-section>
-                          <q-item-label>Resubmit</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </q-menu>
-                  </q-btn>
-                </template>
-                <template v-else>
-                  <q-btn
-                    v-if="viewAsLong && !mutualRedemptionData.txHash"
-                    no-caps label="Approve"
-                    color="brandblue" padding="none sm"
-                    @click="signMutualRedemptionConfirm('long')"
-                  />
+                <div class="q-space">
+                  <q-badge v-if="mutualRedemptionData.longSchnorrSig" color="brandblue">Signed</q-badge>
                   <q-badge v-else color="grey-7">Pending</q-badge>
-                </template>
+                </div>
+                <q-btn v-if="viewAsLong && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
+                  <q-menu
+                    anchor="bottom right" self="top right"
+                    :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
+                  >
+                    <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('long')">
+                      <q-item-section>
+                        <q-item-label>
+                          {{ mutualRedemptionData.longSchnorrSig ? 'Resubmit' : 'Accept'  }}
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable v-ripple v-close-popup @click="cancelMutualRedemptionConfirm('long')">
+                      <q-item-section>
+                        <q-item-label>{{ mutualRedemptionData.longSchnorrSig ? 'Cancel' : 'Decline' }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-menu>
+                </q-btn>
               </div>
             </div>
             <div>
               <q-btn
-                v-if="!mutualRedemptionData.txHash"
+                v-if="!mutualRedemptionData.txHash && (viewAsHedge || viewAsLong)"
                 no-caps
                 color="brandblue"
                 label="Propose Another Redemption"
@@ -481,8 +500,9 @@
   </q-dialog>
 </template>
 <script setup>
+import BCHJS from '@psf/bch-js';
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
-import { formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
+import { formatDate, formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
 import { calculateContractFundingWithFees, calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
 import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
 import { getPrivateKey } from 'src/wallet/anyhedge/utils'
@@ -493,6 +513,8 @@ import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
 import FundingAmountsPanel from './FundingAmountsPanel.vue'
 import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+
+const bchjs = new BCHJS()
 
 // dialog plugins requirement
 defineEmits([
@@ -524,6 +546,7 @@ const props = defineProps({
     required: true,
   },
   viewAs: String,
+  viewPositionInTitle: Boolean,
   wallet: Object,
 })
 
@@ -539,7 +562,7 @@ const viewAsLong = computed(() => props.viewAs === 'long')
 const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
 const oracleInfo = computed(() => {
   const oracles = store.getters['anyhedge/oracles']
-  return oracles?.[props.contract?.metadata?.oraclePublicKey] || defaultOracleInfo
+  return oracles?.[props.contract?.parameters?.oraclePublicKey] || defaultOracleInfo
 })
 
 const selectedMarketCurrency = computed(() => store.getters['market/selectedCurrency']?.symbol)
@@ -560,11 +583,11 @@ const hedgeMarketValue = computed(() => {
 })
 
 const longMarketValue = computed(() => {
-  const longInputUnits = props.contract?.metadata?.longInputUnits
+  const longInputInOracleUnits = props.contract?.metadata?.longInputInOracleUnits
   if (!isFinite(oracleToSelectedAssetRate.value)) return undefined
-  if (!isFinite(longInputUnits)) return undefined
+  if (!isFinite(longInputInOracleUnits)) return undefined
 
-  let marketValue = (longInputUnits * oracleToSelectedAssetRate.value) / (10 ** oracleInfo.value?.assetDecimals || 0)
+  let marketValue = (longInputInOracleUnits * oracleToSelectedAssetRate.value) / (10 ** oracleInfo.value?.assetDecimals || 0)
   marketValue = Number(marketValue.toFixed(2))
   return marketValue
 })
@@ -575,6 +598,7 @@ function updateOracleMarketValue() {
 }
 const oracleMarketValueUpdateInterval = ref(null)
 onMounted(() => {
+  window.c = props.contract
   clearInterval(oracleMarketValueUpdateInterval.value)
   oracleMarketValueUpdateInterval.value = setInterval(
     () => updateOracleMarketValue(),
@@ -595,12 +619,12 @@ const durationText = computed(() => {
     {label: '~month', multiplier: 86400 * 30,      max: 86400 * 30 * 12 },
     {label: '~year',  multiplier: 86400 * 30 * 12, max: Infinity },
   ]
-  const duration = props.contract?.metadata?.duration
-  if (!isFinite(duration) || duration <= 0) return ''
-  const unit = unitOptions.find(unit => duration <= unit.max)
+  const durationInSeconds = props.contract?.metadata?.durationInSeconds
+  if (!isFinite(durationInSeconds) || durationInSeconds <= 0) return ''
+  const unit = unitOptions.find(unit => durationInSeconds <= unit.max)
   if (!unit) return ''
 
-  const durationValue = duration/unit.multiplier
+  const durationValue = durationInSeconds/unit.multiplier
   let label = unit.label
   if (durationValue > 1) {
     label += 's'
@@ -609,7 +633,7 @@ const durationText = computed(() => {
 })
 
 const funding = computed(() => {
-  if (props.contract?.funding?.[0]?.fundingTransaction) return 'complete'
+  if (props.contract?.fundings?.[0]?.fundingTransactionHash) return 'complete'
   else if (props.contract?.hedgeFundingProposal && props.contract?.longFundingProposal) return 'ready'
   else if (props.contract?.hedgeFundingProposal || props.contract?.longFundingProposal) return 'partial'
 
@@ -619,26 +643,38 @@ const fundingMetadata = computed(() => {
   const data = {
     hedge: {
       total: props.contract?.apiMetadata?.totalHedgeFundingSats || 0,
-      fees: { premium: 0, network: 0, settlementService: 0 }
+      fees: { premium: 0, network: 0, service: 0, serviceFees: [] }
     },
     long: {
       total: props.contract?.apiMetadata?.totalLongFundingSats || 0,
-      fees: { premium: 0, network: 0, settlementService: 0 }
+      fees: { premium: 0, network: 0, service: 0, serviceFees: [] }
     },
-    fees: { network: 0, settlementService: 0, premium: 0, premiumTaker: '' }
+    fees: { network: 0, service: 0, premium: 0, premiumTaker: '', serviceFees: [] }
   }
 
   const apiMetadata = props.contract?.apiMetadata
   if (apiMetadata?.positionTaker === 'hedge') {
     data.hedge.fees.network = apiMetadata?.networkFee || 0
-    data.hedge.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (Array.isArray(props.contract?.fees)) {
+      data.hedge.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.hedge.fees.service = props.contract.fees
+        .map(fee => fee?.satoshis)
+        .filter(satoshis => !isNaN(satoshis))
+        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
+    }
     if (apiMetadata?.liquidityFee) {
       data.hedge.fees.premium = apiMetadata.liquidityFee
       data.long.fees.premium = apiMetadata.liquidityFee * -1
     }
   } else if (apiMetadata?.positionTaker === 'long') {
     data.long.fees.network = apiMetadata?.networkFee || 0
-    data.long.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (Array.isArray(props.contract?.fees)) {
+      data.long.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.long.fees.service = props.contract.fees
+        .map(fee => fee?.satoshis)
+        .filter(satoshis => !isNaN(satoshis))
+        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
+    }
     if (apiMetadata?.liquidityFee) {
       data.long.fees.premium = apiMetadata.liquidityFee
       data.hedge.fees.premium = apiMetadata.liquidityFee * -1
@@ -646,7 +682,13 @@ const fundingMetadata = computed(() => {
     }
   } else {
     data.fees.network = apiMetadata?.networkFee || 0
-    data.fees.settlementService = props.contract?.fee?.satoshis || 0
+    if (Array.isArray(props.contract?.fees)) {
+      data.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+      data.fees.service = props.contract?.fees
+        .map(fee => fee?.satoshis)
+        .filter(satoshis => !isNaN(satoshis))
+        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
+    }
     data.fees.premium = apiMetadata?.liquidityFee || 0
     data.fees.premiumTaker = apiMetadata?.positionTaker || 'unknown'
   }
@@ -662,7 +704,7 @@ const calculatedFundingAmounts = computed(() => {
   })
 })
 const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.maturityTimestamp)
-const settled = computed(() => props.contract?.settlement?.[0]?.spendingTransaction)
+const settled = computed(() => props.contract?.settlements?.[0]?.settlementTransactionHash)
 const summaryDataAvailable = computed(() => {
   if (props.viewAs === 'hedge' && settlementMetadata.value.summary.hedge) return true
   if (props.viewAs === 'long' && settlementMetadata.value.summary.long) return true
@@ -708,7 +750,8 @@ async function getAddresses() {
     }
 
     const addressIndex = 0
-    let addressSet = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    const result = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    const addressSet = result.adddresses
     if (!addressSet?.receiving) throw new Error('Expected receiving address')
     response.addressSet = addressSet
     response.addressSet.index = addressIndex
@@ -900,7 +943,10 @@ async function verifyFundingProposalUtxo(position) {
 }
 
 const mutualRedemptionAllowed = computed(() => {
-  return props.contract?.metadata?.enableMutualRedemption && props.contract?.hedgeWalletHash && props.contract?.longWalletHash
+  return props.contract?.parameters?.enableMutualRedemption &&
+    props.contract?.hedgeWalletHash &&
+    props.contract?.longWalletHash && 
+    (viewAsHedge.value || viewAsLong.value)
 })
 function openCreateMutualRedemptionFormDialog() {
   $q.dialog({
@@ -919,10 +965,12 @@ const mutualRedemptionData = computed(() => {
     longSchnorrSig: '',
     txHash: '',
     settlementPrice: undefined,
+    initiator: '',
   }
 
   if (props?.contract?.mutualRedemption) data.exists = true
 
+  data.initiator = props?.contract?.mutualRedemption?.initiator
   data.hedgeSatoshis = props?.contract?.mutualRedemption?.hedge_satoshis || 0
   data.longSatoshis = props?.contract?.mutualRedemption?.long_satoshis || 0
   data.txHash = props?.contract?.mutualRedemption?.tx_hash || ''
@@ -944,7 +992,7 @@ const mutualRedemptionData = computed(() => {
 
 
 async function validateContractFunding() {
-  if (!props?.contract?.funding?.[0]?.fundingTransaction) throw new Exception('No funding transaction found')
+  if (!props?.contract?.fundings?.[0]?.fundingTransactionHash) throw new Exception('No funding transaction found')
   const contractAddress = props?.contract?.address
 
   if (!contractAddress) throw new Exception('Contract address not found')
@@ -1048,10 +1096,10 @@ async function signMutualRedemption(position) {
     return
   }
 
-  const hedgeAddress = props?.contract?.metadata?.hedgeAddress
-  const longAddress = props?.contract?.metadata?.longAddress
-  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgeAddress)?.amount
-  const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longAddress)?.amount
+  const hedgePayoutAddress = props?.contract?.metadata?.hedgePayoutAddress
+  const longPayoutAddress = props?.contract?.metadata?.longPayoutAddress
+  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgePayoutAddress)?.amount
+  const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longPayoutAddress)?.amount
 
   if (signedHedgeSats !== mutualRedemptionData.value.hedgeSatoshis) {
     dialog.update({
@@ -1130,5 +1178,158 @@ async function signMutualRedemptionConfirm(position) {
   })
   await dialogPromise({component: SecurityCheckDialog})
   signMutualRedemption(position)
+}
+
+async function cancelMutualRedemption(position) {
+  const initiator = mutualRedemptionData.value.initiator
+  const dialog = $q.dialog({
+    title: position === initiator ? 'Cancel proposal' : 'Decline proposal',
+    message: 'Signing message',
+    persistent: true,
+    progress: true,
+    html: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+  })
+
+  let signature
+  try {
+    const privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
+    const message = initiator === 'hedge'
+      ? mutualRedemptionData.value.hedgeSchnorrSig
+      : mutualRedemptionData.value.longSchnorrSig
+    signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
+  } catch(error) {
+    console.error(error)
+    dialog.update({ message: 'Unable to sign message' })
+    return
+  } finally {
+    dialog.update({ persistent: false, ok: true, progress: false })
+  }
+
+
+  dialog.update({
+    message: (position === initiator ? 'Cancelling' : 'Declining') + ' mutual redemption proposal',
+    persistent: true, ok: false, progress: true
+  })
+  const data = { position, signature }
+  const contractAddress = props.contract?.address
+  anyhedgeBackend.post(`/anyhedge/hedge-positions/${contractAddress}/cancel_mutual_redemption/`, data)
+    .then(response => {
+      if (response?.data?.address) {
+        parseHedgePositionData(response?.data).then(contractData => Object.assign(props.contract, contractData))
+        dialog.update({
+          message: 'Mutual redemption ' + (initiator == position ? 'cancelled' : 'declined'),
+          ok: true,
+          progress: false,
+        })
+        return Promise.resolve(response)
+      }
+      return Promise.reject(response)
+    })
+    .catch(error => {
+      console.error(error)
+      let errors = ['Encountered error in cancelling proposal']
+      if (typeof error?.response?.data === 'string') errors = [error.response.data]
+      else if (Array.isArray(error?.response?.data)) errors = error.response.data
+      else if (Array.isArray(error?.response?.data?.non_field_errors)) errors = error?.response?.data?.non_field_errors
+      dialog.update({ message: errors.join('<br/>') })
+    })
+    .finally(() => {
+      dialog.update({progress: false, persistent: false, ok: true})
+    })
+}
+
+async function cancelMutualRedemptionConfirm(position) {
+  await dialogPromise({
+    title: position === mutualRedemptionData.value.initiator ? 'Cancel proposal' : 'Decline proposal',
+    message: 'Are you sure?',
+    html: true,
+    ok: true,
+    cancel: true,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  await dialogPromise({component: SecurityCheckDialog})
+  cancelMutualRedemption(position)
+}
+
+const isCancelled = computed(() => props.contract?.cancelled?.at > 0)
+const canCancelContract = computed(() => {
+  return !props.contract?.fundingTxHash &&
+    !props.contract?.cancelled?.at &&
+    (viewAsHedge.value || viewAsLong.value)
+})
+async function cancelContract(position) {
+  const dialog = $q.dialog({
+    title: 'Cancel contract',
+    message: 'Cancelling contract',
+    persistent: true,
+    progress: true,
+    html: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+  })
+
+  const data = {
+    position: position,
+    timestamp: Math.floor(Date.now()/ 1000),
+    signature: undefined,
+  }
+
+  try {
+    dialog.update({ message: 'Signing request' })
+    const privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
+    const message = `${data.timestamp}:${props.contract?.address}`
+    data.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
+  } catch(error) {
+    console.error(error)
+    dialog.update({ message: 'Encountered error in signing message' })
+    return
+  } finally {
+    dialog.update({ persistent: false, ok: true, progress: false })
+  }
+
+  dialog.update({
+    message: 'Cancelling contract',
+    persistent: true, ok: false, progress: true
+  })
+  const contractAddress = props.contract?.address
+  anyhedgeBackend.post(`/anyhedge/hedge-positions/${contractAddress}/cancel/`, data)
+    .then(response => {
+      if (response?.data?.address) {
+        parseHedgePositionData(response?.data).then(contractData => Object.assign(props.contract, contractData))
+        dialog.update({
+          message: 'Contract cancelled',
+          ok: true,
+          progress: false,
+        })
+        return Promise.resolve(response)
+      }
+      return Promise.reject(response)
+    })
+    .catch(error => {
+      console.error(error)
+      let errors = ['Encountered error in cancelling contract']
+      if (typeof error?.response?.data === 'string') errors = [error.response.data]
+      else if (Array.isArray(error?.response?.data)) errors = error.response.data
+      else if (Array.isArray(error?.response?.data?.non_field_errors)) errors = error?.response?.data?.non_field_errors
+      dialog.update({ message: errors.join('<br/>') })
+    })
+    .finally(() => {
+      dialog.update({progress: false, persistent: false, ok: true})
+    })
+}
+
+async function cancelContractConfirm(position) {
+  await dialogPromise({
+    title: 'Cancel contract',
+    message: 'Are you sure?',
+    html: true,
+    ok: true,
+    cancel: true,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  await dialogPromise({component: SecurityCheckDialog})
+  cancelContract(position)
 }
 </script>

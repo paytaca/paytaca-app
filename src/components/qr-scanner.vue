@@ -45,7 +45,7 @@
 
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
-import { QrcodeStream } from 'vue3-qrcode-reader'
+import { QrcodeStream } from 'vue-qrcode-reader'
 import ScannerUI from 'components/scanner-ui/scanner.vue'
 
 export default {
@@ -69,7 +69,7 @@ export default {
   },
   computed: {
     isMobile() {
-      return !(this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios)
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     }
   },
   watch: {
@@ -104,9 +104,9 @@ export default {
       }
     },
     async prepareScanner () {
-      BarcodeScanner.prepare()
       const status = await this.checkPermission()
       if (status) {
+        BarcodeScanner.prepare()
         this.scanBarcode()
       } else {
         this.$emit('input', false)

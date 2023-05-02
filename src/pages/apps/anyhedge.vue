@@ -217,7 +217,7 @@
           <q-card-section v-if="fetchingHedgeOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="hedgeOffers" @removed="removedHedgeOffer"/>
+          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="hedgeOffers" @removed="removedHedgeOffer" @updated="updateHedgeOffersCount()"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -303,7 +303,7 @@
           <q-card-section v-if="fetchingLongOffers" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="longOffers" @removed="removedHedgeOffer"/>
+          <HedgeOffersList v-else ref="offersListRef" :hedge-offers="longOffers" @removed="removedHedgeOffer" @updated="updateLongOffer()"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -375,9 +375,12 @@ const offersDrawerRef = ref()
 const offersListRef = ref()
 
 const wallet = ref(null)
-onMounted(async () => {
+async function initWallet() {
   const mnemonic = await getMnemonic()
   wallet.value = markRaw(new Wallet(mnemonic))
+}
+onMounted(async () => {
+  await initWallet()
 
   fetchSummary('hedge')
   fetchSummary('long')
@@ -429,6 +432,8 @@ const websocketMessageHandler = (message) => {
     } else if (data?.action === 'settlement') {
       fetchSummary('hedge')
       fetchSummary('long')
+      refetchContract(data?.meta?.address)
+    } else if (data?.action === 'cancelled') {
       refetchContract(data?.meta?.address)
     }
   }
@@ -622,6 +627,7 @@ function updatePendingHedgeOffersCount() {
         wallet_hash: walletHash,
         position: 'hedge',
         statuses: 'pending',
+        expired: false,
         limit: 1,
         offset: 999,
       }
@@ -665,6 +671,7 @@ function fetchHedgeOffers(pagination) {
 
   if (Array.isArray(hedgeOffersFilter.value.statuses) && hedgeOffersFilter.value.statuses.length) {
     params.statuses = hedgeOffersFilter.value.statuses.join(',')
+    if (typeof params.expired !== 'boolean') params.expired = false
   }
   return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
@@ -810,6 +817,7 @@ function updatePendingLongOffersCount() {
         wallet_hash: walletHash,
         position: 'long',
         statuses: 'pending',
+        expired: false,
         limit: 1,
         offset: 999,
       }
@@ -852,6 +860,7 @@ function fetchLongOffers(pagination) {
   }
   if (Array.isArray(longOffersFilter.value.statuses) && longOffersFilter.value.statuses.length) {
     params.statuses = longOffersFilter.value.statuses.join(',')
+    if (typeof params.expired !== 'boolean') params.expired = false
   }
   return anyhedgeBackend.get(
     '/anyhedge/hedge-position-offers/',
@@ -1017,4 +1026,77 @@ function fetchLiquidityServiceInfo() {
     })
 }
 onMounted(() => fetchLiquidityServiceInfo())
+
+const openedNotification = computed(() => $store.getters['notification/openedNotification'])
+watch(() => [openedNotification.value?.id], () => handleOpenedNotification())
+onMounted(() => handleOpenedNotification())
+function handleOpenedNotification() {
+  const notificationTypes = $store.getters['notification/types']
+
+  const type = openedNotification.value?.data?.type
+  const openContractTypes = [
+    notificationTypes.ANYHEDGE_OFFER_SETTLED,
+    notificationTypes.ANYHEDGE_MATURED,
+    notificationTypes.ANYHEDGE_CONTRACT_CANCELLED,
+    notificationTypes.ANYHEDGE_REQUIRE_FUNDING,
+    notificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_UPDATE,
+    notificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_COMPLETE,
+  ]
+
+  if (openContractTypes.indexOf(type) >= 0) {
+    const address = openedNotification.value?.data?.address
+    const position = openedNotification.value?.data?.position
+    displayContractFromNotification({address, position}) 
+    $store.commit('notification/clearOpenedNotification')
+  }
+}
+
+async function displayContractFromNotification(data={address: '', position: '' }) {
+  if (!data) return
+  const { address } = data
+  let _position, contract
+
+  const hedgeContract = contracts.value.find(contract => contract?.address === address)
+  if (hedgeContract) [contract, _position] = [hedgeContract, 'hedge']
+
+  if (!contract) {
+    const longContract = longPositions.value.find(contract => contract?.address === address)
+    if (longContract) [contract, _position] = [longContract, 'long']
+  }
+
+  if (!contract) {
+    try {
+      if (!wallet.value) await initWallet()
+      const walletHash = wallet.value.BCH.getWalletHash()
+      const response = await anyhedgeBackend.get(`anyhedge/hedge-positions/${address}/`)
+      contract = await parseHedgePositionData(response?.data)
+      if (walletHash == contract.hedgeWalletHash) _position = 'hedge'
+      else if (walletHash == contract.longWalletHash) _position = 'long'
+    } catch(error) {
+      console.error(error)
+    }
+  }
+
+  let contractsListRef
+  if (_position == 'hedge') contractsListRef = contracts
+  else if (_position == 'long') contractsListRef = longPositions
+
+  if (contractsListRef) {
+    const index = contractsListRef.value.findIndex(contract => contract?.address == contract?.address)
+    if (index >= 0) contractsListRef.value[index] = contract
+    else contractsListRef.value.unshift(contract)
+  }
+
+  if (_position && !selectedAccountType.value !== _position) selectedAccountType.value = _position
+  if (contract) {
+    hedgesDrawerRef.value?.show?.()
+    hedgesListRef?.value?.displayContractInDialog?.(contract)
+  } else {
+    $q.dialog({
+      message: 'Unable to find contract',
+      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    })
+  }
+  return contract
+}
 </script>

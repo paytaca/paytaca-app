@@ -12,6 +12,7 @@ import sep20 from './sep20'
 import walletconnect from './walletconnect'
 import gifts from './gifts'
 import chat from './chat'
+import notification from './notification'
 
 /*
  * If not building with SSR mode, you can
@@ -22,27 +23,28 @@ import chat from './chat'
  * with the Store instance.
  */
 
+export const Store = createStore({
+  plugins: [createPersistedState()],
+  modules: {
+    anyhedge,
+    global,
+    darkmode,
+    assets,
+    market,
+    lns,
+    paytacapos,
+    sep20,
+    walletconnect,
+    gifts,
+    chat,
+    notification
+  },
+
+  // enable strict mode (adds overhead!)
+  // for dev mode only
+  strict: process.env.DEBUGGING
+})
+
 export default function (/* { ssrContext } */) {
-  const Store = createStore({
-    plugins: [createPersistedState()],
-    modules: {
-      anyhedge,
-      global,
-      darkmode,
-      assets,
-      market,
-      lns,
-      paytacapos,
-      sep20,
-      walletconnect,
-      gifts,
-      chat
-    },
-
-    // enable strict mode (adds overhead!)
-    // for dev mode only
-    strict: process.env.DEBUGGING
-  })
-
   return Store
 }

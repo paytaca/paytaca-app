@@ -1,5 +1,62 @@
 <template>
-  <q-form @submit="createHedgePosition()" class="q-gutter-y-md" ref="form" @validation-error="alertError">
+<TransitionGroup name="slide-group" tag="div" style="overflow:hidden;">
+  <div v-if="openLiquidityPoolOptsForm.show">
+    <div class="q-mx-sm text-subtitle1">Select liquidity pool</div>
+    <q-list class="q-my-sm" :dark="darkMode" separator>
+      <q-item
+        v-for="(pool, index) in liquidityPoolOpts" :key="index"
+        clickable
+        v-ripple
+        :class="[
+          'rounded-borders',
+          openLiquidityPoolOptsForm.selected === pool.value ? 'text-weight-medium': null,
+        ]"
+        @click="
+          openLiquidityPoolOptsForm.selected = openLiquidityPoolOptsForm.selected != pool.value ? pool.value : null
+        "
+      >
+        <q-item-section>
+          <q-item-label>{{ pool.label }}</q-item-label>
+          <q-slide-transition>
+            <q-item-label
+              v-if="pool.description && openLiquidityPoolOptsForm.selected == pool.value"
+              caption
+            >
+              {{ pool.description }}
+            </q-item-label>
+          </q-slide-transition>
+        </q-item-section>
+      </q-item>
+    </q-list>
+
+    <div class="q-gutter-y-md">
+      <q-btn
+        no-caps
+        :disable="!openLiquidityPoolOptsForm.selected"
+        label="Select"
+        color="brandblue"
+        class="full-width"
+        @click="() => {
+          createHedgeForm.autoMatchPoolTarget = openLiquidityPoolOptsForm.selected
+          openLiquidityPoolOptsForm.show = false
+        }"
+      />
+      <q-btn
+        no-caps
+        outline
+        label="Cancel"
+        color="grey"
+        class="full-width"
+        @click="$emit('cancel')"
+      />
+    </div>
+  </div>
+  <q-form
+    v-else
+    @submit="createHedgePosition()"
+    class="q-gutter-y-md" ref="form"
+    @validation-error="alertError"
+  >
     <q-banner v-if="errors.length > 0 || mainError" dense rounded class="text-white bg-red q-my-sm">
       <div v-if="mainError" class="q-px-sm q-mt-xs">
         {{ mainError }}
@@ -221,10 +278,7 @@
             label="Liquidity"
             :disable="loading"
             v-model="createHedgeForm.autoMatchPoolTarget"
-            :options="[
-              {label: 'BCH Bull', value: 'anyhedge_LP'},
-              {label: 'Peer-to-peer', value: 'watchtower_P2P' },
-            ]"
+            :options="liquidityPoolOpts"
           />
         </div>
       </div>
@@ -267,7 +321,7 @@
         no-caps
         :loading="loading"
         :disable="loading"
-        label="Create"
+        label="Calculate"
         type="submit"
         color="brandblue"
         class="full-width"
@@ -285,6 +339,7 @@
 
     </div>
   </q-form>
+</TransitionGroup>
 </template>
 <script setup>
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
@@ -357,6 +412,24 @@ const oracles = computed(() => {
     return parsedOracles
 })
 
+const openLiquidityPoolOptsForm = ref({
+  show: true,
+  selected: null,
+})
+
+const liquidityPoolOpts = ref([
+  {
+    label: 'BCH Bull',
+    value: 'anyhedge_LP',
+    description: 'Create anyhedge contracts instantly with a liquidity provider.',
+  },
+  {
+    label: 'Peer-to-peer',
+    value: 'watchtower_P2P',
+    description: 'Create anyhedge contract offers & find a match with other users',
+  },
+])
+
 const createHedgeForm = ref({
   amount: 0.0,
   duration: 4 * 3600,
@@ -365,7 +438,7 @@ const createHedgeForm = ref({
   selectedAsset: oracles.value[0],
 
   autoMatch: true,
-  autoMatchPoolTarget: 'anyhedge_LP',
+  autoMatchPoolTarget: '',
   p2pMatch: {
     similarity: 50,
   }
@@ -473,7 +546,10 @@ const createHedgeFormConstraints = computed(() => {
   const { autoMatch, autoMatchPoolTarget, selectedAsset } = createHedgeForm.value
   if (autoMatch && autoMatchPoolTarget === 'anyhedge_LP' && selectedAsset) {
     const constraints = liquidityServiceInfo.value?.liquidityParameters?.[selectedAsset?.oraclePubkey]?.[props.position == 'hedge' ? 'long' : 'hedge']
-    if (constraints) Object.assign(data, constraints)
+    if (constraints) Object.assign(data, constraints, {
+      minimumDuration: constraints.minimumDuration || constraints.minimumDurationInSeconds,
+      maximumDuration: constraints.maximumDuration || constraints.maximumDurationInSeconds,
+    })
 
     const priceValue = selectedAsset?.latestPrice?.priceValue
     if (priceValue) {
@@ -527,7 +603,8 @@ async function getAddresses() {
     }
 
     const addressIndex = 0
-    let addressSet = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    const result = await props.wallet.BCH.getNewAddressSet(addressIndex)
+    const addressSet = result.addresses
     if (!addressSet?.receiving) throw new Error('Expected receiving address')
     response.addressSet = addressSet
     response.addressSet.index = addressIndex
@@ -598,7 +675,14 @@ async function createHedgePosition() {
     }
   }
 
-  const priceData = { oraclePubkey: '', priceValue: 0, messageTimestamp: 0, messageSequence: 0 }
+  const priceData = {
+    oraclePubkey: '',
+    priceValue: 0,
+    messageTimestamp: 0,
+    messageSequence: 0,
+    message: '',
+    signature: '',
+  }
   const oracleInfo = { oraclePubkey: '', assetName: '', assetDecimals: 0, assetCurrency: '' }
   if (createHedgeForm.value.selectedAsset?.oraclePubkey) {
     Object.assign(oracleInfo, createHedgeForm.value.selectedAsset)
@@ -606,6 +690,8 @@ async function createHedgePosition() {
     priceData.priceValue = createHedgeForm.value.selectedAsset?.latestPrice?.priceValue
     priceData.messageTimestamp = createHedgeForm.value.selectedAsset?.latestPrice?.messageTimestamp
     priceData.messageSequence = createHedgeForm.value.selectedAsset?.latestPrice?.messageSequence
+    priceData.message = createHedgeForm.value.selectedAsset?.latestPrice?.message
+    priceData.signature = createHedgeForm.value.selectedAsset?.latestPrice?.signature
   }
 
   const funding = {
@@ -616,7 +702,7 @@ async function createHedgePosition() {
       version: '',  
     },
     liquidityFee: 0,
-    fee: { satoshis: 0, address: '' },
+    fees: [{ satoshis: 0, address: '', name: '', description: '' }],
     fundingProposal: {
       txHash: '',
       txIndex: 0,
@@ -641,23 +727,56 @@ async function createHedgePosition() {
       misc.accessKeys.publicKey = generalProtocolsLPFeeResponse.accessKeys.publicKey
       misc.accessKeys.signature = generalProtocolsLPFeeResponse.accessKeys.signature
       misc.accessKeys.authenticationToken = generalProtocolsLPFeeResponse.accessKeys.authenticationToken
-      if (position === 'hedge') {
-        pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longAddress
-        pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.metadata.longPublicKey
-      } else if (position === 'long') {
-        pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgeAddress
-        pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.metadata.hedgePublicKey
+
+      // NOTE: handling old & new implementation since settlement service might be
+      //        using the old one remove handling old one after stable
+      // we are able to tell if the settlement service is the upgraded implementation since
+      // generalProtocolsLPFeeResponse.contractData is directly from the settlement service and
+      // not compiled locally
+      const isUpgrade = Boolean(generalProtocolsLPFeeResponse.contractData.metadata.longPayoutAddress)
+      if (isUpgrade) {
+        if (position === 'hedge') {
+          pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longPayoutAddress
+          pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.parameters.longMutualRedeemPublicKey
+        } else if (position === 'long') {
+          pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgePayoutAddress
+          pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.parameters.hedgeMutualRedeemPublicKey
+        }
+
+        if (Array.isArray(generalProtocolsLPFeeResponse.contractData?.fees)) {
+          generalProtocolsLPFeeResponse.contractData?.fees.forEach(fee => {
+            if (!fee?.address || !fee?.satoshis) return
+            funding.fees.push({
+              address: fee.address, satoshis: fee.satoshis,
+              name: fee?.name, description: fee?.description,
+            })
+          })
+        }
+        funding.liquidityFee = 0 // liquidity fee is in fees array now
+      } else {
+        if (position === 'hedge') {
+          pubkeys.longAddress = generalProtocolsLPFeeResponse.contractData.metadata.longAddress
+          pubkeys.longPubkey = generalProtocolsLPFeeResponse.contractData.parameters.longMutualRedeemPublicKey
+        } else if (position === 'long') {
+          pubkeys.hedgeAddress = generalProtocolsLPFeeResponse.contractData.metadata.hedgeAddress
+          pubkeys.hedgePubkey = generalProtocolsLPFeeResponse.contractData.parameters.hedgeMutualRedeemPublicKey
+        }
+
+        const fee = generalProtocolsLPFeeResponse.contractData?.fee
+        if (fee?.satoshis && fee?.address) {
+          funding.fees.push({
+            address: fee.address, satoshis: fee.satoshis,
+            name: fee?.name, description: fee?.description,
+          })
+          if (generalProtocolsLPFeeResponse?.liquidityFee?.fee) {
+            funding.liquidityFee = generalProtocolsLPFeeResponse?.liquidityFee?.fee
+          }
+        }
       }
 
-      const fee = generalProtocolsLPFeeResponse.contractData?.fee
-      if (fee?.satoshis && fee?.address) {
-        funding.fee.satoshis = generalProtocolsLPFeeResponse.contractData.fee.satoshis
-        funding.fee.address = generalProtocolsLPFeeResponse.contractData.fee.address
-      }
-
-      if (generalProtocolsLPFeeResponse?.liquidityFee?.fee) {
-        funding.liquidityFee = generalProtocolsLPFeeResponse.liquidityFee.fee
-      }
+      funding.fees = funding.fees.filter(fee => fee.address && fee.satoshis)
+      funding.contractCreationParams.address = generalProtocolsLPFeeResponse.contractData?.address
+      funding.contractCreationParams.version = generalProtocolsLPFeeResponse.contractData?.version
       funding.prepareFunding = true
     } catch(error) {
       console.error(error)
@@ -683,8 +802,7 @@ async function createHedgePosition() {
     }
   } else if (misc.autoMatchPoolTarget === 'watchtower_P2P') {
     funding.prepareFunding = false
-    funding.fee.satoshis = 0
-    funding.fee.address = ''
+    funding.fees = []
 
     const p2pMatchOpts = {
       matchingPositionOffer: null,
@@ -771,8 +889,7 @@ async function createHedgePosition() {
         })
         misc.isPositionOffer = true
         funding.prepareFunding = false
-        funding.fee.satoshis = 0
-        funding.fee.address = ''
+        funding.fees = []
       } catch(error) {
         console.error(error)
         errors.value = [
@@ -824,11 +941,21 @@ async function createHedgePosition() {
         priceData.priceValue = matchedOffer.counterPartyInfo?.priceValue
         priceData.messageTimestamp = matchedOffer.counterPartyInfo?.priceMessageTimestamp
         priceData.messageSequence = matchedOffer.counterPartyInfo?.oracleMessageSequence
+        priceData.message = matchedOffer.counterPartyInfo?.startingOracleMessage
+        priceData.signature = matchedOffer.counterPartyInfo?.startingOracleSignature
         funding.contractCreationParams.address = matchedOffer.counterPartyInfo?.contractAddress
         funding.contractCreationParams.version = matchedOffer.counterPartyInfo?.contractVersion
         funding.positionTaker = matchedOffer.position
-        funding.fee.address = matchedOffer?.counterPartyInfo?.settlementServiceFeeAddress
-        funding.fee.satoshis = matchedOffer?.counterPartyInfo?.settlementServiceFee
+        if (matchedOffer?.counterPartyInfo?.settlementServiceFeeAddress &&
+            matchedOffer?.counterPartyInfo?.settlementServiceFee
+        ) {
+          funding.fees.push({
+            address: matchedOffer?.counterPartyInfo?.settlementServiceFeeAddress,
+            satoshis: matchedOffer?.counterPartyInfo?.settlementServiceFee,
+            name: 'Settlement Service',
+            description: 'Settlement service fee for Paytaca',
+          })
+        }
         funding.liquidityFee = 0
         funding.prepareFunding = true
       } catch(error) {
@@ -903,7 +1030,8 @@ async function createHedgePosition() {
       // the following data possibly doesn't exist but;
       // is necessary for creating a funding utxo
       if (!pubkeys.longAddress || !pubkeys.longPubkey || !pubkeys.hedgeAddress || !pubkeys.hedgePubkey ||
-        !priceData.oraclePubkey || !priceData.priceValue || !priceData.messageTimestamp || !priceData.messageSequence
+        !priceData.oraclePubkey || !priceData.priceValue || !priceData.messageTimestamp ||
+        !priceData.messageSequence || !priceData.message || !priceData.signature
       ) {
         mainError.value = 'Unable to create funding utxo due to incomplete data'
         errors.value = []
@@ -918,6 +1046,8 @@ async function createHedgePosition() {
         satoshis: intent.amount * 10 ** 8,
         start_timestamp: priceData.messageTimestamp,
         maturity_timestamp: priceData.messageTimestamp + intent.duration,
+        starting_oracle_message: priceData.message,
+        starting_oracle_signature: priceData.signature,
         hedge_address: pubkeys.hedgeAddress,
         hedge_pubkey: pubkeys.hedgePubkey,
         long_address: pubkeys.longAddress,
@@ -926,12 +1056,15 @@ async function createHedgePosition() {
         start_price: priceData.priceValue,
         low_liquidation_multiplier: intent.lowPriceMult,
         high_liquidation_multiplier: intent.highPriceMult,
-        fee: {
-          address: funding.fee.address,
-          satoshis: funding.fee.satoshis,
+        fees: funding.fees,
+        metadata: {
+          position_taker: funding.positionTaker,
         }
       }
       const contractData = await parseHedgePositionData(contractCreationParameters)
+      if (contractData.address !== funding.contractCreationParams.address) {
+        throw "Contract address mismatch. Unable to create funding utxo"
+      }
 
       const { fundingUtxo, signedFundingProposal } = await createFundingProposal(
         contractData, position, props.wallet, addressSet, funding.liquidityFee, funding.positionTaker)
@@ -1019,6 +1152,7 @@ async function createHedgePosition() {
   }
 
   // console.log(hedgePositionOfferData)
+  // console.log(settleOfferData)
   // console.log(fungGPLPContractData)
   // return
 
@@ -1057,7 +1191,10 @@ async function createHedgePosition() {
         if (isResponseOffer) emitData.hedgePositionOffer = response.data
         else emitData.hedgePosition = response.data
         $emit('created', emitData)
-        clearCreateHedgeForm()
+
+        // clear after timeout due to form validation not resetting when
+        // a dialog is opened(from $emit above) in the same line of execution
+        setTimeout(() => clearCreateHedgeForm(), 250)
         mainError.value = ''
         errors.value = []
         return Promise.resolve(response)
@@ -1099,3 +1236,15 @@ function updateSelectedAssetPrice() {
   $store.dispatch('anyhedge/updateOracleLatestPrice', dispatchPayload)
 }
 </script>
+<style scoped>
+.slide-group-enter-active,
+.slide-group-enter-active {
+  transition: all 0.5s ease-out;
+}
+.slide-group-enter-from {
+  opacity: 0;
+}
+.slide-group-leave-to {
+  opacity: 0;
+}
+</style>
