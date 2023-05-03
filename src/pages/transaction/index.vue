@@ -601,6 +601,8 @@ export default {
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
         requestPromise = vm.wallet.SLP.getTransactions(tokenId, page, recordType)
+      } else if (id.indexOf('ct/') > -1) {
+        vm.transactionsLoaded = true 
       } else {
         requestPromise = vm.wallet.BCH.getTransactions(page, recordType)
       }
@@ -624,32 +626,8 @@ export default {
           }, 250)
           if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
         })
-<<<<<<< HEAD
-      } else if (id.indexOf('ct/') > -1) {
-        vm.transactionsLoaded = true
-      } else {
-        vm.wallet.BCH.getTransactions(page, recordType).then(function (transactions) {
-          if (transactions.history) {
-            if (Number(transactions.page) > vm.transactionsPage) {
-              vm.transactionsPage = Number(transactions.page)
-
-              transactions.history.map(function (item) {
-                return vm.transactions.push(item)
-              })
-            }
-          } else {
-            transactions.map(function (item) {
-              return vm.transactions.push(item)
-            })
-          }
-          vm.transactionsLoaded = true
-          setTimeout(() => {
-            vm.transactionsPageHasNext = transactions.has_next
-          }, 1000)
-=======
         .finally(() => {
           vm.transactionsAppending = false
->>>>>>> master
         })
     },
     refresh (done) {
@@ -966,13 +944,9 @@ export default {
     })
   },
 
-<<<<<<< HEAD
   async mounted () {
-=======
-  mounted () {
     window.vm = this
     this.handleOpenedNotification()
->>>>>>> master
     const vm = this
 
     if (vm.prevPath === '/') {

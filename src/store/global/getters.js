@@ -8,6 +8,10 @@ export function getConnectivityStatus (state) {
   return state.online
 }
 
+export function isChipnet (state) {
+  return state.isChipnet
+}
+
 export function getAddress (state) {
   return function (walletType) {
     return state.wallets[walletType].lastAddress

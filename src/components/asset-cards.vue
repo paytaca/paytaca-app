@@ -37,16 +37,17 @@
           :assetId="asset.id"
           class="float-left q-mr-sm"
         />
-      <div v-if="!(!balanceLoaded && asset.id === selectedAsset.id)" id="token-protocol">
-        {{ asset.id.split('/')[0].toUpperCase() }}
+        <div v-if="!(!balanceLoaded && asset.id === selectedAsset.id)" id="token-protocol">
+          {{ asset.id.split('/')[0].toUpperCase() }}
+        </div>
+        <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
+          <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
+            {{ num2shortStr(getAssetMarketBalance(asset)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          </template>
+        </div>
       </div>
-      <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
-        <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
-          {{ num2shortStr(getAssetMarketBalance(asset)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
-        </template>
-      </div>
+      <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
-    <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
   </div>
 </template>
 

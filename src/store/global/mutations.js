@@ -11,6 +11,10 @@ export function setNetwork (state, network) {
   }
 }
 
+export function toggleIsChipnet (state) {
+  state.isChipnet = !state.isChipnet
+}
+
 export function updateWallet (state, details) {
   state.wallets[details.type].walletHash = details.walletHash
   state.wallets[details.type].derivationPath = details.derivationPath
