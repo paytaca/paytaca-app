@@ -45,7 +45,7 @@ export default {
       }
 
       try {
-        // added iterator 'ctr' to cap index to 50 
+        // added iterator 'ctr' to cap index to 50
         for (var i = resubscriptionInfo.lastIndex+1, ctr = 0; i <= lastBCHIndex && ctr < 50; i++, ctr++) {
           await wallet.BCH.getNewAddressSet(i)
           resubscriptionInfo.lastIndex = i
@@ -94,6 +94,7 @@ export default {
     }
   },
   mounted () {
+    console.log('testing')
     this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
       console.log('Notification:', notification)
       if (notification?.title || notification?.body) {
