@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" persistent>
+  <q-dialog ref="dialog" persistent full-width>
     <q-card :class="darkmode ? 'text-white pt-dark  ' : 'text-black'" class="br-15" style="padding-bottom: 10px; background-color: #ECF3F3">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-subtitle1 q-space q-mt-sm"></div>
@@ -14,30 +14,24 @@
           <span class="text-h6" style="position: absolute; left: 85px; z-index: 1; margin-top: 15px; font-size: 18px;">Bitcoin Cash</span>
         </div>
       </div>
-      <div class="row justify-center q-pb-lg" style="width: 350px;" v-if="!isloaded">
+      <div class="row justify-center q-pb-lg" v-if="!isloaded">
         <ProgressLoader/>
       </div>
       <div class="text-center col pt-internet-required" v-if="networkError && isloaded">
         {{ $t('NoInternetConnectionNotice') }} &#128533;
       </div>
       <div v-if="isloaded && !networkError">
-        <!-- <div class="row justify-center text-h6" style="font-size: 15px;">
-          Bitcoin Cash to {{ selectedCurrency.toUpperCase() }} Price Chart
-        </div> -->
-
-        <div class="full-width q-py-sm" style="font-size: 15px; padding-left: 40px; margin-top: 30px;">
+        <div class="full-width q-py-sm" style="font-size: 18px; padding-left: 40px; margin-top: 30px;">
           {{ bchPrice[bchPrice.length - 1].toFixed(2) }}
           {{ selectedCurrency.toUpperCase() }}&nbsp;
-          <span style="font-size: 12px;" :class="ishigher ? 'inc-text-color' : 'dec-text-color'">
+          <span style="font-size: 13px;" :class="ishigher ? 'inc-text-color' : 'dec-text-color'">
             <q-icon size="sm" :name="ishigher ? 'mdi-menu-up':'mdi-menu-down'"/><b>{{ percentage }} %</b>
           </span>
         </div>
         <q-card class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 light-bg"  :class="[ darkmode ? 'pt-dark-card-2' : '']">
-          <q-card-section class="row">
-            <div style="height: 180px ; width: 360px;">
-              <canvas ref="chart"></canvas>
-            </div>
-          </q-card-section>
+          <div style="width: 100%; height: 200px; margin-left: 3%; margin-right: 3%; margin-top: 15px; margin-bottom: 15px;" >
+            <canvas ref="chart"></canvas>
+          </div>
         </q-card>
       </div>
     </q-card>
@@ -183,6 +177,26 @@ export default {
               ]
             },
             options: {
+              scales: {
+                x: {
+                  display: false
+                  // grid: {
+                  //   display: false
+                  // }
+                },
+                y: {
+                  ticks: {
+                    font: {
+                      size: 12
+                    }
+                  }
+                  // grid: {
+                  //   display: false
+                  // }
+                }
+              },
+              responsive: true,
+              maintainAspectRatio: false,
               animation: false,
               layout: {
                 padding: 10
@@ -268,5 +282,9 @@ export default {
 }
 .inc-text-color {
   color: #8ec351
+}
+.chart {
+  width: 360px;
+  height: 180px;
 }
 </style>
