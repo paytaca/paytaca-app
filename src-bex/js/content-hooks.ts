@@ -1,9 +1,10 @@
 // Hooks added here have a bridge allowing communication between the BEX Content Script and the Quasar Application.
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/content-hooks
 
+import { BexBridge } from '@quasar/app-webpack';
 import { bexContent } from 'quasar/wrappers'
 
-export default bexContent((bridge) => {
+export default bexContent((bridge: BexBridge) => {
   // Hook into the bridge to listen for events sent from the client BEX.
   /*
   bridge.on('some.event', event => {

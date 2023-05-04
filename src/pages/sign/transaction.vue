@@ -339,7 +339,7 @@ export default defineComponent({
     },
 
     async cancel () {
-      this.$q.bex.send('background.paytaca.signTransactionResponse', {signedTransaction: undefined, signedTransactionHash: undefined, eventResponseKey: this.eventResponseKey})
+      this.$q.bex.send('background.paytaca.signTransactionResponse', {eventResponseKey: this.eventResponseKey})
       window.close()
     },
   },

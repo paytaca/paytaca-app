@@ -2,13 +2,16 @@
 // Note: Events sent from this background script using `bridge.send` can be `listen`'d for by all client BEX bridges for this BEX
 
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/background-hooks
+import { BexPayload } from '@quasar/app-webpack';
+import { bexBackground } from 'quasar/wrappers'
+import { AssetInfo, OriginInfo, ResponseInfo, SignMessageOptions, SignMessageResponse, SignTransactionOptions, SignTransactionResponse } from './interface';
 
-export default function attachBackgroundHooks (bridge, allActiveConnections) {
+export default bexBackground( (bridge, allActiveConnections) => {
   bridge.on('storage.get', event => {
     const payload = event.data
     if (payload.key === null) {
-      chrome.storage.local.get(null, r => {
-        const result = []
+      chrome.storage.local.get(null, (r: {[key: string]: any}) => {
+        const result: any[] = []
 
         // Group the items up into an array to take advantage of the bridge's chunk splitting.
         for (const itemKey in r) {
@@ -51,15 +54,15 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         width: windowWidth,
         height: 650,
         top: parentWindow.top,
-        left: parentWindow.width - windowWidth
+        left: parentWindow.width! - windowWidth
       }
-      chrome.windows.create(params, function (window) {
+      chrome.windows.create(params as any, function (window) {
         let counter = 0
         const check = setInterval(function () {
           for (const connId in allActiveConnections) {
-            if (connId.toString() === window.tabs[0].id.toString()) {
+            if (connId.toString() === window!.tabs![0]!.id!.toString()) {
               const connection = allActiveConnections[connId]
-              if (connection.app.connected) {
+              if (connection.app!.connected) {
                 clearInterval(check)
                 bridge.send('bex.paytaca.send', event.data)
               }
@@ -83,15 +86,15 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         width: windowWidth,
         height: 650,
         top: parentWindow.top,
-        left: parentWindow.width - windowWidth
+        left: parentWindow.width! - windowWidth
       }
-      chrome.windows.create(params, function (window) {
+      chrome.windows.create(params as any, function (window) {
         let counter = 0
         const check = setInterval(function () {
           for (const connId in allActiveConnections) {
-            if (connId.toString() === window.tabs[0].id.toString()) {
+            if (connId.toString() === window!.tabs![0]!.id!.toString()) {
               const connection = allActiveConnections[connId]
-              if (connection.app.connected) {
+              if (connection.app!.connected) {
                 clearInterval(check)
                 bridge.send('bex.paytaca.connecta', event.data)
               }
@@ -115,15 +118,15 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         width: windowWidth,
         height: 650,
         top: parentWindow.top,
-        left: parentWindow.width - windowWidth
+        left: parentWindow.width! - windowWidth
       }
-      chrome.windows.create(params, function (window) {
+      chrome.windows.create(params as any, function (window) {
         let counter = 0
         const check = setInterval(function () {
           for (const connId in allActiveConnections) {
-            if (connId.toString() === window.tabs[0].id.toString()) {
+            if (connId.toString() === window!.tabs![0]!.id!.toString()) {
               const connection = allActiveConnections[connId]
-              if (connection.app.connected) {
+              if (connection.app!.connected) {
                 clearInterval(check)
                 // this will never return from the app
                 bridge.send('bex.paytaca.connect', {...data, eventResponseKey} )
@@ -140,9 +143,9 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     })
   })
 
-  bridge.on('background.paytaca.connectResponse', ({ data, eventResponseKey}) => {
+  bridge.on('background.paytaca.connectResponse', ({ data}) => {
     if (data.connected) {
-      const vuex = JSON.parse(localStorage.getItem("vuex"));
+      const vuex = JSON.parse(localStorage.getItem("vuex")!);
       const wallet = vuex?.global?.wallets?.[data.assetId || "bch"];
       const connectedSites = wallet.connectedSites || {};
       const origin = data.origin.split('/')[2] ?? data.origin;
@@ -160,15 +163,15 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
   });
 
   bridge.on('background.paytaca.connected', ({ data, eventResponseKey }) => {
-    const vuex = JSON.parse(localStorage.getItem("vuex"));
+    const vuex = JSON.parse(localStorage.getItem("vuex")!);
     const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
     const origin = data.origin.split('/')[2] ?? data.origin;
     const connected = !!connectedSites[origin];
     bridge.send(eventResponseKey, connected);
   })
 
-  bridge.on('background.paytaca.disconnect', ({ data, respond, eventResponseKey }) => {
-    const vuex = JSON.parse(localStorage.getItem("vuex"));
+  bridge.on('background.paytaca.disconnect', ({ data, eventResponseKey }) => {
+    const vuex = JSON.parse(localStorage.getItem("vuex")!);
     const wallet = vuex?.global?.wallets?.[data.assetId || "bch"];
     const connectedAddress = wallet.connectedAddress;
     const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
@@ -189,16 +192,16 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     bridge.send(eventResponseKey, { connected: !!wallet.connectedAddress, address: wallet.connectedAddress });
   })
 
-  bridge.on('background.paytaca.addressChanged', ({ data, respond, eventResponseKey }) => {
+  bridge.on('background.paytaca.addressChanged', ({ data, respond }: BexPayload<{address?: string}, any>) => {
     bridge.send("window.paytaca.addressChanged", { connected: !!data.address, address: data.address });
     respond();
   })
 
-  bridge.on('background.paytaca.address', ({ data, respond }) => {
+  bridge.on('background.paytaca.address', ({ data, respond }: BexPayload<AssetInfo, string | undefined>) => {
     for (const connId in allActiveConnections) {
       const connection = allActiveConnections[connId]
-      if (connection.contentScript.connected) {
-        const vuex = JSON.parse(localStorage.getItem("vuex"));
+      if (connection.contentScript!.connected) {
+        const vuex = JSON.parse(localStorage.getItem("vuex")!);
         respond(vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedAddress);
         return
       }
@@ -206,7 +209,7 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     respond(undefined);
   })
 
-  bridge.on('background.paytaca.signMessage', ({ data, respond, eventResponseKey }) => {
+  bridge.on('background.paytaca.signMessage', ({ data, respond, eventResponseKey }: BexPayload<SignMessageOptions & OriginInfo, SignMessageResponse | undefined>) => {
     chrome.windows.getCurrent(function (parentWindow) {
       const windowWidth = 375
       const params = {
@@ -215,10 +218,10 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         width: windowWidth,
         height: 650,
         top: parentWindow.top,
-        left: parentWindow.width - windowWidth
+        left: parentWindow.width! - windowWidth
       }
-      chrome.windows.create(params, function (window) {
-        const tabId = window.tabs[0].id;
+      chrome.windows.create(params as any, function (window) {
+        const tabId = window!.tabs![0].id!;
         chrome.tabs.onRemoved.addListener(function(tabid) {
           if (tabid == tabId) {
             respond(undefined);
@@ -228,9 +231,9 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         let counter = 0
         const check = setInterval(function () {
           for (const connId in allActiveConnections) {
-            if (connId.toString() === window.tabs[0].id.toString()) {
+            if (connId.toString() === window!.tabs![0]!.id!.toString()) {
               const connection = allActiveConnections[connId]
-              if (connection.app.connected) {
+              if (connection.app!.connected) {
                 clearInterval(check)
                 // this will never return from the app
                 // instead app will send background.paytaca.signMessageResponse with the result
@@ -248,11 +251,11 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     })
   })
 
-  bridge.on('background.paytaca.signMessageResponse', event => {
-    bridge.send(event.data.eventResponseKey, event.data.signedMessage)
+  bridge.on('background.paytaca.signMessageResponse', ({data}: BexPayload<{signedMessage: string} & ResponseInfo, SignMessageResponse>) => {
+    bridge.send(data.eventResponseKey, data.signedMessage)
   });
 
-  bridge.on('background.paytaca.signTransaction', ({ data, respond, eventResponseKey }) => {
+  bridge.on('background.paytaca.signTransaction', ({ data, respond, eventResponseKey }: BexPayload<SignTransactionOptions & OriginInfo, SignTransactionResponse | undefined>) => {
     chrome.windows.getCurrent(function (parentWindow) {
       const windowWidth = 375
       const params = {
@@ -261,10 +264,10 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         width: windowWidth,
         height: 650,
         top: parentWindow.top,
-        left: parentWindow.width - windowWidth
+        left: parentWindow.width! - windowWidth
       }
-      chrome.windows.create(params, function (window) {
-        const tabId = window.tabs[0].id;
+      chrome.windows.create(params as any, function (window) {
+        const tabId = window!.tabs![0].id!;
         chrome.tabs.onRemoved.addListener(function(tabid) {
           if (tabid == tabId) {
             respond(undefined);
@@ -274,9 +277,9 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
         let counter = 0
         const check = setInterval(function () {
           for (const connId in allActiveConnections) {
-            if (connId.toString() === window.tabs[0].id.toString()) {
+            if (connId.toString() === window!.tabs![0]!.id!.toString()) {
               const connection = allActiveConnections[connId]
-              if (connection.app.connected) {
+              if (connection.app!.connected) {
                 clearInterval(check)
                 // this will never return from the app
                 // instead app will send background.paytaca.signTransactionResponse with the result
@@ -294,7 +297,7 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
     })
   })
 
-  bridge.on('background.paytaca.signTransactionResponse', ({ data }) => {
+  bridge.on('background.paytaca.signTransactionResponse', ({ data }: BexPayload<SignTransactionResponse & ResponseInfo, SignTransactionResponse>) => {
     if (!data.signedTransaction && !data.signedTransactionHash) {
       bridge.send(data.eventResponseKey, undefined);
     } else {
@@ -304,4 +307,4 @@ export default function attachBackgroundHooks (bridge, allActiveConnections) {
       });
     }
   });
-}
+});

@@ -2,39 +2,48 @@
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/dom-hooks
 
 import { stringify } from "@bitauth/libauth";
+import { BexBridge, BexPayload } from "@quasar/app-webpack";
+import { bexDom } from "quasar/wrappers";
+import { SignMessageOptions, SignMessageResponse, OriginInfo, SignTransactionOptions, SignTransactionResponse } from "./interface";
+
+declare global {
+  interface Window {
+    paytaca?: Paytaca
+  }
+}
 
 class Paytaca extends EventTarget {
-  constructor (bridge) {
+  private callbackMap: any = {};
+
+  constructor (public bridge: BexBridge) {
     super();
     this.bridge = bridge;
 
-    this.bridge.on("window.paytaca.addressChanged", (event) => {
-      this.dispatchEvent(new CustomEvent("addressChanged", { detail: event.data.address }));
+    this.bridge.on("window.paytaca.addressChanged", ({data} : BexPayload<{address?: string}, any>) => {
+      this.dispatchEvent(new CustomEvent("addressChanged", { detail: data.address }));
     });
   }
 
-  callbackMap = {};
-
-  addEventListener (event, callback, ) {
-    const wrapper = (event => callback(event.detail));
-    this.callbackMap[callback] = wrapper;
-    super.addEventListener(event, wrapper);
+  addEventListener (event: string, callback: any, options: AddEventListenerOptions): void {
+    const wrapper = (event: any) => callback(event.detail);
+    this.callbackMap[callback as any] = wrapper;
+    super.addEventListener(event, wrapper, options);
   }
 
-  on (event, callback, options) {
+  on (event: string, callback: any, options: AddEventListenerOptions): void {
     this.addEventListener(event, callback, options);
   }
 
-  once (event, callback, options) {
+  once (event: string, callback: any, options: AddEventListenerOptions): void {
     this.addEventListener(event, callback, { ...options, once: true });
   }
 
-  off (event, callback) {
+  off (event: string, callback: any): void {
     this.removeEventListener(event, this.callbackMap[callback]);
     delete this.callbackMap[callback];
   }
 
-  send (assetId, amount, recipient) {
+  async send (assetId, amount, recipient): Promise<void> {
     this.bridge.send('window.paytaca.send', {
       assetId: assetId,
       amount: amount,
@@ -42,14 +51,14 @@ class Paytaca extends EventTarget {
     })
   }
 
-  payToConnecta (paymentRequestData, orderId) {
+  async payToConnecta (paymentRequestData, orderId): Promise<void> {
     this.bridge.send('window.paytaca.connecta', {
       paymentRequestData,
       orderId
     })
   }
 
-  async connect () {
+  async connect (): Promise<void> {
     const response = await this.bridge.send('window.paytaca.connect', {
       origin: window.location.origin
     })
@@ -59,14 +68,14 @@ class Paytaca extends EventTarget {
     return response.data
   }
 
-  async connected () {
+  async connected (): Promise<boolean> {
     const response = await this.bridge.send('window.paytaca.connected', {
       origin: window.location.origin
     })
     return response.data
   }
 
-  async disconnect () {
+  async disconnect (): Promise<void> {
     const response = await this.bridge.send('window.paytaca.disconnect', {
       origin: window.location.origin
     })
@@ -76,7 +85,7 @@ class Paytaca extends EventTarget {
     return response.data
   }
 
-  async address (assetId) {
+  async address (assetId: string): Promise<string | undefined> {
     const connected = await this.connected();
 
     if (!connected) {
@@ -90,7 +99,7 @@ class Paytaca extends EventTarget {
     return response.data
   }
 
-  async signMessage ({assetId, message, userPrompt}) {
+  async signMessage (options: SignMessageOptions): Promise<SignMessageResponse | undefined> {
     const connected = await this.connected();
 
     if (!connected) {
@@ -99,17 +108,17 @@ class Paytaca extends EventTarget {
 
     const response = await this.bridge.send('window.paytaca.signMessage', {
       origin: window.location.origin,
-      assetId: assetId,
-      message: message,
-      userPrompt: userPrompt,
-    })
+      assetId: options.assetId,
+      message: options.message,
+      userPrompt: options.userPrompt,
+    } as SignMessageOptions | OriginInfo)
     return response.data
   }
 
-  async signTransaction ({assetId, transaction, sourceOutputs, broadcast, userPrompt}) {
+  async signTransaction (options: SignTransactionOptions): Promise<SignTransactionResponse | undefined> {
     const connected = await this.connected();
 
-    if (assetId?.toLowerCase() === "sbch") {
+    if (options.assetId?.toLowerCase() === "sbch") {
       throw Error("Not supported yet");
     }
 
@@ -119,17 +128,17 @@ class Paytaca extends EventTarget {
 
     const response = await this.bridge.send('window.paytaca.signTransaction', {
       origin: window.location.origin,
-      assetId: assetId,
-      transaction: typeof transaction === "string" ? transaction : stringify(transaction, 0),
-      sourceOutputs: stringify(sourceOutputs, 0),
-      broadcast: broadcast,
-      userPrompt: userPrompt,
-    })
+      assetId: options.assetId,
+      transaction: typeof options.transaction === "string" ? options.transaction : stringify(options.transaction, 0),
+      sourceOutputs: stringify(options.sourceOutputs, 0),
+      broadcast: options.broadcast,
+      userPrompt: options.userPrompt,
+    } as SignTransactionOptions | OriginInfo)
     return response.data
   }
 }
 
-export default function attachDomHooks (bridge) {
+export default bexDom((bridge) => {
   // Inject Paytaca object into the window
   window.paytaca = new Paytaca(bridge)
 
@@ -142,4 +151,4 @@ export default function attachDomHooks (bridge) {
     )
     location.replace(location.origin)
   }
-}
+});
