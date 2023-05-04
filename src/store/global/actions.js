@@ -22,9 +22,9 @@ export function updateTransactions (context, data) {
 }
 
 /**
- * 
- * @param {Object} context 
- * @param {Object} data 
+ *
+ * @param {Object} context
+ * @param {Object} data
  * @param {String} data.walletHash
  * @param {Number} data.age
  */
@@ -65,9 +65,9 @@ export async function refetchWalletPreferences(context) {
 }
 
 /**
- * 
+ *
  * @param {Object} context
- * @param {Object} data 
+ * @param {Object} data
  * @param {String} data.selected_currency
  */
 export async function updateWalletPreferences(context, data) {
@@ -90,4 +90,20 @@ export async function saveWalletPreferences(context) {
   if (response?.data?.wallet_hash) context.dispatch('updateWalletPreferences', response?.data)
 
   return response?.data
+}
+
+export async function saveExistingWallet (context) {
+  if (context.getters.isVaultEmpty) {
+    console.log('vault is empty')
+
+    const walletHash = context.getters['getWallet']('bch')?.walletHash
+    if (walletHash) {
+      const wallet = context.getters.getAllWalletTypes
+      context.commit('updateVault', wallet)
+    } else {
+      console.log('new account')
+    }
+  } else {
+    console.log('vault not empty')
+  }
 }

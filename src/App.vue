@@ -95,6 +95,12 @@ export default {
   },
   mounted () {
     console.log('testing')
+
+    // saving unsaved active wallet to vault
+    this.$store.dispatch('global/saveExistingWallet')
+    // console.log(this.$store.getters['global/getAllWalletTypes'])
+    // console.log(this.$store.getters['global/getVault'])
+
     this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
       console.log('Notification:', notification)
       if (notification?.title || notification?.body) {

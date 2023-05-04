@@ -61,6 +61,23 @@ export async function generateMnemonic () {
   return mnemonic
 }
 
+export async function testing (index) {
+  let mnemonic = null
+  console.log('TESTING')
+
+  console.log(index)
+  // console.log(this.$store.getters['global/getVault'])
+
+  console.log('print')
+
+  try {
+    mnemonic = await SecureStoragePlugin.get({ key: 'test' })
+    mnemonic = mnemonic.value
+  } catch (err) {}
+
+  console.log(mnemonic)
+}
+
 export async function storeMnemonic (mnemonic) {
   await SecureStoragePlugin.set({ key: 'mn', value: mnemonic })
   return mnemonic

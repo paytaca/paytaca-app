@@ -11,6 +11,14 @@ export function setNetwork (state, network) {
   }
 }
 
+export function updateVault (state, details) {
+  state.vault.push(details)
+}
+
+export function clearVault (state) {
+  state.vault = []
+}
+
 export function updateWallet (state, details) {
   state.wallets[details.type].walletHash = details.walletHash
   state.wallets[details.type].derivationPath = details.derivationPath
@@ -66,8 +74,8 @@ export function generateNewAddressSet (state, details) {
 }
 
 /**
- * @param {Object} state 
- * @param {Object} data 
+ * @param {Object} state
+ * @param {Object} data
  * @param {String} data.walletHash
  * @param {String} data.taskId
  * @param {String} data.status

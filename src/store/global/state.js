@@ -44,6 +44,7 @@ export default function () {
       mobileNumber: ''
     },
     online: null,
-    multiWallets: []
+    walletIndex: 0,
+    vault: []
   }
 }

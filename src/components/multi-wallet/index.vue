@@ -12,9 +12,21 @@
   </q-dialog>
 </template>
 <script>
+import { getMnemonic, testing } from '../../wallet'
+
 export default {
   async mounted () {
+    const vm = this
     console.log('Hello World')
+
+    // const mnemonic = await getMnemonic()
+    // console.log(mnemonic)
+    console.log(vm.$store.getters['global/getVault'])
+    testing(vm.$store.getters['global/getWalletIndex'])
+
+    // console.log(vm.$store.getters['global/getWalletIndex'])
+
+    // vm.$store.commit('global/clearVault')
   }
 }
 </script>
