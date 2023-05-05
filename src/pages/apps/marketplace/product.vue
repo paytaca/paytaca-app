@@ -113,7 +113,9 @@ function saveActiveCart() {
 async function addSelectedVariantToCart() {
   const cart = activeStorefrontCart.value?.id ? activeStorefrontCart.value : Cart.parse({
     storefront_id: product.value?.storefrontId,
-    ref: await $store.dispatch('marketplace/getCartRef'),
+    customer: {
+      ref: await $store.dispatch('marketplace/getCartRef'),
+    },
     items: [],
   })
   if (!cart.items.some(item => item?.variant?.id === selectedVariant.value.id)) {

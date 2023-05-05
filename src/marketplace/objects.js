@@ -302,8 +302,8 @@ export class Cart {
    * @param {Object} data
    * @param {Number} data.id
    * @param {Number} data.storefront_id
-   * @param {String} data.ref
    * @param {Number} data.subtotal
+   * @param {Object} data.customer
    * @param {Object[]} data.items
    */
   set raw(data) {
@@ -311,19 +311,28 @@ export class Cart {
 
     this.id = data?.id
     this.storefrontId = data?.storefront_id
-    this.ref = data?.ref
     this.subtotal = data?.subtotal
+    this.customer = Customer.parse(data?.customer)
     this.items = data?.items?.map?.(CartItem.parse)
   }
 
   save() {
     const data = {
       storefront_id: this.storefrontId,
-      ref: this.ref,
+      customer: null,
       items: this.items.map(item => {
         return { variant_id: item?.variant?.id, quantity: item?.quantity }
       }).filter(item => !isNaN(item?.quantity) && item.quantity >= 0)
     }
+
+    if (this?.customer?.ref) {
+      data.customer = {
+        ref: this.customer?.ref || undefined,
+        first_name: this.customer?.firstName,
+        last_name: this.customer?.lastName,
+      }
+    }
+
     const request = this.id
       ? backend.patch(`connecta/carts/${this.id}/`, data)
       : backend.post(`connecta/carts/`, data)
@@ -348,5 +357,35 @@ export class Cart {
       total += quantity
     }
     return total
+  }
+}
+
+
+export class Customer {
+  static parse(data) {
+    return new Customer(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  } 
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.ref
+   * @param {String} data.first_name
+   * @param {String} data.last_name
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.ref = data?.ref
+    this.firstName = data?.first_name
+    this.lastName = data?.last_name
   }
 }

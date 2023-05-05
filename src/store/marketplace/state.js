@@ -24,7 +24,12 @@ export default function () {
       return {
         id: 0,
         storefront_id: 0,
-        ref: '',
+        customer: {
+          id: '',
+          ref: '',
+          first_name: '',
+          last_name: '',
+        },
         subtotal: 0,
         items: [].map(() => {
           return {
