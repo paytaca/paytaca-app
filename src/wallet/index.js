@@ -66,9 +66,6 @@ export async function testing (index) {
   console.log('TESTING')
 
   console.log(index)
-  // console.log(this.$store.getters['global/getVault'])
-
-  console.log('print')
 
   try {
     mnemonic = await SecureStoragePlugin.get({ key: 'test' })

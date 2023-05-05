@@ -146,10 +146,18 @@ export default {
         .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuations
         .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
     },
+    saveToVault () {
+      // console.log('saving to vault')
+      const allWalletType = this.$store.getters['global/getAllWalletTypes']
+      // console.log(allWalletType)
+      this.$store.commit('global/updateVault', allWalletType)
+      // console.log(this.$store.getters['global/getVault'])
+    },
     continueToDashboard () {
       const vm = this
 
       this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+        vm.saveToVault()
         vm.$router.push('/')
       })
     },
