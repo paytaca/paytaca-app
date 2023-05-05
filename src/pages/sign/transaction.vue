@@ -13,7 +13,7 @@
           <p class="text-lg">Inputs:</p>
           <div v-for="(input,idx) of sourceOutputsUnpacked">
             <span class="font-normal">{{`#${idx}:`}}</span>
-            {{`${satoshiToBCHString(input.valueSatoshis)} (${binToHex(input.outpointTransactionHash).slice(0,4)}...${binToHex(input.outpointTransactionHash).slice(-4)}:${input.outpointIndex}) ${input.address?.split(':')[1]}` }}
+            {{`${satoshiToBCHString(input.valueSatoshis)} (${binToHex(input.outpointTransactionHash).slice(0,4)}...${binToHex(input.outpointTransactionHash).slice(-4)}:${input.outpointIndex}) ${toCashaddr(input.lockingBytecode).split(':')[1]}` }}
             <span v-if="input.token">
               <br/>
               <hr/>
@@ -150,7 +150,7 @@ export default defineComponent({
       connectedAddressIndex: '0/0',
       fetchedInputs: [],
       tx: {} as TransactionBCH,
-      sourceOutputsUnpacked: [] as (Input & Output & ContractInfo & AddressInfo)[],
+      sourceOutputsUnpacked: [] as (Input & Output & ContractInfo)[],
       contractName: "",
       functionName: "",
       pinDialogAction: "",
@@ -267,9 +267,11 @@ export default defineComponent({
         });
         return;
       }
-      // instruct compiler to produce signatures for relevant inputs
+
       for (const [index, input] of txTemplate.inputs.entries()) {
         if (this.sourceOutputsUnpacked[index].contract?.artifact.contractName) {
+          // instruct compiler to produce signatures for relevant contract inputs
+
           // replace pubkey and sig placeholders
           let unlockingBytecodeHex = binToHex(this.sourceOutputsUnpacked[index].unlockingBytecode);
           const sigPlaceholder = "41" + binToHex(Uint8Array.from(Array(65)));
@@ -307,18 +309,19 @@ export default defineComponent({
           }
 
           input.unlockingBytecode = hexToBin(unlockingBytecodeHex);
-        }
-
-        const sourceOutput = this.sourceOutputsUnpacked[index];
-        if (!sourceOutput.unlockingBytecode?.length && sourceOutput.address === this.connectedAddress) {
-          input.unlockingBytecode = {
-            compiler,
-            data: {
-              keys: { privateKeys: { key: privateKey } },
-            },
-            valueSatoshis: sourceOutput.valueSatoshis,
-            script: "unlock",
-            token: sourceOutput.token,
+        } else {
+          // replace unlocking bytecode for non-contract inputs having placeholder unlocking bytecode
+          const sourceOutput = this.sourceOutputsUnpacked[index];
+          if (!sourceOutput.unlockingBytecode?.length && this.toCashaddr(sourceOutput.lockingBytecode) === this.connectedAddress) {
+            input.unlockingBytecode = {
+              compiler,
+              data: {
+                keys: { privateKeys: { key: privateKey } },
+              },
+              valueSatoshis: sourceOutput.valueSatoshis,
+              script: "unlock",
+              token: sourceOutput.token,
+            }
           }
         }
       };
@@ -379,25 +382,8 @@ export default defineComponent({
       }
     }
 
-    // // let's figure out the satoshi value and token information for the inputs
-    // this.sourceOutputsUnpacked.forEach((sourceOutput, index) => {
-    //   const input = this.tx.inputs[index];
-    //   input.valueSatoshis = sourceOutput.valueSatoshis;
-    //   const cashaddr = lockingBytecodeToCashAddress(sourceOutput.lockingBytecode);
-    //   if (typeof cashaddr !== "string") {
-    //     throw cashaddr;
-    //   }
-    //   input.address = cashaddr;
-    //   input.token = sourceOutput.token;
-    // });
-
-    // this.tx.outputs.forEach((output) => {
-    //   output.address = lockingBytecodeToCashAddress(output.lockingBytecode);
-    // });
-
     this.sourceOutputsUnpacked.forEach((input, index) => {
       const contractName = this.sourceOutputsUnpacked[index].contract?.artifact?.contractName;
-      const functionName = this.sourceOutputsUnpacked[index].contract?.abiFunction?.name;
 
       if (contractName) {
         return;
