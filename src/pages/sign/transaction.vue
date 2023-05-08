@@ -31,16 +31,23 @@
           </div>
           <p class="text-lg">Outputs:</p>
           <div v-for="(output,idx) of tx.outputs">
-            <span class="font-normal">{{`#${idx}:`}}</span>
-            {{`${satoshiToBCHString(output.valueSatoshis)} ${toCashaddr(output.lockingBytecode).split(':')[1]}` }}
-            <span v-if="output.token">
-              <br/>
-              <hr/>
-              Token: <span :style="{'background-color': `#${binToHex(output.token.category.slice(0, 3))}`}">{{ binToHex(output.token.category.slice(0, 3)) }} <br/></span>
-              <span v-if="output.token.nft?.commitment.length"> Commitment: {{ binToHex(output.token.nft.commitment) }} <br/></span>
-              <span v-if="output.token.nft?.capability"> Capability: {{ output.token.nft.capability }} <br/></span>
-              <span v-if="output.token.amount > 0n"> Fungible amount: {{ output.token.amount }} <br/></span>
-            </span>
+            <div v-if="output.lockingBytecode[0] === 106">
+              <span class="font-normal">{{`#${idx}:`}}</span>
+              OP_RETURN<br/>
+              <span v-for="(chunk, index) of parsedOpReturn(output.lockingBytecode)" :key="index">{{ chunk }}<br/></span>
+            </div>
+            <div v-else>
+              <span class="font-normal">{{`#${idx}:`}}</span>
+              {{`${satoshiToBCHString(output.valueSatoshis)} ${toCashaddr(output.lockingBytecode).split(':')[1]}` }}
+              <span v-if="output.token">
+                <br/>
+                <hr/>
+                Token: <span :style="{'background-color': `#${binToHex(output.token.category.slice(0, 3))}`}">{{ binToHex(output.token.category.slice(0, 3)) }} <br/></span>
+                <span v-if="output.token.nft?.commitment.length"> Commitment: {{ binToHex(output.token.nft.commitment) }} <br/></span>
+                <span v-if="output.token.nft?.capability"> Capability: {{ output.token.nft.capability }} <br/></span>
+                <span v-if="output.token.amount > 0n"> Fungible amount: {{ output.token.amount }} <br/></span>
+              </span>
+            </div>
             <p/>
           </div>
         </div>
@@ -92,7 +99,7 @@ export interface AddressInfo {
 
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav.vue'
-import { Input, Output, SigningSerializationFlag, hash256, generateSigningSerializationBCH, secp256k1, authenticationTemplateP2pkhNonHd, importAuthenticationTemplate, decodeAuthenticationInstructions, authenticationTemplateToCompilerBCH, generateTransaction, sha256, hexToBin, decodePrivateKeyWif, SigningSerializationAlgorithmIdentifier, decodeTransaction, binToHex, lockingBytecodeToCashAddress, encodeTransaction, vmNumberToBigInt, encodeAuthenticationInstruction, encodeAuthenticationInstructions, TransactionBCH, TransactionTemplate, CompilationContextBCH, TransactionTemplateFixed, AuthenticationInstructionPush } from "@bitauth/libauth"
+import { Input, Output, SigningSerializationFlag, hash256, generateSigningSerializationBCH, secp256k1, authenticationTemplateP2pkhNonHd, importAuthenticationTemplate, decodeAuthenticationInstructions, authenticationTemplateToCompilerBCH, generateTransaction, sha256, hexToBin, decodePrivateKeyWif, SigningSerializationAlgorithmIdentifier, decodeTransaction, binToHex, lockingBytecodeToCashAddress, encodeTransaction, vmNumberToBigInt, encodeAuthenticationInstruction, encodeAuthenticationInstructions, TransactionBCH, TransactionTemplate, CompilationContextBCH, TransactionTemplateFixed, AuthenticationInstructionPush, Opcodes } from "@bitauth/libauth"
 import Watchtower from 'watchtower-cash-js';
 import pinDialog from '../../components/pin/index.vue'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
@@ -164,6 +171,12 @@ export default defineComponent({
   },
 
   methods: {
+    parsedOpReturn(bytecode) {
+      const decoded = decodeAuthenticationInstructions(bytecode);
+      console.log(decoded)
+      return (decoded.slice(1) as AuthenticationInstructionPush[]).map(val => "0x" + binToHex(val.data))
+    },
+
     toCashaddr(lockingBytecode: Uint8Array) {
       const result = lockingBytecodeToCashAddress(lockingBytecode);
       if (typeof result !== "string") {
