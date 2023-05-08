@@ -12,11 +12,21 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
-  state.vault.push(details)
+  const len = state.vault.push(details)
+
+  state.vault[len - 1].name = ''
 }
 
 export function clearVault (state) {
   state.vault = []
+}
+
+export function updateWalletIndex (state, index) {
+  state.walletIndex = index
+}
+
+export function updateWalletName (state, details) {
+  state.vault[details.index].name = details.name
 }
 
 export function updateWallet (state, details) {

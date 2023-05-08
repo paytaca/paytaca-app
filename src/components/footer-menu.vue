@@ -49,7 +49,7 @@
         <!-- <router-link :to="{ name: 'apps-dashboard' }"> -->
           <q-icon class="default-text-color mb-2" size="30px">
             <svg>
-              <use xlink:href="app-apps.svg#icon"></use>
+              <use xlink:href="app-receive.svg#icon"></use>
             </svg>
           </q-icon>
         <!-- </router-link> -->

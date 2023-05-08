@@ -9,6 +9,14 @@
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
       <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
+          <q-btn
+            flat
+            padding="md"
+            icon="arrow_back"
+            color="blue"
+            @click="!$router.push('/')"
+            v-if="!$store.getters['global/isVaultEmpty']"
+          />
           <div class="row">
             <div class="col-12 q-py-sm">
               <q-btn class="full-width bg-blue-9 text-white" @click="initCreateWallet()" :label="$t('CreateNewWallet')" rounded />
@@ -122,7 +130,8 @@ export default {
       showMnemonicTest: false,
       pinDialogAction: '',
       pin: '',
-      securityOptionDialogStatus: 'dismiss'
+      securityOptionDialogStatus: 'dismiss',
+      walletIndex: 0
     }
   },
   watch: {
@@ -151,6 +160,7 @@ export default {
       const allWalletType = this.$store.getters['global/getAllWalletTypes']
       // console.log(allWalletType)
       this.$store.commit('global/updateVault', allWalletType)
+      this.$store.commit('global/updateWalletIndex', this.walletIndex)
       // console.log(this.$store.getters['global/getVault'])
     },
     continueToDashboard () {
@@ -173,9 +183,9 @@ export default {
       // Create mnemonic seed, encrypt, and store
       if (vm.importSeedPhrase) {
         vm.mnemonicVerified = true
-        vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup))
+        vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
       } else {
-        vm.mnemonic = await generateMnemonic()
+        vm.mnemonic = await generateMnemonic(vm.walletIndex)
       }
       vm.steps += 1
 
@@ -308,6 +318,15 @@ export default {
       { value: 'es', label: 'Spanish' }
     ]
     let finalLang = ''
+
+    // get walletIndex
+    this.walletIndex = this.$store.getters['global/getVault'].length
+
+    if (this.$store.getters['global/isVaultEmpty']) {
+      this.walletIndex = 0
+    }
+
+    console.log(this.walletIndex)
 
     // Adjust paytaca language according to phone's language (if supported by paytaca)
     let deviceLang = null

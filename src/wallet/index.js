@@ -55,9 +55,15 @@ export async function loadWallet(network = 'BCH') {
   return new Wallet(mnemonic, network)
 }
 
-export async function generateMnemonic () {
+export async function generateMnemonic (index = 0) {
+  console.log(index)
+  let key = 'mn'
+  if (index !== 0) {
+    key = key + index
+    console.log(key)
+  }
   const mnemonic = bchjs.Mnemonic.generate(128)
-  await SecureStoragePlugin.set({ key: 'mn', value: mnemonic })
+  await SecureStoragePlugin.set({ key: key, value: mnemonic })
   return mnemonic
 }
 
@@ -75,21 +81,31 @@ export async function testing (index) {
   console.log(mnemonic)
 }
 
-export async function storeMnemonic (mnemonic) {
-  await SecureStoragePlugin.set({ key: 'mn', value: mnemonic })
+export async function storeMnemonic (mnemonic, index = 0) {
+  let key = 'mn'
+
+  if (index !== 0) {
+    key = key + index
+  }
+  await SecureStoragePlugin.set({ key: key, value: mnemonic })
   return mnemonic
 }
 
-export async function getMnemonic () {
+export async function getMnemonic (index = 0) {
   let mnemonic = null
+  let key = 'mn'
+
+  if (index !== 0) {
+    key = key + index
+  }
   try {
     // For versions up to v0.9.1 that used to have aes256-encrypted mnemonic
     const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
-    const encryptedMnemonic = await SecureStoragePlugin.get({ key: 'mn' })
+    const encryptedMnemonic = await SecureStoragePlugin.get({ key: key })
     mnemonic = aes256.decrypt(secretKey.value, encryptedMnemonic.value)
   } catch (err) {
     try {
-      mnemonic = await SecureStoragePlugin.get({ key: 'mn' })
+      mnemonic = await SecureStoragePlugin.get({ key: key })
       mnemonic = mnemonic.value
     } catch (err) {}
   }
