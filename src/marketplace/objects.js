@@ -322,7 +322,7 @@ export class Cart {
       customer: null,
       items: this.items.map(item => {
         return { variant_id: item?.variant?.id, quantity: item?.quantity }
-      }).filter(item => !isNaN(item?.quantity) && item.quantity >= 0)
+      }).filter(item => !isNaN(item?.quantity) && item.quantity >= 0 && item?.quantity !== '')
     }
 
     if (this?.customer?.ref) {
@@ -387,5 +387,76 @@ export class Customer {
     this.ref = data?.ref
     this.firstName = data?.first_name
     this.lastName = data?.last_name
+  }
+}
+
+export class DeliveryAddress {
+  static parse(data) {
+    return new DeliveryAddress(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.first_name
+   * @param {String} data.last_name
+   * @param {String} data.phone_number
+   * @param {Object} data.location
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.firstName = data?.first_name
+    this.lastName = data?.last_name
+    this.phoneNumber = data?.phone_number
+    this.location = Location.parse(data?.location)
+  }
+}
+
+export class Checkout {
+  static parse(data) {
+    return new Checkout(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Object} data.cart
+   * @param {Object} data.delivery_address
+   * @param {Object} data.payment
+   * @param {{ code:String, symbol:String }} data.payment.currency
+   * @param {Number} data.payment.bch_price
+   * @param {String | Number} data.payment.bch_price_timestamp
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+
+    this.id = data?.id
+    this.cart = Cart.parse(data?.cart)
+    this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
+    this.payment = {
+      currency: {
+        code: data?.payment?.currency?.code,
+        symbol: data?.payment?.currency?.symbol,
+      },
+      bchPrice: data?.payment?.bch_price,
+      bchPriceTimestamp: data?.payment?.bch_price_timestamp ? new Date(data?.payment?.bch_price_timestamp) : null,
+    }
   }
 }
