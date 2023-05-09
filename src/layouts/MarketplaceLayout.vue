@@ -92,6 +92,16 @@
               {{ getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
             </div>
           </div>
+          <div v-if="activeStorefrontCart?.subtotal" class="q-mt-sm">
+            <q-btn
+              v-close-popup
+              no-caps
+              label="Checkout"
+              color="brandblue"
+              class="full-width"
+              :to="{ name: 'app-marketplace-checkout', query: { cartId: activeStorefrontCart?.id } }"
+            />
+          </div>
         </q-card-section>
       </q-card>
     </q-dialog>
