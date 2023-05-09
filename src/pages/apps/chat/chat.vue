@@ -140,7 +140,7 @@ const chatBackend = axios.create({
 export default {
   name: 'app-chat-window',
   components: { HeaderNav, QrScanner, ProgressLoader },
-  props: [ 'presetTopic', 'presetRecipientAddress' ], 
+  props: [ 'presetTopic', 'presetRecipientAddress' ],
   data () {
     return {
       showQrScanner: false,
@@ -260,7 +260,7 @@ export default {
 
         const encrypted = await openpgp.encrypt({
             message: await openpgp.createMessage({ text: this.message }),
-            encryptionKeys: [recipientPublicKey, publicKey], 
+            encryptionKeys: [recipientPublicKey, publicKey],
             signingKeys: privateKey,
             date: new Date(Date.now() - 1000)  // Set the signing date 1 second in the past
         })
@@ -280,7 +280,7 @@ export default {
         const message = await openpgp.readMessage({
           armoredMessage: Buffer.from(payload.msg, 'base64').toString()
         })
-      
+
         let decrypted, signatures, verificationKey
         try {
           if (payload.from === this.me) {
@@ -377,7 +377,7 @@ export default {
       vm.connectToBroker(vm.topic)
     }
 
-    const mnemonic = await getMnemonic()
+    const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
     vm.wallet = new Wallet(mnemonic, 'bch')
 
     const address = this.getAddress()

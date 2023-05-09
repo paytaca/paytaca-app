@@ -7,6 +7,8 @@ import { utils } from 'ethers'
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 
+// import store from '../store'
+
 const { SecureStoragePlugin } = Plugins
 
 const BCHJS = require('@psf/bch-js')
@@ -50,8 +52,8 @@ export class Wallet {
   }
 }
 
-export async function loadWallet(network = 'BCH') {
-  const mnemonic = await getMnemonic()
+export async function loadWallet(network = 'BCH', index = 0) {
+  const mnemonic = await getMnemonic(index)
   return new Wallet(mnemonic, network)
 }
 
@@ -67,19 +69,19 @@ export async function generateMnemonic (index = 0) {
   return mnemonic
 }
 
-export async function testing (index) {
-  let mnemonic = null
-  console.log('TESTING')
+// export async function testing (index) {
+//   let mnemonic = null
+//   console.log('TESTING')
 
-  console.log(index)
+//   console.log(index)
 
-  try {
-    mnemonic = await SecureStoragePlugin.get({ key: 'test' })
-    mnemonic = mnemonic.value
-  } catch (err) {}
+//   try {
+//     mnemonic = await SecureStoragePlugin.get({ key: 'test' })
+//     mnemonic = mnemonic.value
+//   } catch (err) {}
 
-  console.log(mnemonic)
-}
+//   console.log(mnemonic)
+// }
 
 export async function storeMnemonic (mnemonic, index = 0) {
   let key = 'mn'
@@ -87,11 +89,15 @@ export async function storeMnemonic (mnemonic, index = 0) {
   if (index !== 0) {
     key = key + index
   }
+  console.log(key)
   await SecureStoragePlugin.set({ key: key, value: mnemonic })
   return mnemonic
 }
 
 export async function getMnemonic (index = 0) {
+  // console.log(store)
+  // console.log(store.getters['global/getWalletIndex'])
+  // console.log(store.getters['global/getWalletIndex'])
   let mnemonic = null
   let key = 'mn'
 

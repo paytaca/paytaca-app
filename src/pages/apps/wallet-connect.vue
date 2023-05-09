@@ -527,7 +527,7 @@ export default {
 
     loadWallet () {
       const vm = this
-      return getMnemonic()
+      return getMnemonic(vm.$store.getters['global/getWalletIndex'])
         .then(function (mnemonic) {
           vm.wallet = markRaw(new Wallet(mnemonic, 'sBCH'))
         })

@@ -107,3 +107,17 @@ export async function saveExistingWallet (context) {
     console.log('vault not empty')
   }
 }
+
+export async function switchWallet (context, index) {
+  console.log(index)
+
+  // index
+  const snapshot = context.getters.getAllWalletTypes
+  const currentIndex = context.getters.getWalletIndex
+  const walletName = context.getters.getVault[currentIndex].name
+  console.log(snapshot)
+  console.log(walletName)
+  // save snapshop
+  // updateIndex
+  // update wallet
+}

@@ -177,7 +177,7 @@ export default {
       const vm = this
       vm.processing = true
       vm.sendFailed = false
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
       const wallet = new Wallet(mnemonic)
 
       const amount = parseFloat(vm.shiftInfo.shift_info.deposit.amount)

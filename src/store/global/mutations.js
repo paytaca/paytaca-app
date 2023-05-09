@@ -26,6 +26,7 @@ export function updateWalletIndex (state, index) {
 }
 
 export function updateWalletName (state, details) {
+  console.log(details)
   state.vault[details.index].name = details.name
 }
 
@@ -35,6 +36,10 @@ export function updateWallet (state, details) {
   state.wallets[details.type].lastAddress = details.lastAddress
   state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
   state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
+}
+
+export function updateWalletSnapshot (state, details) {
+  state.vault[details.index] = details.wallet
 }
 
 export function setWalletSubscribed (state, details) {

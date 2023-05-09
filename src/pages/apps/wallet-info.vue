@@ -397,15 +397,15 @@ export default {
     },
     loadWallet () {
       const vm = this
-      return getMnemonic()
+      return getMnemonic(vm.$store.getters['global/getWalletIndex'])
         .then(function (mnemonic) {
           const wallet = new Wallet(mnemonic, 'BCH')
           vm.wallet = markRaw(wallet)
         })
     },
     updateUtxoScanTasksStatus(nextUpdate=30*1000, age=0) {
-      const bchWalletHash = this.wallet.BCH.getWalletHash()  
-      const slpWalletHash = this.wallet.SLP.getWalletHash()  
+      const bchWalletHash = this.wallet.BCH.getWalletHash()
+      const slpWalletHash = this.wallet.SLP.getWalletHash()
       const updateScanPromises = [
         this.$store.dispatch('global/updateUtxoScanTaskStatus', { walletHash: bchWalletHash, age: age }),
         this.$store.dispatch('global/updateUtxoScanTaskStatus', { walletHash: slpWalletHash, age: age }),
@@ -506,7 +506,7 @@ export default {
                   `Latest address is now:<br/>`,
                   latestAddressSet.addresses.receiving,
                   lastAddressFromStore ? `<br/><br/>Previous:<br/>${lastAddressFromStore}` : '',
-                ].join(''), 
+                ].join(''),
                 ok: true,
                 class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
                 style: 'word-break:break-word;',
@@ -691,7 +691,7 @@ export default {
   },
   created () {
     const vm = this
-    getMnemonic().then(function (mnemonic) {
+    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       vm.mnemonic = mnemonic
     })
   }

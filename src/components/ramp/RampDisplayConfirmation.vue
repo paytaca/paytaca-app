@@ -98,7 +98,7 @@ export default {
       const vm = this
       vm.isloaded = false
       const ip = await this.getIPAddr()
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
       const wallet = new Wallet(mnemonic)
 
       const walletHash = wallet.BCH.getWalletHash()

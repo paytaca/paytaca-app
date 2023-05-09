@@ -1,5 +1,5 @@
 <template>
-  <q-dialog position="bottom" full-width>
+  <q-dialog  ref="dialog" position="bottom" full-width>
     <q-card style="height: 525px;" class="br-15" :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-h5 q-space q-mt-sm" style="font-size: 18px;">Wallets</div>
@@ -17,7 +17,7 @@
       <q-card-section class="q-pt-sm" v-if="isloading">
         <q-virtual-scroll :items="vault">
           <template v-slot="{ item: wallet, index }">
-            <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" @click="switchWallet(index)">
               <q-item-section>
                 <div>
                   {{ wallet.name }} {{ wallet.bch.lastAddress }}
@@ -51,14 +51,24 @@ export default {
         // console.log(vm.vault[item])
         const wallet = vm.vault[item]
 
+        // console.log(wallet.name)
         if (wallet.name === '') {
           // vm.vault[item].name = 'Personal Wallet #' + count
           const name = 'Personal Wallet #' + count
-          vm.$store.commit('global/updateWalletName', {index: item, name: name})
+          vm.$store.commit('global/updateWalletName', { index: item, name: name })
         }
 
         count++
       }
+    },
+    switchWallet (index) {
+      console.log('switching wallet')
+
+      this.$store.dispatch('global/switchWallet', index)
+      this.$refs.dialog.hide()
+    },
+    hide () {
+      this.$refs.dialog.hide()
     }
   },
   async mounted () {
@@ -69,7 +79,7 @@ export default {
     vm.isloading = true
 
     console.log(vm.currentIndex)
-    // const mnemonic = await getMnemonic()
+    // const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
     // console.log(mnemonic)
     // console.log(vm.$store.getters['global/getVault'])
     // testing(vm.$store.getters['global/getWalletIndex'])
