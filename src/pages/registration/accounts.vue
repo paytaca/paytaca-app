@@ -117,7 +117,7 @@ export default {
       seedPhraseBackup: null,
       mnemonic: '',
       steps: -1,
-      totalSteps: 5,
+      totalSteps: 9,
       mnemonicVerified: false,
       showMnemonicTest: false,
       pinDialogAction: '',
@@ -172,50 +172,64 @@ export default {
       vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
+      const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
+      const slpWallets = [wallet.SLP, wallet.SLP_TEST]
 
-      wallet.BCH.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
-        vm.$store.commit('global/updateWallet', {
-          type: 'bch',
-          walletHash: wallet.BCH.walletHash,
-          derivationPath: wallet.BCH.derivationPath,
-          lastAddress: addresses !== null ? addresses.receiving : '',
-          lastChangeAddress: addresses !== null ? addresses.change : '',
-          lastAddressIndex: 0
-        })
-        vm.$store.dispatch('chat/addIdentity', pgpIdentity)
-        vm.steps += 1
-        try {
-          vm.$store.dispatch('global/refetchWalletPreferences')
-        } catch(error) { console.error(error) }
-      })
+      for (const bchWallet of bchWallets) {
+        const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
-      wallet.BCH.getXPubKey().then(function (xpub) {
-        vm.$store.commit('global/updateXPubKey', {
-          type: 'bch',
-          xPubKey: xpub
+        bchWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+          vm.$store.commit('global/updateWallet', {
+            isChipnet,
+            type: 'bch',
+            walletHash: bchWallet.walletHash,
+            derivationPath: bchWallet.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+          })
+          vm.$store.dispatch('chat/addIdentity', pgpIdentity)
+          vm.steps += 1
+          try {
+            vm.$store.dispatch('global/refetchWalletPreferences')
+          } catch(error) { console.error(error) }
         })
-        vm.steps += 1
-      })
 
-      wallet.SLP.getNewAddressSet(0).then(function (addresses) {
-        vm.$store.commit('global/updateWallet', {
-          type: 'slp',
-          walletHash: wallet.SLP.walletHash,
-          derivationPath: wallet.SLP.derivationPath,
-          lastAddress: addresses !== null ? addresses.receiving : '',
-          lastChangeAddress: addresses !== null ? addresses.change : '',
-          lastAddressIndex: 0
+        bchWallet.getXPubKey().then(function (xpub) {
+          vm.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'bch',
+            xPubKey: xpub
+          })
+          vm.steps += 1
         })
-        vm.steps += 1
-      })
+      }
 
-      wallet.SLP.getXPubKey().then(function (xpub) {
-        vm.$store.commit('global/updateXPubKey', {
-          type: 'slp',
-          xPubKey: xpub
+      for (const slpWallet of slpWallets) {
+        const isChipnet = slpWallets.indexOf(slpWallet) === 1
+
+        slpWallet.getNewAddressSet(0).then(function (addresses) {
+          vm.$store.commit('global/updateWallet', {
+            isChipnet,
+            type: 'slp',
+            walletHash: slpWallet.walletHash,
+            derivationPath: slpWallet.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+          })
+          vm.steps += 1
         })
-        vm.steps += 1
-      })
+
+        slpWallet.getXPubKey().then(function (xpub) {
+          vm.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'slp',
+            xPubKey: xpub
+          })
+          vm.steps += 1
+        })
+      }
 
       wallet.sBCH.subscribeWallet().then(function () {
         vm.$store.commit('global/updateWallet', {
@@ -227,9 +241,11 @@ export default {
       })
 
       const walletHashes = [
-        wallet.BCH.getWalletHash(),
-        wallet.SLP.getWalletHash(),
-        wallet.sBCH.getWalletHash(),
+        wallet.BCH.walletHash,
+        wallet.BCH_CHIP.walletHash,
+        wallet.SLP.walletHash,
+        wallet.SLP_TEST.walletHash,
+        wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes)
     },

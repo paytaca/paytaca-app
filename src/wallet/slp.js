@@ -3,12 +3,20 @@ const BCHJS = require('@psf/bch-js')
 const sha256 = require('js-sha256')
 const bchjs = new BCHJS()
 import axios from 'axios'
+import {
+  CashAddressNetworkPrefix,
+  CashAddressType,
+  encodeCashAddress,
+  decodeCashAddress,
+} from '@bitauth/libauth'
+
 
 export class SlpWallet {
-  constructor (projectId, mnemonic, path) {
+  constructor (projectId, mnemonic, path, isChipnet = false) {
+    this.isChipnet = isChipnet
     this.mnemonic = mnemonic
     this.derivationPath = path
-    this.watchtower = new Watchtower()
+    this.watchtower = new Watchtower(isChipnet)
     this.projectId = projectId
     this.walletHash = this.getWalletHash()
   }
@@ -64,6 +72,26 @@ export class SlpWallet {
       receiving: bchjs.HDNode.toSLPAddress(receivingAddressNode),
       change: bchjs.HDNode.toSLPAddress(changeAddressNode)
     }
+
+    if (this.isChipnet) {
+      const decodedReceivingAddress = decodeCashAddress(addresses.receiving)
+      const decodedChangeAddress = decodeCashAddress(addresses.change)
+
+      const encodedReceivingAddress = encodeCashAddress(
+        CashAddressNetworkPrefix.testnet,
+        CashAddressType.p2pkh,
+        decodedReceivingAddress.hash
+      )
+      const encodedChangeAddress = encodeCashAddress(
+        CashAddressNetworkPrefix.testnet,
+        CashAddressType.p2pkh,
+        decodedChangeAddress.hash
+      )
+
+      addresses.receiving = bchjs.SLP.Address.toSLPAddress(encodedReceivingAddress)
+      addresses.change = bchjs.SLP.Address.toSLPAddress(encodedChangeAddress)
+    }
+    
     return addresses
   }
 

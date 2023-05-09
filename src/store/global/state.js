@@ -4,20 +4,40 @@ export default function () {
     isChipnet: false,
     wallets: {
       bch: {
-        walletHash: '',
-        derivationPath: '',
-        xPubKey: '',
-        lastAddress: '',
-        lastChangeAddress: '',
-        lastAddressIndex: 0
+        main: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0
+        },
+        chip: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0
+        }
       },
       slp: {
-        walletHash: '',
-        derivationPath: '',
-        xPubKey: '',
-        lastAddress: '',
-        lastChangeAddress: '',
-        lastAddressIndex: 0
+        main: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0
+        },
+        test: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0
+        }
       },
       sbch: {
         subscribed: false,

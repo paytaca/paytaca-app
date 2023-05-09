@@ -1,3 +1,17 @@
+function getWalletData (state, details) {
+  const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
+  const walletType = details.type
+  const hasTestnetWallets = ['bch', 'slp']
+
+  let network = isChipnet ? 'chip' : 'main'
+  if (walletType === 'slp') {
+    network = isChipnet ? 'test' : 'main'
+  }
+  
+  const wallet = state.wallets[walletType]
+  return hasTestnetWallets.includes(walletType) ? wallet[network] : wallet
+}
+
 export function setNetwork (state, network) {
   switch (network) {
     case 'BCH':
@@ -16,11 +30,13 @@ export function toggleIsChipnet (state) {
 }
 
 export function updateWallet (state, details) {
-  state.wallets[details.type].walletHash = details.walletHash
-  state.wallets[details.type].derivationPath = details.derivationPath
-  state.wallets[details.type].lastAddress = details.lastAddress
-  state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
-  state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
+  const wallet = getWalletData(state, details)
+
+  wallet.walletHash = details.walletHash
+  wallet.derivationPath = details.derivationPath
+  wallet.lastAddress = details.lastAddress
+  wallet.lastChangeAddress = details.lastChangeAddress
+  wallet.lastAddressIndex = details.lastAddressIndex
 }
 
 export function setWalletSubscribed (state, details) {
@@ -28,7 +44,8 @@ export function setWalletSubscribed (state, details) {
 }
 
 export function updateXPubKey (state, details) {
-  state.wallets[details.type].xPubKey = details.xPubKey
+  const wallet = getWalletData(state, details)
+  wallet.xPubKey = details.xPubKey
 }
 
 export function updateAddresses (state, addresses) {
@@ -64,9 +81,11 @@ export function updateTransactions (state, data) {
 }
 
 export function generateNewAddressSet (state, details) {
-  state.wallets[details.type].lastAddress = details.lastAddress
-  state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
-  state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
+  const wallet = getWalletData(state, details)
+  
+  wallet.lastAddress = details.lastAddress
+  wallet.lastChangeAddress = details.lastChangeAddress
+  wallet.lastAddressIndex = details.lastAddressIndex
 }
 
 /**
