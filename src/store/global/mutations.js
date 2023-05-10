@@ -16,9 +16,10 @@ export function updateVault (state, details) {
   console.log(state.vault)
   console.log(details)
 
-  const len = state.vault.push(details)
+  state.vault[details.index] = details.wallet
+  // const len = state.vault.push(details)
 
-  state.vault[len - 1].name = ''
+  state.vault[details.index].name = ''
 
   console.log(state.vault)
 }
