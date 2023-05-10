@@ -97,12 +97,12 @@ export default {
     const wi = this.$store.getters['global/getWalletIndex']
     const test = await getMnemonic(wi)
 
-    // console.log(test)
+    console.log(test)
     console.log(wi)
     // saving unsaved active wallet to vault
     this.$store.dispatch('global/saveExistingWallet')
     // this.$store.dispatch('global/switchWallet', {'index': 'world'})
-    // console.log(this.$store.getters['global/getVault'])
+    console.log(this.$store.getters['global/getVault'])
     // console.log(this.$store.getters['global/getAllWalletTypes'])
     // this.$store.commit('global/clearVault')
 

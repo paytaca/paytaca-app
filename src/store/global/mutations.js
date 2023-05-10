@@ -12,9 +12,15 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
+  console.log('updating vault')
+  console.log(state.vault)
+  console.log(details)
+
   const len = state.vault.push(details)
 
   state.vault[len - 1].name = ''
+
+  console.log(state.vault)
 }
 
 export function clearVault (state) {
@@ -22,6 +28,7 @@ export function clearVault (state) {
 }
 
 export function updateWalletIndex (state, index) {
+  console.log('updating wallet index')
   state.walletIndex = index
 }
 
@@ -30,16 +37,25 @@ export function updateWalletName (state, details) {
   state.vault[details.index].name = details.name
 }
 
+export function updateWalletSnapshot (state, details) {
+  console.log(details)
+  state.vault[details.index] = details.snapshot
+  state.vault[details.index].name = details.name
+  console.log(state.vault[details.index])
+}
+
+export function updateCurrentWallet (state, index) {
+  state.wallets = state.vault[index]
+  console.log(state.wallets)
+  console.log(state.vault)
+}
+
 export function updateWallet (state, details) {
   state.wallets[details.type].walletHash = details.walletHash
   state.wallets[details.type].derivationPath = details.derivationPath
   state.wallets[details.type].lastAddress = details.lastAddress
   state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
   state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
-}
-
-export function updateWalletSnapshot (state, details) {
-  state.vault[details.index] = details.wallet
 }
 
 export function setWalletSubscribed (state, details) {

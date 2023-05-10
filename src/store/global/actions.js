@@ -100,6 +100,7 @@ export async function saveExistingWallet (context) {
     if (walletHash) {
       const wallet = context.getters.getAllWalletTypes
       context.commit('updateVault', wallet)
+      console.log('saving if vault empty')
     } else {
       console.log('new account')
     }
@@ -111,12 +112,23 @@ export async function saveExistingWallet (context) {
 export async function switchWallet (context, index) {
   console.log(index)
 
-  // index
+  // update current wallet snapshot
   const snapshot = context.getters.getAllWalletTypes
   const currentIndex = context.getters.getWalletIndex
   const walletName = context.getters.getVault[currentIndex].name
-  console.log(snapshot)
-  console.log(walletName)
+
+  const info = {
+    index: currentIndex,
+    snapshot: snapshot,
+    name: walletName
+  }
+  context.commit('updateWalletSnapshot', info)
+
+  // update current wallet index
+  context.commit('updateWalletIndex', index)
+
+  // update wallet
+  context.commit('updateCurrentWallet', index)
   // save snapshop
   // updateIndex
   // update wallet
