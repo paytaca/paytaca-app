@@ -410,6 +410,7 @@ export class DeliveryAddress {
    * @param {String} data.last_name
    * @param {String} data.phone_number
    * @param {Object} data.location
+   * @param {Number} [data.distance]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -418,6 +419,7 @@ export class DeliveryAddress {
     this.lastName = data?.last_name
     this.phoneNumber = data?.phone_number
     this.location = Location.parse(data?.location)
+    this.distance = data?.distance
   }
 }
 
@@ -443,6 +445,7 @@ export class Checkout {
    * @param {{ code:String, symbol:String }} data.payment.currency
    * @param {Number} data.payment.bch_price
    * @param {String | Number} data.payment.bch_price_timestamp
+   * @param {Number} data.payment.delivery_fee
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -457,6 +460,8 @@ export class Checkout {
       },
       bchPrice: data?.payment?.bch_price,
       bchPriceTimestamp: data?.payment?.bch_price_timestamp ? new Date(data?.payment?.bch_price_timestamp) : null,
+
+      deliveryFee: data?.payment?.delivery_fee,
     }
   }
 }
