@@ -227,10 +227,36 @@
               </div>
             </div>
           </div>
+
+          <div class="row items-start text-subtitle1">
+            <div class="q-space">Delivery fee</div>
+            <div class="text-right">{{ checkoutBchDeliveyFee }} BCH</div>
+          </div>
         </q-tab-panel>
         <q-tab-panel name="review" :dark="darkMode" class="q-pa-sm">
-          <div class="row items-start">
+          <div class="row items-start review-panel-content">
+            <div v-if="checkout?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
+              <q-card
+                :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-px-md q-py-sm']"
+              >
+                <div class="text-subtitle1">Delivery</div>
+                <q-separator :dark="darkMode"/>
+                <div>
+                  {{ checkout?.deliveryAddress?.firstName }}
+                  {{ checkout?.deliveryAddress?.lastName }}
+                </div>
+                <div>{{ checkout?.deliveryAddress?.phoneNumber }}</div>
+                <div>{{ checkout?.deliveryAddress?.location?.formatted }}</div>
+              </q-card>
+            </div>
             <div class="q-space q-pa-xs">
+              <q-card
+                :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-pa-sm']"
+              >
+              <div class="q-px-sm">
+                <div class="text-subtitle1">Items</div>
+                <q-separator :dark="darkMode"/>
+              </div>
               <table class="full-width items-table">
                 <tr>
                   <th class="full-width">Item</th>
@@ -266,24 +292,22 @@
                   <td class="text-center" style="white-space:nowrap;">{{ cartItem?.variant?.price * cartItem?.quantity }} {{ checkoutCurrency }}</td>
                 </tr>
               </table>
-              <q-separator :dark="darkMode" spaced/>
-              <div class="row items-start text-subtitle2 q-px-xs">
-                <div class="q-space">Subtotal</div>
-                <div>{{ checkoutBchSubtotal }} BCH</div>
-              </div>
-            </div>
-            <div v-if="checkout?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs q-mt-sm">
-              <q-card
-                :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-px-md q-py-sm']">
-                <div class="text-subtitle1">Delivery</div>
-                <div>
-                  {{ checkout?.deliveryAddress?.firstName }}
-                  {{ checkout?.deliveryAddress?.lastName }}
-                </div>
-                <div>{{ checkout?.deliveryAddress?.phoneNumber }}</div>
-                <div>{{ checkout?.deliveryAddress?.location?.formatted }}</div>
               </q-card>
             </div>
+          </div>
+
+          <q-separator :dark="darkMode" spaced/>
+          <div class="row items-start text-subtitle2 q-px-xs">
+            <div class="q-space">Subtotal</div>
+            <div>{{ checkoutBchSubtotal }} BCH</div>
+          </div>
+          <div class="row items-start text-subtitle2 q-px-xs">
+            <div class="q-space">Delivery fee</div>
+            <div class="text-right">{{ checkoutBchDeliveyFee }} BCH</div>
+          </div>
+          <div class="row items-start text-h6 q-px-xs">
+            <div class="q-space">Total</div>
+            <div class="text-right">{{ checkoutBchTotal }} BCH</div>
           </div>
           <div class="q-mt-sm">
             <q-btn
@@ -317,6 +341,7 @@ const props = defineProps({
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
 const initialized = ref(false)
 onMounted(() => refreshPage())
@@ -445,11 +470,6 @@ function selectCoordinates() {
 
 function updateBchPrice(opts={save: true, age: 60 * 1000}) {
   if (opts?.age && formData.value.payment.bchPrice.timestamp > Date.now() - opts?.age) {
-    console.log(
-      formData.value.payment.bchPrice.timestamp,
-      new Date(Date.now() - opts?.age),
-      formData.value.payment.bchPrice.timestamp > Date.now() - opts?.age,
-    )
     return Promise.resolve('price is still new')
   }
   const coinId = 'bitcoin-cash'
@@ -502,6 +522,22 @@ const checkoutBchSubtotal = computed(() => {
   const subtotal = checkout.value?.cart?.subtotal / formData.value?.payment?.bchPrice?.rate
   return Math.ceil(subtotal * 10 ** 8) / 10 ** 8
 })
+const checkoutBchDeliveyFee = computed(() => {
+  if (isNaN(checkout.value?.payment?.deliveryFee) || isNaN(formData.value?.payment?.bchPrice?.rate)) return
+  const deliveryFee = checkout.value?.payment?.deliveryFee / formData.value?.payment?.bchPrice?.rate
+  return Math.ceil(deliveryFee * 10 ** 8) / 10 ** 8
+})
+const checkoutTotal = computed(() => {
+  if (isNaN(checkout.value?.cart?.subtotal) || isNaN(checkout.value?.payment?.deliveryFee)) return
+  return Number(checkout.value?.cart?.subtotal) + Number(checkout.value?.payment?.deliveryFee)
+})
+
+const checkoutBchTotal = computed(() => {
+  if (isNaN(checkoutTotal.value) || isNaN(formData.value?.payment?.bchPrice?.rate)) return
+  const total = checkoutTotal.value / formData.value?.payment?.bchPrice?.rate
+  return Math.ceil(total * 10 ** 8) / 10 ** 8
+})
+
 function fetchCheckout() {
   let request
   if (props.checkoutId) request = backend.get(`connecta/checkouts/${props.checkoutId}`)
@@ -515,6 +551,19 @@ function fetchCheckout() {
 
 function saveCart() {
   $store.dispatch('marketplace/saveCart', checkout.value.cart)
+}
+
+function updateDeliveryFee() {
+  loading.value = true
+  return backend.post(`connecta/checkouts/${checkout.value.id}/update_delivery_fee/`)
+    .then(response => {
+      if (!response?.data?.id) return Promise.reject({ response })
+      checkout.value.raw = response?.data
+      resetFormData()
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 
 function savePayment() {
@@ -547,6 +596,7 @@ function saveDeliveryAddress() {
       },
     }
   })
+  .then(() => updateDeliveryFee())
 }
 
 function updateCheckout(data) {
@@ -582,5 +632,12 @@ table.items-table td {
 }
 .q-tab-panels {
   background: unset;
+}
+</style>
+<style scoped lang="scss">
+@media (min-width: $breakpoint-xs) {
+  .review-panel-content {
+    flex-direction: row-reverse;
+  }
 }
 </style>
