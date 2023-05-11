@@ -98,7 +98,10 @@ export async function saveExistingWallet (context) {
 
     const walletHash = context.getters['getWallet']('bch')?.walletHash
     if (walletHash) {
-      const wallet = context.getters.getAllWalletTypes
+      let wallet = context.getters.getAllWalletTypes
+      wallet = JSON.stringify(wallet)
+      wallet = JSON.parse(wallet)
+
       context.commit('updateVault', wallet)
       console.log('saving if vault empty')
     } else {
@@ -113,7 +116,10 @@ export async function switchWallet (context, index) {
   console.log(index)
 
   // update current wallet snapshot
-  const snapshot = context.getters.getAllWalletTypes
+  let snapshot = context.getters.getAllWalletTypes
+  // snapshot = JSON.stringify(snapshot)
+  // snapshot = JSON.parse(snapshot)
+
   const currentIndex = context.getters.getWalletIndex
   const walletName = context.getters.getVault[currentIndex].name
 

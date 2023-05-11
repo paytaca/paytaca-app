@@ -17,11 +17,29 @@
       <q-card-section class="q-pt-sm" v-if="isloading">
         <q-virtual-scroll :items="vault">
           <template v-slot="{ item: wallet, index }">
-            <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" @click="switchWallet(index)">
-              <q-item-section>
-                <div>
-                  {{ wallet.name }} {{ wallet.bch.lastAddress }}
+            <q-item class="q-pb-sm" clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" @click="selectedIndex = index">
+              <q-item-section style="overflow-wrap: break-word;">
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                  <span class="text-h5" style="font-size: 15px;">{{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></span>
+                  <span  class="text-nowrap q-ml-xs q-mt-sm">0 BCH</span>
                 </div>
+                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                  <span style="font-size: 12px; color: gray;">{{ arrangeAddressText(wallet.bch.lastAddress) }}</span>
+                  <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">0 USD</span>
+                </div>
+                <q-menu anchor="bottom right" self="top end" >
+                  <q-list class="text-h5" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 150px; font-size: 15px;">
+                    <q-item clickable v-close-popup>
+                      <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">Switch Wallet</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup>
+                      <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="openRenameDialog()">Rename</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup>
+                      <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">close</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
               </q-item-section>
             </q-item>
           </template>
@@ -32,6 +50,7 @@
 </template>
 <script>
 import { getMnemonic, testing } from '../../wallet'
+import renameDialog from './renameDialog.vue'
 
 export default {
   data () {
@@ -39,8 +58,13 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       currentIndex: this.$store.getters['global/getWalletIndex'],
       vault: [],
-      isloading: false
+      isloading: false,
+      secondDialog: false,
+      selectedIndex: null
     }
+  },
+  components: {
+    renameDialog
   },
   methods: {
     processVaultName () {
@@ -50,7 +74,6 @@ export default {
       for (const item in vm.vault) {
         // console.log(vm.vault[item])
         const wallet = vm.vault[item]
-
         // console.log(wallet.name)
         if (wallet.name === '') {
           // vm.vault[item].name = 'Personal Wallet #' + count
@@ -62,16 +85,39 @@ export default {
       }
     },
     switchWallet (index) {
-      console.log('switching wallet')
+      if (index !== this.currentIndex) {
+        console.log('switching wallet')
 
-      this.$store.dispatch('global/switchWallet', index)
+        this.$store.dispatch('global/switchWallet', index)
+      } else {
+        console.log('same wallet')
+      }
       this.$refs.dialog.hide()
     },
     hide () {
       this.$refs.dialog.hide()
+    },
+    arrangeAddressText (address) {
+      return address.slice(0, 19) + '.....' + address.slice(40)
+    },
+    isActive (index) {
+      if (index === this.currentIndex) {
+        return true
+      } else {
+        return false
+      }
+    },
+    openRenameDialog () {
+      this.$q.dialog({
+        component: renameDialog,
+        componentProps: {
+          index: this.selectedIndex
+        }
+      })
     }
   },
   async mounted () {
+    console.log('Multi-Wallet')
     const vm = this
     vm.vault = vm.$store.getters['global/getVault']
 
@@ -90,3 +136,11 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+.inactive-color {
+  color: #ed5e59;
+}
+.active-color {
+  color: #8ec351
+}
+</style>

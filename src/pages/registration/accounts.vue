@@ -157,17 +157,16 @@ export default {
     },
     saveToVault () {
       console.log('saving to vault: ')
-      console.log(this.$store.getters['global/getVault'])
-      const allWalletType = this.$store.getters['global/getAllWalletTypes']
-      console.log(allWalletType)
-
-      const info = {
-        index: this.walletIndex,
-        wallet: allWalletType
-      }
-      this.$store.commit('global/updateVault', info)
-      this.$store.commit('global/updateWalletIndex', this.walletIndex)
       // console.log(this.$store.getters['global/getVault'])
+      let allWalletType = this.$store.getters['global/getAllWalletTypes']
+      // console.log(allWalletType)
+
+      allWalletType = JSON.stringify(allWalletType)
+      allWalletType = JSON.parse(allWalletType)
+
+      this.$store.commit('global/updateVault', allWalletType)
+      this.$store.commit('global/updateWalletIndex', this.walletIndex)
+      console.log(this.$store.getters['global/getVault'])
     },
     continueToDashboard () {
       const vm = this

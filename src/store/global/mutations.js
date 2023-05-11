@@ -16,10 +16,10 @@ export function updateVault (state, details) {
   console.log(state.vault)
   console.log(details)
 
-  state.vault[details.index] = details.wallet
-  // const len = state.vault.push(details)
+  // state.vault[details.index] = details.wallet
+  const len = state.vault.push(details)
 
-  state.vault[details.index].name = ''
+  state.vault[len - 1].name = ''
 
   console.log(state.vault)
 }
@@ -29,24 +29,31 @@ export function clearVault (state) {
 }
 
 export function updateWalletIndex (state, index) {
-  console.log('updating wallet index')
   state.walletIndex = index
 }
 
 export function updateWalletName (state, details) {
-  console.log(details)
   state.vault[details.index].name = details.name
 }
 
 export function updateWalletSnapshot (state, details) {
-  console.log(details)
-  state.vault[details.index] = details.snapshot
+  let wallet = details.snapshot
+  wallet = JSON.stringify(wallet)
+  wallet = JSON.parse(wallet)
+
+  console.log('snapshot')
+  console.log(wallet)
+  state.vault[details.index] = wallet
   state.vault[details.index].name = details.name
-  console.log(state.vault[details.index])
+  // console.log(state.vault[details.index])
 }
 
 export function updateCurrentWallet (state, index) {
-  state.wallets = state.vault[index]
+  let wallet = state.vault[index]
+  wallet = JSON.stringify(wallet)
+  wallet = JSON.parse(wallet)
+
+  state.wallets = wallet
   console.log(state.wallets)
   console.log(state.vault)
 }
