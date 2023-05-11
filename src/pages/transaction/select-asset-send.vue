@@ -10,7 +10,7 @@
       @update:modelValue="changeNetwork"
     >
       <q-tab name="BCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name"/>
+      <q-tab name="sBCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name" :disable="isChipnet"/>
     </q-tabs>
     <template v-if="assets">
       <div class="row">
@@ -18,7 +18,7 @@
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToSend') }}</p>
         </div>
         <div class="col-3 q-mt-sm" v-show="selectedNetwork === networks.BCH.name">
-          <AssetFilter @filterTokens="filterTokens" />
+          <AssetFilter v-if="isChipnet" @filterTokens="filterTokens" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -86,6 +86,9 @@ export default {
     }
   },
   computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
     darkMode () {
       return this.$store.getters['darkMode/getStatus']
     },
@@ -96,12 +99,32 @@ export default {
       set (value) {
         return this.$store.commit('global/setNetwork', value)
       }
-    }
-  },
-  watch: {
-    selectedNetwork (val) {
-      this.assets = this.getAssets()
-    }
+    },
+    assets () {
+      if (this.selectedNetwork === 'sBCH') {
+        const assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
+        return assets.map((item) => {
+          if (item.id === 'bch') {
+            item.name = 'Smart Bitcoin Cash'
+            item.symbol = 'sBCH'
+            item.logo = 'sep20-logo.png'
+          }
+          return item
+        })
+      }
+
+      const vm = this
+      return this.$store.getters['assets/getAssets'].filter(function (item) {
+        if (item) {
+          const isBch = item.id === 'bch'
+          const tokenType = item.id.split('/')[0]
+
+          if (vm.isCashToken)
+            return tokenType === 'ct' || isBch
+          return tokenType === 'slp' || isBch
+        }
+      })
+    },
   },
   methods: {
     filterTokens (tokenType) {
@@ -124,29 +147,9 @@ export default {
         name: 'transaction-send',
         query
       })
-    },
-    getAssets () {
-      if (this.selectedNetwork === 'sBCH') {
-        const assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
-        return assets.map((item) => {
-          if (item.id === 'bch') {
-            item.name = 'Smart Bitcoin Cash'
-            item.symbol = 'sBCH'
-            item.logo = 'sep20-logo.png'
-          }
-          return item
-        })
-      }
-
-      return this.$store.getters['assets/getAssets'].filter(function (item) {
-        if (item) {
-          return item
-        }
-      })
     }
   },
   mounted () {
-    this.assets = this.getAssets()
     this.$store.dispatch('market/updateAssetPrices', {})
   }
 }

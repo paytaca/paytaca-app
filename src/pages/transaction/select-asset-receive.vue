@@ -10,7 +10,7 @@
       @update:modelValue="changeNetwork"
     >
       <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
+      <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet"/>
     </q-tabs>
     <template v-if="assets">
       <div class="row">
@@ -122,9 +122,11 @@ export default {
       _assets = this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           const isBch = item.id === 'bch'
+          const tokenType = item.id.split('/')[0]
+
           if (vm.isCashToken) 
-            return item.id.split('/')[0] === 'ct' || isBch
-          return item.id.split('/')[0] === 'slp' || isBch
+            return tokenType === 'ct' || isBch
+          return tokenType === 'slp' || isBch
         }
       })
       let unlistedAsset = {

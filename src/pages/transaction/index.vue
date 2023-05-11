@@ -23,7 +23,7 @@
               :style="{'margin-top': $q.platform.is.ios ? '25px' : '-20px', 'padding-bottom': '16px'}"
             >
               <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-              <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
+              <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
             </q-tabs>
           </div>
           <div class="row q-mt-sm">
@@ -279,6 +279,9 @@ export default {
   },
 
   computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
     openedNotification() {
       return this.$store.getters['notification/openedNotification']
     },
