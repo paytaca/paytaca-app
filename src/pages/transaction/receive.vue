@@ -7,7 +7,7 @@
     <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu anchor="bottom right" self="top end">
         <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
-          <q-item clickable v-close-popup v-if="walletType !== 'ct'">
+          <q-item clickable v-close-popup>
             <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">{{ $t('GenerateNewAddress') }}</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
@@ -39,7 +39,7 @@
           </div>
         </div>
       </div>
-      <div class="row q-mt-md" v-if="walletType === 'bch'">
+      <div class="row q-mt-md" v-if="walletType === 'bch' && assetId.indexOf('ct/') === -1">
         <q-toggle
           style="margin: auto;"
           v-model="legacy"
@@ -83,6 +83,12 @@ import ProgressLoader from '../../components/ProgressLoader'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 import { NativeAudio } from '@capacitor-community/native-audio'
+import { getWalletByNetwork, getWatchtowerWebsocketUrl } from 'src/wallet/chip'
+import {
+  CashAddressNetworkPrefix,
+  encodeCashAddress,
+  decodeCashAddress,
+} from '@bitauth/libauth'
 
 NativeAudio.preload({
     assetId: 'send-success',
@@ -116,7 +122,7 @@ export default {
   props: {
     network: {
       type: String,
-      defualt: 'BCH'
+      default: 'BCH'
     },
     assetId: {
       type: String,
@@ -125,6 +131,9 @@ export default {
     }
   },
   computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
     isSep20 () {
       return this.network === 'sBCH'
     },
@@ -173,7 +182,7 @@ export default {
       getMnemonic().then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
-          wallet.BCH.getNewAddressSet(newAddressIndex).then(function (result) {
+          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(function (result) {
             const addresses = result.addresses
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'bch',
@@ -187,7 +196,7 @@ export default {
           })
         }
         if (vm.walletType === 'slp') {
-          wallet.SLP.getNewAddressSet(newAddressIndex).then(function (addresses) {
+          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(function (addresses) {
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'slp',
               lastAddress: addresses.receiving,
@@ -209,42 +218,41 @@ export default {
     async copyPrivateKey () {
       try {
         this.copying = true
-
-        if (this.walletType === 'ct') {
-          const w = await TestNetWallet.named('mywallet')
-          this.copyToClipboard(w.privateKeyWif)
-          this.copying = false
-          return
-        }
-
         const mnemonic = await getMnemonic()
         const wallet = new Wallet(mnemonic, this.network)
         const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        let privateKey
-        if (this.walletType === 'bch') {
-          privateKey = await wallet.BCH.getPrivateKey('0/' + String(lastAddressIndex))
-        } else {
-          privateKey = await wallet.SLP.getPrivateKey('0/' + String(lastAddressIndex))
-        }
+        const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
+        const privateKey = await dynamicWallet.getPrivateKey('0/' + String(lastAddressIndex))
         this.copyToClipboard(privateKey)
       } finally {
         this.copying = false
       }
     },
-    getAddress () {
+    getCashTokenAddress (address) {
+      const decodedReceivingAddress = decodeCashAddress(address)
+      return encodeCashAddress(
+        CashAddressNetworkPrefix.testnet,
+        2,
+        decodedReceivingAddress.hash
+      )
+    },
+    getAddress (forListener = false) {
       if (this.isSep20) {
         this.walletType = 'sbch'
         // if (this.wallet) return this.wallet.sBCH._wallet.address
         // else return ''
       } else if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
-      } else if (this.assetId.indexOf('ct/') > -1) {
-        this.walletType = 'ct'
-        return this.$store.getters['assets/getCashTokenWallet'].tokenaddr
       } else {
         this.walletType = 'bch'
       }
-      return this.$store.getters['global/getAddress'](this.walletType)
+    
+      let address = this.$store.getters['global/getAddress'](this.walletType)
+      if (this.assetId.indexOf('ct/') > -1 && !forListener) {
+        address = this.getCashTokenAddress(address)
+      }
+
+      return address
     },
     getLastAddressIndex () {
       if (this.assetId.indexOf('slp/') > -1) {
@@ -316,19 +324,24 @@ export default {
 
       let url
       let assetType
-      const address = vm.getAddress()
+      const address = vm.getAddress(true)
+      const wsURL = getWatchtowerWebsocketUrl(this.isChipnet)
+
       if (vm.assetId.indexOf('slp/') > -1) {
         assetType = 'slp'
-        url = `wss://watchtower.cash/ws/watch/slp/${address}/`
+        url = `${wsURL}/watch/slp/${address}/`
       } else {
         assetType = 'bch'
-        url = `wss://watchtower.cash/ws/watch/bch/${address}/`
+        url = `${wsURL}/watch/bch/${address}/`
       }
+      
       vm.$connect(url)
       vm.$options.sockets.onmessage = function (message) {
         const data = JSON.parse(message.data)
-        if (assetType === 'slp') {
-          const tokenId = vm.assetId.split('/')[1]
+        const tokenType = vm.assetId.split('/')[0]
+        const tokenId = vm.assetId.split('/')[1]
+
+        if (assetType === 'slp' || tokenType === 'ct') {
           if (data.token_id.split('/')[1] === tokenId) {
             vm.notifyOnReceive(
               data.amount,
@@ -407,18 +420,8 @@ export default {
     })
   },
 
-  async mounted () {
+  mounted () {
     const vm = this
-    const wallet = await window.TestNetWallet.named('mywallet')
-    wallet.watchAddressTokenTransactions(async (tx) => {
-      console.log(tx.vout[0].tokenData.amount)
-      vm.notifyOnReceive(
-        tx.vout[0].tokenData.amount,
-        vm.asset.symbol,
-        vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
-      )
-    })
-
     if (!vm.assetId.endsWith('unlisted')) {
       vm.setupListener()
     }

@@ -18,7 +18,7 @@
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode}">{{ $t('SelectAssetToBeReceived') }}</p>
         </div>
         <div class="col-3 q-mt-sm" v-show="selectedNetwork === networks.BCH.name">
-          <AssetFilter @filterTokens="filterTokens" />
+          <AssetFilter v-if="isChipnet" @filterTokens="filterTokens" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -85,6 +85,9 @@ export default {
     }
   },
   computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -124,11 +127,19 @@ export default {
           return item.id.split('/')[0] === 'slp' || isBch
         }
       })
-      const unlistedAsset = {
+      let unlistedAsset = {
         id: 'slp/unlisted',
         name: this.$t('NewUnlisted'),
         symbol: 'SLP token',
         logo: 'new-token.png'
+      }
+      if (vm.isCashToken) {
+        unlistedAsset = {
+          id: 'ct/unlisted',
+          name: this.$t('NewUnlisted'),
+          symbol: 'CashToken',
+          logo: 'new-token.png'
+        } 
       }
       _assets.push(unlistedAsset)
       return _assets

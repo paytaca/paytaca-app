@@ -12,7 +12,7 @@
 
       <q-item clickable v-close-popup @click="filterTokens('ct')">
         <q-item-section>
-          <q-item-label>Cash Tokens</q-item-label>
+          <q-item-label>CashTokens</q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
