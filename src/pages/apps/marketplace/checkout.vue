@@ -204,33 +204,32 @@
           </q-form>
         </q-tab-panel>
         <q-tab-panel name="payment" :dark="darkMode">
-          <div class="row items-start text-subtitle1">
-            <div class="q-space">Subtotal</div>
-            <div class="text-right">
-              <!-- <div>{{ checkout?.cart?.subtotal }} {{ checkoutCurrency }}</div> -->
-              <div>
-                {{ checkoutBchSubtotal }} BCH
-                <q-icon
-                  name="info"
-                  size="1.25em"
-                >
-                  <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']">
-                    <div class="text-body2">{{ formData?.payment?.bchPrice?.currency }} Price</div>
-                    <div class="">
-                      {{ formData?.payment?.bchPrice?.rate }} {{ formData?.payment?.bchPrice?.currency }} / BCH
-                    </div>
-                    <div class="text-caption text-grey">
-                      {{ formatTimestampToText(formData?.payment?.bchPrice?.timestamp) }}
-                    </div>
-                  </q-menu>
-                </q-icon>
-              </div>
+          <div class="row items-center">
+            <q-space/>
+            <div>
+              {{ checkoutBchPrice }} {{ checkoutCurrency }} / BCH
+              <q-icon name="info" size="1.25em">
+                <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']">
+                  <div class="text-body2">{{ checkoutCurrency }} price at</div>
+                  <div>{{ formatTimestampToText(checkout?.payment?.bchPriceTimestamp) }}</div>
+                </q-menu>
+              </q-icon>
             </div>
           </div>
-
-          <div class="row items-start text-subtitle1">
+          <div class="row items-start text-subtitle1" @click="toggleAmountsDisplay">
+            <div class="q-space">Subtotal</div>
+            <div v-if="displayBch" class="text-right">{{ checkoutAmounts.subtotal.bch }} BCH</div>
+            <div v-else class="text-right">{{ checkoutAmounts.subtotal.currency }} {{ checkoutCurrency }}</div>
+          </div>
+          <div class="row items-start text-subtitle1" @click="toggleAmountsDisplay">
             <div class="q-space">Delivery fee</div>
-            <div class="text-right">{{ checkoutBchDeliveyFee }} BCH</div>
+            <div v-if="displayBch" class="text-right">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
+            <div v-else class="text-right">{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
+          </div>
+          <div class="row items-start text-h6" @click="toggleAmountsDisplay">
+            <div class="q-space">Total</div>
+            <div v-if="displayBch" class="text-right">{{ checkoutAmounts.total.bch }} BCH</div>
+            <div v-else class="text-right">{{ checkoutAmounts.total.currency }} {{ checkoutCurrency }}</div>
           </div>
         </q-tab-panel>
         <q-tab-panel name="review" :dark="darkMode" class="q-pa-sm">
@@ -297,17 +296,34 @@
           </div>
 
           <q-separator :dark="darkMode" spaced/>
-          <div class="row items-start text-subtitle2 q-px-xs">
-            <div class="q-space">Subtotal</div>
-            <div>{{ checkoutBchSubtotal }} BCH</div>
+          <div class="row items-center">
+            <q-space/>
+            <div>
+              {{ checkoutBchPrice }} {{ checkoutCurrency }} / BCH
+              <q-icon name="info" size="1.25em">
+                <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']">
+                  <div class="text-body2">{{ checkoutCurrency }} price at</div>
+                  <div>{{ formatTimestampToText(checkout?.payment?.bchPriceTimestamp) }}</div>
+                </q-menu>
+              </q-icon>
+            </div>
           </div>
-          <div class="row items-start text-subtitle2 q-px-xs">
-            <div class="q-space">Delivery fee</div>
-            <div class="text-right">{{ checkoutBchDeliveyFee }} BCH</div>
-          </div>
-          <div class="row items-start text-h6 q-px-xs">
-            <div class="q-space">Total</div>
-            <div class="text-right">{{ checkoutBchTotal }} BCH</div>
+          <div class="q-px-xs" @click="toggleAmountsDisplay">
+            <div class="row items-start text-subtitle2">
+              <div class="q-space">Subtotal</div>
+              <div v-if="displayBch">{{ checkoutAmounts.subtotal.bch }} BCH</div>
+              <div v-else>{{ checkoutAmounts.subtotal.currency }} {{ checkoutCurrency }}</div>
+            </div>
+            <div class="row items-start text-subtitle2">
+              <div class="q-space">Delivery fee</div>
+              <div v-if="displayBch">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
+              <div v-else>{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
+            </div>
+            <div class="row items-start text-h6">
+              <div class="q-space">Total</div>
+              <div v-if="displayBch">{{ checkoutAmounts.total.bch }} BCH</div>
+              <div v-else>{{ checkoutAmounts.total.currency }} {{ checkoutCurrency }}</div>
+            </div>
           </div>
           <div class="q-mt-sm">
             <q-btn
@@ -341,7 +357,6 @@ const props = defineProps({
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
 const initialized = ref(false)
 onMounted(() => refreshPage())
@@ -422,14 +437,6 @@ function resetFormData() {
         latitude: Number(checkout?.value?.deliveryAddress?.location?.latitude) || null,
       },
     },
-
-    payment: {
-      bchPrice: {
-        currency: checkout?.value?.payment?.currency?.symbol || '',
-        rate: checkout?.value?.payment?.bchPrice || 0,
-        timestamp: checkout?.value?.payment?.bchPriceTimestamp,
-      }
-    }
   }
 }
 
@@ -468,8 +475,8 @@ function selectCoordinates() {
     })
 }
 
-function updateBchPrice(opts={save: true, age: 60 * 1000}) {
-  if (opts?.age && formData.value.payment.bchPrice.timestamp > Date.now() - opts?.age) {
+function updateBchPrice(opts={age: 60 * 1000}) {
+  if (opts?.age && checkout.value?.payment?.bchPriceTimestamp > Date.now() - opts?.age) {
     return Promise.resolve('price is still new')
   }
   const coinId = 'bitcoin-cash'
@@ -493,14 +500,12 @@ function updateBchPrice(opts={save: true, age: 60 * 1000}) {
       return newPrice
     })
     .then(price => {
-      formData.value.payment.bchPrice = {
-        currency: currency.toUpperCase(),
-        rate: price,
-        timestamp: new Date(),
-      }
-
-      if (opts?.save) savePayment()
-      return price
+      return updateCheckout({
+        payment: {
+          bch_price: price,
+          bch_price_timestamp: new Date(),
+        }
+      })
     })
 }
 
@@ -517,26 +522,33 @@ onUnmounted(() => unsubscribeCacheCartMutation?.())
 
 const checkout = ref(Checkout.parse())
 const checkoutCurrency = computed(() => checkout.value?.payment?.currency?.symbol)
-const checkoutBchSubtotal = computed(() => {
-  if (isNaN(checkout.value?.cart?.subtotal) || isNaN(formData.value?.payment?.bchPrice?.rate)) return
-  const subtotal = checkout.value?.cart?.subtotal / formData.value?.payment?.bchPrice?.rate
-  return Math.ceil(subtotal * 10 ** 8) / 10 ** 8
+const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice || undefined)
+const displayBch = ref(true)
+const checkoutAmounts = computed(() => {
+  const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
+  const data = {
+    subtotal: { currency: checkout.value?.cart?.subtotal, bch: 0 },
+    deliveryFee: { currency: checkout.value?.payment?.deliveryFee, bch: 0 },
+    total: { currency: Number(checkout.value?.cart?.subtotal) + Number(checkout.value?.payment?.deliveryFee), bch: 0 },
+  }
+  if (!isNaN(checkoutBchPrice.value)) {
+    data.subtotal.bch = parseBch(data.subtotal.currency / checkoutBchPrice.value)
+    data.deliveryFee.bch = parseBch(data.deliveryFee.currency / checkoutBchPrice.value)
+    data.total.bch = parseBch(data.total.currency / checkoutBchPrice.value)
+  } else {
+    data.subtotal.bch = null
+    data.deliveryFee.bch = null
+    data.total.bch = null
+  }
+  return data
 })
-const checkoutBchDeliveyFee = computed(() => {
-  if (isNaN(checkout.value?.payment?.deliveryFee) || isNaN(formData.value?.payment?.bchPrice?.rate)) return
-  const deliveryFee = checkout.value?.payment?.deliveryFee / formData.value?.payment?.bchPrice?.rate
-  return Math.ceil(deliveryFee * 10 ** 8) / 10 ** 8
-})
-const checkoutTotal = computed(() => {
-  if (isNaN(checkout.value?.cart?.subtotal) || isNaN(checkout.value?.payment?.deliveryFee)) return
-  return Number(checkout.value?.cart?.subtotal) + Number(checkout.value?.payment?.deliveryFee)
-})
-
-const checkoutBchTotal = computed(() => {
-  if (isNaN(checkoutTotal.value) || isNaN(formData.value?.payment?.bchPrice?.rate)) return
-  const total = checkoutTotal.value / formData.value?.payment?.bchPrice?.rate
-  return Math.ceil(total * 10 ** 8) / 10 ** 8
-})
+function toggleAmountsDisplay() {
+  if (isNaN(checkoutBchPrice.value)) {
+    displayBch.value = false
+    return
+  }
+  displayBch.value = !displayBch.value
+}
 
 function fetchCheckout() {
   let request
@@ -564,18 +576,6 @@ function updateDeliveryFee() {
     .finally(() => {
       loading.value = false
     })
-}
-
-function savePayment() {
-  loading.value = true
-  return updateCheckout({
-    payment: {
-      bch_price: formData.value?.payment.bchPrice?.rate || null,
-      bch_price_timestamp: formData.value?.payment.bchPrice?.timestamp || null,
-    }
-  }).finally(() => {
-    loading.value = false
-  })
 }
 
 function saveDeliveryAddress() {
