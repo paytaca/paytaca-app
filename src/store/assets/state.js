@@ -17,8 +17,6 @@ export default function () {
         balance: 0
       }
     ],
-    ignoredAssets: [],
-    // TODO: temporary
-    cashokenWallet: null
+    ignoredAssets: []
   }
 }

@@ -2,6 +2,8 @@ import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
 import * as openpgp from 'openpgp/lightweight'
+import { getWatchtowerApiUrl } from './chip'
+import axios from 'axios'
 import {
   CashAddressNetworkPrefix,
   CashAddressType,
@@ -20,6 +22,7 @@ export class BchWallet {
     this.watchtower = new Watchtower(isChipnet)
     this.projectId = projectId
     this.walletHash = this.getWalletHash()
+    this.baseUrl = getWatchtowerApiUrl(isChipnet)
   }
 
   getWalletHash () {
@@ -212,16 +215,22 @@ export class BchWallet {
     return bchjs.HDNode.toPublicKey(childNode).toString('hex')
   }
 
-  async getBalance () {
+  async getBalance (tokenId = '', txid = '', index = 0) {
     const walletHash = this.getWalletHash()
-    const request = await this.watchtower.Wallet.getBalance({ walletHash })
+    const request = await this.watchtower.Wallet.getBalance({ walletHash, tokenId, txid, index })
     return request
   }
 
-  async getTransactions (page, recordType) {
+  async getTransactions (page, recordType, tokenId = null) {
     const walletHash = this.getWalletHash()
-    const request = await this.watchtower.Wallet.getHistory({ walletHash, page, recordType })
+    const request = await this.watchtower.Wallet.getHistory({ walletHash, tokenId, page, recordType })
     return request
+  }
+
+  async getTokenDetails (tokenId) {
+    const url = `${this.baseUrl}/cashtokens/fungible/${tokenId}/`
+    const response = await axios.get(url)
+    return response.data
   }
 
   async _sendBch (amount, recipient, changeAddress, broadcast=true) {

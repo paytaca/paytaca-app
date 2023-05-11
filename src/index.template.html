@@ -20,20 +20,5 @@
   <body>
     <!-- DO NOT touch the following DIV -->
     <div id="q-app"></div>
-    <script>
-      document.addEventListener("DOMContentLoaded", async (event) => {
-        // Make sure rest of code executes after mainnet-js has been imported properly
-        Object.assign(globalThis, await __mainnetPromise);
-
-        // Test that indexedDB is available
-        var db = window.indexedDB.open('test');
-        db.onerror = () => alert("Can't use indexedDB, might be because of private window.")
-
-        // Initialize wallet
-        DefaultProvider.servers.testnet = ["wss://chipnet.imaginary.cash:50004"]
-        const wallet = await TestNetWallet.named("mywallet");
-        Config.EnforceCashTokenReceiptAddresses = true;
-      })
-    </script>
   </body>
 </html>

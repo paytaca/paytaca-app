@@ -37,9 +37,6 @@
           :assetId="asset.id"
           class="float-left q-mr-sm"
         />
-        <div v-if="!(!balanceLoaded && asset.id === selectedAsset.id)" id="token-protocol">
-          {{ asset.id.split('/')[0].toUpperCase() }}
-        </div>
         <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
           <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
             {{ num2shortStr(getAssetMarketBalance(asset)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
@@ -55,6 +52,7 @@
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 import TokenTypeBadge from './TokenTypeBadge'
+import { getWalletByNetwork } from 'src/wallet/chip'
 
 export default {
   name: 'asset-cards',
@@ -152,19 +150,17 @@ export default {
 
       if (asset.isCashToken) {
         const tokenId = asset.tokenId
-        const a = await window.TestNetWallet.named("mywallet")
-        const balance = await a.getTokenBalance(tokenId)
 
-        this.$store.commit('assets/addNewAsset', {
-          id: `ct/${tokenId}`,
-          name: tokenId.substring(0,5) + '...' + tokenId.substring(tokenId.length - 5, tokenId.length),
-          symbol: 'CT',
-          balance,
+        getWalletByNetwork(wallet, 'bch').getTokenDetails(asset.tokenId).then(details => {
+          vm.$store.commit('assets/addNewAsset', {
+            ...details,
+            balance: 0
+          })
         })
         return
       }
 
-      wallet.SLP.getSlpTokenDetails(asset.tokenId).then(function (details) {
+      getWalletByNetwork(wallet, 'slp').getSlpTokenDetails(asset.tokenId).then(function (details) {
         const token = {
           id: details.id,
           symbol: details.symbol,
@@ -270,17 +266,5 @@ export default {
   .text-num-lg {
     font-size: 18px;
     color: #DBE7E7;
-  }
-
-  #token-protocol {
-    position: relative;
-    width: fit-content;
-    bottom: 15px;
-    color: lightgray;
-    background: gray;
-    border-radius: 5px;
-    font-size: 11px;
-    padding-left: 3px;
-    padding-right: 3px;
   }
 </style>

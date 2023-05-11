@@ -168,7 +168,7 @@
               <q-item-section v-else>
                 <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
                 <q-item-label>
-                  <a :href="'https://blockchair.com/bitcoin-cash/transaction/' + transaction.txid" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
+                  <a :href="explorerLink" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
                     {{ $t('ViewInExplorer') }}
                   </a>
                 </q-item-label>
@@ -209,6 +209,19 @@ export default {
     }
   },
   computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
+    explorerLink () {
+      const txid = this.transaction.txid
+      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/tx/'
+      }
+
+      return `${url}${txid}`
+    },
     isSep20Tx () {
       const hash = String(this.transaction && this.transaction.hash)
       return /^0x[0-9a-f]{64}/i.test(hash)

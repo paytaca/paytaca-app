@@ -140,6 +140,9 @@ export default {
       type: Boolean,
       default: false
     },
+    bchWalletHash: {
+      type: String
+    },
     slpWalletHash: {
       type: String
     },
@@ -249,135 +252,21 @@ export default {
       this.parsedTokens.forEach(this.addToken)
     },
     async updateMainchainList (opts = { includeIgnored: false }) {
-      this.mainchainTokens = await this.$store.dispatch(
-        'assets/getMissingAssets',
-        {
-          walletHash: this.slpWalletHash,
-          icludeIgnoredTokens: opts.includeIgnored
-        }
-      )
+      const tokenWalletHashes = [this.bchWalletHash, this.slpWalletHash]
+      this.mainchainTokens = []
 
-      const w = await window.TestNetWallet.named("mywallet")
-      const tokenBalances = await w.getAllTokenBalances()
-      const tokenCategories = Object.keys(tokenBalances)
-
-      const tokenRegistry = {
-        "version": {
-          "major": 0,
-          "minor": 3,
-          "patch": 0
-        },
-        "latestRevision": "2023-01-26T18:51:35.115Z",
-        "registryIdentity": {
-          "name": "example bcmr",
-          "description": "example bcmr for tokens on chipnet",
-          "time": {
-            "begin": "2023-01-26T18:51:35.115Z"
+      for (const tokenWalletHash of tokenWalletHashes) {
+        const isCashtoken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
+        const tokens = await this.$store.dispatch(
+          'assets/getMissingAssets',
+          {
+            isCashtoken,
+            walletHash: tokenWalletHash,
+            includeIgnoredTokens: opts.includeIgnored,
           }
-        },
-        "identities": {
-          "6fef5962d62e4458a80ee6035f9f926ae71b76a82c790d190cbdd2ed110d7270": [
-            {
-              "name": "Tetris",
-              "description": "Test cashtoken for Tetris token",
-              "time": {
-                "begin": "2023-01-16T10:57:48.756Z",
-              },
-              "token": {
-                "category": "6fef5962d62e4458a80ee6035f9f926ae71b76a82c790d190cbdd2ed110d7270",
-                "symbol": "TETRIS",
-                "decimals": 0,
-              },
-              "uris": {
-                "icon": "https://raw.githubusercontent.com/mr-zwets/example_bcmr/main/TEST.svg"
-              }
-            }
-          ],
-          "66569c1a4c49bde799c46dd48e2368713213fcd451961ed88add6f9d27757960": [
-            {
-              "name": "test",
-              "description": "",
-              "time": {
-                "begin": "2023-01-26T18:51:35.115Z"
-              },
-              "token": {
-                "category": "66569c1a4c49bde799c46dd48e2368713213fcd451961ed88add6f9d27757960",
-                "symbol": "TEST",
-                "decimals": 1
-              },
-              "uris": {
-                "icon": "https://raw.githubusercontent.com/mr-zwets/example_bcmr/main/TEST.svg"
-              }
-            }
-          ],
-          "0a12486778d7ad2771728ff047d70c11920c30021758538d4da0488cf98246cf": [
-            {
-              "name": "Scibiz tokens",
-              "description": "",
-              "time": {
-                "begin": "2023-01-26T18:51:35.115Z"
-              },
-              "token": {
-                "category": "0a12486778d7ad2771728ff047d70c11920c30021758538d4da0488cf98246cf",
-                "symbol": "SCIBIZ",
-                "decimals": 1
-              },
-              "uris": {
-                "icon": "https://raw.githubusercontent.com/mr-zwets/example_bcmr/main/TEST.svg"
-              }
-            }
-          ],
-          "89c8901845d43ebf8485912445e44c0a714b9682a736639977370f2eee3d7eec": [
-            {
-              "name": "Hero Token",
-              "description": "Token for All Heroes",
-              "time": {
-                "begin": "2023-02-01T18:51:35.115Z"
-              },
-              "token": {
-                "category": "89c8901845d43ebf8485912445e44c0a714b9682a736639977370f2eee3d7eec",
-                "symbol": "HERO",
-                "decimals": 1
-              },
-              "uris": {
-                "icon": "https://raw.githubusercontent.com/iamclrscr/example_bcmr/main/HeroToken.png"
-              }
-            }
-          ]
-        }
-      }
+        )
 
-
-      const registry = BCMR.addMetadataRegistry(tokenRegistry)
-      const identities = BCMR.getRegistries()[0].identities
-      
-      for (const id of tokenCategories) {
-        const tokenBal = await w.getTokenBalance(id)
-        const tokenId = `ct/${id}`
-
-        const identity = identities[id] ? identities[id][0] : undefined
-
-        const currentAssets = this.$store.getters['assets/getAssets'].filter(i => i.id === tokenId)
-        if (currentAssets.length > 0) continue
-        
-        let name, image_url = '', symbol = 'CT'
-        if (identity) {
-          name = identity.name
-          symbol = identity.token.symbol
-          image_url = identity.uris.icon
-        } else {
-          name = tokenId.split('/')[1]
-          name = name.substring(0,5) + '...' + name.substring(name.length - 5, name.length)
-        }
-
-        this.mainchainTokens.push({
-          name,
-          symbol,
-          image_url,
-          id: tokenId,
-          balance: tokenBal,
-          isSep20: false
-        })
+        this.mainchainTokens.push(...tokens)
       }
     },
     async updateSmartchainList (opts = { includeIgnored: false }) {

@@ -158,6 +158,7 @@
     <TokenSuggestionsDialog
       ref="tokenSuggestionsDialog"
       v-model="showTokenSuggestionsDialog"
+      :bch-wallet-hash="getWallet('bch').walletHash"
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
     />
@@ -176,6 +177,7 @@ import startPage from '../../pages/transaction/dialog/StartPage.vue'
 import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
+import { getWalletByNetwork } from 'src/wallet/chip'
 import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
@@ -243,7 +245,7 @@ export default {
       startPageStatus: true,
       prevPath: null,
       showTokenSuggestionsDialog: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
     }
   },
 
@@ -489,29 +491,23 @@ export default {
 
       const tokenId = id.split('/')[1]
       vm.transactionsPageHasNext = false
+      const updateAssetBalance = 'assets/updateAssetBalance'
 
       if (id.indexOf('slp/') > -1) {
-        vm.wallet.SLP.getBalance(tokenId).then(function (response) {
-          vm.$store.commit('assets/updateAssetBalance', {
-            id,
-            balance: response.balance
-          })
+        getWalletByNetwork(vm.wallet, 'slp').getBalance(tokenId).then(function (response) {
+          vm.$store.commit(updateAssetBalance, { id, balance: response.balance })
           vm.balanceLoaded = true
         })
-      } else if (id.indexOf('ct') > -1) {
-        const wallet = await window.TestNetWallet.named("mywallet")
-        const balance = await wallet.getTokenBalance(tokenId)
-
-        vm.$store.commit('assets/updateAssetBalance', { id, balance })
-        vm.balanceLoaded = true
+      } else if (id.indexOf('ct/') > -1) {
+        getWalletByNetwork(vm.wallet, 'bch').getBalance(tokenId).then(response => {
+          vm.$store.commit(updateAssetBalance, { id, balance: response.balance })
+          vm.balanceLoaded = true
+        })
       } else {
-        const wallet = await window.TestNetWallet.named("mywallet")
-        const chipNetBal = await wallet.getBalance()
-
-        vm.wallet.BCH.getBalance().then(function (response) {
-          vm.$store.commit('assets/updateAssetBalance', {
+        getWalletByNetwork(vm.wallet, 'bch').getBalance().then(function (response) {
+          vm.$store.commit(updateAssetBalance, {
             id: id,
-            balance: response.balance + chipNetBal.bch,
+            balance: response.balance,
             spendable: response.spendable
           })
           vm.balanceLoaded = true
@@ -600,11 +596,12 @@ export default {
       let requestPromise
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        requestPromise = vm.wallet.SLP.getTransactions(tokenId, page, recordType)
+        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions(tokenId, page, recordType)
       } else if (id.indexOf('ct/') > -1) {
-        vm.transactionsLoaded = true 
+        const tokenId = id.split('/')[1]
+        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType, tokenId)
       } else {
-        requestPromise = vm.wallet.BCH.getTransactions(page, recordType)
+        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType)
       }
 
       if (!requestPromise) return
@@ -970,22 +967,6 @@ export default {
       vm.balanceLoaded = true
       vm.transactionsLoaded = true
     })
-
-    // TODO: remove (for testing only)
-    let w = vm.$store.getters['assets/getCashTokenWallet']
-    if (w !== null) {
-      w = await window.TestNetWallet.named("mywallet")
-      vm.$store.commit('assets/updateCashTokenWallet', w)
-    }
-    console.log(w)
-
-    const tokenBalances = await w.getAllTokenBalances()
-    const tokenCategories = Object.keys(tokenBalances)
-
-    for (const tc of tokenCategories) {
-      const tokenBal = await w.getTokenUtxos(tc)
-      console.log(tokenBal)
-    }
   }
 }
 </script>

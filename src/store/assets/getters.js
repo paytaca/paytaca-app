@@ -16,10 +16,6 @@ export function getAssets (state) {
   return state.assets
 }
 
-export function getCashTokenWallet (state) {
-  return state.cashTokenWallet
-}
-
 export function getAsset (state) {
   return function (id) {
     return state.assets.filter(function (asset) {

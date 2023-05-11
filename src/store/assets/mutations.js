@@ -11,10 +11,6 @@ export function updateAssetBalance (state, data) {
   }
 }
 
-export function updateCashTokenWallet (state, walletObj) {
-  state.cashTokenWallet = walletObj
-}
-
 /**
  *
  * @param {Object} state
