@@ -1,3 +1,17 @@
+function getWalletData (state, details) {
+  const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
+  const walletType = details.type
+  const hasTestnetWallets = ['bch', 'slp']
+
+  let network = isChipnet ? 'chip' : 'main'
+  if (walletType === 'slp') {
+    network = isChipnet ? 'test' : 'main'
+  }
+
+  const wallet = state.wallets[walletType]
+  return hasTestnetWallets.includes(walletType) ? wallet[network] : wallet
+}
+
 export function setNetwork (state, network) {
   switch (network) {
     case 'BCH':
@@ -11,15 +25,22 @@ export function setNetwork (state, network) {
   }
 }
 
+export function toggleIsChipnet (state) {
+  state.isChipnet = !state.isChipnet
+}
+
 export function updateWallet (state, details) {
-  state.wallets[details.type].walletHash = details.walletHash
-  state.wallets[details.type].derivationPath = details.derivationPath
-  state.wallets[details.type].lastAddress = details.lastAddress
-  state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
-  state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
-  state.wallets[details.type].connectedAddress = details.connectedAddress ?? state.wallets[details.type].connectedAddress
-  state.wallets[details.type].connectedAddressIndex = details.connectedAddressIndex ?? state.wallets[details.type].connectedAddressIndex
-  state.wallets[details.type].connectedSites = details.connectedSites ?? state.wallets[details.type].connectedSites
+  const wallet = getWalletData(state, details)
+
+  wallet.walletHash = details.walletHash
+  wallet.derivationPath = details.derivationPath
+  wallet.lastAddress = details.lastAddress
+  wallet.lastChangeAddress = details.lastChangeAddress
+  wallet.lastAddressIndex = details.lastAddressIndex
+  wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
+  wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
+  wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
+
 }
 
 export function setConnectedAddress (state, details) {
@@ -36,7 +57,8 @@ export function setWalletSubscribed (state, details) {
 }
 
 export function updateXPubKey (state, details) {
-  state.wallets[details.type].xPubKey = details.xPubKey
+  const wallet = getWalletData(state, details)
+  wallet.xPubKey = details.xPubKey
 }
 
 export function updateAddresses (state, addresses) {
@@ -72,14 +94,16 @@ export function updateTransactions (state, data) {
 }
 
 export function generateNewAddressSet (state, details) {
-  state.wallets[details.type].lastAddress = details.lastAddress
-  state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
-  state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
+  const wallet = getWalletData(state, details)
+
+  wallet.lastAddress = details.lastAddress
+  wallet.lastChangeAddress = details.lastChangeAddress
+  wallet.lastAddressIndex = details.lastAddressIndex
 }
 
 /**
- * @param {Object} state 
- * @param {Object} data 
+ * @param {Object} state
+ * @param {Object} data
  * @param {String} data.walletHash
  * @param {String} data.taskId
  * @param {String} data.status

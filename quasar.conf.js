@@ -108,6 +108,24 @@ module.exports = function (/* ctx */) {
         chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
         chain.resolve.alias.set('fs', require.resolve('browserfs'))
 
+        // mainnet-js
+        chain.resolve.alias.set('stream', require.resolve('stream-browserify')) // bip39
+        chain.resolve.alias.set('crypto', require.resolve('crypto-browserify')) // bip39
+        chain.resolve.alias.set('net', false) // electrum-cash tcp connections
+        chain.resolve.alias.set('tls', false) // electrum-cash tcp connections
+        chain.resolve.alias.set('fs', false)  // qrcode-svg.save
+
+        // @mainnet-cash/contract
+        chain.resolve.alias.set('url', false)   // cashscript/bitcoind-rpc
+        chain.resolve.alias.set('https', false) // cashscript/bitcoind-rpc
+        chain.resolve.alias.set('http', false)  // cashscript/bitcoind-rpc
+
+        // @mainnet-cash/smartbch
+        chain.resolve.alias.set('require-from-string', false)
+        chain.resolve.alias.set('module', false)
+        chain.resolve.alias.set('path', false)
+        chain.resolve.alias.set('child_process', false)
+
         // Added for Quasar v1 to v2 migration
         // chain
         //   .plugin('eslint-webpack-plugin')

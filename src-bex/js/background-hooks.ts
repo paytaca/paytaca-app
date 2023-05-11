@@ -146,7 +146,8 @@ export default bexBackground( (bridge, allActiveConnections) => {
   bridge.on('background.paytaca.connectResponse', ({ data}) => {
     if (data.connected) {
       const vuex = JSON.parse(localStorage.getItem("vuex")!);
-      const wallet = vuex?.global?.wallets?.[data.assetId || "bch"];
+      const network = vuex?.global?.isChipnet ? 'chip' : 'main'
+      const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
       const connectedSites = wallet.connectedSites || {};
       const origin = data.origin.split('/')[2] ?? data.origin;
       if (!connectedSites[origin]) {
@@ -164,7 +165,9 @@ export default bexBackground( (bridge, allActiveConnections) => {
 
   bridge.on('background.paytaca.connected', ({ data, eventResponseKey }) => {
     const vuex = JSON.parse(localStorage.getItem("vuex")!);
-    const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
+    const network = vuex?.global?.isChipnet ? 'chip' : 'main'
+    const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
+    const connectedSites = wallet?.connectedSites || {};
     const origin = data.origin.split('/')[2] ?? data.origin;
     const connected = !!connectedSites[origin];
     bridge.send(eventResponseKey, connected);
@@ -172,7 +175,8 @@ export default bexBackground( (bridge, allActiveConnections) => {
 
   bridge.on('background.paytaca.disconnect', ({ data, eventResponseKey }) => {
     const vuex = JSON.parse(localStorage.getItem("vuex")!);
-    const wallet = vuex?.global?.wallets?.[data.assetId || "bch"];
+    const network = vuex?.global?.isChipnet ? 'chip' : 'main'
+    const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
     const connectedAddress = wallet.connectedAddress;
     const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
     const origin = data.origin.split('/')[2] ?? data.origin;
@@ -202,7 +206,9 @@ export default bexBackground( (bridge, allActiveConnections) => {
       const connection = allActiveConnections[connId]
       if (connection.contentScript!.connected) {
         const vuex = JSON.parse(localStorage.getItem("vuex")!);
-        respond(vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedAddress);
+        const network = vuex?.global?.isChipnet ? 'chip' : 'main'
+        const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
+        respond(wallet?.connectedAddress);
         return
       }
     }

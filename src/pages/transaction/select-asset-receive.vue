@@ -10,12 +10,15 @@
       @update:modelValue="changeNetwork"
     >
       <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
+      <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet"/>
     </q-tabs>
     <template v-if="assets">
       <div class="row">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode}">{{ $t('SelectAssetToBeReceived') }}</p>
+        </div>
+        <div class="col-3 q-mt-sm" v-show="selectedNetwork === networks.BCH.name">
+          <AssetFilter v-if="isChipnet" @filterTokens="filterTokens" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -57,13 +60,17 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
+import AssetFilter from '../../components/AssetFilter'
 
 export default {
   name: 'Receive-page',
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav },
+  components: {
+    HeaderNav,
+    AssetFilter,
+  },
   data () {
     return {
       networks: {
@@ -73,10 +80,14 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
+      isCashToken: false,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -107,22 +118,39 @@ export default {
         return _assets
       }
 
+      const vm = this
       _assets = this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
-          return item
+          const isBch = item.id === 'bch'
+          const tokenType = item.id.split('/')[0]
+
+          if (vm.isCashToken) 
+            return tokenType === 'ct' || isBch
+          return tokenType === 'slp' || isBch
         }
       })
-      const unlistedAsset = {
+      let unlistedAsset = {
         id: 'slp/unlisted',
         name: this.$t('NewUnlisted'),
         symbol: 'SLP token',
         logo: 'new-token.png'
+      }
+      if (vm.isCashToken) {
+        unlistedAsset = {
+          id: 'ct/unlisted',
+          name: this.$t('NewUnlisted'),
+          symbol: 'CashToken',
+          logo: 'new-token.png'
+        } 
       }
       _assets.push(unlistedAsset)
       return _assets
     }
   },
   methods: {
+    filterTokens (tokenType) {
+      this.isCashToken = tokenType === 'ct'
+    },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))

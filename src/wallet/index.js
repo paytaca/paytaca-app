@@ -12,7 +12,10 @@ const { SecureStoragePlugin } = Plugins
 const BCHJS = require('@psf/bch-js')
 const bchjs = new BCHJS()
 
-const projectId = process.env.WATCHTOWER_PROJECT_ID
+const projectId = {
+  main: process.env.WATCHTOWER_PROJECT_ID,
+  chip: process.env.WATCHTOWER_CHIP_PROJECT_ID
+}
 
 export class Wallet {
   constructor (mnemonic, network = 'BCH') {
@@ -29,9 +32,19 @@ export class Wallet {
     return this._BCH
   }
 
+  get BCH_CHIP() {
+    if (!this._BCH_CHIP) this.loadBCH()
+    return this._BCH_CHIP
+  }
+
   get SLP() {
     if (!this._SLP) this.loadBCH()
     return this._SLP
+  }
+
+  get SLP_TEST() {
+    if (!this._SLP_TEST) this.loadBCH()
+    return this._SLP_TEST
   }
 
   get sBCH() {
@@ -40,12 +53,18 @@ export class Wallet {
   }
 
   loadBCH() {
-    this._BCH = new BchWallet(projectId, this.mnemonic, "m/44'/145'/0'") // Main BCH wallet
-    this._SLP = new SlpWallet(projectId, this.mnemonic, "m/44'/245'/0'") // SLP wallet
+    const derivationPaths = {
+      bch: "m/44'/145'/0'",
+      slp: "m/44'/245'/0'"
+    }
+    this._BCH = new BchWallet(projectId.main, this.mnemonic, derivationPaths.bch) // Main BCH wallet
+    this._BCH_CHIP = new BchWallet(projectId.chip, this.mnemonic, derivationPaths.bch, true) // Chip BCH wallet
+    this._SLP = new SlpWallet(projectId.main, this.mnemonic, derivationPaths.slp) // SLP wallet
+    this._SLP_TEST = new SlpWallet(projectId.chip, this.mnemonic, derivationPaths.slp, true) // Test SLP wallet
   }
 
   loadSBCH() {
-    this._sBCH = new SmartBchWallet(projectId, this.mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
+    this._sBCH = new SmartBchWallet(projectId.main, this.mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
     this._sBCH.initWallet()
   }
 }

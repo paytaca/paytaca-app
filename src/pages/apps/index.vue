@@ -5,8 +5,8 @@
         <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">{{ $t('Applications') }}</p>
         <div class="row q-px-xs">
           <div v-for="(app, index) in apps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
-            <div class="pt-app bg-grad" @click="openApp(app)">
-              <q-icon class="app-icon" :color="iconColorClass(app)" size="xl" :name="app.iconName" :style="app.iconStyle"/>
+            <div class="pt-app bg-grad" :class="buttonClassByState(app.active)" @click="openApp(app)">
+              <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
             <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
           </div>
@@ -29,50 +29,50 @@ export default {
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
           iconStyle: 'width:50%',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('Bridge'),
           iconName: 'mdi-bridge',
           path: '/apps/bridge',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('AssetSwap'),
           iconName: 'mdi-swap-horizontal-bold',
           path: '/apps/asset-swap',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: 'Ramp',
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/ramp',
           iconStyle: 'width:50%',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('WalletConnect'),
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('Sweep'),
           iconName: 'mdi-broom',
           path: '/apps/sweep',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: 'Gifts',
           iconName: 'mdi-gift',
           path: '/apps/gifts/',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         // {
         //   name: 'Chat',
@@ -84,7 +84,7 @@ export default {
           name: 'POS Admin',
           iconName: 'point_of_sale',
           path: '/apps/point-of-sale',
-          active: true
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('WalletInfo'),
@@ -103,11 +103,8 @@ export default {
     }
   },
   methods: {
-    iconColorClass (app) {
-      if (this.$store.getters['darkmode/getStatus']) {
-        return app.active ? 'white' : 'pink-3'
-      }
-      return app.active ? 'white' : 'grey-5'
+    buttonClassByState (active) {
+      return active ? '' : 'disabled'
     },
     openApp (app) {
       if (app.active) {

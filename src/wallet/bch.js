@@ -2,16 +2,27 @@ import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
 import * as openpgp from 'openpgp/lightweight'
+import { getWatchtowerApiUrl } from './chip'
+import axios from 'axios'
+import {
+  CashAddressNetworkPrefix,
+  CashAddressType,
+  encodeCashAddress,
+  decodeCashAddress,
+} from '@bitauth/libauth'
 
 const bchjs = new BCHJS()
 
+
 export class BchWallet {
-  constructor (projectId, mnemonic, path) {
+  constructor (projectId, mnemonic, path, isChipnet = false) {
+    this.isChipnet = isChipnet
     this.mnemonic = mnemonic
     this.derivationPath = path
-    this.watchtower = new Watchtower()
+    this.watchtower = new Watchtower(isChipnet)
     this.projectId = projectId
     this.walletHash = this.getWalletHash()
+    this.baseUrl = getWatchtowerApiUrl(isChipnet)
   }
 
   getWalletHash () {
@@ -61,8 +72,8 @@ export class BchWallet {
     const childNode = masterHDNode.derivePath(this.derivationPath)
     const receivingAddressNode = childNode.derivePath('0/' + index)
     const changeAddressNode = childNode.derivePath('1/' + index)
-    const receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
-    const changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+    let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
+    let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
 
     // Generate a new PGP key
     const userID = receivingAddress.split(':')[1]
@@ -82,6 +93,23 @@ export class BchWallet {
       public_key_hash: public_key_hash,
       signature: Buffer.from(signature).toString('base64')
     }
+    
+    if (this.isChipnet) {
+      const decodedReceivingAddress = decodeCashAddress(receivingAddress)
+      const decodedChangeAddress = decodeCashAddress(changeAddress)
+      
+      receivingAddress = encodeCashAddress(
+        CashAddressNetworkPrefix.testnet,
+        CashAddressType.p2pkh,
+        decodedReceivingAddress.hash
+      )
+      changeAddress = encodeCashAddress(
+        CashAddressNetworkPrefix.testnet,
+        CashAddressType.p2pkh,
+        decodedChangeAddress.hash
+      )
+    }
+
     const pgpIdentity = {
       address: receivingAddress,
       userId: userID,
@@ -187,16 +215,22 @@ export class BchWallet {
     return bchjs.HDNode.toPublicKey(childNode).toString('hex')
   }
 
-  async getBalance () {
+  async getBalance (tokenId = '', txid = '', index = 0) {
     const walletHash = this.getWalletHash()
-    const request = await this.watchtower.Wallet.getBalance({ walletHash })
+    const request = await this.watchtower.Wallet.getBalance({ walletHash, tokenId, txid, index })
     return request
   }
 
-  async getTransactions (page, recordType) {
+  async getTransactions (page, recordType, tokenId = null) {
     const walletHash = this.getWalletHash()
-    const request = await this.watchtower.Wallet.getHistory({ walletHash, page, recordType })
+    const request = await this.watchtower.Wallet.getHistory({ walletHash, tokenId, page, recordType })
     return request
+  }
+
+  async getTokenDetails (tokenId) {
+    const url = `${this.baseUrl}/cashtokens/fungible/${tokenId}/`
+    const response = await axios.get(url)
+    return response.data
   }
 
   async _sendBch (amount, recipient, changeAddress, broadcast=true) {

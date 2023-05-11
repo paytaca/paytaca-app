@@ -358,7 +358,7 @@
           <div class="no-wrap row items-center justify-center q-gutter-sm">
             <q-btn-toggle
               v-model="formData.slippageTolerance"
-              rounded-borders
+              rounded
               toggle-color="grad"
               :toggle-text-color="darkMode ? 'dark' : 'white'"
               :color="darkMode ? 'blue-9' : 'grey-3'"

@@ -1,5 +1,17 @@
 const sha256 = require('js-sha256')
 
+function getWalletData (state, walletType) {
+  const wallet = state.wallets[walletType]
+  const hasTestnetWallets = ['bch', 'slp']
+
+  let network = state.isChipnet ? 'chip' : 'main'
+  if (walletType === 'slp') {
+    network = state.isChipnet ? 'test' : 'main'
+  }
+
+  return hasTestnetWallets.includes(walletType) ? wallet[network] : wallet
+}
+
 export function network (state) {
   return state.network
 }
@@ -8,27 +20,34 @@ export function getConnectivityStatus (state) {
   return state.online
 }
 
+export function isChipnet (state) {
+  return state.isChipnet
+}
+
 export function getAddress (state) {
   return function (walletType) {
-    return state.wallets[walletType].lastAddress
+    const wallet = getWalletData(state, walletType)
+    return wallet.lastAddress
   }
 }
 
 export function getLastAddressIndex (state) {
   return function (walletType) {
-    return state.wallets[walletType].lastAddressIndex
+    const wallet = getWalletData(state, walletType)
+    return wallet.lastAddressIndex
   }
 }
 
 export function getChangeAddress (state) {
   return function (walletType) {
-    return state.wallets[walletType].lastChangeAddress
+    const wallet = getWalletData(state, walletType)
+    return wallet.lastChangeAddress
   }
 }
 
 export function getWallet (state) {
   return function (walletType) {
-    return state.wallets[walletType]
+    return getWalletData(state, walletType)
   }
 }
 
