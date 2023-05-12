@@ -253,14 +253,14 @@ export default {
     },
     async updateMainchainList (opts = { includeIgnored: false }) {
       const tokenWalletHashes = [this.bchWalletHash, this.slpWalletHash]
+      const isCashToken = this.$store.getters['global/isChipnet']
       this.mainchainTokens = []
 
       for (const tokenWalletHash of tokenWalletHashes) {
-        const isCashtoken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
         const tokens = await this.$store.dispatch(
           'assets/getMissingAssets',
           {
-            isCashtoken,
+            isCashToken,
             walletHash: tokenWalletHash,
             includeIgnoredTokens: opts.includeIgnored,
           }

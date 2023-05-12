@@ -332,7 +332,11 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import QrScanner from '../../components/qr-scanner.vue'
 import { VOffline } from 'v-offline'
-import { convertCashAddress, isValidTokenAddress } from 'src/wallet/chip'
+import {
+  convertCashAddress,
+  isValidTokenAddress,
+  getWalletByNetwork,
+} from 'src/wallet/chip'
 
 const { SecureStoragePlugin } = Plugins
 
