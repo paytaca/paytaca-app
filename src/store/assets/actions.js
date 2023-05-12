@@ -1,5 +1,5 @@
 import { axiosInstance } from '../../boot/axios' 
-import { getWatchtowerApiUrl } from 'src/wallet/chip'
+import { getWatchtowerApiUrl, getBlockChainNetwork } from 'src/wallet/chip'
 
 function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^slp\/([0-9a-fA-F]+)$/)
@@ -55,9 +55,11 @@ export async function updateTokenIcon (context, { assetId, forceUpdate = false }
  * @param {{all: Boolean}} param1
  */
 export async function updateTokenIcons (context, { all = false }) {
-  if (!Array.isArray(context.state.assets)) return []
+  const net = getBlockChainNetwork()
 
-  let slpAssets = context.state.assets
+  if (!Array.isArray(context.state.assets[net])) return []
+
+  let slpAssets = context.state.assets[net]
     .filter(asset => getTokenIdFromAssetId(asset && asset.id))
 
   if (!all) slpAssets = slpAssets.filter(asset => asset && !asset.logo)
@@ -96,11 +98,12 @@ export async function getMissingAssets (
     token_type: 1,
     wallet_hash: walletHash
   }
+  const net = getBlockChainNetwork()
 
-  if (Array.isArray(context.state.assets) && context.state.assets.length) {
+  if (Array.isArray(context.state.assets[net]) && context.state.assets[net].length) {
     const regex = isCashtoken ? /^ct\/([a-fA-F0-9]+)$/ : /^slp\/([a-fA-F0-9]+)$/
 
-    filterParams.exclude_token_ids = context.state.assets
+    filterParams.exclude_token_ids = context.state.assets[net]
       .map(asset => {
         const match = String(asset && asset.id).match(regex)
         if (!match) return

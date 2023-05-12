@@ -51,3 +51,8 @@ export function isValidTokenAddress (address) {
 
   return false
 }
+
+export function getBlockChainNetwork () {
+  const isChipnet = store().getters['global/isChipnet']
+  return isChipnet ? 'chip' : 'main'
+}

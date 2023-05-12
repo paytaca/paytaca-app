@@ -1,24 +1,33 @@
+import { getBlockChainNetwork } from "src/wallet/chip"
+
 export function ignoredAssets (state) {
-  if (!Array.isArray(state.ignoredAssets)) return []
-  return state.ignoredAssets
+  const network = getBlockChainNetwork()
+
+  if (!Array.isArray(state.ignoredAssets[network])) return []
+  return state.ignoredAssets[network]
 }
 
 export function ignoredTokenIds (state) {
-  if (!Array.isArray(state.ignoredAssets)) return []
-  return state.ignoredAssets
+  const network = getBlockChainNetwork()
+
+  if (!Array.isArray(state.ignoredAssets[network])) return []
+  return state.ignoredAssets[network]
     .map(asset => asset && asset.id)
-    .filter(assetId => String(assetId).match(/^slp\/([a-fA-F0-9]+)$/))
+    .filter(assetId => String(assetId).match(/^(slp|ct)\/([a-fA-F0-9]+)$/))
     .map(assetId => assetId.replace('slp/', ''))
+    .map(assetId => assetId.replace('ct/', ''))
     .filter(Boolean)
 }
 
 export function getAssets (state) {
-  return state.assets
+  return state.assets[getBlockChainNetwork()]
 }
 
 export function getAsset (state) {
   return function (id) {
-    return state.assets.filter(function (asset) {
+    const network = getBlockChainNetwork()
+
+    return state.assets[network].filter(function (asset) {
       if (asset && asset.id === id) {
         return asset
       }

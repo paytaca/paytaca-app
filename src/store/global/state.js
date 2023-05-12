@@ -30,7 +30,7 @@ export default function () {
           lastChangeAddress: '',
           lastAddressIndex: 0
         },
-        test: {
+        chip: {
           walletHash: '',
           derivationPath: '',
           xPubKey: '',
