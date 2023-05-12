@@ -66,7 +66,14 @@
         </q-tab-panel>
         <q-tab-panel name="delivery" :dark="darkMode">
           <q-form @submit="() => saveDeliveryAddress().then(() => nextTab())">
-
+            <q-banner v-if="formErrors?.delivery?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
+              <div v-if="formErrors?.delivery?.detail?.length === 1">
+                {{ formErrors?.delivery?.detail?.[0] }}
+              </div>
+              <ul v-else class="q-pl-md">
+                <li v-for="(err, index) in formErrors?.delivery?.detail" :key="index">{{err}}</li>
+              </ul>
+            </q-banner>
             <div class="row items-start">
               <q-input
                 outlined
@@ -75,8 +82,9 @@
                 :dark="darkMode"
                 label="First name"
                 v-model="formData.delivery.firstName"
-                class="col-12 col-sm-6"
-                bottom-slots
+                class="col-12 col-sm-6"    
+                :error="Boolean(formErrors?.delivery?.firstName)"
+                :error-message="formErrors?.delivery?.firstName"
               /> 
               <q-input
                 outlined
@@ -86,7 +94,8 @@
                 label="Last name"
                 v-model="formData.delivery.lastName"
                 class="col-12 col-sm-6"
-                bottom-slots
+                :error="Boolean(formErrors?.delivery?.lastName)"
+                :error-message="formErrors?.delivery?.lastName"
               />
             </div>
             <q-input
@@ -96,7 +105,8 @@
               :dark="darkMode"
               label="Phone number"
               v-model="formData.delivery.phoneNumber"
-              bottom-slots
+              :error="Boolean(formErrors?.delivery?.phoneNumber)"
+              :error-message="formErrors?.delivery?.phoneNumber"
             />
   
             <div class="text-subtitle1">Address</div>
@@ -107,7 +117,8 @@
               :dark="darkMode"
               label="Address"
               v-model="formData.delivery.address.address1"
-              bottom-slots
+              :error="Boolean(formErrors?.delivery?.location?.address1)"
+              :error-message="formErrors?.delivery?.location?.address1"
             />
             <div class="row items-start">
               <q-input
@@ -118,6 +129,8 @@
                 label="Street"
                 v-model="formData.delivery.address.street"
                 class="col-12 col-sm-6"
+                :error="Boolean(formErrors?.delivery?.location?.street)"
+                :error-message="formErrors?.delivery?.location?.street"
                 :rules="[
                   val => Boolean(val) || 'Required',
                 ]"
@@ -130,6 +143,8 @@
                 label="City"
                 v-model="formData.delivery.address.city"
                 class="col-12 col-sm-6"
+                :error="Boolean(formErrors?.delivery?.location?.city)"
+                :error-message="formErrors?.delivery?.location?.city"
                 :rules="[
                   val => Boolean(val) || 'Required',
                 ]"
@@ -145,7 +160,8 @@
                 label="State / Province"
                 v-model="formData.delivery.address.state"
                 class="col-12 col-sm-6"
-                bottom-slots
+                :error="Boolean(formErrors?.delivery?.location?.state)"
+                :error-message="formErrors?.delivery?.location?.state"
               />
               <q-select
                 outlined
@@ -162,6 +178,8 @@
                 v-model="formData.delivery.address.country"
                 class="col-12 col-sm-6"
                 :popup-content-class="darkMode ? '': 'text-black'"
+                :error="Boolean(formErrors?.delivery?.location?.country)"
+                :error-message="formErrors?.delivery?.location?.country"
                 :rules="[
                   val => Boolean(val) || 'Required',
                 ]"
@@ -342,7 +360,7 @@
 import countriesJson from 'src/assets/countries.json'
 import { backend } from 'src/marketplace/backend'
 import { Checkout } from 'src/marketplace/objects'
-import { formatTimestampToText } from 'src/marketplace/utils'
+import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
@@ -410,11 +428,8 @@ const formData = ref({
       latitude: null,
     },
   },
-
-  payment: {
-    bchPrice: { currency: '', rate: 0, timestamp: 0 },
-  }
 })
+
 
 const validCoordinates = computed(() => 
   Number.isFinite(formData.value.delivery.address.longitude) && Number.isFinite(formData.value.delivery.address.latitude)
@@ -473,6 +488,45 @@ function selectCoordinates() {
       formData.value.delivery.address.longitude = coordinates.lng
       formData.value.delivery.address.latitude = coordinates.lat
     })
+}
+
+const formErrors = ref({
+  detail: [],
+  delivery: {
+    detail: [],
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    location: {
+      address1: '',
+      address2: '',
+      street: '',
+      city: '',
+      state: '',
+      country: '',
+      longitude: '',
+      latitude: '',
+    }
+  }
+})
+function resetFormErrors() {
+  formErrors.value.detail = []
+  formErrors.value.delivery = {
+    detail: [],
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    location: {
+      address1: '',
+      address2: '',
+      street: '',
+      city: '',
+      state: '',
+      country: '',
+      longitude: '',
+      latitude: '',
+    }
+  }
 }
 
 function updateBchPrice(opts={age: 60 * 1000}) {
@@ -595,6 +649,32 @@ function saveDeliveryAddress() {
         latitude: formData.value?.delivery?.address?.latitude,
       },
     }
+  })
+  .finally(() => resetFormErrors())
+  .catch(error => {
+    const data = error?.response?.data
+    formErrors.value.delivery.detail = errorParser.toArray(data?.delivery_address?.non_field_errors)
+    if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = errorParser.toArray(data?.non_field_errors)
+    if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = errorParser.toArray(data?.delivery_address?.location) 
+    formErrors.value.delivery.firstName = errorParser.firstElementOrValue(data?.delivery_address?.first_name)
+    formErrors.value.delivery.lastName = errorParser.firstElementOrValue(data?.delivery_address?.last_name)
+    formErrors.value.delivery.phoneNumber = errorParser.firstElementOrValue(data?.delivery_address?.phone_number)
+    formErrors.value.delivery.location = {
+      address1: errorParser.firstElementOrValue(data?.delivery_address?.location?.address1),
+      address2: errorParser.firstElementOrValue(data?.delivery_address?.location?.address2),
+      street: errorParser.firstElementOrValue(data?.delivery_address?.location?.street),
+      city: errorParser.firstElementOrValue(data?.delivery_address?.location?.city),
+      state: errorParser.firstElementOrValue(data?.delivery_address?.location?.state),
+      country: errorParser.firstElementOrValue(data?.delivery_address?.location?.country),
+      longitude: errorParser.firstElementOrValue(data?.delivery_address?.location?.longitude),
+      latitude: errorParser.firstElementOrValue(data?.delivery_address?.location?.latitude),
+    }
+    if (!formErrors.value.delivery.detail?.length) {
+      if (Array.isArray(data)) formErrors.value.delivery.detail = data
+      if (data?.detail) formErrors.value.delivery.detail = [data?.detail]
+    }
+    if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = ['Unable to update delivery info']
+    return Promise.reject(error)
   })
   .then(() => updateDeliveryFee())
 }
