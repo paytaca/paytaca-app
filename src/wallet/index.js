@@ -3,6 +3,7 @@ import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import aes256 from 'aes256'
 import { utils } from 'ethers'
+import { convertCashAddress } from './chip'
 
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
@@ -130,6 +131,10 @@ export class Address {
     return bchjs.Address.isMainnetAddress(this.address)
   }
 
+  isTestnetCashAddress () {
+    return bchjs.Address.isTestnetAddress(this.address)
+  }
+
   isSLPAddress () {
     return bchjs.SLP.Address.isSLPAddress(this.address)
   }
@@ -140,5 +145,23 @@ export class Address {
 
   isMainnetSLPAddress () {
     return bchjs.SLP.Address.isMainnetAddress(this.address)
+  }
+
+  isTestnetSLPAddress () {
+    return bchjs.SLP.Address.isTestnetAddress(this.address)
+  }
+
+  isValidBCHAddress (isChipnet) {
+    const isBCHAddr = this.isCashAddress()
+    if (isChipnet)
+      return isBCHAddr && this.isTestnetCashAddress()
+    return isBCHAddr && this.isMainnetCashAddress()
+  }
+
+  isValidSLPAddress (isChipnet) {
+    const isSLPAddr = this.isSLPAddress()
+    if (isChipnet)
+      return isSLPAddr && this.isTestnetSLPAddress()
+    return isSLPAddr && this.isMainnetSLPAddress()
   }
 }

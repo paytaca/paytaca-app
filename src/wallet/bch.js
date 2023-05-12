@@ -2,14 +2,8 @@ import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
 import * as openpgp from 'openpgp/lightweight'
-import { getWatchtowerApiUrl } from './chip'
+import { getWatchtowerApiUrl, convertCashAddress } from './chip'
 import axios from 'axios'
-import {
-  CashAddressNetworkPrefix,
-  CashAddressType,
-  encodeCashAddress,
-  decodeCashAddress,
-} from '@bitauth/libauth'
 
 const bchjs = new BCHJS()
 
@@ -95,19 +89,8 @@ export class BchWallet {
     }
     
     if (this.isChipnet) {
-      const decodedReceivingAddress = decodeCashAddress(receivingAddress)
-      const decodedChangeAddress = decodeCashAddress(changeAddress)
-      
-      receivingAddress = encodeCashAddress(
-        CashAddressNetworkPrefix.testnet,
-        CashAddressType.p2pkh,
-        decodedReceivingAddress.hash
-      )
-      changeAddress = encodeCashAddress(
-        CashAddressNetworkPrefix.testnet,
-        CashAddressType.p2pkh,
-        decodedChangeAddress.hash
-      )
+      receivingAddress = convertCashAddress(receivingAddress, this.isChipnet, false)
+      changeAddress = convertCashAddress(changeAddress, this.isChipnet, false)
     }
 
     const pgpIdentity = {

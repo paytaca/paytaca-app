@@ -279,6 +279,7 @@ import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
 import { getMnemonic, Wallet } from '../../wallet'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { getWalletByNetwork } from 'src/wallet/chip'
 import packageInfo from '../../../package.json'
 import { Plugins } from '@capacitor/core'
 import { markRaw } from '@vue/reactivity'
@@ -321,7 +322,7 @@ export default {
     },
     bchUtxoScanTaskInfo() {
       let walletHash = this.getWallet('bch')?.walletHash
-      if (this.wallet) walletHash = this.wallet.BCH.walletHash
+      if (this.wallet) walletHash = getWalletByNetwork(this.wallet, 'bch').walletHash
 
       const utxoScanInfo = this.$store.getters['global/getUtxoScanInfo'](walletHash)
       if (utxoScanInfo) {
@@ -404,7 +405,7 @@ export default {
         })
     },
     updateUtxoScanTasksStatus(nextUpdate=30*1000, age=0) {
-      const bchWalletHash = this.wallet.BCH.getWalletHash()  
+      const bchWalletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()  
       const slpWalletHash = this.wallet.SLP.getWalletHash()  
       const updateScanPromises = [
         this.$store.dispatch('global/updateUtxoScanTaskStatus', { walletHash: bchWalletHash, age: age }),
@@ -426,11 +427,11 @@ export default {
       if (!this.wallet) await this.loadWallet()
 
       this.scanningBchUtxos = true
-      this.wallet.BCH.scanUtxos({ background: true })
+      getWalletByNetwork(this.wallet, 'bch').scanUtxos({ background: true })
         .then(response => {
           if (response?.data?.task_id) {
             this.$store.commit('global/setUtxoScanTask', {
-              walletHash: this.wallet.BCH.getWalletHash(),
+              walletHash: getWalletByNetwork(this.wallet, 'bch').getWalletHash(),
               taskId: response.data.task_id,
             })
             this.updateUtxoScanTasksStatus()
@@ -468,7 +469,7 @@ export default {
       const count = 5
 
       this.scanningBchAddresses = true
-      this.wallet.BCH.scanAddresses({ startIndex: lastAddressIndex+1, count: count })
+      getWalletByNetwork(this.wallet, 'bch').scanAddresses({ startIndex: lastAddressIndex+1, count: count })
         .then(response => {
           if (!response.success) return Promise.reject(response)
           if (!Array.isArray(response?.subscriptionResponses)) return Promise.reject(response)

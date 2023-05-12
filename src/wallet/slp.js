@@ -3,13 +3,7 @@ const BCHJS = require('@psf/bch-js')
 const sha256 = require('js-sha256')
 const bchjs = new BCHJS()
 import axios from 'axios'
-import { getWatchtowerApiUrl } from './chip'
-import {
-  CashAddressNetworkPrefix,
-  CashAddressType,
-  encodeCashAddress,
-  decodeCashAddress,
-} from '@bitauth/libauth'
+import { getWatchtowerApiUrl, convertCashAddress } from './chip'
 
 
 export class SlpWallet {
@@ -76,19 +70,8 @@ export class SlpWallet {
     }
 
     if (this.isChipnet) {
-      const decodedReceivingAddress = decodeCashAddress(addresses.receiving)
-      const decodedChangeAddress = decodeCashAddress(addresses.change)
-
-      const encodedReceivingAddress = encodeCashAddress(
-        CashAddressNetworkPrefix.testnet,
-        CashAddressType.p2pkh,
-        decodedReceivingAddress.hash
-      )
-      const encodedChangeAddress = encodeCashAddress(
-        CashAddressNetworkPrefix.testnet,
-        CashAddressType.p2pkh,
-        decodedChangeAddress.hash
-      )
+      const encodedReceivingAddress = convertCashAddress(addresses.receiving, this.isChipnet, false)
+      const encodedChangeAddress = convertCashAddress(addresses.change, this.isChipnet, false)
 
       addresses.receiving = bchjs.SLP.Address.toSLPAddress(encodedReceivingAddress)
       addresses.change = bchjs.SLP.Address.toSLPAddress(encodedChangeAddress)

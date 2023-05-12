@@ -9,6 +9,7 @@ import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
+import { getWalletByNetwork } from './chip'
 
 const bchjs = new BCHJS()
 /**
@@ -365,8 +366,8 @@ export class JSONPaymentProtocol {
       throw JsonPaymentProtocolError('Invalid recipient address')
     }
 
-    const bchUtxos = await wallet.BCH.watchtower.BCH.getBchUtxos(
-      `wallet:${wallet.BCH.walletHash}`,
+    const bchUtxos = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.getBchUtxos(
+      `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`,
       totalSendAmountSats,
     )
 
@@ -386,9 +387,9 @@ export class JSONPaymentProtocol {
       txBuilder.addInput(utxo.tx_hash, utxo.tx_pos)
       totalInput = totalInput.plus(utxo.value)
       const addressPath = utxo?.address_path || utxo.wallet_index
-      const utxoPkWif = await wallet.BCH.watchtower.BCH.retrievePrivateKey(
-        wallet.BCH.mnemonic,
-        wallet.BCH.derivationPath,
+      const utxoPkWif = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.retrievePrivateKey(
+        getWalletByNetwork(wallet, 'bch').mnemonic,
+        getWalletByNetwork(wallet, 'bch').derivationPath,
         addressPath,
       )
 
@@ -426,9 +427,9 @@ export class JSONPaymentProtocol {
     const txFee = Math.ceil(byteCount * feeRate)
 
     const senderRemainder = totalInput.minus(totalOutput.plus(txFee))
-    if (senderRemainder.isGreaterThanOrEqualTo(wallet.BCH.watchtower.BCH.dustLimit)) {
+    if (senderRemainder.isGreaterThanOrEqualTo(getWalletByNetwork(wallet, 'bch').watchtower.BCH.dustLimit)) {
       // generate change address if no change address provided
-      if (!changeAddress) changeAddress = (await wallet.BCH.getAddressSetAt(0)).change
+      if (!changeAddress) changeAddress = (await getWalletByNetwork(wallet, 'bch').getAddressSetAt(0)).change
       txBuilder.addOutput(
         bchjs.Address.toLegacyAddress(changeAddress),
         parseInt(senderRemainder)

@@ -778,11 +778,11 @@ export default {
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
         if (bchChangeAddress.length === 0) {
-          vm.wallet.BCH.getNewAddressSet(0).then(function ({ addresses }) {
+          getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({ addresses }) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
-              walletHash: vm.wallet.BCH.walletHash,
-              derivationPath: vm.wallet.BCH.derivationPath,
+              walletHash: getWalletByNetwork(vm.wallet, 'bch').walletHash,
+              derivationPath: getWalletByNetwork(vm.wallet, 'bch').derivationPath,
               lastAddress: addresses.receiving,
               lastChangeAddress: addresses.change,
               lastAddressIndex: 0
@@ -791,11 +791,11 @@ export default {
         }
         const slpChangeAddress = vm.getChangeAddress('slp')
         if (slpChangeAddress.length === 0) {
-          vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
+          getWalletByNetwork(vm.wallet, 'slp').getNewAddressSet(0).then(function (addresses) {
             vm.$store.commit('global/updateWallet', {
               type: 'slp',
-              walletHash: vm.wallet.SLP.walletHash,
-              derivationPath: vm.wallet.SLP.derivationPath,
+              walletHash: getWalletByNetwork(vm.wallet, 'slp').walletHash,
+              derivationPath: getWalletByNetwork(vm.wallet, 'slp').derivationPath,
               lastAddress: addresses.receiving,
               lastChangeAddress: addresses.change,
               lastAddressIndex: 0

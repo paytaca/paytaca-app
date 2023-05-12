@@ -332,6 +332,7 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import QrScanner from '../../components/qr-scanner.vue'
 import { VOffline } from 'v-offline'
+import { convertCashAddress, isValidTokenAddress } from 'src/wallet/chip'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -400,6 +401,7 @@ export default {
       asset: {},
       wallet: null,
       walletType: '',
+      isCashToken: false,
 
       forceUseDefaultNftImage: false,
 
@@ -465,6 +467,9 @@ export default {
   },
 
   computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
     showFooter () {
       if (this.customKeyboardState === 'show') {
         return false
@@ -954,9 +959,10 @@ export default {
 
     validateAddress (address) {
       const vm = this
-      const addressObj = new Address(address)
+      let addressObj = new Address(address)
       let addressIsValid = false
       let formattedAddress
+      
       try {
         if (vm.walletType === sBCHWalletType) {
           if (addressObj.isSep20Address()) {
@@ -967,27 +973,26 @@ export default {
           }
         }
         if (vm.walletType === 'bch') {
-          if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
-            if (addressObj.isMainnetCashAddress()) {
-              addressIsValid = true
-              formattedAddress = addressObj.toCashAddress(address)
-            }
+          if (vm.isCashToken) {
+            addressIsValid = isValidTokenAddress(address)
+            formattedAddress = address
           } else {
-            addressIsValid = false
+            if (isValidTokenAddress(address)) {
+              addressIsValid = true
+              formattedAddress = convertCashAddress(address, vm.isChipnet, false)
+            } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
+              if (addressObj.isValidBCHAddress(vm.isChipnet)) {
+                addressIsValid = true
+                formattedAddress = addressObj.toCashAddress(address)
+              }
+            }
           }
         }
         if (vm.walletType === 'slp') {
           if (addressObj.isSLPAddress() && addressObj.isMainnetSLPAddress()) {
             addressIsValid = true
             formattedAddress = addressObj.toSLPAddress(address)
-          } else {
-            addressIsValid = false
           }
-        }
-        if (vm.walletType === 'ct') {
-          // TODO: validate token address (no validator function in mainnet-js for now)
-          addressIsValid = true
-          formattedAddress = address
         }
       } catch (err) {
         addressIsValid = false
@@ -1100,7 +1105,7 @@ export default {
               vm.sendData.posDevice,
             )
           } else {
-            sendPromise = vm.wallet.BCH.sendBch(vm.sendData.amount, address, changeAddress)
+            sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress)
           }
           sendPromise.then(function (result) {
             vm.sendData.sending = false
@@ -1174,9 +1179,9 @@ export default {
       vm.walletType = sBCHWalletType
     } else if (vm.assetId.indexOf('slp/') > -1) {
       vm.walletType = 'slp'
-    } else if (vm.assetId.indexOf('ct/') > -1) {
-      vm.walletType = 'ct'
     } else {
+      if (vm.assetId.indexOf('ct/') > -1)
+        vm.isCashToken = true
       vm.walletType = 'bch'
     }
 

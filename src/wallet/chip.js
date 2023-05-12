@@ -1,4 +1,12 @@
 import store from 'src/store'
+import { Address } from './index'
+import {
+  CashAddressNetworkPrefix,
+  CashAddressType,
+  encodeCashAddress,
+  decodeCashAddress,
+} from '@bitauth/libauth'
+
 
 export function getWatchtowerApiUrl (isChipnet) {
   if (isChipnet)
@@ -21,4 +29,25 @@ export function getWalletByNetwork (wallet, type) {
   if (type === 'slp')
     return [w.SLP, w.SLP_TEST][idx]
   return w.sBCH
+}
+
+export function convertCashAddress (address, toTestNet = true, toTokenAddress = true) {
+  const decodedAddress = decodeCashAddress(address)
+  const prefix = toTestNet ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
+  const addressType = toTokenAddress ? 2 : CashAddressType.p2pkh
+
+  return encodeCashAddress(prefix, addressType, decodedAddress.hash)
+}
+
+export function isValidTokenAddress (address) {
+  const isChipnet = store().getters['global/isChipnet']
+  const prefix = isChipnet ? 'bchtest' : 'bitcoincash'
+
+  if (address.startsWith(`${prefix}:z`)) {
+    const cashAddr = convertCashAddress(address, isChipnet, false)
+    const addressObj = new Address(cashAddr)
+    return addressObj.isValidBCHAddress(isChipnet)
+  }
+
+  return false
 }

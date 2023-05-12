@@ -83,12 +83,11 @@ import ProgressLoader from '../../components/ProgressLoader'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 import { NativeAudio } from '@capacitor-community/native-audio'
-import { getWalletByNetwork, getWatchtowerWebsocketUrl } from 'src/wallet/chip'
 import {
-  CashAddressNetworkPrefix,
-  encodeCashAddress,
-  decodeCashAddress,
-} from '@bitauth/libauth'
+  getWalletByNetwork,
+  getWatchtowerWebsocketUrl,
+  convertCashAddress,
+} from 'src/wallet/chip'
 
 NativeAudio.preload({
     assetId: 'send-success',
@@ -228,14 +227,6 @@ export default {
         this.copying = false
       }
     },
-    getCashTokenAddress (address) {
-      const decodedReceivingAddress = decodeCashAddress(address)
-      return encodeCashAddress(
-        CashAddressNetworkPrefix.testnet,
-        2,
-        decodedReceivingAddress.hash
-      )
-    },
     getAddress (forListener = false) {
       if (this.isSep20) {
         this.walletType = 'sbch'
@@ -249,7 +240,7 @@ export default {
     
       let address = this.$store.getters['global/getAddress'](this.walletType)
       if (this.assetId.indexOf('ct/') > -1 && !forListener) {
-        address = this.getCashTokenAddress(address)
+        address = convertCashAddress(address, this.isChipnet)
       }
 
       return address
