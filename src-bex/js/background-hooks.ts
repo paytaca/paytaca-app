@@ -178,7 +178,7 @@ export default bexBackground( (bridge, allActiveConnections) => {
     const network = vuex?.global?.isChipnet ? 'chip' : 'main'
     const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
     const connectedAddress = wallet.connectedAddress;
-    const connectedSites = vuex?.global?.wallets?.[data.assetId || "bch"]?.connectedSites || {};
+    const connectedSites = wallet.connectedSites || {};
     const origin = data.origin.split('/')[2] ?? data.origin;
     delete connectedSites[origin][connectedAddress];
     if (Object.keys(connectedSites[origin]).length === 0) {

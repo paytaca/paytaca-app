@@ -44,12 +44,16 @@ export function updateWallet (state, details) {
 }
 
 export function setConnectedAddress (state, details) {
-  state.wallets[details.type].connectedAddress = details.connectedAddress
-  state.wallets[details.type].connectedAddressIndex = details.connectedAddressIndex
+  const wallet = getWalletData(state, details)
+
+  wallet.connectedAddress = details.connectedAddress
+  wallet.connectedAddressIndex = details.connectedAddressIndex
 }
 
 export function setConnectedSites (state, details) {
-  state.wallets[details.type].connectedSites = details.connectedSites
+  const wallet = getWalletData(state, details)
+
+  wallet.connectedSites = details.connectedSites
 }
 
 export function setWalletSubscribed (state, details) {

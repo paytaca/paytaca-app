@@ -160,18 +160,21 @@ export function getDefaultAssetLogo () {
 
 export function getConnectedAddress (state) {
   return function (walletType) {
-    return state.wallets[walletType].connectedAddress
+    const walletData = getWalletData(state, walletType)
+    return walletData.connectedAddress
   }
 }
 
 export function getConnectedAddressIndex (state) {
   return function (walletType) {
-    return state.wallets[walletType].connectedAddressIndex
+    const walletData = getWalletData(state, walletType)
+    return walletData.connectedAddressIndex
   }
 }
 
 export function getConnectedSites (state) {
   return function (walletType) {
-    return state.wallets[walletType].connectedSites
+    const walletData = getWalletData(state, walletType)
+    return walletData.connectedSites
   }
 }
