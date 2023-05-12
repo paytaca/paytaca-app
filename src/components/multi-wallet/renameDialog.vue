@@ -33,14 +33,14 @@ export default {
     index: Number
   },
   async mounted () {
-    console.log(this.index)
     this.selectedIndex = this.index
+    this.name = this.$store.getters['global/getVault'][this.selectedIndex].name
     this.isLoaded = true
   },
   methods: {
     renameWallet () {
-      this.$store.commit('global/updateWalletName', { name: this.name, index: this.selectedIndex})
-      console.log(this.name)
+      this.$store.commit('global/updateWalletName', { name: this.name, index: this.selectedIndex })
+      this.$emit('ok')
       this.hide()
     },
     hide () {

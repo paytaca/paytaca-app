@@ -17,6 +17,7 @@ export default function () {
         balance: 0
       }
     ],
-    ignoredAssets: []
+    ignoredAssets: [],
+    vault: {}
   }
 }

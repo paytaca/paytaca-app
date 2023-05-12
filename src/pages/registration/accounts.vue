@@ -156,17 +156,12 @@ export default {
         .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
     },
     saveToVault () {
-      console.log('saving to vault: ')
-      // console.log(this.$store.getters['global/getVault'])
       let allWalletType = this.$store.getters['global/getAllWalletTypes']
-      // console.log(allWalletType)
-
       allWalletType = JSON.stringify(allWalletType)
       allWalletType = JSON.parse(allWalletType)
 
       this.$store.commit('global/updateVault', allWalletType)
       this.$store.commit('global/updateWalletIndex', this.walletIndex)
-      console.log(this.$store.getters['global/getVault'])
     },
     continueToDashboard () {
       const vm = this
@@ -194,9 +189,7 @@ export default {
       }
       vm.steps += 1
 
-      console.log('mnemonic generated')
       const wallet = new Wallet(this.mnemonic)
-      console.log(this.$store.getters['global/getVault'])
 
       wallet.BCH.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
         vm.$store.commit('global/updateWallet', {
@@ -332,10 +325,6 @@ export default {
     if (this.$store.getters['global/isVaultEmpty']) {
       this.walletIndex = 0
     }
-
-    console.log(this.walletIndex)
-    console.log('current vault: ')
-    console.log(this.$store.getters['global/getVault'])
 
     // Adjust paytaca language according to phone's language (if supported by paytaca)
     let deviceLang = null

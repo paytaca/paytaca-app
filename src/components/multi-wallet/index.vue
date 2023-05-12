@@ -21,11 +21,11 @@
               <q-item-section style="overflow-wrap: break-word;">
                 <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                   <span class="text-h5" style="font-size: 15px;">{{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></span>
-                  <span  class="text-nowrap q-ml-xs q-mt-sm">0 BCH</span>
+                  <span  class="text-nowrap q-ml-xs q-mt-sm">{{ String(bchAsset.balance).substring(0, 10) }} {{ bchAsset.symbol }}</span>
                 </div>
                 <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                   <span style="font-size: 12px; color: gray;">{{ arrangeAddressText(wallet.bch.lastAddress) }}</span>
-                  <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">0 USD</span>
+                  <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</span>
                 </div>
                 <q-menu anchor="bottom right" self="top end" >
                   <q-list class="text-h5" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 150px; font-size: 15px;">
@@ -71,28 +71,23 @@ export default {
       const vm = this
       let count = 1
 
-      for (const item in vm.vault) {
-        // console.log(vm.vault[item])
-        const wallet = vm.vault[item]
-        // console.log(wallet.name)
-        if (wallet.name === '') {
-          // vm.vault[item].name = 'Personal Wallet #' + count
+      const tempVault = vm.$store.getters['global/getVault']
+
+      for (const item in tempVault) {
+        const wallet = tempVault[item]
+        if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
           const name = 'Personal Wallet #' + count
           vm.$store.commit('global/updateWalletName', { index: item, name: name })
         }
-
         count++
       }
     },
     switchWallet (index) {
       if (index !== this.currentIndex) {
-        console.log('switching wallet')
-
         this.$store.dispatch('global/switchWallet', index)
-      } else {
-        console.log('same wallet')
+        location.reload()
       }
-      this.$refs.dialog.hide()
+      this.hide()
     },
     hide () {
       this.$refs.dialog.hide()
@@ -114,25 +109,47 @@ export default {
           index: this.selectedIndex
         }
       })
+        .onOk(() => {
+          this.processVaultName()
+          this.arrangeVaultData()
+        })
+    },
+    getAssetMarketBalance (asset) {
+      if (!asset || !asset.id) return ''
+
+      const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
+      if (!assetPrice) return ''
+
+      const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
+
+      return computedBalance.toFixed(2)
+    },
+    arrangeVaultData () {
+      const vm = this
+      let tempVault = vm.$store.getters['global/getVault']
+      tempVault = JSON.stringify(tempVault)
+      tempVault = JSON.parse(tempVault)
+
+      // tempVault.unshift(tempVault.splice(vm.currentIndex, 1)[0])
+      vm.vault = tempVault
+    }
+  },
+  computed: {
+    bchAsset () {
+      return this.$store.getters['assets/getAssets'][0]
+    },
+    selectedMarketCurrency () {
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency && currency.symbol
     }
   },
   async mounted () {
     console.log('Multi-Wallet')
     const vm = this
-    vm.vault = vm.$store.getters['global/getVault']
 
     vm.processVaultName()
+    vm.arrangeVaultData()
     vm.isloading = true
-
-    console.log(vm.currentIndex)
-    // const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
-    // console.log(mnemonic)
-    // console.log(vm.$store.getters['global/getVault'])
-    // testing(vm.$store.getters['global/getWalletIndex'])
-
-    // console.log(vm.$store.getters['global/getWalletIndex'])
-
-    // vm.$store.commit('global/clearVault')
   }
 }
 </script>

@@ -113,12 +113,7 @@ export async function saveExistingWallet (context) {
 }
 
 export async function switchWallet (context, index) {
-  console.log(index)
-
-  // update current wallet snapshot
-  let snapshot = context.getters.getAllWalletTypes
-  // snapshot = JSON.stringify(snapshot)
-  // snapshot = JSON.parse(snapshot)
+  const snapshot = context.getters.getAllWalletTypes
 
   const currentIndex = context.getters.getWalletIndex
   const walletName = context.getters.getVault[currentIndex].name
@@ -129,13 +124,6 @@ export async function switchWallet (context, index) {
     name: walletName
   }
   context.commit('updateWalletSnapshot', info)
-
-  // update current wallet index
   context.commit('updateWalletIndex', index)
-
-  // update wallet
   context.commit('updateCurrentWallet', index)
-  // save snapshop
-  // updateIndex
-  // update wallet
 }

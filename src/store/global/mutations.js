@@ -12,16 +12,9 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
-  console.log('updating vault')
-  console.log(state.vault)
-  console.log(details)
-
-  // state.vault[details.index] = details.wallet
   const len = state.vault.push(details)
 
   state.vault[len - 1].name = ''
-
-  console.log(state.vault)
 }
 
 export function clearVault (state) {
@@ -41,11 +34,8 @@ export function updateWalletSnapshot (state, details) {
   wallet = JSON.stringify(wallet)
   wallet = JSON.parse(wallet)
 
-  console.log('snapshot')
-  console.log(wallet)
   state.vault[details.index] = wallet
   state.vault[details.index].name = details.name
-  // console.log(state.vault[details.index])
 }
 
 export function updateCurrentWallet (state, index) {
@@ -54,8 +44,6 @@ export function updateCurrentWallet (state, index) {
   wallet = JSON.parse(wallet)
 
   state.wallets = wallet
-  console.log(state.wallets)
-  console.log(state.vault)
 }
 
 export function updateWallet (state, details) {

@@ -69,20 +69,6 @@ export async function generateMnemonic (index = 0) {
   return mnemonic
 }
 
-// export async function testing (index) {
-//   let mnemonic = null
-//   console.log('TESTING')
-
-//   console.log(index)
-
-//   try {
-//     mnemonic = await SecureStoragePlugin.get({ key: 'test' })
-//     mnemonic = mnemonic.value
-//   } catch (err) {}
-
-//   console.log(mnemonic)
-// }
-
 export async function storeMnemonic (mnemonic, index = 0) {
   let key = 'mn'
 

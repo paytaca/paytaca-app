@@ -83,3 +83,15 @@ export function updateAssetImageUrl (state, data) {
     }
   }
 }
+
+export function updateVault (state, details) {
+  state.vault.push(details)
+}
+
+export function updateVaultSnapshot (state, details) {
+  let snapshot = details.snapshot
+  snapshot = JSON.stringify(snapshot)
+  snapshot = JSON.parse(snapshot)
+
+  state.vault[details.index] = snapshot
+}
