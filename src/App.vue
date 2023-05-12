@@ -144,6 +144,44 @@ export default {
           query: query
         })
       })
+
+      vm.$q.bex.on('bex.paytaca.connect', async (event) => {
+        vm.$router.push({
+          name: 'connect',
+          query: {
+            origin: event.data.origin,
+            eventResponseKey: event.data.eventResponseKey,
+          },
+        })
+      })
+
+      vm.$q.bex.on('bex.paytaca.signMessage', async (event) => {
+        vm.$router.push({
+          name: 'sign-message',
+          query: {
+            origin: event.data.origin,
+            assetId: event.data.assetId,
+            message: event.data.message,
+            userPrompt: event.data.userPrompt,
+            eventResponseKey: event.data.eventResponseKey,
+          },
+        })
+      })
+
+      vm.$q.bex.on('bex.paytaca.signTransaction', async (event) => {
+        vm.$router.push({
+          name: 'sign-transaction',
+          query: {
+            origin: event.data.origin,
+            assetId: event.data.assetId,
+            transaction: event.data.transaction,
+            sourceOutputs: event.data.sourceOutputs,
+            broadcast: event.data.broadcast,
+            userPrompt: event.data.userPrompt,
+            eventResponseKey: event.data.eventResponseKey,
+          },
+        })
+      })
     }
   },
   unmounted () {

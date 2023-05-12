@@ -4,7 +4,7 @@ function getWalletData (state, details) {
   const hasTestnetWallets = ['bch', 'slp']
   const network = isChipnet ? 'chip' : 'main'
   const wallet = state.wallets[walletType]
-  
+
   return hasTestnetWallets.includes(walletType) ? wallet[network] : wallet
 }
 
@@ -33,6 +33,23 @@ export function updateWallet (state, details) {
   wallet.lastAddress = details.lastAddress
   wallet.lastChangeAddress = details.lastChangeAddress
   wallet.lastAddressIndex = details.lastAddressIndex
+  wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
+  wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
+  wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
+
+}
+
+export function setConnectedAddress (state, details) {
+  const wallet = getWalletData(state, details)
+
+  wallet.connectedAddress = details.connectedAddress
+  wallet.connectedAddressIndex = details.connectedAddressIndex
+}
+
+export function setConnectedSites (state, details) {
+  const wallet = getWalletData(state, details)
+
+  wallet.connectedSites = details.connectedSites
 }
 
 export function setWalletSubscribed (state, details) {
@@ -78,15 +95,15 @@ export function updateTransactions (state, data) {
 
 export function generateNewAddressSet (state, details) {
   const wallet = getWalletData(state, details)
-  
+
   wallet.lastAddress = details.lastAddress
   wallet.lastChangeAddress = details.lastChangeAddress
   wallet.lastAddressIndex = details.lastAddressIndex
 }
 
 /**
- * @param {Object} state 
- * @param {Object} data 
+ * @param {Object} state
+ * @param {Object} data
  * @param {String} data.walletHash
  * @param {String} data.taskId
  * @param {String} data.status

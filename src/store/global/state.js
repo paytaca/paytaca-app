@@ -10,7 +10,10 @@ export default function () {
           xPubKey: '',
           lastAddress: '',
           lastChangeAddress: '',
-          lastAddressIndex: 0
+          lastAddressIndex: 0,
+          connectedAddress: '',
+          connectedAddressIndex: '0/0',
+          connectedSites: {}
         },
         chip: {
           walletHash: '',
@@ -18,7 +21,10 @@ export default function () {
           xPubKey: '',
           lastAddress: '',
           lastChangeAddress: '',
-          lastAddressIndex: 0
+          lastAddressIndex: 0,
+          connectedAddress: '',
+          connectedAddressIndex: '0/0',
+          connectedSites: {}
         }
       },
       slp: {
@@ -28,7 +34,10 @@ export default function () {
           xPubKey: '',
           lastAddress: '',
           lastChangeAddress: '',
-          lastAddressIndex: 0
+          lastAddressIndex: 0,
+          connectedAddress: '',
+          connectedAddressIndex: '0/0',
+          connectedSites: {}
         },
         chip: {
           walletHash: '',
@@ -36,14 +45,20 @@ export default function () {
           xPubKey: '',
           lastAddress: '',
           lastChangeAddress: '',
-          lastAddressIndex: 0
+          lastAddressIndex: 0,
+          connectedAddress: '',
+          connectedAddressIndex: '0/0',
+          connectedSites: {}
         }
       },
       sbch: {
         subscribed: false,
         walletHash: '',
         derivationPath: '',
-        lastAddress: ''
+        lastAddress: '',
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       }
     },
     utxoScanTasks: {

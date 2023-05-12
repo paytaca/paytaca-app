@@ -13,7 +13,13 @@
 module.exports = function (/* ctx */) {
   return {
     // https://quasar.dev/quasar-cli/supporting-ts
-    supportTS: false,
+    supportTS: {
+      tsCheckerConfig: {
+        typescript: {
+          memoryLimit: 8000
+        }
+      },
+    },
 
     // https://quasar.dev/quasar-cli/prefetch-feature
     // preFetch: true,
