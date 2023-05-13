@@ -240,9 +240,8 @@ export default {
     
       let address = this.$store.getters['global/getAddress'](this.walletType)
       if (this.assetId.indexOf('ct/') > -1 && !forListener) {
-        address = convertCashAddress(address, this.isChipnet)
+        address = convertCashAddress(address, this.isChipnet, true)
       }
-
       return address
     },
     getLastAddressIndex () {

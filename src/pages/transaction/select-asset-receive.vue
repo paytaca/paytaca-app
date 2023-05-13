@@ -18,7 +18,7 @@
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode}">{{ $t('SelectAssetToBeReceived') }}</p>
         </div>
         <div class="col-3 q-mt-sm" v-show="selectedNetwork === networks.BCH.name">
-          <AssetFilter v-if="isChipnet" @filterTokens="filterTokens" />
+          <AssetFilter @filterTokens="filterTokens" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -80,7 +80,7 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: false,
+      isCashToken: true,
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },

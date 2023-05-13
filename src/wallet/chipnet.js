@@ -34,8 +34,7 @@ export function getWalletByNetwork (wallet, type) {
 export function convertCashAddress (address, toTestNet = true, toTokenAddress = true) {
   const decodedAddress = decodeCashAddress(address)
   const prefix = toTestNet ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
-  const addressType = toTokenAddress ? 2 : CashAddressType.p2pkh
-
+  const addressType = toTokenAddress ? CashAddressType.p2pkhWithTokens : CashAddressType.p2pkh
   return encodeCashAddress(prefix, addressType, decodedAddress.payload)
 }
 

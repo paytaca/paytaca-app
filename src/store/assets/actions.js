@@ -63,8 +63,7 @@ export async function updateTokenIcons (context, { all = false }) {
 
   if (!Array.isArray(assets)) return []
 
-  let slpAssets = context.state.assets[net]
-    .filter(asset => getTokenIdFromAssetId(asset && asset.id))
+  let slpAssets = assets.filter(asset => getTokenIdFromAssetId(asset && asset.id))
 
   if (!all) slpAssets = slpAssets.filter(asset => asset && !asset.logo)
 

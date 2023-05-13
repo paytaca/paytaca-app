@@ -1,18 +1,17 @@
 <template>
-  <q-btn-dropdown unelevated class="float-right q-mr-md">
+  <q-btn-dropdown :content-style="{ backgroundColor: 'gray' }" unelevated class="float-right q-mr-md">
     <template v-slot:label>
-      <TokenTypeBadge :assetId="assetId" />
+      {{  tokenTypeLabel(assetId) }}
     </template>
     <q-list>
-      <q-item clickable v-close-popup @click="filterTokens('slp')">
-        <q-item-section>
-          <q-item-label>SLP Tokens</q-item-label>
-        </q-item-section>
-      </q-item>
-
       <q-item clickable v-close-popup @click="filterTokens('ct')">
         <q-item-section>
           <q-item-label>CashTokens</q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item clickable v-close-popup @click="filterTokens('slp')">
+        <q-item-section>
+          <q-item-label>SLP Tokens</q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
@@ -28,13 +27,17 @@ export default {
   },
   data () {
     return {
-      assetId: 'slp'
+      assetId: 'ct',
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
     filterTokens (tokenType) {
       this.assetId = tokenType
       this.$emit('filterTokens', tokenType)
+    },
+    tokenTypeLabel (tokenType) {
+      return {'ct': 'CashTokens', 'slp': 'SLP'}[tokenType]
     }
   }
 }
