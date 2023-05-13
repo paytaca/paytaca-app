@@ -18,6 +18,6 @@ export default function () {
       }
     ],
     ignoredAssets: [],
-    vault: {}
+    vault: []
   }
 }

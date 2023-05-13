@@ -21,11 +21,11 @@
               <q-item-section style="overflow-wrap: break-word;">
                 <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                   <span class="text-h5" style="font-size: 15px;">{{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></span>
-                  <span  class="text-nowrap q-ml-xs q-mt-sm">{{ String(bchAsset.balance).substring(0, 10) }} {{ bchAsset.symbol }}</span>
+                  <span  class="text-nowrap q-ml-xs q-mt-sm">{{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}</span>
                 </div>
                 <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                   <span style="font-size: 12px; color: gray;">{{ arrangeAddressText(wallet.bch.lastAddress) }}</span>
-                  <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</span>
+                  <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">{{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}</span>
                 </div>
                 <q-menu anchor="bottom right" self="top end" >
                   <q-list class="text-h5" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 150px; font-size: 15px;">
@@ -84,7 +84,13 @@ export default {
     },
     switchWallet (index) {
       if (index !== this.currentIndex) {
+        const asset = this.$store.getters['assets/getAssets']
+        // const ignoredAssets = this.$store.getters['assets/ignoredAssets']
+
+        this.$store.commit('assets/updateVaultSnapshot', { index: this.currentIndex, snapshot: asset })
+
         this.$store.dispatch('global/switchWallet', index)
+
         location.reload()
       }
       this.hide()
@@ -132,6 +138,13 @@ export default {
 
       // tempVault.unshift(tempVault.splice(vm.currentIndex, 1)[0])
       vm.vault = tempVault
+    },
+    getAssetData (index) {
+      if (this.currentIndex === index) {
+        return this.$store.getters['assets/getAssets'][0]
+      } else {
+        return this.$store.getters['assets/getVault'][index][0]
+      }
     }
   },
   computed: {
@@ -144,7 +157,6 @@ export default {
     }
   },
   async mounted () {
-    console.log('Multi-Wallet')
     const vm = this
 
     vm.processVaultName()

@@ -85,13 +85,19 @@ export function updateAssetImageUrl (state, data) {
 }
 
 export function updateVault (state, details) {
-  state.vault.push(details)
+  state.vault[details.index] = details.asset
 }
 
 export function updateVaultSnapshot (state, details) {
+  // console.log('saving asset snapshot')
   let snapshot = details.snapshot
   snapshot = JSON.stringify(snapshot)
   snapshot = JSON.parse(snapshot)
 
   state.vault[details.index] = snapshot
+}
+
+export function clearVault (state) {
+  console.log('clearing vault')
+  state.vault = []
 }

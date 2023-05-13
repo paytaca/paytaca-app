@@ -25,3 +25,16 @@ export function getAsset (state) {
     })
   }
 }
+
+export function getVault (state) {
+  return state.vault
+}
+
+export function isVaultEmpty (state) {
+  const vault = state.vault
+  if (vault.length === 0) {
+    return true
+  } else {
+    return false
+  }
+}

@@ -94,8 +94,6 @@ export async function saveWalletPreferences(context) {
 
 export async function saveExistingWallet (context) {
   if (context.getters.isVaultEmpty) {
-    console.log('vault is empty')
-
     const walletHash = context.getters['getWallet']('bch')?.walletHash
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes
@@ -103,12 +101,7 @@ export async function saveExistingWallet (context) {
       wallet = JSON.parse(wallet)
 
       context.commit('updateVault', wallet)
-      console.log('saving if vault empty')
-    } else {
-      console.log('new account')
     }
-  } else {
-    console.log('vault not empty')
   }
 }
 

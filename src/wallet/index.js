@@ -7,8 +7,6 @@ import { utils } from 'ethers'
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 
-// import store from '../store'
-
 const { SecureStoragePlugin } = Plugins
 
 const BCHJS = require('@psf/bch-js')
@@ -58,11 +56,9 @@ export async function loadWallet(network = 'BCH', index = 0) {
 }
 
 export async function generateMnemonic (index = 0) {
-  console.log(index)
   let key = 'mn'
   if (index !== 0) {
     key = key + index
-    console.log(key)
   }
   const mnemonic = bchjs.Mnemonic.generate(128)
   await SecureStoragePlugin.set({ key: key, value: mnemonic })
@@ -75,15 +71,11 @@ export async function storeMnemonic (mnemonic, index = 0) {
   if (index !== 0) {
     key = key + index
   }
-  console.log(key)
   await SecureStoragePlugin.set({ key: key, value: mnemonic })
   return mnemonic
 }
 
 export async function getMnemonic (index = 0) {
-  // console.log(store)
-  // console.log(store.getters['global/getWalletIndex'])
-  // console.log(store.getters['global/getWalletIndex'])
   let mnemonic = null
   let key = 'mn'
 

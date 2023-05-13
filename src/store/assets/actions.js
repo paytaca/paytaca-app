@@ -1,3 +1,4 @@
+import es from 'src/i18n/es'
 import { axiosInstance } from '../../boot/axios'
 
 function getTokenIdFromAssetId (assetId) {
@@ -112,4 +113,17 @@ export async function getMissingAssets (context, { walletHash, icludeIgnoredToke
 
   if (!Array.isArray(data.results)) return []
   return data.results
+}
+
+export async function saveExistingAsset (context, details) {
+  if (context.getters.isVaultEmpty) {
+    if (details.walletHash) {
+      let asset = context.getters.getAssets
+      asset = JSON.stringify(asset)
+      asset = JSON.parse(asset)
+
+      // console.log('Saving Existing Asset')
+      context.commit('updateVault', { index: details.index, asset: asset })
+    }
+  }
 }

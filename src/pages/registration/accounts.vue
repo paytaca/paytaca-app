@@ -162,6 +162,12 @@ export default {
 
       this.$store.commit('global/updateVault', allWalletType)
       this.$store.commit('global/updateWalletIndex', this.walletIndex)
+
+      let asset = this.$store.getters['assets/getAssets']
+      asset = JSON.stringify(asset)
+      asset = JSON.parse(asset)
+
+      this.$store.commit('assets/updateVault', { index: this.walletIndex, asset: asset })
     },
     continueToDashboard () {
       const vm = this

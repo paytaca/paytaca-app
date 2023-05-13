@@ -96,6 +96,7 @@ export default {
   async mounted () {
     // saving unsaved active wallet to vault
     this.$store.dispatch('global/saveExistingWallet')
+    this.$store.dispatch('assets/saveExistingAsset', {index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash})
     // this.$store.dispatch('global/saveExistingAssetDetails')
 
     this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
