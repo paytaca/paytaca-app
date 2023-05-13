@@ -2,10 +2,13 @@ function getWalletData (state, details) {
   const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
   const walletType = details.type
   const hasTestnetWallets = ['bch', 'slp']
-  const network = isChipnet ? 'chip' : 'main'
-  const wallet = state.wallets[walletType]
 
-  return hasTestnetWallets.includes(walletType) ? wallet[network] : wallet
+  if (hasTestnetWallets.includes(walletType)) {
+    if (isChipnet) {
+      return state.chipnet__wallets[walletType]
+    }
+  } 
+  return state.wallets[walletType]
 }
 
 export function setNetwork (state, network) {

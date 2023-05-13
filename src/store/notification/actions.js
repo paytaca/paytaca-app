@@ -5,7 +5,6 @@ const NotificationTypes = types()
 export async function handleOpenedNotification(context) {
   const $router = this.$router
   const route = await context.dispatch('getOpenedNotificationRoute')
-  console.log(route)
   if (route) $router.push(route)
 }
 

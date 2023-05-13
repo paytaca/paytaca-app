@@ -119,7 +119,6 @@ export class BchWallet {
       chatIdentity: addresses.pgpInfo
     }
     const result = await this.watchtower.subscribe(data)
-
     if (result.success) {
       return { addresses: addressSet, pgpIdentity: addresses.pgpIdentity }
     } else {
@@ -238,7 +237,6 @@ export class BchWallet {
       broadcast: Boolean(broadcast),
     }
     const result = await this.watchtower.BCH.send(data)
-    console.log(result)
     return result
   }
 
