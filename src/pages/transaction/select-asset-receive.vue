@@ -17,7 +17,7 @@
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode}">{{ $t('SelectAssetToBeReceived') }}</p>
         </div>
-        <div class="col-3 q-mt-sm" v-show="selectedNetwork === networks.BCH.name">
+        <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="filterTokens" />
         </div>
       </div>

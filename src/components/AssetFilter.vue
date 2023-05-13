@@ -37,7 +37,7 @@ export default {
       this.$emit('filterTokens', tokenType)
     },
     tokenTypeLabel (tokenType) {
-      return {'ct': 'CashTokens', 'slp': 'SLP'}[tokenType]
+      return {'ct': 'CashTokens', 'slp': 'SLP Tokens'}[tokenType]
     }
   }
 }

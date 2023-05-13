@@ -17,8 +17,8 @@
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToSend') }}</p>
         </div>
-        <div class="col-3 q-mt-sm" v-show="selectedNetwork === networks.BCH.name">
-          <AssetFilter v-if="isChipnet" @filterTokens="filterTokens" />
+        <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
+          <AssetFilter @filterTokens="filterTokens" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -81,7 +81,7 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: false,
+      isCashToken: true,
       assets: null
     }
   },
