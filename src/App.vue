@@ -4,6 +4,7 @@
 
 <script>
 import { getMnemonic, Wallet, loadWallet } from './wallet'
+import { getWalletByNetwork } from 'src/wallet/chip'
 
 export default {
   name: 'App',
@@ -18,8 +19,8 @@ export default {
       if (this.subscribedPushNotifications) return
       const wallet = await loadWallet()
       const walletHashes = [
-        wallet.BCH.getWalletHash(),
-        wallet.SLP.getWalletHash(),
+        getWalletByNetwork(wallet, 'bch').getWalletHash(),
+        getWalletByNetwork(wallet, 'slp').getWalletHash(),
         wallet.sBCH.getWalletHash(),
       ]
       await this.$pushNotifications.subscribe(walletHashes)
@@ -38,7 +39,10 @@ export default {
 
       let lastBCHIndex = 0
       try {
-        lastBCHIndex = await wallet.BCH.getLastAddressIndex({ exclude_pos: true, with_tx: true })
+        lastBCHIndex = await getWalletByNetwork(wallet, 'bch').getLastAddressIndex({
+          exclude_pos: true,
+          with_tx: true
+        })
         if (!Number.isInteger(lastBCHIndex)) throw new TypeError('Invalid index')
       } catch(error) {
         lastBCHIndex = this.$store.getters['global/getWallet']('bch')?.lastAddressIndex
@@ -47,7 +51,7 @@ export default {
       try {
         // added iterator 'ctr' to cap index to 50 
         for (var i = resubscriptionInfo.lastIndex+1, ctr = 0; i <= lastBCHIndex && ctr < 50; i++, ctr++) {
-          await wallet.BCH.getNewAddressSet(i)
+          await getWalletByNetwork(wallet, 'bch').getNewAddressSet(i)
           resubscriptionInfo.lastIndex = i
         }
         resubscriptionInfo.completed = true
@@ -138,6 +142,44 @@ export default {
         vm.$router.push({
           name: 'connecta',
           query: query
+        })
+      })
+
+      vm.$q.bex.on('bex.paytaca.connect', async (event) => {
+        vm.$router.push({
+          name: 'connect',
+          query: {
+            origin: event.data.origin,
+            eventResponseKey: event.data.eventResponseKey,
+          },
+        })
+      })
+
+      vm.$q.bex.on('bex.paytaca.signMessage', async (event) => {
+        vm.$router.push({
+          name: 'sign-message',
+          query: {
+            origin: event.data.origin,
+            assetId: event.data.assetId,
+            message: event.data.message,
+            userPrompt: event.data.userPrompt,
+            eventResponseKey: event.data.eventResponseKey,
+          },
+        })
+      })
+
+      vm.$q.bex.on('bex.paytaca.signTransaction', async (event) => {
+        vm.$router.push({
+          name: 'sign-transaction',
+          query: {
+            origin: event.data.origin,
+            assetId: event.data.assetId,
+            transaction: event.data.transaction,
+            sourceOutputs: event.data.sourceOutputs,
+            broadcast: event.data.broadcast,
+            userPrompt: event.data.userPrompt,
+            eventResponseKey: event.data.eventResponseKey,
+          },
         })
       })
     }

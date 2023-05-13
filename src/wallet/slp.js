@@ -3,14 +3,18 @@ const BCHJS = require('@psf/bch-js')
 const sha256 = require('js-sha256')
 const bchjs = new BCHJS()
 import axios from 'axios'
+import { getWatchtowerApiUrl, convertCashAddress } from './chip'
+
 
 export class SlpWallet {
-  constructor (projectId, mnemonic, path) {
+  constructor (projectId, mnemonic, path, isChipnet = false) {
+    this.isChipnet = isChipnet
     this.mnemonic = mnemonic
     this.derivationPath = path
-    this.watchtower = new Watchtower()
+    this.watchtower = new Watchtower(isChipnet)
     this.projectId = projectId
     this.walletHash = this.getWalletHash()
+    this.baseUrl = getWatchtowerApiUrl(isChipnet)
   }
 
   getWalletHash () {
@@ -64,6 +68,15 @@ export class SlpWallet {
       receiving: bchjs.HDNode.toSLPAddress(receivingAddressNode),
       change: bchjs.HDNode.toSLPAddress(changeAddressNode)
     }
+
+    if (this.isChipnet) {
+      const encodedReceivingAddress = convertCashAddress(addresses.receiving, this.isChipnet, false)
+      const encodedChangeAddress = convertCashAddress(addresses.change, this.isChipnet, false)
+
+      addresses.receiving = bchjs.SLP.Address.toSLPAddress(encodedReceivingAddress)
+      addresses.change = bchjs.SLP.Address.toSLPAddress(encodedChangeAddress)
+    }
+    
     return addresses
   }
 
@@ -173,7 +186,7 @@ export class SlpWallet {
   }
 
   async getSlpTokenDetails (tokenId) {
-    const url = `https://watchtower.cash/api/tokens/${tokenId}/`
+    const url = `${this.baseUrl}/tokens/${tokenId}/`
     const request = await axios.get(url)
     return request.data
   }

@@ -2,7 +2,7 @@
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
     <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': darkMode}">
         <q-card-section class="pt-label text-weight-medium" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
-            <span>{{ addTokenTitle }}</span>
+          <span>{{ addTokenTitle }}</span>
         </q-card-section>
 
         <q-separator />
@@ -10,7 +10,6 @@
           <q-card-section class="q-pb-none">
             <q-input
               ref="SLPTokenID"
-              dense
               filled
               color="input-color"
               :label="inputPlaceholder"
@@ -21,14 +20,31 @@
               :rules="[
                 val => Boolean(val) || $t('Required'),
               ]"
-            />
+            >
+              <template v-slot:append v-if="!isSep20">
+                <q-btn-toggle
+                  v-model="tokenSelected"
+                  rounded
+                  class="q-my-lg"
+                  unelevated
+                  toggle-color="grad"
+                  toggle-text-color="white"
+                  :color="darkMode ? 'grey' : 'white'"
+                  :text-color="darkMode ? 'grey-4' : 'grey'"
+                  :options="[
+                    { label: 'SLP', value: 'slp' },
+                    { label: 'CT', value: 'ct' }
+                  ]"
+                />
+              </template>
+            </q-input>
           </q-card-section>
 
           <q-separator class="q-mt-none" />
 
           <q-card-actions align="right">
               <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
-              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" flat :label="$t('Close')" @click="onCancelClick" />
+              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'text-white' : 'pp-text']" flat :label="$t('Close')" @click="onCancelClick" />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -51,19 +67,35 @@ export default {
 
   data () {
     return {
-      asset: null
+      tokenSelected: 'slp',
+      asset: null,
+      isCashToken: false
     }
   },
-
+  watch: {
+    tokenSelected (n, o) {
+      this.isCashToken = n === 'ct'
+    }
+  },
   computed: {
     isSep20 () {
       return this.network === 'sBCH'
     },
     addTokenTitle () {
-      return this.isSep20 ? this.$t('Add_SEP20_Token') : this.$t('Add_Type1_Token')
+      if (this.isSep20)
+        return this.$t('Add_SEP20_Token')
+      if (this.isCashToken)
+        // TODO: translate
+        return 'Add CashToken'
+      return this.$t('Add_Type1_Token')
     },
     inputPlaceholder () {
-      return this.isSep20 ? this.$t('Enter_SEP20_ContractAddress') : this.$t('Enter_SLP_TokenId')
+      if (this.isSep20)
+        this.$t('Enter_SEP20_ContractAddress')
+      if (this.isCashToken)
+        // TODO: translate
+        return 'Enter CashToken category ID'
+      return this.$t('Enter_SLP_TokenId')
     }
   },
 
@@ -73,7 +105,10 @@ export default {
     },
     onOKClick () {
       this.$refs.questForm.validate().then(success => {
-        this.$emit('ok', this.asset)
+        this.$emit('ok', {
+          isCashToken: this.isCashToken,
+          tokenId: this.asset,
+        })
         this.hide()
       })
     },

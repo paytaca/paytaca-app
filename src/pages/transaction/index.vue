@@ -6,6 +6,7 @@
     <div v-else>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+          <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
           <v-offline @detected-condition="onConnectivityChange">
             <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
               <template v-slot:avatar>
@@ -23,7 +24,7 @@
               :style="{'margin-top': $q.platform.is.ios ? '25px' : '-20px', 'padding-bottom': '16px'}"
             >
               <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-              <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name"/>
+              <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
             </q-tabs>
           </div>
           <div class="row q-mt-sm">
@@ -158,6 +159,7 @@
     <TokenSuggestionsDialog
       ref="tokenSuggestionsDialog"
       v-model="showTokenSuggestionsDialog"
+      :bch-wallet-hash="getWallet('bch').walletHash"
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
     />
@@ -176,6 +178,8 @@ import startPage from '../../pages/transaction/dialog/StartPage.vue'
 import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
+import connectedDialog from '../connect/connectedDialog.vue'
+import { getWalletByNetwork } from 'src/wallet/chip'
 import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
@@ -205,6 +209,7 @@ export default {
     securityOptionDialog,
     startPage,
     VOffline,
+    connectedDialog,
     PriceChart
   },
   directives: {
@@ -243,7 +248,7 @@ export default {
       startPageStatus: true,
       prevPath: null,
       showTokenSuggestionsDialog: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
     }
   },
 
@@ -277,6 +282,9 @@ export default {
   },
 
   computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
     openedNotification() {
       return this.$store.getters['notification/openedNotification']
     },
@@ -481,24 +489,29 @@ export default {
           })
       }
     },
-    getBchBalance (id) {
+    async getBchBalance (id) {
       const vm = this
       if (!id) {
         id = vm.selectedAsset.id
       }
+
+      const tokenId = id.split('/')[1]
       vm.transactionsPageHasNext = false
+      const updateAssetBalance = 'assets/updateAssetBalance'
+
       if (id.indexOf('slp/') > -1) {
-        const tokenId = id.split('/')[1]
-        vm.wallet.SLP.getBalance(tokenId).then(function (response) {
-          vm.$store.commit('assets/updateAssetBalance', {
-            id: id,
-            balance: response.balance
-          })
+        getWalletByNetwork(vm.wallet, 'slp').getBalance(tokenId).then(function (response) {
+          vm.$store.commit(updateAssetBalance, { id, balance: response.balance })
+          vm.balanceLoaded = true
+        })
+      } else if (id.indexOf('ct/') > -1) {
+        getWalletByNetwork(vm.wallet, 'bch').getBalance(tokenId).then(response => {
+          vm.$store.commit(updateAssetBalance, { id, balance: response.balance })
           vm.balanceLoaded = true
         })
       } else {
-        vm.wallet.BCH.getBalance().then(function (response) {
-          vm.$store.commit('assets/updateAssetBalance', {
+        getWalletByNetwork(vm.wallet, 'bch').getBalance().then(function (response) {
+          vm.$store.commit(updateAssetBalance, {
             id: id,
             balance: response.balance,
             spendable: response.spendable
@@ -589,9 +602,12 @@ export default {
       let requestPromise
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        requestPromise = vm.wallet.SLP.getTransactions(tokenId, page, recordType)
+        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions(tokenId, page, recordType)
+      } else if (id.indexOf('ct/') > -1) {
+        const tokenId = id.split('/')[1]
+        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType, tokenId)
       } else {
-        requestPromise = vm.wallet.BCH.getTransactions(page, recordType)
+        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType)
       }
 
       if (!requestPromise) return
@@ -765,11 +781,11 @@ export default {
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
         if (bchChangeAddress.length === 0) {
-          vm.wallet.BCH.getNewAddressSet(0).then(function ({ addresses }) {
+          getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({ addresses }) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
-              walletHash: vm.wallet.BCH.walletHash,
-              derivationPath: vm.wallet.BCH.derivationPath,
+              walletHash: getWalletByNetwork(vm.wallet, 'bch').walletHash,
+              derivationPath: getWalletByNetwork(vm.wallet, 'bch').derivationPath,
               lastAddress: addresses.receiving,
               lastChangeAddress: addresses.change,
               lastAddressIndex: 0
@@ -778,11 +794,11 @@ export default {
         }
         const slpChangeAddress = vm.getChangeAddress('slp')
         if (slpChangeAddress.length === 0) {
-          vm.wallet.SLP.getNewAddressSet(0).then(function (addresses) {
+          getWalletByNetwork(vm.wallet, 'slp').getNewAddressSet(0).then(function (addresses) {
             vm.$store.commit('global/updateWallet', {
               type: 'slp',
-              walletHash: vm.wallet.SLP.walletHash,
-              derivationPath: vm.wallet.SLP.derivationPath,
+              walletHash: getWalletByNetwork(vm.wallet, 'slp').walletHash,
+              derivationPath: getWalletByNetwork(vm.wallet, 'slp').derivationPath,
               lastAddress: addresses.receiving,
               lastChangeAddress: addresses.change,
               lastAddressIndex: 0
@@ -931,7 +947,7 @@ export default {
     })
   },
 
-  mounted () {
+  async mounted () {
     window.vm = this
     this.handleOpenedNotification()
     const vm = this

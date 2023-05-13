@@ -1,28 +1,64 @@
 export default function () {
   return {
     network: 'BCH', // BCH || sBCH
+    isChipnet: false,
     wallets: {
       bch: {
-        walletHash: '',
-        derivationPath: '',
-        xPubKey: '',
-        lastAddress: '',
-        lastChangeAddress: '',
-        lastAddressIndex: 0
+        main: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          connectedAddress: '',
+          connectedAddressIndex: '0/0',
+          connectedSites: {}
+        },
+        chip: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          connectedAddress: '',
+          connectedAddressIndex: '0/0',
+          connectedSites: {}
+        }
       },
       slp: {
-        walletHash: '',
-        derivationPath: '',
-        xPubKey: '',
-        lastAddress: '',
-        lastChangeAddress: '',
-        lastAddressIndex: 0
+        main: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          connectedAddress: '',
+          connectedAddressIndex: '0/0',
+          connectedSites: {}
+        },
+        chip: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          connectedAddress: '',
+          connectedAddressIndex: '0/0',
+          connectedSites: {}
+        }
       },
       sbch: {
         subscribed: false,
         walletHash: '',
         derivationPath: '',
-        lastAddress: ''
+        lastAddress: '',
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       }
     },
     utxoScanTasks: {
