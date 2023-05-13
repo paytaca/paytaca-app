@@ -36,7 +36,7 @@ export function convertCashAddress (address, toTestNet = true, toTokenAddress = 
   const prefix = toTestNet ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
   const addressType = toTokenAddress ? 2 : CashAddressType.p2pkh
 
-  return encodeCashAddress(prefix, addressType, decodedAddress.hash)
+  return encodeCashAddress(prefix, addressType, decodedAddress.payload)
 }
 
 export function isValidTokenAddress (address) {

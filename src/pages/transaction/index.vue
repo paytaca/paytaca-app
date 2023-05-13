@@ -6,7 +6,7 @@
     <div v-else>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-          <connected-dialog @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
+          <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
           <v-offline @detected-condition="onConnectivityChange">
             <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
               <template v-slot:avatar>
