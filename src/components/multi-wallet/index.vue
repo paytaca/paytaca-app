@@ -49,7 +49,6 @@
   </q-dialog>
 </template>
 <script>
-import { getMnemonic, testing } from '../../wallet'
 import renameDialog from './renameDialog.vue'
 
 export default {

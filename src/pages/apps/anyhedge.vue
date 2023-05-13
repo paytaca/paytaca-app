@@ -376,7 +376,7 @@ const offersListRef = ref()
 
 const wallet = ref(null)
 async function initWallet() {
-  const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+  const mnemonic = await getMnemonic($store.getters['global/getWalletIndex'])
   wallet.value = markRaw(new Wallet(mnemonic))
 }
 onMounted(async () => {
