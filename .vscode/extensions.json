@@ -1,10 +1,7 @@
 {
-  "recommendations": [
-    "dbaeumer.vscode-eslint",
-    
-    "octref.vetur"
-  ],
+  "recommendations": ["dbaeumer.vscode-eslint", "vue.volar"],
   "unwantedRecommendations": [
+    "octref.vetur",
     "hookyqr.beautify",
     "dbaeumer.jshint",
     "ms-vscode.vscode-typescript-tslint-plugin"
