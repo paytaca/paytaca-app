@@ -2,7 +2,7 @@ import BCHJS from '@psf/bch-js'
 import axios from 'axios'
 import { utils, BigNumber } from 'ethers'
 import { provider, bridgeContract, addresses } from './config'
-import { getWatchtowerWebsocketUrl } from '../chip'
+import { getWatchtowerWebsocketUrl } from '../chipnet'
 import store from 'src/store'
 
 const bchjs = new BCHJS()

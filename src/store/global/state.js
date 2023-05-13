@@ -4,58 +4,56 @@ export default function () {
     isChipnet: false,
     wallets: {
       bch: {
-        main: {
-          walletHash: '',
-          derivationPath: '',
-          xPubKey: '',
-          lastAddress: '',
-          lastChangeAddress: '',
-          lastAddressIndex: 0,
-          connectedAddress: '',
-          connectedAddressIndex: '0/0',
-          connectedSites: {}
-        },
-        chip: {
-          walletHash: '',
-          derivationPath: '',
-          xPubKey: '',
-          lastAddress: '',
-          lastChangeAddress: '',
-          lastAddressIndex: 0,
-          connectedAddress: '',
-          connectedAddressIndex: '0/0',
-          connectedSites: {}
-        }
+        walletHash: '',
+        derivationPath: '',
+        xPubKey: '',
+        lastAddress: '',
+        lastChangeAddress: '',
+        lastAddressIndex: 0,
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       },
       slp: {
-        main: {
-          walletHash: '',
-          derivationPath: '',
-          xPubKey: '',
-          lastAddress: '',
-          lastChangeAddress: '',
-          lastAddressIndex: 0,
-          connectedAddress: '',
-          connectedAddressIndex: '0/0',
-          connectedSites: {}
-        },
-        chip: {
-          walletHash: '',
-          derivationPath: '',
-          xPubKey: '',
-          lastAddress: '',
-          lastChangeAddress: '',
-          lastAddressIndex: 0,
-          connectedAddress: '',
-          connectedAddressIndex: '0/0',
-          connectedSites: {}
-        }
+        walletHash: '',
+        derivationPath: '',
+        xPubKey: '',
+        lastAddress: '',
+        lastChangeAddress: '',
+        lastAddressIndex: 0,
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       },
       sbch: {
         subscribed: false,
         walletHash: '',
         derivationPath: '',
         lastAddress: '',
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
+      }
+    },
+    chipnet__wallets: {
+      bch: {
+        walletHash: '',
+        derivationPath: '',
+        xPubKey: '',
+        lastAddress: '',
+        lastChangeAddress: '',
+        lastAddressIndex: 0,
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
+      },
+      slp: {
+        walletHash: '',
+        derivationPath: '',
+        xPubKey: '',
+        lastAddress: '',
+        lastChangeAddress: '',
+        lastAddressIndex: 0,
         connectedAddress: '',
         connectedAddressIndex: '0/0',
         connectedSites: {}

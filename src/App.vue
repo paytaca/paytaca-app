@@ -4,7 +4,7 @@
 
 <script>
 import { getMnemonic, Wallet, loadWallet } from './wallet'
-import { getWalletByNetwork } from 'src/wallet/chip'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
 
 export default {
   name: 'App',

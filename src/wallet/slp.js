@@ -3,7 +3,7 @@ const BCHJS = require('@psf/bch-js')
 const sha256 = require('js-sha256')
 const bchjs = new BCHJS()
 import axios from 'axios'
-import { getWatchtowerApiUrl, convertCashAddress } from './chip'
+import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
 
 
 export class SlpWallet {

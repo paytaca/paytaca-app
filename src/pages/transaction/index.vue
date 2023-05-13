@@ -179,7 +179,7 @@ import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import connectedDialog from '../connect/connectedDialog.vue'
-import { getWalletByNetwork } from 'src/wallet/chip'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
 import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
@@ -304,6 +304,7 @@ export default {
       return this.$store.getters['assets/getAssets'][0]
     },
     mainchainAssets () {
+      console.log(this.$store.getters['assets/getAssets'])
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item && item.id !== 'bch') {
           return item

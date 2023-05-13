@@ -336,7 +336,7 @@ import {
   convertCashAddress,
   isValidTokenAddress,
   getWalletByNetwork,
-} from 'src/wallet/chip'
+} from 'src/wallet/chipnet'
 
 const { SecureStoragePlugin } = Plugins
 

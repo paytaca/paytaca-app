@@ -2,7 +2,7 @@ import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
 import * as openpgp from 'openpgp/lightweight'
-import { getWatchtowerApiUrl, convertCashAddress } from './chip'
+import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
 import axios from 'axios'
 
 const bchjs = new BCHJS()

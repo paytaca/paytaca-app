@@ -9,7 +9,7 @@ import { decodeBIP0021URI } from 'src/wallet/bch'
 import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
-import { getWalletByNetwork } from './chip'
+import { getWalletByNetwork } from './chipnet'
 
 const bchjs = new BCHJS()
 /**

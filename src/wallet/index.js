@@ -3,7 +3,7 @@ import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import aes256 from 'aes256'
 import { utils } from 'ethers'
-import { convertCashAddress } from './chip'
+import { convertCashAddress } from './chipnet'
 
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
@@ -14,8 +14,8 @@ const BCHJS = require('@psf/bch-js')
 const bchjs = new BCHJS()
 
 const projectId = {
-  main: process.env.WATCHTOWER_PROJECT_ID,
-  chip: process.env.WATCHTOWER_CHIP_PROJECT_ID
+  mainnet: process.env.WATCHTOWER_PROJECT_ID,
+  chipnet: process.env.WATCHTOWER_CHIP_PROJECT_ID
 }
 
 export class Wallet {

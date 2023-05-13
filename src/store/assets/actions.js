@@ -1,5 +1,5 @@
 import { axiosInstance } from '../../boot/axios' 
-import { getWatchtowerApiUrl, getBlockChainNetwork } from 'src/wallet/chip'
+import { getWatchtowerApiUrl, getBlockChainNetwork } from 'src/wallet/chipnet'
 
 function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^slp\/([0-9a-fA-F]+)$/)

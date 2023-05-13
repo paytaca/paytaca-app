@@ -1,14 +1,18 @@
-import { getBlockChainNetwork } from "src/wallet/chip"
+import { getBlockChainNetwork } from "src/wallet/chipnet"
 
 export function updateAssetBalance (state, data) {
-  const net = getBlockChainNetwork()
+  const network = getBlockChainNetwork()
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
 
-  for (let i = 0; i < state.assets[net].length; i++) {
-    const asset = state.assets[net][i]
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i]
     if (asset && asset.id === data.id) {
-      state.assets[net][i].balance = data.balance
+      assets[i].balance = data.balance
       if (asset.id.indexOf('bch') > -1) {
-        state.assets[net][i].spendable = data.spendable
+        assets[i].spendable = data.spendable
       }
       break
     }

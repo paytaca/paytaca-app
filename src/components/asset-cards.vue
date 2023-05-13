@@ -52,7 +52,7 @@
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 import TokenTypeBadge from './TokenTypeBadge'
-import { getWalletByNetwork } from 'src/wallet/chip'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',

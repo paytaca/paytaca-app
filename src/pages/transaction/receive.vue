@@ -87,7 +87,7 @@ import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
   convertCashAddress,
-} from 'src/wallet/chip'
+} from 'src/wallet/chipnet'
 
 NativeAudio.preload({
     assetId: 'send-success',
