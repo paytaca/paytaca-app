@@ -7,14 +7,16 @@ export function ignoredAssets (state) {
     return state.chipnet__ignoredAssets
   }
   return state.ignoredAssets
-  // if (!Array.isArray(state.ignoredAssets[network])) return []
-  // return state.ignoredAssets[network]
 }
 
 export function ignoredTokenIds (state) {
   const network = getBlockChainNetwork()
+  let _ignoredAssets = state.ignoreAssets
+  if (network === 'chipnet') {
+    ignoreAssets = state.chipnet__ignoredAssets
+  }
 
-  if (!Array.isArray(state.ignoredAssets[network])) return []
+  if (!Array.isArray(_ignoredAssets)) return []
   return state.ignoredAssets[network]
     .map(asset => asset && asset.id)
     .filter(assetId => String(assetId).match(/^(slp|ct)\/([a-fA-F0-9]+)$/))

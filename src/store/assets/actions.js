@@ -55,9 +55,13 @@ export async function updateTokenIcon (context, { assetId, forceUpdate = false }
  * @param {{all: Boolean}} param1
  */
 export async function updateTokenIcons (context, { all = false }) {
-  const net = getBlockChainNetwork()
+  const network = getBlockChainNetwork()
+  let assets = context.state.assets
+  if (network === 'chipnet') {
+    assets = context.state.chipnet__assets
+  }
 
-  if (!Array.isArray(context.state.assets[net])) return []
+  if (!Array.isArray(assets)) return []
 
   let slpAssets = context.state.assets[net]
     .filter(asset => getTokenIdFromAssetId(asset && asset.id))
@@ -98,9 +102,13 @@ export async function getMissingAssets (
     token_type: 1,
     wallet_hash: walletHash
   }
-  const net = getBlockChainNetwork()
+  const network = getBlockChainNetwork()
+  let assets = context.state.assets
+  if (network === 'chipnet') {
+    assets = context.state.chipnet__assets
+  }
 
-  if (Array.isArray(context.state.assets[net]) && context.state.assets[net].length) {
+  if (Array.isArray(assets) && assets.length) {
     const regex = isCashtoken ? /^ct\/([a-fA-F0-9]+)$/ : /^slp\/([a-fA-F0-9]+)$/
 
     filterParams.exclude_token_ids = context.state.assets[net]
