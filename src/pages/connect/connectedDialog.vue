@@ -1,5 +1,5 @@
 <template>
-  <div id="connected-dialog">
+  <div id="connected-dialog" class="text-white">
     <div style="display: flex; justify-content: center; margin-top: 5px;">Connected Addresses</div>
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
       <q-card ref="card" style="padding: 20px 10px 5px 0;" :class="{'pt-dark-card': darkMode}" class="pp-text br-15">

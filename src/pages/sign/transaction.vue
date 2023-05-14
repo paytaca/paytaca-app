@@ -5,7 +5,7 @@
       :title="$t('Sign Transaction')"
     ></header-nav>
     <div class="">
-      <div class="q-pa-md" style="padding-top: 40px;">
+      <div class="q-pa-md text-white" style="padding-top: 40px;">
         <div class="col-12 q-mt-lg items-center">
           <span v-if="userPrompt" class="text-lg text-bold span-text-center" v-text="userPrompt"></span>
           <p class="text-lg">Origin:</p><textarea rows="1" readonly class="ro-text" v-text="origin"></textarea>

@@ -4,7 +4,7 @@
       backnavpath="/"
       :title="$t('Sign Message')"
     ></header-nav>
-    <div class="">
+    <div class="text-white">
       <div class="q-pa-md" style="padding-top: 70px;">
         <div class="col-12 q-mt-sm items-center">
           <span v-if="userPrompt" class="text-lg text-bold span-text-center" v-text="userPrompt"></span>

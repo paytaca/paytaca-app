@@ -4,7 +4,7 @@
       backnavpath="/"
       :title="$t('Connect to Paytaca')"
     ></header-nav>
-    <div class="">
+    <div class="text-white">
       <div class="q-pa-md" style="padding-top: 70px;">
         <div class="col-12 q-mt-lg items-center">
           <p class="text-lg">Origin:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
