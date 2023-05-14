@@ -13,7 +13,7 @@
       <q-tabs v-model="tabs.active">
         <q-tab v-for="(tab, index) in tabs.opts" :key="index" v-bind="tab"/>
       </q-tabs>
-      <q-tab-panels v-model="tabs.active" :class="{'pt-dark': darkMode }">
+      <q-tab-panels v-model="tabs.active" :class="{'pt-dark': darkMode }" animated keep-alive>
         <q-tab-panel name="items" :dark="darkMode">
           <div
             v-for="cartItem in checkout?.cart?.items" :key="cartItem?.variant?.id"
@@ -229,7 +229,7 @@
               <q-icon name="info" size="1.25em">
                 <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']">
                   <div class="text-body2">{{ checkoutCurrency }} price at</div>
-                  <div>{{ formatTimestampToText(checkout?.payment?.bchPriceTimestamp) }}</div>
+                  <div>{{ formatTimestampToText(checkout?.payment?.bchPrice?.timestamp) }}</div>
                 </q-menu>
               </q-icon>
             </div>
@@ -321,7 +321,7 @@
               <q-icon name="info" size="1.25em">
                 <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']">
                   <div class="text-body2">{{ checkoutCurrency }} price at</div>
-                  <div>{{ formatTimestampToText(checkout?.payment?.bchPriceTimestamp) }}</div>
+                  <div>{{ formatTimestampToText(checkout?.payment?.bchPrice?.timestamp) }}</div>
                 </q-menu>
               </q-icon>
             </div>
@@ -349,6 +349,7 @@
               label="Order"
               color="brandblue"
               class="full-width"
+              @click="() => completeCheckout()"
             />
           </div>
         </q-tab-panel>
@@ -529,40 +530,6 @@ function resetFormErrors() {
   }
 }
 
-function updateBchPrice(opts={age: 60 * 1000}) {
-  if (opts?.age && checkout.value?.payment?.bchPriceTimestamp > Date.now() - opts?.age) {
-    return Promise.resolve('price is still new')
-  }
-  const coinId = 'bitcoin-cash'
-  let currency = String(checkoutCurrency.value).toLowerCase()
-  let convertToCurrency = null
-  if (currency == 'ars') {
-    convertToCurrency = currency
-    currency = 'usd'
-  }
-  const params = { ids: coinId, vs_currencies: currency }
-  return backend.get('https://api.coingecko.com/api/v3/simple/price', { params })
-    .then(response => {
-      const price = response?.data?.[coinId]?.[currency]
-      if (!price) return Promise.reject({ response })
-      return price
-    })
-    .then(async price => {
-      if (!convertToCurrency) return price
-      const { data } = await backend.get(`https://api.yadio.io/rate/${convertToCurrency}/${currency}`)
-      const newPrice = Math.round(price * data?.rate * 10 ** 3) / 10 ** 3
-      return newPrice
-    })
-    .then(price => {
-      return updateCheckout({
-        payment: {
-          bch_price: price,
-          bch_price_timestamp: new Date(),
-        }
-      })
-    })
-}
-
 let unsubscribeCacheCartMutation = null 
 onMounted(() => {
   unsubscribeCacheCartMutation = $store.subscribe(mutation => {
@@ -575,8 +542,8 @@ onMounted(() => {
 onUnmounted(() => unsubscribeCacheCartMutation?.())
 
 const checkout = ref(Checkout.parse())
-const checkoutCurrency = computed(() => checkout.value?.payment?.currency?.symbol)
-const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice || undefined)
+const checkoutCurrency = computed(() => checkout.value?.currency?.symbol)
+const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice?.price || undefined)
 const displayBch = ref(true)
 const checkoutAmounts = computed(() => {
   const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
@@ -617,6 +584,24 @@ function fetchCheckout() {
 
 function saveCart() {
   $store.dispatch('marketplace/saveCart', checkout.value.cart)
+}
+
+
+function updateBchPrice(opts={age: 60 * 1000}) {
+  if (opts?.age && checkout.value?.payment?.bchPrice?.timestamp > Date.now() - opts?.age) {
+    return Promise.resolve('price is still new')
+  }
+
+  loading.value = true
+  return backend.post(`connecta/checkouts/${checkout.value.id}/update_bch_price/`)
+    .then(response => {
+      if (!response?.data?.id) return Promise.reject({ response })
+      checkout.value.raw = response?.data
+      resetFormData()
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 
 function updateDeliveryFee() {
@@ -688,6 +673,14 @@ function updateCheckout(data) {
       resetFormData()
       return response
     }).finally(() => {
+      loading.value = false
+    })
+}
+
+function completeCheckout() {
+  loading.value = true
+  return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`)
+    .finally(() => {
       loading.value = false
     })
 }
