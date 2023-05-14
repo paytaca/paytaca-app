@@ -10,6 +10,10 @@ export default {
     assetId: {
       type: String,
       required: true
+    },
+    abbreviate: {
+      type: Boolean,
+      default: true
     }
   },
   computed: {
@@ -20,13 +24,17 @@ export default {
       return ''
     },
     tokenType () {
-      return this.assetId.split('/')[0].toUpperCase()
+      const assetId = this.assetId.split('/')[0].toUpperCase()
+      if (assetId === 'CT') {
+        if (!this.abbreviate) return 'CASHTOKENS'
+      }
+      return assetId
     },
     color () {
       const type = this.tokenType
       if (type === 'SLP')
         return 'green-5'
-      if (type === 'CT')
+      if (['CASHTOKENS', 'CT'].includes(type))
         return 'green-9'
       return 'blue-5'
     },

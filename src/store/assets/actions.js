@@ -93,7 +93,7 @@ export async function getMissingAssets (
   {
     walletHash,
     includeIgnoredTokens = false,
-    isCashtoken = false
+    isCashToken = false
   }
 ) {
   const filterParams = {
@@ -108,9 +108,9 @@ export async function getMissingAssets (
   }
 
   if (Array.isArray(assets) && assets.length) {
-    const regex = isCashtoken ? /^ct\/([a-fA-F0-9]+)$/ : /^slp\/([a-fA-F0-9]+)$/
+    const regex = isCashToken ? /^ct\/([a-fA-F0-9]+)$/ : /^slp\/([a-fA-F0-9]+)$/
 
-    filterParams.exclude_token_ids = context.state.assets[net]
+    filterParams.exclude_token_ids = assets
       .map(asset => {
         const match = String(asset && asset.id).match(regex)
         if (!match) return
@@ -127,7 +127,7 @@ export async function getMissingAssets (
   }
   
   let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
-  if (isCashtoken) {
+  if (isCashToken) {
     url += '/cashtokens/fungible/'
   } else {
     url += '/tokens/'
