@@ -1,7 +1,7 @@
 <template>
   <div>
     <div
-      class="bg-white q-pa-sm rounded-borders q-ma-sm"
+      class="pt-dark q-pa-sm rounded-borders q-ma-sm"
       style="min-height:10rem;"
     >
       <q-btn
@@ -26,7 +26,7 @@
         />
       </div>
     </div>
-    <div class="text-grey text-center">
+    <div class="text-grey text-center q-mb-md">
       {{ $t('VerifyMnemonicBackupPhrase') }}
     </div>
     <div class="q-mx-sm q-mt-sm">

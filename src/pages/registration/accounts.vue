@@ -30,7 +30,7 @@
         </div>
       </div>
     </div>
-    <div class="col pt-wallet q-mt-sm" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
+    <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
       <ProgressLoader/>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="importSeedPhrase && mnemonic.length === 0">
@@ -47,9 +47,9 @@
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
-      <div class="pt-get-started q-mt-sm q-pa-lg">
+      <div class="pt-get-started q-mt-sm q-pa-lg" :class="{ 'pt-dark': $store.getters['darkmode/getStatus'] }">
         <template v-if="steps === totalSteps">
-          <h5 class="q-ma-none get-started-text text-black">{{ $t('MnemonicBackupPhrase') }}</h5>
+          <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': $store.getters['darkmode/getStatus'] }">{{ $t('MnemonicBackupPhrase') }}</h5>
           <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
             {{ $t('MnemonicBackupPhraseDescription1') }}
           </p>
@@ -76,6 +76,7 @@
                   padding="xs sm"
                   icon="arrow_back"
                   color="black"
+                  class="text-blue"
                   :label="$t('MnemonicBackupPhrase')"
                   @click="showMnemonicTest = false"
                 />

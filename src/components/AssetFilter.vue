@@ -1,5 +1,8 @@
 <template>
-  <q-btn-dropdown :content-style="contentStyle" unelevated class="float-right q-mr-md">
+  <q-btn-dropdown
+    :content-style="contentStyle"
+    unelevated class="float-right q-mr-md"
+  >
     <template v-slot:label>
       <TokenTypeBadge :assetId="assetId" :abbreviate="assetId !== 'ct'" />
     </template>
@@ -39,7 +42,10 @@ export default {
   },
   computed: {
     contentStyle () {
-      return { backgroundColor: this.darkMode ? 'gray' : 'white' }
+      return {
+        backgroundColor: this.darkMode ? '#1C2833' : 'white',
+        color: this.darkMode ? 'white' : 'black'
+      }
     }
   }
 }
