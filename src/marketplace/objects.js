@@ -437,30 +437,36 @@ export class Checkout {
   }
 
   /**
+   * 
+   * @typedef {Object} CurrencyInfo
+   * @property {String} code
+   * @property {String} symbol
+   * 
    * @param {Object} data
    * @param {Number} data.id
+   * @param {CurrencyInfo} data.currency
    * @param {Object} data.cart
    * @param {Object} data.delivery_address
    * @param {Object} data.payment
-   * @param {{ code:String, symbol:String }} data.payment.currency
-   * @param {Number} data.payment.bch_price
-   * @param {String | Number} data.payment.bch_price_timestamp
+   * @param {{ currency: CurrencyInfo, price: Number, timestamp: String | Number}} data.payment.bch_price
    * @param {Number} data.payment.delivery_fee
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
 
     this.id = data?.id
+    this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.cart = Cart.parse(data?.cart)
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.payment = {
-      currency: {
-        code: data?.payment?.currency?.code,
-        symbol: data?.payment?.currency?.symbol,
+      bchPrice: {
+        currency: {
+          code: data?.payment?.bch_price?.currency?.code,
+          symbol: data?.payment?.bch_price?.currency?.symbol,
+        },
+        price: data?.payment?.bch_price?.price,
+        timestamp: data?.payment?.bch_price?.timestamp ? new Date(data?.payment?.bch_price?.timestamp) : null,
       },
-      bchPrice: data?.payment?.bch_price,
-      bchPriceTimestamp: data?.payment?.bch_price_timestamp ? new Date(data?.payment?.bch_price_timestamp) : null,
-
       deliveryFee: data?.payment?.delivery_fee,
     }
   }
