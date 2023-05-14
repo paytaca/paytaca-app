@@ -11,13 +11,13 @@ export function ignoredAssets (state) {
 
 export function ignoredTokenIds (state) {
   const network = getBlockChainNetwork()
-  let _ignoredAssets = state.ignoreAssets
+  let _ignoredAssets = state.ignoredAssets
   if (network === 'chipnet') {
-    ignoreAssets = state.chipnet__ignoredAssets
+    _ignoredAssets = state.chipnet__ignoredAssets
   }
 
   if (!Array.isArray(_ignoredAssets)) return []
-  return state.ignoredAssets[network]
+  return _ignoredAssets
     .map(asset => asset && asset.id)
     .filter(assetId => String(assetId).match(/^(slp|ct)\/([a-fA-F0-9]+)$/))
     .map(assetId => assetId.replace('slp/', ''))

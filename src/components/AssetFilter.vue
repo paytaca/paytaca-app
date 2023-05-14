@@ -1,7 +1,7 @@
 <template>
-  <q-btn-dropdown :content-style="{ backgroundColor: 'gray' }" unelevated class="float-right q-mr-md">
+  <q-btn-dropdown :content-style="contentStyle" unelevated class="float-right q-mr-md">
     <template v-slot:label>
-      {{  tokenTypeLabel(assetId) }}
+      <TokenTypeBadge :assetId="assetId" :abbreviate="assetId !== 'ct'" />
     </template>
     <q-list>
       <q-item clickable v-close-popup @click="filterTokens('ct')">
@@ -35,9 +35,11 @@ export default {
     filterTokens (tokenType) {
       this.assetId = tokenType
       this.$emit('filterTokens', tokenType)
-    },
-    tokenTypeLabel (tokenType) {
-      return {'ct': 'CashTokens', 'slp': 'SLP'}[tokenType]
+    }
+  },
+  computed: {
+    contentStyle () {
+      return { backgroundColor: this.darkMode ? 'gray' : 'white' }
     }
   }
 }

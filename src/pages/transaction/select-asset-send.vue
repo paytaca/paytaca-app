@@ -81,7 +81,7 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: false,
+      isCashToken: true,
       assets: null
     }
   },
