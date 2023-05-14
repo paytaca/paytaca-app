@@ -46,6 +46,9 @@ export default {
         backgroundColor: this.darkMode ? '#1C2833' : 'white',
         color: this.darkMode ? 'white' : 'black'
       }
+    },
+    tokenTypeLabel (tokenType) {
+      return {'ct': 'CashTokens', 'slp': 'SLP Tokens'}[tokenType]
     }
   }
 }

@@ -146,8 +146,8 @@ export default bexBackground( (bridge, allActiveConnections) => {
   bridge.on('background.paytaca.connectResponse', ({ data}) => {
     if (data.connected) {
       const vuex = JSON.parse(localStorage.getItem("vuex")!);
-      const network = vuex?.global?.isChipnet ? 'chip' : 'main'
-      const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
+      const network = vuex?.global?.isChipnet ? 'chipnet__wallets' : 'wallets'
+      const wallet = vuex?.global?.[network][data.assetId || "bch"];
       const connectedSites = wallet.connectedSites || {};
       const origin = data.origin.split('/')[2] ?? data.origin;
       if (!connectedSites[origin]) {
@@ -165,8 +165,8 @@ export default bexBackground( (bridge, allActiveConnections) => {
 
   bridge.on('background.paytaca.connected', ({ data, eventResponseKey }) => {
     const vuex = JSON.parse(localStorage.getItem("vuex")!);
-    const network = vuex?.global?.isChipnet ? 'chip' : 'main'
-    const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
+    const network = vuex?.global?.isChipnet ? 'chipnet__wallets' : 'wallets'
+    const wallet = vuex?.global?.[network][data.assetId || "bch"];
     const connectedSites = wallet?.connectedSites || {};
     const origin = data.origin.split('/')[2] ?? data.origin;
     const connected = !!connectedSites[origin];
@@ -175,8 +175,8 @@ export default bexBackground( (bridge, allActiveConnections) => {
 
   bridge.on('background.paytaca.disconnect', ({ data, eventResponseKey }) => {
     const vuex = JSON.parse(localStorage.getItem("vuex")!);
-    const network = vuex?.global?.isChipnet ? 'chip' : 'main'
-    const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
+    const network = vuex?.global?.isChipnet ? 'chipnet__wallets' : 'wallets'
+    const wallet = vuex?.global?.[network][data.assetId || "bch"];
     const connectedAddress = wallet.connectedAddress;
     const connectedSites = wallet.connectedSites || {};
     const origin = data.origin.split('/')[2] ?? data.origin;
@@ -206,8 +206,8 @@ export default bexBackground( (bridge, allActiveConnections) => {
       const connection = allActiveConnections[connId]
       if (connection.contentScript!.connected) {
         const vuex = JSON.parse(localStorage.getItem("vuex")!);
-        const network = vuex?.global?.isChipnet ? 'chip' : 'main'
-        const wallet = vuex?.global?.wallets?.[data.assetId || "bch"][network];
+        const network = vuex?.global?.isChipnet ? 'chipnet__wallets' : 'wallets'
+        const wallet = vuex?.global?.[network][data.assetId || "bch"];
         respond(wallet?.connectedAddress);
         return
       }
