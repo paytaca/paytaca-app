@@ -281,14 +281,12 @@ export class CartItem {
   }
 }
 
-let cartInitCtr = 0
 export class Cart {
   static parse(data) {
     return new Cart(data)
   }
 
   constructor(data) {
-    this.$genId = cartInitCtr++
     this.raw = data
     this.$state = {
       updating: false,
@@ -302,6 +300,7 @@ export class Cart {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {Number} data.order_id
    * @param {Number} data.storefront_id
    * @param {Number} data.subtotal
    * @param {Object} data.customer
@@ -311,6 +310,7 @@ export class Cart {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
 
     this.id = data?.id
+    this.orderId = data?.order_id
     this.storefrontId = data?.storefront_id
     this.subtotal = data?.subtotal
     this.customer = Customer.parse(data?.customer)
@@ -344,6 +344,21 @@ export class Cart {
         if (!response?.data?.id) return Promise.reject({ response })
         this.raw = response?.data
         return response
+      })
+      .finally(() => {
+        this.$state.updating = false
+      })
+  }
+
+  async refetch() {
+    if (!this.id) return Promise.reject()
+
+    this.$state.updating = true
+    return backend.get(`connecta/carts/${this.id}/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.raw = response?.data
+        return response 
       })
       .finally(() => {
         this.$state.updating = false

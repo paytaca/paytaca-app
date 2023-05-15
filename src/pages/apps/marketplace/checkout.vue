@@ -10,7 +10,7 @@
     />
 
     <div v-if="!initialized" class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div v-if="fetchingCheckout" class="row justify-center items-center">
+      <div v-if="fetchingCheckout || loading" class="row justify-center items-center">
         <q-spinner size="3rem"/>
       </div>
     </div>
@@ -739,6 +739,12 @@ function completeCheckout() {
                            'Encountered error in completing checkout'
       dialog.update({ title: 'Error', message: errorMessage })
       return Promise.reject(error)
+    })
+    .then(() => {
+      $store.dispatch('marketplace/refreshCart', {
+        cartId: checkout.value?.cart?.id,
+        existsInCache: true,
+      })
     })
     .finally(() => {
       dialog.update({ progress: false, ok: true })

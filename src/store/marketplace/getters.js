@@ -36,7 +36,7 @@ export function activeStorefront(state, getters) {
 }
 
 export function activeStorefrontCarts(state, getters) {
-  return getters.getCartsForStorefront(state.activeStorefrontId)
+  return getters.getCartsForStorefront(state.activeStorefrontId).filter(cart => !cart?.orderId)
 }
 
 export function activeStorefrontCart(state, getters) {
