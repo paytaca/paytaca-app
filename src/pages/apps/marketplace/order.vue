@@ -24,7 +24,21 @@
         </div>
       </div>
       <div class="q-px-sm text-caption text-grey">#{{ order.id }}</div>
-      <div class="row items-start">
+      <div class="row items-start items-delivery-address-panel">
+        <div v-if="order?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
+          <q-card
+            :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-px-md q-py-sm']"
+          >
+            <div class="text-subtitle1">Delivery</div>
+            <q-separator :dark="darkMode"/>
+            <div>
+              {{ order?.deliveryAddress?.firstName }}
+              {{ order?.deliveryAddress?.lastName }}
+            </div>
+            <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
+            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
+          </q-card>
+        </div>
         <div class="q-pa-xs q-space">
           <q-card
             :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-pa-sm']"
@@ -68,20 +82,6 @@
                 <td class="text-center" style="white-space:nowrap;">{{ orderItem?.variant?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
               </tr>
             </table>
-          </q-card>
-        </div>
-        <div v-if="order?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
-          <q-card
-            :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-px-md q-py-sm']"
-          >
-            <div class="text-subtitle1">Delivery</div>
-            <q-separator :dark="darkMode"/>
-            <div>
-              {{ order?.deliveryAddress?.firstName }}
-              {{ order?.deliveryAddress?.lastName }}
-            </div>
-            <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
-            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
           </q-card>
         </div>
       </div>
@@ -205,5 +205,12 @@ table.items-table {
 }
 table.items-table td {
   vertical-align: top;
+}
+</style>
+<style scoped lang="scss">
+@media (min-width: $breakpoint-xs) {
+  .items-delivery-address-panel {
+    flex-direction: row-reverse;
+  }
 }
 </style>
