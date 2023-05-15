@@ -8,7 +8,13 @@
       title="Marketplace"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <div v-if="!initialized" class="q-pa-sm" :class="{'text-black': !darkMode }">
+      <div class="q-px-sm text-h5 q-space">Order</div>
+      <div v-if="fetchingOrder" class="text-center">
+        <q-spinner size="3em"/>
+      </div>
+    </div>
+    <div v-else class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div>
         <div class="row items-start q-px-sm">
           <div class="text-h5 q-space">Order</div>
@@ -113,7 +119,6 @@ const props = defineProps({
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
 onMounted(() => refreshPage())
 const initialized = ref(false)

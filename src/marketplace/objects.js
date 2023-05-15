@@ -600,4 +600,15 @@ export class Order {
   get statusColor() {
     return parseOrderStatusColor(this.status)
   }
+
+  async fetchStorefront() {
+    if (!this.storefrontId) return Promise.reject('No storefront id')
+
+    return backend.get(`connecta/storefronts/${this.storefrontId}/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.storefront = Storefront.parse(response?.data)
+        return response
+      })
+  }
 }

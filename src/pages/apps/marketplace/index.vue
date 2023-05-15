@@ -36,19 +36,67 @@
         </div>
       </div>
 
-      <!-- <div class="text-h5 q-px-xs">Orders</div>
+      
+      <div class="col-12 row items-center q-px-sm">
+        <div class="text-h5 q-px-xs">
+          Orders
+          <template v-if="ordersPagination.count">({{ ordersPagination.count }})</template>
+        </div>
+        <q-space/>
+        <LimitOffsetPagination
+          :pagination-props="{
+            maxPages: 5,
+            rounded: true,
+            padding: 'sm md',
+            boundaryNumbers: true,
+            disable: fetchingOrders,
+          }"
+          class="q-my-sm"
+          :hide-below-pages="2"
+          :modelValue="ordersPagination"
+          @update:modelValue="fetchOrders"
+        />
+      </div>
+
       <div class="q-mb-md">
-        <div class="text-grey text-center">No orders</div>
-      </div> -->
+        <div v-if="!orders?.length && initialized" class="text-grey text-center">No orders</div>
+        <div v-else class="q-mx-sm">
+          <table class="orders-table full-width">
+            <tr>
+              <th>Order</th>
+              <th>Status</th>
+              <th>Storefront</th>
+              <th>Amount</th>
+            </tr>
+            <tr
+              v-for="order in orders" :key="order?.id"
+              @click="$router.push({ name: 'app-marketplace-order', params: { orderId: order?.id } })"
+            >
+              <td>#{{ order?.id }}</td>
+              <td>
+                <q-badge v-if="order?.formattedStatus" :color="order?.statusColor" text-color="white">
+                  {{ order?.formattedStatus }}
+                </q-badge>
+              </td>
+              <td>{{ order?.storefront?.name }}</td>
+              <td style="white-space:nowrap;">
+                {{ (Number(order?.subtotal) + Number(order?.payment?.deliveryFee)).toFixed(2) }}
+                {{ order?.currency?.symbol }}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
     </div>
   </q-pull-to-refresh>
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
-import { Storefront } from 'src/marketplace/objects'
+import { Order, Storefront } from 'src/marketplace/objects'
 import { useStore } from 'vuex'
 import { computed, ref, onMounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
+import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -57,6 +105,8 @@ const initialized = ref(false)
 function resetPage() {
   storefronts.value = []
   storefrontsPagination.value = { count: 0, limit: 0, offset: 0 }
+  orders.value = []
+  ordersPagination.value = { count: 0, limit: 0, offset: 0 }
   initialized.value = false
 }
 
@@ -87,9 +137,43 @@ function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
     })
 }
 
+const fetchingOrders = ref(false)
+const orders = ref([].map(Order.parse))
+const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
+async function fetchOrders(opts = { limit: 0, offset: 0 }) {
+  const params = {
+    ref: await $store.dispatch('marketplace/getCartRef'),
+    limit: opts?.limit || 10,
+    offset: opts?.offset || undefined,
+  }
+  fetchingOrders.value = true
+  return backend.get(`connecta/orders/`, { params })
+    .then(response => {
+      if(!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+      orders.value = response?.data?.results?.map(Order.parse)
+
+      orders.value.forEach(order => {
+        if (!order?.storefrontId) return
+        order.storefront = $store.getters['marketplace/storefronts']
+          .find(storefront => storefront?.id == order?.storefrontId)
+        if (!order.storefront) order.fetchStorefront()
+      })
+      ordersPagination.value.count = response?.data?.count
+      ordersPagination.value.limit = response?.data?.limit
+      ordersPagination.value.offset = response?.data?.offset
+      return response
+    })
+    .finally(() => {
+      fetchingOrders.value = false
+    })
+}
+
 async function refreshPage(done=() => {}) {
   try {
-    await fetchStorefronts()
+    await Promise.all([
+      fetchStorefronts(),
+      fetchOrders(),
+    ])
   } finally {
     $store.commit('marketplace/setActiveStorefrontId', null)
     initialized.value = true
@@ -97,3 +181,11 @@ async function refreshPage(done=() => {}) {
   }
 }
 </script>
+<style scoped lang="scss">
+table.orders-table {
+  border-spacing: map-get($space-xs, "x") map-get($space-sm, "y");
+}
+table.orders-table td {
+  vertical-align: top;
+}
+</style>
