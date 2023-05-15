@@ -1,5 +1,5 @@
 <template>
-    <q-pull-to-refresh
+  <q-pull-to-refresh
     style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
     :class="{'pt-dark': darkMode}"
     @refresh="refreshPage"
@@ -8,7 +8,28 @@
       title="Marketplace"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
+
+    <div v-if="!initialized" class="q-pa-sm" :class="{'text-black': !darkMode }">
+      <div v-if="fetchingCheckout" class="row justify-center items-center">
+        <q-spinner size="3rem"/>
+      </div>
+    </div>
+    <div v-else-if="checkout?.orderId" class="q-pa-sm" :class="{'text-black': !darkMode }">
+      <div class="q-px-sm text-center">
+        <div class="text-subtitle1">Checkout is already complete</div>
+        <div>
+          <q-btn
+            flat
+            no-caps
+            label="Go to order"
+            class="text-underline"
+            padding="xs lg"
+            :to="{ name: 'app-marketplace-order', params: { orderId: checkout.orderId }}"
+          />
+        </div>
+      </div>
+    </div>
+    <div v-else class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div class="text-h5 q-px-sm">Checkout</div>
       <q-tabs v-model="tabs.active">
         <q-tab v-for="(tab, index) in tabs.opts" :key="index" v-bind="tab"/>
@@ -363,6 +384,7 @@ import { backend } from 'src/marketplace/backend'
 import { Checkout } from 'src/marketplace/objects'
 import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
@@ -374,6 +396,7 @@ const props = defineProps({
 })
 
 const $q = useQuasar()
+const $router = useRouter()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -542,6 +565,14 @@ onMounted(() => {
 onUnmounted(() => unsubscribeCacheCartMutation?.())
 
 const checkout = ref(Checkout.parse())
+watch(
+  () => [checkout.value?.cart?.storefrontId],
+  () => {
+    if (!checkout.value?.cart?.storefrontId) return
+    $store.commit('marketplace/setActiveStorefrontId', checkout.value?.cart?.storefrontId)
+  }
+)
+const fetchingCheckout = ref(false)
 const checkoutCurrency = computed(() => checkout.value?.currency?.symbol)
 const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice?.price || undefined)
 const displayBch = ref(true)
@@ -577,8 +608,11 @@ function fetchCheckout() {
   else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`)
 
   if (!request) return Promise.reject()
+  fetchingCheckout.value = true
   return request.then(response => {
     checkout.value = Checkout.parse(response?.data)
+  }).finally(() => {
+    fetchingCheckout.value = false
   })
 }
 
@@ -587,7 +621,8 @@ function saveCart() {
 }
 
 
-function updateBchPrice(opts={age: 60 * 1000}) {
+function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
+  if (opts?.abortIfCompleted && checkout.value?.orderId) return Promise.resolve('checkout is completed')
   if (opts?.age && checkout.value?.payment?.bchPrice?.timestamp > Date.now() - opts?.age) {
     return Promise.resolve('price is still new')
   }
@@ -678,9 +713,35 @@ function updateCheckout(data) {
 }
 
 function completeCheckout() {
+  const dialog = $q.dialog({
+    title: 'Creating order',
+    progress: true,
+    ok: false,
+    persistent: true,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
   loading.value = true
   return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`)
+    .then(response => {
+      if (!response?.data?.id) return Promise.reject({ response })
+
+      const orderId = response?.data?.id
+      dialog.update({ title: 'Order placed!' }).onDismiss(() => {
+        $router.push({ name: 'app-marketplace-order', params: { orderId }})
+      })
+      return response
+    })
+    .catch(error => {
+      const data = error?.response?.data
+      const errorMessage = data?.detail ||
+                           errorParser.firstElementOrValue(data?.non_field_errors) ||
+                           errorParser.firstElementOrValue(data?.checkout_id) ||
+                           'Encountered error in completing checkout'
+      dialog.update({ title: 'Error', message: errorMessage })
+      return Promise.reject(error)
+    })
     .finally(() => {
+      dialog.update({ progress: false, ok: true })
       loading.value = false
     })
 }
