@@ -1,4 +1,5 @@
 import { backend } from "./backend"
+import { formatOrderStatus, parseOrderStatusColor } from './utils'
 
 export class Location {
   static parse(data) {
@@ -490,5 +491,98 @@ export class Checkout {
       bchPrice: BchPrice.parse(data?.payment?.bch_price),
       deliveryFee: data?.payment?.delivery_fee,
     }
+  }
+}
+
+export class OrderItem {
+  static parse(data) {
+    return new OrderItem(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Object} data.variant
+   * @param {Number} data.item_name
+   * @param {Number} data.quantity
+   * @param {Number} data.price
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.variant = Variant.parse(data?.variant)
+    this.itemName = data?.item_name
+    this.quantity = data?.quantity
+    this.price = data?.price
+  }
+}
+
+
+export class Order {
+  static parse(data) {
+    return new Order(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.checkout_id
+   * @param {Number} data.storefront_id
+   * @param {String} data.status
+   * @param {{ code:String, symbol:String }} data.currency
+   * @param {Object} data.bch_price
+   * @param {Object} [data.customer]
+   * @param {Object} data.delivery_address
+   * @param {Object[]} data.items
+   * @param {Number} data.subtotal
+   * @param {{ delivery_fee:Number }} data.payment
+   * @param {String | Number} data.created_at
+   * @param {String | Number} data.updated_at
+  */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.checkoutId = data?.checkout_id
+    this.storefrontId = data?.storefront_id
+    this.status = data?.status
+    this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
+    this.bchPrice = BchPrice.parse(data?.bch_price)
+    if (data?.customer) this.customer = Customer.parse(data?.customer)
+    this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
+    this.items = data?.items?.map?.(OrderItem.parse)
+    this.subtotal = data?.subtotal
+    this.payment = {
+      deliveryFee: data?.payment?.delivery_fee,
+    }
+
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+
+    if (data?.updated_at) this.updatedAt = new Date(data?.updated_at)
+    else if (this.updatedAt) delete this.updatedAt
+  }
+
+  get formattedStatus() {
+    return formatOrderStatus(this.status)
+  }
+
+  get statusColor() {
+    return parseOrderStatusColor(this.status)
   }
 }
