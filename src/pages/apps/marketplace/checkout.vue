@@ -405,6 +405,7 @@ onMounted(() => refreshPage())
 function resetPage() {
   checkout.value.raw = Checkout.parse()
   resetFormData()
+  resetFormErrors()
   tabs.value.active = tabs.value.opts?.[0]?.name
   initialized.value = false
 }
