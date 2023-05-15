@@ -390,6 +390,34 @@ export class Customer {
   }
 }
 
+export class BchPrice {
+  static parse(data) {
+    return new BchPrice(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {{ code:String, symbol: String }} data.currency
+   * @param {Number} data.price
+   * @param {String | Number} data.timestamp
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
+    this.price = data?.price
+    if (data?.timestamp) this.timestamp = new Date(data?.timestamp)
+    else if (this.timestamp) delete this.timestamp
+  }
+}
+
 export class DeliveryAddress {
   static parse(data) {
     return new DeliveryAddress(data) 
@@ -437,13 +465,12 @@ export class Checkout {
   }
 
   /**
-   * 
    * @typedef {Object} CurrencyInfo
    * @property {String} code
    * @property {String} symbol
-   * 
    * @param {Object} data
    * @param {Number} data.id
+   * @param {Number} data.order_id
    * @param {CurrencyInfo} data.currency
    * @param {Object} data.cart
    * @param {Object} data.delivery_address
@@ -455,18 +482,12 @@ export class Checkout {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
 
     this.id = data?.id
+    this.orderId = data?.order_id
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.cart = Cart.parse(data?.cart)
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.payment = {
-      bchPrice: {
-        currency: {
-          code: data?.payment?.bch_price?.currency?.code,
-          symbol: data?.payment?.bch_price?.currency?.symbol,
-        },
-        price: data?.payment?.bch_price?.price,
-        timestamp: data?.payment?.bch_price?.timestamp ? new Date(data?.payment?.bch_price?.timestamp) : null,
-      },
+      bchPrice: BchPrice.parse(data?.payment?.bch_price),
       deliveryFee: data?.payment?.delivery_fee,
     }
   }
