@@ -142,3 +142,7 @@ a {
 .pp-fcolor {
   color: #000 !important;
 }
+
+.text-underline {
+  text-decoration: underline;
+}
