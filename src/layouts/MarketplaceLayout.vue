@@ -121,13 +121,11 @@ export default {
     const showCartsDialog = ref(false)
 
     const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
-    watch(
-      () => [activeStorefront.value?.id],
-      () => {
-        if (!activeStorefront.value?.id) return
-        $store.dispatch('marketplace/refreshStorefrontCarts', { storefrontId: activeStorefront.value.id })
-      }
-    )
+    const activeStorefrontId = computed(() => activeStorefront.value?.id)
+    watch(activeStorefrontId,() => {
+      if (!activeStorefrontId.value) return
+      $store.dispatch('marketplace/refreshActiveStorefrontCarts')
+    })
 
     const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
     function getStorefrontCurrency(storefrontId) {
