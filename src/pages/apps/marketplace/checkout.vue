@@ -728,7 +728,7 @@ function completeCheckout() {
 
       const orderId = response?.data?.id
       dialog.update({ title: 'Order placed!' }).onDismiss(() => {
-        $router.push({ name: 'app-marketplace-order', params: { orderId }})
+        $router.replace({ name: 'app-marketplace-order', params: { orderId }})
       })
       return response
     })
