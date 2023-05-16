@@ -1,5 +1,9 @@
-import { Cart, Storefront } from 'src/marketplace/objects'
+import { Customer, Cart, Storefront } from 'src/marketplace/objects'
 
+
+export function customer(state) {
+  return Customer.parse(state?.customerData)
+}
 
 export function storefronts(state) {
   if (!Array.isArray(state?.storefronts)) return []

@@ -1,3 +1,31 @@
+/**
+ * @param {Object} state 
+ * @param {Object} data 
+ * @param {Number} data.id
+ * @param {String} data.ref
+ * @param {Number} data.first_name
+ * @param {Number} data.last_name
+ * @param {Number} data.phone_number
+ * @param {Object} data.default_location
+ * @param {Number} data.default_location.id
+ * @param {String} data.default_location.address1
+ * @param {String} data.default_location.address2
+ * @param {String} data.default_location.street
+ * @param {String} data.default_location.city
+ * @param {String} data.default_location.state
+ * @param {String} data.default_location.zip_code
+ * @param {String} data.default_location.country
+ * @param {String} data.default_location.longitude
+ * @param {String} data.default_location.latitude
+ * @param {Object} data.paytaca_wallet
+ * @param {String} data.paytaca_wallet.wallet_hash
+ * @param {String} data.paytaca_wallet.verifying_pubkey
+ * @param {Number} data.paytaca_wallet.verifying_pubkey_index
+ */
+export function setCustomerData(state, data) {
+  state.customerData = data
+}
+
 export function setActiveStorefrontId(state, storefrontId) {
   state.activeStorefrontId = storefrontId
 }

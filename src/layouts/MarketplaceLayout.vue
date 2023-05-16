@@ -1,5 +1,11 @@
 <template>
   <div>
+    <q-dialog v-model="loadingApp" persistent>
+      <div class="q-pa-md row items-center">
+        <div class="text-subtitle">Loading app</div>
+        <q-spinner size="1.5em" class="q-ml-sm"/>
+      </div>
+    </q-dialog>
     <router-view v-slot="{ Component }">
       <keep-alive>
         <component :is="Component" />
@@ -108,15 +114,45 @@
   </div>
 </template>
 <script>
+import { backend, getSignerData } from 'src/marketplace/backend'
 import { Cart } from 'src/marketplace/objects'
 import { useStore } from 'vuex'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 export default {
   name: 'MarketplaceLayout',
   setup() {
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+    const loadingApp = ref(false)
+    onMounted(async () => {
+      try {
+        loadingApp.value = true
+        await $store.dispatch('marketplace/refetchCustomerData')
+        const signerData = await getSignerData()
+        if (!customer.value?.id || !signerData?.value) {
+          await $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
+        }
+      } finally {
+        loadingApp.value = false
+      }
+    })
+
+    const customer = computed(() => $store.getters['marketplace/customer'])
+    const interceptor = backend.interceptors.response.use(null, async (error) => {
+      const errorMsg = String(error?.response?.data?.detail)
+      if (error?.response?.status == 403 && errorMsg.indexOf('Invalid auth header') >= 0){
+        if (errorMsg.indexOf('Invalid signature') >= 0 || errorMsg.indexOf('Customer not found') >= 0) {
+          $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
+        }
+      }
+      return Promise.reject(error)
+    })
+    onUnmounted(() => {
+      console.log('ejecting interceptor')
+      backend.interceptors.response.eject(interceptor)
+    })
 
     const showCartsDialog = ref(false)
 
@@ -138,6 +174,9 @@ export default {
 
     return {
       darkMode,
+      loadingApp,
+
+      customer,
 
       showCartsDialog,
 

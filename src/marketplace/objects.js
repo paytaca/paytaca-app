@@ -396,6 +396,9 @@ export class Customer {
    * @param {String} data.ref
    * @param {String} data.first_name
    * @param {String} data.last_name
+   * @param {String} data.phone_number
+   * @param {Object} data.default_location
+   * @param {{wallet_hash:String, verifying_pubkey:String, verifying_pubkey_index:Number}} data.paytaca_wallet
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -403,6 +406,13 @@ export class Customer {
     this.ref = data?.ref
     this.firstName = data?.first_name
     this.lastName = data?.last_name
+    this.phoneNumber = data?.phone_number
+    if (data?.default_location) this.defaultLocation = Location.parse(data?.default_location)
+    if (data?.paytaca_wallet) this.paytacaWallet = {
+      walletHash: data?.paytaca_wallet?.wallet_hash,
+      verifyingPubkey: data?.paytaca_wallet?.verifying_pubkey,
+      verifyingPubkeyIndex: data?.paytaca_wallet?.verifying_pubkey_index,
+    }
   }
 }
 

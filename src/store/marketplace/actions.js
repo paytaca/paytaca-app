@@ -1,10 +1,63 @@
-import { backend } from 'src/marketplace/backend'
+import { backend, setSignerData } from 'src/marketplace/backend'
 import { Cart } from 'src/marketplace/objects'
+import { loadWallet } from 'src/wallet'
 
 export function getCartRef(context) {
   const walletHash = context.rootGetters['global/getWallet']('bch')?.walletHash
   if (walletHash) return `wallet:${walletHash}`
   return ''
+}
+
+/**
+ * @param {Object} context 
+ * @param {Object} opts
+ * @param {Number} opts.index
+ */
+export async function updateCustomerVerifyingPubkey(context, opts={ index: 0 }) {
+  const customer = context.getters['customer']
+  let index = opts?.index
+  if (isNaN(index) || index < 0) index = customer?.paytacaWallet?.verifyPubkeyIndex
+  if (isNaN(index) || index < 0) return Promise.reject('invalid index')
+
+  const wallet = await loadWallet()
+  const walletHash = wallet.BCH.walletHash 
+  const pubkey = await wallet.BCH.getPublicKey(`0/${index}`)
+  const privkey = await wallet.BCH.getPrivateKey(`0/${index}`)
+
+  const data = {
+    paytaca_wallet: {
+      wallet_hash: walletHash,
+      verifying_pubkey: pubkey,
+      verifying_pubkey_index: index,
+    }
+  }
+
+  let request = null
+  if (customer?.id) {
+    request = backend.patch(`connecta/customers/${customer?.id}/`, data)
+  } else {
+    data.ref = await context.dispatch('getCartRef')
+    request = backend.post(`connecta/customers/`, data)
+  }
+  return request.then(response => {
+    if (!response?.data?.id) return Promise.reject({ response })
+    context.commit('setCustomerData', response?.data)
+    setSignerData(`${walletHash}:${privkey}`)
+    return response
+  })
+}
+
+export async function refetchCustomerData(context) {
+  const params = {
+    ref: await context.dispatch('getCartRef')
+  }
+
+  return backend.get(`connecta/customers`, { params })
+    .then(response => {
+      const customerData = response?.data?.results?.[0]
+      context.commit('setCustomerData', customerData)
+      return customerData
+    })
 }
 
 export async function refreshActiveStorefrontCarts(context) {
