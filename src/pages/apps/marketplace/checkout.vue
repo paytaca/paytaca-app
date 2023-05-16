@@ -143,9 +143,17 @@
               :error="Boolean(formErrors?.delivery?.phoneNumber)"
               :error-message="formErrors?.delivery?.phoneNumber"
               :rules="[
-                val => Boolean(val) || 'Required',
+                val => !val || String(val).match(/^(0|(\+\d+))\d{3}-?\d{3}-?\d{4}$/) || $t('InvalidPhoneNumber', {}, 'Invalid phone number'),
               ]"
-            />
+              @update:model-value="() => showNumberCodeSelector = true"
+            >
+              <PhoneCountryCodeSelector
+                v-model="showNumberCodeSelector"
+                :needle="formData.delivery.phoneNumber"
+                @selected-code="code => replacePrimaryNumberCode(code)"
+                :dark="darkMode"
+              />
+            </q-input>
   
             <div class="text-subtitle1">Address</div>
             <q-input
@@ -204,27 +212,29 @@
                   val => Boolean(val) || 'Required',
                 ]"
               />
-              <q-select
-                outlined
-                dense
-                :disable="loading"
-                :dark="darkMode"
-                label="Country*"
-                clearable
-                use-input
-                fill-input
-                hide-selected
-                :options="filteredCountriesOpts"
-                @filter="filterCountriesOpts"
-                v-model="formData.delivery.address.country"
-                class="col-12 col-sm-6"
-                :popup-content-class="darkMode ? '': 'text-black'"
-                :error="Boolean(formErrors?.delivery?.location?.country)"
-                :error-message="formErrors?.delivery?.location?.country"
-                :rules="[
-                  val => Boolean(val) || 'Required',
-                ]"
-              />
+              <CountriesFieldWrapper v-slot="{ filteredCountriesOpts, filterCountriesOpts }">
+                <q-select
+                  outlined
+                  dense
+                  :disable="loading"
+                  :dark="darkMode"
+                  label="Country*"
+                  clearable
+                  use-input
+                  fill-input
+                  hide-selected
+                  :options="filteredCountriesOpts"
+                  @filter="filterCountriesOpts"
+                  v-model="formData.delivery.address.country"
+                  class="col-12 col-sm-6"
+                  :popup-content-class="darkMode ? '': 'text-black'"
+                  :error="Boolean(formErrors?.delivery?.location?.country)"
+                  :error-message="formErrors?.delivery?.location?.country"
+                  :rules="[
+                    val => Boolean(val) || 'Required',
+                  ]"
+                />
+              </CountriesFieldWrapper>
             </div>
             <div class="row items-center q-gutter-x-sm q-mt-sm">
               <q-btn
@@ -414,7 +424,6 @@
   </q-pull-to-refresh>  
 </template>
 <script setup>
-import countriesJson from 'src/assets/countries.json'
 import { backend } from 'src/marketplace/backend'
 import { Checkout } from 'src/marketplace/objects'
 import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
@@ -424,6 +433,8 @@ import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
+import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
+import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wrapper.vue'
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -529,24 +540,16 @@ function resetFormData() {
   }
 }
 
-const countriesOpts = computed(() => {
-  if (!Array.isArray(countriesJson)) return []
-  return countriesJson
-    .map(countryJson => countryJson?.name)
-    .filter(Boolean)
-    .filter((e,i,s) => s.indexOf(e) === i)
-})
-const filteredCountriesOpts = ref([])
-function filterCountriesOpts (val, update) {
-  if (!val) {
-    filteredCountriesOpts.value = countriesOpts.value
-  } else {
-    const needle = String(val).toLowerCase()
-    filteredCountriesOpts.value = countriesOpts.value
-      .filter(country => String(country).toLowerCase().indexOf(needle) >= 0)
+const showNumberCodeSelector = ref(false)
+function replacePrimaryNumberCode(code='') {
+  const isPhoneNumberLike = RegExp("\\+?[0-9\\-]+").test(formData.value.delivery.phoneNumber)
+  if (typeof formData.value.delivery.phoneNumber !== 'string' || !isPhoneNumberLike) {
+    formData.value.delivery.phoneNumber = code
+    return
   }
-  update()
+  formData.value.delivery.phoneNumber = code + formData.value.delivery.phoneNumber.substring(code.length)
 }
+
 
 const geocoding = ref(false)
 const validCoordinates = computed(() => 
