@@ -30,7 +30,15 @@
       </div>
     </div>
     <div v-else class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div class="text-h5 q-px-sm">Checkout</div>
+      <div class="row no-wrap items-center q-px-sm">
+        <div class="text-h5">Checkout</div>
+        <q-spinner v-if="loading" size="1.5em" class="q-ml-xs"/>
+        <q-slide-transition>
+          <div :model-value="Boolean(loading && loadingMsg)" class="ellipsis-2-lines q-ml-xs">
+            {{ loadingMsg }}
+          </div>
+        </q-slide-transition>
+      </div>
       <q-tabs v-model="tabs.active">
         <q-tab v-for="(tab, index) in tabs.opts" :key="index" v-bind="tab"/>
       </q-tabs>
@@ -86,7 +94,7 @@
           </div>
         </q-tab-panel>
         <q-tab-panel name="delivery" :dark="darkMode">
-          <q-form @submit="() => saveDeliveryAddress().then(() => nextTab())">
+          <q-form @submit="() => submitDeliveryAddress().then(() => nextTab())">
             <q-banner v-if="formErrors?.delivery?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
               <div v-if="formErrors?.delivery?.detail?.length === 1">
                 {{ formErrors?.delivery?.detail?.[0] }}
@@ -101,22 +109,28 @@
                 dense
                 :disable="loading"
                 :dark="darkMode"
-                label="First name"
+                label="First name*"
                 v-model="formData.delivery.firstName"
                 class="col-12 col-sm-6"    
                 :error="Boolean(formErrors?.delivery?.firstName)"
                 :error-message="formErrors?.delivery?.firstName"
+                :rules="[
+                  val => Boolean(val) || 'Required',
+                ]"
               /> 
               <q-input
                 outlined
                 dense
                 :disable="loading"
                 :dark="darkMode"
-                label="Last name"
+                label="Last name*"
                 v-model="formData.delivery.lastName"
                 class="col-12 col-sm-6"
                 :error="Boolean(formErrors?.delivery?.lastName)"
                 :error-message="formErrors?.delivery?.lastName"
+                :rules="[
+                  val => Boolean(val) || 'Required',
+                ]"
               />
             </div>
             <q-input
@@ -124,10 +138,13 @@
               dense
               :disable="loading"
               :dark="darkMode"
-              label="Phone number"
+              label="Phone number*"
               v-model="formData.delivery.phoneNumber"
               :error="Boolean(formErrors?.delivery?.phoneNumber)"
               :error-message="formErrors?.delivery?.phoneNumber"
+              :rules="[
+                val => Boolean(val) || 'Required',
+              ]"
             />
   
             <div class="text-subtitle1">Address</div>
@@ -147,7 +164,7 @@
                 dense
                 :disable="loading"
                 :dark="darkMode"
-                label="Street"
+                label="Street*"
                 v-model="formData.delivery.address.street"
                 class="col-12 col-sm-6"
                 :error="Boolean(formErrors?.delivery?.location?.street)"
@@ -161,7 +178,7 @@
                 dense
                 :disable="loading"
                 :dark="darkMode"
-                label="City"
+                label="City*"
                 v-model="formData.delivery.address.city"
                 class="col-12 col-sm-6"
                 :error="Boolean(formErrors?.delivery?.location?.city)"
@@ -178,18 +195,21 @@
                 dense
                 :disable="loading"
                 :dark="darkMode"
-                label="State / Province"
+                label="State / Province *"
                 v-model="formData.delivery.address.state"
                 class="col-12 col-sm-6"
                 :error="Boolean(formErrors?.delivery?.location?.state)"
                 :error-message="formErrors?.delivery?.location?.state"
+                :rules="[
+                  val => Boolean(val) || 'Required',
+                ]"
               />
               <q-select
                 outlined
                 dense
                 :disable="loading"
                 :dark="darkMode"
-                label="Country"
+                label="Country*"
                 clearable
                 use-input
                 fill-input
@@ -209,6 +229,7 @@
             <div class="row items-center q-gutter-x-sm q-mt-sm">
               <q-btn
                 no-caps flat
+                :disable="loading"
                 class="q-space"
                 @click="selectCoordinates()"
               >
@@ -243,6 +264,10 @@
           </q-form>
         </q-tab-panel>
         <q-tab-panel name="payment" :dark="darkMode">
+          <q-banner v-if="formErrors?.payment?.deliveryFee" class="bg-red text-white rounded-borders q-mb-md">
+            {{ formErrors?.payment?.deliveryFee }}
+          </q-banner>
+
           <div class="row items-center">
             <q-space/>
             <div>
@@ -269,6 +294,16 @@
             <div class="q-space">Total</div>
             <div v-if="displayBch" class="text-right">{{ checkoutAmounts.total.bch }} BCH</div>
             <div v-else class="text-right">{{ checkoutAmounts.total.currency }} {{ checkoutCurrency }}</div>
+          </div>
+          <div class="q-mt-sm">
+            <q-btn
+              :disable="loading"
+              no-caps
+              label="Review"
+              color="brandblue"
+              class="full-width"
+              @click="() => nextTab()"
+            />
           </div>
         </q-tab-panel>
         <q-tab-panel name="review" :dark="darkMode" class="q-pa-sm">
@@ -407,6 +442,7 @@ function resetPage() {
   resetFormData()
   resetFormErrors()
   tabs.value.active = tabs.value.opts?.[0]?.name
+  tabs.value.opts.forEach(tab => tab.disable = tab.name === tabs.value.active)
   initialized.value = false
 }
 
@@ -421,10 +457,10 @@ watch(
 const tabs = ref({
   active: 'items',
   opts: [
-    { label: 'Items', name: 'items' },
-    { label: 'Delivery', name: 'delivery' },
-    { label: 'Payment', name: 'payment' },
-    { label: 'Review', name: 'review' },
+    { label: 'Items', name: 'items', disable: true },
+    { label: 'Delivery', name: 'delivery', disable: true },
+    { label: 'Payment', name: 'payment', disable: true },
+    { label: 'Review', name: 'review', disable: true },
   ]
 })
 
@@ -436,7 +472,25 @@ function nextTab() {
   tabs.value.active = _tabs.at(nextIndex).name
 }
 
+watch(() => [tabs.value.active], () => {
+  tabs.value.opts.forEach(tab => {
+    if (tab.name !== tabs.value.active) return
+    tab.disable = false
+  })
+})
+
+function resetTabs() {
+  tabs.value.opts.forEach(tab => tab.disable = true)
+  tabs.value.opts[0].disable = false
+  tabs.value.active = tabs.value.opts[0].name
+  nextTab()
+  setTimeout(() => {
+    if (checkout?.value?.deliveryAddress?.id) nextTab()
+  }, 1)
+}
+
 const loading = ref(false)
+const loadingMsg = ref('')
 const formData = ref({
   delivery: {
     firstName: '',
@@ -454,11 +508,6 @@ const formData = ref({
     },
   },
 })
-
-
-const validCoordinates = computed(() => 
-  Number.isFinite(formData.value.delivery.address.longitude) && Number.isFinite(formData.value.delivery.address.latitude)
-)
 
 function resetFormData() {
   formData.value = {
@@ -499,6 +548,11 @@ function filterCountriesOpts (val, update) {
   update()
 }
 
+const geocoding = ref(false)
+const validCoordinates = computed(() => 
+  Number.isFinite(formData.value.delivery.address.longitude) && Number.isFinite(formData.value.delivery.address.latitude)
+)
+
 function selectCoordinates() {
   $q.dialog({
     component: PinLocationDialog,
@@ -515,8 +569,42 @@ function selectCoordinates() {
     })
 }
 
+function geocode() {
+  let street = [
+    formData.value?.delivery?.address?.address1,
+    formData.value?.delivery?.address?.street
+  ].filter(Boolean).join(' ')
+
+  const params = {
+    format: 'json',
+    street: street,
+    city: formData.value?.delivery?.address?.city,
+    country: formData.value?.delivery?.address?.country || undefined,
+  }
+
+  geocoding.value = true
+  return backend.get('https://nominatim.openstreetmap.org/search', { params })
+    .then(response => {
+      const result = response?.data?.[0]
+      if (!result) return
+      const lat = Number(result?.lat)
+      const lon = Number(result?.lon)
+      if (!isNaN(lat) && !isNaN(lon)) {
+        formData.value.delivery.address.longitude = lon
+        formData.value.delivery.address.latitude = lat
+        return { lat, lon }
+      }
+    })
+    .finally(() => {
+      geocoding.value = false
+    })
+}
+
 const formErrors = ref({
   detail: [],
+  payment: {
+    deliveryFee: ''
+  },
   delivery: {
     detail: [],
     firstName: '',
@@ -534,8 +622,10 @@ const formErrors = ref({
     }
   }
 })
+
 function resetFormErrors() {
   formErrors.value.detail = []
+  formErrors.value.payment.deliveryFee = ''
   formErrors.value.delivery = {
     detail: [],
     firstName: '',
@@ -612,6 +702,7 @@ function fetchCheckout() {
   fetchingCheckout.value = true
   return request.then(response => {
     checkout.value = Checkout.parse(response?.data)
+    if (!initialized.value) resetTabs()
   }).finally(() => {
     fetchingCheckout.value = false
   })
@@ -642,18 +733,45 @@ function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
 
 function updateDeliveryFee() {
   loading.value = true
+  loadingMsg.value = 'Calculating delivery fee'
   return backend.post(`connecta/checkouts/${checkout.value.id}/update_delivery_fee/`)
+    .finally(() => resetFormData())
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
       checkout.value.raw = response?.data
       resetFormData()
     })
+    .catch(error => {
+      const data = error?.response?.data
+      formErrors.value.payment.deliveryFee = data?.detail
+      return Promise.reject(error)
+    })
     .finally(() => {
       loading.value = false
+      loadingMsg.value = ''
     })
 }
 
+async function submitDeliveryAddress() {
+  try {
+    loading.value = true
+    loadingMsg.value = 'Locating address'
+    if (!validCoordinates.value) await geocode()
+    if (!validCoordinates.value) {
+      resetFormErrors()
+      formErrors.value.delivery.detail = ['Unable to locate delivery address']
+      return Promise.reject()
+    }
+  } finally {
+    loading.value = false
+    loadingMsg.value = ''
+  }
+
+  return saveDeliveryAddress()
+}
+
 function saveDeliveryAddress() {
+  loadingMsg.value = 'Updating address'
   return updateCheckout({
     delivery_address: {
       first_name: formData.value?.delivery?.firstName,
@@ -697,7 +815,12 @@ function saveDeliveryAddress() {
     if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = ['Unable to update delivery info']
     return Promise.reject(error)
   })
-  .then(() => updateDeliveryFee())
+  .finally(() => {
+    loadingMsg.value = ''
+  })
+  .then(() => {
+    updateDeliveryFee()
+  })
 }
 
 function updateCheckout(data) {
@@ -722,6 +845,7 @@ function completeCheckout() {
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
   loading.value = true
+  loadingMsg.value = 'Creating order'
   return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`)
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
@@ -750,13 +874,14 @@ function completeCheckout() {
     .finally(() => {
       dialog.update({ progress: false, ok: true })
       loading.value = false
+      loadingMsg.value = ''
     })
 }
 
 async function refreshPage(done=() => {}) {
   try {
     await Promise.all([
-      fetchCheckout().finally(() => resetFormData()).then(() => updateBchPrice()),
+      fetchCheckout().finally(() => resetFormData()).then(() => { updateBchPrice() }),
     ])
   } finally {
     initialized.value = true
