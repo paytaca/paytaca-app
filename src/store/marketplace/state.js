@@ -1,5 +1,24 @@
 export default function () {
   return {
+    customerData: {
+      id: 0,
+      ref: '',
+      first_name: '',
+      last_name: '',
+      default_location: {
+        id: 0,
+        address1: '', address2: '',
+        street: '', city: '', state: '',
+        country: '', zip_code: '',
+        longitude: '', latitude: '',
+      },
+      paytaca_wallet: {
+        wallet_hash: '',
+        verifying_pubkey: '',
+        verifying_pubkey_index: 0,
+      },
+    },
+
     activeStorefrontId: 0,
     activeCartId: null,
 
