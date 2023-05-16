@@ -37,7 +37,7 @@ export async function updateCustomerVerifyingPubkey(context, opts={ index: 0 }) 
     request = backend.patch(`connecta/customers/${customer?.id}/`, data)
   } else {
     data.ref = await context.dispatch('getCartRef')
-    request = backend.post(`connecta/customers/`, data)
+    request = backend.post(`connecta/customers/`, data, { skipSigning: true })
   }
   return request.then(response => {
     if (!response?.data?.id) return Promise.reject({ response })
