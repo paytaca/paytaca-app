@@ -11,16 +11,18 @@
         <component :is="Component" />
       </keep-alive>
     </router-view>
-    <q-fab
-      color="brandblue"
-      icon="shopping_cart"
-      direction="up"
-      :label="activeStorefrontCart?.totalItemsCount || undefined"
-      padding="12px"
-      style="position:fixed; bottom: 10px; right: 10px;"
-      v-model="showCartsDialog"
-    >
-    </q-fab>
+    <div class="row items-center fixed-bottom q-pa-sm footer-panel">
+      <q-space/>
+      <q-fab
+        color="brandblue"
+        icon="shopping_cart"
+        direction="up"
+        :label="activeStorefrontCart?.totalItemsCount || undefined"
+        padding="12px"
+        v-model="showCartsDialog"
+      >
+      </q-fab>
+    </div>
     <q-dialog v-model="showCartsDialog" position="bottom">
       <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
         <q-card-section>
@@ -149,10 +151,7 @@ export default {
       }
       return Promise.reject(error)
     })
-    onUnmounted(() => {
-      console.log('ejecting interceptor')
-      backend.interceptors.response.eject(interceptor)
-    })
+    onUnmounted(() => backend.interceptors.response.eject(interceptor))
 
     const showCartsDialog = ref(false)
 
@@ -189,3 +188,11 @@ export default {
   },
 }
 </script>
+<style scoped>
+.footer-panel {
+  pointer-events: none;
+}
+.footer-panel * {
+  pointer-events: auto;
+}
+</style>
