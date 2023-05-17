@@ -300,6 +300,7 @@
           </div>
           <div class="row items-start text-subtitle1" @click="toggleAmountsDisplay">
             <div class="q-space">Delivery fee</div>
+            <div v-if="checkout?.deliveryAddress?.distance" class="text-grey q-mx-xs">{{ (checkout?.deliveryAddress?.distance / 1000).toFixed(3) }} km</div>
             <div v-if="displayBch" class="text-right">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
             <div v-else class="text-right">{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
           </div>
@@ -403,6 +404,7 @@
             </div>
             <div class="row items-start text-subtitle2">
               <div class="q-space">Delivery fee</div>
+              <div v-if="checkout?.deliveryAddress?.distance" class="text-grey q-mx-xs">{{ (checkout?.deliveryAddress?.distance / 1000).toFixed(3) }} km</div>
               <div v-if="displayBch">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
               <div v-else>{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
             </div>
