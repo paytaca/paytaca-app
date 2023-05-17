@@ -1,9 +1,6 @@
 <template>
   <div class="scroll-y" style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
-
-    <startPage v-if="startPageStatus" v-on:logIn="logIn" />
-
-    <div v-else>
+    <div>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
@@ -174,7 +171,6 @@ import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
-import startPage from '../../pages/transaction/dialog/StartPage.vue'
 import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
@@ -207,7 +203,6 @@ export default {
     AssetCards,
     pinDialog,
     securityOptionDialog,
-    startPage,
     VOffline,
     connectedDialog,
     PriceChart
@@ -245,7 +240,6 @@ export default {
       assetInfoShown: false,
       pinDialogAction: '',
       securityOptionDialogStatus: 'dismiss',
-      startPageStatus: true,
       prevPath: null,
       showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -266,9 +260,6 @@ export default {
       // must adjust height when asset list is empty
       // the add button is hidden behind tx list & unclickable without this
       if (!this.assets?.length) this.adjustTransactionsDivHeight({ timeout: 100 })
-    },
-    startPageStatus (n, o) {
-      this.adjustTransactionsDivHeight()
     },
     selectedAsset () {
       this.transactions = []
@@ -667,7 +658,6 @@ export default {
           // Authentication successful
           console.log('Successful fingerprint credential')
           setTimeout(() => {
-            vm.startPageStatus = false
             vm.securityOptionDialogStatus = 'dismiss'
           }, 1000)
         },
@@ -730,30 +720,29 @@ export default {
       }
     },
 
-    logIn () {
-      const vm = this
-      setTimeout(() => {
-        // Security Authentication
-        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-          SecureStoragePlugin.get({ key: 'pin' })
-            .then(() => {
-              vm.setVerifyDialogAction()
-            })
-            .catch(_err => {
-              vm.pinDialogAction = 'SET UP'
-            })
-        } else if (vm.$q.localStorage.getItem('preferredSecurity') === 'biometric') {
-          vm.verifyBiometric()
-        } else {
-          vm.checkFingerprintAuthEnabled()
-        }
-      }, 500)
-    },
+    // logIn () {
+    //   const vm = this
+    //   setTimeout(() => {
+    //     // Security Authentication
+    //     if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+    //       SecureStoragePlugin.get({ key: 'pin' })
+    //         .then(() => {
+    //           vm.setVerifyDialogAction()
+    //         })
+    //         .catch(_err => {
+    //           vm.pinDialogAction = 'SET UP'
+    //         })
+    //     } else if (vm.$q.localStorage.getItem('preferredSecurity') === 'biometric') {
+    //       vm.verifyBiometric()
+    //     } else {
+    //       vm.checkFingerprintAuthEnabled()
+    //     }
+    //   }, 500)
+    // },
 
     executeActionTaken (action) {
       if (action !== 'cancel') {
         this.pinDialogAction = ''
-        this.startPageStatus = false
         this.securityOptionDialogStatus = 'dismiss'
       } else {
         this.pinDialogAction = ''
@@ -968,12 +957,6 @@ export default {
     window.vm = this
     this.handleOpenedNotification()
     const vm = this
-
-    if (vm.prevPath === '/') {
-      vm.logIn()
-    } else {
-      vm.startPageStatus = false
-    }
 
     vm.adjustTransactionsDivHeight({ timeout: 50 })
 
