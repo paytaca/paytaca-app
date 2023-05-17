@@ -493,6 +493,11 @@ watch(() => [tabs.value.active], () => {
     if (tab.name !== tabs.value.active) return
     tab.disable = false
   })
+
+  const deliveryFee = checkout.value?.payment?.deliveryFee
+  if (['payment', 'review'].indexOf(tabs.value.active) >= 0 && (isNaN(deliveryFee) || deliveryFee == null)) {
+    updateDeliveryFee()
+  }
 })
 
 function resetTabs() {
