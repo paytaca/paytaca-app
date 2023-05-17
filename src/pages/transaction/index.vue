@@ -949,6 +949,22 @@ export default {
   },
 
   async mounted () {
+    // Check if preferredSecurity and if it's set as PIN
+    const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
+    if (preferredSecurity === null) {
+      this.$router.push('/accounts')
+    } else if (preferredSecurity === 'pin') {
+      // If using PIN, check if it's 6 digits
+      try {
+        const pin =  await SecureStoragePlugin.get({ key: 'pin' })
+        if (pin.length < 6) {
+          this.$router.push('/accounts')
+        }
+      } catch {
+        this.$router.push('/accounts')
+      }
+    }
+
     window.vm = this
     this.handleOpenedNotification()
     const vm = this

@@ -105,6 +105,7 @@ import pinDialog from '../../components/pin'
 import MnemonicTest from 'src/components/MnemonicTest.vue'
 import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
 
@@ -311,6 +312,11 @@ export default {
     }
   },
   async mounted () {
+    this.mnemonic = await getMnemonic() || ''
+    if (this.mnemonic.split(" ").length === 12) {
+      this.steps = 9
+    }
+
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [
       { value: 'en-us', label: 'English' },
