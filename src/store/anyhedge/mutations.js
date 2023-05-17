@@ -11,6 +11,7 @@
 export function setOracle(state, oracleInfo) {
   if (!oracleInfo.pubkey) return
   const newOracleInfo = state.oracles[oracleInfo.pubkey] || {}
+  newOracleInfo.active = oracleInfo.active
   newOracleInfo.assetName = oracleInfo.assetName
   newOracleInfo.assetCurrency = oracleInfo.assetCurrency
   newOracleInfo.assetDecimals = oracleInfo.assetDecimals

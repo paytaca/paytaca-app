@@ -399,10 +399,10 @@ const oracles = computed(() => {
   const parsedOracles = Object.getOwnPropertyNames(oracles)
     .map(oraclePubkey => {
       if (!oracles?.[oraclePubkey]) return
-      
       return Object.assign({ oraclePubkey }, oracles[oraclePubkey])
     })
     .filter(Boolean)
+    .filter(oracle => oracle?.active)
     .filter(oracle => oracle?.oraclePubkey)
     // parsedOracles.unshift({
     //   oraclePubkey: '',
