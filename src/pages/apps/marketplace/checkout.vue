@@ -103,6 +103,9 @@
                 <li v-for="(err, index) in formErrors?.delivery?.detail" :key="index">{{err}}</li>
               </ul>
             </q-banner>
+            <q-banner v-if="formErrors?.payment?.deliveryFee" class="bg-red text-white rounded-borders q-mb-md">
+              {{ formErrors?.payment?.deliveryFee }}
+            </q-banner>
             <div class="row items-start">
               <q-input
                 outlined
@@ -496,7 +499,7 @@ function resetTabs() {
   tabs.value.active = tabs.value.opts[0].name
   nextTab()
   setTimeout(() => {
-    if (checkout?.value?.deliveryAddress?.id) nextTab()
+    if (validCoordinates.value) nextTab()
   }, 1)
 }
 
@@ -762,7 +765,7 @@ async function submitDeliveryAddress() {
     if (!validCoordinates.value) await geocode()
     if (!validCoordinates.value) {
       resetFormErrors()
-      formErrors.value.delivery.detail = ['Unable to locate delivery address']
+      formErrors.value.delivery.detail = ['Unable to locate delivery address. Please pin location of address']
       return Promise.reject()
     }
   } finally {
@@ -770,7 +773,7 @@ async function submitDeliveryAddress() {
     loadingMsg.value = ''
   }
 
-  return saveDeliveryAddress()
+  return saveDeliveryAddress().then(() => updateDeliveryFee())
 }
 
 function saveDeliveryAddress() {
@@ -820,9 +823,6 @@ function saveDeliveryAddress() {
   })
   .finally(() => {
     loadingMsg.value = ''
-  })
-  .then(() => {
-    updateDeliveryFee()
   })
 }
 
