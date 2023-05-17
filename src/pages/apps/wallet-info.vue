@@ -229,7 +229,8 @@
               <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable @click="executeSecurityChecking">
                   <q-item-section>
-                    <q-item-label :class="[darkMode && !showMnemonic ? 'blurry-text-d' : darkMode ? 'pp-text-d' : '', !darkMode && !showMnemonic ? 'blurry-text' : !darkMode ? 'pp-text' : '']">{{ mnemonicDisplay }}</q-item-label>
+                    <q-item-label v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
+                    <q-item-label class="text-center" v-else>Click to Reveal</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -371,11 +372,11 @@ export default {
         return this.mnemonic
       } else {
         const wordList = [
-          'brick',
+          'church',
           'zebra',
           'tunnel',
           'cactus',
-          'mosaic',
+          'brake',
           'juggle',
           'truffle',
           'vortex',
