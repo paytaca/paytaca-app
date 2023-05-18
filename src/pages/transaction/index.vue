@@ -295,7 +295,6 @@ export default {
       return this.$store.getters['assets/getAssets'][0]
     },
     mainchainAssets () {
-      console.log(this.$store.getters['assets/getAssets'])
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item && item.id !== 'bch') {
           return item
@@ -444,6 +443,7 @@ export default {
       this.transactionsPageHasNext = false
       this.getBalance()
       this.getTransactions()
+      this.$store.dispatch('assets/getAssetMetadata', asset.id)
     },
     getBalance (id) {
       this.balanceLoaded = false
@@ -937,23 +937,7 @@ export default {
     })
   },
 
-  async mounted () {
-    // Check if preferredSecurity and if it's set as PIN
-    const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
-    if (preferredSecurity === null) {
-      this.$router.push('/accounts')
-    } else if (preferredSecurity === 'pin') {
-      // If using PIN, check if it's 6 digits
-      try {
-        const pin =  await SecureStoragePlugin.get({ key: 'pin' })
-        if (pin.length < 6) {
-          this.$router.push('/accounts')
-        }
-      } catch {
-        this.$router.push('/accounts')
-      }
-    }
-
+  mounted () {
     window.vm = this
     this.handleOpenedNotification()
     const vm = this
@@ -963,6 +947,9 @@ export default {
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
+
+    const assets = this.$store.getters['assets/getAssets']
+    assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
     // Check for slow internet and/or accessibility of the backend
     axios.get('https://watchtower.cash', { timeout: 1000 * 60 }).then((resp) => {

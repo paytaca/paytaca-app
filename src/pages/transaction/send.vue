@@ -168,7 +168,8 @@
             </template>
             <div class="row" v-if="!isNFT">
               <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                Balance: {{ asset.balance }} {{ asset.symbol }}
+                Balance: {{ convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch') }}
+                {{ asset.symbol }}
                 <template v-if="asset.id === 'bch' && setAmountInFiat">
                   = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
                 </template>
@@ -336,6 +337,7 @@ import {
   convertCashAddress,
   isValidTokenAddress,
   getWalletByNetwork,
+  convertTokenAmount,
 } from 'src/wallet/chipnet'
 
 const { SecureStoragePlugin } = Plugins
@@ -588,6 +590,7 @@ export default {
   },
 
   methods: {
+    convertTokenAmount,
     formatTimestampToText (timestamp) {
       if (!Number.isSafeInteger(timestamp)) return ''
 

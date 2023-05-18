@@ -37,7 +37,7 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none" :class="darkMode ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  <span v-if="asset.balance">{{ String(asset.balance).substring(0, 16) }}</span>
+                  <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch')).substring(0, 16) }}</span>
                   {{ asset.symbol }}
                 </p>
               </div>
@@ -61,6 +61,7 @@
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
+import { convertTokenAmount } from 'src/wallet/chipnet'
 
 export default {
   name: 'Receive-page',
@@ -148,6 +149,7 @@ export default {
     }
   },
   methods: {
+    convertTokenAmount,
     filterTokens (tokenType) {
       this.isCashToken = tokenType === 'ct'
     },
@@ -158,6 +160,11 @@ export default {
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     }
+  },
+  mounted () {
+    const assets = this.$store.getters['assets/getAssets']
+    const vm = this
+    assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
   }
 }
 </script>

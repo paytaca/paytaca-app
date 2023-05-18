@@ -55,3 +55,8 @@ export function getBlockChainNetwork () {
   const isChipnet = store().getters['global/isChipnet']
   return isChipnet ? 'chipnet' : 'mainnet'
 }
+
+export function convertTokenAmount (amount, decimals, isBCH=false) {
+  if (isBCH) return amount
+  return amount / (10 ** decimals)
+}

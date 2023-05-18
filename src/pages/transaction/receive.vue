@@ -87,6 +87,7 @@ import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
   convertCashAddress,
+  convertTokenAmount,
 } from 'src/wallet/chipnet'
 
 NativeAudio.preload({
@@ -278,7 +279,7 @@ export default {
         })
       }
     },
-    notifyOnReceive (amount, symbol, logo) {
+    notifyOnReceive (amount, symbol, logo, decimals = 0, isCashToken = false) {
       const vm = this
       vm.playSound(true)
       vm.$confetti.start({
@@ -291,6 +292,9 @@ export default {
         dropRate: 3
       })
       if (!vm.$q.platform.is.mobile) {
+        if (isCashToken) 
+          amount = convertTokenAmount(amount, decimals)
+
         vm.$q.notify({
           classes: 'br-15 text-body1',
           message: `${amount} ${symbol} received!`,
@@ -336,7 +340,9 @@ export default {
             vm.notifyOnReceive(
               data.amount,
               vm.asset.symbol,
-              vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
+              vm.asset.logo || vm.getFallbackAssetLogo(vm.asset),
+              tokenType === 'ct' ? vm.asset.decimals : 0,
+              tokenType === 'ct'
             )
           }
         } else {

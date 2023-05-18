@@ -29,7 +29,7 @@
           <q-skeleton type="rect"/>
         </div>
         <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
-          {{ String(num2shortStr(asset.balance)).substring(0, 10) }}
+          {{ String(num2shortStr(convertTokenAmount(asset.balance, asset.decimals))).substring(0, 10) }}
         </p>
       </div>
       <div v-if="balanceLoaded" style="margin-top: -16px;">
@@ -52,7 +52,7 @@
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 import TokenTypeBadge from './TokenTypeBadge'
-import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { getWalletByNetwork, convertTokenAmount } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',
@@ -92,6 +92,7 @@ export default {
     }
   },
   methods: {
+    convertTokenAmount,
     num2shortStr(number) {
       const SI_SYMBOL = ["", "k", "M", "G", "T", "P", "E"]
       const tier = Math.log10(Math.abs(number)) / 3 | 0

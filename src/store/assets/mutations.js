@@ -119,3 +119,24 @@ export function updateAssetImageUrl (state, data) {
     }
   }
 }
+
+
+export function updateAssetMetadata (state, data) {
+  const network = getBlockChainNetwork()
+
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
+
+  if (!Array.isArray(assets)) return
+
+  assets.forEach(a => {
+    if (a.id === data.id) {
+      a.name = data.name,
+      a.symbol = data.symbol,
+      a.decimals = data.decimals,
+      a.logo = data.image_url || ''
+    }
+  })
+}

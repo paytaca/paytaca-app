@@ -37,7 +37,7 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none" :class="$store.getters['darkmode/getStatus'] ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  {{ String(asset.balance).substring(0, 16) }}
+                  {{ String(convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch')).substring(0, 16) }}
                   <span>
                     {{ asset.symbol }}
                   </span>
@@ -62,6 +62,7 @@
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
+import { convertTokenAmount } from 'src/wallet/chipnet'
 
 export default {
   name: 'Send-select-asset',
@@ -127,6 +128,7 @@ export default {
     },
   },
   methods: {
+    convertTokenAmount,
     filterTokens (tokenType) {
       this.isCashToken = tokenType === 'ct'
     },
@@ -151,6 +153,9 @@ export default {
   },
   mounted () {
     this.$store.dispatch('market/updateAssetPrices', {})
+    const assets = this.$store.getters['assets/getAssets']
+    const vm = this
+    assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
   }
 }
 </script>
