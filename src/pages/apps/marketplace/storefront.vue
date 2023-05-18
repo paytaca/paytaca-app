@@ -56,6 +56,17 @@
                       {{ collection?.productsCount === 1 ? 'product' : 'products' }}
                     </div>
                   </div>
+
+                  <template v-slot:error>
+                    <img :src="noImage" class="q-img__image q-img__image--with-transition q-img__image--loaded"/>
+                    <div class="absolute-bottom text-subtitle2 text-center">
+                      <div>{{ collection?.name }}</div>
+                      <div v-if="collection?.productsCount" class="text-caption">
+                        {{ collection?.productsCount }}
+                        {{ collection?.productsCount === 1 ? 'product' : 'products' }}
+                      </div>
+                    </div>
+                  </template>
                 </q-img>
               </q-card>
             </div>
