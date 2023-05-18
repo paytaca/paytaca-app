@@ -45,7 +45,7 @@ export class Location {
   }
 
   get validCoordinates() {
-    return isFinite(Number(this.longitude)) && isFinite(Number(this.latitude))
+    return isFinite(parseFloat(this.longitude)) && isFinite(parseFloat(this.latitude))
   }
 }
 
@@ -417,6 +417,10 @@ export class Customer {
       verifyingPubkey: data?.paytaca_wallet?.verifying_pubkey,
       verifyingPubkeyIndex: data?.paytaca_wallet?.verifying_pubkey_index,
     }
+  }
+
+  get fullName() {
+    return [this.firstName, this.lastName].filter(Boolean).join(' ')
   }
 }
 
