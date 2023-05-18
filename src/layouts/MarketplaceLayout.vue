@@ -153,7 +153,10 @@ export default {
         await $store.dispatch('marketplace/refetchCustomerData')
         const signerData = await getSignerData()
         if (!customer.value?.id || !signerData?.value) {
-          await $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
+          await $store.dispatch('marketplace/updatePrivkey').catch(error => {
+            console.error(error)
+            return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
+          })
         }
 
         if (!window.$promptedMarketplaceCustomerDetails) {

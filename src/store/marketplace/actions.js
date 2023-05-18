@@ -1,11 +1,35 @@
+import BCHJS from '@psf/bch-js'
 import { backend, setSignerData } from 'src/marketplace/backend'
 import { Cart } from 'src/marketplace/objects'
 import { loadWallet } from 'src/wallet'
+
+const bchjs = new BCHJS()
 
 export function getCartRef(context) {
   const walletHash = context.rootGetters['global/getWallet']('bch')?.walletHash
   if (walletHash) return `wallet:${walletHash}`
   return ''
+}
+
+export async function updatePrivkey(context) {
+  const customer = context.getters['customer']
+  const index = customer?.paytacaWallet?.verifyingPubkeyIndex
+  const pubkeyBuffer = Buffer.from(customer?.paytacaWallet?.verifyingPubkey, 'hex')
+  const walletHash = customer?.paytacaWallet?.walletHash
+  if (!isFinite(index)) return Promise.reject(`invalid index: ${index}`)
+
+  const wallet = await loadWallet()
+  const privkey = await wallet.BCH.getPrivateKey(`0/${index}`)
+
+  const message = `${Date.now()}`
+  const signature = await wallet.BCH.signMessage(message, index)
+
+  const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
+  const address = bchjs.ECPair.toLegacyAddress(ecPair)
+
+  const valid = await wallet.BCH.verifyMessage(address, signature, message)
+  if (!valid) return Promise.reject('invalid signature')
+  setSignerData(`${walletHash}:${privkey}`)
 }
 
 /**
@@ -16,7 +40,7 @@ export function getCartRef(context) {
 export async function updateCustomerVerifyingPubkey(context, opts={ index: 0 }) {
   const customer = context.getters['customer']
   let index = opts?.index
-  if (isNaN(index) || index < 0) index = customer?.paytacaWallet?.verifyPubkeyIndex
+  if (isNaN(index) || index < 0) index = customer?.paytacaWallet?.verifyingPubkeyIndex
   if (isNaN(index) || index < 0) return Promise.reject('invalid index')
 
   const wallet = await loadWallet()
