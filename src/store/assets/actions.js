@@ -132,6 +132,7 @@ export async function getMissingAssets (
   } else {
     url += '/tokens/'
   }
+  console.log(url)
   const { data } = await axiosInstance.get(url, { params: filterParams })
 
   if (!Array.isArray(data.results)) return []
