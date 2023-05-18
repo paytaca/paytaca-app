@@ -131,31 +131,43 @@
             />
           </CountriesFieldWrapper>
         </div>
-        <div class="row items-center q-gutter-x-sm q-mt-sm">
-          <q-btn
-            no-caps flat
-            class="q-space"
-            @click="selectCoordinates()"
-          >
-            <q-icon name="location_on"/>
-            <template v-if="validCoordinates">
-              {{ formData.defaultLocation.longitude }}, {{ formData.defaultLocation.latitude }}
-            </template>
-            <template v-else>
-              Pin location
-            </template>
-          </q-btn>
-          <q-btn
-            v-if="validCoordinates"
-            icon="close"
-            padding="xs"
-            flat
-            @click="() => {
-              formData.defaultLocation.longitude = null
-              formData.defaultLocation.latitude = null
-            }"
-          />
-        </div>
+        <q-field
+          dense borderless
+          no-error-icon
+          :dark="darkMode"
+          :color="darkMode ? 'white' : 'black'"
+          :model-value="validCoordinates"
+          :rules="[
+            value => value || 'Input location',
+          ]"
+        >
+          <div class="row items-center q-gutter-x-sm q-mt-sm full-width">
+            <q-btn
+              no-caps flat
+              class="q-space"
+              @click="selectCoordinates()"
+            >
+              <q-icon name="location_on"/>
+              <template v-if="validCoordinates">
+                {{ formData.defaultLocation.longitude }}, {{ formData.defaultLocation.latitude }}
+              </template>
+              <template v-else>
+                Pin location
+              </template>
+            </q-btn>
+            <q-btn
+              v-if="validCoordinates"
+              icon="close"
+              padding="xs"
+              flat
+              @click="() => {
+                formData.defaultLocation.longitude = null
+                formData.defaultLocation.latitude = null
+              }"
+            />
+          </div>
+
+        </q-field>
 
         <div class="q-mt-sm">
           <q-btn
@@ -214,8 +226,8 @@ function resetFormData() {
     city: customer.value?.defaultLocation?.city,
     state: customer.value?.defaultLocation?.state,
     country: customer.value?.defaultLocation?.country,
-    longitude: customer.value?.defaultLocation?.longitude,
-    latitude: customer.value?.defaultLocation?.latitude,
+    longitude: parseFloat(customer.value?.defaultLocation?.longitude),
+    latitude: parseFloat(customer.value?.defaultLocation?.latitude),
   }
 
   setTimeout(() => form.value?.resetValidation?.(), 10)

@@ -26,9 +26,23 @@
     <q-dialog v-model="showCartsDialog" position="bottom">
       <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
         <q-card-section>
-          <div class="row items-center">
+          <div class="row items-center no-wrap">
             <div class="text-h5">Cart</div>
             <div v-if="activeStorefrontCart?.id">#{{ activeStorefrontCart?.id }}</div>
+            <q-space/>
+            <q-btn
+              no-caps
+              flat
+              :round="Boolean(customer?.fullName)"
+              padding="sm"
+              :to="{ name: 'app-marketplace-customer' }"
+              v-close-popup
+            >
+              <div class="row items-center">
+                <div class="ellipsis" style="max-width:10em;">{{ customer?.fullName }}</div>
+                <q-icon name="person"/>
+              </div>
+            </q-btn>
           </div>
           <div v-if="activeStorefront?.id">
             {{ activeStorefront?.name }}
@@ -118,12 +132,17 @@
 <script>
 import { backend, getSignerData } from 'src/marketplace/backend'
 import { Cart } from 'src/marketplace/objects'
+import { useQuasar } from 'quasar'
+import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 export default {
   name: 'MarketplaceLayout',
   setup() {
+    const $q = useQuasar()
+    const $route = useRoute()
+    const $router = useRouter()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -136,10 +155,38 @@ export default {
         if (!customer.value?.id || !signerData?.value) {
           await $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
         }
+
+        if (!window.$promptedMarketplaceCustomerDetails) {
+          promptUserDetails()
+            .then(response => {
+              console.log(response)
+              window.$promptedMarketplaceCustomerDetails = true
+            })
+        }
       } finally {
         loadingApp.value = false
       }
     })
+
+    function promptUserDetails() {
+      if (customer.value?.defaultLocation?.validCoordinates) return Promise.resolve('valid_coordinates')
+      if ($route.name === 'app-marketplace-customer') return Promise.reject()
+
+      return new Promise((resolve, reject) => {
+        $q.dialog({
+          title: 'Setup customer info',
+          message: 'Update address and other info for faster checkout',
+          ok: { noCaps: true, label: 'Go', color: 'brandblue' },
+          cancel: { noCaps: true, flat: true, label: 'Skip', color: 'grey' },
+          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+        }).onOk(() => {
+          $router.push({ name: 'app-marketplace-customer' })
+          resolve('go')
+        })
+        .onCancel(() => resolve('skipped'))
+        .onDismiss(() => reject('dismissed'))
+      })
+    }
 
     const customer = computed(() => $store.getters['marketplace/customer'])
     const interceptor = backend.interceptors.response.use(null, async (error) => {
