@@ -91,4 +91,8 @@
     <uses-sdk tools:overrideLibrary="com.google.zxing.client.android" />
     <!-- push-notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Geolocation -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" />
 </manifest>
