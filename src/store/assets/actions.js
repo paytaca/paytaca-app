@@ -137,3 +137,18 @@ export async function getMissingAssets (
   if (!Array.isArray(data.results)) return []
   return data.results
 }
+
+
+export async function getAssetMetadata (context, assetId) {
+  const tokenType = assetId.split('/')[0]
+  const tokenId = assetId.split('/')[1]
+
+  if (tokenType !== 'ct') return
+
+  let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
+  url += `/cashtokens/fungible/${tokenId}/`
+
+  let { data } = await axiosInstance.get(url)
+  data.id = assetId
+  context.commit('updateAssetMetadata', data)
+}

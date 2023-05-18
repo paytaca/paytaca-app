@@ -14,7 +14,8 @@ export default function () {
         symbol: 'SPICE',
         name: 'SPICE',
         logo: 'spice-logo.png',
-        balance: 0
+        balance: 0,
+        decimals: 8
       }
     ],
     chipnet__assets: [
@@ -31,7 +32,8 @@ export default function () {
         symbol: 'SPICE',
         name: 'SPICE',
         logo: 'spice-logo.png',
-        balance: 0
+        balance: 0,
+        decimals: 8
       }
     ],
     ignoredAssets: [],
