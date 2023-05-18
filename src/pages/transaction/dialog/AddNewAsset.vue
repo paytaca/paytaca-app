@@ -67,9 +67,9 @@ export default {
 
   data () {
     return {
-      tokenSelected: 'slp',
+      tokenSelected: 'ct',
       asset: null,
-      isCashToken: false
+      isCashToken: true
     }
   },
   watch: {
