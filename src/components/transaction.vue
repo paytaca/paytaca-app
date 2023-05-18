@@ -216,6 +216,9 @@ export default {
       const txid = this.transaction.txid
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
+      if (this.asset.id.split('/')[0] === 'ct')
+        url = 'https://explorer.bitcoinunlimited.info/tx/'
+
       if (this.isChipnet) {
         url = 'https://chipnet.imaginary.cash/tx/'
       }

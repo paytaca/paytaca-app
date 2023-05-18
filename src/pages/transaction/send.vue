@@ -276,7 +276,7 @@
               <template v-else>
                 <a
                   style="text-decoration: none; color: #3b7bf6;"
-                  :href="'https://blockchair.com/bitcoin-cash/transaction/' + sendData.txid" target="_blank"
+                  :href="getExplorerLink(sendData.txid)" target="_blank"
                 >
                   {{ $t('ViewInExplorer') }}
                 </a>
@@ -591,6 +591,18 @@ export default {
 
   methods: {
     convertTokenAmount,
+    getExplorerLink (txid) {
+      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+
+      if (this.isCashToken)
+        url = 'https://explorer.bitcoinunlimited.info/tx/'
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/tx/'
+      }
+
+      return `${url}${txid}`
+    },
     formatTimestampToText (timestamp) {
       if (!Number.isSafeInteger(timestamp)) return ''
 
