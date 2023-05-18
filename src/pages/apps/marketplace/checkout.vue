@@ -39,6 +39,17 @@
           </div>
         </q-slide-transition>
       </div>
+      <div v-if="checkoutStorefront?.id" class="q-px-sm">
+        <div class=text-subtitle1>{{ checkoutStorefront?.name }}</div>
+        <div
+          v-if="checkoutStorefront?.location?.formatted"
+          class="text-subtitle2" style="margin-top:-0.5em;"
+          @click="() => displayStorefrontLocation()"
+        >
+          <q-icon name="place"/>
+          {{ checkoutStorefront?.location?.formatted }}
+        </div>
+      </div>
       <q-tabs v-model="tabs.active">
         <q-tab v-for="(tab, index) in tabs.opts" :key="index" v-bind="tab"/>
       </q-tabs>
@@ -668,25 +679,21 @@ onMounted(() => {
 })
 onUnmounted(() => unsubscribeCacheCartMutation?.())
 
-const checkout = ref(Checkout.parse())
-watch(
-  () => [checkout.value?.cart?.storefrontId],
-  () => {
-    if (!checkout.value?.cart?.storefrontId) return
-    $store.commit('marketplace/setActiveStorefrontId', checkout.value?.cart?.storefrontId)
-  }
-)
 const fetchingCheckout = ref(false)
+const checkout = ref(Checkout.parse())
 const checkoutCurrency = computed(() => checkout.value?.currency?.symbol)
 const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice?.price || undefined)
 const displayBch = ref(true)
 const checkoutAmounts = computed(() => {
   const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
   const data = {
-    subtotal: { currency: checkout.value?.cart?.subtotal, bch: 0 },
-    deliveryFee: { currency: checkout.value?.payment?.deliveryFee, bch: 0 },
-    total: { currency: Number(checkout.value?.cart?.subtotal) + Number(checkout.value?.payment?.deliveryFee), bch: 0 },
+    subtotal: { currency: checkout.value?.cart?.subtotal || 0, bch: 0 },
+    deliveryFee: { currency: checkout.value?.payment?.deliveryFee || 0, bch: 0 },
+    total: { currency: 0, bch: 0 },
   }
+  data.total.currency = Number(checkout.value?.cart?.subtotal) + Number(checkout.value?.payment?.deliveryFee)
+  data.total.currency = Math.round(data.total.currency * 10 ** 3) / 10 ** 3
+
   if (!isNaN(checkoutBchPrice.value)) {
     data.subtotal.bch = parseBch(data.subtotal.currency / checkoutBchPrice.value)
     data.deliveryFee.bch = parseBch(data.deliveryFee.currency / checkoutBchPrice.value)
@@ -716,6 +723,7 @@ function fetchCheckout() {
   return request.then(response => {
     checkout.value = Checkout.parse(response?.data)
     if (!initialized.value) resetTabs()
+    return response
   }).finally(() => {
     fetchingCheckout.value = false
   })
@@ -872,6 +880,8 @@ function completeCheckout() {
                            errorParser.firstElementOrValue(data?.non_field_errors) ||
                            errorParser.firstElementOrValue(data?.checkout_id) ||
                            'Encountered error in completing checkout'
+
+      if (errorMessage === 'BCH price is not updated') updateBchPrice()
       dialog.update({ title: 'Error', message: errorMessage })
       return Promise.reject(error)
     })
@@ -886,6 +896,37 @@ function completeCheckout() {
       loading.value = false
       loadingMsg.value = ''
     })
+}
+
+const checkoutStorefrontId = computed(() => checkout.value?.cart?.storefrontId)
+watch(
+  checkoutStorefrontId,
+  () => {
+    if (!checkout.value?.cart?.storefrontId) return
+    $store.commit('marketplace/setActiveStorefrontId', checkout.value?.cart?.storefrontId)
+    if (!checkoutStorefront.value?.id) fetchCheckoutStorefront()
+  }
+)
+const checkoutStorefront = computed(() => $store.getters['marketplace/getStorefront']?.(checkout.value?.cart?.storefrontId))
+function fetchCheckoutStorefront() {
+  if (!checkoutStorefrontId.value) Promise.reject()
+  backend.get(`connecta/storefronts/${checkoutStorefrontId.value}/`)
+    .then(response => $store.commit('marketplace/cacheStorefront', response?.data))
+}
+
+function displayStorefrontLocation() {
+  if (!checkoutStorefront.value?.location?.validCoordinates) return
+
+  $q.dialog({
+    component: PinLocationDialog,
+    componentProps: {
+      static: true,
+      initLocation: {
+        latitude: Number(checkoutStorefront.value?.location?.latitude),
+        longitude: Number(checkoutStorefront.value?.location?.longitude),
+      }
+    }
+  })
 }
 
 async function refreshPage(done=() => {}) {

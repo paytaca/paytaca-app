@@ -36,7 +36,7 @@
   </q-dialog>
 </template>
 <script setup>
-import { computed, getCurrentInstance, inject, markRaw, onMounted, ref } from 'vue';
+import { computed, getCurrentInstance, inject, markRaw, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useDialogPluginComponent } from 'quasar'
 import { useI18n } from 'vue-i18n'
@@ -58,6 +58,7 @@ const uid = ref(getCurrentInstance().uid)
 const props = defineProps({
   headerText: String,
   initLocation: Object,
+  static: Boolean,
 })
 
 const mapUid = computed(() => `leaflet-map-${uid.value}`)
@@ -96,8 +97,15 @@ function initMap() {
   _map.locate({setView: true, maxZoom: 16})
   _map.on('locationfound', console.log)
 
+  if (props.static) {
+   _map.off('move') 
+  }
   updateCoordinates()
 }
+watch(() => [props.static], () => {
+  if (props.static) map.value.off('move')
+  else map.on('move', () => updateCoordinates())
+})
 
 const coordinates = ref({
   lat: null,

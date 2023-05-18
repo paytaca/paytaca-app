@@ -43,6 +43,10 @@ export class Location {
     const addressStr = [this.address2, this.address1].filter(Boolean).join(' ')
     return [addressStr, this.street, this.city, this.state, this.country].filter(Boolean).join(', ') 
   }
+
+  get validCoordinates() {
+    return isFinite(Number(this.longitude)) && isFinite(Number(this.latitude))
+  }
 }
 
 export class Storefront {
