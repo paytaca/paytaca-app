@@ -169,7 +169,11 @@
               />
             </q-input>
   
-            <div class="text-subtitle1">Address</div>
+            <div class="row items-center q-mb-sm">
+              <div class="text-subtitle1">Address</div>
+              <q-space/>
+              <GeolocateBtn @geolocate="position => onGeolocate(position)"/>
+            </div>
             <q-input
               outlined
               dense
@@ -451,6 +455,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
 import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wrapper.vue'
+import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -590,6 +595,50 @@ function selectCoordinates() {
     .onOk(coordinates => {
       formData.value.delivery.address.longitude = coordinates.lng
       formData.value.delivery.address.latitude = coordinates.lat
+    })
+}
+
+function onGeolocate(response) {
+  $q.dialog({
+    component: PinLocationDialog,
+    componentProps: {
+      initLocation: {
+        latitude: response?.coords?.latitude,
+        longitude: response?.coords?.longitude,
+      }
+    }
+  }).onOk(pinLocationResp => {
+    return reverseGeocode({ lat: pinLocationResp?.lat, lng: pinLocationResp?.lng, syncToForm: true })
+  })
+}
+
+function reverseGeocode(opts = { lat: null, lng: null, syncToForm: false}) {
+  const params = {
+    lat: opts?.lat,
+    lon: opts?.lng,
+    format: 'json',
+  }
+
+  return backend.get(`https://nominatim.openstreetmap.org/reverse`, { params })
+    .then(response => {
+      const result = response?.data?.address
+      const address1 = [
+        result?.amenity || result?.shop || '',
+        result?.village || result?.neighbourhood || result?.suburb || '',
+      ].filter(Boolean).join(', ')
+
+      const data = {
+        address1: address1,
+        address2: '',
+        street: result?.road,
+        city: result?.city,
+        state: result?.state || result?.province || '', // most results have returned none so far
+        country: result?.country || '',
+        latitude: parseFloat(params.lat),
+        longitude: parseFloat(params.lon),
+      }
+      if (opts?.syncToForm) Object.assign(formData.value.delivery.address, data)
+      return data
     })
 }
 

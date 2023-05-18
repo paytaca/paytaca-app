@@ -10,7 +10,15 @@
     />
 
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div class="q-px-sm text-h5">Customer</div>
+      <div class="row items-center q-px-sm">
+        <div class="text-h5 q-space">Customer</div>
+        <q-btn
+          flat
+          no-caps
+          label="Reset"
+          @click="() => resetFormData()"
+        />
+      </div>
       <q-form ref="form" @submit="() => updateCustomerData()" class="q-pa-sm">
         <q-banner v-if="formErrors?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
           <div v-if="formErrors?.detail?.length === 1">
@@ -53,7 +61,11 @@
           :error-message="formErrors?.phoneNumber"
         />
 
-        <div class="text-subtitle1">Address</div>
+        <div class="row items-center q-mb-sm">
+          <div class="text-subtitle1">Address</div>
+          <q-space/>
+          <GeolocateBtn @geolocate="position => onGeolocate(position)"/>
+        </div>
         <q-input
           outlined
           dense
@@ -191,6 +203,7 @@ import { ref, computed, onMounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wrapper.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
+import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -344,6 +357,50 @@ async function updateCustomerData() {
     })
     .finally(() => {
       loading.value = false
+    })
+}
+
+function onGeolocate(response) {
+  $q.dialog({
+    component: PinLocationDialog,
+    componentProps: {
+      initLocation: {
+        latitude: response?.coords?.latitude,
+        longitude: response?.coords?.longitude,
+      }
+    }
+  }).onOk(pinLocationResp => {
+    return reverseGeocode({ lat: pinLocationResp?.lat, lng: pinLocationResp?.lng, syncToForm: true })
+  })
+}
+
+function reverseGeocode(opts = { lat: null, lng: null, syncToForm: false}) {
+  const params = {
+    lat: opts?.lat,
+    lon: opts?.lng,
+    format: 'json',
+  }
+
+  return backend.get(`https://nominatim.openstreetmap.org/reverse`, { params })
+    .then(response => {
+      const result = response?.data?.address
+      const address1 = [
+        result?.amenity || result?.shop || '',
+        result?.village || result?.neighbourhood || result?.suburb || '',
+      ].filter(Boolean).join(', ')
+
+      const data = {
+        address1: address1,
+        address2: '',
+        street: result?.road,
+        city: result?.city,
+        state: result?.state || result?.province || '', // most results have returned none so far
+        country: result?.country || '',
+        latitude: parseFloat(params.lat),
+        longitude: parseFloat(params.lon),
+      }
+      if (opts?.syncToForm) Object.assign(formData.value.defaultLocation, data)
+      return data
     })
 }
 
