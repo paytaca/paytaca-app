@@ -36,7 +36,17 @@
               {{ order?.deliveryAddress?.lastName }}
             </div>
             <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
-            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
+            <div @click="() => displayDeliveryAddressLocation()">
+              <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
+              <q-btn
+                v-if="order?.deliveryAddress?.location?.validCoordinates"
+                flat
+                padding="none"
+                no-caps
+                label="View location"
+                class="text-underline"
+              />
+            </div>
           </q-card>
         </div>
         <div class="q-pa-xs q-space">
@@ -109,14 +119,17 @@
 <script setup>
 import { backend } from 'src/marketplace/backend'
 import { Order } from 'src/marketplace/objects'
+import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
+import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
 const props = defineProps({
   orderId: [String, Number],  
 })
 
+const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -187,6 +200,27 @@ function toggleAmountsDisplay() {
     return
   }
   displayBch.value = !displayBch.value
+}
+
+
+function displayDeliveryAddressLocation() {
+  if (!order.value?.deliveryAddress?.location?.validCoordinates) return
+
+  return displayCoordinates({
+    latitude: Number(order.value?.deliveryAddress?.location?.latitude),
+    longitude: Number(order.value?.deliveryAddress?.location?.longitude),
+  })
+}
+
+function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefined }) {
+  $q.dialog({
+    component: PinLocationDialog,
+    componentProps: {
+      static: true,
+      headerText: opts?.headerText,
+      initLocation: { latitude: opts?.latitude, longitude: opts?.longitude }
+    }
+  })
 }
 
 async function refreshPage(done=() => {}) {

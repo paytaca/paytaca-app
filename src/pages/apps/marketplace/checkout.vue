@@ -348,7 +348,17 @@
                   {{ checkout?.deliveryAddress?.lastName }}
                 </div>
                 <div>{{ checkout?.deliveryAddress?.phoneNumber }}</div>
-                <div>{{ checkout?.deliveryAddress?.location?.formatted }}</div>
+                <div @click="() => displayDeliveryAddressLocation()">
+                  <div>{{ checkout?.deliveryAddress?.location?.formatted }}</div>
+                  <q-btn
+                    v-if="checkout?.deliveryAddress?.location?.validCoordinates"
+                    flat
+                    padding="none"
+                    no-caps
+                    label="View location"
+                    class="text-underline"
+                  />
+                </div>
               </q-card>
             </div>
             <div class="q-space q-pa-xs">
@@ -966,14 +976,29 @@ function fetchCheckoutStorefront() {
 function displayStorefrontLocation() {
   if (!checkoutStorefront.value?.location?.validCoordinates) return
 
+  return displayCoordinates({
+    headerText: checkoutStorefront.value?.name,
+    latitude: Number(checkoutStorefront.value?.location?.latitude),
+    longitude: Number(checkoutStorefront.value?.location?.longitude),
+  })
+}
+
+function displayDeliveryAddressLocation() {
+  if (!checkout.value?.deliveryAddress?.location?.validCoordinates) return
+
+  return displayCoordinates({
+    latitude: Number(checkout.value?.deliveryAddress?.location?.latitude),
+    longitude: Number(checkout.value?.deliveryAddress?.location?.longitude),
+  })
+}
+
+function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefined }) {
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
       static: true,
-      initLocation: {
-        latitude: Number(checkoutStorefront.value?.location?.latitude),
-        longitude: Number(checkoutStorefront.value?.location?.longitude),
-      }
+      headerText: opts?.headerText,
+      initLocation: { latitude: opts?.latitude, longitude: opts?.longitude }
     }
   })
 }
