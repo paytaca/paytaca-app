@@ -81,6 +81,12 @@ function updateGeolocationPermission(opts = { request: false, promptOnDeny: fals
           message: 'Enable access location in app settings',
           class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
         })
+      } else if (opts?.promptOnDeny && !hasPermission.value) {
+        $q.dialog({
+          html: true,
+          message: geolocation.value?.permission?.error?.message || 'Unable to access geolocation',
+          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+        })
       }
     })
 }
