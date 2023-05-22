@@ -78,8 +78,12 @@ export default {
       return this.network === 'sBCH'
     },
     assetLink () {
+      const tokenType = this.asset.id.split('/')[0]
       const tokenId = this.asset && this.asset.id.split('/')[1]
       if (this.isSep20) return `https://sonar.cash/address/${tokenId}`
+
+      if (tokenType === 'ct')
+        return `https://explorer.bitcoinunlimited.info/tx/${tokenId}`
       return `https://simpleledger.info/#token/${tokenId}`
     },
     fallbackAssetLogo () {

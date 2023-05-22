@@ -1,10 +1,18 @@
+import { getBlockChainNetwork } from "src/wallet/chipnet"
+
 export function updateAssetBalance (state, data) {
-  for (let i = 0; i < state.assets.length; i++) {
-    const asset = state.assets[i]
+  const network = getBlockChainNetwork()
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
+
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i]
     if (asset && asset.id === data.id) {
-      state.assets[i].balance = data.balance
+      assets[i].balance = data.balance
       if (asset.id.indexOf('bch') > -1) {
-        state.assets[i].spendable = data.spendable
+        assets[i].spendable = data.spendable
       }
       break
     }
@@ -18,24 +26,35 @@ export function updateAssetBalance (state, data) {
  * @returns
  */
 export function addNewAsset (state, asset) {
-  if (!Array.isArray(state.assets)) state.assets = []
+  const network = getBlockChainNetwork()
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
 
-  if (state.assets.some(_asset => String(_asset && _asset.id).toLowerCase() === String(asset.id).toLowerCase())) {
+  if (!Array.isArray(assets)) state.assets[net] = []
+  if (assets.some(_asset => String(_asset && _asset.id).toLowerCase() === String(asset.id).toLowerCase())) {
     return
   }
 
-  state.assets.push(asset)
+  assets.push(asset)
 }
 
 export function removeAsset (state, assetId) {
   let assetIndex
-  state.assets.map(function (asset, index) {
+  const network = getBlockChainNetwork()
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
+
+  assets.map(function (asset, index) {
     if (asset && asset.id === assetId) {
       assetIndex = index
     }
   })
   if (assetIndex) {
-    state.assets.splice(assetIndex, 1)
+    assets.splice(assetIndex, 1)
   }
 }
 
@@ -45,12 +64,18 @@ export function removeAsset (state, assetId) {
  * @param {{ id:String, symbol:String, name:String, logo: String }} asset
  */
 export function addIgnoredAsset (state, asset) {
-  if (!asset || !asset.id) return
-  if (!Array.isArray(state.ignoredAssets)) state.ignoredAssets = []
+  const network = getBlockChainNetwork()
+  let _ignoredAssets = state.ignoredAssets
+  if (network === 'chipnet') {
+    _ignoredAssets = state.chipnet__ignoredAssets
+  }
 
-  const index = state.ignoredAssets.map(assetInfo => assetInfo && assetInfo.id).indexOf(asset.id)
-  if (index >= 0) state.ignoredAssets[index] = asset
-  else state.ignoredAssets.push(asset)
+  if (!asset || !asset.id) return
+  if (!Array.isArray(state.ignoredAssets[net])) state.ignoredAssets[net] = []
+
+  const index = state.ignoredAssets[net].map(assetInfo => assetInfo && assetInfo.id).indexOf(asset.id)
+  if (index >= 0) state.ignoredAssets[net][index] = asset
+  else state.ignoredAssets[net].push(asset)
 }
 
 /**
@@ -59,8 +84,14 @@ export function addIgnoredAsset (state, asset) {
  * @param {String} assetId
  */
 export function removeIgnoredAsset (state, assetId) {
-  if (!Array.isArray(state.ignoredAssets)) return
-  state.ignoredAssets = state.ignoredAssets
+  const network = getBlockChainNetwork()
+  let _ignoredAssets = state.ignoredAssets
+  if (network === 'chipnet') {
+    _ignoredAssets = state.chipnet__ignoredAssets
+  }
+
+  if (!Array.isArray(_ignoredAssets)) return
+  _ignoredAssets = _ignoredAssets
     .filter(asset => {
       if (!asset || !asset.id) return
       return asset.id !== assetId
@@ -74,11 +105,16 @@ export function removeIgnoredAsset (state, assetId) {
  * @param {{ assetId: String, imageUrl: String }} data
  */
 export function updateAssetImageUrl (state, data) {
-  if (!Array.isArray(state.assets)) return
+  const network = getBlockChainNetwork()
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
+  if (!Array.isArray(assets)) return
 
-  for (var i = 0; i < state.assets.length; i++) {
-    if (state.assets[i] && state.assets[i].id === data.assetId) {
-      state.assets[i].logo = data.imageUrl
+  for (var i = 0; i < assets.length; i++) {
+    if (assets[i] && state.assets[net][i].id === data.assetId) {
+      assets[i].logo = data.imageUrl
       break
     }
   }
@@ -100,4 +136,24 @@ export function updateVaultSnapshot (state, details) {
 export function clearVault (state) {
   console.log('clearing vault')
   state.vault = []
+}
+
+export function updateAssetMetadata (state, data) {
+  const network = getBlockChainNetwork()
+
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
+
+  if (!Array.isArray(assets)) return
+
+  assets.forEach(a => {
+    if (a.id === data.id) {
+      a.name = data.name,
+      a.symbol = data.symbol,
+      a.decimals = data.decimals,
+      a.logo = data.image_url || ''
+    }
+  })
 }

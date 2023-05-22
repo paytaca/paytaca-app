@@ -1,6 +1,7 @@
 export default function () {
   return {
     network: 'BCH', // BCH || sBCH
+    isChipnet: false,
     wallets: {
       bch: {
         walletHash: '',
@@ -8,7 +9,10 @@ export default function () {
         xPubKey: '',
         lastAddress: '',
         lastChangeAddress: '',
-        lastAddressIndex: 0
+        lastAddressIndex: 0,
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       },
       slp: {
         walletHash: '',
@@ -16,13 +20,43 @@ export default function () {
         xPubKey: '',
         lastAddress: '',
         lastChangeAddress: '',
-        lastAddressIndex: 0
+        lastAddressIndex: 0,
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       },
       sbch: {
         subscribed: false,
         walletHash: '',
         derivationPath: '',
-        lastAddress: ''
+        lastAddress: '',
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
+      }
+    },
+    chipnet__wallets: {
+      bch: {
+        walletHash: '',
+        derivationPath: '',
+        xPubKey: '',
+        lastAddress: '',
+        lastChangeAddress: '',
+        lastAddressIndex: 0,
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
+      },
+      slp: {
+        walletHash: '',
+        derivationPath: '',
+        xPubKey: '',
+        lastAddress: '',
+        lastChangeAddress: '',
+        lastAddressIndex: 0,
+        connectedAddress: '',
+        connectedAddressIndex: '0/0',
+        connectedSites: {}
       }
     },
     utxoScanTasks: {

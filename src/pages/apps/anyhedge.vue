@@ -977,6 +977,7 @@ watch(showCreateHedgeForm, () => {
             if (!oracle) return
 
             const mutationPayload = {
+              active: oracle.active,
               pubkey: oracle.pubkey,
               assetName: oracle.asset_name,
               assetCurrency: oracle.asset_currency,

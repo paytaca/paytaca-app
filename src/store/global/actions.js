@@ -60,8 +60,10 @@ export function updateConnectivityStatus (context, online) {
 export async function refetchWalletPreferences(context) {
   const walletHash = context.getters['getWallet']('bch')?.walletHash
   if (!walletHash) return Promise.reject('wallet hash not found')
-  const preferencesResponse = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
-  context.dispatch('updateWalletPreferences', preferencesResponse?.data)
+  try {
+    const preferencesResponse = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
+    context.dispatch('updateWalletPreferences', preferencesResponse?.data)
+  } catch {}
 }
 
 /**

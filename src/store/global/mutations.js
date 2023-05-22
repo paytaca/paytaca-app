@@ -1,3 +1,16 @@
+function getWalletData (state, details) {
+  const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
+  const walletType = details.type
+  const hasTestnetWallets = ['bch', 'slp']
+
+  if (hasTestnetWallets.includes(walletType)) {
+    if (isChipnet) {
+      return state.chipnet__wallets[walletType]
+    }
+  } 
+  return state.wallets[walletType]
+}
+
 export function setNetwork (state, network) {
   switch (network) {
     case 'BCH':
@@ -46,12 +59,35 @@ export function updateCurrentWallet (state, index) {
   state.wallets = wallet
 }
 
+export function toggleIsChipnet (state) {
+  state.isChipnet = !state.isChipnet
+}
+
 export function updateWallet (state, details) {
-  state.wallets[details.type].walletHash = details.walletHash
-  state.wallets[details.type].derivationPath = details.derivationPath
-  state.wallets[details.type].lastAddress = details.lastAddress
-  state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
-  state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
+  const wallet = getWalletData(state, details)
+
+  wallet.walletHash = details.walletHash
+  wallet.derivationPath = details.derivationPath
+  wallet.lastAddress = details.lastAddress
+  wallet.lastChangeAddress = details.lastChangeAddress
+  wallet.lastAddressIndex = details.lastAddressIndex
+  wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
+  wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
+  wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
+
+}
+
+export function setConnectedAddress (state, details) {
+  const wallet = getWalletData(state, details)
+
+  wallet.connectedAddress = details.connectedAddress
+  wallet.connectedAddressIndex = details.connectedAddressIndex
+}
+
+export function setConnectedSites (state, details) {
+  const wallet = getWalletData(state, details)
+
+  wallet.connectedSites = details.connectedSites
 }
 
 export function setWalletSubscribed (state, details) {
@@ -59,7 +95,8 @@ export function setWalletSubscribed (state, details) {
 }
 
 export function updateXPubKey (state, details) {
-  state.wallets[details.type].xPubKey = details.xPubKey
+  const wallet = getWalletData(state, details)
+  wallet.xPubKey = details.xPubKey
 }
 
 export function updateAddresses (state, addresses) {
@@ -95,9 +132,11 @@ export function updateTransactions (state, data) {
 }
 
 export function generateNewAddressSet (state, details) {
-  state.wallets[details.type].lastAddress = details.lastAddress
-  state.wallets[details.type].lastChangeAddress = details.lastChangeAddress
-  state.wallets[details.type].lastAddressIndex = details.lastAddressIndex
+  const wallet = getWalletData(state, details)
+
+  wallet.lastAddress = details.lastAddress
+  wallet.lastChangeAddress = details.lastChangeAddress
+  wallet.lastAddressIndex = details.lastAddressIndex
 }
 
 /**

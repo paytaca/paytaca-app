@@ -3,6 +3,7 @@ export default function () {
     oracles: {
       // example data
       '': {
+        active: false,
         assetName: '',
         assetCurrency: '',
         assetDecimals: 0,

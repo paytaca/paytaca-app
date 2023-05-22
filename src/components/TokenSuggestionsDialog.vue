@@ -64,6 +64,11 @@
                     <template v-if="token.symbol">
                       ({{ token.symbol }})
                     </template>
+
+                    <TokenTypeBadge
+                      :assetId="token.id"
+                      class="q-ml-xs"
+                    />
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
@@ -106,7 +111,6 @@
           {{ $t('NoTokensFound') }}
         </div>
       </q-card-section>
-      <!-- <q-separator/> -->
       <q-card-section class="row q-gutter-sm justify-around">
         <q-btn
           v-if="parsedTokens.length > 0 && !loading"
@@ -123,14 +127,21 @@
 </template>
 <script>
 import ProgressLoader from './ProgressLoader.vue'
+import TokenTypeBadge from './TokenTypeBadge.vue'
 
 export default {
   name: 'TokenSuggestionsDialog',
-  components: { ProgressLoader },
+  components: {
+    ProgressLoader,
+    TokenTypeBadge,
+  },
   props: {
     modelValue: {
       type: Boolean,
       default: false
+    },
+    bchWalletHash: {
+      type: String
     },
     slpWalletHash: {
       type: String
@@ -169,6 +180,7 @@ export default {
             symbol: token.symbol || '',
             logo: token.image_url || '',
             balance: token.balance || 0,
+            decimals: token.decimals || 0,
             isSep20: false
           }
         })
@@ -241,13 +253,23 @@ export default {
       this.parsedTokens.forEach(this.addToken)
     },
     async updateMainchainList (opts = { includeIgnored: false }) {
-      this.mainchainTokens = await this.$store.dispatch(
-        'assets/getMissingAssets',
-        {
-          walletHash: this.slpWalletHash,
-          icludeIgnoredTokens: opts.includeIgnored
-        }
-      )
+      const tokenWalletHashes = [this.bchWalletHash, this.slpWalletHash]
+      this.mainchainTokens = []
+
+      for (const tokenWalletHash of tokenWalletHashes) {
+        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
+
+        const tokens = await this.$store.dispatch(
+          'assets/getMissingAssets',
+          {
+            isCashToken,
+            walletHash: tokenWalletHash,
+            includeIgnoredTokens: opts.includeIgnored,
+          }
+        )
+
+        this.mainchainTokens.push(...tokens)
+      }
     },
     async updateSmartchainList (opts = { includeIgnored: false }) {
       const vm = this

@@ -1,5 +1,16 @@
 const sha256 = require('js-sha256')
 
+function getWalletData (state, walletType) {
+  const hasTestnetWallets = ['bch', 'slp']
+
+  if (hasTestnetWallets.includes(walletType)) {
+    if (state.isChipnet) {
+      return state.chipnet__wallets[walletType]
+    }
+  }
+  return state.wallets[walletType]
+}
+
 export function network (state) {
   return state.network
 }
@@ -8,27 +19,34 @@ export function getConnectivityStatus (state) {
   return state.online
 }
 
+export function isChipnet (state) {
+  return state.isChipnet
+}
+
 export function getAddress (state) {
   return function (walletType) {
-    return state.wallets[walletType].lastAddress
+    const wallet = getWalletData(state, walletType)
+    return wallet.lastAddress
   }
 }
 
 export function getLastAddressIndex (state) {
   return function (walletType) {
-    return state.wallets[walletType].lastAddressIndex
+    const wallet = getWalletData(state, walletType)
+    return wallet.lastAddressIndex
   }
 }
 
 export function getChangeAddress (state) {
   return function (walletType) {
-    return state.wallets[walletType].lastChangeAddress
+    const wallet = getWalletData(state, walletType)
+    return wallet.lastChangeAddress
   }
 }
 
 export function getWallet (state) {
   return function (walletType) {
-    return state.wallets[walletType]
+    return getWalletData(state, walletType)
   }
 }
 
@@ -157,5 +175,26 @@ export function getDefaultAssetLogo () {
     }
 
     return canvas.toDataURL('image/png')
+  }
+}
+
+export function getConnectedAddress (state) {
+  return function (walletType) {
+    const walletData = getWalletData(state, walletType)
+    return walletData.connectedAddress
+  }
+}
+
+export function getConnectedAddressIndex (state) {
+  return function (walletType) {
+    const walletData = getWalletData(state, walletType)
+    return walletData.connectedAddressIndex
+  }
+}
+
+export function getConnectedSites (state) {
+  return function (walletType) {
+    const walletData = getWalletData(state, walletType)
+    return walletData.connectedSites
   }
 }

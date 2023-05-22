@@ -38,7 +38,7 @@
         </div>
       </div>
     </div>
-    <div class="col pt-wallet q-mt-sm" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
+    <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
       <ProgressLoader/>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="importSeedPhrase && mnemonic.length === 0">
@@ -55,9 +55,9 @@
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
-      <div class="pt-get-started q-mt-sm q-pa-lg">
+      <div class="pt-get-started q-mt-sm q-pa-lg" :class="{ 'pt-dark': $store.getters['darkmode/getStatus'] }">
         <template v-if="steps === totalSteps">
-          <h5 class="q-ma-none get-started-text text-black">{{ $t('MnemonicBackupPhrase') }}</h5>
+          <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': $store.getters['darkmode/getStatus'] }">{{ $t('MnemonicBackupPhrase') }}</h5>
           <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
             {{ $t('MnemonicBackupPhraseDescription1') }}
           </p>
@@ -84,6 +84,7 @@
                   padding="xs sm"
                   icon="arrow_back"
                   color="black"
+                  class="text-blue"
                   :label="$t('MnemonicBackupPhrase')"
                   @click="showMnemonicTest = false"
                 />
@@ -112,6 +113,7 @@ import pinDialog from '../../components/pin'
 import MnemonicTest from 'src/components/MnemonicTest.vue'
 import securityOptionDialog from '../../components/authOption'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
 
@@ -125,7 +127,7 @@ export default {
       seedPhraseBackup: null,
       mnemonic: '',
       steps: -1,
-      totalSteps: 5,
+      totalSteps: 9,
       mnemonicVerified: false,
       showMnemonicTest: false,
       pinDialogAction: '',
@@ -196,50 +198,64 @@ export default {
       vm.steps += 1
 
       const wallet = new Wallet(this.mnemonic)
+      const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
+      const slpWallets = [wallet.SLP, wallet.SLP_TEST]
 
-      wallet.BCH.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
-        vm.$store.commit('global/updateWallet', {
-          type: 'bch',
-          walletHash: wallet.BCH.walletHash,
-          derivationPath: wallet.BCH.derivationPath,
-          lastAddress: addresses !== null ? addresses.receiving : '',
-          lastChangeAddress: addresses !== null ? addresses.change : '',
-          lastAddressIndex: 0
-        })
-        vm.$store.dispatch('chat/addIdentity', pgpIdentity)
-        vm.steps += 1
-        try {
-          vm.$store.dispatch('global/refetchWalletPreferences')
-        } catch(error) { console.error(error) }
-      })
+      for (const bchWallet of bchWallets) {
+        const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
-      wallet.BCH.getXPubKey().then(function (xpub) {
-        vm.$store.commit('global/updateXPubKey', {
-          type: 'bch',
-          xPubKey: xpub
+        bchWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+          vm.$store.commit('global/updateWallet', {
+            isChipnet,
+            type: 'bch',
+            walletHash: bchWallet.walletHash,
+            derivationPath: bchWallet.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+          })
+          vm.$store.dispatch('chat/addIdentity', pgpIdentity)
+          vm.steps += 1
+          try {
+            vm.$store.dispatch('global/refetchWalletPreferences')
+          } catch(error) { console.error(error) }
         })
-        vm.steps += 1
-      })
 
-      wallet.SLP.getNewAddressSet(0).then(function (addresses) {
-        vm.$store.commit('global/updateWallet', {
-          type: 'slp',
-          walletHash: wallet.SLP.walletHash,
-          derivationPath: wallet.SLP.derivationPath,
-          lastAddress: addresses !== null ? addresses.receiving : '',
-          lastChangeAddress: addresses !== null ? addresses.change : '',
-          lastAddressIndex: 0
+        bchWallet.getXPubKey().then(function (xpub) {
+          vm.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'bch',
+            xPubKey: xpub
+          })
+          vm.steps += 1
         })
-        vm.steps += 1
-      })
+      }
 
-      wallet.SLP.getXPubKey().then(function (xpub) {
-        vm.$store.commit('global/updateXPubKey', {
-          type: 'slp',
-          xPubKey: xpub
+      for (const slpWallet of slpWallets) {
+        const isChipnet = slpWallets.indexOf(slpWallet) === 1
+
+        slpWallet.getNewAddressSet(0).then(function (addresses) {
+          vm.$store.commit('global/updateWallet', {
+            isChipnet,
+            type: 'slp',
+            walletHash: slpWallet.walletHash,
+            derivationPath: slpWallet.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+          })
+          vm.steps += 1
         })
-        vm.steps += 1
-      })
+
+        slpWallet.getXPubKey().then(function (xpub) {
+          vm.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'slp',
+            xPubKey: xpub
+          })
+          vm.steps += 1
+        })
+      }
 
       wallet.sBCH.subscribeWallet().then(function () {
         vm.$store.commit('global/updateWallet', {
@@ -251,9 +267,11 @@ export default {
       })
 
       const walletHashes = [
-        wallet.BCH.getWalletHash(),
-        wallet.SLP.getWalletHash(),
-        wallet.sBCH.getWalletHash(),
+        wallet.BCH.walletHash,
+        wallet.BCH_CHIP.walletHash,
+        wallet.SLP.walletHash,
+        wallet.SLP_TEST.walletHash,
+        wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes)
     },
@@ -318,6 +336,11 @@ export default {
     }
   },
   async mounted () {
+    this.mnemonic = await getMnemonic() || ''
+    if (this.mnemonic.split(" ").length === 12) {
+      this.steps = 9
+    }
+
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [
       { value: 'en-us', label: 'English' },

@@ -1,24 +1,47 @@
+import { getBlockChainNetwork } from "src/wallet/chipnet"
+
 export function ignoredAssets (state) {
-  if (!Array.isArray(state.ignoredAssets)) return []
+  const network = getBlockChainNetwork()
+
+  if (network === 'chip') {
+    return state.chipnet__ignoredAssets
+  }
   return state.ignoredAssets
 }
 
 export function ignoredTokenIds (state) {
-  if (!Array.isArray(state.ignoredAssets)) return []
-  return state.ignoredAssets
+  const network = getBlockChainNetwork()
+  let _ignoredAssets = state.ignoredAssets
+  if (network === 'chipnet') {
+    _ignoredAssets = state.chipnet__ignoredAssets
+  }
+
+  if (!Array.isArray(_ignoredAssets)) return []
+  return _ignoredAssets
     .map(asset => asset && asset.id)
-    .filter(assetId => String(assetId).match(/^slp\/([a-fA-F0-9]+)$/))
+    .filter(assetId => String(assetId).match(/^(slp|ct)\/([a-fA-F0-9]+)$/))
     .map(assetId => assetId.replace('slp/', ''))
+    .map(assetId => assetId.replace('ct/', ''))
     .filter(Boolean)
 }
 
 export function getAssets (state) {
+  const network = getBlockChainNetwork()
+  if (network === 'chipnet') {
+    return state.chipnet__assets
+  }
   return state.assets
 }
 
 export function getAsset (state) {
   return function (id) {
-    return state.assets.filter(function (asset) {
+    const network = getBlockChainNetwork()
+    let assets = state.assets
+    if (network === 'chipnet') {
+      assets = state.chipnet__assets
+    }
+
+    return assets.filter(function (asset) {
       if (asset && asset.id === id) {
         return asset
       }

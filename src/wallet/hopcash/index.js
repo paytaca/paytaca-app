@@ -2,6 +2,8 @@ import BCHJS from '@psf/bch-js'
 import axios from 'axios'
 import { utils, BigNumber } from 'ethers'
 import { provider, bridgeContract, addresses } from './config'
+import { getWatchtowerWebsocketUrl } from '../chipnet'
+import store from 'src/store'
 
 const bchjs = new BCHJS()
 
@@ -316,7 +318,8 @@ async function matchOpReturnFromHash (txId, txHash) {
  */
 export function s2cOutgoingListener (txId = '', callback = () => {}) {
   const txHashRegex = /[0-9a-f]{64}/
-  const websocket = new WebSocket(`wss://watchtower.cash/ws/watch/bch/${addresses.smart2cash.sender}/`)
+  const wsURL = getWatchtowerWebsocketUrl(store().getters['global/isChipnet'])
+  const websocket = new WebSocket(`${wsURL}/watch/bch/${addresses.smart2cash.sender}/`)
   websocket.onmessage = async (message) => {
     let data
     try {
