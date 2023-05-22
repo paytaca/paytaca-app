@@ -630,3 +630,92 @@ export class Order {
       })
   }
 }
+
+
+export class Rider {
+  static parse(data) {
+    return new Rider(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.first_name
+   * @param {String} data.last_name
+   * @param {String} data.phone_number
+   * @param {String} data.receiving_address
+   * @param {Object} data.location
+   * @param {Number} data.user_id
+   * @param {Number} [data.distance]
+   * @param {[Number, Number]} [data.current_location]
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.firstName = data?.first_name
+    this.lastName = data?.last_name
+    this.phoneNumber = data?.phone_number
+    this.receivingAddress = data?.receiving_address
+    this.location = Location.parse(data?.location)
+    this.userId = data?.user_id
+
+    this.distance = data?.distance
+    this.currentLocation = data?.current_location
+  }
+}
+
+
+export class Delivery {
+  static parse(data) {
+    return new Delivery(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.order_id
+   * @param {Object} data.rider
+   * @param {Object} data.active_rider_id
+   * @param {Object} data.pickup_location
+   * @param {Object} data.delivery_location
+   * @param {String | Number} [data.delivered_at]
+   * @param {{ code:String, symbol:String }} data.currency
+   * @param {Number} data.subtotal
+   * @param {Number} data.fee
+   * @param {String | Number} data.created_at
+   * @param {String | Number} data.updated_at
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+
+    this.id = data?.id
+    this.orderId = data?.order_id
+    this.rider = Rider.parse(data?.rider)
+    this.activeRiderId = data?.active_rider_id
+    this.pickupLocation = Location.parse(data?.pickup_location)
+    this.deliveryLocation = Location.parse(data?.delivery_location)
+    if (data?.delivered_at) this.deliveredAt = new Date(data?.delivered_at)
+    else if (this.deliveredAt) delete this.deliveredAt
+    this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
+    this.subtotal = data?.subtotal
+    this.fee = data?.fee
+    this.createdAt = new Date(data?.created_at)
+    this.updatedAt = new Date(data?.updated_at)
+  }
+}

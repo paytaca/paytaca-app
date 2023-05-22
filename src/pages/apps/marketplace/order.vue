@@ -47,6 +47,33 @@
                 class="text-underline"
               />
             </div>
+            <div v-if="delivery?.id" class="q-mt-sm">
+              <q-separator :dark="darkMode"/>
+              <div>
+                <div class="text-subtitle1">Delivery status</div>
+                <div class="text-caption bottom">Delivery #{{ delivery?.id }}</div>
+                <div v-if="delivery?.rider?.id" class="q-mt-xs">
+                  <div class="text-subtitle2">
+                    Rider
+                    <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.25em" color="green">
+                      <q-menu
+                        :class="[
+                          'q-pa-sm',
+                          darkMode ? 'pt-dark' : 'text-black',
+                        ]"
+                      >
+                        Rider has accepted delivery
+                      </q-menu>
+                    </q-icon>
+                  </div>
+                  <div class="row items-start q-gutter-x-xs">
+                    <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
+                    <div>{{ delivery?.rider?.phoneNumber }}</div>
+                  </div>
+                </div>
+                <div v-else class="text-grey">No rider yet</div>
+              </div>
+            </div>
           </q-card>
         </div>
         <div class="q-pa-xs q-space">
@@ -118,7 +145,7 @@
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
-import { Order } from 'src/marketplace/objects'
+import { Delivery, Order } from 'src/marketplace/objects'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted } from 'vue'
@@ -146,6 +173,24 @@ watch(
     refreshPage()
   }
 )
+
+const delivery = ref(Delivery.parse())
+const fetchingDelivery = ref(false)
+function fetchDelivery() {
+  if (!props.orderId) return Promise.reject()
+  const params = { order_id: props.orderId }
+
+  fetchingDelivery.value = true
+  return backend.get(`connecta-express/deliveries/`, { params })
+    .then(response => {
+      const data = response?.data?.results?.[0]
+      delivery.value = Delivery.parse(data)
+      return response
+    })
+    .finally(() => {
+      fetchingDelivery.value = false
+    })
+}
 
 const order = ref(Order.parse())
 watch(
@@ -227,6 +272,7 @@ async function refreshPage(done=() => {}) {
   try {
     await Promise.all([
       fetchOrder(),
+      fetchDelivery(),
     ])
   } finally {
     initialized.value = true
