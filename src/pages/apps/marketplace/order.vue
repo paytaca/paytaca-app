@@ -29,6 +29,15 @@
           <q-card
             :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-px-md q-py-sm']"
           >
+            <q-btn
+              flat
+              padding="none"
+              no-caps
+              label="Open Map"
+              class="float-right q-mt-xs"
+              @click="() => showMap = true"
+            />
+            <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
             <div class="text-subtitle1">Delivery</div>
             <q-separator :dark="darkMode"/>
             <div>
@@ -36,17 +45,7 @@
               {{ order?.deliveryAddress?.lastName }}
             </div>
             <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
-            <div @click="() => displayDeliveryAddressLocation()">
-              <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
-              <q-btn
-                v-if="order?.deliveryAddress?.location?.validCoordinates"
-                flat
-                padding="none"
-                no-caps
-                label="View location"
-                class="text-underline"
-              />
-            </div>
+            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
             <div v-if="delivery?.id" class="q-mt-sm">
               <q-separator :dark="darkMode"/>
               <div>
@@ -145,18 +144,17 @@
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
-import { Delivery, Order } from 'src/marketplace/objects'
-import { useQuasar } from 'quasar'
+import { Delivery, Order, Storefront } from 'src/marketplace/objects'
+import { formatDateRelative } from 'src/marketplace/utils'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
-import PinLocationDialog from 'src/components/PinLocationDialog.vue'
+import LeafletMapDialog from 'src/components/LeafletMapDialog.vue'
 
 const props = defineProps({
   orderId: [String, Number],  
 })
 
-const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -193,13 +191,11 @@ function fetchDelivery() {
 }
 
 const order = ref(Order.parse())
-watch(
-  () => [order.value?.storefrontId],
-  () => {
-    if (!order.value?.storefrontId) return
-    $store.commit('marketplace/setActiveStorefrontId', order.value?.storefrontId)
-  }
-  )
+const storefrontId = computed(() => order.value?.storefrontId)
+watch(storefrontId,() => {
+  if (!storefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
+})
 const fetchingOrder = ref(false)
 const orderCurrency = computed(() => order.value?.currency?.symbol)
 const orderBchPrice = computed(() => order.value?.bchPrice?.price || undefined)
@@ -248,25 +244,89 @@ function toggleAmountsDisplay() {
 }
 
 
-function displayDeliveryAddressLocation() {
-  if (!order.value?.deliveryAddress?.location?.validCoordinates) return
-
-  return displayCoordinates({
-    latitude: Number(order.value?.deliveryAddress?.location?.latitude),
-    longitude: Number(order.value?.deliveryAddress?.location?.longitude),
-  })
+const storefront = ref(Storefront.parse())
+watch(storefrontId, () => fetchStorefront())
+function fetchStorefront() {
+  if (!storefrontId.value) return Promise.reject()
+  const cachedStorefront = $store.getters['marketplace/getStorefront']?.(storefrontId.value)
+  if (storefrontId.value == cachedStorefront?.id) {
+    storefront.value = Storefront.parse(cachedStorefront.raw)
+    return Promise.resolve()
+  }
+  return backend.get(`connecta/storefronts/${storefrontId.value}/`)
+    .then(response => {
+      const storefrontData = response?.data
+      storefront.value = Storefront.parse(storefrontData)
+      $store.commit('marketplace/cacheStorefront', storefrontData)
+      return response
+    })
 }
 
-function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefined }) {
-  $q.dialog({
-    component: PinLocationDialog,
-    componentProps: {
-      static: true,
-      headerText: opts?.headerText,
-      initLocation: { latitude: opts?.latitude, longitude: opts?.longitude }
-    }
-  })
+const trackRiderInterval = ref(null)
+function stopTrackRider () {
+  clearInterval(trackRiderInterval.value)
+  trackRiderInterval.value = null
 }
+function trackRider() {
+  stopTrackRider()
+  updateRiderLocation()
+  trackRiderInterval.value = setInterval(() => updateRiderLocation(), 5 * 1000)
+}
+async function updateRiderLocation() {
+  const riderId = delivery.value?.rider?.id
+  if (!riderId) return
+  const params = { ids: riderId }
+  const response = await backend.get(`connecta-express/riders/get_locations/`, { params })
+  const currentLocation = response?.data?.results?.[0]?.coordinates
+  if (isNaN(currentLocation?.[0]) || isNaN(currentLocation?.[1])) return
+  delivery.value.rider.currentLocation = [currentLocation[1], currentLocation[0]]
+  delivery.value.rider.currentLocationTimestamp = Date.now()
+}
+onUnmounted(() => stopTrackRider())
+
+const showMap = ref(false)
+watch(showMap, () => showMap.value ? trackRider() : stopTrackRider())
+const mapLocations = computed(() => {
+  const data = []
+  if (storefront.value?.location?.validCoordinates) {
+    data.push({
+      popup: ['Pickup location', storefront.value?.location?.formatted].filter(Boolean).join(': '),
+      lat: storefront.value?.location?.latitude,
+      lon: storefront.value?.location?.longitude,
+      icon: { prefix: '', glyph: 'Store' },
+    })
+  }
+
+  const deliveryLoc = delivery.value?.deliveryLocation?.validCoordinates
+    ? delivery.value?.deliveryLocation
+    : order.value.deliveryAddress?.location
+
+  if (deliveryLoc?.validCoordinates) {
+    data.push({
+      lat: deliveryLoc?.latitude,
+      lon: deliveryLoc?.longitude,
+      popup: ['Delivery address', deliveryLoc?.formatted].filter(Boolean).join(': '),
+      icon: { prefix: '', glyph: 'Delivery' },
+    })
+  }
+
+  const rider = delivery.value?.rider
+  const riderLoc = rider?.currentLocation
+  const riderLocTimestamp = rider?.currentLocationTimestamp
+  if (!isNaN(riderLoc?.[0]) && !isNaN(riderLoc?.[1])) {
+    let timestampText = ''
+    if (!isNaN(riderLocTimestamp)) timestampText = `<br/>${formatDateRelative(riderLocTimestamp)}`
+    const riderName = [rider?.firstName, rider?.lastName].filter(Boolean).join(' ')
+    data.push({
+      popup: [`Rider`, riderName].filter(Boolean).join(': ') + timestampText,
+      lat: riderLoc[0],
+      lon: riderLoc[1],
+      icon: { prefix: '', glyph: 'Rider' },
+    })
+  }
+
+  return data
+})
 
 async function refreshPage(done=() => {}) {
   try {

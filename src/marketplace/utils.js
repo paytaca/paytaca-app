@@ -1,3 +1,4 @@
+import ago from 's-ago'
 import { capitalize } from 'vue'
 
 /**
@@ -38,6 +39,15 @@ export function parseOrderStatusColor(value) {
     default:
       return undefined
   }
+}
+
+
+/**
+ * @param {Date} value 
+ */
+export function formatDateRelative(value) {
+  if (!value?.getDate?.()) value = new Date(value)
+  return ago(value)
 }
 
 /**
