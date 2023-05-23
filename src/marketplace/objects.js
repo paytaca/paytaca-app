@@ -654,6 +654,7 @@ export class Rider {
    * @param {String} data.receiving_address
    * @param {Object} data.location
    * @param {Number} data.user_id
+   * @param {Number} [data.active_delivery_id]
    * @param {Number} [data.distance]
    * @param {[Number, Number]} [data.current_location]
    */
@@ -667,6 +668,7 @@ export class Rider {
     this.location = Location.parse(data?.location)
     this.userId = data?.user_id
 
+    this.activeDeliveryId = data?.active_delivery_id
     this.distance = data?.distance
     this.currentLocation = data?.current_location
   }
@@ -690,10 +692,12 @@ export class Delivery {
    * @param {Object} data
    * @param {Number} data.id
    * @param {Number} data.order_id
+   * @param {{ id: Number, status: String }} data.order
    * @param {Object} data.rider
    * @param {Object} data.active_rider_id
    * @param {Object} data.pickup_location
    * @param {Object} data.delivery_location
+   * @param {String | Number} [data.picked_up_at]
    * @param {String | Number} [data.delivered_at]
    * @param {{ code:String, symbol:String }} data.currency
    * @param {Number} data.subtotal
@@ -706,10 +710,13 @@ export class Delivery {
 
     this.id = data?.id
     this.orderId = data?.order_id
+    this.order = Order.parse(data?.order)
     this.rider = Rider.parse(data?.rider)
     this.activeRiderId = data?.active_rider_id
     this.pickupLocation = Location.parse(data?.pickup_location)
     this.deliveryLocation = Location.parse(data?.delivery_location)
+    if (data?.picked_up_at) this.pickedUpAt = new Date(data?.picked_up_at)
+    else if (this.pickedUpAt) delete this.pickedUpAt
     if (data?.delivered_at) this.deliveredAt = new Date(data?.delivered_at)
     else if (this.deliveredAt) delete this.deliveredAt
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
