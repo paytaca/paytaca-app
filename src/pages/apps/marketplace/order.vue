@@ -49,22 +49,33 @@
             <div v-if="delivery?.id" class="q-mt-sm">
               <q-separator :dark="darkMode"/>
               <div>
+                <div class="q-mt-xs float-right">
+                  <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
+                    <q-menu :class="[ 'q-pa-sm', darkMode ? 'pt-dark' : 'text-black' ]">
+                      Rider has accepted delivery
+                    </q-menu>
+                  </q-icon>
+                  <q-icon
+                    v-if="delivery?.pickedUpAt || delivery?.deliveredAt"
+                    name="delivery_dining"
+                    size="2em"
+                    :color="delivery?.deliveredAt ? 'green' : 'amber'"
+                    class="q-mx-sm"
+                  >
+                    <q-menu :class="[ 'q-pa-sm', darkMode ? 'pt-dark' : 'text-black' ]">
+                      <div v-if="delivery.pickedUpAt">
+                        Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
+                      </div>
+                      <div v-if="delivery.deliveredAt">
+                        Delivered {{ formatDateRelative(delivery.deliveredAt) }}
+                      </div>
+                    </q-menu>
+                  </q-icon>
+                </div>
                 <div class="text-subtitle1">Delivery status</div>
                 <div class="text-caption bottom">Delivery #{{ delivery?.id }}</div>
                 <div v-if="delivery?.rider?.id" class="q-mt-xs">
-                  <div class="text-subtitle2">
-                    Rider
-                    <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.25em" color="green">
-                      <q-menu
-                        :class="[
-                          'q-pa-sm',
-                          darkMode ? 'pt-dark' : 'text-black',
-                        ]"
-                      >
-                        Rider has accepted delivery
-                      </q-menu>
-                    </q-icon>
-                  </div>
+                  <div class="text-subtitle2">Rider</div>
                   <div class="row items-start q-gutter-x-xs">
                     <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
                     <div>{{ delivery?.rider?.phoneNumber }}</div>
