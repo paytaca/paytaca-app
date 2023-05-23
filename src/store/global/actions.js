@@ -95,6 +95,7 @@ export async function saveWalletPreferences(context) {
 }
 
 export async function saveExistingWallet (context) {
+  // console.log('saving existing wallet')
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters['getWallet']('bch')?.walletHash
     if (walletHash) {
@@ -102,20 +103,30 @@ export async function saveExistingWallet (context) {
       wallet = JSON.stringify(wallet)
       wallet = JSON.parse(wallet)
 
-      context.commit('updateVault', wallet)
+      let chipnet = context.getters.getAllChipnetTypes
+      chipnet = JSON.stringify(chipnet)
+      chipnet = JSON.parse(chipnet)
+      const info = {
+        wallet: wallet,
+        chipnet: chipnet
+      }
+      context.commit('updateVault', info)
     }
   }
 }
 
 export async function switchWallet (context, index) {
-  const snapshot = context.getters.getAllWalletTypes
+  // const snapshot = context.getters.getAllWalletTypes
+  const wallet = context.getters.getAllWalletTypes
+  const chipnet = context.getters.getAllChipnetTypes
 
   const currentIndex = context.getters.getWalletIndex
   const walletName = context.getters.getVault[currentIndex].name
 
   const info = {
     index: currentIndex,
-    snapshot: snapshot,
+    walletSnapshot: wallet,
+    chipnetSnapshot: chipnet,
     name: walletName
   }
   context.commit('updateWalletSnapshot', info)

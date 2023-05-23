@@ -98,10 +98,11 @@ export default {
     }
   },
   async mounted () {
+    const vm = this
+    // Generate chipnet for existing wallet
     // saving unsaved active wallet to vault
     this.$store.dispatch('global/saveExistingWallet')
     this.$store.dispatch('assets/saveExistingAsset', {index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash})
-    // this.$store.dispatch('global/saveExistingAssetDetails')
 
     this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
       console.log('Notification:', notification)
@@ -122,7 +123,6 @@ export default {
 
     this.subscribePushNotifications()
     this.resubscribeAddresses()
-    const vm = this
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'

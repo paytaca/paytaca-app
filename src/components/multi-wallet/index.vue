@@ -24,7 +24,7 @@
                   <span  class="text-nowrap q-ml-xs q-mt-sm">{{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}</span>
                 </div>
                 <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                  <span style="font-size: 12px; color: gray;">{{ arrangeAddressText(wallet.bch.lastAddress) }}</span>
+                  <span style="font-size: 12px; color: gray;">{{ arrangeAddressText(wallet) }}</span>
                   <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">{{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}</span>
                 </div>
                 <q-menu anchor="bottom right" self="top end" >
@@ -56,6 +56,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       currentIndex: this.$store.getters['global/getWalletIndex'],
+      isChipnet: this.$store.getters['global/isChipnet'],
       vault: [],
       isloading: false,
       secondDialog: false,
@@ -83,10 +84,11 @@ export default {
     },
     switchWallet (index) {
       if (index !== this.currentIndex) {
-        const asset = this.$store.getters['assets/getAssets']
+        const asset = this.$store.getters['assets/getAllAssets']
         // const ignoredAssets = this.$store.getters['assets/ignoredAssets']
 
         this.$store.commit('assets/updateVaultSnapshot', { index: this.currentIndex, snapshot: asset })
+        this.$store.commit('assets/updatedCurrentAssets', index)
 
         this.$store.dispatch('global/switchWallet', index)
 
@@ -97,7 +99,13 @@ export default {
     hide () {
       this.$refs.dialog.hide()
     },
-    arrangeAddressText (address) {
+    arrangeAddressText (wallet) {
+      let address = ''
+      if (this.isChipnet) {
+        address = wallet.chipnet.bch.lastAddress
+      } else {
+        address = wallet.wallet.bch.lastAddress
+      }
       return address.slice(0, 19) + '.....' + address.slice(40)
     },
     isActive (index) {
@@ -134,15 +142,16 @@ export default {
       let tempVault = vm.$store.getters['global/getVault']
       tempVault = JSON.stringify(tempVault)
       tempVault = JSON.parse(tempVault)
+      // console.log(tempVault)
 
       // tempVault.unshift(tempVault.splice(vm.currentIndex, 1)[0])
       vm.vault = tempVault
     },
     getAssetData (index) {
       if (this.currentIndex === index) {
-        return this.$store.getters['assets/getAssets'][0]
+        return this.isChipnet ? this.$store.getters['assets/getAllAssets'].chipnet_assets[0] : this.$store.getters['assets/getAllAssets'].asset[0]
       } else {
-        return this.$store.getters['assets/getVault'][index][0]
+        return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
     }
   },
@@ -158,6 +167,7 @@ export default {
   async mounted () {
     const vm = this
 
+    console.log(vm.isChipnet)
     vm.processVaultName()
     vm.arrangeVaultData()
     vm.isloading = true

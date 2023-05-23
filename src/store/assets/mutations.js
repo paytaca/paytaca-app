@@ -125,7 +125,7 @@ export function updateVault (state, details) {
 }
 
 export function updateVaultSnapshot (state, details) {
-  // console.log('saving asset snapshot')
+  console.log('saving asset snapshot')
   let snapshot = details.snapshot
   snapshot = JSON.stringify(snapshot)
   snapshot = JSON.parse(snapshot)
@@ -137,6 +137,31 @@ export function clearVault (state) {
   console.log('clearing vault')
   state.vault = []
 }
+
+export function updatedCurrentAssets (state, index) {
+  let vault = state.vault[index]
+  vault = JSON.stringify(vault)
+  vault = JSON.parse(vault)
+
+  state.assets = vault.asset
+  state.chipnet__assets = vault.chipnet_assets
+}
+
+// export function updateCurrentWallet (state, index) {
+//   const vault = state.vault[index]
+
+//   let wallet = vault.wallet
+//   wallet = JSON.stringify(wallet)
+//   wallet = JSON.parse(wallet)
+
+//   state.wallets = wallet
+
+//   let chipnet = vault.chipnet
+//   chipnet = JSON.stringify(chipnet)
+//   chipnet = JSON.parse(chipnet)
+
+//   state.chipnet__wallets = chipnet
+// }
 
 export function updateAssetMetadata (state, data) {
   const network = getBlockChainNetwork()

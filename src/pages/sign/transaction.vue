@@ -257,7 +257,7 @@ export default defineComponent({
 
       const txTemplate = {...this.tx} as TransactionTemplateFixed<typeof compiler>;
 
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic((this as any).$store.getters['global/getWalletIndex'])
       const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
       const wallet = new Wallet(mnemonic, network)
 

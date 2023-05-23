@@ -7,7 +7,7 @@ function getWalletData (state, details) {
     if (isChipnet) {
       return state.chipnet__wallets[walletType]
     }
-  } 
+  }
   return state.wallets[walletType]
 }
 
@@ -31,6 +31,7 @@ export function updateVault (state, details) {
 }
 
 export function clearVault (state) {
+  console.log('clearing Vault')
   state.vault = []
 }
 
@@ -43,20 +44,33 @@ export function updateWalletName (state, details) {
 }
 
 export function updateWalletSnapshot (state, details) {
-  let wallet = details.snapshot
+  let wallet = details.walletSnapshot
   wallet = JSON.stringify(wallet)
   wallet = JSON.parse(wallet)
 
-  state.vault[details.index] = wallet
+  let chipnet = details.chipnetSnapshot
+  chipnet = JSON.stringify(chipnet)
+  chipnet = JSON.parse(chipnet)
+
+  state.vault[details.index].wallet = wallet
+  state.vault[details.index].chipnet = chipnet
   state.vault[details.index].name = details.name
 }
 
 export function updateCurrentWallet (state, index) {
-  let wallet = state.vault[index]
+  const vault = state.vault[index]
+
+  let wallet = vault.wallet
   wallet = JSON.stringify(wallet)
   wallet = JSON.parse(wallet)
 
   state.wallets = wallet
+
+  let chipnet = vault.chipnet
+  chipnet = JSON.stringify(chipnet)
+  chipnet = JSON.parse(chipnet)
+
+  state.chipnet__wallets = chipnet
 }
 
 export function toggleIsChipnet (state) {

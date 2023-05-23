@@ -158,14 +158,24 @@ export default {
         .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
     },
     saveToVault () {
-      let allWalletType = this.$store.getters['global/getAllWalletTypes']
-      allWalletType = JSON.stringify(allWalletType)
-      allWalletType = JSON.parse(allWalletType)
+      // saving to wallet vault
+      let wallet = this.$store.getters['global/getAllWalletTypes']
+      wallet = JSON.stringify(wallet)
+      wallet = JSON.parse(wallet)
 
-      this.$store.commit('global/updateVault', allWalletType)
+      let chipnet = this.$store.getters['global/getAllChipnetTypes']
+      chipnet = JSON.stringify(chipnet)
+      chipnet = JSON.parse(chipnet)
+
+      const info = {
+        wallet: wallet,
+        chipnet: chipnet
+      }
+
+      this.$store.commit('global/updateVault', info)
       this.$store.commit('global/updateWalletIndex', this.walletIndex)
 
-      let asset = this.$store.getters['assets/getAssets']
+      let asset = this.$store.getters['assets/getAllAssets']
       asset = JSON.stringify(asset)
       asset = JSON.parse(asset)
 
@@ -197,14 +207,14 @@ export default {
       }
       vm.steps += 1
 
-      const wallet = new Wallet(this.mnemonic)
+      const wallet = new Wallet(vm.mnemonic)
       const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
       const slpWallets = [wallet.SLP, wallet.SLP_TEST]
 
       for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
-        bchWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+        await bchWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'bch',
@@ -336,10 +346,11 @@ export default {
     }
   },
   async mounted () {
-    this.mnemonic = await getMnemonic() || ''
-    if (this.mnemonic.split(" ").length === 12) {
-      this.steps = 9
-    }
+    this.mnemonic = ''
+    // this.mnemonic = await getMnemonic() || ''
+    // if (this.mnemonic.split(" ").length === 12) {
+    //   this.steps = 9
+    // }
 
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [

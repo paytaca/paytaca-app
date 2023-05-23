@@ -40,8 +40,8 @@ export class BchWallet {
   }
 
   /**
-   * 
-   * @param {Object} opts 
+   *
+   * @param {Object} opts
    * @param {Boolean} opts.with_tx
    * @param {Boolean} opts.exclude_pos
    * @param {Number} opts.posid
@@ -87,7 +87,7 @@ export class BchWallet {
       public_key_hash: public_key_hash,
       signature: Buffer.from(signature).toString('base64')
     }
-    
+
     if (this.isChipnet) {
       receivingAddress = convertCashAddress(receivingAddress, this.isChipnet, false)
       changeAddress = convertCashAddress(changeAddress, this.isChipnet, false)
@@ -111,6 +111,7 @@ export class BchWallet {
   async getNewAddressSet (index) {
     const addresses = await this.getAddressSetAt(index)
     const addressSet = { receiving: addresses.receiving, change: addresses.change }
+
     const data = {
       addresses: addressSet,
       projectId: this.projectId,
@@ -141,8 +142,8 @@ export class BchWallet {
   }
 
   /**
-   * 
-   * @param {Object} opts 
+   *
+   * @param {Object} opts
    * @param {Number} opts.startIndex
    * @param {Number} opts.count
    */
@@ -245,11 +246,11 @@ export class BchWallet {
   }
 
   /**
-   * 
-   * @param {Number|String} amount 
-   * @param {String} recipient 
-   * @param {String} changeAddress 
-   * @param {{ walletHash: String, posId: Number, paymentTimestamp: Number }} posDevice 
+   *
+   * @param {Number|String} amount
+   * @param {String} recipient
+   * @param {String} changeAddress
+   * @param {{ walletHash: String, posId: Number, paymentTimestamp: Number }} posDevice
    */
   async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
     const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
@@ -332,7 +333,7 @@ export class BchWallet {
 
 /**
  * decoding a URI standard BIP 0021 used as bitcoin payment links
- * @param {String} uri 
+ * @param {String} uri
  */
 export function decodeBIP0021URI(paymentUri) {
   const response = {

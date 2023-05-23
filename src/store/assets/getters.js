@@ -61,3 +61,11 @@ export function isVaultEmpty (state) {
     return false
   }
 }
+
+export function getAllAssets (state) {
+  const info = {
+    asset: state.assets,
+    chipnet_assets: state.chipnet__assets
+  }
+  return info
+}

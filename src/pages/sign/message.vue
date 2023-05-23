@@ -163,7 +163,7 @@ export default {
     this.connectedAddressIndex = connectedAddressIndex;
 
     // Load wallets
-    const mnemonic = await getMnemonic()
+    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
     const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
     const wallet = new Wallet(mnemonic, network)
     this.wallet = markRaw(wallet)

@@ -78,6 +78,10 @@ export function getAllWalletTypes (state) {
   return state.wallets
 }
 
+export function getAllChipnetTypes (state) {
+  return state.chipnet__wallets
+}
+
 export function getVault (state) {
   return state.vault
 }
