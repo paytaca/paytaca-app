@@ -28,7 +28,7 @@
             </q-banner>
           </v-offline>
           <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
-            <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/> 
+            <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
             <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
           </div>
           <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -981,7 +981,7 @@ export default {
       let addressObj = new Address(address)
       let addressIsValid = false
       let formattedAddress
-      
+
       try {
         if (vm.walletType === sBCHWalletType) {
           if (addressObj.isSep20Address()) {
@@ -1116,6 +1116,7 @@ export default {
           })
         } else if (vm.walletType === 'bch') {
           address = addressObj.toCashAddress()
+          const tokenId = vm.assetId.split('ct/')[1]
           const changeAddress = vm.getChangeAddress('bch')
           let sendPromise
           if (vm.sendData?.posDevice?.walletHash && vm.sendData?.posDevice?.posId >= 0) {
@@ -1124,7 +1125,19 @@ export default {
               vm.sendData.posDevice,
             )
           } else {
-            sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress)
+            if (tokenId) {
+              sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
+                tokenId: tokenId,
+                commitment: undefined,
+                capability: undefined
+              }, vm.sendData.amount)
+            } else {
+              sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
+                tokenId: tokenId,
+                commitment: undefined,
+                capability: undefined
+              }, undefined)
+            }
           }
           sendPromise.then(function (result) {
             vm.sendData.sending = false
