@@ -95,14 +95,26 @@ export default {
         this.resubscribeBCHAddresses(mnemonic)
         this.resubscribeSLPAddresses(mnemonic)
       }
+    },
+    // to use?
+    // Generate chipnet for existing wallet
+    async savingInitialChipnet () {
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+
+      const wallet = new Wallet(mnemonic, 'BCH')
+
+      //check if chipnet__wallet is empty
+      // get chipnet data
+      // save to chipnet__wallet + vaults
     }
   },
   async mounted () {
     const vm = this
-    // Generate chipnet for existing wallet
     // saving unsaved active wallet to vault
+
+    // first check if vaults are empty
     this.$store.dispatch('global/saveExistingWallet')
-    this.$store.dispatch('assets/saveExistingAsset', {index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash})
+    this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })
 
     this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
       console.log('Notification:', notification)

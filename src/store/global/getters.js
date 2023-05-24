@@ -68,8 +68,10 @@ export function getUtxoScanInfo(state) {
 export function isVaultEmpty (state) {
   const vault = state.vault
   if (vault.length === 0) {
+    console.log('vault empty')
     return true
   } else {
+    console.log('vault populated')
     return false
   }
 }

@@ -95,10 +95,11 @@ export async function saveWalletPreferences(context) {
 }
 
 export async function saveExistingWallet (context) {
-  // console.log('saving existing wallet')
+  console.log('entering saving existing wallet')
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters['getWallet']('bch')?.walletHash
     if (walletHash) {
+      console.log('saving existing wallet')
       let wallet = context.getters.getAllWalletTypes
       wallet = JSON.stringify(wallet)
       wallet = JSON.parse(wallet)

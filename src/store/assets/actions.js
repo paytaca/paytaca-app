@@ -141,8 +141,10 @@ export async function getMissingAssets (
 }
 
 export async function saveExistingAsset (context, details) {
+  console.log('enter saving existing asset')
   if (context.getters.isVaultEmpty) {
     if (details.walletHash) {
+      console.log('saving existing assets')
       let assets = context.getters.getAllAssets
       assets = JSON.stringify(assets)
       assets = JSON.parse(assets)

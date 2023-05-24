@@ -167,7 +167,11 @@ export default {
   async mounted () {
     const vm = this
 
-    console.log(vm.isChipnet)
+    // double checking if vault is empty
+    await this.$store.dispatch('global/saveExistingWallet')
+    await this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash})
+
+    // console.log(vm.isChipnet)
     vm.processVaultName()
     vm.arrangeVaultData()
     vm.isloading = true
