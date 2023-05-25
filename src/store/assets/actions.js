@@ -142,9 +142,8 @@ export async function getMissingAssets (
 
 export async function saveExistingAsset (context, details) {
   const vault = context.getters.getVault
-  console.log(vault)
   // check if vault keys are valid
-  if (!vault[0].hasOwnProperty('asset') || !vault[0].hasOwnProperty('chipnet_assets')) {
+  if (!vault[0].hasOwnProperty('asset') || !vault[0].hasOwnProperty('chipnet_assets') ) {
     context.commit('clearVault')
   }
   if (context.getters.isVaultEmpty) {
