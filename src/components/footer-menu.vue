@@ -46,13 +46,7 @@
         <span @click="$router.push({ name: 'apps-dashboard' })">{{ $t('Apps') }}</span>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
-        <!-- <router-link :to="{ name: 'apps-dashboard' }"> -->
-          <q-icon class="default-text-color mb-2" size="30px">
-            <svg>
-              <use xlink:href="app-receive.svg#icon"></use>
-            </svg>
-          </q-icon>
-        <!-- </router-link> -->
+          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_microwave_gen"/> <!-- fa-solid fa-vault -->
         <span>Wallets</span>
       </button>
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
