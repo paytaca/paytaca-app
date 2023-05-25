@@ -96,22 +96,73 @@ export default {
         this.resubscribeSLPAddresses(mnemonic)
       }
     },
-    // to use?
     // Generate chipnet for existing wallet
     async savingInitialChipnet () {
-      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+      const vm = this
 
-      const wallet = new Wallet(mnemonic, 'BCH')
+      const chipnetHash = vm.$store.getters['global/getAllChipnetTypes'].bch.walletHash
 
-      //check if chipnet__wallet is empty
-      // get chipnet data
-      // save to chipnet__wallet + vaults
+      if (chipnetHash.length === 0) {
+        console.log('enter')
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+        const wallet = new Wallet(mnemonic, 'BCH')
+
+        const bchChipWallet = wallet.BCH_CHIP
+        const slpChipWallet = wallet.SLP_TEST
+
+        const isChipnet = true
+
+        // save BCH_CHIP
+        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+          vm.$store.commit('global/updateWallet', {
+            isChipnet,
+            type: 'bch',
+            walletHash: bchChipWallet.walletHash,
+            derivationPath: bchChipWallet.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+          })
+          vm.$store.dispatch('chat/addIdentity', pgpIdentity)
+          try {
+            vm.$store.dispatch('global/refetchWalletPreferences')
+          } catch(error) { console.error(error) }
+        })
+
+        bchChipWallet.getXPubKey().then(function (xpub) {
+          vm.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'bch',
+            xPubKey: xpub
+          })
+        })
+
+        // save SLP_CHIP
+        slpChipWallet.getNewAddressSet(0).then(function (addresses) {
+          vm.$store.commit('global/updateWallet', {
+            isChipnet,
+            type: 'slp',
+            walletHash: slpChipWallet.walletHash,
+            derivationPath: slpChipWallet.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+          })
+        })
+
+        slpChipWallet.getXPubKey().then(function (xpub) {
+          vm.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'slp',
+            xPubKey: xpub
+          })
+        })
+      }
     }
   },
   async mounted () {
     const vm = this
-    // saving unsaved active wallet to vault
-
+    await vm.savingInitialChipnet()
     // first check if vaults are empty
     this.$store.dispatch('global/saveExistingWallet')
     this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })

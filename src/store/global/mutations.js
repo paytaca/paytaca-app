@@ -31,7 +31,6 @@ export function updateVault (state, details) {
 }
 
 export function clearVault (state) {
-  console.log('clearing Vault')
   state.vault = []
 }
 
