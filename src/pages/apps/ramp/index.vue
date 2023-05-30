@@ -19,19 +19,20 @@
       <q-tab
         name="fiat"
         :class="{'text-blue-5': darkMode}"
-        disable
         label="fiat"
-      >
-        <q-popup-proxy>
+        @click="selectedCurrency = 'fiat'"
+      />
+        <!-- <q-popup-proxy>
           <q-banner :class="darkMode ? 'pt-dark text-white' : 'text-black'" class="q-pa-md br-15 text-center">
             Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!
           </q-banner>
-        </q-popup-proxy>
-      </q-tab>
+        </q-popup-proxy> -->
+      <!-- </q-tab> -->
       <q-tab
         name="crypto"
         :class="{'text-blue-5': darkMode}"
         label="crypto"
+        @click="selectedCurrency = 'crypto'"
       />
     </q-tabs>
 
@@ -46,23 +47,28 @@
     </div>
 
     <!-- Add FIAT tab content here -->
+    <div v-if="selectedCurrency === 'fiat'">
+      <FiatRampIndex/>
+    </div>
 
   </div>
 </template>
 <script>
-import { ref } from 'vue'
+// import { ref } from 'vue'
 import HeaderNav from '../../../components/header-nav'
 import RampShiftForm from '../../../components/ramp/RampShiftForm'
+import FiatRampIndex from '../../../components/ramp/fiat/Index.vue'
 
 export default {
   components: {
     HeaderNav,
-    RampShiftForm
+    RampShiftForm,
+    FiatRampIndex
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: ref('crypto'),
+      selectedCurrency: 'crypto',
       isAllowed: true,
       error: false
     }
@@ -86,4 +92,4 @@ export default {
   padding: 30px;
   color: gray;
 }
-</style>>
+</style>
