@@ -95,12 +95,13 @@ export async function saveWalletPreferences(context) {
 }
 
 export async function saveExistingWallet (context) {
-  console.log('saving wallet')
   const vault = context.getters.getVault
-
+  
   // check if vault keys are valid
-  if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
-    context.commit('clearVault')
+  if (vault.length > 0) {
+    if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+      context.commit('clearVault')
+    }
   }
 
   if (context.getters.isVaultEmpty) {

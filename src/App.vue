@@ -89,22 +89,17 @@ export default {
         localStorage.setItem('slpResubscribe', JSON.stringify(resubscriptionInfo))
       }
     },
-    async resubscribeAddresses() {
-      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
-      if (mnemonic) {
-        this.resubscribeBCHAddresses(mnemonic)
-        this.resubscribeSLPAddresses(mnemonic)
-      }
+    async resubscribeAddresses(mnemonic) {
+      this.resubscribeBCHAddresses(mnemonic)
+      this.resubscribeSLPAddresses(mnemonic)
     },
     // Generate chipnet for existing wallet
-    async savingInitialChipnet () {
+    async savingInitialChipnet (mnemonic) {
       const vm = this
 
       const chipnetHash = vm.$store.getters['global/getAllChipnetTypes'].bch.walletHash
 
       if (chipnetHash.length === 0) {
-        console.log('enter')
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, 'BCH')
 
         const bchChipWallet = wallet.BCH_CHIP
@@ -162,30 +157,35 @@ export default {
   },
   async mounted () {
     const vm = this
-    await vm.savingInitialChipnet()
-    // first check if vaults are empty
-    this.$store.dispatch('global/saveExistingWallet')
-    this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })
+    const index = vm.$store.getters['global/getWalletIndex']
+    const mnemonic = await getMnemonic(index)
+    if (mnemonic) {
+      await vm.savingInitialChipnet(mnemonic)
+      // first check if vaults are empty
+      this.$store.dispatch('global/saveExistingWallet')
+      this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })
 
-    this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
-      console.log('Notification:', notification)
-      if (notification?.title || notification?.body) {
-        this.$q.notify({
-          color: 'brandblue',
-          message: notification?.title,
-          caption: notification?.body,
-          attrs: {
-            style: 'word-break:break-all;',
-          },
-          actions: [
-            { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
-          ]
-        })
-      }
-    })
+      this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
+        console.log('Notification:', notification)
+        if (notification?.title || notification?.body) {
+          this.$q.notify({
+            color: 'brandblue',
+            message: notification?.title,
+            caption: notification?.body,
+            attrs: {
+              style: 'word-break:break-all;',
+            },
+            actions: [
+              { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
+            ]
+          })
+        }
+      })
 
-    this.subscribePushNotifications()
-    this.resubscribeAddresses()
+      this.subscribePushNotifications()
+      this.resubscribeAddresses(mnemonic)
+    }
+
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'

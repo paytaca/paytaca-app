@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { reactive, markRaw } from 'vue'
 import { boot } from 'quasar/wrappers'
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -6,6 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
 import { BigNumber } from 'ethers'
+import { Platform } from 'quasar'
 
 /**
  * This is a proxy events emitter for PushNotification plugin's events
@@ -194,25 +194,28 @@ class PushNotificationsManager {
 }
 
 export default boot(({ app, store }) => {
-  const manager = reactive(
-    markRaw(new PushNotificationsManager())
-  )
 
-  // Vuex notification module will act as the event bus for events when user opens app using
-  // push notifications, any page expected to do something when a push notification arrives
-  // should be handled within the page itself
-  // the routing however will be handled by the App.vue & notification module
-  // The reason is to have the same handlers for both cases where the app is closed/open
-  manager.events.addEventListener(
-    'pushNotificationActionPerformed',
-    notificationAction => {
-      console.log('Notification action:', JSON.stringify(notificationAction, null, 2))
-      store.commit('notification/setOpenedNotification', notificationAction?.notification)
-      store.dispatch('notification/handleOpenedNotification')
-    },
-  )
-
-  app.config.globalProperties.$pushNotifications = manager
-  app.provide('$pushNotifications', manager)
+  if (Platform.is.mobile) {
+    const manager = reactive(
+      markRaw(new PushNotificationsManager())
+    )
+  
+    // Vuex notification module will act as the event bus for events when user opens app using
+    // push notifications, any page expected to do something when a push notification arrives
+    // should be handled within the page itself
+    // the routing however will be handled by the App.vue & notification module
+    // The reason is to have the same handlers for both cases where the app is closed/open
+    manager.events.addEventListener(
+      'pushNotificationActionPerformed',
+      notificationAction => {
+        console.log('Notification action:', JSON.stringify(notificationAction, null, 2))
+        store.commit('notification/setOpenedNotification', notificationAction?.notification)
+        store.dispatch('notification/handleOpenedNotification')
+      },
+    )
+  
+    app.config.globalProperties.$pushNotifications = manager
+    app.provide('$pushNotifications', manager)
+  }
 
 })
