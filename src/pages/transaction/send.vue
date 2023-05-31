@@ -330,6 +330,7 @@ import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { NativeAudio } from '@capacitor-community/native-audio'
 import { Plugins } from '@capacitor/core'
 import QrScanner from '../../components/qr-scanner.vue'
 import { VOffline } from 'v-offline'
@@ -345,6 +346,13 @@ const { SecureStoragePlugin } = Plugins
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const sBCHWalletType = 'SmartBCH'
+
+NativeAudio.preload({
+    assetId: 'send-success',
+    assetPath: 'send-success.wav',
+    audioChannelNum: 1,
+    isUrl: false
+})
 
 export default {
   name: 'Send-page',
@@ -1033,8 +1041,9 @@ export default {
 
     playSound (success) {
       if (success) {
-        const audio = new Audio('/audio/send-success.wav')
-        audio.play()
+        NativeAudio.play({
+          assetId: 'send-success'
+        })
       }
     },
 
@@ -1216,6 +1225,12 @@ export default {
     }
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+  },
+
+  unmounted () {
+    NativeAudio.unload({
+      assetId: 'send-success',
+    })
   },
 
   created () {

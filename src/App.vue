@@ -165,24 +165,26 @@ export default {
       this.$store.dispatch('global/saveExistingWallet')
       this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })
 
-      this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
-        console.log('Notification:', notification)
-        if (notification?.title || notification?.body) {
-          this.$q.notify({
-            color: 'brandblue',
-            message: notification?.title,
-            caption: notification?.body,
-            attrs: {
-              style: 'word-break:break-all;',
-            },
-            actions: [
-              { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
-            ]
-          })
-        }
-      })
+      if (this.$q.platform.is.mobile) {
+        this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
+          console.log('Notification:', notification)
+          if (notification?.title || notification?.body) {
+            this.$q.notify({
+              color: 'brandblue',
+              message: notification?.title,
+              caption: notification?.body,
+              attrs: {
+                style: 'word-break:break-all;',
+              },
+              actions: [
+                { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
+              ]
+            })
+          }
+        })
 
-      this.subscribePushNotifications()
+        this.subscribePushNotifications()
+      }
       this.resubscribeAddresses(mnemonic)
     }
 
