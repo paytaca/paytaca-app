@@ -1,4 +1,4 @@
-const Watchtower = require('watchtower-cash-js')
+import Watchtower from 'watchtower-cash-js'
 const BCHJS = require('@psf/bch-js')
 const sha256 = require('js-sha256')
 const bchjs = new BCHJS()
@@ -38,8 +38,8 @@ export class SlpWallet {
   }
 
   /**
-   * 
-   * @param {Object} opts 
+   *
+   * @param {Object} opts
    * @param {Boolean} opts.with_tx
    * @param {Boolean} opts.exclude_pos
    * @param {Number} opts.posid
@@ -76,7 +76,7 @@ export class SlpWallet {
       addresses.receiving = bchjs.SLP.Address.toSLPAddress(encodedReceivingAddress)
       addresses.change = bchjs.SLP.Address.toSLPAddress(encodedChangeAddress)
     }
-    
+
     return addresses
   }
 
@@ -111,8 +111,8 @@ export class SlpWallet {
   }
 
   /**
-   * 
-   * @param {Object} opts 
+   *
+   * @param {Object} opts
    * @param {Number} opts.startIndex
    * @param {Number} opts.count
    */

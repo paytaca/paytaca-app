@@ -116,66 +116,68 @@ export async function getMnemonic (index = 0) {
   return mnemonic
 }
 
-export class Address {
-  constructor (address) {
-    this.address = address
-  }
+// export class Address {
+//   constructor (address) {
+//     this.address = address
+//   }
 
-  isSep20Address () {
-    return utils.isAddress(this.address)
-  }
+//   isSep20Address () {
+//     return utils.isAddress(this.address)
+//   }
 
-  isLegacyAddress () {
-    return bchjs.Address.isLegacyAddress(this.address)
-  }
+//   isLegacyAddress () {
+//     return bchjs.Address.isLegacyAddress(this.address)
+//   }
 
-  toLegacyAddress () {
-    return bchjs.Address.toLegacyAddress(this.address)
-  }
+//   toLegacyAddress () {
+//     return bchjs.Address.toLegacyAddress(this.address)
+//   }
 
-  toCashAddress () {
-    return bchjs.Address.toCashAddress(this.address)
-  }
+//   toCashAddress () {
+//     return bchjs.Address.toCashAddress(this.address)
+//   }
 
-  isCashAddress () {
-    return bchjs.Address.isCashAddress(this.address)
-  }
+//   isCashAddress () {
+//     return bchjs.Address.isCashAddress(this.address)
+//   }
 
-  isMainnetCashAddress () {
-    return bchjs.Address.isMainnetAddress(this.address)
-  }
+//   isMainnetCashAddress () {
+//     return bchjs.Address.isMainnetAddress(this.address)
+//   }
 
-  isTestnetCashAddress () {
-    return bchjs.Address.isTestnetAddress(this.address)
-  }
+//   isTestnetCashAddress () {
+//     return bchjs.Address.isTestnetAddress(this.address)
+//   }
 
-  isSLPAddress () {
-    return bchjs.SLP.Address.isSLPAddress(this.address)
-  }
+//   isSLPAddress () {
+//     return bchjs.SLP.Address.isSLPAddress(this.address)
+//   }
 
-  toSLPAddress () {
-    return bchjs.SLP.Address.toSLPAddress(this.address)
-  }
+//   toSLPAddress () {
+//     return bchjs.SLP.Address.toSLPAddress(this.address)
+//   }
 
-  isMainnetSLPAddress () {
-    return bchjs.SLP.Address.isMainnetAddress(this.address)
-  }
+//   isMainnetSLPAddress () {
+//     return bchjs.SLP.Address.isMainnetAddress(this.address)
+//   }
 
-  isTestnetSLPAddress () {
-    return bchjs.SLP.Address.isTestnetAddress(this.address)
-  }
+//   isTestnetSLPAddress () {
+//     return bchjs.SLP.Address.isTestnetAddress(this.address)
+//   }
 
-  isValidBCHAddress (isChipnet) {
-    const isBCHAddr = this.isCashAddress()
-    if (isChipnet)
-      return isBCHAddr && this.isTestnetCashAddress()
-    return isBCHAddr && this.isMainnetCashAddress()
-  }
+//   isValidBCHAddress (isChipnet) {
+//     const isBCHAddr = this.isCashAddress()
+//     if (isChipnet)
+//       return isBCHAddr && this.isTestnetCashAddress()
+//     return isBCHAddr && this.isMainnetCashAddress()
+//   }
 
-  isValidSLPAddress (isChipnet) {
-    const isSLPAddr = this.isSLPAddress()
-    if (isChipnet)
-      return isSLPAddr && this.isTestnetSLPAddress()
-    return isSLPAddr && this.isMainnetSLPAddress()
-  }
-}
+//   isValidSLPAddress (isChipnet) {
+//     const isSLPAddr = this.isSLPAddress()
+//     if (isChipnet)
+//       return isSLPAddr && this.isTestnetSLPAddress()
+//     return isSLPAddr && this.isMainnetSLPAddress()
+//   }
+// }
+
+export { Address } from 'watchtower-cash-js';

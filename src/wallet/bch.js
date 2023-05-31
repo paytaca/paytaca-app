@@ -216,7 +216,7 @@ export class BchWallet {
     return response.data
   }
 
-  async _sendBch (amount, recipient, changeAddress, broadcast=true) {
+  async _sendBch (amount, recipient, changeAddress, token, tokenAmount, broadcast=true) {
     console.log(`Sending ${amount} BCH to ${recipient}`)
     const data = {
       sender: {
@@ -227,7 +227,8 @@ export class BchWallet {
       recipients: [
         {
           address: recipient,
-          amount: amount
+          amount: amount,
+          tokenAmount: tokenAmount
         }
       ],
       changeAddress: changeAddress,
@@ -235,14 +236,15 @@ export class BchWallet {
         mnemonic: this.mnemonic,
         derivationPath: this.derivationPath
       },
+      token,
       broadcast: Boolean(broadcast),
     }
     const result = await this.watchtower.BCH.send(data)
     return result
   }
 
-  async sendBch(amount, recipient, changeAddress) {
-    return this._sendBch(amount, recipient, changeAddress, true)
+  async sendBch(amount, recipient, changeAddress, token, tokenAmount) {
+    return this._sendBch(amount, recipient, changeAddress, token, tokenAmount, true)
   }
 
   /**
