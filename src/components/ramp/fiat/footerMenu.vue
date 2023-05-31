@@ -5,16 +5,16 @@
     :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="$emit('clicked', 'orders')">
-          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_receipt_long"/> <!-- fa-solid fa-vault -->
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="selectMenu('orders')">
+          <q-icon class="mb-2" :class="isActive('orders') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
         <span>Orders</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="$emit('clicked', 'store')">
-          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_storefront"/> <!-- fa-solid fa-vault -->
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="selectMenu('store')">
+          <q-icon class="mb-2" :class="isActive('store') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_storefront"/>
         <span>Store</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="$emit('clicked', 'ads')">
-          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_sell"/> <!-- fa-solid fa-vault -->
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="selectMenu('ads')">
+          <q-icon class="mb-2" :class="isActive('ads') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_sell"/>
         <span>Ads</span>
       </button>
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
@@ -29,13 +29,25 @@ export default {
   name: 'footer-menu',
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      activeButton: 'store'
     }
   },
   emits: ['clicked'],
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')
+    },
+    selectMenu (menu) {
+      this.activeButton = menu
+      this.$emit('clicked', menu)
+    },
+    isActive (menu) {
+      if (this.activeButton === menu) {
+        return true
+      } else {
+        return false
+      }
     }
   }
 }
@@ -83,6 +95,9 @@ export default {
     }
     .default-text-color {
       color: rgb(60, 100, 246) !important;
+    }
+    .inactive-color {
+      color: gray;
     }
   }
 </style>

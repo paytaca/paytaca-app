@@ -1,5 +1,5 @@
 <template>
-  <FiatStore/>
+  <FiatStore v-if="menu === 'store'"/>
   <footerMenu
     v-on:clicked="switchMenu"
   />
@@ -20,7 +20,7 @@ export default {
   },
   methods: {
     switchMenu (item) {
-      console.log(item)
+      this.menu = item
     }
   },
   async mounted () {

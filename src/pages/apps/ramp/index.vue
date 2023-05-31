@@ -68,7 +68,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: 'crypto',
+      selectedCurrency: 'fiat', //crypto
       isAllowed: true,
       error: false
     }
