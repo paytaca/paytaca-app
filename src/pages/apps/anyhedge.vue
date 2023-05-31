@@ -376,7 +376,7 @@ const offersListRef = ref()
 
 const wallet = ref(null)
 async function initWallet() {
-  const mnemonic = await getMnemonic()
+  const mnemonic = await getMnemonic($store.getters['global/getWalletIndex'])
   wallet.value = markRaw(new Wallet(mnemonic))
 }
 onMounted(async () => {
@@ -514,7 +514,7 @@ function parseAssetSummaries(assetSummaries) {
       }
 
       const parsedSummary = {
-        oraclePubkey, 
+        oraclePubkey,
         oracle,
         totalHedgeUnits,
         totalLongSats,
@@ -595,7 +595,7 @@ const hedgeOffersPaginationState = ref({ count: 0, limit: 1, offset: 0 })
 const fetchingHedgeOffers = ref(false)
 const hedgeOffersHasFilter = computed(() => {
   return hedgeOffersFilter.value?.statuses?.length || hedgeOffersFilter.value?.expired
-}) 
+})
 function clearHedgeOffersListFilters() {
   hedgeOffersFilter.value.statuses = []
   hedgeOffersFilter.value.expired = undefined
@@ -632,7 +632,7 @@ function updatePendingHedgeOffersCount() {
         offset: 999,
       }
     }
-  ) 
+  )
     .then(response => {
       if (isNaN(response?.data?.count)) return Promise.reject({ response })
       pendingHedgeOffersCount.value = response?.data?.count
@@ -651,7 +651,7 @@ function updateAcceptedHedgeOffersCount() {
         offset: 999,
       }
     }
-  ) 
+  )
     .then(response => {
       if (isNaN(response?.data?.count)) return Promise.reject({ response })
       acceptedHedgeOffersCount.value = response?.data?.count
@@ -706,7 +706,7 @@ function fetchHedgeContracts(pagination) {
   const walletHash = wallet.value.BCH.getWalletHash()
   return anyhedgeBackend.get(
     '/anyhedge/hedge-positions/',
-    { 
+    {
       params: {
         hedge_wallet_hash: walletHash,
         limit: pagination?.limit || DEFAULT_PAGE_SIZE,
@@ -785,9 +785,9 @@ const longOffersPaginationState = ref({ count: 0, limit: 1, offset: 0 })
 const fetchingLongOffers = ref(false)
 const longOffersHasFilter = computed(() => {
   return longOffersFilter.value?.statuses?.length || longOffersFilter.value?.expired
-}) 
+})
 function clearLongOffersListFilters() {
-  longOffersFilter.value.statuses = [] 
+  longOffersFilter.value.statuses = []
   longOffersFilter.value.expired = undefined
   fetchLongOffers()
 }
@@ -822,7 +822,7 @@ function updatePendingLongOffersCount() {
         offset: 999,
       }
     }
-  ) 
+  )
     .then(response => {
       if (isNaN(response?.data?.count)) return Promise.reject({ response })
       pendingLongOffersCount.value = response?.data?.count
@@ -841,7 +841,7 @@ function updateAcceptedLongOffersCount() {
         offset: 999,
       }
     }
-  ) 
+  )
     .then(response => {
       if (isNaN(response?.data?.count)) return Promise.reject({ response })
       acceptedLongOffersCount.value = response?.data?.count
@@ -903,7 +903,7 @@ function fetchLongAccounts() {
       longAccount.value = response.data
     })
     .catch(err => {
-      if (err.response.status === 404) return 
+      if (err.response.status === 404) return
       console.error(err)
     })
     .finally(() => {
@@ -1047,7 +1047,7 @@ function handleOpenedNotification() {
   if (openContractTypes.indexOf(type) >= 0) {
     const address = openedNotification.value?.data?.address
     const position = openedNotification.value?.data?.position
-    displayContractFromNotification({address, position}) 
+    displayContractFromNotification({address, position})
     $store.commit('notification/clearOpenedNotification')
   }
 }

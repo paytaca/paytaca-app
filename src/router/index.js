@@ -2,6 +2,7 @@ import { createRouter, createMemoryHistory, createWebHistory, createWebHashHisto
 import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../wallet'
 import routes from './routes'
+import store from '../store'
 
 import { parseWalletConnectUri } from '../wallet/walletconnect'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
@@ -31,9 +32,12 @@ export default function ({ store }) {
   })
 
   Router.beforeEach(async (to, from, next) => {
+    // console.log('hello hello')
+    // console.log(store.getters['global/getWalletIndex'])
+    const index = store.getters['global/getWalletIndex']
     if (to.path === '/') {
       try {
-        const mnemonic = await getMnemonic()
+        const mnemonic = await getMnemonic(index)
         if (mnemonic) {
           next()
         } else {

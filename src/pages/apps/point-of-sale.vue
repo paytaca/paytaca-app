@@ -316,7 +316,7 @@ const walletData = computed(() => {
 
 const wallet = ref(null)
 onMounted(() => {
-  loadWallet('BCH').then(_wallet => {
+  loadWallet('BCH', $store.getters['global/getWalletIndex']).then(_wallet => {
     wallet.value = _wallet
     checkWalletLinkData()
   })
@@ -412,8 +412,8 @@ function fetchPosDevices(opts) {
 }
 
 /**
- * 
- * @param {{ walletHash:String, posid:Number }} posDevice 
+ *
+ * @param {{ walletHash:String, posid:Number }} posDevice
  * @param {Boolean} append append data to list if doesnt exist in current pos devices list state
  */
 function refetchPosDevice(posDevice, append=false) {
@@ -429,7 +429,7 @@ function refetchPosDevice(posDevice, append=false) {
 }
 
 function syncPosDevice(posDevice, append=false) {
-  const index = posDevices.value.findIndex(device => 
+  const index = posDevices.value.findIndex(device =>
     device?.walletHash == posDevice?.walletHash && device?.posid == posDevice?.posid
   )
 
@@ -457,7 +457,7 @@ function openLinkDeviceDialog(posDevice) {
 }
 
 async function deviceUnlinkRequest(posDevice) {
-  
+
   const dialog = $q.dialog({
     title: $t('UnlinkDevice', {}, 'Unlink device'),
     message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request'),
@@ -622,7 +622,7 @@ function updateLastActive(posDevice) {
 }
 
 function confirmUnlinkPosDevice(posDevice) {
-  if (posDevice?.linkedDevice?.unlinkRequest?.id) return 
+  if (posDevice?.linkedDevice?.unlinkRequest?.id) return
 
   const msgParams = { ID: posDevice?.posid, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
   const message = $t(
@@ -815,7 +815,7 @@ function confirmRemovePosDevice(posDevice) {
 }
 
 /**
- * @param {{ walletHash:String, posid:Number }} posDevice 
+ * @param {{ walletHash:String, posid:Number }} posDevice
  */
 function deletePosDevice(posDevice) {
   const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
@@ -829,7 +829,7 @@ onMounted(() => {
 })
 
 /**
- * @param {Object} rpcResult 
+ * @param {Object} rpcResult
  * @param {Object} rpcResult.result
  * @param {Object} rpcResult.result.update
  * @param {String} rpcResult.result.update.resource
@@ -868,7 +868,7 @@ const rpcUpdateHandler = (rpcResult) => {
 
 const rpcClient = new RpcWebSocketClient()
 const enableRpcReconnection = ref(true)
-const rpcReconnectTimeout = ref(null) 
+const rpcReconnectTimeout = ref(null)
 if (rpcClient.onNotification.indexOf(rpcUpdateHandler) < 0) {
   rpcClient.onNotification.push(rpcUpdateHandler)
 }

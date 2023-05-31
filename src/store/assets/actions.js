@@ -1,4 +1,5 @@
-import { axiosInstance } from '../../boot/axios' 
+import es from 'src/i18n/es'
+import { axiosInstance } from '../../boot/axios'
 import { getWatchtowerApiUrl, getBlockChainNetwork } from 'src/wallet/chipnet'
 
 function getTokenIdFromAssetId (assetId) {
@@ -125,7 +126,7 @@ export async function getMissingAssets (
     if (filterParams.exclude_token_ids) ignoredTokensStr = ',' + ignoredTokensStr
     filterParams.exclude_token_ids += ignoredTokensStr
   }
-  
+
   let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
   if (isCashToken) {
     url += '/cashtokens/fungible/'
@@ -139,6 +140,22 @@ export async function getMissingAssets (
   return data.results
 }
 
+export async function saveExistingAsset (context, details) {
+  const vault = context.getters.getVault
+  // check if vault keys are valid
+  if (!vault[0].hasOwnProperty('asset') || !vault[0].hasOwnProperty('chipnet_assets') ) {
+    context.commit('clearVault')
+  }
+  if (context.getters.isVaultEmpty) {
+    if (details.walletHash) {
+      let assets = context.getters.getAllAssets
+      assets = JSON.stringify(assets)
+      assets = JSON.parse(assets)
+
+      context.commit('updateVault', { index: details.index, asset: assets })
+    }
+  }
+}
 
 export async function getAssetMetadata (context, assetId) {
   const tokenType = assetId.split('/')[0]

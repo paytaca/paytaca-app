@@ -163,7 +163,7 @@ export default {
       vm.action = vm.actionProp
     }
 
-    getMnemonic().then(function (mnemonic) {
+    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       vm.wallet = markRaw(new Wallet(mnemonic))
       if (vm.action === 'Recover') {
         vm.claimGift(vm.giftCodeHash)

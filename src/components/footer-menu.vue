@@ -45,6 +45,10 @@
         </router-link>
         <span @click="$router.push({ name: 'apps-dashboard' })">{{ $t('Apps') }}</span>
       </button>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
+          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_microwave_gen"/> <!-- fa-solid fa-vault -->
+        <span>Wallets</span>
+      </button>
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>
       </button>
@@ -53,8 +57,12 @@
 </template>
 
 <script>
+import MultiWallet from './multi-wallet/index.vue'
 export default {
   name: 'footer-menu',
+  components: {
+    MultiWallet
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus']
@@ -63,6 +71,11 @@ export default {
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')
+    },
+    openWalletDialog () {
+      this.$q.dialog({
+        component: MultiWallet
+      })
     }
   }
 }

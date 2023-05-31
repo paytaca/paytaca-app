@@ -37,6 +37,7 @@ export default function () {
       }
     ],
     ignoredAssets: [],
+    vault: [],
     chipnet__ignoredAssets: []
   }   
 }

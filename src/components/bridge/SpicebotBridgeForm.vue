@@ -684,7 +684,7 @@ export default {
     loadWallet () {
       const vm = this
       // Load wallets
-      return getMnemonic().then(function (mnemonic) {
+      return getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, 'sBCH')
         return wallet.sBCH.getOrInitWallet()
           .then(() => {

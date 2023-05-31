@@ -28,7 +28,7 @@
             </q-banner>
           </v-offline>
           <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
-            <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/> 
+            <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
             <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
           </div>
           <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -1205,7 +1205,7 @@ export default {
     }
 
     // Load wallets
-    getMnemonic().then(function (mnemonic) {
+    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       const wallet = new Wallet(mnemonic, vm.network)
       vm.wallet = markRaw(wallet)
       if (vm.network === 'sBCH') vm.wallet.sBCH.getOrInitWallet()

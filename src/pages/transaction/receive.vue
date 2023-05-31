@@ -179,7 +179,7 @@ export default {
       vm.stopSbchListener()
       delete this?.$options?.sockets
 
-      getMnemonic().then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
           getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(function (result) {
@@ -218,7 +218,7 @@ export default {
     async copyPrivateKey () {
       try {
         this.copying = true
-        const mnemonic = await getMnemonic()
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
         const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)

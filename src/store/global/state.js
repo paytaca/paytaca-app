@@ -77,6 +77,8 @@ export default function () {
       email: '',
       mobileNumber: ''
     },
-    online: null
+    online: null,
+    walletIndex: 0,
+    vault: []
   }
 }

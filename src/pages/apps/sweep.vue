@@ -254,7 +254,7 @@ export default {
     const divHeight = screen.availHeight - 120
     vm.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
 
-    getMnemonic().then(function (mnemonic) {
+    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       vm.wallet = markRaw(new Wallet(mnemonic))
     })
   }

@@ -761,7 +761,7 @@ export default {
 
     async loadWallets () {
       const vm = this
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
 
       const wallet = new Wallet(mnemonic, vm.selectedNetwork)
       vm.wallet = markRaw(wallet)

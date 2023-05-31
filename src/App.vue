@@ -17,7 +17,7 @@ export default {
   methods: {
     async subscribePushNotifications() {
       if (this.subscribedPushNotifications) return
-      const wallet = await loadWallet()
+      const wallet = await loadWallet('BCH', this.$store.getters['global/getWalletIndex'])
       const walletHashes = [
         getWalletByNetwork(wallet, 'bch').getWalletHash(),
         getWalletByNetwork(wallet, 'slp').getWalletHash(),
@@ -49,7 +49,7 @@ export default {
       }
 
       try {
-        // added iterator 'ctr' to cap index to 50 
+        // added iterator 'ctr' to cap index to 50
         for (var i = resubscriptionInfo.lastIndex+1, ctr = 0; i <= lastBCHIndex && ctr < 50; i++, ctr++) {
           await getWalletByNetwork(wallet, 'bch').getNewAddressSet(i)
           resubscriptionInfo.lastIndex = i
@@ -90,14 +90,83 @@ export default {
       }
     },
     async resubscribeAddresses() {
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       if (mnemonic) {
         this.resubscribeBCHAddresses(mnemonic)
         this.resubscribeSLPAddresses(mnemonic)
       }
+    },
+    // Generate chipnet for existing wallet
+    async savingInitialChipnet () {
+      const vm = this
+
+      const chipnetHash = vm.$store.getters['global/getAllChipnetTypes'].bch.walletHash
+
+      if (chipnetHash.length === 0) {
+        console.log('enter')
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+        const wallet = new Wallet(mnemonic, 'BCH')
+
+        const bchChipWallet = wallet.BCH_CHIP
+        const slpChipWallet = wallet.SLP_TEST
+
+        const isChipnet = true
+
+        // save BCH_CHIP
+        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+          vm.$store.commit('global/updateWallet', {
+            isChipnet,
+            type: 'bch',
+            walletHash: bchChipWallet.walletHash,
+            derivationPath: bchChipWallet.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+          })
+          vm.$store.dispatch('chat/addIdentity', pgpIdentity)
+          try {
+            vm.$store.dispatch('global/refetchWalletPreferences')
+          } catch(error) { console.error(error) }
+        })
+
+        bchChipWallet.getXPubKey().then(function (xpub) {
+          vm.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'bch',
+            xPubKey: xpub
+          })
+        })
+
+        // save SLP_CHIP
+        slpChipWallet.getNewAddressSet(0).then(function (addresses) {
+          vm.$store.commit('global/updateWallet', {
+            isChipnet,
+            type: 'slp',
+            walletHash: slpChipWallet.walletHash,
+            derivationPath: slpChipWallet.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+          })
+        })
+
+        slpChipWallet.getXPubKey().then(function (xpub) {
+          vm.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'slp',
+            xPubKey: xpub
+          })
+        })
+      }
     }
   },
-  mounted () {
+  async mounted () {
+    const vm = this
+    await vm.savingInitialChipnet()
+    // first check if vaults are empty
+    this.$store.dispatch('global/saveExistingWallet')
+    this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })
+
     this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
       console.log('Notification:', notification)
       if (notification?.title || notification?.body) {
@@ -117,7 +186,6 @@ export default {
 
     this.subscribePushNotifications()
     this.resubscribeAddresses()
-    const vm = this
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'

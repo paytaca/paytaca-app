@@ -951,7 +951,7 @@ export default {
         })
     },
     async loadWallet () {
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       this.wallet = markRaw(new Wallet(mnemonic))
       return this.wallet
     }

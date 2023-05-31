@@ -9,6 +9,14 @@
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
       <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
+          <q-btn
+            flat
+            padding="md"
+            icon="arrow_back"
+            color="blue"
+            @click="!$router.push('/')"
+            v-if="!$store.getters['global/isVaultEmpty']"
+          />
           <div class="row">
             <div class="col-12 q-py-sm">
               <q-btn class="full-width bg-blue-9 text-white" @click="initCreateWallet()" :label="$t('CreateNewWallet')" rounded />
@@ -124,7 +132,8 @@ export default {
       showMnemonicTest: false,
       pinDialogAction: '',
       pin: '',
-      securityOptionDialogStatus: 'dismiss'
+      securityOptionDialogStatus: 'dismiss',
+      walletIndex: 0
     }
   },
   watch: {
@@ -148,10 +157,35 @@ export default {
         .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuations
         .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
     },
+    saveToVault () {
+      // saving to wallet vault
+      let wallet = this.$store.getters['global/getAllWalletTypes']
+      wallet = JSON.stringify(wallet)
+      wallet = JSON.parse(wallet)
+
+      let chipnet = this.$store.getters['global/getAllChipnetTypes']
+      chipnet = JSON.stringify(chipnet)
+      chipnet = JSON.parse(chipnet)
+
+      const info = {
+        wallet: wallet,
+        chipnet: chipnet
+      }
+
+      this.$store.commit('global/updateVault', info)
+      this.$store.commit('global/updateWalletIndex', this.walletIndex)
+
+      let asset = this.$store.getters['assets/getAllAssets']
+      asset = JSON.stringify(asset)
+      asset = JSON.parse(asset)
+
+      this.$store.commit('assets/updateVault', { index: this.walletIndex, asset: asset })
+    },
     continueToDashboard () {
       const vm = this
 
       this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+        vm.saveToVault()
         vm.$router.push('/')
       })
     },
@@ -167,20 +201,20 @@ export default {
       // Create mnemonic seed, encrypt, and store
       if (vm.importSeedPhrase) {
         vm.mnemonicVerified = true
-        vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup))
+        vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
       } else {
-        vm.mnemonic = await generateMnemonic()
+        vm.mnemonic = await generateMnemonic(vm.walletIndex)
       }
       vm.steps += 1
 
-      const wallet = new Wallet(this.mnemonic)
+      const wallet = new Wallet(vm.mnemonic)
       const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
       const slpWallets = [wallet.SLP, wallet.SLP_TEST]
 
       for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
-        bchWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+        await bchWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'bch',
@@ -312,10 +346,11 @@ export default {
     }
   },
   async mounted () {
-    this.mnemonic = await getMnemonic() || ''
-    if (this.mnemonic.split(" ").length === 12) {
-      this.steps = 9
-    }
+    this.mnemonic = ''
+    // this.mnemonic = await getMnemonic() || ''
+    // if (this.mnemonic.split(" ").length === 12) {
+    //   this.steps = 9
+    // }
 
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [
@@ -323,6 +358,13 @@ export default {
       { value: 'es', label: 'Spanish' }
     ]
     let finalLang = ''
+
+    // get walletIndex
+    this.walletIndex = this.$store.getters['global/getVault'].length
+
+    if (this.$store.getters['global/isVaultEmpty']) {
+      this.walletIndex = 0
+    }
 
     // Adjust paytaca language according to phone's language (if supported by paytaca)
     let deviceLang = null

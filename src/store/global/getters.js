@@ -65,6 +65,31 @@ export function getUtxoScanInfo(state) {
   }
 }
 
+export function isVaultEmpty (state) {
+  const vault = state.vault
+  if (vault.length === 0) {
+    return true
+  } else {
+    return false
+  }
+}
+
+export function getAllWalletTypes (state) {
+  return state.wallets
+}
+
+export function getAllChipnetTypes (state) {
+  return state.chipnet__wallets
+}
+
+export function getVault (state) {
+  return state.vault
+}
+
+export function getWalletIndex (state) {
+  return state.walletIndex
+}
+
 export function getDefaultAssetLogo () {
   return function (val = '') {
     const string = sha256(String(val))

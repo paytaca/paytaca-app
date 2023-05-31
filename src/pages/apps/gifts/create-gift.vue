@@ -334,7 +334,7 @@ export default {
       this.generateGift()
     },
     async fetchCampaigns() {
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       this.wallet = new Wallet(mnemonic)
       let walletHash = this.$store.getters['global/getWallet']?.('bch')?.walletHash
       if (!walletHash) {

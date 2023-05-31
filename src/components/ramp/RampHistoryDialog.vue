@@ -167,7 +167,7 @@ export default {
     async getTransactions () {
       const vm = this
       vm.page += 1
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
       const wallet = new Wallet(mnemonic)
 
       const walletHash = wallet.BCH.getWalletHash()

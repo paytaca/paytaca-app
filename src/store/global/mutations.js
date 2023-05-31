@@ -7,7 +7,7 @@ function getWalletData (state, details) {
     if (isChipnet) {
       return state.chipnet__wallets[walletType]
     }
-  } 
+  }
   return state.wallets[walletType]
 }
 
@@ -22,6 +22,54 @@ export function setNetwork (state, network) {
     default:
       state.network = 'BCH'
   }
+}
+
+export function updateVault (state, details) {
+  const len = state.vault.push(details)
+
+  state.vault[len - 1].name = ''
+}
+
+export function clearVault (state) {
+  state.vault = []
+}
+
+export function updateWalletIndex (state, index) {
+  state.walletIndex = index
+}
+
+export function updateWalletName (state, details) {
+  state.vault[details.index].name = details.name
+}
+
+export function updateWalletSnapshot (state, details) {
+  let wallet = details.walletSnapshot
+  wallet = JSON.stringify(wallet)
+  wallet = JSON.parse(wallet)
+
+  let chipnet = details.chipnetSnapshot
+  chipnet = JSON.stringify(chipnet)
+  chipnet = JSON.parse(chipnet)
+
+  state.vault[details.index].wallet = wallet
+  state.vault[details.index].chipnet = chipnet
+  state.vault[details.index].name = details.name
+}
+
+export function updateCurrentWallet (state, index) {
+  const vault = state.vault[index]
+
+  let wallet = vault.wallet
+  wallet = JSON.stringify(wallet)
+  wallet = JSON.parse(wallet)
+
+  state.wallets = wallet
+
+  let chipnet = vault.chipnet
+  chipnet = JSON.stringify(chipnet)
+  chipnet = JSON.parse(chipnet)
+
+  state.chipnet__wallets = chipnet
 }
 
 export function toggleIsChipnet (state) {
