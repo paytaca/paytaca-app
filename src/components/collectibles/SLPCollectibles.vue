@@ -4,16 +4,20 @@
       <ProgressLoader/>
     </div>
     <template v-if="collectibles.length > 0">
-      <div v-if="groupedCollectibles.length" class="q-mx-md row justify-end">
-        <q-btn-toggle
-          flat
-          v-model="viewType"
-          toggle-color="brandblue"
-          :options="[
-            {icon: 'view_stream', value: 'list'},
-            {icon: 'window', value: 'grid'},
-          ]"
-        />
+      <div class="q-mx-md q-px-sm row items-center">
+        <div class="q-space text-h5 q-ml">SLP Collectibles</div>
+        <div v-if="groupedCollectibles.length" class="row justify-end">
+          <q-btn-toggle
+            flat
+            v-model="viewType"
+            toggle-color="brandblue"
+            padding="sm"
+            :options="[
+              {icon: 'view_stream', value: 'list'},
+              {icon: 'window', value: 'grid'},
+            ]"
+          />
+        </div>
       </div>
       <template v-if="groupedCollectibles.length && groupedView">
         <div v-for="group in groupedCollectibles" class="q-mt-md">

@@ -57,11 +57,22 @@
     </div>
     <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;">
       <q-tab-panel name="BCH">
-        <SLPCollectibles
-          ref="slpCollectibles"
-          :wallet="wallet"
-          style="margin:auto;"
-        />
+        <div class="row items-center justify-end">
+          <AssetFilter style="float:none" @filterTokens="type => bchNftType = type"/>
+        </div>
+        <keep-alive>
+          <CashTokensNFTs
+            v-if="bchNftType === 'ct'"
+            ref="cashtokenNFTs"
+            :wallet="wallet"
+          />
+          <SLPCollectibles
+            v-else
+            ref="slpCollectibles"
+            :wallet="wallet"
+            style="margin:auto;"
+          />
+        </keep-alive>
       </q-tab-panel>
       <q-tab-panel name="sBCH">
         <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" />
@@ -182,16 +193,27 @@ import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetForm
 import ERC721Collectibles from 'src/components/collectibles/ERC721Collectibles.vue'
 import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDialog.vue'
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
+import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
+import AssetFilter from 'src/components/AssetFilter.vue'
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav, AddERC721AssetFormDialog, ERC721Collectibles, ERC721AssetDetailDialog, SLPCollectibles },
+  components: {
+    HeaderNav,
+    AddERC721AssetFormDialog,
+    ERC721Collectibles,
+    ERC721AssetDetailDialog,
+    SLPCollectibles,
+    CashTokensNFTs,
+    AssetFilter,
+  },
   data () {
     return {
       collectibleDetail: {
         show: false,
         collectible: null
       },
+      bchNftType: 'ct', // slp | ct
       enableManageAssets: false,
       showAddERC721Form: false,
       selectERC721AssetExpanded: false,
@@ -265,6 +287,10 @@ export default {
     getCollectibles () {
       if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
         this.$refs.slpCollectibles.fetchCollectibles()
+      }
+
+      if (this?.$refs?.cashtokenNFTs?.fetchNfts?.call) {
+        this.$refs.cashtokenNFTs.fetchNfts()
       }
 
       if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {
