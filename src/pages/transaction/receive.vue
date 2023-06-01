@@ -331,8 +331,8 @@ export default {
         if (assetType === 'slp' || tokenType === 'ct') {
           if (data.token_id.split('/')[1] === tokenId) {
             vm.notifyOnReceive(
-              data.amount,
-              vm.asset.symbol,
+              BigInt(data.amount) / (10 ** data.token_decimals),
+              data.token_symbol.toUpperCase(),
               vm.asset.logo || vm.getFallbackAssetLogo(vm.asset),
               tokenType === 'ct' ? vm.asset.decimals : 0,
               tokenType === 'ct'
@@ -340,8 +340,8 @@ export default {
           }
         } else {
           vm.notifyOnReceive(
-            data.amount,
-            vm.asset.symbol,
+            data.value / (10 ** data.token_decimals),
+            data.token_symbol.toUpperCase(),
             vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
           )
         }
