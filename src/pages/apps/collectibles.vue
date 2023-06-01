@@ -289,8 +289,8 @@ export default {
         this.$refs.slpCollectibles.fetchCollectibles()
       }
 
-      if (this?.$refs?.cashtokenNFTs?.fetchNfts?.call) {
-        this.$refs.cashtokenNFTs.fetchNfts()
+      if (this?.$refs?.cashtokenNFTs?.refresh?.call) {
+        this.$refs.cashtokenNFTs.refresh()
       }
 
       if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {

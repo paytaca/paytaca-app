@@ -2,57 +2,65 @@
   <div :class="[darkMode ? 'pt-dark-label' : 'text-grey-8']">
     <div class="q-mx-md q-px-sm row items-center">
       <div class="q-space text-h5 q-ml">CashToken NFTs</div>
-    </div>
-    <div class="row items-center justify-end q-px-md">
-      <LimitOffsetPagination
-        :pagination-props="{
-          maxPages: 5,
-          rounded: true,
-          padding: 'sm md',
-          size: 'sm',
-          dark: darkMode,
-          color: 'brandblue',
-          boundaryNumbers: true
-        }"
-        :hide-below-pages="2"
-        :modelValue="nftsPagination"
-        @update:modelValue="fetchNfts"
-      />
-    </div>
-    <div v-if="fetchingNfts" class="row items-center justify-center">
-      <ProgressLoader/>
-    </div>
-    <div class="row items-start q-pa-md">
-      <q-card
-        v-for="nft in nfts" :key="nft?.id"
-        :class="darkMode ? 'text-white pt-dark-card' : 'text-black'"
-        class="q-ma-sm"
-        style="max-width:130px;width:100%;"
-        @click.stop="() => {
-          nftDialog.nft = nft
-          nftDialog.show = true
-        }"
-      >
-        <q-img
-          v-if="nft?.info?.imageUrl"
-          :src="nft?.info?.imageUrl"
-          fit="fill"
+      <div class="row justify-end">
+        <q-btn-toggle
+          flat
+          v-model="viewType"
+          toggle-color="brandblue"
+          padding="sm"
+          :options="[
+            {icon: 'view_stream', value: 'list'},
+            {icon: 'window', value: 'grid'},
+          ]"
         />
-        <q-img v-else :src="generateFallbackImage(nft)" fit="fill"></q-img>
-        <q-card-section class="q-pa-sm">
-          <div class="text-subtitle1">{{ nft?.info?.name }}</div>
-          <div v-if="nft?.info?.description" class="ellipsis">{{ nft?.info?.description }}</div>
-        </q-card-section>
-      </q-card>
+      </div>
     </div>
-    <template v-if="!nfts.length && !fetchingNfts">
-      <p style="font-size: 18px; color: gray; text-align: center; margin-top: 20px;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
-        No record
-      </p>
-    </template>
-    <q-dialog v-model="jsonRenderer.show" position="bottom">
-      <JSONRenderer :dark-mode="darkMode" :value="jsonRenderer.data" class="q-pa-md"/>
-    </q-dialog>
+    <keep-alive>
+      <div v-if="groupedView">
+        <div v-for="nftGroup in parsedNftGroups" :key="nftGroup?.category || nftGroup?.key" class="q-mt-md">
+          <div
+            class="text-h6 row no-wrap items-center q-px-md"
+            v-ripple style="position:relative;"
+            @click="() => toggleExpandGroupId(nftGroup?.category)"
+          >
+            <div class="ellipsis q-space" :class="darkMode ? 'text-grad' : 'text-grey-8'">
+              <span v-if="nftGroup.ungrouped">
+                Ungrouped NFTs
+              </span>
+              <span v-else >
+                {{ nftGroup?.info?.name || nftGroup?.category }}
+              </span>
+            </div>
+            <q-icon
+              name="expand_more"
+              :class="{'upsidedown': isGroupExpanded(nftGroup) }"
+              style="transition: 0.25s ease-out all;"
+            />
+          </div>
+          <q-slide-transition>
+            <keep-alive>
+              <CashTokensNFTGroup
+                ref="cashTokensNFTGroups"
+                v-if="isGroupExpanded(nftGroup)"
+                :category="nftGroup?.category"
+                :ungrouped="Boolean(nftGroup?.ungrouped)"
+                :dark-mode="darkMode"
+                :wallet="wallet"
+                @open-nft="openNft"
+              />
+            </keep-alive>
+          </q-slide-transition>
+          <q-separator :dark="darkMode" inset/>
+        </div>
+      </div>
+      <CashTokensNFTGroup
+        ref="cashTokensNFTsList"
+        v-else
+        :dark-mode="darkMode"
+        :wallet="wallet"
+        @open-nft="openNft"
+      />
+    </keep-alive>
     <CashTokenNFTDialog v-model="nftDialog.show" :nft="nftDialog.nft" :dark-mode="darkMode"/>
   </div>
 </template>
@@ -60,25 +68,26 @@
 import { Wallet } from 'src/wallet';
 import { useStore } from 'vuex';
 import { computed, onMounted, ref, watch } from 'vue';
-import ProgressLoader from 'components/ProgressLoader'
-import LimitOffsetPagination from 'components/LimitOffsetPagination.vue';
-import JSONRenderer from 'components/JSONRenderer.vue';
 import CashTokenNFTDialog from './CashTokenNFTDialog.vue';
+import CashTokensNFTGroup from './CashTokensNFTGroup.vue';
 
+defineExpose({
+  refresh,
+})
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const props = defineProps({
   wallet: Wallet,
 })
-defineExpose({
-  fetchNfts,
-})
+
+watch(() => [props.wallet], () => fetchNftGroups())
+onMounted(() => fetchNftGroups())
 
 const viewType = ref('grid')
+const groupedView = computed(() => viewType.value === 'list')
 
-const fetchingNfts = ref(false)
-const nftsPagination = ref({count: 0, limit: 0, offset: 0})
-const nfts = ref([].map(parseNftData))
+const fetchingNftGroups = ref(false)
+const nftGroups = ref([].map(parseNftData))
 /**
  * @param {Object} data 
  * @param {Number} data.id 
@@ -113,45 +122,74 @@ function parseNftData(data) {
   }
 }
 
-function generateFallbackImage(nft=parseNftData()) {
-  return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
-}
-
-function fetchNfts(opts={limit: 0, offset: 0}) {
+function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
+  if (!props.wallet) return Promise.reject()
   const params = {
     wallet_hash: props.wallet.BCH.walletHash,
-    // category: '07275f68d14780c737279898e730cec3a7b189a761caf43b4197b60a7c891a97',
-    capability: 'none',
     limit: opts?.limit || 10,
-    offset: opts?.offset || 0,
+    offset: 0,
   }
-
-  fetchingNfts.value = true
-  props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/', { params })
+  fetchingNftGroups.value = true
+  return props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/groups/', { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-      nfts.value = response?.data?.results?.map?.(parseNftData)
-      nftsPagination.value.count = response?.data?.count
-      nftsPagination.value.limit = response?.data?.limit
-      nftsPagination.value.offset = response?.data?.offset
+      nftGroups.value = response?.data?.results?.map?.(parseNftData)
+      if (response?.data?.count > response?.data?.limit && opts?.checkCount) {
+        return fetchNftGroups({ limit: response?.data?.count, checkCount: false })
+      }
       return response
     })
     .finally(() => {
-      fetchingNfts.value = false
+      fetchingNftGroups.value = false
     })
 }
 
-const nftDialog = ref({ show: false, nft: parseNftData() })
-
-watch(() => [props.wallet], () => fetchNfts())
-onMounted(() => {
-  if (props.wallet) {
-    fetchNfts()
+const parsedNftGroups = computed(() => {
+  const ungrouped = {
+    key: 'ungrouped',
+    ungrouped: true,
   }
+  if (!Array.isArray(nftGroups.value)) return [ungrouped]
+  const data = nftGroups.value
+    .map(nftGroup => Object.assign({}, nftGroup))
+    .filter(nftGroup => nftGroup?.capability === 'minting')
+
+  data.push(ungrouped)
+  return data
 })
 
-const jsonRenderer = ref({
-  show: false,
-  data: {},
-})
+const expandedGroupIds = ref([])
+function toggleExpandGroupId(groupId) {
+  const index = expandedGroupIds.value.indexOf(groupId)
+  if (index >= 0) expandedGroupIds.value.splice(index, 1)
+  else expandedGroupIds.value.push(groupId)
+}
+function isGroupExpanded(nft=parseNftData()) {
+  return expandedGroupIds.value.indexOf(nft?.category) >= 0
+}
+
+// component refs
+const cashTokensNFTGroups = ref()
+const cashTokensNFTsList = ref()
+function refresh() {
+  fetchNftGroups()
+  if(Array.isArray(cashTokensNFTGroups.value)) {
+    cashTokensNFTGroups.value.forEach(component => {
+      console.log(cashTokensNFTGroups)
+      if (!component?.fetchNfts?.call) return
+      console.log(component.fetchNfts)
+      component.fetchNfts()
+    })
+  }
+  if(cashTokensNFTsList.value?.fetchNfts?.call) {
+    console.log(cashTokensNFTsList.value.fetchNfts)
+    cashTokensNFTsList.value.fetchNfts()
+  }
+}
+
+const nftDialog = ref({ show: false, nft: parseNftData() })
+function openNft(nft= parseNftData()) {
+  nftDialog.value.nft = nft
+  nftDialog.value.show = true
+}
 </script>
