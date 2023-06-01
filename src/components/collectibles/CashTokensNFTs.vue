@@ -4,6 +4,7 @@
       <div class="q-space text-h5 q-ml">CashToken NFTs</div>
       <div class="row justify-end">
         <q-btn-toggle
+          v-if="parsedNftGroups?.length > 1 || viewType !== 'grid'"
           flat
           v-model="viewType"
           toggle-color="brandblue"
@@ -15,8 +16,8 @@
         />
       </div>
     </div>
-    <keep-alive>
-      <div v-if="groupedView">
+    <q-tab-panels v-model="groupedView" keep-alive style="background:inherit;">
+      <q-tab-panel :name="true" class="q-pa-none q-ma-none">
         <div v-for="nftGroup in parsedNftGroups" :key="nftGroup?.category || nftGroup?.key" class="q-mt-md">
           <div
             class="text-h6 row no-wrap items-center q-px-md"
@@ -52,16 +53,17 @@
           </q-slide-transition>
           <q-separator :dark="darkMode" inset/>
         </div>
-      </div>
-      <CashTokensNFTGroup
-        ref="cashTokensNFTsList"
-        v-else
-        :dark-mode="darkMode"
-        :wallet="wallet"
-        :ungrouped="null"
-        @open-nft="openNft"
-      />
-    </keep-alive>
+      </q-tab-panel>
+      <q-tab-panel :name="false" class="q-pa-none q-ma-none">
+        <CashTokensNFTGroup
+          ref="cashTokensNFTsList"
+          :dark-mode="darkMode"
+          :wallet="wallet"
+          :ungrouped="null"
+          @open-nft="openNft"
+        />
+      </q-tab-panel>
+    </q-tab-panels>
     <CashTokenNFTDialog v-model="nftDialog.show" :nft="nftDialog.nft" :dark-mode="darkMode"/>
   </div>
 </template>
