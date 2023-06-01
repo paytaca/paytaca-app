@@ -58,6 +58,7 @@
         v-else
         :dark-mode="darkMode"
         :wallet="wallet"
+        :ungrouped="null"
         @open-nft="openNft"
       />
     </keep-alive>

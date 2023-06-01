@@ -109,11 +109,11 @@ function parseNftData(data) {
 }
 function fetchNfts(opts={limit: 0, offset: 0}) {
   if (!props.wallet) return Promise.reject()
-
+  
   const params = {
     wallet_hash: props.wallet.BCH.walletHash,
     category: props.category || undefined,
-    has_group: !Boolean(props.ungrouped),
+    has_group: typeof props.ungrouped ==='boolean' ? !Boolean(props.ungrouped) : undefined,
     capabilityies: ['none', 'mutable'].join(','),
     has_balance: true,
     limit: opts?.limit || 10,
