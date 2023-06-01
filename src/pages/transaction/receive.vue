@@ -90,13 +90,6 @@ import {
   convertTokenAmount,
 } from 'src/wallet/chipnet'
 
-NativeAudio.preload({
-    assetId: 'send-success',
-    assetPath: 'send-success.wav',
-    audioChannelNum: 1,
-    isUrl: false
-})
-
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
 
@@ -422,6 +415,13 @@ export default {
       vm.setupListener()
     }
     this.updateLnsName()
+
+    NativeAudio.preload({
+      assetId: 'send-success',
+      assetPath: 'send-success.wav',
+      audioChannelNum: 1,
+      isUrl: false
+    })
   },
 
   created () {

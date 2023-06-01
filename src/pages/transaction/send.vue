@@ -347,13 +347,6 @@ const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const sBCHWalletType = 'SmartBCH'
 
-NativeAudio.preload({
-    assetId: 'send-success',
-    assetPath: 'send-success.wav',
-    audioChannelNum: 1,
-    isUrl: false
-})
-
 export default {
   name: 'Send-page',
   components: {
@@ -1225,6 +1218,13 @@ export default {
         vm.isCashToken = true
       vm.walletType = 'bch'
     }
+
+    NativeAudio.preload({
+      assetId: 'send-success',
+      assetPath: 'send-success.wav',
+      audioChannelNum: 1,
+      isUrl: false
+    })
 
     // Load wallets
     getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
