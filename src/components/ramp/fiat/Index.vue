@@ -1,5 +1,7 @@
 <template>
   <FiatStore v-if="menu === 'store'"/>
+  <FiatOrders v-if="menu === 'orders'"/>
+  <FiatAds v-if="menu === 'ads'"/>
   <footerMenu
     v-on:clicked="switchMenu"
   />
@@ -7,6 +9,9 @@
 <script>
 import footerMenu from './footerMenu.vue'
 import FiatStore from './FiatStore.vue'
+import FiatOrders from './FiatOrders.vue'
+import FiatAds from './FiatAds.vue'
+
 export default {
   data () {
     return {
@@ -16,7 +21,9 @@ export default {
   },
   components: {
     footerMenu,
-    FiatStore
+    FiatStore,
+    FiatOrders,
+    FiatAds
   },
   methods: {
     switchMenu (item) {
