@@ -133,7 +133,7 @@ export default {
       })
     },
     getNetwork (info) {
-      console.log(info)
+      // console.log(info)
       const network = info.shift_info.deposit.network.toLowerCase()
       const coin = info.shift_info.deposit.coin.toLowerCase()
       //check ethereum

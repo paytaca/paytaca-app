@@ -64,9 +64,11 @@
                           /BCH
                         </span>
                       </div>
-                      <div>
-                        <span class="subtext">{{ listing.trades }} trades</span><br>
-                        <span class="subtext">{{ listing.completion }}% completion</span>
+                      <div class="text-right">
+                        <span class="subtext">Quantity: {{ listing.quantity }} BCH</span><br>
+                        <span class="subtext">Trades: {{ listing.trades }}</span>
+                        <!-- <span class="subtext">{{ listing.trades }} trades</span><br>
+                        <span class="subtext">{{ listing.completion }}% completion</span> -->
                       </div>
                     </div>
                     <div class="q-gutter-sm q-pt-sm">
@@ -227,40 +229,40 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
- .btn-custom {
-    height: 40px;
-    width: 47%;
-    border-radius: 20px;
-    border: none;
-    color: #4C4F4F;
-    background-color: transparent;
-    outline:0;
-    cursor: pointer;
-    transition: .2s;
-    font-weight: 500;
-  }
-  .btn-custom:hover {
-    background-color: rgb(242, 243, 252);
-    color: #4C4F4F;
-  }
-  .btn-custom.active-buy-btn {
-    background-color: rgb(60, 100, 246) !important;
-    color: #fff;
-  }
-  .btn-custom.active-sell-btn {
+.btn-custom {
+  height: 40px;
+  width: 47%;
+  border-radius: 20px;
+  border: none;
+  color: #4C4F4F;
+  background-color: transparent;
+  outline:0;
+  cursor: pointer;
+  transition: .2s;
+  font-weight: 500;
+}
+.btn-custom:hover {
+  background-color: rgb(242, 243, 252);
+  color: #4C4F4F;
+}
+.btn-custom.active-buy-btn {
+  background-color: rgb(60, 100, 246) !important;
+  color: #fff;
+}
+.btn-custom.active-sell-btn {
   background-color: #ed5f59 !important;
   color: #fff;
 }
-  .btn-transaction {
-    font-size: 16px;
-    background-color: rgb(242, 243, 252);
-    border-radius: 24px;
-    padding: 4px;
-    margin-left: 12%;
-    margin-right: 12%;
-    margin-top: 10px;
-  }
-  .transactions-wallet {
+.btn-transaction {
+  font-size: 16px;
+  background-color: rgb(242, 243, 252);
+  border-radius: 24px;
+  padding: 4px;
+  margin-left: 12%;
+  margin-right: 12%;
+  margin-top: 10px;
+}
+.transactions-wallet {
   color: #4C4F4F;
 }
 .ib-text {
