@@ -93,8 +93,9 @@ export default {
   },
   methods: {
     convertTokenAmount,
-    num2shortStr(number) {
-      const SI_SYMBOL = ["", "k", "M", "G", "T", "P", "E"]
+    num2shortStr(value) {
+      const number = Number(value)
+      const SI_SYMBOL = ["", "K", "M", "G", "T", "P", "E"]
       const tier = Math.log10(Math.abs(number)) / 3 | 0
 
       if (tier === 0) return number

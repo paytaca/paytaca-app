@@ -58,5 +58,6 @@ export function getBlockChainNetwork () {
 
 export function convertTokenAmount (amount, decimals, isBCH=false) {
   if (isBCH) return amount
-  return amount / (10 ** decimals)
+  if (amount === 0) return amount
+  return BigInt(amount) / (BigInt(10) ** BigInt(decimals))
 }
