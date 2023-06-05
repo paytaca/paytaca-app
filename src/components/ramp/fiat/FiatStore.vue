@@ -3,6 +3,7 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     style="min-height:78vh;"
+    v-if="state === 'select'"
   >
     <div class="row no-wrap items-center q-pa-sm q-pt-md">
       <div>
@@ -29,8 +30,8 @@
       </div>
     </div>
     <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
-      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'buy' }" @click="transactionType='buy'">Buy</button>
-      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'sell'}" @click="transactionType='sell'">Sell</button>
+      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'buy' }" @click="transactionType='buy'">Buy BCH</button>
+      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'sell'}" @click="transactionType='sell'">Sell BCH</button>
     </div>
     <div class="q-mt-md">
       <div v-if="listings.length === 0" class="relative text-center" style="margin-top: 50px;">
@@ -83,14 +84,32 @@
       </div>
     </div>
   </q-card>
+  <!-- Buy BCH Here -->
+  <div v-if="state === 'buy'">
+    <FiatStoreBuy
+      v-on:back="state = 'select'"
+      :listingData="selectedListing"
+    />
+  </div>
+  <!-- Sell BCH Here -->
+  <div v-if="state === 'sell'">
+    <FiatStoreSell
+      v-on:back="state = 'select'"
+    />
+  </div>
 </template>
 <script>
+import FiatStoreBuy from './FiatStoreBuy.vue'
+import FiatStoreSell from './FiatStoreSell.vue'
+
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       transactionType: 'buy',
       selectedFiat: 'PHP',
+      state: 'select',
+      selectedListing: {},
       availableFiat: {
         PHP: 'Philippine Peso',
         USD: 'United States Dollar',
@@ -107,6 +126,8 @@ export default {
           price: '6991.79 PHP',
           quantity: 155,
           limit: '500 PHP to 10000 PHP',
+          min: 500,
+          max: 10000,
           paymentMethods: [
             'paypal',
             'gcash',
@@ -121,6 +142,8 @@ export default {
           price: '6991.79 PHP',
           quantity: 155,
           limit: '500 PHP to 10000 PHP',
+          min: 500,
+          max: 10000,
           paymentMethods: [
             'paypal',
             'gcash',
@@ -134,6 +157,8 @@ export default {
           price: '6991.79 PHP',
           quantity: 155,
           limit: '500 PHP to 10000 PHP',
+          min: 500,
+          max: 10000,
           paymentMethods: [
             'paypal',
             'gcash',
@@ -147,6 +172,8 @@ export default {
           price: '6991.79 PHP',
           quantity: 155,
           limit: '500 PHP to 10000 PHP',
+          min: 500,
+          max: 10000,
           paymentMethods: [
             'paypal',
             'gcash',
@@ -160,6 +187,8 @@ export default {
           price: '6991.79 PHP',
           quantity: 155,
           limit: '500 PHP to 10000 PHP',
+          min: 500,
+          max: 10000,
           paymentMethods: [
             'paypal',
             'gcash',
@@ -173,6 +202,8 @@ export default {
           price: '6991.79 PHP',
           quantity: 155,
           limit: '500 PHP to 10000 PHP',
+          min: 500,
+          max: 10000,
           paymentMethods: [
             'paypal',
             'gcash',
@@ -186,6 +217,8 @@ export default {
           price: '6991.79 PHP',
           quantity: 155,
           limit: '500 PHP to 10000 PHP',
+          min: 500,
+          max: 10000,
           paymentMethods: [
             'paypal',
             'gcash',
@@ -199,6 +232,8 @@ export default {
           price: '6991.79 PHP',
           quantity: 155,
           limit: '500 PHP to 10000 PHP',
+          min: 500,
+          max: 10000,
           paymentMethods: [
             'paypal',
             'gcash',
@@ -209,13 +244,20 @@ export default {
       ]
     }
   },
+  components: {
+    FiatStoreBuy,
+    FiatStoreSell
+  },
   methods: {
     selectFiatCoin (currency) {
       console.log(currency)
       this.selectedFiat = currency
     },
     selectListing (listing) {
-      console.log(listing)
+      const vm = this
+      // console.log(listing)
+      vm.selectedListing = listing
+      vm.state = vm.transactionType
     },
     sortedListings () {
       const vm = this

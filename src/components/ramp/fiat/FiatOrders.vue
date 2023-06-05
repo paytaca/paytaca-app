@@ -19,7 +19,7 @@
           <q-card-section style="max-height:60vh;overflow-y:auto;">
             <q-virtual-scroll :items="sortedListings()">
               <template v-slot="{ item: listing, index }">
-                <q-item clickable @click="selectListing(listing)">
+                <q-item clickable>
                   <q-item-section>
                     <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                       <div class="row">

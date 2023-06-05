@@ -5,14 +5,14 @@
     style="min-height:78vh;"
   >
     <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
-      <q-icon class="q-pl-md" size="sm" name='sym_o_filter_list'/>
+      <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list'/>
       <q-btn
         rounded
         no-caps
-        color="blue-9"
         padding="sm"
         class="q-ml-md"
         icon="add"
+        :class="transactionType === 'buy'? 'buy-add-btn': 'sell-add-btn'"
       />
     </div>
     <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
@@ -28,7 +28,7 @@
         <q-card-section style="max-height:60vh;overflow-y:auto;">
           <q-virtual-scroll :items="sortedListings()">
             <template v-slot="{ item: listing, index }">
-              <q-item clickable @click="selectListing(listing)">
+              <q-item>
                 <q-item-section>
                   <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <div class="row">
@@ -52,10 +52,25 @@
                         </span>
                       </div>
                       <div class="text-right">
-                        <span class="subtext">Quantity: {{ listing.quantity }} BCH</span><br>
-                        <span class="subtext">Trades: {{ listing.trades }}</span>
-                        <!-- <span class="subtext">{{ listing.trades }} trades</span><br>
-                        <span class="subtext">{{ listing.completion }}% completion</span> -->
+                        <q-btn
+                          outline
+                          rounded
+                          padding="sm"
+                          icon="edit"
+                          size="sm"
+                          color="grey-6"
+                          @click="editAds"
+                        />
+                        <q-btn
+                          outline
+                          rounded
+                          padding="sm"
+                          size="sm"
+                          icon="delete"
+                          color="grey-6"
+                          class="q-ml-xs"
+                          @click="deleteAds"
+                        />
                       </div>
                     </div>
                     <div class="q-gutter-sm q-pt-sm">
@@ -197,6 +212,12 @@ export default {
         return listing.type === vm.transactionType
       })
       return sorted
+    },
+    editAds () {
+      console.log('edit')
+    },
+    deleteAds () {
+      console.log('delete')
     }
   }
 }
@@ -247,5 +268,13 @@ color: #fff;
   font-weight: 500;
   font-size: 13px;
   opacity: .5;
+}
+.buy-add-btn {
+  background-color: rgb(60, 100, 246);
+  color: white;
+}
+.sell-add-btn {
+  background-color: #ed5f59;
+  color: white;
 }
 </style>
