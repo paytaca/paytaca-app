@@ -214,7 +214,9 @@ export default {
       for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
-        await bchWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+        await bchWallet.getNewAddressSet(0).then(function (response) {
+          const addresses = response?.addresses || null
+          const pgpIdentity = response?.pgpIdentity || null
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'bch',

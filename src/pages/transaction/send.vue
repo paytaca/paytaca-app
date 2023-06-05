@@ -398,6 +398,14 @@ export default {
       type: String,
       required: false
     },
+    commitment: {
+      type: String,
+      required: false,
+    },
+    capability: {
+      type: String,
+      required: false,
+    },
     paymentUrl: {
       type: String,
       required: false,
@@ -1128,11 +1136,12 @@ export default {
             )
           } else {
             if (tokenId) {
+              const sendAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
                 tokenId: tokenId,
-                commitment: undefined,
-                capability: undefined
-              }, vm.sendData.amount)
+                commitment: vm.commitment || undefined,
+                capability: vm.capability || undefined
+              }, sendAmount)
             } else {
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
                 tokenId: tokenId,

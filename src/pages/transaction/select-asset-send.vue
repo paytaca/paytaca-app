@@ -83,7 +83,6 @@ export default {
       result: '',
       error: '',
       isCashToken: true,
-      assets: null
     }
   },
   computed: {
