@@ -32,8 +32,8 @@
                   :color="darkMode ? 'grey' : 'white'"
                   :text-color="darkMode ? 'grey-4' : 'grey'"
                   :options="[
-                    { label: 'SLP', value: 'slp' },
-                    { label: 'CT', value: 'ct' }
+                    { label: 'CT', value: 'ct' },
+                    { label: 'SLP', value: 'slp' }
                   ]"
                 />
               </template>
@@ -86,7 +86,7 @@ export default {
         return this.$t('Add_SEP20_Token')
       if (this.isCashToken)
         // TODO: translate
-        return 'Add CashToken'
+        return 'Add Fungible CashToken'
       return this.$t('Add_Type1_Token')
     },
     inputPlaceholder () {
