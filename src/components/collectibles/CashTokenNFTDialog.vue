@@ -87,6 +87,19 @@
             <div class="text-caption text-grey">Capability</div>
             <div>{{ nft?.capability }}</div>
           </div>
+
+          <q-separator spaced :dark="darkMode"/>
+          <div
+            class="q-mb-sm rounded-borders"
+            style="position:relative;" v-ripple
+            @click="copyToClipboard(nft?.currentTxid)"
+          >
+            <div class="text-caption text-grey">Current TX</div>
+            <div v-if="nft?.currentTxid" style="word-break: break-all;">
+              {{ nft?.currentTxid }}
+              <q-icon name="content_copy"/>
+            </div>
+          </div>
         </q-tab-panel>
         <q-tab-panel name="raw">
           <div class="row items-center justify-end">
@@ -101,6 +114,35 @@
           <VueJsonPretty :data="nft?.info" :deep="2"/>
         </q-tab-panel>
       </q-tab-panels>
+      <div class="q-px-md q-pb-md">
+        <q-btn-group spread>
+          <q-btn
+            :label="$t('Verify')"
+            icon="visibility"
+            color="brandblue"
+            target="_blank"
+            :href="`https://blockchair.com/bitcoin-cash/transaction/${nft?.currentTxid}/?o=${nft?.currentIndex}`"
+          />
+          <q-btn
+            :label="$t('Send')"
+            icon="send"
+            color="brandblue"
+            :to="{
+              name: 'transaction-send',
+              query: {
+                assetId: `ct/${nft?.category}`,
+                tokenType: 65,
+                image: imageUrl,
+                symbol: nft?.info?.symbol,
+                commitment: nft?.commitment,
+                capability: nft?.capability,
+                amount: 0,
+                fixed: true,
+              }
+            }"
+          />
+        </q-btn-group>
+      </div>
     </q-card>
   </q-dialog>
 </template>
