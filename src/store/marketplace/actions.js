@@ -18,7 +18,8 @@ export async function updatePrivkey(context) {
   const walletHash = customer?.paytacaWallet?.walletHash
   if (!isFinite(index)) return Promise.reject(`invalid index: ${index}`)
 
-  const wallet = await loadWallet()
+  const walletIndex = context.rootGetters['global/getWalletIndex']
+  const wallet = await loadWallet('BCH', walletIndex)
   const privkey = await wallet.BCH.getPrivateKey(`0/${index}`)
 
   const message = `${Date.now()}`
@@ -43,7 +44,8 @@ export async function updateCustomerVerifyingPubkey(context, opts={ index: 0 }) 
   if (isNaN(index) || index < 0) index = customer?.paytacaWallet?.verifyingPubkeyIndex
   if (isNaN(index) || index < 0) return Promise.reject('invalid index')
 
-  const wallet = await loadWallet()
+  const walletIndex = context.rootGetters['global/getWalletIndex']
+  const wallet = await loadWallet('BCH', walletIndex)
   const walletHash = wallet.BCH.walletHash 
   const pubkey = await wallet.BCH.getPublicKey(`0/${index}`)
   const privkey = await wallet.BCH.getPrivateKey(`0/${index}`)
