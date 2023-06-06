@@ -15,13 +15,37 @@
       </div>
     </div>
     <div v-else class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div>
-        <div class="row items-start q-px-sm">
+      <div class="row items-start no-wrap q-px-sm">
+        <div class="q-space row items-start">
           <div class="text-h5 q-space">Order</div>
-          <q-chip v-if="order?.formattedStatus" :color="order?.statusColor" text-color="white">
-            {{ order?.formattedStatus }}
-          </q-chip>
+          <div style="margin-left:-4px;">
+            <q-chip
+              :color="parsePaymentStatusColor(order?.paymentStatus)"
+              class="text-weight-medium text-white"
+              clickable
+              @click="() => showPaymentsDialog = true"
+            >
+              {{ order?.formattedPaymentStatus }}
+            </q-chip>
+            <q-chip v-if="order?.formattedStatus" :color="order?.statusColor" text-color="white" class="text-weight-medium">
+              {{ order?.formattedStatus }}
+            </q-chip>
+          </div>
         </div>
+        <q-btn flat icon="more_vert" padding="xs" rounded>
+          <q-menu :class="[ darkMode ? 'pt-dark' : 'text-black' ]">
+            <q-item
+              v-close-popup clickable
+              @click="() => showPaymentsDialog = true"
+            >
+              <q-item-section>
+                <q-item-label>
+                  View Payments
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-menu>
+        </q-btn>
       </div>
       <div class="q-px-sm text-caption text-grey">#{{ order.id }}</div>
       <div class="row items-start items-delivery-address-panel">
@@ -149,18 +173,41 @@
           <div v-if="displayBch">{{ orderAmounts.total.bch }} BCH</div>
           <div v-else>{{ orderAmounts.total.currency }} {{ orderCurrency }}</div>
         </div>
+
+        <template v-if="orderAmounts.totalPaid.currency || orderAmounts.totalPendingPayment.currency">
+          <q-separator :dark="darkMode"/>
+          <div class="row items-start text-body1">
+            <div class="q-space">Total Paid</div>
+            <div v-if="displayBch">{{ orderAmounts.totalPaid.bch || 0 }} BCH</div>
+            <div v-else>{{ orderAmounts.totalPaid.currency || 0 }} {{ orderCurrency }}</div>
+          </div>
+          <div
+            v-if="orderAmounts.totalPendingPayment.currency"
+            class="row items-start text-grey"
+            @click.stop
+          >
+            <div class="q-space">Pending amount</div>
+            <div v-if="displayBch">{{ orderAmounts.totalPendingPayment.bch }} BCH</div>
+            <div v-else>{{ orderAmounts.totalPendingPayment.currency }} {{ orderCurrency }}</div>
+            <q-menu :class="[ 'q-pa-md', darkMode ? 'pt-dark' : 'text-black' ]">
+              Amount sent by customer but not yet received
+            </q-menu>
+          </div>
+        </template>
       </div>
     </div>
+    <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
   </q-pull-to-refresh>
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
-import { Delivery, Order, Storefront } from 'src/marketplace/objects'
-import { formatDateRelative } from 'src/marketplace/utils'
+import { Delivery, Order, Payment, Storefront } from 'src/marketplace/objects'
+import { formatDateRelative, parsePaymentStatusColor } from 'src/marketplace/utils'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LeafletMapDialog from 'src/components/LeafletMapDialog.vue'
+import OrderPaymentsDialog from 'src/components/marketplace/order-payments-dialog.vue'
 
 const props = defineProps({
   orderId: [String, Number],  
@@ -174,6 +221,8 @@ const initialized = ref(false)
 function resetPage() {
   initialized.value = false
   order.value.raw = null
+  delivery.value = Delivery.parse()
+  payments.value = []
 }
 watch(
   () => [props.orderId],
@@ -229,6 +278,8 @@ const orderAmounts = computed(() => {
     subtotal: { currency: order.value?.subtotal || 0, bch: 0 },
     deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
     total: { currency: 0, bch: 0 },
+    totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
+    totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
   }
   data.total.currency = Number(data.subtotal.currency) + Number(data.deliveryFee.currency)
   data.total.currency = Math.round(data.total.currency * 10 ** 3) / 10 ** 3
@@ -237,10 +288,14 @@ const orderAmounts = computed(() => {
     data.subtotal.bch = parseBch(data.subtotal.currency / orderBchPrice.value)
     data.deliveryFee.bch = parseBch(data.deliveryFee.currency / orderBchPrice.value)
     data.total.bch = parseBch(data.total.currency / orderBchPrice.value)
+    data.totalPaid.bch = parseBch(data.totalPaid.currency / orderBchPrice.value)
+    data.totalPendingPayment.bch = parseBch(data.totalPendingPayment.currency / orderBchPrice.value)
   } else {
     data.subtotal.bch = null
     data.deliveryFee.bch = null
     data.total.bch = null
+    data.totalPaid.bch = null
+    data.totalPendingPayment.bch = null
   }
 
   return data
@@ -339,11 +394,31 @@ const mapLocations = computed(() => {
   return data
 })
 
+
+const showPaymentsDialog = ref(false)
+const payments = ref([].map(Payment.parse))
+const fetchingPayments = ref(false)
+function fetchPayments() {
+  const params = { order_id: props?.orderId || null }
+
+  fetchingPayments.value = true
+  return backend.get(`connecta/payments/`, { params })
+    .then(response => {
+      if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+      payments.value = response.data.results.map(Payment.parse)
+      return response
+    })
+    .finally(() => {
+      fetchingPayments.value = false
+    })
+}
+
 async function refreshPage(done=() => {}) {
   try {
     await Promise.all([
       fetchOrder(),
       fetchDelivery(),
+      fetchPayments(),
     ])
   } finally {
     initialized.value = true

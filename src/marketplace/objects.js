@@ -585,6 +585,9 @@ export class Order {
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
    * @param {Number} data.subtotal
+   * @param {Number} data.total_paid
+   * @param {Number} data.total_pending_payment
+   * @param {Number} data.total_payments
    * @param {{ delivery_fee:Number, escrow_refund_address:String }} data.payment
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
@@ -601,6 +604,9 @@ export class Order {
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.items = data?.items?.map?.(OrderItem.parse)
     this.subtotal = data?.subtotal
+    this.totalPaid = data?.total_paid
+    this.totalPendingPayment = data?.total_pending_payment
+    this.totalPayments = data?.total_payments
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
@@ -619,6 +625,25 @@ export class Order {
 
   get statusColor() {
     return parseOrderStatusColor(this.status)
+  }
+
+  get total() {
+    return Number(this?.payment?.deliveryFee) + Number(this.subtotal)
+  }
+
+  get totalPayable() {
+    const totalPayments = parseFloat(this.totalPayments) || 0
+    return this.total - totalPayments
+  }
+
+  get paymentStatus() {
+    if (this.totalPaid >= this.total) return 'paid'
+    if (this.totalPaid > 0) return 'partially_paid'
+    return 'payment_pending'
+  }
+
+  get formattedPaymentStatus() {
+    return formatOrderStatus(this.paymentStatus)
   }
 
   async fetchStorefront() {
@@ -726,5 +751,151 @@ export class Delivery {
     this.fee = data?.fee
     this.createdAt = new Date(data?.created_at)
     this.updatedAt = new Date(data?.updated_at)
+  }
+}
+
+
+export class Payment {
+  static parse(data) {
+    return new Payment(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.order_id
+   * @param {{ code:String, symbol:String }} data.currency
+   * @param {String} data.status
+   * @param {Object} data.bch_price
+   * @param {Number} data.amount
+   * @param {String} data.transaction_timestamp
+   * @param {String} data.created_at
+   * @param {String} data.escrow_contract_address
+  */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.orderId = data?.order_id
+    this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
+    this.status = data?.status
+    this.bchPrice = BchPrice.parse(data?.bch_price)
+    this.amount = data?.amount
+    if (data?.transaction_timestamp) this.transactionTimestamp = new Date(data?.transaction_timestamp)
+    else if (this.transactionTimestamp) delete this.transactionTimestamp
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+    this.escrowContractAddress = data?.escrow_contract_address
+  }
+
+  get bchAmount() {
+    const satsPerBch = 10 ** 8
+    const bch = this.amount / this.bchPrice.price
+    return Math.round(bch * satsPerBch) / satsPerBch
+  }
+
+  get isEscrow() {
+    return Boolean(this.escrowContractAddress)
+  }
+
+  get canRefund() {
+    return ['sent', 'received'].indexOf(this?.status) >= 0
+  }
+
+  get canReceive() {
+    return ['pending', 'sent'].indexOf(this?.status) >= 0
+  }
+
+  async fetchEscrowContract() {
+    if (!this.escrowContractAddress) return Promise.reject()
+
+    return backend.get(`connecta/escrow/${this.escrowContractAddress}/`)
+      .then(response => {
+        this.escrowContract = EscrowContract.parse(response?.data)
+        return response
+      })
+  }
+}
+
+export class EscrowContract {
+  static parse(data) {
+    return new EscrowContract(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {String} data.address
+   * @param {String} data.buyer_address
+   * @param {String} data.seller_address
+   * @param {String} data.arbiter_address
+   * @param {String} data.servicer_address
+   * @param {String} data.delivery_service_address
+   * @param {Number} data.amount_sats
+   * @param {Number} data.service_fee_sats
+   * @param {Number} data.arbitration_fee_sats
+   * @param {Number} data.delivery_fee_sats
+   * @param {String} data.timestamp
+   * 
+   * @param {String} [data.funding_txid]
+   * @param {Number} [data.funding_vout]
+   * @param {Number} [data.funding_sats]
+   * 
+   * @param {String} [data.settlement_txid]
+   * @param {String} [data.settlement_type]
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+
+    this.address = data?.address
+    this.buyerAddress = data?.buyer_address
+    this.sellerAddress = data?.seller_address
+    this.arbiterAddress = data?.arbiter_address
+    this.servicerAddress = data?.servicer_address
+    this.deliveryServiceAddress = data?.delivery_service_address
+
+    this.amountSats = data?.amount_sats
+    this.serviceFeeSats = data?.service_fee_sats
+    this.arbitrationFeeSats = data?.arbitration_fee_sats
+    this.deliveryFeeSats = data?.delivery_fee_sats
+
+    if (data?.timestamp) this.timestamp = new Date(data?.timestamp) * 1
+    else if (this.timestamp) delete this.timestamp
+
+    this.fundingTxid = data?.funding_txid
+    this.fundingVout = data?.funding_vout
+    this.fundingSats = data?.funding_sats
+    this.settlementTxid = data?.settlement_txid
+    this.settlementType = data?.settlement_type
+  }
+
+  get bchAmounts() {
+    const SATS_PER_BCH = 10 ** 8
+    const toBch = val => Math.floor(val) / SATS_PER_BCH
+    const data = {
+      amount: toBch(this.amountSats),
+      serviceFee: toBch(this.serviceFeeSats),
+      arbitrationFee: toBch(this.arbitrationFeeSats),
+      deliveryFee: toBch(this.deliveryFeeSats),
+      total: 0,
+    }
+
+    // data.total = (data.amount + data.serviceFee + data.arbitrationFee + data.deliveryFee)
+    data.total = toBch(this.amountSats + this.serviceFeeSats + this.arbitrationFeeSats + this.deliveryFeeSats)
+    return data
   }
 }
