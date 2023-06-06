@@ -152,7 +152,9 @@ export default {
         loadingApp.value = true
         await $store.dispatch('marketplace/refetchCustomerData')
         const signerData = await getSignerData()
-        if (!customer.value?.id || !signerData?.value) {
+        const walletHash = signerData?.value?.split(':')[0]
+        const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash
+        if (!customer.value?.id || !signerData?.value || !walletHashMatch) {
           await $store.dispatch('marketplace/updatePrivkey').catch(error => {
             console.error(error)
             return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
