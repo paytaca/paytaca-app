@@ -296,6 +296,34 @@
             {{ formErrors?.payment?.deliveryFee }}
           </q-banner>
 
+          <q-input
+            dense
+            outlined
+            autogrow
+            label="Payment refund address"
+            :dark="darkMode"
+            :disable="loading"
+            v-model="formData.payment.escrowRefundAddress"
+            :rules="[
+              val => Boolean(val) || 'Required',
+            ]"
+            :error="Boolean(formErrors?.payment?.escrowRefundAddress)"
+            :error-message="formErrors?.payment?.escrowRefundAddress"
+          >
+            <template v-slot:append>
+              <q-icon name="help">
+                <q-menu
+                  anchor="bottom right" self="top right"
+                  :class="[
+                    darkMode ? 'pt-dark' : 'text-black',
+                    'q-pa-sm'
+                  ]"
+                >
+                  BCH address of customer. Used as receipient in case of refund on payment
+                </q-menu>
+              </q-icon>
+            </template>
+          </q-input>
           <div class="row items-center">
             <q-space/>
             <div>
@@ -331,7 +359,7 @@
               label="Review"
               color="brandblue"
               class="full-width"
-              @click="() => nextTab()"
+              @click="() => savePayment().then(() => nextTab())"
             />
           </div>
         </q-tab-panel>
@@ -409,16 +437,35 @@
           </div>
 
           <q-separator :dark="darkMode" spaced/>
-          <div class="row items-center">
+          <div
+            v-if="checkout?.payment?.escrowRefundAddress"
+            class="row items-start no-wrap q-px-xs q-mb-sm"
+          >
+            <div class="q-space">
+              <div class="text-grey text-caption" style="margin-bottom:-0.35em;">Payment refund address</div>
+              <div style="word-break:break-all;">{{ checkout?.payment?.escrowRefundAddress || '---' }}</div>
+            </div>
+            <q-icon name="help" size="sm" class="q-my-sm"/>
+            <q-menu
+              anchor="bottom right" self="top right"
+              :class="[
+                darkMode ? 'pt-dark' : 'text-black',
+                'q-pa-sm'
+              ]"
+            >
+              BCH address of customer. Used as receipient in case of refund on payment
+            </q-menu>
+          </div>
+          <div class="row items-center q-pa-xs">
+            <div>BCH Price:</div>
             <q-space/>
-            <div>
-              {{ checkoutBchPrice }} {{ checkoutCurrency }} / BCH
-              <q-icon name="info" size="1.25em">
-                <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']">
-                  <div class="text-body2">{{ checkoutCurrency }} price at</div>
-                  <div>{{ formatTimestampToText(checkout?.payment?.bchPrice?.timestamp) }}</div>
-                </q-menu>
-              </q-icon>
+            <div class="row items-center">
+              <div>{{ checkoutBchPrice }} {{ checkoutCurrency }} / BCH</div>
+              <q-icon name="info" size="1.25em"/>
+              <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']">
+                <div class="text-body2">{{ checkoutCurrency }} price at</div>
+                <div>{{ formatTimestampToText(checkout?.payment?.bchPrice?.timestamp) }}</div>
+              </q-menu>
             </div>
           </div>
           <div class="q-px-xs" @click="toggleAmountsDisplay">
@@ -539,6 +586,9 @@ function resetTabs() {
 const loading = ref(false)
 const loadingMsg = ref('')
 const formData = ref({
+  payment: {
+    escrowRefundAddress: '',
+  },
   delivery: {
     firstName: '',
     lastName: '',
@@ -558,6 +608,9 @@ const formData = ref({
 
 function resetFormData() {
   formData.value = {
+    payment: {
+      escrowRefundAddress: checkout.value?.payment?.escrowRefundAddress || bchAddress.value,
+    },
     delivery: {
       firstName: checkout?.value?.deliveryAddress?.firstName || '',
       lastName: checkout?.value?.deliveryAddress?.lastName || '',
@@ -686,7 +739,8 @@ function geocode() {
 const formErrors = ref({
   detail: [],
   payment: {
-    deliveryFee: ''
+    deliveryFee: '',
+    escrowRefundAddress: '',
   },
   delivery: {
     detail: [],
@@ -709,6 +763,7 @@ const formErrors = ref({
 function resetFormErrors() {
   formErrors.value.detail = []
   formErrors.value.payment.deliveryFee = ''
+  formErrors.value.payment.escrowRefundAddress = ''
   formErrors.value.delivery = {
     detail: [],
     firstName: '',
@@ -900,6 +955,33 @@ function saveDeliveryAddress() {
   })
 }
 
+function savePayment() {
+  loadingMsg.value = 'Updating payment'
+  return updateCheckout({
+    payment: {
+      escrow_refund_address: formData.value.payment.escrowRefundAddress,
+    }
+  })
+  .finally(() => resetFormErrors())
+  .catch(error => {
+    const data = error?.response?.data
+    formErrors.value.delivery.detail = errorParser.toArray(data?.non_field_errors)
+    if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = errorParser.toArray(data?.payment?.non_field_errors)
+    formErrors.value.payment.escrowRefundAddress = errorParser.firstElementOrValue(data?.payment?.escrow_refund_address)
+    formErrors.value.payment.deliveryFee = errorParser.firstElementOrValue(data?.payment?.delivery_fee)
+
+    if (!formErrors.value.delivery.detail?.length) {
+      if (Array.isArray(data)) formErrors.value.delivery.detail = data
+      if (data?.detail) formErrors.value.delivery.detail = [data?.detail]
+    }
+    if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = ['Unable to update delivery info']
+    return Promise.reject(error)
+  })
+  .finally(() => {
+    loadingMsg.value = ''
+  })
+}
+
 function updateCheckout(data) {
   loading.value = true
   return backend.patch(`connecta/checkouts/${checkout.value.id}/`, data)
@@ -1002,6 +1084,10 @@ function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefin
     }
   })
 }
+
+const bchAddress = computed(() => {
+  return $store.getters['global/getWallet']('bch')?.lastAddress
+})
 
 async function refreshPage(done=() => {}) {
   try {
