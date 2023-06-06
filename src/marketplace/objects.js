@@ -523,6 +523,7 @@ export class Checkout {
     this.payment = {
       bchPrice: BchPrice.parse(data?.payment?.bch_price),
       deliveryFee: data?.payment?.delivery_fee,
+      escrowRefundAddress: data?.payment?.escrow_refund_address,
     }
   }
 }
@@ -584,7 +585,7 @@ export class Order {
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
    * @param {Number} data.subtotal
-   * @param {{ delivery_fee:Number }} data.payment
+   * @param {{ delivery_fee:Number, escrow_refund_address:String }} data.payment
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
   */
@@ -602,6 +603,7 @@ export class Order {
     this.subtotal = data?.subtotal
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
+      escrowRefundAddress: data?.payment?.escrow_refund_address,
     }
 
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
