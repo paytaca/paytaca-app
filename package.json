@@ -29,6 +29,7 @@
     "@walletconnect/client": "^1.7.7",
     "aes256": "^1.1.0",
     "axios": "^0.21.4",
+    "axios-cache-interceptor": "^0.10.2",
     "bip39": "^3.0.4",
     "buffer": "^6.0.3",
     "capacitor-native-biometric": "^3.0.3",
