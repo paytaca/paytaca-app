@@ -28,14 +28,14 @@
         @click.stop="() => $emit('openNft', nft)"
       >
         <q-img
-          v-if="nft?.info?.imageUrl"
-          :src="nft?.info?.imageUrl"
+          v-if="nft?.parsedMetadata?.imageUrl"
+          :src="nft?.parsedMetadata?.imageUrl"
           fit="fill"
         />
         <q-img v-else :src="generateFallbackImage(nft)" fit="fill"></q-img>
         <q-card-section class="q-pa-sm">
-          <div class="text-subtitle1">{{ nft?.info?.name }}</div>
-          <div v-if="nft?.info?.description" class="ellipsis">{{ nft?.info?.description }}</div>
+          <div class="text-subtitle1 ellipsis-3-lines">{{ nft?.parsedMetadata?.name }}</div>
+          <div v-if="nft?.parsedMetadata?.description" class="ellipsis">{{ nft?.parsedMetadata?.description }}</div>
         </q-card-section>
       </q-card>
     </div>
@@ -47,6 +47,7 @@
   </div>
 </template>
 <script setup>
+import { CashNonFungibleToken } from "src/wallet/cashtokens";
 import { Wallet } from "src/wallet"
 import { useStore } from "vuex";
 import { onMounted, ref, watch } from "vue";
@@ -73,40 +74,8 @@ onMounted(() => fetchNfts())
 
 const fetchingNfts = ref(false)
 const nftsPagination = ref({count: 0, limit: 0, offset: 0})
-const nfts = ref([].map(parseNftData))
-/**
- * @param {Object} data 
- * @param {Number} data.id 
- * @param {String} data.commitment 
- * @param {'mutable' | 'minting' | 'none' | ''} data.capability
- * @param {String} data.current_txid
- * @param {String} data.current_index
- * @param {Object} data.info
- * @param {String} data.info.name
- * @param {String} data.info.description
- * @param {String} data.info.symbol
- * @param {Number} data.info.decimals
- * @param {String} data.info.image_url
- * @param {Object} data.info.nft_details
- */
-function parseNftData(data) {
-  return {
-    id: data?.id,
-    category: data?.category,
-    commitment: data?.commitment,
-    capability: data?.capability, // mutable || minting || none
-    currentTxid: data?.current_txid,
-    currentIndex: data?.current_index,
-    info: {
-      name: data?.info?.name,
-      description: data?.info?.description,
-      symbol: data?.info?.symbol,
-      decimals: data?.info?.decimals,
-      imageUrl: data?.info?.image_url,
-      nftDetails: data?.info?.nft_details,
-    }
-  }
-}
+
+const nfts = ref([].map(CashNonFungibleToken.parse))
 function fetchNfts(opts={limit: 0, offset: 0}) {
   if (!props.wallet) return Promise.reject()
   
@@ -124,7 +93,8 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
   props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/', { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-      nfts.value = response?.data?.results?.map?.(parseNftData)
+      nfts.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
+      nfts.value.forEach(nft => nft?.fetchMetadata?.())
       nftsPagination.value.count = response?.data?.count
       nftsPagination.value.limit = response?.data?.limit
       nftsPagination.value.offset = response?.data?.offset
@@ -135,7 +105,7 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
     })
 }
 
-function generateFallbackImage(nft=parseNftData()) {
+function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
   return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
 }
 </script>
