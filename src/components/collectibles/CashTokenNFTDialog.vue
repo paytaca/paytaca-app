@@ -26,16 +26,16 @@
         @error="() => forceFallbackImage = true"
       ></q-img>
       <q-tabs v-model="tab">
-        <q-tab :class="{'text-blue-5': darkMode}" name="info" label="Info"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="other" label="Other"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="raw" label="Raw data"/>
+        <q-tab :class="{'text-blue-5': darkMode}" name="details" label="Details"/>
+        <q-tab :class="{'text-blue-5': darkMode}" name="transaction" label="Transaction"/>
+        <q-tab :class="{'text-blue-5': darkMode}" name="extension" label="Extension"/>
       </q-tabs>
       <q-tab-panels
         animated
         v-model="tab"
         :class="darkMode ? 'pt-dark-card' : 'text-black'"
       >
-        <q-tab-panel name="info">
+        <q-tab-panel name="details">
           <!-- <q-btn
             flat
             no-caps label="Raw data"
@@ -62,7 +62,7 @@
             </table>
           </template>
         </q-tab-panel>
-        <q-tab-panel name="other">
+        <q-tab-panel name="transaction">
           <div
             class="q-mb-sm rounded-borders"
             style="position:relative;" v-ripple
@@ -101,7 +101,7 @@
             </div>
           </div>
         </q-tab-panel>
-        <q-tab-panel name="raw">
+        <q-tab-panel name="extension">
           <div class="row items-center justify-end">
             <q-btn
               flat
@@ -191,10 +191,10 @@ watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 watch(innerVal, () => {
   if (!innerVal.value) return
-  tab.value = 'info'
+  tab.value = 'details'
 })
 
-const tab = ref('info')
+const tab = ref('details')
 
 const fallbackName = computed(() => {
   return [
