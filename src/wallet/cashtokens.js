@@ -11,6 +11,12 @@ function getAnyProperty(obj) {
  return Object.getOwnPropertyNames(obj).map(propertyName => obj?.[propertyName])?.find(Boolean)
 }
 
+function convertIpfsUrl(ipfsUrl='') {
+  if (typeof ipfsUrl !== 'string') return ipfsUrl
+  if (!ipfsUrl.startsWith('ipfs://')) return ipfsUrl
+  return ipfsUrl.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
+}
+
 export class CashNonFungibleToken {
   static parse(...args) {
     return new CashNonFungibleToken(...args)    
@@ -24,7 +30,7 @@ export class CashNonFungibleToken {
     return {
       name: this.metadata?.name || this.info?.name,
       description: this.metadata?.description || this?.info?.description,
-      imageUrl: getAnyProperty(this.metadata?.uris) || this.info?.imageUrl,
+      imageUrl: convertIpfsUrl(getAnyProperty(this.metadata?.uris) || this.info?.imageUrl),
     }
   }
 
@@ -33,7 +39,7 @@ export class CashNonFungibleToken {
     return {
       name: data?.name || this?.parsedGroupMetadata?.name || this.info?.name,
       description: data?.description || this?.parsedGroupMetadata?.name || this.info?.description,
-      imageUrl: getAnyProperty(data?.uris) || this?.parsedGroupMetadata?.imageUrl || this.info?.imageUrl,
+      imageUrl: convertIpfsUrl(getAnyProperty(data?.uris) || this?.parsedGroupMetadata?.imageUrl || this.info?.imageUrl),
       attributes: data?.extensions?.attributes || this.info?.nftDetails?.extensions?.attributes,
     }
   }
