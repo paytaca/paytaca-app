@@ -68,6 +68,7 @@
   </div>
 </template>
 <script setup>
+import { CashNonFungibleToken } from 'src/wallet/cashtokens';
 import { Wallet } from 'src/wallet';
 import { useStore } from 'vuex';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -90,41 +91,7 @@ const viewType = ref('grid')
 const groupedView = computed(() => viewType.value === 'list')
 
 const fetchingNftGroups = ref(false)
-const nftGroups = ref([].map(parseNftData))
-/**
- * @param {Object} data 
- * @param {Number} data.id 
- * @param {String} data.commitment 
- * @param {'mutable' | 'minting' | 'none' | ''} data.capability
- * @param {String} data.current_txid
- * @param {String} data.current_index
- * @param {Object} data.info
- * @param {String} data.info.name
- * @param {String} data.info.description
- * @param {String} data.info.symbol
- * @param {Number} data.info.decimals
- * @param {String} data.info.image_url
- * @param {Object} data.info.nft_details
- */
-function parseNftData(data) {
-  return {
-    id: data?.id,
-    category: data?.category,
-    commitment: data?.commitment,
-    capability: data?.capability, // mutable || minting || none
-    currentTxid: data?.current_txid,
-    currentIndex: data?.current_index,
-    info: {
-      name: data?.info?.name,
-      description: data?.info?.description,
-      symbol: data?.info?.symbol,
-      decimals: data?.info?.decimals,
-      imageUrl: data?.info?.image_url,
-      nftDetails: data?.info?.nft_details,
-    }
-  }
-}
-
+const nftGroups = ref([].map(CashNonFungibleToken.parse))
 function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
   if (!props.wallet) return Promise.reject()
   const params = {
@@ -136,7 +103,8 @@ function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
   return props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/groups/', { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-      nftGroups.value = response?.data?.results?.map?.(parseNftData)
+      nftGroups.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
+      nftGroups.value.forEach(nft => nft?.fetchMetadata?.())
       if (response?.data?.count > response?.data?.limit && opts?.checkCount) {
         return fetchNftGroups({ limit: response?.data?.count, checkCount: false })
       }
@@ -190,8 +158,8 @@ function refresh() {
   }
 }
 
-const nftDialog = ref({ show: false, nft: parseNftData() })
-function openNft(nft= parseNftData()) {
+const nftDialog = ref({ show: false, nft: CashNonFungibleToken.parse() })
+function openNft(nft= CashNonFungibleToken.parse()) {
   nftDialog.value.nft = nft
   nftDialog.value.show = true
 }

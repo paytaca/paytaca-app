@@ -10,7 +10,7 @@
           class="text-h6 q-space" :class="darkMode ? 'text-grad' : ''"
           style="text-overflow:clip"
         >
-          {{ nft?.info?.name || fallbackName }}
+          {{ nft?.parsedMetadata?.name || fallbackName }}
         </div>
         <q-btn
           flat
@@ -44,18 +44,18 @@
             class="float-right"
             @click="() => tab = 'raw'"
           /> -->
-          <div v-if="nft?.info?.name" class="q-mb-sm">
+          <div class="q-mb-sm">
             <div class="text-caption text-grey">Name</div>
-            <div style="word-break: break-all;">{{ nft?.info?.name }}</div>
+            <div style="word-break: break-all;">{{ nft?.parsedMetadata?.name }}</div>
           </div>
-          <div v-if="nft?.info?.description" class="q-mb-sm">
+          <div v-if="nft?.parsedMetadata?.description" class="q-mb-sm">
             <div class="text-caption text-grey">Description</div>
-            <div>{{ nft?.info?.description }}</div>
+            <div>{{ nft?.parsedMetadata?.description }}</div>
           </div>
-          <template v-if="nft?.info?.nftDetails?.extensions?.attributes">
+          <template v-if="nft?.parsedMetadata?.attributes">
             <div class="text-subtitle1">Properties</div>
             <table style="border-spacing:4px 0px;">
-              <tr v-for="(attributeValue, attributeType, index) in nft?.info?.nftDetails?.extensions?.attributes" :key="index">
+              <tr v-for="(attributeValue, attributeType, index) in nft?.parsedMetadata?.attributes" :key="index">
                 <td class="text-grey">{{ attributeType }}</td>
                 <td>{{ attributeValue }}</td>
               </tr>
@@ -108,10 +108,10 @@
               no-caps label="Copy"
               icon="content_copy"
               padding="xs"
-              @click="() => copyToClipboard(JSON.stringify(nft?.info))"
+              @click="() => copyToClipboard(JSON.stringify(nft?.rawMetadata))"
             />
           </div>
-          <VueJsonPretty :data="nft?.info" :deep="2"/>
+          <VueJsonPretty :data="nft?.rawMetadata" :deep="2"/>
         </q-tab-panel>
       </q-tab-panels>
       <div class="q-px-md q-pb-md">
@@ -206,7 +206,7 @@ const fallbackName = computed(() => {
 watch(() => [props.nft?.imageUrl], () => forceFallbackImage.value = false)
 const forceFallbackImage = ref(false)
 const imageUrl = computed(() => {
-  if (!forceFallbackImage.value && props.nft?.info?.imageUrl) return props.nft?.info?.imageUrl
+  if (!forceFallbackImage.value && props.nft?.parsedMetadata?.imageUrl) return props.nft?.parsedMetadata?.imageUrl
   return $store.getters['global/getDefaultAssetLogo']?.(`${props.nft?.category}|${props.nft?.commitment}`)
 })
 
