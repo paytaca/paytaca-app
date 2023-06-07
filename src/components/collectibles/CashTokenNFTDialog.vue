@@ -24,7 +24,12 @@
         fit="fill" width="75"
         :src="imageUrl"
         @error="() => forceFallbackImage = true"
-      ></q-img>
+      >
+        <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
+          <q-spinner size="50px"/>
+          <span class="text-weight-medium">Loading metadata ...</span>
+        </q-inner-loading>
+      </q-img>
       <q-tabs v-model="tab">
         <q-tab :class="{'text-blue-5': darkMode}" name="details" label="Details"/>
         <q-tab :class="{'text-blue-5': darkMode}" name="transaction" label="Transaction"/>
@@ -44,13 +49,46 @@
             class="float-right"
             @click="() => tab = 'raw'"
           /> -->
-          <div class="q-mb-sm">
-            <div class="text-caption text-grey">Name</div>
-            <div style="word-break: break-all;">{{ nft?.parsedMetadata?.name }}</div>
+          <div class="row items-start q-gutter-x-xs">
+            <div class="q-mb-sm" style="flex-grow:0.5;">
+              <div class="text-caption text-grey">Name</div>
+              <div v-if="nft?.parsedMetadata?.name" style="word-break: break-all;">{{ nft?.parsedMetadata?.name }}</div>
+              <div v-else class="text-grey">---</div>
+            </div>
+            <div v-if="nft?.parsedMetadata?.symbol" class="q-mb-sm">
+              <div class="text-caption text-grey">Symbol</div>
+              <div>{{ nft?.parsedMetadata?.symbol }}</div>
+            </div>
           </div>
           <div v-if="nft?.parsedMetadata?.description" class="q-mb-sm">
             <div class="text-caption text-grey">Description</div>
             <div>{{ nft?.parsedMetadata?.description }}</div>
+          </div>
+          <div
+            class="q-mb-sm rounded-borders"
+            style="position:relative;" v-ripple
+            @click="copyToClipboard(nft?.category)"
+          >
+            <div class="text-caption text-grey">Category</div>
+            <div v-if="nft?.category" style="word-break: break-all;">
+              {{ nft?.category }} <q-icon name="content_copy"/>
+            </div>
+          </div>
+          <div class="row g-gutter-x-xs">
+            <div
+              class="q-mb-sm rounded-borders"
+              style="position:relative;flex-grow:0.5;" v-ripple
+              @click="copyToClipboard(nft?.commitment)"
+            >
+              <div class="text-caption text-grey">Commitment</div>
+              <div v-if="nft?.commitment">
+                {{ nft?.commitment }} <q-icon name="content_copy"/>
+              </div>
+            </div>
+            <div class="q-mb-sm">
+              <div class="text-caption text-grey">Capability</div>
+              <div>{{ nft?.capability }}</div>
+            </div>
           </div>
           <template v-if="nft?.parsedMetadata?.attributes">
             <div class="text-subtitle1">Properties</div>
@@ -63,39 +101,26 @@
           </template>
         </q-tab-panel>
         <q-tab-panel name="transaction">
-          <div
-            class="q-mb-sm rounded-borders"
-            style="position:relative;" v-ripple
-            @click="copyToClipboard(nft?.category)"
-          >
-            <div class="text-caption text-grey">Category</div>
-            <div v-if="nft?.category" style="word-break: break-all;">
-              {{ nft?.category }} <q-icon name="content_copy"/>
+          <div class="q-mb-sm rounded-borders">
+            <div class="q-mb-sm row items-center">
+              <div class="text-caption text-grey">Current Transaction</div>
+              <q-space/>
+              <q-btn
+                flat
+                padding="none"
+                no-caps
+                :label="$t('Verify')"
+                icon="link"
+                target="_blank"
+                :href="transactionUrl"
+              />
             </div>
-          </div>
-          <div
-            class="q-mb-sm rounded-borders"
-            style="position:relative;" v-ripple
-            @click="copyToClipboard(nft?.commitment)"
-          >
-            <div class="text-caption text-grey">Commitment</div>
-            <div v-if="nft?.commitment">
-              {{ nft?.commitment }} <q-icon name="content_copy"/>
-            </div>
-          </div>
-          <div class="q-mb-sm">
-            <div class="text-caption text-grey">Capability</div>
-            <div>{{ nft?.capability }}</div>
-          </div>
-
-          <q-separator spaced :dark="darkMode"/>
-          <div
-            class="q-mb-sm rounded-borders"
-            style="position:relative;" v-ripple
-            @click="copyToClipboard(nft?.currentTxid)"
-          >
-            <div class="text-caption text-grey">Current TX</div>
-            <div v-if="nft?.currentTxid" style="word-break: break-all;">
+            <div
+              v-if="nft?.currentTxid"
+              style="word-break: break-all;position:relative;" 
+              v-ripple
+              @click="copyToClipboard(nft?.currentTxid)"
+            >
               {{ nft?.currentTxid }}
               <q-icon name="content_copy"/>
             </div>
@@ -108,21 +133,14 @@
               no-caps label="Copy"
               icon="content_copy"
               padding="xs"
-              @click="() => copyToClipboard(JSON.stringify(nft?.rawMetadata))"
+              @click="() => copyToClipboard(JSON.stringify(nft?.extensions))"
             />
           </div>
-          <VueJsonPretty :data="nft?.rawMetadata" :deep="2"/>
+          <VueJsonPretty :data="nft?.extensions" :deep="2"/>
         </q-tab-panel>
       </q-tab-panels>
       <div class="q-px-md q-pb-md">
         <q-btn-group spread>
-          <q-btn
-            :label="$t('Verify')"
-            icon="visibility"
-            color="brandblue"
-            target="_blank"
-            :href="`https://blockchair.com/bitcoin-cash/transaction/${nft?.currentTxid}/?o=${nft?.currentIndex}`"
-          />
           <q-btn
             :label="$t('Send')"
             icon="send"
@@ -133,7 +151,7 @@
                 assetId: `ct/${nft?.category}`,
                 tokenType: 65,
                 image: imageUrl,
-                symbol: nft?.info?.symbol,
+                symbol: nft?.parsedMetadata?.symbol,
                 commitment: nft?.commitment,
                 capability: nft?.capability,
                 amount: 0,
@@ -202,6 +220,8 @@ const fallbackName = computed(() => {
     props?.nft?.commitment,
   ].join(':')
 })
+
+const transactionUrl = computed(() => `https://blockchair.com/bitcoin-cash/transaction/${props.nft?.currentTxid}/?o=${props.nft?.currentIndex}`)
 
 watch(() => [props.nft?.imageUrl], () => forceFallbackImage.value = false)
 const forceFallbackImage = ref(false)
