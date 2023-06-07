@@ -1,8 +1,9 @@
 import axios from "axios"
+import { setupCache } from 'axios-cache-interceptor';
 
-const bcmrBackend = axios.create({
+const bcmrBackend = setupCache(axios.create({
   baseURL: 'https://bcmr.paytaca.com/api',
-})
+}))
 
 function getAnyProperty(obj) {
  if (!obj || !typeof obj === 'object') return
