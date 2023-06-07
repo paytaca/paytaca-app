@@ -23,6 +23,10 @@ export class CashNonFungibleToken {
   }
 
   constructor (data) {
+    this.$state = {
+      metadataInitialized: false,
+      fetchingMetadata: false,
+    }
     this.updateData(data)
   }
 
@@ -30,6 +34,7 @@ export class CashNonFungibleToken {
     return {
       name: this.metadata?.name || this.info?.name,
       description: this.metadata?.description || this?.info?.description,
+      symbol: this.metadata?.symbol || this.info?.symbol,
       imageUrl: convertIpfsUrl(getAnyProperty(this.metadata?.uris) || this.info?.imageUrl),
     }
   }
@@ -45,9 +50,12 @@ export class CashNonFungibleToken {
   }
 
   get parsedMetadata() {
+    if (!this.$state.metadataInitialized) return
+
     return {
       name: this.parsedNftMetadata?.name || this.parsedGroupMetadata?.name,
       description: this.parsedNftMetadata?.description || this.parsedGroupMetadata?.description,
+      symbol: this.parsedGroupMetadata?.symbol,
       imageUrl: this.parsedNftMetadata?.imageUrl || this.parsedGroupMetadata?.imageUrl,
       attributes: this.parsedNftMetadata?.attributes,
     }
@@ -57,6 +65,9 @@ export class CashNonFungibleToken {
     return this?.metadata || this?.info
   }
 
+  get extensions() {
+    return this.info?.nftDetails?.extensions || this.metadata?.types?.[this.commitment]?.extensions
+  }
 
   /**
    * @param {Object} data 
@@ -96,10 +107,16 @@ export class CashNonFungibleToken {
     let url = `tokens/${this.category}/`
     if (this.commitment) url += `${this.commitment}/`
 
+    
+    this.$state.fetchingMetadata = true
     return bcmrBackend.get(url)
       .then(response => {
         this.metadata = response?.data
         return response
+      })
+      .finally(() => {
+        this.$state.fetchingMetadata = false
+        this.$state.metadataInitialized = true
       })
   }
 }
