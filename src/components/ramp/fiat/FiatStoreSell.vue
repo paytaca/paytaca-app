@@ -24,6 +24,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
- emits: ['back']
+  emits: ['back']
 }
 </script>

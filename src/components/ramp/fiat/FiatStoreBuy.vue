@@ -78,9 +78,11 @@
         :buyAmount="amount"
         :fiatAmount="fiatAmount"
         v-on:back="state = 'initial'"
+        v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
+        v-on:release="pendingRelease = !pendingRelease"
       />
     </div>
-    <div>
+    <div v-if="!hideSellerInfo">
       <div class="q-mx-lg text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
         SELLER INFO
       </div>
@@ -121,6 +123,14 @@
           <q-badge v-for="method in buy.paymentMethods" rounded outline color="blue" :label="method"/>
         </div>
       </div>
+      <div class="q-mx-lg q-mt-md" v-if="pendingRelease">
+        <div class="q-px-lg" style="font-weight: 500;">
+          Seller did not release crypto?
+        </div>
+        <div class="q-pt-xs q-mx-lg subtext">
+          If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal
+        </div>
+      </div>
     </div>
   </q-card>
 </template>
@@ -135,7 +145,9 @@ export default {
       amount: 0,
       cryptoAmount: 1.43,
       fiatAmount: '1000 PHP',
-      state: 'initial'
+      state: 'initial',
+      hideSellerInfo: false,
+      pendingRelease: false
     }
   },
   emits: ['back'],
