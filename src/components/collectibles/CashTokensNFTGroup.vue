@@ -28,14 +28,17 @@
         @click.stop="() => $emit('openNft', nft)"
       >
         <q-img
-          v-if="nft?.parsedMetadata?.imageUrl"
-          :src="nft?.parsedMetadata?.imageUrl"
+          :src="nft?.parsedMetadata?.imageUrl || generateFallbackImage(nft)"
           fit="fill"
-        />
-        <q-img v-else :src="generateFallbackImage(nft)" fit="fill"></q-img>
-        <q-card-section class="q-pa-sm">
+        >
+          <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
+            <q-spinner size="35px"/>
+            <span class="text-caption">Loading metadata ...</span>
+          </q-inner-loading>
+        </q-img>
+        <q-card-section v-if="nft?.parsedMetadata?.name || nft?.parsedMetadata?.description" class="q-pa-sm">
           <div class="text-subtitle1 ellipsis-3-lines">{{ nft?.parsedMetadata?.name }}</div>
-          <div v-if="nft?.parsedMetadata?.description" class="ellipsis">{{ nft?.parsedMetadata?.description }}</div>
+          <div class="ellipsis">{{ nft?.parsedMetadata?.description }}</div>
         </q-card-section>
       </q-card>
     </div>
