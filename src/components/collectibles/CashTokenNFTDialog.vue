@@ -33,7 +33,7 @@
       <q-tabs v-model="tab">
         <q-tab :class="{'text-blue-5': darkMode}" name="details" label="Details"/>
         <q-tab :class="{'text-blue-5': darkMode}" name="transaction" label="Transaction"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="extension" label="Extension"/>
+        <q-tab :class="{'text-blue-5': darkMode}" name="extension" label="Extensions" :disable="!nft?.extensions"/>
       </q-tabs>
       <q-tab-panels
         animated
@@ -69,7 +69,7 @@
             style="position:relative;" v-ripple
             @click="copyToClipboard(nft?.category)"
           >
-            <div class="text-caption text-grey">Category</div>
+            <div class="text-caption text-grey">Category ID</div>
             <div v-if="nft?.category" style="word-break: break-all;">
               {{ nft?.category }} <q-icon name="content_copy"/>
             </div>
@@ -90,26 +90,17 @@
               <div>{{ nft?.capability }}</div>
             </div>
           </div>
-          <template v-if="nft?.parsedMetadata?.attributes">
-            <div class="text-subtitle1">Properties</div>
-            <table style="border-spacing:4px 0px;">
-              <tr v-for="(attributeValue, attributeType, index) in nft?.parsedMetadata?.attributes" :key="index">
-                <td class="text-grey">{{ attributeType }}</td>
-                <td>{{ attributeValue }}</td>
-              </tr>
-            </table>
-          </template>
         </q-tab-panel>
         <q-tab-panel name="transaction">
           <div class="q-mb-sm rounded-borders">
             <div class="q-mb-sm row items-center">
-              <div class="text-caption text-grey">Current Transaction</div>
+              <div class="text-caption text-grey">Transaction</div>
               <q-space/>
               <q-btn
                 flat
                 padding="none"
                 no-caps
-                :label="$t('Verify')"
+                :label="$t('View in Explorer')"
                 icon="link"
                 target="_blank"
                 :href="transactionUrl"
@@ -127,15 +118,6 @@
           </div>
         </q-tab-panel>
         <q-tab-panel name="extension">
-          <div class="row items-center justify-end">
-            <q-btn
-              flat
-              no-caps label="Copy"
-              icon="content_copy"
-              padding="xs"
-              @click="() => copyToClipboard(JSON.stringify(nft?.extensions))"
-            />
-          </div>
           <VueJsonPretty :data="nft?.extensions" :deep="2"/>
         </q-tab-panel>
       </q-tab-panels>
