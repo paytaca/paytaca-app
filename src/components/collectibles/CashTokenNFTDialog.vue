@@ -2,7 +2,7 @@
   <q-dialog v-model="innerVal" full-width>
     <q-card style="max-width:90vw;" :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
       <q-card-section
-        class="row items-center no-wrap"
+        class="row items-start no-wrap"
         style="position:sticky;top:0;z-index:1;max-width:100%;background:inherit;"
         :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
       >
