@@ -12,7 +12,7 @@
               You have lost connection to the internet. This app is offline.
             </q-banner>
           </v-offline>
-          <div class="row q-pt-lg q-pb-xs">
+          <div class="row q-pt-lg q-pb-xs" v-if="enableSmartBCH">
             <q-tabs
               active-color="brandblue"
               class="col-12 q-px-sm q-pb-md pp-fcolor"
@@ -275,6 +275,9 @@ export default {
   computed: {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
     },
     openedNotification() {
       return this.$store.getters['notification/openedNotification']

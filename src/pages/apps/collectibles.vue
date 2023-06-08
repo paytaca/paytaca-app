@@ -18,6 +18,7 @@
     </q-icon>
     <q-tabs
       dense
+      v-if="enableSmartBCH"
       active-color="brandblue"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
@@ -228,6 +229,9 @@ export default {
     }
   },
   computed: {
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
     isSep20 () {
       return this.selectedNetwork === 'sBCH'
     },

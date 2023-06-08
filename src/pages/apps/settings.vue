@@ -92,6 +92,18 @@
                       />
                     </q-item-section>
                 </q-item>
+                <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
+                    <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SmartBCH') }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section avatar>
+                      <q-toggle
+                        v-model="enableSmartBCH"
+                        color="blue-9"
+                        keep-color
+                      />
+                    </q-item-section>
+                </q-item>
               </q-list>
           </div>
 
@@ -148,7 +160,8 @@ export default {
       pinStatus: true,
       filteredCurrencyOptions: [],
       darkMode: this.$store.getters['darkmode/getStatus'],
-      isChipnet: this.$store.getters['global/isChipnet']
+      isChipnet: this.$store.getters['global/isChipnet'],
+      enableSmartBCH: this.$store.getters['global/enableSmartBCH']
     }
   },
   components: {
@@ -160,6 +173,9 @@ export default {
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
+    },
+    enableSmartBCH (n, o) {
+      this.$store.commit('global/enableSmartBCH')
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
@@ -225,6 +241,7 @@ export default {
     }
   },
   created () {
+    console.log('SmartBCH', this.enableSmartBCH)
     NativeBiometric.isAvailable()
       .then(result => {
         if (result.isAvailable !== false) {

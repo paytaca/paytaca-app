@@ -3,6 +3,7 @@
     <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense
+      v-if="enableSmartBCH"
       active-color="brandblue"
       :style="{ 'margin-top': $q.platform.is.ios ? '100px' : '70px'}"
       class="col-12 q-px-lg pp-fcolor"
@@ -88,6 +89,9 @@ export default {
   computed: {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
     },
     selectedNetwork: {
       get () {

@@ -2,6 +2,7 @@ export default function () {
   return {
     network: 'BCH', // BCH || sBCH
     isChipnet: false,
+    enableSmartBCH: false,
     wallets: {
       bch: {
         walletHash: '',

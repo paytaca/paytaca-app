@@ -76,6 +76,10 @@ export function toggleIsChipnet (state) {
   state.isChipnet = !state.isChipnet
 }
 
+export function enableSmartBCH (state) {
+  state.enableSmartBCH = !state.enableSmartBCH
+}
+
 export function updateWallet (state, details) {
   const wallet = getWalletData(state, details)
 

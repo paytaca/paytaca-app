@@ -23,6 +23,10 @@ export function isChipnet (state) {
   return state.isChipnet
 }
 
+export function enableSmartBCH (state) {
+  return state.enableSmartBCH
+}
+
 export function getAddress (state) {
   return function (walletType) {
     const wallet = getWalletData(state, walletType)
