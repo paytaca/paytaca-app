@@ -4,7 +4,7 @@
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     style="min-height:78vh;"
   >
-    <div class="q-pb-lg" v-if="state === 'initial'">
+    <div class="q-pb-md" v-if="state === 'initial'">
       <div>
         <q-btn
           flat
@@ -79,7 +79,8 @@
         :fiatAmount="fiatAmount"
         v-on:back="state = 'initial'"
         v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
-        v-on:release="pendingRelease = !pendingRelease"
+        v-on:pending-release="pendingRelease = !pendingRelease"
+        v-on:released="cryptoReleased"
       />
     </div>
     <div v-if="!hideSellerInfo">
@@ -112,10 +113,12 @@
             </span>
           </div>
         </div>
-        <div class="text-right q-mr-lg q-mt-md">
-          <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_chat" @click="amount = 0"/>
-          <!-- <span class="q-pr-md subtext">Quantity: {{ buy.quantity }} BCH</span><br>
-          <span class="q-pr-md subtext">Trades: {{ buy.trades }}</span> -->
+        <div class="text-right q-mr-lg q-mt-md" v-if="!released">
+          <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_chat"/>
+        </div>
+        <div class="text-right q-mr-lg q-mt-md" v-if="released">
+          <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
+          <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
         </div>
       </div>
       <div class="q-mx-lg q-pt-sm">
@@ -147,7 +150,8 @@ export default {
       fiatAmount: '1000 PHP',
       state: 'initial',
       hideSellerInfo: false,
-      pendingRelease: false
+      pendingRelease: false,
+      released: false
     }
   },
   emits: ['back'],
@@ -164,6 +168,10 @@ export default {
       } else {
         return true
       }
+    },
+    cryptoReleased () {
+      this.released = true
+      this.pendingRelease = !this.pendingRelease
     }
   },
   async mounted () {

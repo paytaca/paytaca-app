@@ -95,6 +95,7 @@
   <div v-if="state === 'sell'">
     <FiatStoreSell
       v-on:back="state = 'select'"
+      :listingData="selectedListing"
     />
   </div>
 </template>

@@ -34,20 +34,24 @@
           Order Created
         </div>
         <div class="q-pt-md" style="font-size: 13px;">
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
             <span class="text-nowrap q-ml-xs">{{ buyAmount }}</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
             <span class="text-nowrap q-ml-xs">{{ fiatAmount }}</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+            <span>Status:</span>
+            <span class="text-nowrap q-ml-xs" :class="buyStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ buyStatus }}</span>
+          </div>
+          <!-- <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Status:</span>
             <span class="text-nowrap q-ml-xs">{{ buyStatus }}</span>
-          </div>
+          </div> -->
         </div>
-        <q-separator :dark="darkMode" class="q-mt-md"/>
+        <q-separator :dark="darkMode" class="q-mt-sm"/>
 
         <!-- Pending Confirmation -->
         <div class="q-mt-md q-px-md" v-if="!confirmed">
@@ -76,7 +80,7 @@
         </div>
 
         <!-- Pending Payment -->
-        <div class="text-center q-mt-md" v-if="confirmed">
+        <div class="text-center q-mt-sm" v-if="confirmed">
           <div class="text-h5" style="font-size: 15px;">
             The seller has confirmed your order!
           </div>
@@ -109,17 +113,19 @@
             </div>
           </div>
         </div>
-        <div class="q-pt-sm" v-if="confirmed">
+        <div class="q-pt-md" v-if="confirmed">
             <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               CONTRACT INFO
             </div>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row q-pt-sm justify-between no-wrap q-mx-lg">
-              <span>Address:</span>
-              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
-            </div>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-              <span>Balance:</span>
-              <span class="text-nowrap q-ml-xs">{{ fiatAmount }}</span>
+            <div style="font-size: 13px">
+              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row q-pt-sm justify-between no-wrap q-mx-lg">
+                <span>Address:</span>
+                <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
+              </div>
+              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+                <span>Balance:</span>
+                <span class="text-nowrap q-ml-xs">{{ fiatAmount }}</span>
+              </div>
             </div>
           </div>
       </q-step>
@@ -247,15 +253,26 @@
             <span>Fiat Amount:</span>
             <span class="text-nowrap q-ml-xs">{{ fiatAmount }}</span>
           </div>
-          <div style="font-size: 16px; font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" :class="buyStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ buyStatus }}</span>
+            <span class="text-nowrap q-ml-xs" v-if="buyStatus !== 'Expired'" :class="buyStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ buyStatus }}</span>
+            <span class="text-nowrap q-ml-xs text-red-6" v-if="buyStatus === 'Expired'">{{ buyStatus }}</span>
+          </div>
+          <div class="row q-pt-md" v-if="buyStatus === 'Expired'">
+            <q-btn
+              rounded
+              no-caps
+              label='Appeal'
+              class="q-space text-white"
+              color="blue-6"
+              @click="appeal = true"
+            />
           </div>
         </div>
         <div v-if="buyStatus === 'Pending Release'">
           <q-separator :dark="darkMode" class="q-mt-md"/>
           <div class="text-center q-px-md q-pt-md text-center">
-            <div style="font-size: 16px;">
+            <div class="q-px-lg" style="font-size: 15px;">
               Your Crypto is pending for release by the seller
             </div>
             <div class="text-center text-h2" style="font-size: 40px; color: #ed5f59;">
@@ -280,8 +297,32 @@
       </q-card-section> -->
 
       <q-card-actions class="q-pt-lg text-center" align="center">
-        <q-btn flat label="Cancel" color="red" v-close-popup />
+        <q-btn flat label="Cancel" color="red-6" v-close-popup />
         <q-btn flat label="Confirm" color="blue-6" @click="cancelingOrder" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+  <q-dialog full-width persistent v-model="appeal">
+    <q-card style="width: 70%;">
+      <q-card-section>
+        <div class="text-h6 text-center">Submitting an Appeal</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <span>
+          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
+        </span><br><br>
+        <span class="q-pt-lg">
+          Submitting an appeal will raise a dispute on the funds which requires the intervention of the smart contract's assigned <span style="font-weight: 500;">Arbiter</span>.
+        </span><br><br>
+        <span class="q-pt-lg">
+          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-lg text-center" align="center">
+        <q-btn flat label="Cancel" color="red" v-close-popup />
+        <q-btn flat label="I understand, proceed" color="blue-6" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -298,7 +339,8 @@ export default {
       confirmed: false,
       countDown: '',
       timer: null,
-      confirmCancel: false
+      confirmCancel: false,
+      appeal: false
     }
   },
   props: {
@@ -306,7 +348,7 @@ export default {
     buyAmount: String,
     fiatAmount: String
   },
-  emits: ['back', 'hideSeller', 'release'],
+  emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
   methods: {
     paymentCountdown () {
       const vm = this
@@ -335,7 +377,6 @@ export default {
       }, 1000)
     },
     proceedToPayment () {
-     // clearInterval(this.timer)
       this.$emit('hideSeller')
       this.$refs.stepper.next()
     },
@@ -346,7 +387,7 @@ export default {
         this.timer = null
       }
       if (this.buyStatus === 'Released' || this.buyStatus === 'Pending Release') {
-        this.$emit('release')
+        this.$emit('pendingRelease')
       }
       this.$emit('back')
     },
@@ -361,7 +402,9 @@ export default {
         if (now === expire) {
           clearInterval(x)
           // vm.$refs.stepper.next()
-          vm.buyStatus = 'Released'
+          // vm.buyStatus = 'Released'
+          // vm.$emit('released')
+          vm.buyStatus = 'Expired'
           clearInterval(vm.timer)
           vm.timer = null
         }
@@ -387,7 +430,7 @@ export default {
     confirmPayment () {
       this.$refs.stepper.next()
       this.$emit('hideSeller')
-      this.$emit('release')
+      this.$emit('pendingRelease')
       this.buyStatus = 'Pending Release'
       this.releaseCntDwnSim()
     }
