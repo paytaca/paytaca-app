@@ -40,7 +40,7 @@
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }}</span>
+            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} PHP</span>
           </div>
           <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <span>Status:</span>
@@ -124,7 +124,7 @@
               </div>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
                 <span>Balance:</span>
-                <span class="text-nowrap q-ml-xs">{{ fiatAmount }}</span>
+                <span class="text-nowrap q-ml-xs">1000 PHP</span>
               </div>
             </div>
           </div>
@@ -151,7 +151,7 @@
             {{ countDown }}
           </div>
           <div>
-            Please pay  <span class="text-blue-6 text-h5" style="font-size: 18px;">{{ fiatAmount }}</span> within the time limit...
+            Please pay  <span class="text-blue-6 text-h5" style="font-size: 18px;">{{ fiatAmount }} PHP</span> within the time limit...
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-md"/>
@@ -251,7 +251,7 @@
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="subtext row justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }}</span>
+            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} PHP</span>
           </div>
           <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <span>Status:</span>

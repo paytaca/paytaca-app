@@ -13,7 +13,7 @@
           @click="$emit('back')"
         />
       </div>
-      <div class="q-mx-lg q-pt-xs text-h5 text-center" style="font-size: 18px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+      <div class="q-mx-lg q-pt-xs text-h5 text-center" style="font-size: 18px; font-weight: 500; color: rgb(60, 100, 246);" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
         BUY BY FIAT
       </div>
       <div class="q-mx-lg">
@@ -75,8 +75,8 @@
     <div v-if="state === 'processing'">
       <FiatStoreBuyProcess
         :listingData="buy"
-        :buyAmount="amount"
-        :fiatAmount="fiatAmount"
+        :buyAmount="cryptoAmount.toString()"
+        :fiatAmount="amount"
         v-on:back="state = 'initial'"
         v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
         v-on:pending-release="pendingRelease = !pendingRelease"
