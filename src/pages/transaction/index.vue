@@ -59,20 +59,23 @@
                   flat
                   padding="none"
                   size="sm"
-                  icon="app_registration"
+                  icon="settings"
                   style="color: #3B7BF6;"
-                  @click="toggleManageAssets"
-                />
-                <q-btn
-                  v-if="manageAssets"
-                  flat
-                  padding="none"
-                  size="sm"
-                  icon="search"
-                  style="color: #3B7BF6;"
-                  @click="checkMissingAssets({autoOpen: true})"
-                />
-                <span @click="toggleShowTokens" style="font-size: 11px;">HIDE TOKENS</span>
+                >
+                  <q-menu :dark="darkMode" :class="{'text-black': !darkMode}">
+                    <q-list style="min-width: 100px">
+                      <q-item clickable v-close-popup>
+                        <q-item-section @click="toggleManageAssets">Toggle Add/Remove Tokens</q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section @click="checkMissingAssets({autoOpen: true})">Search Missing Tokens</q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section @click="toggleShowTokens">Hide Tokens</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
               </p>
             </div>
           </div>
@@ -414,7 +417,8 @@ export default {
       }
     },
     toggleManageAssets () {
-      this.manageAssets = !this.manageAssets
+      const vm = this
+      vm.manageAssets = !vm.manageAssets
     },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
