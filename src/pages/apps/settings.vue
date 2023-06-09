@@ -68,7 +68,19 @@
                 </q-item>
                 <q-item>
                   <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('IgnoredTokens') }}</q-item-label>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Show Tokens') }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                      <q-toggle
+                        v-model="showTokens"
+                        color="blue-9"
+                        keep-color
+                      />
+                    </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Manage Ignored Tokens') }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <q-btn
@@ -82,7 +94,7 @@
 
                 <q-item clickable v-ripple @click="isChipnet = !isChipnet">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Chipnet') }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Use Chipnet Network') }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
                       <q-toggle
@@ -94,7 +106,7 @@
                 </q-item>
                 <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
                     <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SmartBCH') }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Show SmartBCH') }}</q-item-label>
                     </q-item-section>
                     <q-item-section avatar>
                       <q-toggle
@@ -161,6 +173,7 @@ export default {
       filteredCurrencyOptions: [],
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
+      showTokens: this.$store.getters['global/showTokens'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH']
     }
   },
@@ -173,6 +186,9 @@ export default {
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
+    },
+    showTokens (n, o) {
+      this.$store.commit('global/showTokens')
     },
     enableSmartBCH (n, o) {
       this.$store.commit('global/enableSmartBCH')

@@ -33,9 +33,9 @@ export default {
     color () {
       const type = this.tokenType
       if (type === 'SLP')
-        return 'green-5'
+        return 'grey-7'
       if (['CASHTOKENS', 'CT'].includes(type))
-        return 'green-9'
+        return 'green-7'
       return 'blue-5'
     },
   }

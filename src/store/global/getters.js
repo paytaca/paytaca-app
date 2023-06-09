@@ -23,6 +23,10 @@ export function isChipnet (state) {
   return state.isChipnet
 }
 
+export function showTokens (state) {
+  return state.showTokens
+}
+
 export function enableSmartBCH (state) {
   return state.enableSmartBCH
 }

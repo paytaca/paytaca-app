@@ -117,6 +117,9 @@ export default {
   computed: {
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
+    },
+    showTokens () {
+      return this.$store.getters['global/showTokens']
     }
   },
   methods: {

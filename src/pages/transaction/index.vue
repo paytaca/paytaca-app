@@ -12,17 +12,19 @@
               You have lost connection to the internet. This app is offline.
             </q-banner>
           </v-offline>
-          <div class="row q-pt-lg q-pb-xs" v-if="enableSmartBCH">
-            <q-tabs
-              active-color="brandblue"
-              class="col-12 q-px-sm q-pb-md pp-fcolor"
-              :modelValue="selectedNetwork"
-              @update:modelValue="changeNetwork"
-              :style="{'margin-top': $q.platform.is.ios ? '25px' : '-20px', 'padding-bottom': '16px'}"
-            >
-              <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-              <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
-            </q-tabs>
+          <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}">
+            <template v-if="enableSmartBCH">
+              <q-tabs
+                active-color="brandblue"
+                class="col-12 q-px-sm q-pb-md pp-fcolor"
+                :modelValue="selectedNetwork"
+                @update:modelValue="changeNetwork"
+                :style="{'margin-top': $q.platform.is.ios ? '25px' : '-20px', 'padding-bottom': '16px'}"
+              >
+                <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
+                <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
+              </q-tabs>
+            </template>
           </div>
           <div class="row q-mt-sm">
             <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
@@ -41,7 +43,15 @@
               </q-card>
             </div>
           </div>
-          <div class="row q-mt-sm">
+          <div
+            v-if="!showTokens"
+            class="text-center"
+            @click.native="toggleShowTokens"
+            style="margin-top: 0px; font-size: 11px; padding-bottom: 15px;"
+          >
+            SHOW TOKENS
+          </div>
+          <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
               <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
                 {{ $t('Tokens') }}
@@ -62,12 +72,13 @@
                   style="color: #3B7BF6;"
                   @click="checkMissingAssets({autoOpen: true})"
                 />
+                <span @click="toggleShowTokens" style="font-size: 11px;">HIDE TOKENS</span>
               </p>
             </div>
           </div>
-          <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
+          <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
           <!-- Cards without drag scroll on mobile -->
-          <template v-if="$q.platform.is.mobile">
+          <template v-if="showTokens && $q.platform.is.mobile">
             <asset-cards
               :assets="assets"
               :manage-assets="manageAssets"
@@ -82,7 +93,7 @@
             </asset-cards>
           </template>
           <!-- Cards with drag scroll on other platforms -->
-          <template v-else>
+          <template v-if="showTokens && !$q.platform.is.mobile">
             <asset-cards
               :assets="assets"
               :manage-assets="manageAssets"
@@ -243,10 +254,14 @@ export default {
       prevPath: null,
       showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
+      showTokens: this.$store.getters['global/showTokens']
     }
   },
 
   watch: {
+    showTokens (n, o) {
+      this.$store.commit('global/showTokens')
+    },
     'assets.length': {
       handler(before, after) {
         // e.g. if one network has assets but the other has none then changes network,
@@ -341,6 +356,10 @@ export default {
         component: PriceChart
       })
     },
+    toggleShowTokens () {
+      this.showTokens = !this.showTokens
+      this.adjustTransactionsDivHeight()
+    },
     adjustTransactionsDivHeight (opts={timeout: 500}) {
       let timeout = opts?.timeout
       if (Number.isNaN(timeout)) timeout = 500
@@ -418,8 +437,10 @@ export default {
       }, 100)
     },
     hideAssetInfo () {
-      this.$refs['asset-info'].hide()
-      this.assetInfoShown = false
+      try {
+        this.assetInfoShown = false
+        this.$refs['asset-info'].hide()
+      } catch {}
     },
     toggleHideBalances () {
       this.hideBalances = !this.hideBalances
@@ -977,7 +998,7 @@ export default {
   }
   .transaction-row {
     position: relative;
-    margin-top: 305px;
+    margin-top: 355px;
     z-index: 5;
   }
   .transaction-list {

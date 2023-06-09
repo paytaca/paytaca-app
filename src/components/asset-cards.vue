@@ -32,17 +32,18 @@
           {{ String(num2shortStr(convertTokenAmount(asset.balance, asset.decimals))).substring(0, 10) }}
         </p>
       </div>
-      <div v-if="balanceLoaded" style="margin-top: -16px;">
+      <div v-if="balanceLoaded" style="margin-top: -30px;">
         <TokenTypeBadge
           :assetId="asset.id"
-          class="float-left q-mr-sm"
         />
+      </div>
+      <!-- <div v-if="balanceLoaded" style="margin-top: -16px;">
         <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
           <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
             {{ num2shortStr(getAssetMarketBalance(asset)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
           </template>
         </div>
-      </div>
+      </div> -->
       <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
   </div>
@@ -242,15 +243,15 @@ export default {
   }
   .btn-add-payment-method {
     border: 0px solid $grey-1;
-    padding: 34px 20px 34px 20px;
+    padding: 25px 20px 34px 20px;
     border-radius: 16px;
-    font-size: 20px;
-    height: 97px;
+    font-size: 25px;
+    height: 87px;
     margin-left: 2px;
     margin-right: 12px;
   }
   .method-cards {
-    height: 97px;
+    height: 87px;
     min-width: 150px;
     border-radius: 16px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
