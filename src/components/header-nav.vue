@@ -40,9 +40,9 @@ export default {
   margin-left: auto;
   margin-right: auto;
   padding-top: 20px;
-  position: fixed;
+  /* position: fixed; */
   background: #ECF3F3;
-  width: 100%;
+  /* width: 100%; */
   z-index: 100;
 }
 .pt-arrow-left-link {

@@ -116,13 +116,6 @@ export default {
   .signed {
     height: 80px;
   }
-  #app-container {
-    // position: relative !important;
-    background-color: #ECF3F3;
-    min-height: 100vh;
-    flex-direction: column;
-    display: flex;
-  }
   .connect-tittle {
     color: #3B7BF6;
     font-size: 30px;

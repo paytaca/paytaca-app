@@ -174,11 +174,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  #app-container {
-    position: relative !important;
-    background-color: #ECF3F3;
-    min-height: 100vh;
-  }
   .group-currency {
     width: 100%;
     border-radius: 7px;

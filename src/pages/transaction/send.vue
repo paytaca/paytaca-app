@@ -1274,11 +1274,6 @@ export default {
 </script>
 
 <style lang="scss">
-  #app-container {
-    position: relative !important;
-    background-color: #ECF3F3;
-    min-height: 100vh;
-  }
   .q-field--outlined .q-field__control:before {
     border: 2px solid #3b7bf6;
   }

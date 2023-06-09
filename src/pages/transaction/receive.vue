@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <header-nav
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
@@ -109,7 +109,8 @@ export default {
       legacy: false,
       lnsName: '',
       generatingAddress: false,
-      copying: false
+      copying: false,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   props: {

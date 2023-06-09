@@ -4,7 +4,7 @@
       <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
         <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">{{ $t('Applications') }}</p>
         <div class="row q-px-xs">
-          <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
+          <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div class="pt-app bg-grad" :class="buttonClassByState(app.active)" @click="openApp(app)">
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
@@ -179,6 +179,9 @@ export default {
     font-size: 22px;
     margin-left: 14px;
     font-weight: 400;
+  }
+  .bex-app {
+    width: 107px;
   }
 
   /* New */

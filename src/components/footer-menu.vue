@@ -45,11 +45,11 @@
         </router-link>
         <span @click="$router.push({ name: 'apps-dashboard' })">{{ $t('Apps') }}</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
-          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_microwave_gen"/> <!-- fa-solid fa-vault -->
+      <!-- <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
+          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_microwave_gen"/>
         <span>Wallets</span>
-      </button>
-      <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
+      </button> -->
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>
       </button>
     </div>

@@ -1,9 +1,6 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;"
-    :class="{'pt-dark': darkMode}"
-  >
-    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
+  <div id="app-container" :class="{'pt-dark': darkMode}">
+    <header-nav title="Collectibles" backnavpath="/apps" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
         <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">

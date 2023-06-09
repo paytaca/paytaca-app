@@ -1,8 +1,8 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <div>
-      <header-nav :title="$t('WalletInfo')" backnavpath="/apps" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
-      <div :style="{ 'padding-top': $q.platform.is.ios ? '90px' : '60px'}">
+      <header-nav :title="$t('WalletInfo')" backnavpath="/apps" />
+      <div :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
         <div id="app" ref="app">
           <div class="row">
             <div class="col">
@@ -242,33 +242,9 @@
               </div>
             </div>
           </div>
-          <div class="row" style="margin-top: 20px; margin-bottom: 50px;">
-            <div class="col">
-            <p class="section-title">{{ $t('AboutTheApp') }}</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
-                <q-item>
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">v{{ appVersion }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item>
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('OpenSourceCode') }}</q-item-label>
-                    <q-item-label>
-                      <a href="https://github.com/paytaca/paytaca-app" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
-                        https://github.com/paytaca/paytaca-app
-                      </a>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-          </div>
         </div>
       </div>
     </div>
-
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
     <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
   </div>
@@ -281,7 +257,6 @@ import biometricWarningAttmepts from '../../components/authOption/biometric-warn
 import { getMnemonic, Wallet } from '../../wallet'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import packageInfo from '../../../package.json'
 import { Plugins } from '@capacitor/core'
 import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
@@ -299,7 +274,6 @@ export default {
     return {
       mnemonic: '',
       showMnemonic: false,
-      appVersion: packageInfo.version,
       sbchLnsName: '',
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',

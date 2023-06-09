@@ -1,15 +1,11 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
-  >
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
       title="POS Admin"
       backnavpath="/apps"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
     <q-card
-      class="br-15 q-mx-md q-mb-md"
+      class="br-15 q-mx-md q-mt-lg q-mb-md"
       :style="{ 'margin-top': $q.platform.is.ios ? '55px' : '0'}"
       :class="[
         darkMode ? 'text-white pt-dark-card' : 'text-black',

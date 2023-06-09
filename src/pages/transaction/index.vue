@@ -28,7 +28,7 @@
           </div>
           <div class="row q-mt-sm">
             <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-              <img :src="selectedNetwork === 'sBCH' ? '/sep20-logo.png' : '/bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+              <img :src="selectedNetwork === 'sBCH' ? 'sep20-logo.png' : 'bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
               <q-card id="bch-card">
                 <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
                   <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
@@ -58,12 +58,22 @@
                 <q-btn
                   flat
                   padding="none"
+                  v-if="manageAssets"
+                  size="sm"
+                  icon="app_registration"
+                  style="color: #3B7BF6;"
+                  @click="toggleManageAssets"
+                />
+                <q-btn
+                  flat
+                  padding="none"
                   size="sm"
                   icon="settings"
                   style="color: #3B7BF6;"
+                  @click="updateTokenMenuPosition"
                 >
-                  <q-menu :dark="darkMode" :class="{'text-black': !darkMode}">
-                    <q-list style="min-width: 100px">
+                  <q-menu ref="tokenMenu" :dark="darkMode" :class="{'text-black': !darkMode}" style="position: fixed; left: 0;">
+                    <q-list style="min-width: 100px;">
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleManageAssets">Toggle Add/Remove Tokens</q-item-section>
                       </q-item>
@@ -358,6 +368,11 @@ export default {
       this.$q.dialog({
         component: PriceChart
       })
+    },
+    async updateTokenMenuPosition () {
+      await this.$nextTick()
+      console.log(this.$refs.tokenMenu)
+      this.$refs.tokenMenu.updatePosition()
     },
     toggleShowTokens () {
       this.showTokens = !this.showTokens

@@ -273,8 +273,25 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss">
 #q-app {
   overflow: auto;
+}
+
+#app-container {
+  position: relative !important;
+  background-color: #ECF3F3;
+  min-height: 100vh;
+  flex-direction: column;
+  display: flex;
+}
+
+body {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+body::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
 }
 </style>
