@@ -114,20 +114,20 @@
           </div>
         </div>
         <div class="q-pt-md" v-if="confirmed">
-            <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              CONTRACT INFO
+          <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            CONTRACT INFO
+          </div>
+          <div style="font-size: 13px">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row q-pt-sm justify-between no-wrap q-mx-lg">
+              <span>Address:</span>
+              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
             </div>
-            <div style="font-size: 13px">
-              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row q-pt-sm justify-between no-wrap q-mx-lg">
-                <span>Address:</span>
-                <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
-              </div>
-              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-                <span>Balance:</span>
-                <span class="text-nowrap q-ml-xs">1000 PHP</span>
-              </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Balance:</span>
+              <span class="text-nowrap q-ml-xs">1000 PHP</span>
             </div>
           </div>
+        </div>
       </q-step>
 
       <!-- Step 2 -->
@@ -287,7 +287,7 @@
     </q-stepper>
   </div>
   <q-dialog persistent v-model="confirmCancel">
-    <q-card style="width: 70%;">
+    <q-card style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h6 text-center">Cancel Trade?</div>
       </q-card-section>
@@ -303,7 +303,7 @@
     </q-card>
   </q-dialog>
   <q-dialog full-width persistent v-model="appeal">
-    <q-card style="width: 70%;">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h6 text-center">Submitting an Appeal</div>
       </q-card-section>

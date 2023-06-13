@@ -80,16 +80,20 @@
         </div>
       </div>
     </div>
-    <!-- <FiatStoreSellProcess
-      v-if="steps === 2"
-    /> -->
-    <FiatStoreSellInit
+    <FiatStoreSellProcess
       v-if="steps === 2"
       :listing-data="sell"
       :crypto-amount="cryptoAmount"
       v-on:back="steps = 1"
+      v-on:hide-buyer="hideBuyerInfo=!hideBuyerInfo"
     />
-    <div v-if="steps !== 2">
+    <!-- <FiatStoreSellInit
+      v-if="steps === 2"
+      :listing-data="sell"
+      :crypto-amount="cryptoAmount"
+      v-on:back="steps = 1"
+    /> -->
+    <div v-if="!hideBuyerInfo">
       <div class="q-mx-lg text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
         BUYER INFO
       </div>
@@ -144,7 +148,7 @@
   </q-card>
 </template>
 <script>
-import FiatStoreSellInit from './FiatStoreSellInit.vue'
+// import FiatStoreSellInit from './FiatStoreSellInit.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 
 export default {
@@ -157,7 +161,8 @@ export default {
       fiatAmount: '1000 PHP',
       arbitrationFee: 0.00001,
       serviceFee: 0.00001,
-      steps: 1
+      steps: 1,
+      hideBuyerInfo: false
     }
   },
   emits: ['back'],
@@ -165,7 +170,7 @@ export default {
     listingData: Object
   },
   components: {
-    FiatStoreSellInit,
+    // FiatStoreSellInit,
     FiatStoreSellProcess
   },
   methods: {
@@ -175,6 +180,7 @@ export default {
     },
     nextStep () {
       this.steps++
+      this.hideBuyerInfo = !this.hideBuyerInfo
     },
     isAmountValid () {
       if (this.amount === 0 || this.amount === '') {

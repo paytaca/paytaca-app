@@ -79,7 +79,7 @@
         :fiatAmount="amount"
         v-on:back="state = 'initial'"
         v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
-        v-on:pending-release="pendingRelease = !pendingRelease"
+        v-on:pending-release="pendingRelease = true"
         v-on:released="cryptoReleased"
       />
     </div>
@@ -171,7 +171,7 @@ export default {
     },
     cryptoReleased () {
       this.released = true
-      this.pendingRelease = !this.pendingRelease
+      this.pendingRelease = false
     }
   },
   async mounted () {

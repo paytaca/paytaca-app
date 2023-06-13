@@ -8,7 +8,7 @@
     />
   </div> -->
   <div v-if="step === 1">
-    <div class="q-mx-lg  q-mb-sm text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+    <div class="q-mx-sm q-mb-sm text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       PAYMENT METHODS
     </div>
     <div>
@@ -36,7 +36,7 @@
       </div>
     </div>
     <div>
-      <div class="row q-pt-lg q-mx-lg">
+      <div class="row q-pt-lg q-mx-sm">
         <q-btn
           outline
           rounded
@@ -48,7 +48,7 @@
         />
       </div>
     </div>
-    <div class="row q-pt-lg q-mx-lg">
+    <div class="row q-pt-lg q-mx-sm">
       <q-btn
         :disable="paymentMethods.length === 0"
         rounded
@@ -56,36 +56,36 @@
         label='Next'
         class="q-space text-white"
         color="blue-6"
-        @click="nextStep"
+        @click="confirmPaymentMethod = true"
       />
     </div>
   </div>
 
   <!-- Step 2 -->
   <div v-if="step === 2">
-    <div class="q-mx-lg  q-mb-sm text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+    <div class="q-mx-sm  q-mb-sm text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       TRADE CONTRACT
     </div>
-    <div class="q-pt-md q-px-lg" style="font-size: 13px;">
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+    <div class="q-pt-sm q-px-sm" style="font-size: 13px;">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-xs">
         <span>Seller Address:</span>
         <span class="text-nowrap q-ml-xs subtext">bitcoincash:qz3d***ctsj</span>
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-xs">
         <span>Buyer Address:</span>
         <span class="text-nowrap q-ml-xs subtext">bitcoincash:qz0y***7kxu</span>
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-xs">
         <span>Arbiter Address:</span>
         <span class="text-nowrap q-ml-xs subtext">bitcoincash:qzkd***w9jg</span>
       </div>
     </div>
     <div class="q-mt-md">
       <div class="row" @click="arbiterInfo = true">
-        <span class="q-pl-md text-h5" style="font-size: 15px; font-weight: 500; margin-left: 25px;">Arbiter</span>&nbsp;
+        <span class="q-pl-xs text-h5" style="font-size: 15px; font-weight: 500; margin-left: 25px;">Arbiter</span>&nbsp;
         <q-icon class="q-pt-sm" size="xs" name="o_info"/>
       </div>
-      <div class="row q-pb-lg q-px-lg q-pt-xs">
+      <div class="row q-pb-lg q-px-sm q-pt-xs">
         <q-btn
           outline
           rounded
@@ -97,7 +97,7 @@
         />
       </div>
     </div>
-    <div class="row q-mx-lg">
+    <div class="row q-mx-sm">
       <q-btn
         rounded
         no-caps
@@ -110,32 +110,32 @@
   </div>
 
   <div v-if="step === 3">
-    <div class="q-mx-lg  q-mb-sm text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+    <div class="q-mx-sm  q-mb-sm text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       ESCROW FUNDS
     </div>
-    <div class="q-pt-md q-px-lg" style="font-size: 13px;">
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+    <div class="q-pt-md q-px-sm" style="font-size: 13px;">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-sm">
         <span>Contract Address:</span>
         <span class="text-nowrap q-ml-xs subtext">bitcoincash:qz3d***ctsj</span>
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-sm">
         <span>Crypto Amount:</span>
         <span class="text-nowrap q-ml-xs subtext">{{ cryptoAmount }} BCH</span>
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-sm">
         <span>Arbitration Fee:</span>
         <span class="text-nowrap q-ml-xs subtext">{{ arbitrationFee }} BCH</span>
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-sm">
         <span>Service Fee:</span>
         <span class="text-nowrap q-ml-xs subtext">{{ serviceFee }} BCH</span>
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg"  style="font-weight: 500;">
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-sm"  style="font-weight: 500;">
         <span>Total:</span>
         <span class="text-nowrap q-ml-xs subtext">{{ totalAmount() }} BCH</span>
       </div>
     </div>
-    <div class="row q-mx-lg q-pt-lg">
+    <div class="row q-mx-sm q-pt-lg">
       <q-btn
         rounded
         no-caps
@@ -150,7 +150,7 @@
   <!-- Dialogs  -->
   <!-- Add Payment Method -->
   <q-dialog full-width persistent v-model="addMethod">
-    <q-card class="br-15" style="width: 70%;">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h5 text-center" style="font-size: 18px;">Add Payment Method</div>
       </q-card-section>
@@ -220,7 +220,11 @@
 
   <!-- Edit Payment Method -->
   <q-dialog full-width persistent v-model="editMethod">
-    <q-card class="br-15" style="width: 70%;">
+    <q-card
+      class="br-15"
+      style="width: 70%;"
+      :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']"
+    >
       <q-card-section>
         <div class="text-h5 text-center" style="font-size: 18px;">Edit Payment Method</div>
       </q-card-section>
@@ -289,7 +293,7 @@
 
   <!-- Arbiter Info Dialog -->
   <q-dialog full-width persistent v-model="arbiterInfo">
-    <q-card style="width: 70%;">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h6 text-center">What is an Escrow Arbiter</div>
       </q-card-section>
@@ -315,13 +319,52 @@
 
   <!-- Confirm Order Notice -->
   <q-dialog persistent v-model="confirmOrder">
-    <q-card style="width: 70%;">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h6 text-center">Confirm Order?</div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
-        Your <span style="font-weight: 500;">{{ cryptoAmount }}</span> BCH will be sent to the escrow contract.
+        Your <span style="font-weight: 500;">{{ cryptoAmount }} BCH</span>  will be sent to the escrow contract.
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="finalConf = true" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+  <!-- Final Confirmation -->
+  <q-dialog persistent v-model="finalConf">
+    <q-card class="br-15 q-py -md" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center" style="font-size: 18px;"><span style="font-weight: 500;">{{ cryptoAmount }} BCH</span> sent to escrow contract!</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        <span>
+          bitcoincash:xxxxxxxxxxxxxxxxx
+        </span><br>
+        <span>
+          txid: xxxxxxxxxxxxxxxxxxxxxxxxxx
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="$emit('confirmed')" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+  <!-- Confirm Payment Method -->
+  <q-dialog persistent v-model="confirmPaymentMethod">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Confirm Payment Methods?</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        Please make sure the information provided are correct.
       </q-card-section>
 
       <q-card-actions class="text-center" align="center">
@@ -347,12 +390,14 @@ export default {
       editMethod: false,
       arbiterInfo: false,
       confirmOrder: false,
+      finalConf: false,
+      confirmPaymentMethod: false,
       selectedIndex: null,
       arbitrationFee: 0.00001,
       serviceFee: 0.00001
     }
   },
-  emits: ['back'],
+  emits: ['back', 'confirmed'],
   props: {
     listingData: Object,
     cryptoAmount: Number
