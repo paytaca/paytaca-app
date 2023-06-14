@@ -402,9 +402,9 @@ export default {
         if (now === expire) {
           clearInterval(x)
           // vm.$refs.stepper.next()
-          // vm.buyStatus = 'Released'
-          // vm.$emit('released')
-          vm.buyStatus = 'Expired'
+          vm.buyStatus = 'Released'
+          vm.$emit('released')
+          // vm.buyStatus = 'Expired'
           clearInterval(vm.timer)
           vm.timer = null
         }

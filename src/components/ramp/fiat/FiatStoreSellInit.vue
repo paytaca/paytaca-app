@@ -17,12 +17,12 @@
         <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">No Payment Method Added</p>
       </div>
       <div v-else>
-        <q-card-section style="max-height:50vh;overflow-y:auto;">
+        <q-card-section style="max-height:38vh;overflow-y:auto;">
           <q-virtual-scroll :items="paymentMethods">
             <template v-slot="{ item: method, index }">
               <q-item clickable @click="selectPaymentMethod(index)" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                 <q-item-section>
-                  <div class="text-h5" style="font-size: 18px;">
+                  <div class="text-h5" style="font-size: 15px;">
                     {{ method.type.toUpperCase() }}
                   </div>
                   <div class="subtext" style="font-weight: 500;">
@@ -298,7 +298,7 @@
         <div class="text-h6 text-center">What is an Escrow Arbiter</div>
       </q-card-section>
 
-      <q-card-section class="q-pt-none q-px-md">
+      <q-card-section class="text-center q-pt-none q-px-md">
         <span>
           An Escrow Arbiter is a neutral third-party who is appointed to facilitate an escrow transaction between two parties.
         </span><br><br>

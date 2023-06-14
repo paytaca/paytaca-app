@@ -58,13 +58,14 @@
             <span>Price:</span>
             <span class="text-nowrap q-ml-xs">6871.41 PHP</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
             <span class="text-nowrap q-ml-xs">{{ cryptoAmount }}</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-            <span>Payment Time Limit:</span>
-            <span class="text-nowrap q-ml-xs">24 H</span>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg" style="font-weight: 500;">
+            <span>Status:</span>
+            <span class="text-nowrap q-ml-xs" v-if="sellStatus !== 'Expired'" :class="sellStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ sellStatus }}</span>
+            <span class="text-nowrap q-ml-xs text-red-6" v-if="buyStatus === 'Expired'">{{ sellStatus }}</span>
           </div>
 
           <div class="q-pt-sm">
@@ -85,12 +86,40 @@
 
           <q-separator :dark="darkMode" class="q-mt-sm"/>
 
-          <div class="text-center q-mt-sm">
-            <div class="text-h5" style="font-size: 15px;">
-              Expect payment within...
+          <div v-if="sellStatus === 'Released'">
+            Here
+          </div>
+          <div v-else>
+            <div class="text-center q-my-sm" v-if="paid">
+              <div class="row text-center q-gutter-sm q-pt-sm q-mx-lg">
+                <div :class="$q.platform.is.mobile? 'col-4' : 'col'">
+                  <q-btn
+                    rounded
+                    no-caps
+                    label='Appeal'
+                    class="q-space text-white full-width"
+                    style="background-color: #ed5f59;"
+                  />
+                </div>
+                <div :class="$q.platform.is.mobile? 'col-7' : 'col'">
+                  <q-btn
+                    rounded
+                    no-caps
+                    label='Confirm Payment'
+                    class="q-space text-white full-width"
+                    color="blue-6"
+                    @click="confirmPayment = true"
+                  />
+                </div>
+              </div>
             </div>
-            <div class="text-center" style="font-size: 40px; color: #ed5f59;">
-              {{ countDown }}
+            <div class="text-center q-mt-sm" v-else>
+              <div class="text-h5" style="font-size: 15px;">
+                Expect payment within...
+              </div>
+              <div class="text-center" style="font-size: 40px; color: rgb(60, 100, 246);">
+                {{ countDown }}
+              </div>
             </div>
           </div>
           <!-- <div class="row text-center q-gutter-sm q-pt-sm q-mx-lg">
@@ -117,6 +146,11 @@
             <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               MY PAYMENT METHODS
             </div>
+            <div class="q-pt-md">
+              <div class="q-gutter-sm" :class="$q.platform.is.mobile? '' : 'text-center'">
+                <q-badge v-for="method in sell.paymentMethods" rounded outline color="red" :label="method"/>
+              </div>
+            </div>
           </div>
           <!-- <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Status:</span>
@@ -130,9 +164,75 @@
         title="Release Crypto"
         prefix="3"
       >
-        Try out different ad text to see what brings in the most customers, and learn how to
-        enhance your ads using features like ad extensions. If you run into any problems with
-        your ads, find out how to tell if they're running and how to resolve approval issues.
+        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
+          Release Crypto
+        </div>
+        <div class="q-pt-md" style="font-size: 13px;">
+          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Fiat Amount:</span>
+            <span class="text-nowrap q-ml-xs">10000 PHP</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Price:</span>
+            <span class="text-nowrap q-ml-xs">6871.41 PHP</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Crypto Amount:</span>
+            <span class="text-nowrap q-ml-xs">{{ cryptoAmount }}</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg" style="font-weight: 500;">
+            <span>Status:</span>
+            <span class="text-nowrap q-ml-xs" v-if="sellStatus !== 'Expired'" :class="sellStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ sellStatus }}</span>
+            <span class="text-nowrap q-ml-xs text-red-6" v-if="buyStatus === 'Expired'">{{ sellStatus }}</span>
+          </div>
+        </div>
+        <div class="text-center">
+          <div class="text-h5" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            RELEASED
+          </div>
+          <div class="q-pt-sm" style="font-size: 18px;">
+            {{ getDate() }}
+          </div>
+        </div>
+        <div>
+          <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            TRADE INFO
+          </div>
+          <div class="q-pt-md">
+            <div  class="row justify-between no-wrap q-mx-lg">
+              <div>
+                <span style="font-size: 13px;">Buyer</span><br>
+                <span style="font-weight: 500; font-size: 15px;">{{ sell.name }}</span>
+              </div>
+              <div class="q-pt-sm text-right">
+                <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
+                <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
+              </div>
+            </div>
+            <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+            <div  class="row justify-between no-wrap q-mx-lg q-pt-md">
+              <div>
+                <span style="font-size: 13px;">Arbiter</span><br>
+                <span style="font-weight: 500; font-size: 15px;">Atty. Ruby Von Rails</span>
+              </div>
+              <div class="q-pt-sm text-right">
+                <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
+                <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
+              </div>
+            </div>
+            <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
+          </div>
+          <div>
+            <div class="text-h5 q-pt-md text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              PAYMENT METHOD
+            </div>
+            <div class="q-pt-md">
+              <div class="q-gutter-sm" :class="$q.platform.is.mobile? '' : 'text-center'">
+                <q-badge rounded outline color="red" :label="sell.paymentMethods[0]"/>
+              </div>
+            </div>
+          </div>
+        </div>
       </q-step>
 
       <!-- <template v-slot:navigation>
@@ -143,6 +243,61 @@
       </template> -->
     </q-stepper>
   </div>
+  <!-- Successful Sell Notif -->
+  <q-dialog
+    v-model="receivedPayment"
+    persistent
+    maximized
+    transition-show="slide-up"
+    transition-hide="slide-down"
+  >
+    <q-card class="bg-blue-5 text-white">
+      <div class="full-width full-height row items-center justify-center">
+        <div class="col">
+          <div class="row justify-center">
+            <q-icon size="5em" flat name="task_alt"></q-icon>
+          </div>
+          <div class="row q-pt-md text-h5 justify-center">
+            Successfully Sold {{ cryptoAmount }} BCH!
+          </div>
+          <div class="row q-mx-lg q-pt-lg">
+            <q-btn
+              rounded
+              no-caps
+              label='Ok'
+              class="q-space text-white q-mx-lg"
+              color="blue-8"
+              v-close-popup
+              @click="$refs.stepper.next()"
+            />
+          </div>
+        </div>
+      </div>
+    </q-card>
+  </q-dialog>
+  <!-- Confirm Payment -->
+  <q-dialog persistent v-model="confirmPayment">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Confirm Payment?</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        <div>
+          This will release the crypto held by the escrow account to the buyer.
+        </div>
+        <div class="q-pt-md">
+          I confirm that I have received payment from the buyer.
+        </div>
+
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="confirmingPayment" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 <script>
 import { ref } from 'vue'
@@ -155,7 +310,11 @@ export default {
       sell: {},
       isloaded: false,
       countDown: '',
-      timer: null
+      timer: null,
+      receivedPayment: false,
+      confirmPayment: false,
+      paid: false,
+      sellStatus: 'Pending Payment'
     }
   },
   props: {
@@ -193,10 +352,45 @@ export default {
         }
       }, 1000)
     },
+    releaseCntDwnSim () {
+      const vm = this
+
+      const expire = 10
+      let now = 0
+
+      const x = setInterval(function () {
+        now++
+        if (now === expire) {
+          clearInterval(x)
+          // vm.$refs.stepper.next()
+          // vm.buyStatus = 'Released'
+          // vm.$emit('released')
+          // vm.buyStatus = 'Expired'
+          clearInterval(vm.timer)
+          vm.timer = null
+          // vm.receivedPayment = true
+          vm.paid = true
+          vm.sellStatus = 'Pending Release'
+          console.log(vm.receivedPayment)
+        }
+      }, 1000)
+    },
     confirmedOrder () {
       this.paymentCountdown()
+      this.releaseCntDwnSim()
       this.$refs.stepper.next()
       this.$emit('hideBuyer')
+    },
+    confirmingPayment () {
+      this.paid = true
+      this.receivedPayment = true
+      this.sellStatus = 'Released'
+      this.$emit('hideBuyer')
+      // console.log(this.receivedPayment)
+    },
+    getDate () {
+      const date = new Date()
+      return date.toLocaleString('default', { month: 'long' }) + ' ' + date.getDate() + ', ' + date.getFullYear()
     }
   },
   setup () {
@@ -212,3 +406,9 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+ .subtext {
+    font-size: 13px;
+    opacity: .5;
+  }
+</style>
