@@ -84,6 +84,7 @@
       v-if="steps === 2"
       :listing-data="sell"
       :crypto-amount="cryptoAmount"
+      :fiat-amount="amount"
       v-on:back="steps = 1"
       v-on:hide-buyer="hideBuyerInfo=!hideBuyerInfo"
     />

@@ -36,7 +36,7 @@
         <div class="q-pt-md" style="font-size: 13px;">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ buyAmount }}</span>
+            <span class="text-nowrap q-ml-xs">{{ buyAmount }} BCH</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
@@ -124,7 +124,7 @@
             </div>
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
               <span>Balance:</span>
-              <span class="text-nowrap q-ml-xs">1000 PHP</span>
+              <span class="text-nowrap q-ml-xs">{{ buyAmount }} BCH</span>
             </div>
           </div>
         </div>

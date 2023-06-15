@@ -352,7 +352,7 @@
 
       <q-card-actions class="text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="$emit('confirmed')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="continueSteps" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -397,7 +397,7 @@ export default {
       serviceFee: 0.00001
     }
   },
-  emits: ['back', 'confirmed'],
+  emits: ['back', 'confirmed', 'pymntMethods'],
   props: {
     listingData: Object,
     cryptoAmount: Number
@@ -437,6 +437,12 @@ export default {
     totalAmount () {
       const vm = this
       return vm.cryptoAmount + vm.arbitrationFee + vm.serviceFee
+    },
+    continueSteps () {
+      const vm = this
+
+      vm.$emit('pymntMethods', vm.paymentMethods)
+      vm.$emit('confirmed')
     }
   },
   async mounted () {
