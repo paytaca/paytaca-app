@@ -4,95 +4,114 @@
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     style="min-height:78vh;"
   >
-    <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
-      <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list'/>
-      <q-btn
-        rounded
-        no-caps
-        padding="sm"
-        class="q-ml-md"
-        icon="add"
-        :class="transactionType === 'buy'? 'buy-add-btn': 'sell-add-btn'"
+    <div v-if="state !== 'selection'">
+      <FiatAdsBuy
+        v-if="transactionType === 'buy'"
+        v-on:back="state = 'selection'"
+        :adsState="state"
+        :transactionType="transactionType"
+      />
+
+      <FiatAdsSell
+        v-if="transactionType === 'sell'"
+        v-on:back="state = 'selection'"
       />
     </div>
-    <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
-      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'buy' }" @click="transactionType='buy'">Buy</button>
-      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'sell'}" @click="transactionType='sell'">Sell</button>
-    </div>
-    <div class="q-mt-md">
+    <div v-if="state === 'selection'">
+      <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
+        <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list'/>
+        <q-btn
+          rounded
+          no-caps
+          padding="sm"
+          class="q-ml-md"
+          icon="add"
+          :class="transactionType === 'buy'? 'buy-add-btn': 'sell-add-btn'"
+          @click="state = 'create'"
+        />
+      </div>
+      <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'buy' }" @click="transactionType='buy'">Buy</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'sell'}" @click="transactionType='sell'">Sell</button>
+      </div>
+      <div class="q-mt-md">
         <div v-if="listings.length === 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
-        <q-card-section style="max-height:60vh;overflow-y:auto;">
-          <q-virtual-scroll :items="sortedListings()">
-            <template v-slot="{ item: listing, index }">
-              <q-item>
-                <q-item-section>
-                  <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div class="row">
-                      <div class="col ib-text">
-                        <span
-                          :class="{'pt-dark-label': darkMode}"
-                          class="q-mb-none text-uppercase"
-                          style="font-size: 13px;"
-                        >
-                          {{ listing.name }}
-                        </span><br>
-                        <span
-                          :class="{'pt-dark-label': darkMode}"
-                          class="col-transaction text-uppercase"
-                          style="font-size: 16px;"
-                        >
-                          {{ listing.price }}
-                        </span>
-                        <span style="font-size: 12px;">
-                          /BCH
-                        </span>
+          <q-card-section style="max-height:60vh;overflow-y:auto;">
+            <q-virtual-scroll :items="sortedListings()">
+              <template v-slot="{ item: listing, index }">
+                <q-item>
+                  <q-item-section>
+                    <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                      <div class="row">
+                        <div class="col ib-text">
+                          <span
+                            :class="{'pt-dark-label': darkMode}"
+                            class="q-mb-none text-uppercase"
+                            style="font-size: 13px;"
+                          >
+                            {{ listing.name }}
+                          </span><br>
+                          <span
+                            :class="{'pt-dark-label': darkMode}"
+                            class="col-transaction text-uppercase"
+                            style="font-size: 16px;"
+                          >
+                            {{ listing.price }}
+                          </span>
+                          <span style="font-size: 12px;">
+                            /BCH
+                          </span>
+                        </div>
+                        <div class="text-right">
+                          <q-btn
+                            outline
+                            rounded
+                            padding="sm"
+                            icon="edit"
+                            size="sm"
+                            color="grey-6"
+                            @click="editAds"
+                          />
+                          <q-btn
+                            outline
+                            rounded
+                            padding="sm"
+                            size="sm"
+                            icon="delete"
+                            color="grey-6"
+                            class="q-ml-xs"
+                            @click="deleteAds"
+                          />
+                        </div>
                       </div>
-                      <div class="text-right">
-                        <q-btn
-                          outline
-                          rounded
-                          padding="sm"
-                          icon="edit"
-                          size="sm"
-                          color="grey-6"
-                          @click="editAds"
-                        />
-                        <q-btn
-                          outline
-                          rounded
-                          padding="sm"
-                          size="sm"
-                          icon="delete"
-                          color="grey-6"
-                          class="q-ml-xs"
-                          @click="deleteAds"
-                        />
+                      <div class="q-gutter-sm q-pt-sm">
+                        <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method" />
                       </div>
                     </div>
-                    <div class="q-gutter-sm q-pt-sm">
-                      <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method" />
-                    </div>
-                  </div>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-virtual-scroll>
-        </q-card-section>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-virtual-scroll>
+          </q-card-section>
+        </div>
       </div>
     </div>
   </q-card>
 </template>
 <script>
+import FiatAdsBuy from './FiatAdsBuy.vue'
+import FiatAdsSell from './FiatAdsSell.vue'
+
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       transactionType: 'buy',
-      listings: [],
+      state: 'selection', // 'create' 'edit'
       // listings: [],
       listings: [
         {
@@ -203,6 +222,10 @@ export default {
         },
       ]
     }
+  },
+  components: {
+    FiatAdsBuy,
+    FiatAdsSell
   },
   methods: {
     sortedListings () {
