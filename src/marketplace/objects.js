@@ -848,7 +848,16 @@ export class EscrowContract {
    * @param {Number} data.amount_sats
    * @param {Number} data.service_fee_sats
    * @param {Number} data.arbitration_fee_sats
-   * @param {Number} data.delivery_fee_sats
+   * @param {Object} [data.delivery_fee_key_nft]
+   * @param {Number} data.delivery_fee_key_nft.amount
+   * @param {Number} data.delivery_fee_key_nft.nft_id
+   * @param {String} data.delivery_fee_key_nft.current_address
+   * @param {String} data.delivery_fee_key_nft.current_txid
+   * @param {Number} data.delivery_fee_key_nft.current_index
+   * @param {Object} data.delivery_fee_key_nft.fee_pool_contract
+   * @param {String} data.delivery_fee_key_nft.fee_pool_contract.address
+   * @param {String} data.delivery_fee_key_nft.fee_pool_contract.key_nft_category
+   * @param {String} data.delivery_fee_key_nft.fee_pool_contract.owner_address
    * @param {String} data.timestamp
    * 
    * @param {String} [data.funding_txid]
@@ -871,7 +880,18 @@ export class EscrowContract {
     this.amountSats = data?.amount_sats
     this.serviceFeeSats = data?.service_fee_sats
     this.arbitrationFeeSats = data?.arbitration_fee_sats
-    this.deliveryFeeSats = data?.delivery_fee_sats
+    this.deliveryFeeKeyNft = {
+      amount: data?.delivery_fee_key_nft?.amount,
+      nftId: data?.delivery_fee_key_nft?.nft_id,
+      currentAddress: data?.delivery_fee_key_nft?.current_address,
+      currentTxid: data?.delivery_fee_key_nft?.current_txid,
+      currentIndex: data?.delivery_fee_key_nft?.current_index,
+      feePoolContract: {
+        address: data?.delivery_fee_key_nft?.fee_pool_contract?.address,
+        keyNftCategory: data?.delivery_fee_key_nft?.fee_pool_contract?.key_nft_category,
+        ownerAddress: data?.delivery_fee_key_nft?.fee_pool_contract?.owner_address,
+      },
+    }
 
     if (data?.timestamp) this.timestamp = new Date(data?.timestamp) * 1
     else if (this.timestamp) delete this.timestamp
@@ -890,12 +910,12 @@ export class EscrowContract {
       amount: toBch(this.amountSats),
       serviceFee: toBch(this.serviceFeeSats),
       arbitrationFee: toBch(this.arbitrationFeeSats),
-      deliveryFee: toBch(this.deliveryFeeSats),
+      deliveryFee: toBch(this.deliveryFeeKeyNft?.amount || 0),
+      networkFee: toBch(1000),
       total: 0,
     }
 
-    // data.total = (data.amount + data.serviceFee + data.arbitrationFee + data.deliveryFee)
-    data.total = toBch(this.amountSats + this.serviceFeeSats + this.arbitrationFeeSats + this.deliveryFeeSats)
+    data.total = data.amount + data.serviceFee + data.arbitrationFee + data.deliveryFee + data.networkFee
     return data
   }
 }
