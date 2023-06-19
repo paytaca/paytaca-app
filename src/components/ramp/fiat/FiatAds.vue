@@ -35,13 +35,13 @@
         <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'sell'}" @click="transactionType='sell'">Sell</button>
       </div>
       <div class="q-mt-md">
-        <div v-if="listings.length === 0" class="relative text-center" style="margin-top: 50px;">
+        <div v-if="checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:60vh;overflow-y:auto;">
-            <q-virtual-scroll :items="sortedListings()">
+            <q-virtual-scroll :items="transactionType === 'buy'? buyListings : sellListings">
               <template v-slot="{ item: listing, index }">
                 <q-item>
                   <q-item-section>
@@ -84,7 +84,7 @@
                             icon="delete"
                             color="grey-6"
                             class="q-ml-xs"
-                            @click="deleteAds"
+                            @click="deleteAds(index)"
                           />
                         </div>
                       </div>
@@ -101,17 +101,30 @@
       </div>
     </div>
   </q-card>
+
+  <FiatAdsDialogs
+    v-if="openDialog === true"
+    :type="dialogName"
+    v-on:back="openDialog = false"
+    v-on:selected-option="receiveDialogOption"
+  />
 </template>
 <script>
 import FiatAdsBuy from './FiatAdsBuy.vue'
 import FiatAdsSell from './FiatAdsSell.vue'
+import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      openDialog: false,
+      dialogName: '',
+      selectedIndex: null,
       transactionType: 'buy',
       state: 'selection', // 'create' 'edit'
+      buyListings: [],
+      sellListings: [],
       // listings: [],
       listings: [
         {
@@ -225,23 +238,63 @@ export default {
   },
   components: {
     FiatAdsBuy,
-    FiatAdsSell
+    FiatAdsSell,
+    FiatAdsDialogs
   },
   methods: {
-    sortedListings () {
+    sortedListings (type) {
       const vm = this
 
       const sorted = vm.listings.filter(function (listing) {
-        return listing.type === vm.transactionType
+        return listing.type === type
       })
       return sorted
     },
     editAds () {
+      this.state = 'edit'
       console.log('edit')
     },
-    deleteAds () {
+    deleteAds (index) {
+      const vm = this
       console.log('delete')
+
+      vm.dialogName = 'deleteAd'
+      vm.openDialog = true
+      vm.selectedIndex = index
+    },
+    checkEmptyListing () {
+      const vm = this
+      if (vm.transactionType === 'buy') {
+        return vm.buyListings.length === 0
+      } else {
+        return vm.sellListings.length === 0
+      }
+    },
+    receiveDialogOption (option) {
+      const vm = this
+
+      switch (vm.dialogName) {
+        case 'deleteAd':
+          if (option === 'confirm') {
+            if (vm.transactionType === 'buy') {
+              vm.buyListings.splice(vm.selectedIndex, 1)
+            } else {
+              vm.sellListings.splice(vm.selectedIndex, 1)
+            }
+
+            vm.dialogName = 'notifyDeleteAd'
+            vm.openDialog = true
+          }
+          break
+      }
+      console.log(vm.openDialog)
     }
+  },
+  async mounted () {
+    const vm = this
+
+    vm.sellListings = vm.sortedListings('sell')
+    vm.buyListings = vm.sortedListings('buy')
   }
 }
 </script>

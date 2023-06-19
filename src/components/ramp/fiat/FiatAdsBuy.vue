@@ -9,13 +9,13 @@
       />
     </div>
     <div>
-      <div class="text-h5 q-mx-lg text-center" style="font-size: 18px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+      <div class="text-h5 q-mx-lg text-center bold-text" style="font-size: 18px;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
         POST BUY AD
       </div>
     </div>
     <!-- Price Settings -->
     <div class="q-px-lg">
-      <div class="q-mx-lg q-pb-sm q-pt-md" style="font-weight: 500;">
+      <div class="q-mx-lg q-pb-sm q-pt-md bold-text">
         Price Setting
       </div>
       <div class="text-center q-mx-md">
@@ -56,7 +56,7 @@
         <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
           <div>
             <span>Your Price</span><br>
-            <span style="font-size: 18px; font-weight: 500;">{{ fixedAmount }} {{ selectedCurrency }}</span>
+            <span class="bold-text" style="font-size: 18px;">{{ fixedAmount }} {{ selectedCurrency }}</span>
           </div>
           <div >
             <span>Lower Your Price</span><br>
@@ -69,7 +69,7 @@
     <!-- Total Amount -->
     <div class="q-mx-lg">
       <div class="q-mt-md q-px-md">
-        <div class="q-pb-xs q-pl-sm" style="font-weight: 500;">Total Amount</div>
+        <div class="q-pb-xs q-pl-sm bold-text">Total Amount</div>
           <q-input
             dense
             outlined
@@ -78,7 +78,7 @@
             v-model="amount"
           >
             <template v-slot:prepend>
-              <span style="font-size: 12px; font-weight: 400;">
+              <span class="bold-text" style="font-size: 12px;">
                 BCH
               </span>
             </template>
@@ -97,7 +97,7 @@
               outlined
               rounded=""
               :dark="darkMode"
-              v-model="amount"
+              v-model="minAmount"
             >
               <template v-slot:append>
                 <span style="font-size: 12px;">{{ selectedCurrency  }}</span>
@@ -114,7 +114,7 @@
               outlined
               rounded=""
               :dark="darkMode"
-              v-model="amount"
+              v-model="maxAmount"
             >
               <template v-slot:append>
                 <span style="font-size: 12px;">{{ selectedCurrency  }}</span>
@@ -124,6 +124,35 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
+
+    <!-- Payment Time Limit -->
+    <div class="q-mx-lg q-pt-md">
+      <div class="q-px-lg">
+        <div class="q-pt-sm bold-text">Payment Time Limit</div>
+      </div>
+      <div class="q-mx-md q-pt-sm">
+        <div>
+          <q-select
+              dense
+              outlined
+              rounded
+              :dark="darkMode"
+              v-model="ptl"
+              :options="ptlSelection"
+            />
+              <!-- <template v-slot:append>
+                <q-icon size="xs" name="close" @click.stop.prevent="ptl = ''"/>&nbsp;
+              </template> -->
+            <!-- </q-select> -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Post Ad -->
+    <div class="q-mx-lg">
       <div class="row q-mx-sm q-py-lg">
         <q-btn
           rounded
@@ -146,6 +175,20 @@ export default {
       selectedCurrency: 'PHP',
       floatingPriceMargin: 100,
       fixedAmount: 0,
+      minAmount: 0,
+      maxAmount: 0,
+      ptlSelection: [
+        {
+          label: '10 hrs',
+          value: 10
+        }, {
+          label: '15 hrs',
+          value: 15
+        }, {
+          label: '24 hrs',
+          value: 24
+        }],
+      ptl: '24 hrs',
       availableFiat: {
         PHP: 'Philippine Peso',
         USD: 'United States Dollar',
@@ -168,7 +211,11 @@ export default {
   }
 }
 </script>
-<style lang="sass" scoped>
-.my-custom-toggle
+<style lang="scss" scoped>
+.my-custom-toggle {
   border: 1px solid #2196F3
+}
+.bold-text {
+  font-weight: 500;
+}
 </style>
