@@ -8,6 +8,56 @@
         </div>
         <q-tab-panels v-model="tab" style="background: none;" animated>
           <q-tab-panel name="details" class="q-pa-none">
+            <div class="row items-center justify-end">
+              <q-btn
+                v-if="escrowContract?.settlementTxid"
+                flat
+                color="green"
+                no-caps
+                rounded
+                padding="xs sm"
+              >
+                {{ escrowContract?.settlementType == 'released' ? 'Payment received' : 'Refunded' }}
+                <q-icon :name="escrowContract?.settlementType == 'released' ? 'check_circle' : 'mdi-cash-refund'" class="q-ml-xs"/>
+                <q-menu :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
+                  <div class="ellipsis">
+                    Transaction:
+                    {{ escrowContract?.settlementTxid }}
+                  </div>
+                  <q-btn
+                    flat padding="none"
+                    no-caps label="View transaction"
+                    :href="escrowContract?.settlementTxLink"
+                    target="_blank"
+                    class="text-underline"
+                  />
+                </q-menu>
+              </q-btn>
+              <q-btn
+                v-if="escrowContract?.fundingTxid && escrowContract?.fundingVout >= 0"
+                flat
+                color="green"
+                no-caps
+                rounded
+                padding="xs sm"
+              >
+                Payment sent
+                <q-icon name="credit_score" class="q-ml-xs"/>
+                <q-menu :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
+                  <div class="ellipsis">
+                    Transaction:
+                    {{ escrowContract?.fundingTxid }}
+                  </div>
+                  <q-btn
+                    flat padding="none"
+                    no-caps label="View transaction"
+                    :href="escrowContract?.fundingTxLink"
+                    target="_blank"
+                    class="text-underline"
+                  />
+                </q-menu>
+              </q-btn>
+            </div>
             <div class="row no-wrap items-center">
               <div
                 class="q-mb-sm rounded-borders q-space"

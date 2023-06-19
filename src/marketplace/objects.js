@@ -918,4 +918,26 @@ export class EscrowContract {
     data.total = data.amount + data.serviceFee + data.arbitrationFee + data.deliveryFee + data.networkFee
     return data
   }
+
+  get fundingTxLink() {
+    const txid = this?.fundingTxid
+    const index = this?.fundingVout
+    const isTestnet = this?.address?.startsWith?.('bchtest:')
+
+    if (!txid) return ''
+    if (isNaN(index) || index < 0) return ''
+
+    if (isTestnet) return `https://chipnet.imaginary.cash/tx/${txid}#output-${index}`
+    return `https://blockchair.com/bitcoin-cash/transaction/${txid}?o=${index}`
+  }
+
+  get settlementTxLink() {
+    const txid = this?.settlementTxid
+    const isTestnet = this?.address?.startsWith?.('bchtest:')
+
+    if (!txid) return ''
+
+    if (isTestnet) return `https://chipnet.imaginary.cash/tx/${txid}`
+    return `https://blockchair.com/bitcoin-cash/transaction/${txid}`
+  }
 }
