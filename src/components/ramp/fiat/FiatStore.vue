@@ -19,7 +19,8 @@
               v-close-popup
               @click="selectFiatCoin(index)"
             >
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ currency }} ({{ index }})</q-item-section>
+            <!-- <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ currency }} ({{ index }})</q-item-section> -->
+            <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency }} ({{ index }})</q-item-section>
             </q-item>
           </q-list>
         </q-menu>
@@ -30,8 +31,8 @@
       </div>
     </div>
     <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
-      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'buy' }" @click="transactionType='buy'">Buy BCH</button>
-      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'sell'}" @click="transactionType='sell'">Sell BCH</button>
+      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy BCH</button>
+      <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell BCH</button>
     </div>
     <div class="q-mt-md">
       <div v-if="listings.length === 0" class="relative text-center" style="margin-top: 50px;">
@@ -41,39 +42,47 @@
       <div v-else>
         <q-card-section style="max-height:60vh;overflow-y:auto;">
           <q-virtual-scroll :items="sortedListings()">
-            <template v-slot="{ item: listing, index }">
+            <template v-slot="{ item: listing }">
               <q-item clickable @click="selectListing(listing)">
                 <q-item-section>
-                  <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="q-pt-sm q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <div class="row">
                       <div class="col ib-text">
                         <span
                           :class="{'pt-dark-label': darkMode}"
                           class="q-mb-none text-uppercase"
-                          style="font-size: 13px;"
-                        >
-                          {{ listing.name }}
+                          style="font-size: 13px;">
+                          {{ listing.owner }}
                         </span><br>
+                        <div class="row">
+                            <span class="q-mr-sm subtext">{{ listing.trade_count }} total trades </span>
+                            <span class="q-ml-sm subtext">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
+                        </div>
                         <span
                           :class="{'pt-dark-label': darkMode}"
                           class="col-transaction text-uppercase"
-                          style="font-size: 16px;"
-                        >
-                          {{ listing.price }}
+                          style="font-size: 20px;">
+                          {{ listing.fixed_price }} {{ selectedFiat }}
                         </span>
-                        <span style="font-size: 12px;">
-                          /BCH
-                        </span>
+                        <span style="font-size: 12px;">/BCH</span><br>
+                        <div class="row">
+                            <span class="col-1 subtext">Quantity</span>
+                            <span class="col q-mx-md subtext">{{ listing.crypto_amount }} BCH</span>
+                        </div>
+                        <div class="row">
+                            <span class="col-1 subtext">Limit</span>
+                            <span class="col q-mx-none subtext"> {{ listing.trade_floor }} {{ selectedFiat }} - {{ listing.trade_ceiling }} {{ selectedFiat }}</span>
+                        </div>
                       </div>
-                      <div class="text-right">
-                        <span class="subtext">Quantity: {{ listing.quantity }} BCH</span><br>
-                        <span class="subtext">Trades: {{ listing.trades }}</span>
-                        <!-- <span class="subtext">{{ listing.trades }} trades</span><br>
-                        <span class="subtext">{{ listing.completion }}% completion</span> -->
-                      </div>
+                      <!-- <div class="text-right">
+                        <span class="subtext">Quantity: {{ listing.crypto_amount }} BCH</span><br>
+                      </div> -->
                     </div>
                     <div class="q-gutter-sm q-pt-sm">
-                      <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method" />
+                      <q-badge v-for="method in listing.payment_methods" :key="method.id"
+                      rounded outline :color="transactionType === 'BUY'? 'blue': 'red'">
+                      {{ method.payment_type }}
+                      </q-badge>
                     </div>
                   </div>
                 </q-item-section>
@@ -107,8 +116,9 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      transactionType: 'buy',
-      selectedFiat: 'PHP',
+      apiURL: process.env.WATCHTOWER_BASE_URL,
+      transactionType: 'BUY',
+      selectedFiat: 'USD',
       state: 'select',
       selectedListing: {},
       availableFiat: {
@@ -118,138 +128,27 @@ export default {
         JPY: 'Japanese Yen',
         RUB: 'Russian Ruble'
       },
-      // listings: [],
-      listings: [
-        {
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          min: 500,
-          max: 10000,
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy'
-        },
-        {
-          name: 'Nana Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          min: 500,
-          max: 10000,
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          min: 500,
-          max: 10000,
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          min: 500,
-          max: 10000,
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          min: 500,
-          max: 10000,
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          min: 500,
-          max: 10000,
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          min: 500,
-          max: 10000,
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          min: 500,
-          max: 10000,
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },
-      ]
+      listings: []
     }
   },
   components: {
     FiatStoreBuy,
     FiatStoreSell
   },
+  async mounted () {
+    this.fetchStoreListings()
+  },
   methods: {
+    fetchStoreListings () {
+      const vm = this
+      vm.$axios.get(vm.apiURL + '/ramp-p2p/ad')
+        .then(response => {
+          vm.listings = response.data
+        })
+        .catch(error => {
+          console.error(error)
+        })
+    },
     selectFiatCoin (currency) {
       console.log(currency)
       this.selectedFiat = currency
@@ -262,11 +161,13 @@ export default {
     },
     sortedListings () {
       const vm = this
-
       const sorted = vm.listings.filter(function (listing) {
-        return listing.type === vm.transactionType
+        return listing.trade_type === vm.transactionType
       })
       return sorted
+    },
+    formatCompletionRate (value) {
+      return Math.floor(value).toString()
     }
   }
 }

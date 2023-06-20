@@ -51,7 +51,7 @@
                         </div>
                       </div>
                       <div class="q-gutter-sm q-pt-sm">
-                        <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method" />
+                        <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method" /> -->
                       </div>
                     </div>
                   </q-item-section>
