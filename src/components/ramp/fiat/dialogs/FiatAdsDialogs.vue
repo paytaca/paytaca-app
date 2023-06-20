@@ -16,11 +16,13 @@
   <q-dialog persistent v-model="notifyDeleteAd">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
-        <div class="text-h6 text-center">Ad Deleted</div>
+        <div class="text-h6 text-center">
+          <span class="q-pr-sm">Ad Deleted</span>
+          <q-icon flat name="task_alt"></q-icon>
+        </div>
       </q-card-section>
       <q-card-actions class="text-center" align="center">
-        <!-- <q-btn flat label="Cancel" color="red-6" @click="$emit('back')"  v-close-popup /> -->
-        <q-btn flat label="Ok" color="blue-6" v-close-popup />
+        <q-btn flat label="Ok" color="blue-6" @click="$emit('back')" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>

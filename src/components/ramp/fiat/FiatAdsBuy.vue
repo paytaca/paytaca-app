@@ -9,7 +9,7 @@
       />
     </div>
     <div>
-      <div class="text-h5 q-mx-lg text-center bold-text" style="font-size: 18px;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+      <div class="text-h5 q-mx-lg text-center bold-text lg-font-size" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
         POST BUY AD
       </div>
     </div>
@@ -21,7 +21,7 @@
       <div class="text-center q-mx-md">
         <q-btn-toggle
           dense
-          v-model="priceSetToggle"
+          v-model="adData.priceType"
           spread
           class="my-custom-toggle br-15"
           no-caps
@@ -29,38 +29,38 @@
           toggle-color="blue-6"
           text-color="blue-6"
           :options="[
-            {label: 'Fixed', value: 'fixed'},
-            {label: 'Floating', value: 'float'}
+            {label: 'Fixed', value: 'FIXED'},
+            {label: 'Floating', value: 'FLOAT'}
           ]"
         />
       </div>
-      <div class="row q-pt-sm q-gutter-sm q-px-md" style="font-size: 13px;">
+      <div class="row q-pt-sm q-gutter-sm q-px-md md-font-size">
         <div class="col-4">
-          <div class="q-pl-sm q-pb-xs">Fiat Amount</div>
+          <div class="q-pl-sm q-pb-xs">Fiat</div>
           <q-select dense :dark="darkMode" rounded outlined v-model="selectedCurrency" :options="Object.keys(availableFiat)" />
         </div>
         <div class="col">
           <!-- <q-select :dark="darkMode" rounded outlined v-model="selectedCurrency" :options="Object.keys(availableFiat)" label="Fiat Currency" /> -->
-          <div class="q-pl-sm q-pb-xs">{{ priceSetToggle === 'fixed'? 'Fixed Price' : 'Floating Price Margin' }}</div>
-          <q-input dense rounded :dark="darkMode" outlined bottom-slots v-model="fixedAmount">
+          <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price Margin' }}</div>
+          <q-input dense rounded :dark="darkMode" outlined bottom-slots v-model="amount">
             <template v-slot:prepend>
-              <q-icon name="remove" @click="fixedAmount--"/>
+              <q-icon name="remove" @click="amount--"/>
             </template>
             <template v-slot:append>
-              <q-icon name="add" @click="fixedAmount++" />
+              <q-icon name="add" @click="amount++" />
             </template>
           </q-input>
         </div>
       </div>
-      <div style="font-size: 13px;">
+      <div class="md-font-size">
         <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
           <div>
             <span>Your Price</span><br>
-            <span class="bold-text" style="font-size: 18px;">{{ fixedAmount }} {{ selectedCurrency }}</span>
+            <span class="bold-text lg-font-size">{{ amount }} {{ selectedCurrency }}</span>
           </div>
           <div >
-            <span>Lower Your Price</span><br>
-            <span style="float: right;font-size: 18px;">7311.78 {{ selectedCurrency }}</span>
+            <span>Lowest Order Price</span><br>
+            <span class="lg-font-size" style="float: right;">{{ lowerstOrderPrice }} {{ selectedCurrency }}</span>
           </div>
         </div>
       </div>
@@ -75,10 +75,10 @@
             outlined
             rounded=""
             :dark="darkMode"
-            v-model="amount"
+            v-model="adData.cryptoAmount"
           >
             <template v-slot:prepend>
-              <span class="bold-text" style="font-size: 12px;">
+              <span class="bold-text sm-font-size">
                 BCH
               </span>
             </template>
@@ -89,7 +89,7 @@
           </q-input>
         </div>
       <div class="q-mt-sm q-px-md">
-        <div class="q-pl-sm q-pb-xs" style="font-size: 13px;">Trade Limit</div>
+        <div class="q-pl-sm q-pb-xs md-font-size">Trade Limit</div>
         <div class="row">
           <div class="col-5">
             <q-input
@@ -97,10 +97,10 @@
               outlined
               rounded=""
               :dark="darkMode"
-              v-model="minAmount"
+              v-model="adData.tradeFloor"
             >
               <template v-slot:append>
-                <span style="font-size: 12px;">{{ selectedCurrency  }}</span>
+                <span class="sm-font-size">{{ selectedCurrency  }}</span>
                 <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
               </template>
             </q-input>
@@ -114,10 +114,10 @@
               outlined
               rounded=""
               :dark="darkMode"
-              v-model="maxAmount"
+              v-model="adData.tradeCeiling"
             >
               <template v-slot:append>
-                <span style="font-size: 12px;">{{ selectedCurrency  }}</span>
+                <span class="sm-font-size">{{ selectedCurrency  }}</span>
                 <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
               </template>
             </q-input>
@@ -160,6 +160,7 @@
           label='Post Ad'
           color="blue-6"
           class="q-space"
+          @click="postAd"
         />
       </div>
     </div>
@@ -170,13 +171,31 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      priceSetToggle: 'fixed',
+      lowerstOrderPrice: '7311.71',
+      priceSetToggle: 'FIXED',
       amount: 0,
       selectedCurrency: 'PHP',
       floatingPriceMargin: 100,
       fixedAmount: 0,
-      minAmount: 0,
-      maxAmount: 0,
+      adData: {
+        tradeType: 'BUY',
+        priceType: 'FIXED',
+        fiatCurrency: {
+          name: 'Philippine Peso',
+          abbrev: 'PHP'
+        },
+        cryptoCurrency: {
+          name: 'Bitcoin Cash',
+          abbrev: 'BCH'
+        },
+        fixedPrice: null,
+        floatingPrice: null,
+        tradeFloor: 0,
+        tradeCeiling: 0,
+        cryptoAmount: 0,
+        timeDurationChoice: 1440
+        // paymentMethods: [3, 4]
+      },
       ptlSelection: [
         {
           label: '10 hrs',
@@ -200,22 +219,46 @@ export default {
   },
   props: {
     transactionType: String,
-    adsState: String
+    adsState: String,
+    listing: {
+      type: Object,
+      default: null
+    }
   },
   emits: ['back'],
+  methods: {
+    postAd () {
+      if (this.adData.priceType === 'FIXED') {
+        this.adData.fixedPrice = this.amount
+      } else {
+        this.adData.floatingPrice = this.amount
+      }
+      console.log(this.adData)
+    }
+  },
   async mounted () {
     const vm = this
 
-    console.log(vm.transactionType)
-    console.log(vm.adsState)
+    // console.log(vm.transactionType)
+    // console.log(vm.adsState)
+    console.log(vm.listing)
   }
 }
 </script>
 <style lang="scss" scoped>
 .my-custom-toggle {
-  border: 1px solid #2196F3
+  border: 1px solid #ed5f59
 }
 .bold-text {
   font-weight: 500;
+}
+.sm-font-size {
+  font-size: 12px;
+}
+.md-font-size {
+  font-size: 13px
+}
+.lg-font-size {
+  font-size: 18px;
 }
 </style>

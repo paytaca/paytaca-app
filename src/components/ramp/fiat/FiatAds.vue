@@ -10,6 +10,7 @@
         v-on:back="state = 'selection'"
         :adsState="state"
         :transactionType="transactionType"
+        :listing="editListing"
       />
 
       <FiatAdsSell
@@ -40,7 +41,7 @@
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
-          <q-card-section style="max-height:60vh;overflow-y:auto;">
+          <q-card-section style="max-height:55vh;overflow-y:auto;">
             <q-virtual-scroll :items="transactionType === 'buy'? buyListings : sellListings">
               <template v-slot="{ item: listing, index }">
                 <q-item>
@@ -53,14 +54,14 @@
                             class="q-mb-none text-uppercase"
                             style="font-size: 13px;"
                           >
-                            {{ listing.name }}
+                            Price
                           </span><br>
                           <span
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase"
                             style="font-size: 16px;"
                           >
-                            {{ listing.price }}
+                            {{ listing.fixedPrice }} {{ listing.fiatCurrency.abbrev }}
                           </span>
                           <span style="font-size: 12px;">
                             /BCH
@@ -74,7 +75,7 @@
                             icon="edit"
                             size="sm"
                             color="grey-6"
-                            @click="editAds"
+                            @click="editAds(index)"
                           />
                           <q-btn
                             outline
@@ -89,7 +90,7 @@
                         </div>
                       </div>
                       <div class="q-gutter-sm q-pt-sm">
-                        <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method" />
+                        <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.name" />
                       </div>
                     </div>
                   </q-item-section>
@@ -121,118 +122,301 @@ export default {
       openDialog: false,
       dialogName: '',
       selectedIndex: null,
+      editListing: {},
       transactionType: 'buy',
       state: 'selection', // 'create' 'edit'
       buyListings: [],
       sellListings: [],
       // listings: [],
-      listings: [
+      testing: [
         {
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          timeDurationChoice: 1440,
           paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy'
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
         },
         {
-          name: 'Nana Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          time_duration_choice: 1440,
           paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 155,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell'
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
         },
+        {
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          time_duration_choice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          timeDurationChoice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          time_duration_choice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          time_duration_choice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'SELL',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          timeDurationChoice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'SELL',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          time_duration_choice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'SELL',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          time_duration_choice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        }
       ]
     }
   },
@@ -245,14 +429,24 @@ export default {
     sortedListings (type) {
       const vm = this
 
-      const sorted = vm.listings.filter(function (listing) {
-        return listing.type === type
+      const sorted = vm.testing.filter(function (test) {
+        return test.tradeType.toLowerCase() === type
       })
       return sorted
     },
-    editAds () {
-      this.state = 'edit'
+    editAds (index) {
+      const vm = this
+      vm.state = 'edit'
       console.log('edit')
+
+      switch (vm.transactionType) {
+        case 'buy':
+          vm.editListing = vm.buyListings[index]
+          break
+        case 'sell':
+          vm.editListing = vm.sellListings[index]
+          break
+      }
     },
     deleteAds (index) {
       const vm = this
@@ -282,8 +476,10 @@ export default {
               vm.sellListings.splice(vm.selectedIndex, 1)
             }
 
-            vm.dialogName = 'notifyDeleteAd'
-            vm.openDialog = true
+            setTimeout(() => {
+              vm.dialogName = 'notifyDeleteAd'
+              vm.openDialog = true
+            }, 50)
           }
           break
       }
