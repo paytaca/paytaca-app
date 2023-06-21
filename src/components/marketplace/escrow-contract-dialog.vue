@@ -165,6 +165,15 @@
               :model-value="qrCodeData"
               class="q-pt-sm"
             />
+            <div class="row items-center justify-end q-mt-sm">
+              <q-btn
+                rounded
+                no-caps
+                label="Send payment"
+                color="brandblue"
+                :to="{ name: 'transaction-send', query: { paymentUrl: qrCodeData, network: 'BCH', assetId: 'bch' }}"
+              />
+            </div>
           </q-tab-panel>
         </q-tab-panels>
       </q-card-section>
