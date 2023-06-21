@@ -236,7 +236,7 @@ export default defineComponent({
     }
 
     const qrCodeData = computed(() => {
-      return `${props.escrowContract?.address}?a=${props.escrowContract?.bchAmounts?.total}`
+      return `${props.escrowContract?.address}?amount=${props.escrowContract?.bchAmounts?.total}`
     })
 
     function copyToClipboard(value, message='') {
