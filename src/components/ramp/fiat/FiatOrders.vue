@@ -29,22 +29,31 @@
                             class="q-mb-none text-uppercase"
                             style="font-size: 13px;">
                             {{ listing.ad_owner_name }}
-                          </span><br>
+                          </span>
                           <div
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase"
                             style="font-size: 20px;">
-                            {{ orderFiatAmount(listing.locked_price, listing.crypto_amount) }} {{ listing.fiat_currency.abbrev }}
+                            <span v-if="listing.trade_type == 'BUY'">-</span>
+                            <span v-else>+</span>{{ orderFiatAmount(listing.locked_price, listing.crypto_amount) }} {{ listing.fiat_currency.abbrev }}
                           </div>
-                          <div style="font-size: 12px;">&asymp; {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div>
+                          <div style="font-size: 12px;">&asymp;
+                            <span v-if="listing.trade_type == 'SELL'">-</span>
+                            <span v-else>+</span>{{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div>
                           <div style="font-size: 12px;"> {{ listing.locked_price }} {{ listing.fiat_currency.abbrev }}/{{ listing.crypto_currency.abbrev }}</div>
                           <div class="row">
-                            <span class="col-1">Arbiter</span>
-                            <span class="col q-ml-md">{{ listing.arbiter }}</span>
+                            <span class="q-mr-sm">Arbiter:</span>
+                            <span>{{ listing.arbiter }}</span>
                           </div>
+                          <div class="row" style="font-size: 12px; color: grey">{{ formatDate(listing.created_at) }}</div>
                         </div>
                         <div class="text-right">
-                          <!-- <span class="subtext">Quantity: {{ listing.quantity }} BCH</span><br> -->
+                          <span class="row subtext" v-if="isCompleted(listing.status) == false && listing.expiration_date != null">
+                            <span v-if="isExpired(listing.expiration_date) == false" class="q-mr-xs">Expires in </span>
+                            <span v-else class="q-mr-xs">Expired for</span>
+                            <span>{{ formatExpiration(listing.expiration_date) }}</span>
+                          </span>
+                          <span style=";">{{ listing.status }}</span>
                           <!-- <span class="subtext">{{ listing.status }}</span> -->
                           <!-- <span class="status-text" v-if="listing.status === 'released'">RELEASED</span> -->
                           <!-- <span class="status-text" v-else-if="listing.status.includes('confirmation')">PENDING CONFIRMATION</span> -->
@@ -71,123 +80,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL,
       transactionType: 'BUY',
-      // listings: [],
-      listings: [
-        {
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 1,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy',
-          status: 'released'
-        },
-        {
-          name: 'Nana Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 1.4,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell',
-          status: 'released'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 1,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy',
-          status: 'pending-confirmation'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 1,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell',
-          status: 'pending-payment'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 1.4,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell',
-          status: 'pending-release'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 1.6,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'buy',
-          status: 'released'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 1,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell',
-          status: 'pending-confirmation'
-        },{
-          name: 'Anna Mondover',
-          trades: 1230,
-          completion: 97.5,
-          price: '6991.79 PHP',
-          quantity: 1,
-          limit: '500 PHP to 10000 PHP',
-          paymentMethods: [
-            'paypal',
-            'gcash',
-            'paymaya'
-          ],
-          type: 'sell',
-          status: 'pending-release'
-        },
-      ]
+      listings: []
     }
   },
   mounted () {
@@ -204,11 +97,49 @@ export default {
       vm.$axios.get(vm.apiURL + '/ramp-p2p/order', { headers: headers })
         .then(response => {
           vm.listings = response.data
-          console.log('listings: ', vm.listings)
         })
         .catch(error => {
           console.error(error)
         })
+    },
+    getElapsedTime (expirationDate) {
+      const currentTime = new Date().getTime() // Replace with your start timestamp
+      expirationDate = new Date(expirationDate).getTime()
+      const elapsedMilliseconds = expirationDate - currentTime
+      const elapsedMinutes = Math.floor(elapsedMilliseconds / (1000 * 60))
+      let days = 0
+      const hours = Math.floor(elapsedMinutes / 60)
+      const minutes = elapsedMinutes % 60
+      if (hours * -1 > 24) days = hours % 24
+      //   console.log(`${days} days, ${hours} hours, ${minutes} minutes`)
+      return [days, hours, minutes]
+    },
+    formatExpiration (expirationDate) {
+      let [days, hours, minutes] = this.getElapsedTime(expirationDate)
+      if (days < 0) days = days * -1
+      if (hours < 0) hours = hours * -1
+      if (minutes < 0) minutes = minutes * -1
+      let formattedElapsedTime = ''
+      if (days > 0) {
+        formattedElapsedTime = `${days} days`
+      } else {
+        formattedElapsedTime = `${hours} hours ${minutes} minutes`
+      }
+      return formattedElapsedTime
+    },
+    isExpired (expirationDate, status) {
+      const [days, hours, minutes] = this.getElapsedTime(expirationDate)
+      if (days < 0 || hours < 0 || minutes < 0) return true
+      return false
+    },
+    isCompleted (status) {
+      if (status === 'Released' || status === 'Refunded' || status === 'Canceled') return true
+      return false
+    },
+    formatDate (value) {
+      const datetime = new Date(value)
+      const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }
+      return datetime.toLocaleString(undefined, options)
     },
     orderFiatAmount (lockedPrice, cryptoAmount) {
       return lockedPrice * cryptoAmount
@@ -218,7 +149,6 @@ export default {
       const sorted = vm.listings.filter(function (listing) {
         return listing.trade_type === vm.transactionType
       })
-      console.log('sorted: ', sorted)
       return sorted
     }
   }
