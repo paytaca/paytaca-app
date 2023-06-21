@@ -16,6 +16,8 @@
       <FiatAdsSell
         v-if="transactionType === 'sell'"
         v-on:back="state = 'selection'"
+        :adsState="state"
+        :transactionType="transactionType"
       />
     </div>
     <div v-if="state === 'selection'">

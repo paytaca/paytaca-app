@@ -9,8 +9,9 @@
       />
     </div>
     <div>
-      <div class="text-h5 q-mx-lg text-center bold-text lg-font-size" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-        POST BUY AD
+      <div class="text-h5 q-mx-lg text-center bold-text lg-font-size" style="color: rgb(60, 100, 246);" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+        <span v-if="adsState === 'create'">POST BUY AD</span>
+        <span v-if="adsState === 'edit'">EDIT BUY AD</span>
       </div>
     </div>
     <!-- Price Settings -->
@@ -247,7 +248,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .my-custom-toggle {
-  border: 1px solid #ed5f59
+  border: 1px solid #2196F3
 }
 .bold-text {
   font-weight: 500;

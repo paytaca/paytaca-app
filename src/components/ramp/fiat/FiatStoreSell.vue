@@ -35,6 +35,7 @@
           <q-input
             dense
             filled
+            color="red-6"
             :dark="darkMode"
             v-model="amount"
           >
