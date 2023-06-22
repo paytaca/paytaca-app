@@ -38,7 +38,7 @@
         </q-img>
         <q-card-section v-if="nft?.parsedMetadata?.name || nft?.parsedMetadata?.description" class="q-pa-sm">
           <div class="text-subtitle1 ellipsis-3-lines">{{ nft?.parsedMetadata?.name }}</div>
-          <div class="ellipsis">{{ nft?.parsedMetadata?.description }}</div>
+          <!-- <div class="ellipsis">{{ nft?.parsedMetadata?.description }}</div> -->
         </q-card-section>
       </q-card>
     </div>

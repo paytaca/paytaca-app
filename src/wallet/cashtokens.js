@@ -5,16 +5,10 @@ const bcmrBackend = setupCache(axios.create({
   baseURL: 'https://bcmr.paytaca.com/api',
 }))
 
-function getAnyProperty(obj) {
- if (!obj || !typeof obj === 'object') return
-
- return Object.getOwnPropertyNames(obj).map(propertyName => obj?.[propertyName])?.find(Boolean)
-}
-
-function convertIpfsUrl(ipfsUrl='') {
-  if (typeof ipfsUrl !== 'string') return ipfsUrl
-  if (!ipfsUrl.startsWith('ipfs://')) return ipfsUrl
-  return ipfsUrl.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
+function convertIpfsUrl(url='') {
+  if (typeof url !== 'string') return url
+  if (!url.startsWith('ipfs://')) return url
+  return url.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
 }
 
 export class CashNonFungibleToken {
@@ -32,20 +26,31 @@ export class CashNonFungibleToken {
 
   get parsedGroupMetadata() {
     return {
-      name: this.metadata?.name || this.info?.name,
-      description: this.metadata?.description || this?.info?.description,
-      symbol: this.metadata?.symbol || this.info?.symbol,
-      imageUrl: convertIpfsUrl(getAnyProperty(this.metadata?.uris) || this.info?.imageUrl),
+      name: this.metadata?.name,
+      description: this.metadata?.description,
+      symbol: this.metadata?.symbol,
+      imageUrl: convertIpfsUrl(this.metadata?.uris?.icon)
     }
   }
 
   get parsedNftMetadata() {
-    const data = this.metadata?.types?.[this.commitment]
-    return {
-      name: data?.name || this?.parsedGroupMetadata?.name || this.info?.name,
-      description: data?.description || this?.parsedGroupMetadata?.name || this.info?.description,
-      imageUrl: convertIpfsUrl(getAnyProperty(data?.uris) || this?.parsedGroupMetadata?.imageUrl || this.info?.imageUrl),
-      attributes: data?.extensions?.attributes || this.info?.nftDetails?.extensions?.attributes,
+    let data = this.metadata
+    if (data) {
+      if (data.type_metadata) {
+        data = this.metadata?.type_metadata
+        return {
+          name: data?.name || this?.parsedGroupMetadata?.name,
+          description: data?.description || this?.parsedGroupMetadata?.name,
+          imageUrl: convertIpfsUrl(data?.uris?.icon) || this?.parsedGroupMetadata?.imageUrl,
+          attributes: data?.extensions?.attributes
+        }
+      } else {
+        return {
+          name: data?.name || this?.parsedGroupMetadata?.name,
+          description: data?.description || this?.parsedGroupMetadata?.name,
+          imageUrl: convertIpfsUrl(data?.uris?.icon) || this?.parsedGroupMetadata?.imageUrl
+        }
+      }
     }
   }
 
@@ -76,13 +81,6 @@ export class CashNonFungibleToken {
    * @param {'mutable' | 'minting' | 'none' | ''} data.capability
    * @param {String} data.current_txid
    * @param {String} data.current_index
-   * @param {Object} data.info
-   * @param {String} data.info.name
-   * @param {String} data.info.description
-   * @param {String} data.info.symbol
-   * @param {Number} data.info.decimals
-   * @param {String} data.info.image_url
-   * @param {Object} data.info.nft_details
    */
   updateData(data) {
     this.id = data?.id
@@ -91,22 +89,11 @@ export class CashNonFungibleToken {
     this.capability = data?.capability
     this.currentTxid = data?.currentTxid || data?.current_txid
     this.currentIndex = data?.currentIndex || data?.current_index
-
-    // for backwards compatibility
-    this.info = {
-      name: data?.info?.name,
-      description: data?.info?.description,
-      symbol: data?.info?.symbol,
-      decimals: data?.info?.decimals,
-      imageUrl: data?.info?.imageUrl || data?.info?.image_url,
-      nftDetails: data?.info?.nftDetails || data?.info?.nft_details,
-    }
   }
 
   async fetchMetadata() {
     let url = `tokens/${this.category}/`
     if (this.commitment) url += `${this.commitment}/`
-
     
     this.$state.fetchingMetadata = true
     return bcmrBackend.get(url)

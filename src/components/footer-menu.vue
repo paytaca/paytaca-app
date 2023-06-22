@@ -39,19 +39,23 @@
         <router-link :to="{ name: 'apps-dashboard' }">
           <q-icon class="default-text-color mb-2" size="30px">
             <svg>
-              <use xlink:href="app-apps.svg#icon"></use>
+              <use xlink:href="apps.svg#icon"></use>
             </svg>
           </q-icon>
         </router-link>
         <span @click="$router.push({ name: 'apps-dashboard' })">{{ $t('Apps') }}</span>
       </button>
-      <!-- <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
-          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_microwave_gen"/>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
+          <q-icon class="default-text-color mb-2" size="30px">
+            <svg>
+              <use xlink:href="wallet.svg#icon"></use>
+            </svg>    
+          </q-icon>
         <span>Wallets</span>
-      </button> -->
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
-        <i class="footer-icon mdi mdi-launch default-text-color"></i>
       </button>
+      <!-- <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
+        <i class="footer-icon mdi mdi-launch default-text-color"></i>
+      </button> -->
     </div>
   </div>
 </template>
