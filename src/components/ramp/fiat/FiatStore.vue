@@ -7,20 +7,20 @@
   >
     <div class="row no-wrap items-center q-pa-sm q-pt-md">
       <div>
-        <div class="q-ml-md text-h5" style="font-size: 15px;">
-          {{ availableFiat[selectedFiat] }} <q-icon size="sm" name='mdi-menu-down'/>
+        <div v-if="selectedFiat" class="q-ml-md text-h5" style="font-size: 15px;">
+          {{ selectedFiat.abbrev }} <q-icon size="sm" name='mdi-menu-down'/>
         </div>
         <q-menu anchor="bottom left" self="top left" >
           <q-list class="text-h5" :class="{'pt-dark-card': darkMode}" style="min-width: 150px; font-size: 15px;">
             <q-item
-              v-for="(currency, index) in availableFiat"
+              v-for="(currency, index) in fiatCurrencies"
               :key="index"
               clickable
               v-close-popup
-              @click="selectFiatCoin(index)"
+              @click="selectFiatCurrency(index)"
             >
             <!-- <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ currency }} ({{ index }})</q-item-section> -->
-            <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency }} ({{ index }})</q-item-section>
+            <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.abbrev }})</q-item-section>
             </q-item>
           </q-list>
         </q-menu>
@@ -41,7 +41,7 @@
       </div>
       <div v-else>
         <q-card-section style="max-height:60vh;overflow-y:auto;">
-          <q-virtual-scroll :items="sortedListings()">
+          <q-virtual-scroll :items="getFilteredListings()">
             <template v-slot="{ item: listing }">
               <q-item clickable @click="selectListing(listing)">
                 <q-item-section>
@@ -62,7 +62,7 @@
                           :class="{'pt-dark-label': darkMode}"
                           class="col-transaction text-uppercase"
                           style="font-size: 20px;">
-                          {{ listing.fixed_price }} {{ selectedFiat }}
+                          {{ listing.fixed_price }} {{ selectedFiat.abbrev }}
                         </span>
                         <span style="font-size: 12px;">/BCH</span><br>
                         <div class="row">
@@ -71,7 +71,7 @@
                         </div>
                         <div class="row">
                             <span class="col-1 subtext">Limit</span>
-                            <span class="col q-mx-none subtext"> {{ listing.trade_floor }} {{ selectedFiat }} - {{ listing.trade_ceiling }} {{ selectedFiat }}</span>
+                            <span class="col q-mx-none subtext"> {{ listing.trade_floor }} {{ selectedFiat.abbrev }} - {{ listing.trade_ceiling }} {{ selectedFiat.abbrev }}</span>
                         </div>
                       </div>
                       <!-- <div class="text-right">
@@ -116,18 +116,12 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL,
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/',
       transactionType: 'BUY',
-      selectedFiat: 'USD',
+      selectedFiat: null,
       state: 'select',
       selectedListing: {},
-      availableFiat: {
-        PHP: 'Philippine Peso',
-        USD: 'United States Dollar',
-        CAD: 'Canadian Dollar',
-        JPY: 'Japanese Yen',
-        RUB: 'Russian Ruble'
-      },
+      fiatCurrencies: [],
       listings: []
     }
   },
@@ -136,12 +130,22 @@ export default {
     FiatStoreSell
   },
   async mounted () {
+    await this.fetchFiatCurrencies()
     this.fetchStoreListings()
   },
   methods: {
+    async fetchFiatCurrencies () {
+      const vm = this
+      const response = await vm.$axios.get(vm.apiURL + '/currency/fiat')
+      vm.fiatCurrencies = response.data
+      vm.selectedFiat = vm.fiatCurrencies[0]
+    },
     fetchStoreListings () {
       const vm = this
-      vm.$axios.get(vm.apiURL + '/ramp-p2p/ad')
+      const params = {
+        fiat: this.selectedFiat.id
+      }
+      vm.$axios.get(vm.apiURL + '/ad', { params: params })
         .then(response => {
           vm.listings = response.data
         })
@@ -149,22 +153,22 @@ export default {
           console.error(error)
         })
     },
-    selectFiatCoin (currency) {
-      console.log(currency)
-      this.selectedFiat = currency
+    selectFiatCurrency (index) {
+      this.selectedFiat = this.fiatCurrencies[index]
+      this.listings = []
+      this.fetchStoreListings()
     },
     selectListing (listing) {
       const vm = this
-      // console.log(listing)
       vm.selectedListing = listing
       vm.state = vm.transactionType
     },
-    sortedListings () {
+    getFilteredListings () {
       const vm = this
-      const sorted = vm.listings.filter(function (listing) {
+      const filteredListings = vm.listings.filter(function (listing) {
         return listing.trade_type === vm.transactionType
       })
-      return sorted
+      return filteredListings
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
