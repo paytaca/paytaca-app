@@ -29,7 +29,7 @@
                 Ungrouped NFTs
               </span>
               <span v-else >
-                {{ nftGroup?.info?.name || nftGroup?.category }}
+                {{ nftGroup?.metadata?.name || nftGroup?.category }}
               </span>
             </div>
             <q-icon
