@@ -356,10 +356,10 @@ export default {
 
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [
-      { value: 'en-us', label: 'English' },
-      { value: 'es', label: 'Spanish' },
-      { value: 'zh-tw', label: 'Chinese (Traditional)' },
-      { value: 'zh-cn', label: 'Chinese (Simplified)' },
+      { value: 'en-us', label: this.$t('English') },
+      { value: 'es', label: this.$t('Spanish') },
+      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
     ]
     let finalLang = ''
 

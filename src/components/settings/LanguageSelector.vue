@@ -26,10 +26,10 @@ export default {
     return {
       locale: this.$q.localStorage.getItem('lang'),
       langs: [
-        'English',
-        'Spanish',
-        'Chinese (Traditional)',
-        'Chinese (Simplified)',
+        this.$t('English'),
+        this.$t('Spanish'),
+        this.$t('ChineseTraditional'),
+        this.$t('ChineseSimplified'),
       ],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },

@@ -13,7 +13,8 @@ const fs = require('fs')
 
 
 /**
- * NOTE: UPDATE TEXTS HERE and run this script
+ * NOTE: YOU ONLY NEED TO UPDATE TEXTS HERE and run this script
+ * to automatically edit the language files
  * 
  */
 const words = {
@@ -68,6 +69,7 @@ const words = {
   Personalize: "Personalize",
   Pin: "PIN",
   POSID: "POSID",
+  Ramp: "Ramp",
   Receive: "Receive",
   Received: "Received",
   Recipient: "Recipient",
@@ -188,6 +190,7 @@ const phrases = {
       GeneratingRandomSignature: "Generating random signature",
       GasFee: "Gas fee",
       GasPrice: "Gas Price",
+      Gifts: "Gifts",
       GenerateNewAddress: "Generate new address",
       HasBalance: "Has balance",
       InvalidPhoneNumber: "Invalid phone number",
@@ -319,9 +322,16 @@ const phrases = {
       UnlinkDevice: "Unlink device",
     },
     {
+      AppInfo: "App Info",
+      ManageIgnoredTokens: "Manage Ignored Tokens",
+      POSAdmin: "POS Admin",
+      ShowTokens: "Show Tokens",
+      SourceCodeRepo: "Source code repository",
+      ShowSmartBCH: "Show SmartBCH",
       UnlinkDeviceRequestCreated: "Unlink device request created",
       UnlinkDeviceRequestFailed: "Unlink device request failed",
       UnlinkPOSDevice: "Unlink POS device",
+      UseChipnetNetwork: "Use Chipnet Network",
       UnlinkRequestCancelled: "Unlink request cancelled",
       UnsuspendDevice: "Unsuspend device",
       UnsuspendingDevice: "Unsuspending device",
@@ -375,6 +385,12 @@ const TEXT_GROUPS = [
   ...phrases.static,
   phrases.dynamic
 ]
+const textGroupKeys = [
+  'words',
+  'static phrases group 1',
+  'static phrases group 2',
+  'dynamic phrases',
+]
 const supportedLangs = [
   'en-us',
   'es',
@@ -387,7 +403,7 @@ let sum = 0
 for (const group of TEXT_GROUPS) {
   sum += Object.keys(group).length
 }
-console.log(sum)
+console.log('Expected no. of translation keys on i18n files: ', sum)
 
 
 // translate all texts here
@@ -400,7 +416,14 @@ let jsonData = {};
       codes.to = 'en'
     }
 
-    TEXT_GROUPS.forEach(async (group, index) => {
+    console.log('==============================')
+    console.log(`Processing ${codes.to}:`)
+    console.log('==============================')
+
+    let index = 0
+    for (const group of TEXT_GROUPS) {
+      console.log(`Translating ${textGroupKeys[index]}...`)
+
       const translatedObj = await translate(group, codes)
       // merge the previous and current objects
       Object.assign(jsonData, translatedObj)
@@ -408,11 +431,14 @@ let jsonData = {};
       let strData = '// NOTE: DONT UPDATE IN THIS FILE\n'
       strData += '// UPDATE ON i18n/translate.js file (centralized there)\n\n'
       strData += 'export default '
+
       strData += JSON.stringify(jsonData, null, 2)
       // to remove the quotes on keys after stringify
       strData = strData.replace(/"([^"]+)":/g, '$1:')
       // write to our i18n/{lang_code}/index.js
       write(strData, lang)
-    })
+
+      index++
+    }
   }
 })();

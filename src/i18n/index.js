@@ -24,5 +24,8 @@ export default {
     
     4. i18n/translate.js
       = supportedLangs (variable)
+
+    5. Add language name to group of texts on i18n/translate.js
+      = words or phrases variable
   */
 }

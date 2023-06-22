@@ -68,7 +68,7 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Show Tokens') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ShowTokens') }}</q-item-label>
                 </q-item-section>
                 <q-item-section avatar>
                     <q-toggle
@@ -80,7 +80,7 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Manage Ignored Tokens') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ManageIgnoredTokens') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn
@@ -94,7 +94,7 @@
 
               <q-item clickable v-ripple @click="isChipnet = !isChipnet">
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Use Chipnet Network') }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('UseChipnetNetwork') }}</q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
                     <q-toggle
@@ -106,7 +106,7 @@
               </q-item>
               <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Show SmartBCH') }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ShowSmartBCH') }}</q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
                     <q-toggle
@@ -146,7 +146,7 @@
           </q-list>
         </div>
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
-          <p class="q-px-sm q-my-sm dim-text text-h6">App Info</p>
+          <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('AppInfo') }}</p>
             <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
               <q-item>
                 <q-item-section>
@@ -156,7 +156,7 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Source code repository</q-item-label>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
                   <q-item-label>
                     <a href="https://github.com/paytaca/paytaca-app" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
                       https://github.com/paytaca/paytaca-app
