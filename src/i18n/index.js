@@ -2,12 +2,14 @@ import enUS from './en-us'
 import es from './es'
 import zhCN from './zh-cn'
 import zhTW from './zh-tw'
+import de from './de'
 
 export default {
   'en-us': enUS,
   'zh-cn': zhCN,
   'zh-tw': zhTW,
   es,
+  de,
   /*
     NOTE:
 
@@ -27,5 +29,6 @@ export default {
 
     5. Add language name to group of texts on i18n/translate.js
       = words or phrases variable
+      e.g. Chinese: "Chinese"
   */
 }

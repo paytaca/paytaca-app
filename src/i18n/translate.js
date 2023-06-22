@@ -56,6 +56,7 @@ const words = {
   Done: "Done",
   From: "From",
   Gas: "Gas",
+  German: "German",
   Home: "Home",
   Keep: "Keep",
   Language: "Language",
@@ -378,8 +379,6 @@ function write (data, to) {
   })
 }
 
-// check for supported language codes here
-// https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
 const TEXT_GROUPS = [
   words,
   ...phrases.static,
@@ -396,6 +395,7 @@ const supportedLangs = [
   'es',
   'zh-tw',
   'zh-cn',
+  'de',
 ]
 
 // print out length of texts for verification later after writing to file
@@ -410,6 +410,8 @@ console.log('Expected no. of translation keys on i18n files: ', sum)
 let jsonData = {};
 
 (async () => {
+  // check for supported language codes here
+  // https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
   for (let lang of supportedLangs) {
     const codes = { from: 'en', to: lang }
     if (lang === 'en-us') {

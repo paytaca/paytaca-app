@@ -40,6 +40,7 @@ export default {
   Done: "完畢",
   From: "從",
   Gas: "氣體",
+  German: "德語",
   Home: "家",
   Keep: "保持",
   Language: "語言",

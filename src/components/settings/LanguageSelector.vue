@@ -27,15 +27,17 @@ export default {
       locale: this.$q.localStorage.getItem('lang'),
       langs: [
         this.$t('English'),
-        this.$t('Spanish'),
-        this.$t('ChineseTraditional'),
         this.$t('ChineseSimplified'),
+        this.$t('ChineseTraditional'),
+        this.$t('German'),
+        this.$t('Spanish'),
       ],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
-        { value: 'es', label: this.$t('Spanish') },
-        { value: 'zh-tw', label: this.$t('ChineseTraditional') },
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
+        { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+        { value: 'zh-cn', label: this.$t('German') },
+        { value: 'es', label: this.$t('Spanish') },
       ],
       localeOptions: []
     }

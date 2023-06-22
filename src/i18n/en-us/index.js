@@ -40,6 +40,7 @@ export default {
   Done: "Done",
   From: "From",
   Gas: "Gas",
+  German: "German",
   Home: "Home",
   Keep: "Keep",
   Language: "Language",
