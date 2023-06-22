@@ -357,7 +357,9 @@ export default {
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [
       { value: 'en-us', label: 'English' },
-      { value: 'es', label: 'Spanish' }
+      { value: 'es', label: 'Spanish' },
+      { value: 'zh-tw', label: 'Chinese (Traditional)' },
+      { value: 'zh-cn', label: 'Chinese (Simplified)' },
     ]
     let finalLang = ''
 

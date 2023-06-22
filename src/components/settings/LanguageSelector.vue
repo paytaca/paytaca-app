@@ -28,10 +28,14 @@ export default {
       langs: [
         'English',
         'Spanish',
+        'Chinese (Traditional)',
+        'Chinese (Simplified)',
       ],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
-        { value: 'es', label: this.$t('Spanish') }
+        { value: 'es', label: this.$t('Spanish') },
+        { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+        { value: 'zh-cn', label: this.$t('ChineseSimplified') },
       ],
       localeOptions: []
     }
