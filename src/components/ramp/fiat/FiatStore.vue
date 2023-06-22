@@ -3,7 +3,7 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     style="min-height:78vh;"
-    v-if="state === 'select'"
+    v-if="state === 'SELECT'"
   >
     <div class="row no-wrap items-center q-pa-sm q-pt-md">
       <div>
@@ -35,7 +35,7 @@
       <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell BCH</button>
     </div>
     <div class="q-mt-md">
-      <div v-if="listings.length === 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="loading == false && listings.length == 0" class="relative text-center" style="margin-top: 50px;">
         <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
         <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
       </div>
@@ -66,12 +66,12 @@
                         </span>
                         <span style="font-size: 12px;">/BCH</span><br>
                         <div class="row">
-                            <span class="col-1 subtext">Quantity</span>
-                            <span class="col q-mx-md subtext">{{ listing.crypto_amount }} BCH</span>
+                            <span class="q-mr-md subtext">Quantity</span>
+                            <span class="subtext">{{ listing.crypto_amount }} BCH</span>
                         </div>
                         <div class="row">
-                            <span class="col-1 subtext">Limit</span>
-                            <span class="col q-mx-none subtext"> {{ listing.trade_floor }} {{ selectedFiat.abbrev }} - {{ listing.trade_ceiling }} {{ selectedFiat.abbrev }}</span>
+                            <span class="q-mr-md subtext">Limit</span>
+                            <span class="subtext"> {{ listing.trade_floor }} {{ selectedFiat.abbrev }} - {{ listing.trade_ceiling }} {{ selectedFiat.abbrev }}</span>
                         </div>
                       </div>
                       <!-- <div class="text-right">
@@ -94,17 +94,17 @@
     </div>
   </q-card>
   <!-- Buy BCH Here -->
-  <div v-if="state === 'buy'">
+  <div v-if="state === 'BUY'">
     <FiatStoreBuy
-      v-on:back="state = 'select'"
-      :listingData="selectedListing"
+      v-on:back="state = 'SELECT'"
+      :ad="selectedListing"
     />
   </div>
   <!-- Sell BCH Here -->
-  <div v-if="state === 'sell'">
+  <div v-if="state === 'SELL'">
     <FiatStoreSell
-      v-on:back="state = 'select'"
-      :listingData="selectedListing"
+      v-on:back="state = 'SELECT'"
+      :ad="selectedListing"
     />
   </div>
 </template>
@@ -116,10 +116,11 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/',
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       transactionType: 'BUY',
+      loading: true,
       selectedFiat: null,
-      state: 'select',
+      state: 'SELECT',
       selectedListing: {},
       fiatCurrencies: [],
       listings: []
@@ -145,12 +146,15 @@ export default {
       const params = {
         fiat: this.selectedFiat.id
       }
+      vm.loading = true
       vm.$axios.get(vm.apiURL + '/ad', { params: params })
         .then(response => {
           vm.listings = response.data
+          vm.loading = false
         })
         .catch(error => {
           console.error(error)
+          vm.loading = false
         })
     },
     selectFiatCurrency (index) {
@@ -160,7 +164,8 @@ export default {
     },
     selectListing (listing) {
       const vm = this
-      vm.selectedListing = listing
+      vm.selectedListing = listing.id
+      console.log('selectedListing:', vm.selectedListing)
       vm.state = vm.transactionType
     },
     getFilteredListings () {

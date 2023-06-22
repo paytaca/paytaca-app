@@ -16,15 +16,15 @@
       <div class="q-mx-lg q-pt-xs text-h5 text-center" style="font-size: 18px; font-weight: 500; color: rgb(60, 100, 246);" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
         BUY BY FIAT
       </div>
-      <div class="q-mx-lg">
+      <div v-if="adDetails" class="q-mx-lg">
         <div class="q-pt-md subtext" style="font-size: 12px;">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <span>Price:</span>
-            <span class="text-nowrap q-ml-xs">{{ buy.price }}</span>
+            <span class="text-nowrap q-ml-xs">{{ adDetails.price }}</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <span>Limit:</span>
-            <span class="text-nowrap q-ml-xs">{{ buy.limit }}</span>
+            <span class="text-nowrap q-ml-xs">{{ adDetails.trade_floor }} {{ adDetails.fiat_currency.abbrev }}</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <span>Payment Limit:</span>
@@ -83,7 +83,7 @@
         v-on:released="cryptoReleased"
       />
     </div>
-    <div v-if="!hideSellerInfo">
+    <div v-if="!hideSellerInfo && adDetails != null">
       <div class="q-mx-lg text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
         SELLER INFO
       </div>
@@ -95,7 +95,7 @@
               class="q-pl-md q-mb-none text-uppercase"
               style="font-size: 15px; font-weight: 400;"
             >
-              {{ buy.name }}
+              {{ adDetails.ad_owner_name }}
             </span>
           </div>
           <div class="q-mx-lg subtext" :class="{'pt-dark-label': darkMode}">
@@ -103,13 +103,13 @@
               class="q-pl-md q-mb-none"
               style="font-size: 12px;"
             >
-              {{ buy.trades }} trades
+              {{ adDetails.trade_count }} trades
             </span>&nbsp;
             <span
               class="q-pl-xs q-mb-none"
               style="font-size: 12px;"
             >
-              {{ buy.completion }}% completion
+              {{ adDetails.completion_rate }}% completion
             </span>
           </div>
         </div>
@@ -123,7 +123,7 @@
       </div>
       <div class="q-mx-lg q-pt-sm">
         <div class="q-ml-xs  q-gutter-sm">
-          <q-badge v-for="method in buy.paymentMethods" rounded outline color="blue" :label="method"/>
+          <q-badge v-for="method in adDetails.payment_methods" :key="method.id" rounded outline color="blue" :label="method"/>
         </div>
       </div>
       <div class="q-mx-lg q-mt-md" v-if="pendingRelease">
@@ -138,13 +138,15 @@
   </q-card>
 </template>
 <script>
+import { string } from 'hex-my-bytes'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      buy: {},
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      adDetails: null,
       amount: 0,
       cryptoAmount: 1.43,
       fiatAmount: '1000 PHP',
@@ -155,13 +157,24 @@ export default {
     }
   },
   emits: ['back'],
-  props: {
-    listingData: Object
-  },
+  props: ['ad'],
   components: {
     FiatStoreBuyProcess
   },
+  async mounted () {
+    console.log('inside mounted')
+    await this.fetchAdDetail()
+  },
   methods: {
+    async fetchAdDetail () {
+      console.log('ad: ', this.ad)
+      const vm = this
+      const url = `${vm.apiURL}/ad/${this.ad}`
+      console.log('url:', url)
+      const response = await vm.$axios.get(url)
+      vm.adDetails = response.data
+      console.log('adDetails:', vm.adDetails)
+    },
     isAmountValid () {
       if (this.amount === 0 || this.amount === '') {
         return false
@@ -173,10 +186,6 @@ export default {
       this.released = true
       this.pendingRelease = false
     }
-  },
-  async mounted () {
-    const vm = this
-    vm.buy = vm.listingData
   }
 }
 </script>

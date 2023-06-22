@@ -11,13 +11,13 @@
         </div>
       </div>
       <div class="q-mt-md">
-        <div v-if="sortedListings().length === 0" class="relative text-center" style="margin-top: 50px;">
+        <div v-if="loading == false && filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:60vh;overflow-y:auto;">
-            <q-virtual-scroll :items="sortedListings()">
+            <q-virtual-scroll :items="filteredListings()">
               <template v-slot="{ item: listing }">
                 <q-item clickable>
                   <q-item-section>
@@ -37,7 +37,8 @@
                             <span v-if="listing.trade_type == 'BUY'">-</span>
                             <span v-else>+</span>{{ orderFiatAmount(listing.locked_price, listing.crypto_amount) }} {{ listing.fiat_currency.abbrev }}
                           </div>
-                          <div style="font-size: 12px;">&asymp;
+                          <div style="font-size: 12px;">
+                            <!-- &asymp; -->
                             <span v-if="listing.trade_type == 'SELL'">-</span>
                             <span v-else>+</span>{{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div>
                           <div style="font-size: 12px;"> {{ listing.locked_price }} {{ listing.fiat_currency.abbrev }}/{{ listing.crypto_currency.abbrev }}</div>
@@ -75,6 +76,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL,
+      loading: true,
       transactionType: 'BUY',
       listings: []
     }
@@ -90,12 +92,15 @@ export default {
         timestamp: 1687247466349,
         signature: '3044022046626064beef19b37f4fb1705ea25275bbda30a3465cf27621a4629f9bba29f60220425289bb9904804274fc67cb38d4f55fde7f99fbafaeb8610c86d0f056902bb8'
       }
+      vm.loading = true
       vm.$axios.get(vm.apiURL + '/ramp-p2p/order', { headers: headers })
         .then(response => {
           vm.listings = response.data
+          vm.loading = false
         })
         .catch(error => {
           console.error(error)
+          vm.loading = false
         })
     },
     getElapsedTime (expirationDate) {
@@ -107,7 +112,6 @@ export default {
       const hours = Math.floor(elapsedMinutes / 60)
       const minutes = elapsedMinutes % 60
       if (hours * -1 > 24) days = hours % 24
-      //   console.log(`${days} days, ${hours} hours, ${minutes} minutes`)
       return [days, hours, minutes]
     },
     formatExpiration (expirationDate) {
@@ -140,7 +144,7 @@ export default {
     orderFiatAmount (lockedPrice, cryptoAmount) {
       return lockedPrice * cryptoAmount
     },
-    sortedListings () {
+    filteredListings () {
       const vm = this
       const sorted = vm.listings.filter(function (listing) {
         return listing.trade_type === vm.transactionType
