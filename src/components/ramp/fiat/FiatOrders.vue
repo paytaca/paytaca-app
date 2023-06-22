@@ -41,10 +41,10 @@
                             <span v-if="listing.trade_type == 'SELL'">-</span>
                             <span v-else>+</span>{{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div>
                           <div style="font-size: 12px;"> {{ listing.locked_price }} {{ listing.fiat_currency.abbrev }}/{{ listing.crypto_currency.abbrev }}</div>
-                          <div class="row">
+                          <!-- <div class="row">
                             <span class="q-mr-sm">Arbiter:</span>
                             <span>{{ listing.arbiter }}</span>
-                          </div>
+                          </div> -->
                           <div class="row" style="font-size: 12px; color: grey">{{ formatDate(listing.created_at) }}</div>
                         </div>
                         <div class="text-right">
