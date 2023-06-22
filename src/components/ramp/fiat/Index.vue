@@ -16,7 +16,8 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      menu: 'store'
+      menu: 'store',
+      availableFiat: [] //api/ramp-p2p/currency/fiat/
     }
   },
   components: {
@@ -35,3 +36,5 @@ export default {
   }
 }
 </script>
+
+<!-- TASK: GET AVAILABLE FIAT LATER -->

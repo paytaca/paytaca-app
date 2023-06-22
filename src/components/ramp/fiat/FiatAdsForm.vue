@@ -1,18 +1,18 @@
 <template>
   <div class="q-pb-md">
-    <div>
+    <div v-if="step < 3">
       <q-btn
         flat
         padding="md"
         icon="arrow_back"
-        @click="$emit('back')"
+        @click="step > 1 ? step-- : $emit('back')"
       />
     </div>
     <div v-if="step === 1">
       <div>
-        <div class="text-h5 q-mx-lg text-center bold-text lg-font-size" style="color: #ed5f59;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-          <span v-if="adsState === 'create'">POST SELL AD</span>
-          <span v-if="adsState === 'edit'">EDIT SELL AD</span>
+        <div class="text-h5 q-mx-lg text-center bold-text lg-font-size" :class="transactionType === 'buy' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          <span v-if="adsState === 'create'">POST {{ transactionType.toUpperCase() }} AD</span>
+          <span v-if="adsState === 'edit'">EDIT {{ transactionType.toUpperCase() }} AD</span>
         </div>
       </div>
       <!-- Price Settings -->
@@ -25,15 +25,17 @@
             dense
             v-model="adData.priceType"
             spread
-            class="my-custom-toggle br-15"
+            class="br-15"
+            :style="transactionType === 'buy' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
             no-caps
             unelevated
-            toggle-color="red-6"
-            text-color="red-6"
+            :toggle-color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+            :text-color="transactionType === 'buy' ? 'blue-6': 'red-6'"
             :options="[
               {label: 'Fixed', value: 'FIXED'},
               {label: 'Floating', value: 'FLOAT'}
             ]"
+            @update:model-value="updateConvertionRate()"
           />
         </div>
         <div class="row q-pt-sm q-gutter-sm q-px-md md-font-size">
@@ -43,7 +45,7 @@
               dense
               rounded
               outlined
-              color="red-6"
+              :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
               :dark="darkMode"
               v-model="selectedCurrency"
               :options="availableFiat"
@@ -66,7 +68,7 @@
               dense
               rounded
               outlined
-              color="red-6"
+              :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
               :dark="darkMode"
               bottom-slots
               v-model="priceAmount"
@@ -82,7 +84,7 @@
           </div>
         </div>
         <div class="md-font-size">
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <div>
               <span>Your Price</span><br>
               <span class="bold-text lg-font-size">{{ priceAmount }} {{ selectedCurrency.abbrev }}</span>
@@ -104,8 +106,9 @@
             <q-input
               dense
               outlined
-              rounded=""
+              rounded
               :dark="darkMode"
+              :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
               v-model="adData.cryptoAmount"
             >
               <template v-slot:prepend>
@@ -128,6 +131,7 @@
                 outlined
                 rounded=""
                 :dark="darkMode"
+                :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
                 v-model="adData.tradeFloor"
               >
                 <template v-slot:append>
@@ -145,6 +149,7 @@
                 outlined
                 rounded=""
                 :dark="darkMode"
+                :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
                 v-model="adData.tradeCeiling"
               >
                 <template v-slot:append>
@@ -169,7 +174,7 @@
                 dense
                 outlined
                 rounded
-                color="red-6"
+                :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
                 :dark="darkMode"
                 v-model="paymentTimeLimit"
                 :options="ptlSelection"
@@ -190,10 +195,10 @@
             :disable="checkPostData()"
             rounded
             no-caps
-            label='Next'
+            :label="transactionType === 'buy' ? 'Post Ad' : 'Next'"
             color="blue-6"
             class="q-space"
-            @click="step = 2"
+            @click="checkSubmitOption()"
           />
         </div>
       </div>
@@ -202,14 +207,20 @@
       <div class="q-px-md">
         <AddPaymentMethods
           :confirm-label="'Post Ad'"
+          :currentPaymentMethods="adData.paymentMethods"
+          v-on:submit="postAd"
         />
       </div>
+    </div>
+    <div v-if="step === 3">
+      <DisplayConfirmation/>
     </div>
   </div>
 </template>
 <script>
 import { debounce } from 'quasar'
 import AddPaymentMethods from './AddPaymentMethods.vue'
+import DisplayConfirmation from './DisplayConfirmation.vue'
 
 export default {
   data () {
@@ -217,7 +228,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       step: 1,
 
-      // MODELS
+      // V-MODELS
       priceAmount: 0,
       lowestOrderPrice: 7311.71,
       paymentTimeLimit: '1 day',
@@ -228,7 +239,7 @@ export default {
 
       // AD DATA
       adData: {
-        tradeType: 'SELL',
+        tradeType: '',
         priceType: 'FIXED',
         fiatCurrency: {   // get fiat_currency ID
           name: 'Philippine Peso',
@@ -247,7 +258,7 @@ export default {
         paymentMethods: []
       },
 
-      // SelectionOptions
+      // SELECTION OPTIONS
       availableFiat: [  //api/ramp-p2p/currency/fiat/
         {
           name: 'Philippine Peso',
@@ -297,15 +308,31 @@ export default {
     adsState: String
   },
   components: {
-    AddPaymentMethods
+    AddPaymentMethods,
+    DisplayConfirmation
   },
   emits: ['back'],
   methods: {
-    postAd () {
+    checkSubmitOption () {
+      const vm = this
+
+      switch (vm.transactionType) {
+        case 'buy':
+          console.log(vm.adData)
+          break
+        case 'sell':
+          vm.step++
+          break
+      }
+    },
+    postAd (methods) {
       const vm = this
       // Finalize Data
+      // console.log(methods)
 
+      vm.adData.paymentMethods = methods
       console.log(vm.adData)
+      vm.step++
     },
     decPrice () {
       const vm = this
@@ -324,7 +351,25 @@ export default {
       vm.adData.fiatCurrency = vm.selectedCurrency
     },
     checkPostData () {
-      return false
+      const vm = this
+      // return false
+      // check if valid amount
+      if (!vm.isAmountValid(vm.priceAmount) || !vm.isAmountValid(vm.adData.cryptoAmount) || !vm.isAmountValid(vm.adData.tradeCeiling) || !vm.isAmountValid(vm.adData.tradeFloor)) {
+        return true
+      } else {
+        return false
+      }
+    },
+    isAmountValid (value) {
+      // amount with comma and decimal regex
+      const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
+      value = String(value)
+
+      if (regex.test(value) && value !== '0') {
+        return true
+      } else {
+        return false
+      }
     },
     updateConvertionRate: debounce(async function () {
       const vm = this
@@ -332,9 +377,13 @@ export default {
       switch (vm.adData.priceType) {
         case 'FIXED':
           vm.adData.fixedPrice = vm.priceAmount
+
+          vm.adData.floatingPrice = null
           break
         case 'FLOAT':
           vm.adData.floatingPrice = vm.priceAmount
+
+          vm.adData.fixedPrice = null
           break
       }
     }, 500)
@@ -343,6 +392,8 @@ export default {
     const vm = this
 
     vm.priceAmount = vm.lowestOrderPrice
+    vm.adData.tradeType = vm.transactionType.toUpperCase()
+    vm.updateConvertionRate()
     // call list of payment types
   }
 }
@@ -362,5 +413,14 @@ export default {
 }
 .lg-font-size {
   font-size: 18px;
+}
+.subtext {
+  opacity: .5;
+}
+.buy-color {
+  color: rgb(60, 100, 246);
+}
+.sell-color {
+  color: #ed5f59;
 }
 </style>

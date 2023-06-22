@@ -5,7 +5,12 @@
     style="min-height:78vh;"
   >
     <div v-if="state !== 'selection'">
-      <FiatAdsBuy
+      <FiatAdsForm
+        v-on:back="state = 'selection'"
+        :adsState="state"
+        :transactionType="transactionType"
+      />
+      <!-- <FiatAdsBuy
         v-if="transactionType === 'buy'"
         v-on:back="state = 'selection'"
         :adsState="state"
@@ -18,7 +23,7 @@
         v-on:back="state = 'selection'"
         :adsState="state"
         :transactionType="transactionType"
-      />
+      /> -->
     </div>
     <div v-if="state === 'selection'">
       <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
@@ -113,9 +118,10 @@
   />
 </template>
 <script>
-import FiatAdsBuy from './FiatAdsBuy.vue'
-import FiatAdsSell from './FiatAdsSell.vue'
+// import FiatAdsBuy from './FiatAdsBuy.vue'
+// import FiatAdsSell from './FiatAdsSell.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
+import FiatAdsForm from './FiatAdsForm.vue'
 
 export default {
   data () {
@@ -423,8 +429,9 @@ export default {
     }
   },
   components: {
-    FiatAdsBuy,
-    FiatAdsSell,
+    // FiatAdsBuy,
+    // FiatAdsSell,
+    FiatAdsForm,
     FiatAdsDialogs
   },
   methods: {
