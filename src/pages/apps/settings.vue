@@ -29,41 +29,10 @@
             <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
               <q-item>
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
-                    <q-select
-                      dense
-                      :style="{ width: $q.platform.is.mobile === true ? '75%' : '100%' }"
-                      use-input
-                      fill-input
-                      hide-selected
-                      borderless
-                      :dark="darkMode"
-                      :option-label="opt => String(opt && opt.name)"
-                      v-model="selectedCurrency"
-                      :options="filteredCurrencyOptions"
-                      @filter="filterCurrencyOptionSelection"
-                    >
-                      <template v-slot:option="scope">
-                        <q-item
-                          v-bind="scope.itemProps"
-                        >
-                          <q-item-section>
-                            <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
-                              {{ String(scope.opt.symbol).toUpperCase() }}
-                            </q-item-label>
-                            <q-item-label
-                              v-if="scope.opt.name"
-                              caption
-                              :class="{ 'text-black': !darkMode && !scope.selected }"
-                            >
-                              {{ scope.opt.name }}
-                            </q-item-label>
-                          </q-item-section>
-                        </q-item>
-                      </template>
-                    </q-select>
+                    <CurrencySelector :darkMode="darkMode" />
                   </q-item-section>
               </q-item>
               <q-item>
@@ -192,6 +161,7 @@ import { Plugins } from '@capacitor/core'
 import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
+import CurrencySelector from '../../components/settings/CurrencySelector'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -202,7 +172,6 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
       pinStatus: true,
-      filteredCurrencyOptions: [],
       appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
@@ -217,6 +186,7 @@ export default {
     securityOptionDialog,
     LanguageSelector,
     CountrySelector,
+    CurrencySelector,
   },
   watch: {
     isChipnet (n, o) {
@@ -230,40 +200,9 @@ export default {
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
-    },
-    selectedCurrency () {
-      this.$store.dispatch('market/updateAssetPrices', {})
-    }
-  },
-  computed: {
-    currencyOptions () {
-      return this.$store.getters['market/currencyOptions']
-    },
-    selectedCurrency: {
-      get () {
-        return this.$store.getters['market/selectedCurrency']
-      },
-      set (value) {
-        this.$store.commit('market/updateSelectedCurrency', value)
-        this.$store.dispatch('global/saveWalletPreferences')
-      }
     }
   },
   methods: {
-    filterCurrencyOptionSelection (val, update) {
-      if (!val) {
-        this.filteredCurrencyOptions = this.currencyOptions
-      } else {
-        const needle = String(val).toLowerCase()
-        this.filteredCurrencyOptions = this.currencyOptions
-          .filter(currency =>
-            String(currency && currency.name).toLowerCase().indexOf(needle) >= 0 ||
-            String(currency && currency.symbol).toLowerCase().indexOf(needle) >= 0
-          )
-      }
-
-      update()
-    },
     popUpPinDialog () {
       this.pinDialogAction = 'SET NEW'
     },
