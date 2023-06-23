@@ -379,7 +379,7 @@ export default {
           vm.wallet = markRaw(wallet)
         })
     },
-    updateUtxoScanTasksStatus(nextUpdate=30*1000, age=0) {
+    updateUtxoScanTasksStatus(nextUpdate=5*1000, age=0) {
       const bchWalletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()  
       const slpWalletHash = this.wallet.SLP.getWalletHash()  
       
