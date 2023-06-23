@@ -1,6 +1,6 @@
 <template>
   <q-select
-    :style="{ width: $q.platform.is.mobile === true ? '50%' : '100%' }"
+    :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="locale"
     :options="localeOptions"
     :dark="darkMode"
@@ -11,7 +11,26 @@
     fill-input
     borderless
     hide-selected
-  />
+  >
+    <template v-slot:option="scope">
+      <q-item
+        v-bind="scope.itemProps"
+      >
+        <q-item-section>
+          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+            {{ scope.opt.label }}
+          </q-item-label>
+          <q-item-label
+            v-if="scope.opt.value"
+            caption
+            :class="{ 'text-black': !darkMode && !scope.selected }"
+          >
+            {{ scope.opt.value }}
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+    </template>
+  </q-select>
 </template>
 
 <script>

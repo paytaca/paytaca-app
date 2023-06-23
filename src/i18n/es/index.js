@@ -299,6 +299,8 @@ export default {
   UnlinkDevice: "Dispositivo no unk",
   AppInfo: "Informacion de la applicacion",
   ManageIgnoredTokens: "Gestionar las fichas ignoradas",
+  OnBoardSettingHeader: "Establecer preferencias de localización",
+  OnBoardSettingDescription: "Ajuste la configuración para adaptarse a su experiencia nativa",
   POSAdmin: "POS administrador",
   ShowTokens: "Fichas de exhibición",
   SourceCodeRepo: "Repositorio de código fuente",

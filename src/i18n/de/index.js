@@ -299,6 +299,8 @@ export default {
   UnlinkDevice: "Unglied -Gerät",
   AppInfo: "App-Information",
   ManageIgnoredTokens: "Ignorierte Token verwalten",
+  OnBoardSettingHeader: "Lokalisierungspräferenzen festlegen",
+  OnBoardSettingDescription: "Passen Sie die Einstellungen an Ihre native Erfahrung an",
   POSAdmin: "Pos admin",
   ShowTokens: "Zeigen Sie Token",
   SourceCodeRepo: "Quellcode -Repository",

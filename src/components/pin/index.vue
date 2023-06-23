@@ -123,8 +123,6 @@ export default {
       loader: false,
       resetStatus: true,
       saveBtn: true,
-      subText1: this.$t('PinSubtext1'),
-      subText2: this.$t('PinSubtext2'),
       subTitle: null
     }
   },
@@ -147,7 +145,7 @@ export default {
         }
 
         vm.btnIcon = vm.pinDialogAction === 'VERIFY' ? 'verified_user' : 'done'
-        vm.subTitle = vm.pinDialogAction === 'VERIFY' ? vm.subText1 : vm.subText2
+        vm.subTitle = vm.pinDialogAction === 'VERIFY' ? vm.$t('PinSubtext1') : vm.$t('PinSubtext2')
       } else {
         if (vm.pinDialogAction === 'SKIP') {
           vm.$emit('nextAction', 'proceed')

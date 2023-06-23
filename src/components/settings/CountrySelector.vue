@@ -1,17 +1,36 @@
 <template>
   <q-select
-    :style="{ width: $q.platform.is.mobile === true ? '50%' : '100%' }"
+    :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="country"
     :options="countryOptions"
     :dark="darkMode"
-    @filter="filtercountrieselection"
+    @filter="filterCountries"
     popup-content-style="color: black;"
     dense
     use-input
     fill-input
     borderless
     hide-selected
-  ></q-select>
+  >
+    <template v-slot:option="scope">
+      <q-item
+        v-bind="scope.itemProps"
+      >
+        <q-item-section>
+          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+            {{ scope.opt.label }}
+          </q-item-label>
+          <q-item-label
+            v-if="scope.opt.code"
+            caption
+            :class="{ 'text-black': !darkMode && !scope.selected }"
+          >
+            {{ scope.opt.code }}
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+    </template>
+  </q-select>
 </template>
 
 <script>
@@ -42,21 +61,21 @@ export default {
     this.defaultCountryOptions = COUNTRIES.map(o => {
       return {
         label: o.name,
-        value: o.name
+        value: o.name,
+        code: o.code
       }
     })
     this.countries = COUNTRIES
   },
   methods: {
-    filtercountrieselection (val, update) {
+    filterCountries (val, update) {
       if (!val) {
         this.countryOptions = this.defaultCountryOptions
       } else {
         const needle = String(val).toLowerCase()
         this.countryOptions = this.defaultCountryOptions
           .filter(lang =>
-            String(lang && lang.label).toLowerCase().indexOf(needle) >= 0 ||
-            String(lang && lang.value).toLowerCase().indexOf(needle) >= 0
+            String(lang && lang.label).toLowerCase().indexOf(needle) >= 0
           )
       }
 

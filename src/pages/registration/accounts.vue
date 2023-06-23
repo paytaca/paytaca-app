@@ -6,7 +6,7 @@
         <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
+    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
       <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
           <q-btn
@@ -32,20 +32,20 @@
       </div>
       <div class="row" v-else style="margin-top: 60px;">
         <div class="col" v-if="serverOnline === false">
-          <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+          <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': darkMode}">
             {{ $t('NoInternetConnectionNotice') }} &#128533;
           </div>
         </div>
       </div>
     </div>
-    <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
+    <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
       <ProgressLoader/>
     </div>
-    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="importSeedPhrase && mnemonic.length === 0">
+    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">
         <p
           style="text-align: center; font-size: 16px; color: #000;"
-          :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"
+          :class="{'pt-dark-label': darkMode}"
         >
           {{ $t('RestoreWalletDescription') }}
         </p>
@@ -55,53 +55,99 @@
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
-      <div class="pt-get-started q-mt-sm q-pa-lg" :class="{ 'pt-dark': $store.getters['darkmode/getStatus'] }">
-        <template v-if="steps === totalSteps">
-          <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': $store.getters['darkmode/getStatus'] }">{{ $t('MnemonicBackupPhrase') }}</h5>
-          <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-            {{ $t('MnemonicBackupPhraseDescription1') }}
+      <div class="pt-get-started q-mt-sm q-pa-lg" :class="{ 'pt-dark': darkMode }">
+        <div class="row" v-if="openSettings">
+          <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5>
+          <p class="dim-text" style="margin-top: 10px;">
+            {{ $t('OnBoardSettingDescription') }}
           </p>
-          <p v-else class="dim-text" style="margin-top: 10px;">
-            {{ $t('MnemonicBackupPhraseDescription2') }}
-          </p>
-        </template>
-        <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
 
-        <div class="row" id="mnemonic">
-          <template v-if="steps === totalSteps">
-            <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-              <ul>
-                <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
-                  <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
-                </li>
-              </ul>
-            </div>
-            <div v-else>
-              <div>
-                <q-btn
-                  flat
-                  no-caps
-                  padding="xs sm"
-                  icon="arrow_back"
-                  color="black"
-                  class="text-blue"
-                  :label="$t('MnemonicBackupPhrase')"
-                  @click="showMnemonicTest = false"
-                />
-              </div>
-              <MnemonicTest :mnemonic="mnemonic" class="q-mb-md" @matched="mnemonicVerified = true" />
-            </div>
-          </template>
+          <q-list bordered separator style="border-radius: 14px;" :class="{'pt-dark-card': darkMode}">
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CountrySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <LanguageSelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CurrencySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+
+          <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width bg-blue-9 text-white" @click="choosePreferedSecurity"/>
         </div>
-        <div class="row" v-if="steps === totalSteps">
-          <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" :label="$t('Continue')" rounded />
-          <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+        
+        <div v-else>
+          <template v-if="steps === totalSteps">
+            <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('MnemonicBackupPhrase') }}</h5>
+            <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+              {{ $t('MnemonicBackupPhraseDescription1') }}
+            </p>
+            <p v-else class="dim-text" style="margin-top: 10px;">
+              {{ $t('MnemonicBackupPhraseDescription2') }}
+            </p>
+          </template>
+          <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
+
+          <div class="row" id="mnemonic">
+            <template v-if="steps === totalSteps">
+              <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
+                <ul>
+                  <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
+                    <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
+                  </li>
+                </ul>
+              </div>
+              <div v-else>
+                <div>
+                  <q-btn
+                    flat
+                    no-caps
+                    padding="xs sm"
+                    icon="arrow_back"
+                    color="black"
+                    class="text-blue"
+                    :label="$t('MnemonicBackupPhrase')"
+                    @click="showMnemonicTest = false"
+                  />
+                </div>
+                <MnemonicTest :mnemonic="mnemonic" class="q-mb-md" @matched="mnemonicVerified = true" />
+              </div>
+            </template>
+          </div>
+          <div class="row" v-if="steps === totalSteps">
+            <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="openSettings = true" :label="$t('Continue')" rounded />
+            <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+          </div>
         </div>
       </div>
     </div>
 
-    <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
-    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
+    <securityOptionDialog
+      :security-option-dialog-status="securityOptionDialogStatus"
+      v-on:preferredSecurity="setPreferredSecurity"
+    />
+    <pinDialog
+      v-model:pin-dialog-action="pinDialogAction"
+      v-on:nextAction="executeActionTaken"
+    />
 
   </div>
 </template>
@@ -116,12 +162,24 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
+import LanguageSelector from '../../components/settings/LanguageSelector'
+import CountrySelector from '../../components/settings/CountrySelector'
+import CurrencySelector from '../../components/settings/CurrencySelector'
 
 export default {
   name: 'registration-accounts',
-  components: { ProgressLoader, pinDialog, securityOptionDialog, MnemonicTest },
+  components: {
+    ProgressLoader,
+    pinDialog,
+    securityOptionDialog,
+    MnemonicTest,
+    LanguageSelector,
+    CountrySelector,
+    CurrencySelector,
+  },
   data () {
     return {
+      openSettings: false,
       serverOnline: null,
       importSeedPhrase: false,
       seedPhraseBackup: null,
@@ -133,7 +191,8 @@ export default {
       pinDialogAction: '',
       pin: '',
       securityOptionDialogStatus: 'dismiss',
-      walletIndex: 0
+      walletIndex: 0,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   watch: {
