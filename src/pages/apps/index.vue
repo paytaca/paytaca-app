@@ -76,7 +76,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Gifts',
+          name: this.$t('Gifts'),
           iconName: 'mdi-gift',
           path: '/apps/gifts/',
           active: !this.$store.getters['global/isChipnet'],
@@ -89,7 +89,7 @@ export default {
         //   active: true
         // },
         {
-          name: 'POS Admin',
+          name: this.$t('POSAdmin'),
           iconName: 'point_of_sale',
           path: '/apps/point-of-sale',
           active: !this.$store.getters['global/isChipnet'],
