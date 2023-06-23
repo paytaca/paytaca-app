@@ -36,7 +36,7 @@ export default {
         { value: 'en-us', label: this.$t('English') },
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
         { value: 'zh-tw', label: this.$t('ChineseTraditional') },
-        { value: 'zh-cn', label: this.$t('German') },
+        { value: 'de', label: this.$t('German') },
         { value: 'es', label: this.$t('Spanish') },
       ],
       localeOptions: []

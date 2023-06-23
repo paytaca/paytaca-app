@@ -348,18 +348,12 @@ export default {
     }
   },
   async mounted () {
-    this.mnemonic = ''
-    // this.mnemonic = await getMnemonic() || ''
-    // if (this.mnemonic.split(" ").length === 12) {
-    //   this.steps = 9
-    // }
-
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [
       { value: 'en-us', label: this.$t('English') },
       { value: 'zh-cn', label: this.$t('ChineseSimplified') },
       { value: 'zh-tw', label: this.$t('ChineseTraditional') },
-      { value: 'zh-cn', label: this.$t('German') },
+      { value: 'de', label: this.$t('German') },
       { value: 'es', label: this.$t('Spanish') },
     ]
     let finalLang = ''
