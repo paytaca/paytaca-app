@@ -370,6 +370,15 @@ export default {
     try {
       deviceLang = await Device.getLanguageCode()
       deviceLang = deviceLang.value.toLowerCase()
+
+      /**
+      *  https://capacitorjs.com/docs/apis/device#getlanguagecoderesult
+      *  Since Device.getLanguageCode() returns a two-char language code,
+      *  we set chinese default to "zh-cn" (Chinese - Simplified)
+      */
+      if (deviceLang === 'zh') {
+        deviceLang = 'zh-cn'
+      }
     } catch (error) {
       deviceLang = supportedLangs[0]
       console.error(error)
