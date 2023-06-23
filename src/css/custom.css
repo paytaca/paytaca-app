@@ -142,3 +142,28 @@ a {
 .pp-fcolor {
   color: #000 !important;
 }
+
+
+.xs-font-size {
+  font-size: 12px;
+}
+
+.sm-font-size {
+  font-size: 13px
+}
+
+.md-font-size {
+  font-size: 15px;
+}
+
+.xm-font-size {
+  font-size: 16px;
+}
+
+.lg-font-size {
+  font-size: 18px;
+}
+
+.bold-text {
+  font-weight: 500;
+}

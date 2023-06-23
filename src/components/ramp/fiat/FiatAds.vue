@@ -10,20 +10,6 @@
         :adsState="state"
         :transactionType="transactionType"
       />
-      <!-- <FiatAdsBuy
-        v-if="transactionType === 'buy'"
-        v-on:back="state = 'selection'"
-        :adsState="state"
-        :transactionType="transactionType"
-        :listing="editListing"
-      />
-
-      <FiatAdsSell
-        v-if="transactionType === 'sell'"
-        v-on:back="state = 'selection'"
-        :adsState="state"
-        :transactionType="transactionType"
-      /> -->
     </div>
     <div v-if="state === 'selection'">
       <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
@@ -48,7 +34,7 @@
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
-          <q-card-section style="max-height:55vh;overflow-y:auto;">
+          <q-card-section style="max-height:58vh;overflow-y:auto;">
             <q-virtual-scroll :items="transactionType === 'buy'? buyListings : sellListings">
               <template v-slot="{ item: listing, index }">
                 <q-item>
@@ -136,7 +122,112 @@ export default {
       buyListings: [],
       sellListings: [],
       // listings: [],
-      testing: [
+      listings: [
+        {
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000, // Work on later
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          timeDurationChoice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_name: 'Andy Webber',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_name: 'James Watson',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_name: 'Stephen King',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          time_duration_choice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_name: 'Agnes Christy',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_name: 'Jane Austin',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_name: 'Charlotte Bronte',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
+          time_duration_choice: 1440,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_name: 'Jane Austin',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_name: 'James Watson',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_name: 'Stephen King',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
         {
           tradeType: 'BUY',
           priceType: 'FIXED',
@@ -157,14 +248,17 @@ export default {
           paymentMethods: [
             {
               name: 'gcash',
+              account_name: 'Stephen King',
               account_number: 123845893
             },
             {
               name: 'paymaya',
+              account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
               name: 'paypal',
+              account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
@@ -189,14 +283,17 @@ export default {
           paymentMethods: [
             {
               name: 'gcash',
+              account_name: 'Stephen King',
               account_number: 123845893
             },
             {
               name: 'paymaya',
+              account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
               name: 'paypal',
+              account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
@@ -221,110 +318,17 @@ export default {
           paymentMethods: [
             {
               name: 'gcash',
+              account_name: 'James Watson',
               account_number: 123845893
             },
             {
               name: 'paymaya',
+              account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
               name: 'paypal',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
-            name: 'Philippine Peso',
-            abbrev: 'PHP'
-          },
-          cryptoCurrency: {
-            name: 'Bitcoin Cash',
-            abbrev: 'BCH'
-          },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          timeDurationChoice: 1440,
-          paymentMethods: [
-            {
-              name: 'gcash',
-              account_number: 123845893
-            },
-            {
-              name: 'paymaya',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              name: 'paypal',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
-            name: 'Philippine Peso',
-            abbrev: 'PHP'
-          },
-          cryptoCurrency: {
-            name: 'Bitcoin Cash',
-            abbrev: 'BCH'
-          },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          time_duration_choice: 1440,
-          paymentMethods: [
-            {
-              name: 'gcash',
-              account_number: 123845893
-            },
-            {
-              name: 'paymaya',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              name: 'paypal',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
-            name: 'Philippine Peso',
-            abbrev: 'PHP'
-          },
-          cryptoCurrency: {
-            name: 'Bitcoin Cash',
-            abbrev: 'BCH'
-          },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          time_duration_choice: 1440,
-          paymentMethods: [
-            {
-              name: 'gcash',
-              account_number: 123845893
-            },
-            {
-              name: 'paymaya',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              name: 'paypal',
+              account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
@@ -349,14 +353,17 @@ export default {
           paymentMethods: [
             {
               name: 'gcash',
+              account_name: 'Charlotte Bronte',
               account_number: 123845893
             },
             {
               name: 'paymaya',
+              account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
               name: 'paypal',
+              account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
@@ -381,14 +388,17 @@ export default {
           paymentMethods: [
             {
               name: 'gcash',
+              account_name: 'Charlotte Bronte',
               account_number: 123845893
             },
             {
               name: 'paymaya',
+              account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
               name: 'paypal',
+              account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
@@ -413,14 +423,17 @@ export default {
           paymentMethods: [
             {
               name: 'gcash',
+              account_name: 'Jane Austin',
               account_number: 123845893
             },
             {
               name: 'paymaya',
+              account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
               name: 'paypal',
+              account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
@@ -438,7 +451,7 @@ export default {
     sortedListings (type) {
       const vm = this
 
-      const sorted = vm.testing.filter(function (test) {
+      const sorted = vm.listings.filter(function (test) {
         return test.tradeType.toLowerCase() === type
       })
       return sorted
@@ -446,7 +459,7 @@ export default {
     editAds (index) {
       const vm = this
       vm.state = 'edit'
-      console.log('edit')
+      // console.log('edit')
 
       switch (vm.transactionType) {
         case 'buy':
@@ -459,7 +472,7 @@ export default {
     },
     deleteAds (index) {
       const vm = this
-      console.log('delete')
+      // console.log('delete')
 
       vm.dialogName = 'deleteAd'
       vm.openDialog = true
@@ -492,7 +505,6 @@ export default {
           }
           break
       }
-      console.log(vm.openDialog)
     }
   },
   async mounted () {
@@ -542,12 +554,6 @@ color: #fff;
   font-weight: 500;
 }
 .subtext {
-  font-size: 13px;
-  opacity: .5;
-}
-.status-text {
-  font-weight: 500;
-  font-size: 13px;
   opacity: .5;
 }
 .buy-add-btn {

@@ -35,10 +35,10 @@
               {label: 'Fixed', value: 'FIXED'},
               {label: 'Floating', value: 'FLOAT'}
             ]"
-            @update:model-value="updateConvertionRate()"
+            @update:model-value="updateConvertionRate(); initialPriceAmount();"
           />
         </div>
-        <div class="row q-pt-sm q-gutter-sm q-px-md md-font-size">
+        <div class="row q-pt-sm q-gutter-sm q-px-md sm-font-size">
           <div class="col-4">
             <div class="q-pl-sm q-pb-xs">Fiat</div>
             <q-select
@@ -78,20 +78,22 @@
                 <q-icon name="remove" @click="decPrice()"/>
               </template>
               <template v-slot:append>
-                <q-icon name="add" @click="priceAmount++" />
+                <q-icon v-if="adData.priceType === 'FLOAT'" size="xs" name="percent" />
+                <q-icon name="add" @click="incPrice()" />
               </template>
             </q-input>
           </div>
         </div>
-        <div class="md-font-size">
+        <div class="sm-font-size">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <div>
               <span>Your Price</span><br>
-              <span class="bold-text lg-font-size">{{ priceAmount }} {{ selectedCurrency.abbrev }}</span>
+              <span v-if="adData.priceType === 'FIXED'" class="bold-text lg-font-size">{{ priceAmount }} {{ selectedCurrency.abbrev }}</span>
+              <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.abbrev }}</span>
             </div>
             <div >
               <span>Lowest Order Price</span><br>
-              <span class="lg-font-size" style="float: right;">{{ lowestOrderPrice }} {{ selectedCurrency.abbrev }}</span>
+              <span class="xm-font-size" style="float: right;">{{ lowestOrderPrice }} {{ selectedCurrency.abbrev }}</span>
             </div>
           </div>
         </div>
@@ -112,7 +114,7 @@
               v-model="adData.cryptoAmount"
             >
               <template v-slot:prepend>
-                <span class="bold-text sm-font-size">
+                <span class="bold-text xs-font-size">
                   BCH
                 </span>
               </template>
@@ -123,7 +125,7 @@
             </q-input>
           </div>
         <div class="q-mt-sm q-px-md">
-          <div class="q-pl-sm q-pb-xs md-font-size">Trade Limit</div>
+          <div class="q-pl-sm q-pb-xs sm-font-size">Trade Limit</div>
           <div class="row">
             <div class="col-5">
               <q-input
@@ -135,7 +137,7 @@
                 v-model="adData.tradeFloor"
               >
                 <template v-slot:append>
-                  <span class="sm-font-size">{{ selectedCurrency.abbrev  }}</span>
+                  <span class="xs-font-size">{{ selectedCurrency.abbrev  }}</span>
                   <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                 </template>
               </q-input>
@@ -153,7 +155,7 @@
                 v-model="adData.tradeCeiling"
               >
                 <template v-slot:append>
-                  <span class="sm-font-size">{{ selectedCurrency.abbrev  }}</span>
+                  <span class="xs-font-size">{{ selectedCurrency.abbrev  }}</span>
                   <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                 </template>
               </q-input>
@@ -213,7 +215,12 @@
       </div>
     </div>
     <div v-if="step === 3">
-      <DisplayConfirmation/>
+      <DisplayConfirmation
+        :post-data="adData"
+        :ptl="paymentTimeLimit"
+        :transaction-type="transactionType"
+        v-on:back="step = 1"
+      />
     </div>
   </div>
 </template>
@@ -230,8 +237,12 @@ export default {
 
       // V-MODELS
       priceAmount: 0,
+      floatingPrice: 100,
       lowestOrderPrice: 7311.71,
-      paymentTimeLimit: '1 day',
+      paymentTimeLimit: {
+        label: '1 day',
+        value: 1440
+      },
       selectedCurrency: {
         name: 'Philippine Peso',
         abbrev: 'PHP'
@@ -318,7 +329,8 @@ export default {
 
       switch (vm.transactionType) {
         case 'buy':
-          console.log(vm.adData)
+          vm.step = 3
+          // console.log(vm.adData)
           break
         case 'sell':
           vm.step++
@@ -331,16 +343,43 @@ export default {
       // console.log(methods)
 
       vm.adData.paymentMethods = methods
-      console.log(vm.adData)
+      // console.log(vm.adData)
       vm.step++
     },
     decPrice () {
       const vm = this
-      if (vm.priceAmount <= vm.lowestOrderPrice) {
-        vm.priceAmount = vm.lowestOrderPrice
-      } else {
-        vm.priceAmount--
+
+      switch (vm.adData.priceType) {
+        case 'FIXED':
+          if (vm.priceAmount <= vm.lowestOrderPrice) {
+            vm.priceAmount = vm.lowestOrderPrice
+          } else {
+            vm.priceAmount--
+          }
+          break
+        case 'FLOAT':
+          if (vm.priceAmount > 0) {
+            vm.priceAmount--
+          }
+          break
       }
+
+      vm.updateConvertionRate()
+    },
+    incPrice () {
+      const vm = this
+
+      switch (vm.adData.priceType) {
+        case 'FIXED':
+          vm.priceAmount++
+          break
+        case 'FLOAT':
+          if (vm.priceAmount < 100) {
+            vm.priceAmount++
+          }
+      }
+
+      vm.updateConvertionRate()
     },
     updatePaymentTimeLimit () {
       const vm = this
@@ -371,9 +410,21 @@ export default {
         return false
       }
     },
+    initialPriceAmount () {
+      const vm = this
+      switch (vm.adData.priceType) {
+        case 'FIXED':
+          vm.priceAmount = vm.lowestOrderPrice
+          break
+        case 'FLOAT':
+          vm.priceAmount = 100
+          break
+      }
+    },
     updateConvertionRate: debounce(async function () {
       const vm = this
 
+      console.log('updating price')
       switch (vm.adData.priceType) {
         case 'FIXED':
           vm.adData.fixedPrice = vm.priceAmount
@@ -381,7 +432,7 @@ export default {
           vm.adData.floatingPrice = null
           break
         case 'FLOAT':
-          vm.adData.floatingPrice = vm.priceAmount
+          vm.adData.floatingPrice = (vm.lowestOrderPrice * (vm.priceAmount / 100)).toFixed(2) // adjust later
 
           vm.adData.fixedPrice = null
           break
@@ -401,21 +452,6 @@ export default {
 <style lang="scss" scoped>
 .my-custom-toggle {
   border: 1px solid #ed5f59
-}
-.bold-text {
-  font-weight: 500;
-}
-.sm-font-size {
-  font-size: 12px;
-}
-.md-font-size {
-  font-size: 13px
-}
-.lg-font-size {
-  font-size: 18px;
-}
-.subtext {
-  opacity: .5;
 }
 .buy-color {
   color: rgb(60, 100, 246);
