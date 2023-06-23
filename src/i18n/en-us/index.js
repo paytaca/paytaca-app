@@ -1,5 +1,5 @@
-// NOTE: DONT UPDATE IN THIS FILE
-// UPDATE ON i18n/translate.js file (centralized there)
+// NOTE: DONT EDIT THIS FILE
+// UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
   Accept: "Accept",

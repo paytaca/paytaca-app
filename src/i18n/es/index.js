@@ -1,5 +1,5 @@
-// NOTE: DONT UPDATE IN THIS FILE
-// UPDATE ON i18n/translate.js file (centralized there)
+// NOTE: DONT EDIT THIS FILE
+// UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
   Accept: "Aceptar",
@@ -299,7 +299,7 @@ export default {
   UnlinkDevice: "Dispositivo no unk",
   AppInfo: "Informacion de la applicacion",
   ManageIgnoredTokens: "Gestionar las fichas ignoradas",
-  POSAdmin: "POS Administrador",
+  POSAdmin: "POS administrador",
   ShowTokens: "Fichas de exhibición",
   SourceCodeRepo: "Repositorio de código fuente",
   ShowSmartBCH: "Show SmartBCH",
