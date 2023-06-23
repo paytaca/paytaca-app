@@ -11,6 +11,14 @@ function getWalletData (state, walletType) {
   return state.wallets[walletType]
 }
 
+export function language (state) {
+  return state.language
+}
+
+export function country (state) {
+  return state.country
+}
+
 export function network (state) {
   return state.network
 }

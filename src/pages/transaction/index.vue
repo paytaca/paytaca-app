@@ -49,7 +49,7 @@
             @click.native="toggleShowTokens"
             style="margin-top: 0px; font-size: 11px; padding-bottom: 15px;"
           >
-            SHOW TOKENS
+            {{ $t('ShowTokens') }}
           </div>
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
@@ -888,7 +888,6 @@ export default {
       this.adjustTransactionsDivHeight()
     },
     async handleOpenedNotification() {
-      console.log('Handling opened notification')
       const openedNotification = this.$store.getters['notification/openedNotification']
       const notificationTypes = this.$store.getters['notification/types']
       if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {

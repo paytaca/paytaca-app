@@ -95,7 +95,15 @@ export function updateWallet (state, details) {
   wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
   wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
   wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
+}
 
+export function setLanguage (state, language) {
+  state.language = language
+}
+
+export function setCountry (state, country) {
+  state.country.name = country.name
+  state.country.code = country.code
 }
 
 export function setConnectedAddress (state, details) {

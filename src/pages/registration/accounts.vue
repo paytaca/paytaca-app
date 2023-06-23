@@ -397,7 +397,7 @@ export default {
     }
 
     this.$i18n.locale = finalLang.value
-    this.$q.localStorage.set('lang', finalLang)
+    this.$store.commit('global/setLanguage', this.$t(finalLang.label))
 
     const vm = this
 

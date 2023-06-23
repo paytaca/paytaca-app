@@ -124,6 +124,15 @@
           <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
             <q-item>
               <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CountrySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -158,8 +167,8 @@
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
                   <q-item-label>
-                    <a href="https://github.com/paytaca/paytaca-app" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
-                      https://github.com/paytaca/paytaca-app
+                    <a :href="repoUrl" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
+                      {{ repoUrl }}
                     </a>
                   </q-item-label>
                 </q-item-section>
@@ -182,6 +191,7 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
+import CountrySelector from '../../components/settings/CountrySelector'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -197,7 +207,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
       showTokens: this.$store.getters['global/showTokens'],
-      enableSmartBCH: this.$store.getters['global/enableSmartBCH']
+      enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+      repoUrl: 'https://github.com/paytaca/paytaca-app'
     }
   },
   components: {
@@ -205,6 +216,7 @@ export default {
     pinDialog,
     securityOptionDialog,
     LanguageSelector,
+    CountrySelector,
   },
   watch: {
     isChipnet (n, o) {
@@ -280,7 +292,6 @@ export default {
     }
   },
   created () {
-    console.log('SmartBCH', this.enableSmartBCH)
     NativeBiometric.isAvailable()
       .then(result => {
         if (result.isAvailable !== false) {

@@ -24,13 +24,13 @@ export default {
   },
   data () {
     return {
-      locale: this.$q.localStorage.getItem('lang'),
+      locale: this.$store.getters['global/language'],
       langs: [
-        this.$t('English'),
-        this.$t('ChineseSimplified'),
-        this.$t('ChineseTraditional'),
-        this.$t('German'),
-        this.$t('Spanish'),
+        'English',
+        'ChineseSimplified',
+        'ChineseTraditional',
+        'German',
+        'Spanish',
       ],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
@@ -64,7 +64,7 @@ export default {
         o.label = this.$t(this.langs[index])
         
         if (n.value === o.value) {
-          this.$q.localStorage.set('lang', this.langs[index])
+          this.$store.commit('global/setLanguage', this.$t(this.langs[index]))
         }
         return o
       })
