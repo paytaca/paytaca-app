@@ -280,7 +280,6 @@ export default {
     }
   },
   created () {
-    console.log('SmartBCH', this.enableSmartBCH)
     NativeBiometric.isAvailable()
       .then(result => {
         if (result.isAvailable !== false) {

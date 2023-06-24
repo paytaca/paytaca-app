@@ -199,7 +199,7 @@ export default {
   NoCollectibles: "Todavía no tienes ningún coleccionable.",
   NotEnoughBalForSendAmount: "No es suficiente saldo para cubrir el monto de envío",
   NotEnoughBchForFee: "No hay suficiente BCH para cubrir la tarifa de transacción",
-  NoIgnoredAssets: "Sin activos ignorados",
+  NoIgnoredTokens: "Sin activos ignorados",
   NoInternetConnectionNotice: "Nuestro servidor de backend no es posible.Esto podría deberse a que su conexión a Internet o que nuestro servidor esté temporalmente abajo",
   NoTokensFound: "No se encontraron tokens",
   NoTransactionsToDisplay: "No hay transacciones para mostrar",

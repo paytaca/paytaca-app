@@ -138,6 +138,7 @@
                 capability: nft?.capability,
                 amount: 0,
                 fixed: true,
+                backPath: '/apps/collectibles'
               }
             }"
           />

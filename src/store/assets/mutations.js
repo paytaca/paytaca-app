@@ -71,11 +71,12 @@ export function addIgnoredAsset (state, asset) {
   }
 
   if (!asset || !asset.id) return
-  if (!Array.isArray(state.ignoredAssets[net])) state.ignoredAssets[net] = []
+  if (!Array.isArray(_ignoredAssets)) _ignoredAssets = []
 
-  const index = state.ignoredAssets[net].map(assetInfo => assetInfo && assetInfo.id).indexOf(asset.id)
-  if (index >= 0) state.ignoredAssets[net][index] = asset
-  else state.ignoredAssets[net].push(asset)
+  const index = _ignoredAssets.map(assetInfo => assetInfo.id).indexOf(asset.id)
+  if (index >= 0) _ignoredAssets[index] = asset
+  else _ignoredAssets.push(asset)
+  console.log('X', _ignoredAssets)
 }
 
 /**
@@ -97,6 +98,13 @@ export function removeIgnoredAsset (state, assetId) {
       return asset.id !== assetId
     })
     .filter(Boolean)
+
+  if (network === 'chipnet') {
+    state.chipnet__ignoredAssets = _ignoredAssets
+  }
+  if (network === 'mainnet') {
+    state.ignoredAssets = _ignoredAssets
+  }
 }
 
 /**
