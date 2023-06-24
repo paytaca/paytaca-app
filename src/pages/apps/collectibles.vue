@@ -193,6 +193,7 @@ import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDi
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
+import { convertCashAddress } from 'src/wallet/chipnet'
 
 export default {
   name: 'app-wallet-info',
@@ -247,6 +248,10 @@ export default {
       if (!this.wallet) return ''
 
       if (this.isSep20) return this.$store.getters['global/getAddress']('sbch')
+      if (this.bchNftType === 'ct') {
+        const bchAddress = this.$store.getters['global/getAddress']('bch')
+        return convertCashAddress(bchAddress, false, true)
+      }
       return this.$store.getters['global/getAddress']('slp')
     }
   },

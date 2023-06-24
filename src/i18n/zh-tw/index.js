@@ -199,7 +199,7 @@ export default {
   NoCollectibles: "您還沒有任何收藏品。",
   NotEnoughBalForSendAmount: "沒有足夠的餘額來支付發送金額",
   NotEnoughBchForFee: "不足以支付交易費",
-  NoIgnoredAssets: "沒有忽略的資產",
+  NoIgnoredTokens: "沒有忽略的資產",
   NoInternetConnectionNotice: "我們的後端服務器無法到達。這可能是由於您的互聯網連接或我們的服務器暫時下降",
   NoTokensFound: "找不到令牌",
   NoTransactionsToDisplay: "沒有交易要顯示",

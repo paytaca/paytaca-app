@@ -1,7 +1,6 @@
 <template>
   <div :class="[darkMode ? 'pt-dark-label' : 'text-grey-8']">
     <div class="q-mx-md q-px-sm row items-center">
-      <div class="q-space text-h5 q-ml">CashToken NFTs</div>
       <div class="row justify-end">
         <q-btn-toggle
           v-if="parsedNftGroups?.length > 1 || viewType !== 'grid'"

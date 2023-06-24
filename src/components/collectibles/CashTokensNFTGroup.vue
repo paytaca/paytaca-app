@@ -1,21 +1,5 @@
 <template>
   <div>
-    <div class="row items-center justify-end q-px-md">
-      <LimitOffsetPagination
-        :pagination-props="{
-          maxPages: 5,
-          rounded: true,
-          padding: 'sm md',
-          size: 'sm',
-          dark: darkMode,
-          color: 'brandblue',
-          boundaryNumbers: true
-        }"
-        :hide-below-pages="2"
-        :modelValue="nftsPagination"
-        @update:modelValue="fetchNfts"
-      />
-    </div>
     <div v-if="fetchingNfts" class="row items-center justify-center">
       <ProgressLoader/>
     </div>
@@ -44,9 +28,25 @@
     </div>
     <template v-if="!nfts.length && !fetchingNfts">
       <p style="font-size: 18px; color: gray; text-align: center; margin-top: 20px;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
-        No record
+        You don't own any CashToken NFTs yet.
       </p>
     </template>
+    <div class="row items-center justify-end q-px-md">
+      <LimitOffsetPagination
+        :pagination-props="{
+          maxPages: 5,
+          rounded: true,
+          padding: 'sm md',
+          size: 'sm',
+          dark: darkMode,
+          color: 'brandblue',
+          boundaryNumbers: true
+        }"
+        :hide-below-pages="2"
+        :modelValue="nftsPagination"
+        @update:modelValue="fetchNfts"
+      />
+    </div>
   </div>
 </template>
 <script setup>

@@ -7,7 +7,7 @@
     <div id="app-container" :class="{'pt-dark': darkMode}">
       <header-nav
         :title="$t('Send') + ' ' + asset.symbol"
-        backnavpath="/send/select-asset"
+        :backnavpath="backPath"
       ></header-nav>
       <div v-if="jpp && !jpp.txids?.length" style="padding-top:5.5rem;padding-bottom:5.5rem">
         <JppPaymentPanel
@@ -409,6 +409,10 @@ export default {
     paymentUrl: {
       type: String,
       required: false,
+    },
+    backPath: {
+      type: String,
+      default: '/send/select-asset'
     }
   },
   data () {

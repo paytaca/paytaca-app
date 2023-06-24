@@ -78,7 +78,7 @@
                         <q-item-section @click="toggleManageAssets">Toggle Add/Remove Tokens</q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
-                        <q-item-section @click="checkMissingAssets({autoOpen: true})">Search Missing Tokens</q-item-section>
+                        <q-item-section @click="checkMissingAssets({autoOpen: true})">Scan for Tokens</q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleShowTokens">Hide Tokens</q-item-section>
@@ -371,7 +371,6 @@ export default {
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()
-      console.log(this.$refs.tokenMenu)
       this.$refs.tokenMenu.updatePosition()
     },
     toggleShowTokens () {
