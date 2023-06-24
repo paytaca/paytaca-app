@@ -32,6 +32,7 @@
       <q-card-section class="q-pt-none q-px-sm">
         <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
           <q-tabs
+            v-if="enableSmartBCH"
             active-color="brandblue"
             class="col-12 q-px-sm q-pb-md pp-fcolor"
             v-model="selectedNetwork"
@@ -162,6 +163,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
     },
     parsedTokens () {
       if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
