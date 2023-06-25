@@ -1,6 +1,12 @@
-import es from 'src/i18n/es'
 import { axiosInstance } from '../../boot/axios'
 import { getWatchtowerApiUrl, getBlockChainNetwork } from 'src/wallet/chipnet'
+import axios from 'axios'
+import { setupCache } from 'axios-cache-interceptor'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
+
+const bcmrBackend = setupCache(axios.create({
+  baseURL: 'https://bcmr.paytaca.com/api',
+}))
 
 function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^slp\/([0-9a-fA-F]+)$/)
@@ -165,10 +171,33 @@ export async function getAssetMetadata (context, assetId) {
 
   if (tokenType !== 'ct') return
 
-  let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
-  url += `/cashtokens/fungible/${tokenId}/`
-
-  let { data } = await axiosInstance.get(url)
-  data.id = assetId
+  const url = 'tokens/' + tokenId
+  const response = await bcmrBackend.get(url)
+  const _metadata = response.data
+  let data
+  if (_metadata.error) {
+    data = {
+      'id': 'ct/' + tokenId,
+      'symbol': 'CT-' + tokenId.substring(0, 4),
+      'decimals': 0,
+      'name': '',
+      'description': '' 
+    }
+  } else {
+    let imageUrl
+    if (_metadata.token.uris) {
+      imageUrl = _metadata.token.uris.icon || ''
+    } else {
+      imageUrl = _metadata.uris.icon || ''
+    }
+    const data = {
+      'id': 'ct/' + tokenId,
+      'name': _metadata.name,
+      'description': _metadata.description,
+      'symbol': _metadata.token.symbol,
+      'decimals': _metadata.token.decimals,
+      'logo': convertIpfsUrl(imageUrl)
+    }
+  } 
   context.commit('updateAssetMetadata', data)
 }

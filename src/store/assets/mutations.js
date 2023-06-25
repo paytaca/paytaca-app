@@ -186,7 +186,7 @@ export function updateAssetMetadata (state, data) {
       a.name = data.name,
       a.symbol = data.symbol,
       a.decimals = data.decimals,
-      a.logo = data.image_url || ''
+      a.logo = data.logo || ''
     }
   })
 }
