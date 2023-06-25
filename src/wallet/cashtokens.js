@@ -5,7 +5,7 @@ const bcmrBackend = setupCache(axios.create({
   baseURL: 'https://bcmr.paytaca.com/api',
 }))
 
-function convertIpfsUrl(url='') {
+export function convertIpfsUrl(url='') {
   if (typeof url !== 'string') return url
   if (!url.startsWith('ipfs://')) return url
   return url.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')

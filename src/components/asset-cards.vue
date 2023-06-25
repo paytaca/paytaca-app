@@ -19,7 +19,7 @@
       </div>
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
-        <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
+        <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;">
           {{ asset.symbol }}
         </p>
       </div>
@@ -31,11 +31,6 @@
         <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
           {{ String(num2shortStr(convertTokenAmount(asset.balance, asset.decimals))).substring(0, 10) }}
         </p>
-      </div>
-      <div v-if="balanceLoaded" style="margin-top: -30px;">
-        <TokenTypeBadge
-          :assetId="asset.id"
-        />
       </div>
       <!-- <div v-if="balanceLoaded" style="margin-top: -16px;">
         <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
@@ -52,14 +47,10 @@
 <script>
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
-import TokenTypeBadge from './TokenTypeBadge'
 import { getWalletByNetwork, convertTokenAmount } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',
-  components: {
-    TokenTypeBadge,
-  },
   emits: [
     'hide-asset-info',
     'show-asset-info',
@@ -251,7 +242,7 @@ export default {
     margin-right: 12px;
   }
   .method-cards {
-    height: 87px;
+    height: 78px;
     min-width: 150px;
     border-radius: 16px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);

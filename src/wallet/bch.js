@@ -227,7 +227,7 @@ export class BchWallet {
         'id': 'ct/' + tokenId,
         'symbol': 'CT-' + tokenId.substring(0, 4),
         'decimals': 0,
-        'name': '',
+        'name': 'CT-' + tokenId.substring(0, 4),
         'description': '' 
       }
     } else {
