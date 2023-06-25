@@ -3,9 +3,16 @@ import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
 import * as openpgp from 'openpgp/lightweight'
 import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
+import { convertIpfsUrl } from './cashtokens'
 import axios from 'axios'
 
 const bchjs = new BCHJS()
+
+import { setupCache } from 'axios-cache-interceptor';
+
+const bcmrBackend = setupCache(axios.create({
+  baseURL: 'https://bcmr.paytaca.com/api',
+}))
 
 
 export class BchWallet {
@@ -211,9 +218,35 @@ export class BchWallet {
   }
 
   async getTokenDetails (tokenId) {
-    const url = `${this.baseUrl}/cashtokens/fungible/${tokenId}/`
-    const response = await axios.get(url)
-    return response.data
+    const url = 'tokens/' + tokenId
+    const response = await bcmrBackend.get(url)
+    const _metadata = response.data
+    let data
+    if (_metadata.error) {
+      data = {
+        'id': 'ct/' + tokenId,
+        'symbol': 'CT-' + tokenId.substring(0, 4),
+        'decimals': 0,
+        'name': '',
+        'description': '' 
+      }
+    } else {
+      let imageUrl
+      if (_metadata.token.uris) {
+        imageUrl = _metadata.token.uris.icon || ''
+      } else {
+        imageUrl = _metadata.uris.icon || ''
+      }
+      const data = {
+        'id': 'ct/' + tokenId,
+        'name': _metadata.name,
+        'description': _metadata.description,
+        'symbol': _metadata.token.symbol,
+        'decimals': _metadata.token.decimals,
+        'logo': convertIpfsUrl(imageUrl)
+      }
+    } 
+    return data
   }
 
   async _sendBch (amount, recipient, changeAddress, token, tokenAmount, broadcast=true) {
