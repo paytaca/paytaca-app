@@ -46,6 +46,7 @@
           <div
             v-if="!showTokens"
             class="text-center"
+            :class="{'text-black': !darkMode}"
             @click.native="toggleShowTokens"
             style="margin-top: 0px; font-size: 11px; padding-bottom: 15px;"
           >
@@ -72,8 +73,8 @@
                   style="color: #3B7BF6;"
                   @click="updateTokenMenuPosition"
                 >
-                  <q-menu ref="tokenMenu" :dark="darkMode" :class="{'text-black': !darkMode}" style="position: fixed; left: 0;">
-                    <q-list style="min-width: 100px;">
+                  <q-menu ref="tokenMenu" :class="{'text-black': !darkMode}" style="position: fixed; left: 0;">
+                    <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px;">
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleManageAssets">Toggle Add/Remove Tokens</q-item-section>
                       </q-item>
@@ -88,6 +89,10 @@
                 </q-btn>
               </p>
             </div>
+
+            <div class="col-3 q-mt-sm" style="position: relative; margin-top: -5px;" v-show="selectedNetwork === networks.BCH.name">
+            <AssetFilter @filterTokens="filterTokens" />
+          </div>
           </div>
           <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
           <!-- Cards without drag scroll on mobile -->
@@ -207,6 +212,7 @@ import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { VOffline } from 'v-offline'
+import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 
@@ -229,7 +235,8 @@ export default {
     securityOptionDialog,
     VOffline,
     connectedDialog,
-    PriceChart
+    PriceChart,
+    AssetFilter
   },
   directives: {
     dragscroll
@@ -363,6 +370,9 @@ export default {
     }
   },
   methods: {
+    filterTokens (tokenType) {
+      this.isCashToken = tokenType === 'ct'
+    },
     openPriceChart () {
       // console.log('opening price chart')
       this.$q.dialog({

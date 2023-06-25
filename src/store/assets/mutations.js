@@ -182,11 +182,13 @@ export function updateAssetMetadata (state, data) {
   if (!Array.isArray(assets)) return
 
   assets.forEach(a => {
-    if (a.id === data.id) {
-      a.name = data.name,
-      a.symbol = data.symbol,
-      a.decimals = data.decimals,
-      a.logo = data.logo || ''
+    if (a && data) {
+      if (a.id === data.id) {
+        a.name = data.name,
+        a.symbol = data.symbol,
+        a.decimals = data.decimals,
+        a.logo = data.logo || ''
+      }
     }
   })
 }

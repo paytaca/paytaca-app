@@ -28,6 +28,9 @@ export default {
       if (assetId === 'CT') {
         if (!this.abbreviate) return 'CASHTOKENS'
       }
+      if (assetId === 'SLP') {
+        return 'SLP TOKENS'
+      }
       return assetId
     },
     color () {

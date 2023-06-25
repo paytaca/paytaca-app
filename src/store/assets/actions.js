@@ -180,7 +180,7 @@ export async function getAssetMetadata (context, assetId) {
       'id': 'ct/' + tokenId,
       'symbol': 'CT-' + tokenId.substring(0, 4),
       'decimals': 0,
-      'name': '',
+      'name': 'CT-' + tokenId.substring(0, 4),
       'description': '' 
     }
   } else {
@@ -190,7 +190,7 @@ export async function getAssetMetadata (context, assetId) {
     } else {
       imageUrl = _metadata.uris.icon || ''
     }
-    const data = {
+    data = {
       'id': 'ct/' + tokenId,
       'name': _metadata.name,
       'description': _metadata.description,
@@ -198,6 +198,6 @@ export async function getAssetMetadata (context, assetId) {
       'decimals': _metadata.token.decimals,
       'logo': convertIpfsUrl(imageUrl)
     }
-  } 
+  }
   context.commit('updateAssetMetadata', data)
 }
