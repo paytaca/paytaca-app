@@ -29,41 +29,10 @@
             <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
               <q-item>
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
-                    <q-select
-                      dense
-                      :style="{ width: $q.platform.is.mobile === true ? '75%' : '100%' }"
-                      use-input
-                      fill-input
-                      hide-selected
-                      borderless
-                      :dark="darkMode"
-                      :option-label="opt => String(opt && opt.name)"
-                      v-model="selectedCurrency"
-                      :options="filteredCurrencyOptions"
-                      @filter="filterCurrencyOptionSelection"
-                    >
-                      <template v-slot:option="scope">
-                        <q-item
-                          v-bind="scope.itemProps"
-                        >
-                          <q-item-section>
-                            <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
-                              {{ String(scope.opt.symbol).toUpperCase() }}
-                            </q-item-label>
-                            <q-item-label
-                              v-if="scope.opt.name"
-                              caption
-                              :class="{ 'text-black': !darkMode && !scope.selected }"
-                            >
-                              {{ scope.opt.name }}
-                            </q-item-label>
-                          </q-item-section>
-                        </q-item>
-                      </template>
-                    </q-select>
+                    <CurrencySelector :darkMode="darkMode" />
                   </q-item-section>
               </q-item>
               <q-item>
@@ -124,6 +93,15 @@
           <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
             <q-item>
               <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CountrySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -158,8 +136,8 @@
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
                   <q-item-label>
-                    <a href="https://github.com/paytaca/paytaca-app" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
-                      https://github.com/paytaca/paytaca-app
+                    <a :href="repoUrl" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
+                      {{ repoUrl }}
                     </a>
                   </q-item-label>
                 </q-item-section>
@@ -182,6 +160,8 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
+import CountrySelector from '../../components/settings/CountrySelector'
+import CurrencySelector from '../../components/settings/CurrencySelector'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -192,12 +172,12 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
       pinStatus: true,
-      filteredCurrencyOptions: [],
       appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
       showTokens: this.$store.getters['global/showTokens'],
-      enableSmartBCH: this.$store.getters['global/enableSmartBCH']
+      enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+      repoUrl: 'https://github.com/paytaca/paytaca-app'
     }
   },
   components: {
@@ -205,6 +185,8 @@ export default {
     pinDialog,
     securityOptionDialog,
     LanguageSelector,
+    CountrySelector,
+    CurrencySelector,
   },
   watch: {
     isChipnet (n, o) {
@@ -218,40 +200,9 @@ export default {
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
-    },
-    selectedCurrency () {
-      this.$store.dispatch('market/updateAssetPrices', {})
-    }
-  },
-  computed: {
-    currencyOptions () {
-      return this.$store.getters['market/currencyOptions']
-    },
-    selectedCurrency: {
-      get () {
-        return this.$store.getters['market/selectedCurrency']
-      },
-      set (value) {
-        this.$store.commit('market/updateSelectedCurrency', value)
-        this.$store.dispatch('global/saveWalletPreferences')
-      }
     }
   },
   methods: {
-    filterCurrencyOptionSelection (val, update) {
-      if (!val) {
-        this.filteredCurrencyOptions = this.currencyOptions
-      } else {
-        const needle = String(val).toLowerCase()
-        this.filteredCurrencyOptions = this.currencyOptions
-          .filter(currency =>
-            String(currency && currency.name).toLowerCase().indexOf(needle) >= 0 ||
-            String(currency && currency.symbol).toLowerCase().indexOf(needle) >= 0
-          )
-      }
-
-      update()
-    },
     popUpPinDialog () {
       this.pinDialogAction = 'SET NEW'
     },
@@ -280,7 +231,6 @@ export default {
     }
   },
   created () {
-    console.log('SmartBCH', this.enableSmartBCH)
     NativeBiometric.isAvailable()
       .then(result => {
         if (result.isAvailable !== false) {

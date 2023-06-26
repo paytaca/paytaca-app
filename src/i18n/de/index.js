@@ -1,5 +1,5 @@
-// NOTE: DONT UPDATE IN THIS FILE
-// UPDATE ON i18n/translate.js file (centralized there)
+// NOTE: DONT EDIT THIS FILE
+// UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
   Accept: "Akzeptieren",
@@ -299,6 +299,8 @@ export default {
   UnlinkDevice: "Unglied -Gerät",
   AppInfo: "App-Information",
   ManageIgnoredTokens: "Ignorierte Token verwalten",
+  OnBoardSettingHeader: "Lokalisierungspräferenzen festlegen",
+  OnBoardSettingDescription: "Passen Sie die Einstellungen an Ihre native Erfahrung an",
   POSAdmin: "Pos admin",
   ShowTokens: "Zeigen Sie Token",
   SourceCodeRepo: "Quellcode -Repository",

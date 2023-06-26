@@ -1,6 +1,6 @@
 <template>
   <q-select
-    :style="{ width: $q.platform.is.mobile === true ? '50%' : '100%' }"
+    :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="locale"
     :options="localeOptions"
     :dark="darkMode"
@@ -11,7 +11,26 @@
     fill-input
     borderless
     hide-selected
-  />
+  >
+    <template v-slot:option="scope">
+      <q-item
+        v-bind="scope.itemProps"
+      >
+        <q-item-section>
+          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+            {{ scope.opt.label }}
+          </q-item-label>
+          <q-item-label
+            v-if="scope.opt.value"
+            caption
+            :class="{ 'text-black': !darkMode && !scope.selected }"
+          >
+            {{ scope.opt.value }}
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+    </template>
+  </q-select>
 </template>
 
 <script>
@@ -24,19 +43,19 @@ export default {
   },
   data () {
     return {
-      locale: this.$q.localStorage.getItem('lang'),
+      locale: this.$store.getters['global/language'],
       langs: [
-        this.$t('English'),
-        this.$t('ChineseSimplified'),
-        this.$t('ChineseTraditional'),
-        this.$t('German'),
-        this.$t('Spanish'),
+        'English',
+        'ChineseSimplified',
+        'ChineseTraditional',
+        'German',
+        'Spanish',
       ],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
         { value: 'zh-tw', label: this.$t('ChineseTraditional') },
-        { value: 'zh-cn', label: this.$t('German') },
+        { value: 'de', label: this.$t('German') },
         { value: 'es', label: this.$t('Spanish') },
       ],
       localeOptions: []
@@ -64,7 +83,7 @@ export default {
         o.label = this.$t(this.langs[index])
         
         if (n.value === o.value) {
-          this.$q.localStorage.set('lang', this.langs[index])
+          this.$store.commit('global/setLanguage', this.$t(this.langs[index]))
         }
         return o
       })

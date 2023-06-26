@@ -3,18 +3,14 @@ const fs = require('fs')
 
 
 /**
- * Running this script will update all
- * translation files based from the data you edit in here.
+ * NOTE: YOU ONLY NEED TO UPDATE TEXTS HERE and run this script.
+ * This script automatically translates and writes the translated
+ * objects to the language index files (i18n/{language}/index.js)
+ * 
  * 
  * To execute this script:
  * 1) go to the directory of this file
  * 2) run "node translate.js"
- */
-
-
-/**
- * NOTE: YOU ONLY NEED TO UPDATE TEXTS HERE and run this script
- * to automatically edit the language files
  * 
  */
 const words = {
@@ -325,6 +321,8 @@ const phrases = {
     {
       AppInfo: "App Info",
       ManageIgnoredTokens: "Manage Ignored Tokens",
+      OnBoardSettingHeader: "Set Localization Preferences",
+      OnBoardSettingDescription: "Adjust settings to fit your native experience",
       POSAdmin: "POS Admin",
       ShowTokens: "Show Tokens",
       SourceCodeRepo: "Source code repository",
@@ -390,6 +388,8 @@ const textGroupKeys = [
   'static phrases group 2',
   'dynamic phrases',
 ]
+// check for supported language codes here
+// https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
 const supportedLangs = [
   'en-us',
   'es',
@@ -410,8 +410,6 @@ console.log('Expected no. of translation keys on i18n files: ', sum)
 let jsonData = {};
 
 (async () => {
-  // check for supported language codes here
-  // https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
   for (let lang of supportedLangs) {
     const codes = { from: 'en', to: lang }
     if (lang === 'en-us') {
@@ -430,13 +428,15 @@ let jsonData = {};
       // merge the previous and current objects
       Object.assign(jsonData, translatedObj)
       
-      let strData = '// NOTE: DONT UPDATE IN THIS FILE\n'
-      strData += '// UPDATE ON i18n/translate.js file (centralized there)\n\n'
+      let strData = '// NOTE: DONT EDIT THIS FILE\n'
+      strData += '// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n'
       strData += 'export default '
 
       strData += JSON.stringify(jsonData, null, 2)
+
       // to remove the quotes on keys after stringify
       strData = strData.replace(/"([^"]+)":/g, '$1:')
+
       // write to our i18n/{lang_code}/index.js
       write(strData, lang)
 

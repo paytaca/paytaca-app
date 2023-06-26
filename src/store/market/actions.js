@@ -11,7 +11,6 @@ export function updateCoinsList (context, { force = true }) {
       { params: { include_platform: true } }
     )
     .then(response => {
-      console.log(response)
       if (Array.isArray(response.data)) {
         context.commit('updateCoinsList', response.data)
         return response

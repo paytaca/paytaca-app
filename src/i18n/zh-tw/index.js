@@ -1,5 +1,5 @@
-// NOTE: DONT UPDATE IN THIS FILE
-// UPDATE ON i18n/translate.js file (centralized there)
+// NOTE: DONT EDIT THIS FILE
+// UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
   Accept: "接受",
@@ -299,6 +299,8 @@ export default {
   UnlinkDevice: "UNLINK設備",
   AppInfo: "應用信息",
   ManageIgnoredTokens: "管理被忽略的令牌",
+  OnBoardSettingHeader: "設置本地化偏好",
+  OnBoardSettingDescription: "調整設置以適合您的本地體驗",
   POSAdmin: "POS管理員",
   ShowTokens: "顯示令牌",
   SourceCodeRepo: "源代碼存儲庫",
