@@ -167,7 +167,7 @@
               </div>
               <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
                 <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-                <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
+                <p :class="{ 'text-black': !darkMode, 'text-white': darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
               </div>
             </template>
             <div v-else>
