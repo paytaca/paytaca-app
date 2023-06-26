@@ -44,9 +44,6 @@
                     <q-item clickable v-close-popup>
                       <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="openRenameDialog()">{{ $t('Rename') }}</q-item-section>
                     </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']">close</q-item-section>
-                    </q-item>
                   </q-list>
                 </q-menu>
               </q-item-section>
