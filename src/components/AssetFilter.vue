@@ -1,6 +1,7 @@
 <template>
   <q-btn-dropdown
     :content-style="contentStyle"
+    :text-color="darkMode ? 'white' : ''"
     unelevated class="float-right q-mr-md"
   >
     <template v-slot:label>

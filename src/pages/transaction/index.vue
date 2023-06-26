@@ -73,7 +73,7 @@
                   style="color: #3B7BF6;"
                   @click="updateTokenMenuPosition"
                 >
-                  <q-menu ref="tokenMenu" :class="{'text-black': !darkMode}" style="position: fixed; left: 0;">
+                  <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
                     <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px;">
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleManageAssets">{{ $t('ManageTokens') }}</q-item-section>

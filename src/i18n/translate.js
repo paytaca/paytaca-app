@@ -27,6 +27,7 @@ const words = [
     Balance: "Balance",
     Biometric: "Biometric",
     Bridge: "Bridge",
+    Back: "Back",
     Branch: "Branch",
     Cancel: "Cancel",
     City: "City",
