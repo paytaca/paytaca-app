@@ -246,11 +246,9 @@ export default {
 }
 .scanner-container > .scanner-close-btn {
   position: absolute;
-  top: 0;
-  right: 0;
-  margin: 10px;
-  color: #ef4f84;
-  z-index: 2022;
+  top: 65%;
+  right: 45.5%;
+  background-color: #ef4f84;
 }
 .scanner-container > .scanner-error-dialog {
   border-radius: 15px;
