@@ -9,7 +9,7 @@
               <template v-slot:avatar>
                 <q-icon name="signal_wifi_off" color="primary" />
               </template>
-              You have lost connection to the internet. This app is offline.
+              {{ $t('NoInternetConnectionNotice') }}
             </q-banner>
           </v-offline>
           <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}">
@@ -274,7 +274,8 @@ export default {
       prevPath: null,
       showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      showTokens: this.$store.getters['global/showTokens']
+      showTokens: this.$store.getters['global/showTokens'],
+      isCashToken: true
     }
   },
 
@@ -347,8 +348,16 @@ export default {
       })
     },
     assets () {
-      if (this.selectedNetwork === 'sBCH') return this.smartchainAssets
-      return this.mainchainAssets
+      const vm = this
+      if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
+
+      return vm.mainchainAssets.filter(token => {
+        const assetId = token.id.split('/')[0]
+        return (
+          vm.isCashToken && assetId === 'ct' ||
+          !vm.isCashToken && assetId === 'slp'
+        )
+      })
     },
     selectedAssetMarketPrice () {
       if (!this.selectedAsset || !this.selectedAsset.id) return

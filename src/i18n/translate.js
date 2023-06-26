@@ -225,7 +225,7 @@ const phrases = {
       NotEnoughBalForSendAmount: "Not enough balance to cover the send amount",
       NotEnoughBchForFee: "Not enough BCH to cover for transaction fee",
       NoIgnoredTokens: "No ignored tokens",
-      NoInternetConnectionNotice: "Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down",
+      NoInternetConnectionNotice: "You have lost connection to the internet. This app is offline.",
       NoTokensFound: "No tokens found",
       NoTransactionsToDisplay: "No transactions to display",
       OpenSourceCode: "Open source code",
@@ -325,6 +325,7 @@ const phrases = {
     },
     {
       AppInfo: "App Info",
+      BackendDown: "Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down",
       SLPTokens: "SLP Tokens",
       AddFungibleCashToken: "Add Fungible CashToken",
       AssetValueNote: "Asset value is based on prices at the time of transaction",

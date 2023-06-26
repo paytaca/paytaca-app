@@ -60,7 +60,7 @@ export default {
       },
       state: '',
       baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
-      error_msg: this.$t('NoInternetConnectionNotice')
+      error_msg: this.$t('BackendDown')
     }
   },
   emits: ['close', 'confirmed', 'retry'],
