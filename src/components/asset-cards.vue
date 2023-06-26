@@ -11,12 +11,6 @@
       }"
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
     >
-      <div
-        v-if="manageAssets && asset.symbol !== 'BCH'"
-        @click="() => removeAsset(asset)"
-        style="float: right; width: 20px; margin-top: -10px;">
-        <q-btn icon="close" color="white" flat round dense v-close-popup />
-      </div>
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
         <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;">
@@ -25,12 +19,21 @@
       </div>
       <div class="row" style="margin-top: -7px;">
         <q-space />
-        <div v-if="!balanceLoaded && asset.id === selectedAsset.id" style="width: 100%;">
+        <div v-if="!balanceLoaded && !manageAssets && asset.id === selectedAsset.id" style="width: 100%;">
           <q-skeleton type="rect"/>
         </div>
-        <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
-          {{ String(num2shortStr(convertTokenAmount(asset.balance, asset.decimals))).substring(0, 10) }}
-        </p>
+        <template v-else>
+          <p v-if="!manageAssets" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
+            {{ String(num2shortStr(convertTokenAmount(asset.balance, asset.decimals))).substring(0, 10) }}
+          </p>
+        </template>
+
+        <div
+          v-if="manageAssets && asset.symbol !== 'BCH'"
+          @click="() => removeAsset(asset)"
+          style="float: right; width: 20px; margin-top: -5px;">
+          <q-btn icon="close" style="background: red; color: white" size="8px" flat round dense v-close-popup />
+        </div>
       </div>
       <!-- <div v-if="balanceLoaded" style="margin-top: -16px;">
         <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
@@ -234,10 +237,10 @@ export default {
   }
   .btn-add-payment-method {
     border: 0px solid $grey-1;
-    padding: 25px 20px 34px 20px;
+    padding: 20px 20px 34px 20px;
     border-radius: 16px;
     font-size: 25px;
-    height: 87px;
+    height: 78px;
     margin-left: 2px;
     margin-right: 12px;
   }
