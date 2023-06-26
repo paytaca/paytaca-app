@@ -82,24 +82,17 @@
       </div>
     </div>
   </q-card>
-  <!-- Buy BCH Here -->
-  <div v-if="state === 'buy'">
-    <FiatStoreBuy
+  <!-- Buy/Sell Form Here -->
+  <div v-if="state !== 'select'">
+    <FiatStoreForm
       v-on:back="state = 'select'"
       :listingData="selectedListing"
-    />
-  </div>
-  <!-- Sell BCH Here -->
-  <div v-if="state === 'sell'">
-    <FiatStoreSell
-      v-on:back="state = 'select'"
-      :listingData="selectedListing"
+      :transactionType="state"
     />
   </div>
 </template>
 <script>
-import FiatStoreBuy from './FiatStoreBuy.vue'
-import FiatStoreSell from './FiatStoreSell.vue'
+import FiatStoreForm from './FiatStoreForm.vue'
 
 export default {
   data () {
@@ -116,7 +109,6 @@ export default {
         JPY: 'Japanese Yen',
         RUB: 'Russian Ruble'
       },
-
       listings: [
         {
           tradeType: 'BUY',
@@ -169,7 +161,7 @@ export default {
           tradeFloor: 100,
           tradeCeiling: 1000,
           cryptoAmount: 1,
-          time_duration_choice: 1440,
+          timeDurationChoice: 300,
           paymentMethods: [
             {
               name: 'gcash',
@@ -204,7 +196,7 @@ export default {
           tradeFloor: 100,
           tradeCeiling: 1000,
           cryptoAmount: 1,
-          time_duration_choice: 1440,
+          timeDurationChoice: 1440,
           paymentMethods: [
             {
               name: 'gcash',
@@ -239,6 +231,41 @@ export default {
           tradeFloor: 100,
           tradeCeiling: 1000,
           cryptoAmount: 1,
+          timeDurationChoice: 300,
+          paymentMethods: [
+            {
+              name: 'gcash',
+              account_name: 'Stephen King',
+              account_number: 123845893
+            },
+            {
+              name: 'paymaya',
+              account_name: 'James Watson',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              name: 'paypal',
+              account_name: 'Stephen King',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          tradeType: 'BUY',
+          priceType: 'FIXED',
+          fiatCurrency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          cryptoCurrency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          fixedPrice: 1000,
+          floatingPrice: null,
+          tradeFloor: 100,
+          tradeCeiling: 1000,
+          cryptoAmount: 1,
           timeDurationChoice: 1440,
           paymentMethods: [
             {
@@ -274,42 +301,7 @@ export default {
           tradeFloor: 100,
           tradeCeiling: 1000,
           cryptoAmount: 1,
-          time_duration_choice: 1440,
-          paymentMethods: [
-            {
-              name: 'gcash',
-              account_name: 'Stephen King',
-              account_number: 123845893
-            },
-            {
-              name: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              name: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
-            name: 'Philippine Peso',
-            abbrev: 'PHP'
-          },
-          cryptoCurrency: {
-            name: 'Bitcoin Cash',
-            abbrev: 'BCH'
-          },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          time_duration_choice: 1440,
+          timeDurationChoice: 300,
           paymentMethods: [
             {
               name: 'gcash',
@@ -379,7 +371,7 @@ export default {
           tradeFloor: 100,
           tradeCeiling: 1000,
           cryptoAmount: 1,
-          time_duration_choice: 1440,
+          timeDurationChoice: 300,
           paymentMethods: [
             {
               name: 'gcash',
@@ -414,7 +406,7 @@ export default {
           tradeFloor: 100,
           tradeCeiling: 1000,
           cryptoAmount: 1,
-          time_duration_choice: 1440,
+          timeDurationChoice: 1440,
           paymentMethods: [
             {
               name: 'gcash',
@@ -437,8 +429,7 @@ export default {
     }
   },
   components: {
-    FiatStoreBuy,
-    FiatStoreSell
+    FiatStoreForm
   },
   methods: {
     selectFiatCoin (currency) {
@@ -449,6 +440,7 @@ export default {
       const vm = this
       // console.log(listing)
       vm.selectedListing = listing
+      console.log(vm.selectedListing)
       vm.state = vm.transactionType
     },
     sortedListings () {

@@ -9,7 +9,7 @@
       />
     </div>
 
-    <div class="text-center md-font-size">Please check to confirm...</div>
+    <div class="text-center md-font-size bold-text">Please check to confirm...</div>
 
     <div class="md-font-size" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
       <div class="q-pt-lg q-mx-lg ">
@@ -22,7 +22,8 @@
           <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.name }} ({{ adData.fiatCurrency.abbrev }})</span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg bold-text">
-          <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price' }}:</span>
+          <!-- <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price' }}:</span> -->
+          <span>Price:</span>
           <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? adData.fixedPrice : adData.floatingPrice }} {{ adData.fiatCurrency.abbrev }}</span>
         </div>
       </div>
@@ -49,8 +50,15 @@
       </div>
     </div>
     <div v-if="transactionType === 'sell'">
-      <div>
-        Payment Methods
+      <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
+
+      <div class="q-mx-lg q-pt-lg">
+        <div class="q-px-lg bold-text">
+          Payment Methods
+        </div>
+        <div class="q-gutter-sm q-pt-sm q-px-lg">
+          <q-badge v-for="method in adData.paymentMethods" rounded outline color="red" :label="method.paymentType.name" />
+        </div>
       </div>
     </div>
 
@@ -95,6 +103,8 @@ export default {
     vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
+
+    console.log(vm.postData)
   }
 }
 </script>
