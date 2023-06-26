@@ -76,7 +76,7 @@
                   <q-menu ref="tokenMenu" :class="{'text-black': !darkMode}" style="position: fixed; left: 0;">
                     <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px;">
                       <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleManageAssets">Toggle Add/Remove Tokens</q-item-section>
+                        <q-item-section @click="toggleManageAssets">Manage Tokens</q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
                         <q-item-section @click="checkMissingAssets({autoOpen: true})">Scan for Tokens</q-item-section>
