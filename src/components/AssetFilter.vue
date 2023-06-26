@@ -9,12 +9,12 @@
     <q-list>
       <q-item clickable v-close-popup @click="filterTokens('ct')">
         <q-item-section>
-          <q-item-label>CashTokens</q-item-label>
+          <q-item-label>{{ $t('CashTokens') }}</q-item-label>
         </q-item-section>
       </q-item>
       <q-item clickable v-close-popup @click="filterTokens('slp')">
         <q-item-section>
-          <q-item-label>SLP Tokens</q-item-label>
+          <q-item-label>{{ $t('SLPTokens') }}</q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
@@ -46,9 +46,6 @@ export default {
         backgroundColor: this.darkMode ? '#1C2833' : 'white',
         color: this.darkMode ? 'white' : 'black'
       }
-    },
-    tokenTypeLabel (tokenType) {
-      return {'ct': 'CashTokens', 'slp': 'SLP Tokens'}[tokenType]
     }
   }
 }

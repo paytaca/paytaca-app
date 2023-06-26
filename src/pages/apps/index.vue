@@ -47,7 +47,7 @@ export default {
           smartBCHOnly: true
         },
         {
-          name: 'Ramp',
+          name: this.$t('Ramp'),
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/ramp',
           iconStyle: 'width:50%',

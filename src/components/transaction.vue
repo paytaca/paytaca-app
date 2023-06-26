@@ -36,7 +36,7 @@
                 <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
                   <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
                     <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
-                      Asset value is based on prices at the time of transaction
+                      {{ $t('AssetValueNote') }}
                     </div>
                   </q-popup-proxy>
                 </q-icon>

@@ -3,7 +3,7 @@
       <q-card style="min-width: 350px" class="br-15" :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
         <div v-if="isLoaded">
           <q-card-section>
-            <div class="text-h5" style="font-size: 18px;">Rename Wallet</div>
+            <div class="text-h5" style="font-size: 18px;">{{ $t('RenameWallet') }}</div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
@@ -11,8 +11,8 @@
           </q-card-section>
 
           <q-card-actions align="right" class="text-primary">
-            <q-btn flat label="Cancel" v-close-popup />
-            <q-btn flat label="rename" @click="renameWallet" />
+            <q-btn flat :label="$t('Cancel')" v-close-popup />
+            <q-btn flat :label="$t('Rename')" @click="renameWallet" />
           </q-card-actions>
         </div>
       </q-card>

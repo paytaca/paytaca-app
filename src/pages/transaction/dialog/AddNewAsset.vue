@@ -85,16 +85,14 @@ export default {
       if (this.isSep20)
         return this.$t('Add_SEP20_Token')
       if (this.isCashToken)
-        // TODO: translate
-        return 'Add Fungible CashToken'
+        return this.$t('AddFungibleCashToken')
       return this.$t('Add_Type1_Token')
     },
     inputPlaceholder () {
       if (this.isSep20)
         this.$t('Enter_SEP20_ContractAddress')
       if (this.isCashToken)
-        // TODO: translate
-        return 'Enter CashToken category ID'
+        return this.$t('EnterCashTokenCategoryID')
       return this.$t('Enter_SLP_TokenId')
     }
   },

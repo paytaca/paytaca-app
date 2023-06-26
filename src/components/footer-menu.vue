@@ -51,7 +51,7 @@
               <use xlink:href="wallet.svg#icon"></use>
             </svg>    
           </q-icon>
-        <span>Wallets</span>
+        <span>{{ $t('Wallets') }}</span>
       </button>
       <!-- <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>

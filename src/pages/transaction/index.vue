@@ -45,7 +45,7 @@
           </div>
           <div
             v-if="!showTokens"
-            class="text-center"
+            class="text-center text-blue-9"
             :class="{'text-black': !darkMode}"
             @click.native="toggleShowTokens"
             style="margin-top: 0px; font-size: 11px; padding-bottom: 15px;"
@@ -76,13 +76,13 @@
                   <q-menu ref="tokenMenu" :class="{'text-black': !darkMode}" style="position: fixed; left: 0;">
                     <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px;">
                       <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleManageAssets">Manage Tokens</q-item-section>
+                        <q-item-section @click="toggleManageAssets">{{ $t('ManageTokens') }}</q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
-                        <q-item-section @click="checkMissingAssets({autoOpen: true})">Scan for Tokens</q-item-section>
+                        <q-item-section @click="checkMissingAssets({autoOpen: true})">{{ $t('ScanForTokens') }}</q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleShowTokens">Hide Tokens</q-item-section>
+                        <q-item-section @click="toggleShowTokens">{{ $t('HideTokens') }}</q-item-section>
                       </q-item>
                     </q-list>
                   </q-menu>

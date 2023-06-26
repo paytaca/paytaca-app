@@ -1,17 +1,12 @@
 <template>
-  <q-dialog ref="dialog" persistent full-width>
+  <q-dialog ref="dialog" full-width>
     <q-card :class="darkmode ? 'text-white pt-dark  ' : 'text-black'" class="br-15" style="padding-bottom: 10px; background-color: #ECF3F3">
-      <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
-        <div class="text-subtitle1 q-space q-mt-sm"></div>
-        <q-btn
-          flat
-          padding="sm"
-          icon="close"
-          v-close-popup
-        />
+      <div class="row no-wrap items-center justify-center">
         <div v-if="isloaded && !networkError" style="">
-          <img src="../../../assets/bch-logo.png" style="height: 50px; position: absolute; left: 25px; z-index: 1;"/>
-          <span class="text-h6" style="position: absolute; left: 85px; z-index: 1; margin-top: 15px; font-size: 18px;">Bitcoin Cash</span>
+          <img src="../../../assets/bch-logo.png" style="height: 40px; position: absolute; top: 12px; left: 25px; z-index: 1;"/>
+          <span class="text-h6" style="position: absolute; left: 85px; z-index: 1; margin-top: 15px; font-size: 18px;">
+            Bitcoin Cash
+          </span>
         </div>
       </div>
       <div class="row justify-center q-pb-lg" v-if="!isloaded">
@@ -21,7 +16,7 @@
         {{ $t('NoInternetConnectionNotice') }} &#128533;
       </div>
       <div v-if="isloaded && !networkError">
-        <div class="full-width q-py-sm" style="font-size: 18px; padding-left: 40px; margin-top: 30px;">
+        <div class="full-width q-pb-sm q-pt-lg" style="font-size: 18px; padding-left: 40px; margin-top: 30px;">
           {{ bchPrice[bchPrice.length - 1].toFixed(2) }}
           {{ selectedCurrency.toUpperCase() }}&nbsp;
           <span style="font-size: 13px;" :class="ishigher ? 'inc-text-color' : 'dec-text-color'">
