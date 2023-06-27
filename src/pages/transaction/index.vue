@@ -91,7 +91,7 @@
             </div>
 
             <div class="col-3 q-mt-sm" style="position: relative; margin-top: -5px;" v-show="selectedNetwork === networks.BCH.name">
-            <AssetFilter @filterTokens="filterTokens" />
+            <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
           </div>
           </div>
           <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
@@ -104,6 +104,7 @@
               :balance-loaded="balanceLoaded"
               :network="selectedNetwork"
               :wallet="wallet"
+              :isCashToken="isCashToken"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -120,6 +121,7 @@
               v-dragscroll.x="true"
               :network="selectedNetwork"
               :wallet="wallet"
+              :isCashToken="isCashToken"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -379,9 +381,6 @@ export default {
     }
   },
   methods: {
-    filterTokens (tokenType) {
-      this.isCashToken = tokenType === 'ct'
-    },
     openPriceChart () {
       // console.log('opening price chart')
       this.$q.dialog({

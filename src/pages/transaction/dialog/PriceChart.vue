@@ -16,7 +16,7 @@
         {{ $t('NoInternetConnectionNotice') }} &#128533;
       </div>
       <div v-if="isloaded && !networkError">
-        <div class="full-width q-pb-sm q-pt-lg" style="font-size: 18px; padding-left: 40px; margin-top: 30px;">
+        <div class="full-width q-pb-sm q-pt-lg" style="font-size: 18px; padding-left: 40px; margin-top: 40px;">
           {{ bchPrice[bchPrice.length - 1].toFixed(2) }}
           {{ selectedCurrency.toUpperCase() }}&nbsp;
           <span style="font-size: 13px;" :class="ishigher ? 'inc-text-color' : 'dec-text-color'">

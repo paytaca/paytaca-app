@@ -20,24 +20,7 @@
               :rules="[
                 val => Boolean(val) || $t('Required'),
               ]"
-            >
-              <template v-slot:append v-if="!isSep20">
-                <q-btn-toggle
-                  v-model="tokenSelected"
-                  rounded
-                  class="q-my-lg"
-                  unelevated
-                  toggle-color="grad"
-                  toggle-text-color="white"
-                  :color="darkMode ? 'grey' : 'white'"
-                  :text-color="darkMode ? 'grey-4' : 'grey'"
-                  :options="[
-                    { label: 'CT', value: 'ct' },
-                    { label: 'SLP', value: 'slp' }
-                  ]"
-                />
-              </template>
-            </q-input>
+            />
           </q-card-section>
 
           <q-separator class="q-mt-none" />
@@ -62,19 +45,16 @@ export default {
       type: String,
       default: 'BCH'
     },
+    isCashToken: {
+      type: Boolean,
+      required: true
+    },
     darkMode: Boolean
   },
 
   data () {
     return {
-      tokenSelected: 'ct',
-      asset: null,
-      isCashToken: true
-    }
-  },
-  watch: {
-    tokenSelected (n, o) {
-      this.isCashToken = n === 'ct'
+      asset: null
     }
   },
   computed: {

@@ -68,7 +68,8 @@ export default {
     assets: { type: Array },
     manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
-    balanceLoaded: { type: Boolean }
+    balanceLoaded: { type: Boolean },
+    isCashToken: { type: Boolean }
   },
   data () {
     return {
@@ -195,7 +196,11 @@ export default {
       const vm = this
       vm.$q.dialog({
         // need both in passing props for now for backwards compatibility
-        componentProps: { network: this.network, darkMode: this.darkMode },
+        componentProps: {
+          network: this.network,
+          darkMode: this.darkMode,
+          isCashToken: this.isCashToken
+        },
         component: AddNewAsset
       }).onOk((asset) => {
         if (this.isSep20) return this.addSep20Asset(asset.tokenId)

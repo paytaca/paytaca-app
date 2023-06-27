@@ -56,7 +56,7 @@
     <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;">
       <q-tab-panel name="BCH">
         <div class="row items-center justify-end">
-          <AssetFilter style="float:none" @filterTokens="type => bchNftType = type"/>
+          <AssetFilter style="float:none" @filterTokens="filterTokens"/>
         </div>
         <keep-alive>
           <CashTokensNFTs
@@ -256,6 +256,9 @@ export default {
     }
   },
   methods: {
+    filterTokens (isCashToken) {
+      this.bchNftType = isCashToken ? 'ct' : 'slp'
+    },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },

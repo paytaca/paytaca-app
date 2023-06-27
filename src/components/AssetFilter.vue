@@ -38,7 +38,7 @@ export default {
   methods: {
     filterTokens (tokenType) {
       this.assetId = tokenType
-      this.$emit('filterTokens', tokenType)
+      this.$emit('filterTokens', tokenType === 'ct')
     }
   },
   computed: {
