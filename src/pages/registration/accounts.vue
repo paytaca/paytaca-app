@@ -132,7 +132,11 @@
                     @click="showMnemonicTest = false"
                   />
                 </div>
-                <MnemonicTest :mnemonic="mnemonic" class="q-mb-md" @matched="mnemonicVerified = true" />
+                <MnemonicTest
+                  :mnemonic="mnemonic"
+                  @matched="mnemonicVerified = true"
+                  class="q-mb-md"
+                />
               </div>
             </template>
           </div>

@@ -7,11 +7,12 @@
       <q-btn
         v-if="rearrangedSeedphrase.length"
         icon="clear"
+        flat
         round
         size="sm"
-        text-color="black"
+        :text-color="darkMode ? 'white' : 'black'"
         class="float-right"
-        @click="rearrangedSeedphrase = []"
+        @click="reset()"
       />
       <div class="row items-start q-gutter-sm">
         <q-btn
@@ -22,7 +23,7 @@
           padding="xs sm"
           color="brandblue"
           rounded
-          @click="toggleRearrangedSeedphraseWord(word)"
+          @click="toggleRearrangedSeedphraseWord(word, false)"
         />
       </div>
     </div>
@@ -34,7 +35,6 @@
         <q-btn
           v-for="word in shuffledSeedphrase"
           :key="word"
-          :color="rearrangedSeedphrase.indexOf(word) >= 0 ? 'grey' : 'brandblue'"
           rounded
           no-caps
           :label="word"
@@ -48,15 +48,25 @@
 </template>
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
+import { useStore } from 'vuex'
+
+const $store = useStore()
 const $emit = defineEmits(['matched'])
 const props = defineProps({
   mnemonic: String,
 })
 
 const seedPhrase = computed(() => props.mnemonic.trim().split(' '))
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const shuffledSeedphrase = ref([])
-const rearrangedSeedphrase = ref([])
+let shuffledSeedphrase = ref([])
+let rearrangedSeedphrase = ref([])
+
+function reset () {
+  shuffledSeedphrase.value = props.mnemonic.trim().split(' ')
+  rearrangedSeedphrase.value = []
+}
+
 onMounted(() => shuffleSeedphrase())
 function shuffleSeedphrase() {
   shuffledSeedphrase.value = [...seedPhrase.value]
@@ -85,11 +95,15 @@ function shuffleArray(array) {
   return array;
 }
 
-function toggleRearrangedSeedphraseWord(word='') {
-  if (rearrangedSeedphrase.value.indexOf(word) >= 0) {
-    rearrangedSeedphrase.value = rearrangedSeedphrase.value.filter(w => w !== word)
-  } else {
+function toggleRearrangedSeedphraseWord(word='', fromShuffledPhrase=true) {
+  if (fromShuffledPhrase) {
     rearrangedSeedphrase.value.push(word)
+    delete shuffledSeedphrase.value[shuffledSeedphrase.value.indexOf(word)]
+    shuffledSeedphrase.value = shuffledSeedphrase.value.filter(w => w !== undefined)
+  } else {
+    shuffledSeedphrase.value.push(word)
+    delete rearrangedSeedphrase.value[rearrangedSeedphrase.value.indexOf(word)]
+    rearrangedSeedphrase.value = rearrangedSeedphrase.value.filter(w => w !== undefined)
   }
 }
 
