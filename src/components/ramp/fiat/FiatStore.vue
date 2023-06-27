@@ -102,6 +102,28 @@ export default {
       selectedFiat: 'PHP',
       state: 'select',
       selectedListing: {},
+      // availableFiat: [  //api/ramp-p2p/currency/fiat/
+      //   {
+      //     name: 'Philippine Peso',
+      //     abbrev: 'PHP'
+      //   },
+      //   {
+      //     name: 'United States Dollar',
+      //     abbrev: 'USD'
+      //   },
+      //   {
+      //     name: 'Canadian Dollar',
+      //     abbrev: 'CAD'
+      //   },
+      //   {
+      //     name: 'Japanese Yen',
+      //     abbrev: 'JPY'
+      //   },
+      //   {
+      //     name: 'Russian Ruble',
+      //     abbrev: 'RUB'
+      //   }
+      // ],
       availableFiat: {
         PHP: 'Philippine Peso',
         USD: 'United States Dollar',
@@ -433,14 +455,14 @@ export default {
   },
   methods: {
     selectFiatCoin (currency) {
-      console.log(currency)
+      // console.log(currency)
       this.selectedFiat = currency
     },
     selectListing (listing) {
       const vm = this
       // console.log(listing)
       vm.selectedListing = listing
-      console.log(vm.selectedListing)
+      // console.log(vm.selectedListing)
       vm.state = vm.transactionType
     },
     sortedListings () {

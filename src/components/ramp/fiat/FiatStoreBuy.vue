@@ -42,17 +42,17 @@
               v-model="amount"
             >
             <template v-slot:prepend>
-              <span style="font-size: 12px; font-weight: 400;">
+              <span class="xs-font-size bold-text">
                 PHP
               </span>
             </template>
             <template v-slot:append>
               <q-icon size="xs" name="close" @click="amount = 0"/>&nbsp;
-              <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" />
+              <q-btn class="xs-font-size" padding="none" flat color="primary" label="MAX" />
             </template>
             </q-input>
           </div>
-          <div class="q-pt-md" style="font-size: 13px;">
+          <div class="q-pt-md sm-font-size">
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
               <span>Crypto Amount:</span>
               <span class="text-nowrap q-ml-xs subtext">{{ buy.cryptoAmount }} BCH</span>
@@ -87,7 +87,7 @@
         />
       </div>
       <div v-if="!hideSellerInfo">
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+        <div class="q-mx-lg text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
           SELLER INFO
         </div>
         <div class="row">
@@ -95,22 +95,19 @@
             <div class="q-mx-lg q-mt-md">
               <span
                 :class="{'pt-dark-label': darkMode}"
-                class="q-pl-md q-mb-none text-uppercase"
-                style="font-size: 15px; font-weight: 400;"
+                class="q-pl-md q-mb-none text-uppercase md-font-size bold-text"
               >
                 {{ buy.paymentMethods[0].account_name }}
               </span>
             </div>
             <div class="q-mx-lg subtext" :class="{'pt-dark-label': darkMode}">
               <span
-                class="q-pl-md q-mb-none"
-                style="font-size: 12px;"
+                class="q-pl-md q-mb-none xs-font-size"
               >
                 1000 trades
               </span>&nbsp;
               <span
-                class="q-pl-xs q-mb-none"
-                style="font-size: 12px;"
+                class="q-pl-xs q-mb-none xs-font-size"
               >
                 100% completion
               </span>
@@ -130,7 +127,7 @@
           </div>
         </div>
         <div class="q-mx-lg q-mt-md" v-if="pendingRelease">
-          <div class="q-px-lg" style="font-weight: 500;">
+          <div class="q-px-lg bold-text">
             Seller did not release crypto?
           </div>
           <div class="q-pt-xs q-mx-lg subtext">

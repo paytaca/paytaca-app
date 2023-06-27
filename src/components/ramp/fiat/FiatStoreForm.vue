@@ -77,12 +77,12 @@
            </div>
            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
              <span>Fiat Amount:</span>
-             <span class="text-nowrap q-ml-xs subtext">{{ amount }} {{ buy.fiatCurrency.abbrev }}</span>
+             <span class="text-nowrap q-ml-xs subtext">{{ isAmountValid(amount) || amount === 0 || amount === '' ||  amount === '0' ? amount : 'Invalid Amount' }} {{ buy.fiatCurrency.abbrev }}</span>
            </div>
          </div>
          <div class="row q-mx-sm q-py-md">
            <q-btn
-             :disable="!isAmountValid()"
+             :disable="!isAmountValid(amount)"
              rounded
              no-caps
              :label="transactionType === 'buy'? 'Buy' : 'Next'"
@@ -96,19 +96,24 @@
 
      <!-- Process Transaction -->
      <div v-if="state === 'processing'">
-       <FiatStoreBuyProcess
-         :listingData="buy"
-         :buyAmount="cryptoAmount.toString()"
-         :fiatAmount="amount"
-         v-on:back="state = 'initial'"
-         v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
-         v-on:pending-release="pendingRelease = true"
-         v-on:released="cryptoReleased"
-       />
+      <FiatStoreBuyProcess
+        v-if="transactionType === 'buy'"
+        :listingData="buy"
+        :buyAmount="cryptoAmount.toString()"
+        :fiatAmount="amount"
+        v-on:back="state = 'initial'"
+        v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
+        v-on:pending-release="pendingRelease = true"
+        v-on:released="cryptoReleased"
+      />
+      <FiatStoreSellProcess
+        v-if="transactionType === 'sell'"
+        v-on:back="state === 'initial'"
+      />
      </div>
      <div v-if="!hideSellerInfo">
        <div class="q-mx-lg text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-         SELLER INFO
+         {{ transactionType === 'buy' ? 'SELLER INFO' : 'BUYER INFO'}}
        </div>
        <div class="row">
          <div class="col ib-text">
@@ -163,6 +168,7 @@
 </template>
 <script>
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
+import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 
 export default {
   data () {
@@ -207,16 +213,28 @@ export default {
     transactionType: String
   },
   components: {
-    FiatStoreBuyProcess
+    FiatStoreBuyProcess,
+    FiatStoreSellProcess
   },
   methods: {
-    isAmountValid () {
-      if (this.amount === 0 || this.amount === '') {
-        return false
-      } else {
+    isAmountValid (value) {
+      // amount with comma and decimal regex
+      const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
+      value = String(value)
+
+      if (regex.test(value) && value !== '0') {
         return true
+      } else {
+        return false
       }
     },
+    // isAmountValid () {
+    //   if (this.amount === 0 || this.amount === '') {
+    //     return false
+    //   } else {
+    //     return true
+    //   }
+    // },
     cryptoReleased () {
       this.released = true
       this.pendingRelease = false
@@ -230,7 +248,7 @@ export default {
     const vm = this
     vm.buy = vm.listingData
 
-    console.log(vm.listingData)
+    // console.log(vm.listingData)
     vm.isloaded = true
   }
 }
