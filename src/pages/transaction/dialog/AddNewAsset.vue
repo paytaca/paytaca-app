@@ -30,8 +30,12 @@
             <div class="row" v-for="val, key in asset" :key="key">
               <div v-if="key !== 'id'" class="col-12">
                 <div v-if="key !== 'logo'" class="row">
-                  <div class="text-weight-medium col-4">{{ formatTokenDetailsKey(key) }}</div>
-                  <div class="text-right col-8">{{ val }}</div>
+                  <div class="col-4 text-blue-9">
+                    {{ formatTokenDetailsKey(key) }} :
+                  </div>
+                  <div class="text-right col-8 text-grad">
+                    {{ val }}
+                  </div>
                 </div>
 
                 <div v-else class="flex justify-center q-mb-sm">
