@@ -1,8 +1,13 @@
+import { getMnemonic, Wallet } from '../../wallet'
 import { axiosInstance } from '../../boot/axios'
-import { getWatchtowerApiUrl, getBlockChainNetwork } from 'src/wallet/chipnet'
 import axios from 'axios'
 import { setupCache } from 'axios-cache-interceptor'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import {
+  getWatchtowerApiUrl,
+  getBlockChainNetwork,
+  getWalletByNetwork
+} from 'src/wallet/chipnet'
 
 const bcmrBackend = setupCache(axios.create({
   baseURL: 'https://bcmr.paytaca.com/api',
@@ -139,10 +144,26 @@ export async function getMissingAssets (
   } else {
     url += '/tokens/'
   }
-  console.log(url)
   const { data } = await axiosInstance.get(url, { params: filterParams })
 
   if (!Array.isArray(data.results)) return []
+
+  if (isCashToken) {
+    const finalData = []
+    const mnemonic = await getMnemonic(context.rootGetters['global/getWalletIndex'])
+    let wallet = new Wallet(mnemonic, context.rootGetters['global/network'])
+    wallet = getWalletByNetwork(wallet, 'bch')
+    
+    for (const result of data.results) {
+      const tokenId = result.id.split('/')[1]
+      const tokenDetails = await wallet.getTokenDetails(tokenId)
+      // exclude tokens without metadata
+      if (tokenDetails !== null) {
+        finalData.push(result)
+      }
+    }
+    return finalData
+  }
   return data.results
 }
 
@@ -175,14 +196,9 @@ export async function getAssetMetadata (context, assetId) {
   const response = await bcmrBackend.get(url)
   const _metadata = response.data
   let data
+
   if (_metadata.error) {
-    data = {
-      'id': 'ct/' + tokenId,
-      'symbol': 'CT-' + tokenId.substring(0, 4),
-      'decimals': 0,
-      'name': 'CT-' + tokenId.substring(0, 4),
-      'description': '' 
-    }
+    data = null
   } else {
     let imageUrl
     if (_metadata.token.uris) {
@@ -199,5 +215,7 @@ export async function getAssetMetadata (context, assetId) {
       'logo': convertIpfsUrl(imageUrl)
     }
   }
-  context.commit('updateAssetMetadata', data)
+
+  if (data !== null)
+    context.commit('updateAssetMetadata', data)
 }

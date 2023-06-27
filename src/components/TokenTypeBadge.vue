@@ -13,7 +13,7 @@ export default {
     },
     abbreviate: {
       type: Boolean,
-      default: true
+      default: false
     }
   },
   computed: {
@@ -29,14 +29,13 @@ export default {
         if (!this.abbreviate) return this.$t('CashTokens')
       }
       if (assetId === 'SLP') {
+        if (this.abbreviate) return 'SLP'
         return this.$t('SLPTokens')
       }
       return assetId
     },
     color () {
       const type = this.tokenType
-      if (type === 'SLP')
-        return 'grey-7'
       if ([this.$t('CashTokens'), 'CT'].includes(type))
         return 'green-7'
       return 'blue-5'

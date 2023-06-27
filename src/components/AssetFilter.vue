@@ -5,7 +5,7 @@
     unelevated class="float-right q-mr-md"
   >
     <template v-slot:label>
-      <TokenTypeBadge :assetId="assetId" :abbreviate="assetId !== 'ct'" />
+      <TokenTypeBadge :assetId="assetId" />
     </template>
     <q-list>
       <q-item clickable v-close-popup @click="filterTokens('ct')">

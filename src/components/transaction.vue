@@ -42,7 +42,7 @@
                 </q-icon>
               </q-item-label>
               <div v-if="!transaction.asset.id.startsWith('bch')">
-                <TokenTypeBadge :assetId="transaction.asset.id" />
+                <TokenTypeBadge :assetId="transaction.asset.id" abbreviate />
               </div>
             </q-item-section>
           </q-item>

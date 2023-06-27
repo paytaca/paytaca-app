@@ -69,6 +69,7 @@
                     <TokenTypeBadge
                       :assetId="token.id"
                       class="q-ml-xs"
+                      abbreviate
                     />
                   </q-item-label>
                 </q-item-section>
