@@ -35,7 +35,7 @@
       <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell BCH</button>
     </div>
     <div class="q-mt-md">
-      <div v-if="loading == false && listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="loading == false && getFilteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
         <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
         <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
       </div>
@@ -62,16 +62,16 @@
                           :class="{'pt-dark-label': darkMode}"
                           class="col-transaction text-uppercase"
                           style="font-size: 20px;">
-                          {{ listing.fixed_price }} {{ selectedFiat.abbrev }}
+                          {{ listing.price }} {{ selectedFiat.abbrev }}
                         </span>
                         <span style="font-size: 12px;">/BCH</span><br>
                         <div class="row">
-                            <span class="q-mr-md subtext">Quantity</span>
-                            <span class="subtext">{{ listing.crypto_amount }} BCH</span>
+                            <span class="q-mr-md">Quantity</span>
+                            <span>{{ listing.crypto_amount }} BCH</span>
                         </div>
                         <div class="row">
-                            <span class="q-mr-md subtext">Limit</span>
-                            <span class="subtext"> {{ listing.trade_floor }} {{ selectedFiat.abbrev }} - {{ listing.trade_ceiling }} {{ selectedFiat.abbrev }}</span>
+                            <span class="q-mr-md">Limit</span>
+                            <span> {{ listing.trade_floor }} {{ selectedFiat.abbrev }} - {{ listing.trade_ceiling }} {{ selectedFiat.abbrev }}</span>
                         </div>
                       </div>
                       <!-- <div class="text-right">
@@ -142,18 +142,21 @@ export default {
       vm.selectedFiat = vm.fiatCurrencies[0]
     },
     fetchStoreListings () {
+      console.log('fetching listings')
       const vm = this
       const params = {
-        fiat: this.selectedFiat.id
+        currency: this.selectedFiat.abbrev
       }
       vm.loading = true
       vm.$axios.get(vm.apiURL + '/ad', { params: params })
         .then(response => {
           vm.listings = response.data
+          console.log('listings: ', vm.listings)
           vm.loading = false
         })
         .catch(error => {
           console.error(error)
+          console.error(error.response.data)
           vm.loading = false
         })
     },

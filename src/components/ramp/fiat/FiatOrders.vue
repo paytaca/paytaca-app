@@ -34,13 +34,11 @@
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase"
                             style="font-size: 20px;">
-                            <span v-if="listing.trade_type == 'BUY'">-</span>
-                            <span v-else>+</span>{{ orderFiatAmount(listing.locked_price, listing.crypto_amount) }} {{ listing.fiat_currency.abbrev }}
+                            {{ orderFiatAmount(listing.locked_price, listing.crypto_amount) }} {{ listing.fiat_currency.abbrev }}
                           </div>
                           <div style="font-size: 12px;">
                             <!-- &asymp; -->
-                            <span v-if="listing.trade_type == 'SELL'">-</span>
-                            <span v-else>+</span>{{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div>
+                            {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div>
                           <div style="font-size: 12px;"> {{ listing.locked_price }} {{ listing.fiat_currency.abbrev }}/{{ listing.crypto_currency.abbrev }}</div>
                           <div class="row" style="font-size: 12px; color: grey">{{ formatDate(listing.created_at) }}</div>
                         </div>
