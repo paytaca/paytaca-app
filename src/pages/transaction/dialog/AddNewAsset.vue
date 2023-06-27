@@ -15,7 +15,7 @@
               :label="inputPlaceholder"
               type="text"
               lazy-rules
-              v-model="asset"
+              v-model="tokenId"
               :dark="darkMode"
               :rules="[
                 val => Boolean(val) || $t('Required'),
@@ -23,11 +23,44 @@
             />
           </q-card-section>
 
+          <div v-if="loading" class="flex justify-center">
+            <ProgressLoader/>
+          </div>
+          <div class="col-12 q-mx-md q-mb-md overflow-hidden" v-if="asset !== null">
+            <div class="row" v-for="val, key in asset" :key="key">
+              <div v-if="key !== 'id'" class="col-12">
+                <div v-if="key !== 'logo'" class="row">
+                  <div class="text-weight-medium col-4">{{ formatTokenDetailsKey(key) }}</div>
+                  <div class="text-right col-8">{{ val }}</div>
+                </div>
+
+                <div v-else class="flex justify-center q-mb-sm">
+                  <img :src="val" height="50" />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <q-separator class="q-mt-none" />
 
           <q-card-actions align="right">
-              <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
-              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'text-white' : 'pp-text']" flat :label="$t('Close')" @click="onCancelClick" />
+            <q-btn
+              rounded
+              class="text-white"
+              color="blue-9"
+              padding="0.5em 2em 0.5em 2em"
+              :label="$t('Add')"
+              type="submit"
+              :disable="addBtnDisabled"
+            />
+            <q-btn
+              rounded
+              flat
+              :label="$t('Close')"
+              padding="0.5em 2em 0.5em 2em"
+              :class="[darkMode ? 'text-white' : 'pp-text']"
+              @click="onCancelClick"
+            />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -35,7 +68,13 @@
 </template>
 
 <script>
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import ProgressLoader from '../../../components/ProgressLoader.vue'
+
 export default {
+  components: {
+    ProgressLoader,
+  },
   emits: [
     // REQUIRED
     'ok', 'hide'
@@ -49,12 +88,32 @@ export default {
       type: Boolean,
       required: true
     },
+    wallet: {
+      type: Object,
+      required: true
+    },
     darkMode: Boolean
   },
 
   data () {
     return {
-      asset: null
+      tokenId: '',
+      addBtnDisabled: true,
+      asset: null,
+      loading: false,
+    }
+  },
+  watch: {
+    tokenId (n, o) {
+      this.asset = null
+      this.loading = true
+
+      if (n.trim().length !== 64) {
+        this.addBtnDisabled = true
+        this.loading = false
+        return
+      }
+      this.setAssetDetails()
     }
   },
   computed: {
@@ -81,14 +140,55 @@ export default {
     show () {
       this.$refs.dialog.show()
     },
-    onOKClick () {
-      this.$refs.questForm.validate().then(success => {
-        this.$emit('ok', {
-          isCashToken: this.isCashToken,
-          tokenId: this.asset,
+    formatTokenDetailsKey (key) {
+      return key.charAt(0).toUpperCase() + key.slice(1)
+    },
+    setAssetDetails () {
+      const vm = this
+
+      if (vm.isCashToken) {
+        vm.$refs.questForm.validate().then(success => {
+          getWalletByNetwork(vm.wallet, 'bch').getTokenDetails(vm.tokenId).then(details => {
+            if (details !== null) {
+              vm.addBtnDisabled = false
+              vm.asset = details
+            }
+            vm.loading = false
+          })
         })
-        this.hide()
+        return
+      }
+
+      getWalletByNetwork(vm.wallet, 'slp').getSlpTokenDetails(vm.tokenId).then(details => {
+        const token = {
+          logo: details.image_url,
+          id: details.id,
+          symbol: details.symbol,
+          name: details.name,
+          balance: 0
+        }
+        if (details.symbol.length > 0 && details.token_type === 1) {
+          vm.$store.commit('assets/addNewAsset', token)
+          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
+          vm.$store.dispatch('assets/updateTokenIcon', { assetId: token.id })
+          vm.asset = token
+          vm.loading = false
+        }
+      }).catch(err => vm.loading = false)
+    },
+    addAsset () {
+      this.$store.commit('assets/addNewAsset', {
+        ...this.asset,
+        balance: 0
       })
+    },
+    onOKClick () {
+      this.addAsset()
+      this.$emit('ok', {
+        isCashToken: this.isCashToken,
+        tokenId: this.tokenId,
+      })
+      this.hide()
     },
     onCancelClick () {
       this.hide()

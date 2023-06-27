@@ -142,37 +142,6 @@ export default {
         }, 200)
       }
     },
-    async addAsset (asset) {
-      const vm = this
-      const wallet = vm.$parent.$parent.wallet
-
-      if (asset.isCashToken) {
-        const tokenId = asset.tokenId
-
-        getWalletByNetwork(wallet, 'bch').getTokenDetails(asset.tokenId).then(details => {
-          vm.$store.commit('assets/addNewAsset', {
-            ...details,
-            balance: 0
-          })
-        })
-        return
-      }
-
-      getWalletByNetwork(wallet, 'slp').getSlpTokenDetails(asset.tokenId).then(function (details) {
-        const token = {
-          id: details.id,
-          symbol: details.symbol,
-          name: details.name,
-          logo: details.image_url,
-          balance: 0
-        }
-        if (details.symbol.length > 0 && details.token_type === 1) {
-          vm.$store.commit('assets/addNewAsset', token)
-          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
-          vm.$store.dispatch('assets/updateTokenIcon', { assetId: token.id })
-        }
-      })
-    },
     addSep20Asset (contractAddress) {
       const vm = this
       this.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
@@ -197,14 +166,14 @@ export default {
       vm.$q.dialog({
         // need both in passing props for now for backwards compatibility
         componentProps: {
-          network: this.network,
-          darkMode: this.darkMode,
-          isCashToken: this.isCashToken
+          network: vm.network,
+          darkMode: vm.darkMode,
+          isCashToken: vm.isCashToken,
+          wallet: vm.$parent.$parent.wallet
         },
         component: AddNewAsset
       }).onOk((asset) => {
-        if (this.isSep20) return this.addSep20Asset(asset.tokenId)
-        vm.addAsset(asset)
+        if (vm.isSep20) return vm.addSep20Asset(asset.tokenId)
       }).onCancel(() => {
       })
     },

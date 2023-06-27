@@ -221,15 +221,9 @@ export class BchWallet {
     const url = 'tokens/' + tokenId
     const response = await bcmrBackend.get(url)
     const _metadata = response.data
-    let data
+
     if (_metadata.error) {
-      data = {
-        'id': 'ct/' + tokenId,
-        'symbol': 'CT-' + tokenId.substring(0, 4),
-        'decimals': 0,
-        'name': 'CT-' + tokenId.substring(0, 4),
-        'description': '' 
-      }
+      return null
     } else {
       let imageUrl
       if (_metadata.token.uris) {
@@ -237,16 +231,16 @@ export class BchWallet {
       } else {
         imageUrl = _metadata.uris.icon || ''
       }
-      const data = {
+      return {
+        // purposely placed logo as first data here for dynamic display of details on add new asset component
+        'logo': convertIpfsUrl(imageUrl),
         'id': 'ct/' + tokenId,
         'name': _metadata.name,
         'description': _metadata.description,
         'symbol': _metadata.token.symbol,
         'decimals': _metadata.token.decimals,
-        'logo': convertIpfsUrl(imageUrl)
       }
     } 
-    return data
   }
 
   async _sendBch (amount, recipient, changeAddress, token, tokenAmount, broadcast=true) {
