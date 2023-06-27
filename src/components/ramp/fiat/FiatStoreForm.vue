@@ -38,48 +38,42 @@
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Payment Time Limit</span>
-              <span class="text-nowrap q-ml-xs">{{ getPaymentTimeLimit(ad.time_duration)}}</span>
+              <span class="text-nowrap q-ml-xs">{{ ad.time_duration}}</span>
             </div>
           </div>
           <div class="q-mt-md q-mx-lg">
-            <q-input dense filled :dark="darkMode" v-model="form.amount" :rules="[isAmountValid]">
+            <q-input dense filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
                 <template v-slot:prepend>
                   <span style="font-size: 14px; font-weight: 400;">{{ ad.fiat_currency.abbrev }}</span>
                 </template>
                 <template v-slot:append>
                   <!-- <q-icon size="xs" name="close" @click="amount = 0"/>&nbsp; -->
-                  <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" @click="form.amount = ad.trade_ceiling"/>
+                  <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" @click="fiatAmount = ad.trade_ceiling"/>
                 </template>
             </q-input>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md" style="font-size: 14px;">
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Crypto Amount</span>
-              <span class="text-nowrap q-ml-xs">{{ form.cryptoAmount }} BCH</span>
+              <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Arbitration Fee</span>
-              <span class="text-nowrap q-ml-xs">{{ form.arbitrationFee }} BCH</span>
+              <span class="text-nowrap q-ml-xs">{{ ad.fees.arbitration_fee }} BCH</span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Contract Fee</span>
+              <span class="text-nowrap q-ml-xs">{{ ad.fees.hardcoded_fee }} BCH</span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Service Fee</span>
-              <span class="text-nowrap q-ml-xs">{{ form.serviceFee }}  BCH</span>
+              <span class="text-nowrap q-ml-xs">{{ ad.fees.service_fee }}  BCH</span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg" style="font-weight: 500;">
               <span>Total</span>
-              <span class="text-nowrap q-ml-xs ">{{ getTotalCryptoAmount() }} BCH</span>
+              <span class="text-nowrap q-ml-xs ">{{ totalCryptoAmount }} BCH</span>
             </div>
           </div>
-          <!-- <div class="q-pt-md" style="font-size: 13px;" v-if="transactionType === 'buy'">
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-              <span>Crypto Amount:</span>
-              <span class="text-nowrap q-ml-xs subtext">{{ buy.cryptoAmount }} BCH</span>
-            </div>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-              <span>Fiat Amount:</span>
-              <span class="text-nowrap q-ml-xs subtext">{{ amount }} {{ ad.fiat_currency.abbrev }}</span>
-            </div>
-          </div> -->
           <div class="row q-mx-sm q-py-md">
             <q-btn
               :disabled="!isAmountValid"
@@ -164,16 +158,7 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       isloaded: false,
       ad: null,
-      form: {
-        amount: 0,
-        cryptoAmount: 0,
-        arbitrationFee: 0,
-        serviceFee: 0
-      },
-      buy: {},
-      amount: 0,
-      cryptoAmount: 1.43,
-      fiatAmount: '1000 PHP',
+      fiatAmount: 0,
       state: 'initial',
       hideSellerInfo: false,
       pendingRelease: false,
@@ -212,13 +197,21 @@ export default {
   },
   computed: {
     isAmountValid () {
-      const parsedValue = parseFloat(this.form.amount)
+      const amount = this.fiatAmount
+      const parsedValue = parseFloat(amount)
       const tradeFloor = parseFloat(this.ad.trade_floor)
       const tradeCeiling = parseFloat(this.ad.trade_ceiling)
-      if (parsedValue < tradeFloor || parsedValue > tradeCeiling) {
+      if (isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling) {
         return false
       }
       return true
+    },
+    cryptoAmount () {
+      return this.fiatAmount / this.ad.price
+    },
+    totalCryptoAmount () {
+      const fees = this.ad.fees
+      return this.cryptoAmount + fees.hardcoded_fee + fees.arbitration_fee + fees.service_fee
     }
   },
   async mounted () {
@@ -233,20 +226,20 @@ export default {
       this.ad = response.data
 
       // set the minimum trade amount in form
-      this.form.amount = this.ad.trade_floor
+      this.fiatAmount = this.ad.trade_floor
     },
-    // isAmountValid (value) {
-    //   if (value === undefined) return false
-    //   const parsedValue = parseFloat(value)
-    //   const tradeFloor = parseFloat(this.ad.trade_floor)
-    //   const tradeCeiling = parseFloat(this.ad.trade_ceiling)
-    //   if (parsedValue < tradeFloor || parsedValue > tradeCeiling) {
-    //     return false
-    //   }
-    //   return true
-    // },
+    isValidInputAmount (value) {
+      if (value === undefined) return false
+      const parsedValue = parseFloat(value)
+      const tradeFloor = parseFloat(this.ad.trade_floor)
+      const tradeCeiling = parseFloat(this.ad.trade_ceiling)
+      if (isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling) {
+        return false
+      }
+      return true
+    },
     getTotalCryptoAmount () {
-      const totalCrypto = this.form.cryptoAmount + this.form.arbitrationFee + this.form.serviceFee
+      const totalCrypto = this.cryptoAmount + this.ad.arbitration_fee + this.ad.service_fee
       return totalCrypto
     },
     cryptoReleased () {
