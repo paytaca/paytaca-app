@@ -20,18 +20,20 @@
        <div class="q-mx-lg">
          <div class="q-pt-md subtext" style="font-size: 12px;">
            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-             <span>Price:</span>
-             <!-- {{ buy.priceType === 'FIXED' ? buy.fixedPrice : buy.floatingPrice }} {{ buy.fiatCurrency.abbrev }} -->
-             <span class="text-nowrap q-ml-xs">{{ buy.priceType === 'FIXED' ? buy.fixedPrice : buy.floatingPrice }} {{ buy.fiatCurrency.abbrev }}</span>
+              <span>Price:</span>
+              <span class="text-nowrap q-ml-xs">
+               {{ ad.price }} {{ ad.fiat_currency.abbrev }}
+              </span>
            </div>
            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
              <span>Limit:</span>
-             <!-- {{ buy.tradeFloor }}  {{ buy.fiatCurrency.abbrev }}  - {{ buy.tradeCeiling }}  {{ buy.fiatCurrency.abbrev }} -->
-             <span class="text-nowrap q-ml-xs">{{ buy.tradeFloor }} {{ buy.fiatCurrency.abbrev }} - {{ buy.tradeCeiling }} {{ buy.fiatCurrency.abbrev }}</span>
+             <span class="text-nowrap q-ml-xs">
+              {{ ad.tradeFloor }} {{ ad.fiat_currency.abbrev }} - {{ ad.trade_ceiling }} {{ ad.fiat_currency.abbrev }}
+            </span>
            </div>
            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
              <span>Payment Limit:</span>
-             <span class="text-nowrap q-ml-xs">{{ getPaymentTimeLimit(buy.timeDurationChoice).label}}</span>
+             <span class="text-nowrap q-ml-xs">{{ getPaymentTimeLimit(ad.time_duration)}}</span>
            </div>
          </div>
          <div class="q-mt-md q-mx-lg">
@@ -77,7 +79,7 @@
            </div>
            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
              <span>Fiat Amount:</span>
-             <span class="text-nowrap q-ml-xs subtext">{{ amount }} {{ buy.fiatCurrency.abbrev }}</span>
+             <span class="text-nowrap q-ml-xs subtext">{{ amount }} {{ ad.fiat_currency.abbrev }}</span>
            </div>
          </div>
          <div class="row q-mx-sm q-py-md">
@@ -118,7 +120,7 @@
                class="q-pl-md q-mb-none text-uppercase"
                style="font-size: 15px; font-weight: 400;"
              >
-               {{ buy.paymentMethods[0].account_name }}
+               <!-- {{ buy.paymentMethods[0].account_name }} -->
              </span>
            </div>
            <div class="q-mx-lg subtext" :class="{'pt-dark-label': darkMode}">
@@ -146,7 +148,7 @@
        </div>
        <div class="q-mx-lg q-pt-sm">
          <div class="q-ml-xs  q-gutter-sm">
-           <q-badge v-for="method in buy.paymentMethods" rounded outline :color="transactionType === 'buy' ? 'blue' : 'red'" :label="method.name"/>
+           <q-badge v-for="method in buy.paymentMethods" :key="method.id" rounded outline :color="transactionType === 'buy' ? 'blue' : 'red'" :label="method.name"/>
          </div>
        </div>
        <div class="q-mx-lg q-mt-md" v-if="pendingRelease">
@@ -168,7 +170,9 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       isloaded: false,
+      ad: null,
       buy: {},
       amount: 0,
       cryptoAmount: 1.43,
@@ -209,7 +213,22 @@ export default {
   components: {
     FiatStoreBuyProcess
   },
+  async mounted () {
+    console.log('inside mounted')
+    await this.fetchAd()
+    this.isloaded = true
+  },
   methods: {
+    async fetchAd () {
+      const adId = this.listingData.id
+      const url = `${this.apiURL}/ad/${adId}`
+      const response = await this.$axios.get(url)
+      this.ad = response.data
+
+      console.log('adId: ', adId)
+      console.log('url:', url)
+      console.log('ad:', this.ad)
+    },
     isAmountValid () {
       if (this.amount === 0 || this.amount === '') {
         return false
@@ -225,13 +244,6 @@ export default {
       const vm = this
       return vm.ptlSelection.find(p => p.value === timeDurationChoice)
     }
-  },
-  async mounted () {
-    const vm = this
-    vm.buy = vm.listingData
-
-    console.log(vm.listingData)
-    vm.isloaded = true
   }
 }
 </script>

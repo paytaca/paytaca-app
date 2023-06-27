@@ -93,18 +93,12 @@
       </div>
     </div>
   </q-card>
-  <!-- Buy BCH Here -->
-  <div v-if="state === 'BUY'">
-    <FiatStoreBuy
+  <!-- Buy/Sell Form Here -->
+  <div v-if="state !== 'SELECT'">
+    <FiatStoreForm
       v-on:back="state = 'SELECT'"
-      :ad="selectedListing"
-    />
-  </div>
-  <!-- Sell BCH Here -->
-  <div v-if="state === 'SELL'">
-    <FiatStoreSell
-      v-on:back="state = 'SELECT'"
-      :ad="selectedListing"
+      :listingData="selectedListing"
+      :transactionType="state"
     />
   </div>
 </template>
@@ -126,9 +120,7 @@ export default {
     }
   },
   components: {
-    FiatStoreForm,
-    FiatStoreBuy,
-    FiatStoreSell
+    FiatStoreForm
   },
   async mounted () {
     await this.fetchFiatCurrencies()
@@ -142,7 +134,6 @@ export default {
       vm.selectedFiat = vm.fiatCurrencies[0]
     },
     fetchStoreListings () {
-      console.log('fetching listings')
       const vm = this
       const params = {
         currency: this.selectedFiat.abbrev
@@ -167,8 +158,7 @@ export default {
     },
     selectListing (listing) {
       const vm = this
-      vm.selectedListing = listing.id
-      console.log('selectedListing:', vm.selectedListing)
+      vm.selectedListing = listing
       vm.state = vm.transactionType
     },
     getFilteredListings () {
