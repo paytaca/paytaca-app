@@ -920,6 +920,14 @@ export class EscrowContract {
     return data
   }
 
+  get isFunded() {
+    return Boolean(this.fundingTxid && this.fundingVout >= 0)
+  }
+  
+  get isSettled() {
+    return Boolean(this.settlementTxid)
+  }
+
   get fundingTxLink() {
     const txid = this?.fundingTxid
     const index = this?.fundingVout
