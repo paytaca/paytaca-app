@@ -916,6 +916,7 @@ export class EscrowContract {
     }
 
     data.total = data.amount + data.serviceFee + data.arbitrationFee + data.deliveryFee + data.networkFee
+    data.total = toBch(data.total * SATS_PER_BCH)
     return data
   }
 
