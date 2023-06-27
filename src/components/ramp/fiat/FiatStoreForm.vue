@@ -14,8 +14,8 @@
            @click="$emit('back')"
          />
        </div>
-       <div class="q-mx-lg q-pt-xs text-h5 text-center bold-text lg-font-size" :class="transactionType === 'buy' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-         {{ transactionType === 'buy' ? 'BUY': 'SELL' }} BY FIAT
+       <div class="q-mx-lg q-pt-xs text-h5 text-center bold-text lg-font-size" :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+         {{ transactionType === 'BUY' ? 'BUY': 'SELL' }} BY FIAT
        </div>
        <div class="q-mx-lg">
          <div class="q-pt-md subtext" style="font-size: 12px;">
@@ -37,24 +37,19 @@
            </div>
          </div>
          <div class="q-mt-md q-mx-lg">
-           <q-input
-             dense
-             filled
-             :dark="darkMode"
-             v-model="amount"
-           >
-           <template v-slot:prepend>
-             <span style="font-size: 12px; font-weight: 400;">
-               PHP
-             </span>
-           </template>
-           <template v-slot:append>
-             <q-icon size="xs" name="close" @click="amount = 0"/>&nbsp;
-             <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" />
-           </template>
+           <q-input dense filled :dark="darkMode" v-model="amount">
+              <template v-slot:prepend>
+                <span style="font-size: 12px; font-weight: 400;">
+                  PHP
+                </span>
+              </template>
+              <template v-slot:append>
+                <q-icon size="xs" name="close" @click="amount = 0"/>&nbsp;
+                <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" />
+              </template>
            </q-input>
          </div>
-         <div class="q-pt-md" style="font-size: 13px;" v-if="transactionType === 'sell'">
+         <div class="q-pt-md" style="font-size: 13px;" v-if="transactionType === 'SELL'">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
             <span class="text-nowrap q-ml-xs subtext">{{ buy.cryptoAmount }} BCH</span>
@@ -214,7 +209,6 @@ export default {
     FiatStoreBuyProcess
   },
   async mounted () {
-    console.log('inside mounted')
     await this.fetchAd()
     this.isloaded = true
   },
@@ -224,10 +218,6 @@ export default {
       const url = `${this.apiURL}/ad/${adId}`
       const response = await this.$axios.get(url)
       this.ad = response.data
-
-      console.log('adId: ', adId)
-      console.log('url:', url)
-      console.log('ad:', this.ad)
     },
     isAmountValid () {
       if (this.amount === 0 || this.amount === '') {
