@@ -91,7 +91,7 @@
           <FiatStoreBuyProcess
             :listingData="buy"
             :buyAmount="cryptoAmount.toString()"
-            :fiatAmount="amount"
+            :fiatAmount="fiatAmount"
             v-on:back="state = 'initial'"
             v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
             v-on:pending-release="pendingRelease = true"
@@ -163,7 +163,6 @@ export default {
       hideSellerInfo: false,
       pendingRelease: false,
       released: false,
-      paymentTimeLimit: null,
       ptlSelection: [
         {
           label: '15 min',
@@ -245,10 +244,6 @@ export default {
     cryptoReleased () {
       this.released = true
       this.pendingRelease = false
-    },
-    getPaymentTimeLimit (timeDurationChoice) {
-      const vm = this
-      return vm.ptlSelection.find(p => p.value === timeDurationChoice)
     }
   }
 }
