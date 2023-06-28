@@ -7,7 +7,6 @@
         padding="xs"
         flat
         class="scanner-close-btn"
-        :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
         @click="stopScan"
       />
       <ScannerUI />
@@ -246,8 +245,9 @@ export default {
 }
 .scanner-container > .scanner-close-btn {
   position: absolute;
-  top: 65%;
+  bottom: 20%;
   right: 45.5%;
+  z-index: 1000;
   background-color: #ef4f84;
 }
 .scanner-container > .scanner-error-dialog {

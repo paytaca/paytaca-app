@@ -277,7 +277,7 @@ export default {
   SetupPin: "设置引脚",
   ShopName: "商店名称",
   ShowMore: "展示更多",
-  ShowSmartBCH: "显示SmartBch",
+  EnableSmartBCH: "显示SmartBch",
   ShowTokens: "显示令牌",
   SignMessage: "标志消息",
   SignTransaction: "标志交易",

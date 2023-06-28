@@ -277,7 +277,7 @@ export default {
   SetupPin: "Pasador de configuración",
   ShopName: "Nombre de tienda",
   ShowMore: "Mostrar más",
-  ShowSmartBCH: "Show SmartBCH",
+  EnableSmartBCH: "Enable SmartBCH",
   ShowTokens: "Fichas de exhibición",
   SignMessage: "Mensaje de firma",
   SignTransaction: "Firmar transacción",

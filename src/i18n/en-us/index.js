@@ -277,7 +277,7 @@ export default {
   SetupPin: "Setup PIN",
   ShopName: "Shop name",
   ShowMore: "Show More",
-  ShowSmartBCH: "Show SmartBCH",
+  EnableSmartBCH: "Enable SmartBCH",
   ShowTokens: "Show Tokens",
   SignMessage: "Sign Message",
   SignTransaction: "Sign Transaction",

@@ -48,7 +48,7 @@
             class="text-center text-blue-9"
             :class="{'text-black': !darkMode}"
             @click.native="toggleShowTokens"
-            style="margin-top: 0px; font-size: 11px; padding-bottom: 15px;"
+            style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
           >
             {{ $t('ShowTokens') }}
           </div>
@@ -61,7 +61,7 @@
                   padding="none"
                   v-if="manageAssets"
                   size="sm"
-                  icon="app_registration"
+                  icon="close"
                   style="color: #3B7BF6;"
                   @click="toggleManageAssets"
                 />
@@ -128,6 +128,7 @@
             >
             </asset-cards>
           </template>
+          <div v-if="showTokens && assets.length == 0" style="height: 10px;"></div>
         </div>
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">

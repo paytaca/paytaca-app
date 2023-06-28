@@ -347,7 +347,7 @@ const phrases = {
       ShowTokens: "Show Tokens",
       SwitchWallet: "Switch Wallet",
       SourceCodeRepo: "Source code repository",
-      ShowSmartBCH: "Show SmartBCH",
+      EnableSmartBCH: "Enable SmartBCH",
       UnlinkDeviceRequestCreated: "Unlink device request created",
       UnlinkDeviceRequestFailed: "Unlink device request failed",
       UnlinkPOSDevice: "Unlink POS device",
