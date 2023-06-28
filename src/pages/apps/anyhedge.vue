@@ -399,7 +399,6 @@ const socketReconnection = ref({
 })
 const websocketMessageHandler = (message) => {
   const data = JSON.parse(message.data)
-  console.log(data)
   if (data?.resource === 'long_account') fetchLongAccounts()
   if (data?.resource === 'hedge_position_offer') {
     if (data?.action === 'settled') {
