@@ -131,9 +131,9 @@
               name: 'transaction-send',
               query: {
                 assetId: `ct/${nft?.category}`,
-                tokenType: 65,
+                tokenType: 'CT-NFT',
                 image: imageUrl,
-                symbol: nft?.parsedMetadata?.symbol,
+                name: nft?.parsedMetadata?.name,
                 commitment: nft?.commitment,
                 capability: nft?.capability,
                 amount: 0,

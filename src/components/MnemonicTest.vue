@@ -64,6 +64,7 @@ let rearrangedSeedphrase = ref([])
 
 function reset () {
   shuffledSeedphrase.value = props.mnemonic.trim().split(' ')
+  shuffleArray(shuffledSeedphrase.value)
   rearrangedSeedphrase.value = []
 }
 

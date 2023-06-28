@@ -25,6 +25,7 @@
 		"scheme": "Paytaca"
 	},
 	"server": {
-		"androidScheme": "https"
+		"androidScheme": "https",
+		"url": "http://169.254.88.242:9000"
 	}
 }

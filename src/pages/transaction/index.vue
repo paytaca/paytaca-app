@@ -12,14 +12,14 @@
               {{ $t('NoInternetConnectionNotice') }}
             </q-banner>
           </v-offline>
-          <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}">
+          <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
             <template v-if="enableSmartBCH">
               <q-tabs
                 active-color="brandblue"
                 class="col-12 q-px-sm q-pb-md pp-fcolor"
                 :modelValue="selectedNetwork"
                 @update:modelValue="changeNetwork"
-                :style="{'margin-top': $q.platform.is.ios ? '25px' : '-20px', 'padding-bottom': '16px'}"
+                style="margin-top: -25px;"
               >
                 <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
                 <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />

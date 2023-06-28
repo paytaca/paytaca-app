@@ -6,7 +6,7 @@
     />
     <div id="app-container" :class="{'pt-dark': darkMode}">
       <header-nav
-        :title="$t('Send') + ' ' + asset.symbol"
+        :title="$t('Send') + ' ' + (asset.symbol || $route.query.name)"
         :backnavpath="backPath"
       ></header-nav>
       <div v-if="jpp && !jpp.txids?.length" style="padding-top:5.5rem;padding-bottom:5.5rem">
@@ -30,6 +30,10 @@
           <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
             <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
             <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
+            <div class="q-mt-md text-center" v-if="$route.query.tokenType === 'CT-NFT'">
+              <span>Name: {{ $route.query.name }}</span>
+              <p>Commitment: {{ $route.query.commitment }}</p>
+            </div>
           </div>
           <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
             <q-icon name="error" left/>
@@ -512,7 +516,7 @@ export default {
       if (this.isSep20 && erc721IdRegexp.test(this.assetId)) return true
       if (this.tokenType === 1 && this.simpleNft) return true
 
-      return this.tokenType === 65
+      return this.tokenType === 65 || this.tokenType === 'CT-NFT'
     },
     defaultNftImage() {
       if (!this.isNFT) return ''
