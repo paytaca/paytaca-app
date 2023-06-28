@@ -85,6 +85,101 @@
               @click="state = 'processing'"></q-btn>
           </div>
         </div>
+         <!-- <div class="q-pt-md" style="font-size: 13px;" v-if="transactionType === 'buy'">
+           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+             <span>Crypto Amount:</span>
+             <span class="text-nowrap q-ml-xs subtext">{{ buy.cryptoAmount }} BCH</span>
+           </div>
+           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+             <span>Fiat Amount:</span> -->
+             <!-- <span class="text-nowrap q-ml-xs subtext">{{ isAmountValid(amount) || amount === 0 || amount === '' ||  amount === '0' ? amount : 'Invalid Amount' }} {{ buy.fiatCurrency.abbrev }}</span> -->
+             <!-- <span class="text-nowrap q-ml-xs subtext">{{ amount }} {{ ad.fiat_currency.abbrev }}</span>
+           </div>
+         </div>
+         <div class="row q-mx-sm q-py-md">
+           <q-btn
+             :disable="!isAmountValid(amount)"
+             rounded
+             no-caps
+             :label="transactionType === 'buy'? 'Buy' : 'Next'"
+             color="brandblue"
+             class="q-space"
+             @click="state = 'processing'"
+           />
+         </div>
+       </div>
+     </div>-->
+
+     <!-- Process Transaction -->
+     <!-- <div v-if="state === 'processing'">
+      <FiatStoreBuyProcess
+        v-if="transactionType === 'buy'"
+        :listingData="buy"
+        :buyAmount="cryptoAmount.toString()"
+        :fiatAmount="amount"
+        v-on:back="state = 'initial'"
+        v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
+        v-on:pending-release="pendingRelease = true"
+        v-on:released="cryptoReleased"
+      />
+      <FiatStoreSellProcess
+        v-if="transactionType === 'sell'"
+        v-on:back="state === 'initial'"
+      />
+     </div>
+     <div v-if="!hideSellerInfo">
+       <div class="q-mx-lg text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+         {{ transactionType === 'buy' ? 'SELLER INFO' : 'BUYER INFO'}}
+       </div>
+       <div class="row">
+         <div class="col ib-text">
+           <div class="q-mx-lg q-mt-md">
+             <span
+               :class="{'pt-dark-label': darkMode}"
+               class="q-pl-md q-mb-none text-uppercase"
+               style="font-size: 15px; font-weight: 400;"
+             >
+               <!-- {{ buy.paymentMethods[0].account_name }} -->
+             <!-- </span>
+           </div>
+           <div class="q-mx-lg subtext" :class="{'pt-dark-label': darkMode}">
+             <span
+               class="q-pl-md q-mb-none"
+               style="font-size: 12px;"
+             >
+               1000 trades
+             </span>&nbsp;
+             <span
+               class="q-pl-xs q-mb-none"
+               style="font-size: 12px;"
+             >
+               100% completion
+             </span>
+           </div>
+         </div>
+         <div class="text-right q-mr-lg q-mt-md" v-if="!released">
+           <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_chat"/>
+         </div>
+         <div class="text-right q-mr-lg q-mt-md" v-if="released">
+           <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
+           <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
+         </div>
+       </div>
+       <div class="q-mx-lg q-pt-sm">
+         <div class="q-ml-xs  q-gutter-sm">
+           <q-badge v-for="method in buy.paymentMethods" :key="method.id" rounded outline :color="transactionType === 'buy' ? 'blue' : 'red'" :label="method.name"/>
+         </div>
+       </div>
+       <div class="q-mx-lg q-mt-md" v-if="pendingRelease">
+         <div class="q-px-lg" style="font-weight: 500;">
+           Seller did not release crypto?
+         </div>
+         <div class="q-pt-xs q-mx-lg subtext">
+           If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal
+         </div>
+       </div>
+     </div>
+   </div>  -->
 
         <!-- Process Transaction -->
         <div v-if="state === 'processing'">
@@ -150,6 +245,7 @@
 </template>
 <script>
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
+import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 
 export default {
   data () {
@@ -192,7 +288,8 @@ export default {
     transactionType: String
   },
   components: {
-    FiatStoreBuyProcess
+    FiatStoreBuyProcess,
+    FiatStoreSellProcess
   },
   computed: {
     isAmountValid () {
@@ -213,11 +310,22 @@ export default {
       return this.cryptoAmount + fees.hardcoded_fee + fees.arbitration_fee + fees.service_fee
     }
   },
-  async mounted () {
-    await this.fetchAd()
-    this.isloaded = true
-  },
+  // async mounted () {
+  //   await this.fetchAd()
+  //   this.isloaded = true
+  // },
   methods: {
+    // isAmountValid (value) {
+    //   // amount with comma and decimal regex
+    //   const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
+    //   value = String(value)
+
+    //   if (regex.test(value) && value !== '0') {
+    //     return true
+    //   } else {
+    //     return false
+    //   }
+    // },
     async fetchAd () {
       const adId = this.listingData.id
       const url = `${this.apiURL}/ad/${adId}`
@@ -245,6 +353,13 @@ export default {
       this.released = true
       this.pendingRelease = false
     }
+  },
+  async mounted () {
+    const vm = this
+    vm.buy = vm.listingData
+
+    await vm.fetchAd()
+    vm.isloaded = true
   }
 }
 </script>

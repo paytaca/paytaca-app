@@ -67,6 +67,64 @@
                 </div>
             </div>
         </div>
+        <!-- <div class="q-mx-lg q-pt-xs text-h5 text-center bold-text lg-font-size" style="color: rgb(60, 100, 246);" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          BUY BY FIAT
+        </div>
+        <div class="q-mx-lg">
+          <div class="q-pt-md subtext" style="font-size: 12px;">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Price:</span>
+               {{ buy.priceType === 'FIXED' ? buy.fixedPrice : buy.floatingPrice }} {{ buy.fiatCurrency.abbrev }}
+              <span class="text-nowrap q-ml-xs">{{ buy.priceType === 'FIXED' ? buy.fixedPrice : buy.floatingPrice }} {{ buy.fiatCurrency.abbrev }}</span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Limit:</span>
+              <!-- {{ buy.tradeFloor }}  {{ buy.fiatCurrency.abbrev }}  - {{ buy.tradeCeiling }}  {{ buy.fiatCurrency.abbrev }}
+              <span class="text-nowrap q-ml-xs">{{ buy.tradeFloor }} {{ buy.fiatCurrency.abbrev }} - {{ buy.tradeCeiling }} {{ buy.fiatCurrency.abbrev }}</span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Payment Limit:</span>
+              <span class="text-nowrap q-ml-xs">{{ getPaymentTimeLimit(buy.timeDurationChoice).label}}</span>
+            </div>
+          </div>
+          <div class="q-mt-md q-mx-lg">
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="amount"
+            >
+            <template v-slot:prepend>
+              <span class="xs-font-size bold-text">
+                PHP
+              </span>
+            </template>
+            <template v-slot:append>
+              <q-icon size="xs" name="close" @click="amount = 0"/>&nbsp;
+              <q-btn class="xs-font-size" padding="none" flat color="primary" label="MAX" />
+            </template>
+            </q-input>
+          </div>
+          <div class="q-pt-md sm-font-size">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Crypto Amount:</span>
+              <span class="text-nowrap q-ml-xs subtext">{{ buy.cryptoAmount }} BCH</span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Fiat Amount:</span>
+              <span class="text-nowrap q-ml-xs subtext">{{ amount }} {{ buy.fiatCurrency.abbrev }}</span>
+            </div>
+          </div>
+          <div class="row q-mx-sm q-py-md">
+            <q-btn
+              :disable="!isAmountValid()"
+              rounded
+              no-caps
+              label='Buy'
+              color="brandblue"
+              class="q-space"
+              @click="state = 'processing'" -->
+
         <div v-if="state === 'processing'">
             <FiatStoreBuyProcess
                 :listingData="buy"
@@ -78,6 +136,43 @@
                 v-on:released="cryptoReleased"
             />
         </div>
+      </div>
+      <!-- <div v-if="state === 'processing'">
+        <FiatStoreBuyProcess
+          :listingData="buy"
+          :buyAmount="cryptoAmount.toString()"
+          :fiatAmount="amount"
+          v-on:back="state = 'initial'"
+          v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
+          v-on:pending-release="pendingRelease = true"
+          v-on:released="cryptoReleased"
+        />
+      </div>
+      <div v-if="!hideSellerInfo">
+        <div class="q-mx-lg text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          SELLER INFO
+        </div>
+        <div class="row">
+          <div class="col ib-text">
+            <div class="q-mx-lg q-mt-md">
+              <span
+                :class="{'pt-dark-label': darkMode}"
+                class="q-pl-md q-mb-none text-uppercase md-font-size bold-text"
+              >
+                {{ buy.paymentMethods[0].account_name }}
+              </span>
+            </div>
+            <div class="q-mx-lg subtext" :class="{'pt-dark-label': darkMode}">
+              <span
+                class="q-pl-md q-mb-none xs-font-size"
+              >
+                1000 trades
+              </span>&nbsp;
+              <span
+                class="q-pl-xs q-mb-none xs-font-size"
+              >
+                100% completion
+              </span> -->
         <div v-if="!hideSellerInfo && adDetails != null">
             <div class="q-mx-lg text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                 SELLER INFO
@@ -123,6 +218,20 @@
                 </div>
             </div>
         </div>
+        <div class="q-mx-lg q-pt-sm">
+          <div class="q-ml-xs  q-gutter-sm">
+            <q-badge v-for="method in buy.paymentMethods" rounded outline color="blue" :label="method.name"/>
+          </div>
+        </div>
+        <div class="q-mx-lg q-mt-md" v-if="pendingRelease">
+          <div class="q-px-lg bold-text">
+            Seller did not release crypto?
+          </div>
+          <div class="q-pt-xs q-mx-lg subtext">
+            If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal
+          </div>
+        </div>
+      </div>
     </div>
   </q-card>
 </template>

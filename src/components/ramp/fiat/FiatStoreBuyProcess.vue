@@ -1,5 +1,5 @@
 <template>
-  <div class="q-px-md full-width">
+  <div class="q-px-md full-width" v-if="isloaded" >
     <div>
       <q-btn
         flat
@@ -30,26 +30,22 @@
         :done="step > 1"
         prefix="1"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
           Order Created
         </div>
-        <div class="q-pt-md" style="font-size: 13px;">
+        <div class="q-pt-md sm-font-size">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ buyAmount }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ buy.cryptoAmount }} BCH</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ buy.fiatCurrency.abbrev }}</span>
           </div>
-          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
             <span class="text-nowrap q-ml-xs" :class="buyStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ buyStatus }}</span>
           </div>
-          <!-- <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
-            <span>Status:</span>
-            <span class="text-nowrap q-ml-xs">{{ buyStatus }}</span>
-          </div> -->
         </div>
         <q-separator :dark="darkMode" class="q-mt-sm"/>
 
@@ -81,7 +77,7 @@
 
         <!-- Pending Payment -->
         <div class="text-center q-mt-sm" v-if="confirmed">
-          <div class="text-h5" style="font-size: 15px;">
+          <div class="text-h5 md-font-size">
             The seller has confirmed your order!
           </div>
           <div class="text-center" style="font-size: 40px; color: #ed5f59;">
@@ -114,10 +110,10 @@
           </div>
         </div>
         <div class="q-pt-md" v-if="confirmed">
-          <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
             CONTRACT INFO
           </div>
-          <div style="font-size: 13px">
+          <div class="sm-font-size">
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row q-pt-sm justify-between no-wrap q-mx-lg">
               <span>Address:</span>
               <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
@@ -137,11 +133,11 @@
         :done="step > 2"
         prefix="2"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
           Pay the Seller
         </div>
         <div class="q-pt-md text-center">
-          <div style="font-size: 16px;">
+          <div class="xm-font-size">
             The seller has confirmed your order!
           </div>
           <!-- <div class="text-blue-6" style="font-size: 30px;">
@@ -151,76 +147,59 @@
             {{ countDown }}
           </div>
           <div>
-            Please pay  <span class="text-blue-6 text-h5" style="font-size: 18px;">{{ fiatAmount }} PHP</span> within the time limit...
+            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ fiatAmount }} {{ buy.fiatCurrency.abbrev }}</span> within the time limit...
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-md"/>
         <div class="q-mt-lg full-width">
           <q-scroll-area style="height:30vh;overflow-y:auto;">
             <div class="q-px-md q-pb-sm">
-              <span class="text-h5 text-blue-8" style="font-size: 15px; font-weight: 500;">
+              <span class="text-h5 text-blue-8 bold-text md-font-size">
                 STEP 1:
               </span>
               <span class="q-px-sm">Pay the amount using the methods below</span>
             </div>
             <q-list bordered class="q-mx-lg" :dark="darkMode">
-              <!-- <q-badge v-for="method in buy.paymentMethods" rounded outline color="blue" :label="method"/> -->
-              <q-expansion-item
-                group="somegroup"
-                label="GCash"
+              <div
+                v-for="(method, index) in buy.paymentMethods"
+                :key="index"
               >
-                <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
-                  <q-card-section>
-                    <span>{{ buy.name }}</span><br>
-                    <span>09XXXXXXXXX</span>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-
-              <q-separator :dark="darkMode" />
-
-              <q-expansion-item group="somegroup" label="Paypal">
-                <q-card flat :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
-                  <q-card-section>
-                    user@gmail.com
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-
-              <q-separator :dark="darkMode"/>
-
-              <q-expansion-item group="somegroup" label="Paymaya">
-                <q-card flat :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
-                  <q-card-section>
-                    Paymaya QR Code Here
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-
-              <q-separator />
+                <q-expansion-item
+                  group="somegroup"
+                  :label="method.name.toUpperCase()"
+                >
+                  <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
+                    <q-card-section>
+                      <span>{{ method.account_name }}</span><br>
+                      <span>{{ method.account_number }}</span>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
+                <q-separator :dark="darkMode" />
+              </div>
             </q-list>
             <div class="q-px-md q-pt-md">
-            <span class="text-h5 text-blue-8" style="font-size: 15px; font-weight: 500;">
-              STEP 2:
-            </span>
-            <span class="q-px-sm">
-              <span class="hl-text">After</span> transfering funds, click on the <span class="hl-text">"Confirm Payment"</span> button below to notify the the seller.
-            </span>
-            <div class="q-px-md q-pt-sm">
-              <div>
-                <q-icon size="sm" name="info" color="orange-6"/>
-                <span class="q-pl-xs subtext">
-                  Make sure to click "Confirm Payment" button after transferring funds to avoid financial loss.
-                </span>
-              </div>
-              <div class="q-pt-xs">
-                <q-icon size="sm" name="info" color="orange-6"/>
-                <span class="q-pl-xs subtext">
-                  Do not click on the "Confirm Payment" button without transferring the funds
-                </span>
+              <span class="text-h5 text-blue-8 bold-text md-font-size">
+                STEP 2:
+              </span>
+              <span class="q-px-sm">
+                <span class="hl-text">After</span> transfering funds, click on the <span class="hl-text">"Confirm Payment"</span> button below to notify the the seller.
+              </span>
+              <div class="q-px-md q-pt-sm">
+                <div>
+                  <q-icon size="sm" name="info" color="orange-6"/>
+                  <span class="q-pl-xs subtext">
+                    Make sure to click "Confirm Payment" button after transferring funds to avoid financial loss.
+                  </span>
+                </div>
+                <div class="q-pt-xs">
+                  <q-icon size="sm" name="info" color="orange-6"/>
+                  <span class="q-pl-xs subtext">
+                    Do not click on the "Confirm Payment" button without transferring the funds
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
           </q-scroll-area>
         </div>
         <div class="row q-pt-md">
@@ -241,19 +220,19 @@
         title="Release Crypto"
         prefix="3"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
           Release Crypto
         </div>
-        <div class="text-center q-pt-md" style="font-size: 13px;">
+        <div class="text-center q-pt-md sm-font-size">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="subtext row justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ buyAmount }}</span>
+            <span class="text-nowrap q-ml-xs">{{ buyAmount }} BCH</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="subtext row justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ buy.fiatCurrency.abbrev }}</span>
           </div>
-          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
             <span class="text-nowrap q-ml-xs" v-if="buyStatus !== 'Expired'" :class="buyStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ buyStatus }}</span>
             <span class="text-nowrap q-ml-xs text-red-6" v-if="buyStatus === 'Expired'">{{ buyStatus }}</span>
@@ -272,7 +251,7 @@
         <div v-if="buyStatus === 'Pending Release'">
           <q-separator :dark="darkMode" class="q-mt-md"/>
           <div class="text-center q-px-md q-pt-md text-center">
-            <div class="q-px-lg" style="font-size: 15px;">
+            <div class="q-px-lg md-font-size">
               Your Crypto is pending for release by the seller
             </div>
             <div class="text-center text-h2" style="font-size: 40px; color: #ed5f59;">
@@ -292,10 +271,6 @@
         <div class="text-h6 text-center">Cancel Trade?</div>
       </q-card-section>
 
-      <!-- <q-card-section class="q-pt-none">
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Rerum repellendus sit voluptate voluptas eveniet porro. Rerum blanditiis perferendis totam, ea at omnis vel numquam exercitationem aut, natus minima, porro labore.
-      </q-card-section> -->
-
       <q-card-actions class="q-pt-lg text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" v-close-popup />
         <q-btn flat label="Confirm" color="blue-6" @click="cancelingOrder" v-close-popup />
@@ -313,7 +288,7 @@
           The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
         </span><br><br>
         <span class="q-pt-lg">
-          Submitting an appeal will raise a dispute on the funds which requires the intervention of the smart contract's assigned <span style="font-weight: 500;">Arbiter</span>.
+          Submitting an appeal will raise a dispute on the funds which requires the intervention of the smart contract's assigned <span class="bold-text">Arbiter</span>.
         </span><br><br>
         <span class="q-pt-lg">
           The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
@@ -334,6 +309,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      isloaded: false,
       buy: {},
       buyStatus: 'Pending Confirmation',
       confirmed: false,
@@ -446,6 +422,11 @@ export default {
 
     vm.buy = vm.listingData
     vm.pendingCntDwnSim()
+
+    console.log(vm.listingData)
+    console.log(vm.fiatAmount)
+
+    vm.isloaded = true
   },
   beforeUnmount () {
     clearInterval(this.timer)
