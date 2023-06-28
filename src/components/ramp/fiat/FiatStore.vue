@@ -46,22 +46,22 @@
               <template v-slot="{ item: listing }">
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
-                    <div class="q-pt-sm q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                    <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                       <div class="row">
                         <div class="col ib-text">
                           <span
                             :class="{'pt-dark-label': darkMode}"
-                            class="q-mb-none text-uppercase sm-font-size"
+                            class="q-mb-none text-uppercase md-font-size"
                           >
                             {{ listing.owner }}
                           </span><br>
-                          <div class="row">
+                          <div class="row sm-font-size">
                               <span class="q-mr-sm subtext">{{ listing.trade_count }} total trades </span>
                               <span class="q-ml-sm subtext">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                           </div>
                           <span
                             :class="{'pt-dark-label': darkMode}"
-                            class="col-transaction text-uppercase xm-font-size"
+                            class="col-transaction text-uppercase lg-font-size"
                           >
                             {{ listing.price }} {{ selectedFiat.abbrev }}
                             <!-- {{ listing.priceType === 'FIXED' ? listing.fixedPrice : listing.floatingPrice }} {{ listing.fiatCurrency.abbrev }} -->
@@ -69,11 +69,11 @@
                           <span class="sm-font-size">
                             /BCH
                           </span><br>
-                          <div class="row">
+                          <div class="row sm-font-size">
                               <span class="q-mr-md">Quantity</span>
                               <span>{{ listing.crypto_amount }} BCH</span>
                           </div>
-                          <div class="row">
+                          <div class="row sm-font-size">
                               <span class="q-mr-md">Limit</span>
                               <span> {{ listing.trade_floor }} {{ selectedFiat.abbrev }} - {{ listing.trade_ceiling }} {{ selectedFiat.abbrev }}</span>
                           </div>
@@ -155,6 +155,7 @@ export default {
       ],
       test_data: [
         {
+          owner: 'Andy Webber',
           trade_type: 'BUY',
           price_type: 'FIXED',
           fiat_currency: {
@@ -192,6 +193,7 @@ export default {
           ]
         },
         {
+          owner: 'Agnes Christy',
           trade_type: 'BUY',
           price_type: 'FIXED',
           fiat_currency: {
@@ -229,6 +231,7 @@ export default {
           ]
         },
         {
+          owner: 'Jane Austin',
           trade_type: 'BUY',
           price_type: 'FIXED',
           fiat_currency: {
@@ -266,6 +269,7 @@ export default {
           ]
         },
         {
+          owner: 'Stephen King',
           trade_type: 'BUY',
           price_type: 'FIXED',
           fiat_currency: {
@@ -303,6 +307,7 @@ export default {
           ]
         },
         {
+          owner: 'James Watson',
           trade_type: 'BUY',
           price_type: 'FIXED',
           fiat_currency: {
@@ -340,6 +345,7 @@ export default {
           ]
         },
         {
+          owner: 'Stephen King',
           trade_type: 'BUY',
           price_type: 'FIXED',
           fiat_currency: {
@@ -377,6 +383,7 @@ export default {
           ]
         },
         {
+          owner: 'Charlotte Bronte',
           trade_type: 'SELL',
           price_type: 'FIXED',
           fiat_currency: {
@@ -414,6 +421,7 @@ export default {
           ]
         },
         {
+          owner: 'James Watson',
           trade_type: 'SELL',
           price_type: 'FIXED',
           fiat_currency: {
@@ -451,6 +459,7 @@ export default {
           ]
         },
         {
+          owner: 'Jane Austin',
           trade_type: 'SELL',
           price_type: 'FIXED',
           fiat_currency: {
@@ -501,7 +510,6 @@ export default {
     //   // console.log(currency)
     //   this.selectedFiat = currency
     async fetchFiatCurrencies () {
-      console.log('fetching currency')
       const vm = this
       const response = await vm.$axios.get(vm.apiURL + '/currency/fiat')
         .then(response => {
@@ -515,13 +523,10 @@ export default {
           vm.fiatCurrencies = vm.availableFiat
           vm.selectedFiat = vm.fiatCurrencies[0]
         })
-      console.log(vm.fiatCurrencies)
     },
     async fetchStoreListings () {
-      console.log('fetching listings')
       const vm = this
       if (this.selectedFiat) {
-        console.log('entering')
         const params = {
           currency: this.selectedFiat.abbrev
         }
@@ -538,11 +543,9 @@ export default {
             console.error(error.response)
             vm.loading = false
 
-            vm.listings = vm.test_data
+            vm.listings = vm.test_data // remove later
           })
-        console.log(response)
       }
-      console.log(vm.listings)
     },
     async selectFiatCurrency (index) {
       this.selectedFiat = this.fiatCurrencies[index]
@@ -551,9 +554,8 @@ export default {
     },
     selectListing (listing) {
       const vm = this
-      // console.log(listing)
+
       vm.selectedListing = listing
-      // console.log(vm.selectedListing)
       vm.state = vm.transactionType
     },
     // sortedListings () {
@@ -565,13 +567,10 @@ export default {
     //   return sorted
     // }
     getFilteredListings () {
-      console.log('filtering list')
       const vm = this
-      console.log(vm.listings)
       const filteredListings = vm.listings.filter(function (listing) {
         return listing.trade_type === vm.transactionType
       })
-      console.log(filteredListings)
       return filteredListings
     },
     formatCompletionRate (value) {
@@ -580,7 +579,6 @@ export default {
   },
   async mounted () {
     console.log('fiat store')
-    console.log(this.transactionType)
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
 
