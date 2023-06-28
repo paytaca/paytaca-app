@@ -724,8 +724,10 @@ export class Delivery {
    * @param {Object} data.active_rider_id
    * @param {Object} data.pickup_location
    * @param {Object} data.delivery_location
+   * @param {String | Number} [data.accepted_at]
    * @param {String | Number} [data.picked_up_at]
    * @param {String | Number} [data.delivered_at]
+   * @param {String | Number} [data.completed_at]
    * @param {{ code:String, symbol:String }} data.currency
    * @param {Number} data.subtotal
    * @param {Number} data.fee
@@ -742,10 +744,14 @@ export class Delivery {
     this.activeRiderId = data?.active_rider_id
     this.pickupLocation = Location.parse(data?.pickup_location)
     this.deliveryLocation = Location.parse(data?.delivery_location)
+    if (data?.accepted_at) this.acceptedAt = new Date(data?.accepted_at)
+    else if (this.acceptedAt) delete this.acceptedAt
     if (data?.picked_up_at) this.pickedUpAt = new Date(data?.picked_up_at)
     else if (this.pickedUpAt) delete this.pickedUpAt
     if (data?.delivered_at) this.deliveredAt = new Date(data?.delivered_at)
     else if (this.deliveredAt) delete this.deliveredAt
+    if (data?.completed_at) this.completedAt = new Date(data?.completed_at)
+    else if (this.completedAt) delete this.completedAt
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.subtotal = data?.subtotal
     this.fee = data?.fee

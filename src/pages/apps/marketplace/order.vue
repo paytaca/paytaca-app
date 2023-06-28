@@ -77,6 +77,7 @@
                   <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
                     <q-menu :class="[ 'q-pa-sm', darkMode ? 'pt-dark' : 'text-black' ]">
                       Rider has accepted delivery
+                      <span v-if="delivery?.acceptedAt">({{  formatDateRelative(delivery?.acceptedAt) }})</span>
                     </q-menu>
                   </q-icon>
                   <q-icon
