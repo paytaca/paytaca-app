@@ -455,7 +455,6 @@ export default {
     vm.fetchAds()
     vm.sellListings = vm.sortedListings('sell')
     vm.buyListings = vm.sortedListings('buy')
-    console.log('privateKeyWif: ', this.privateKeyWif)
   },
   methods: {
     async fetchAds () {

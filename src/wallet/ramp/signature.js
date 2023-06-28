@@ -17,10 +17,7 @@ export async function signMessage (privateKeyWIF, message, timestamp) {
   if (typeof signatureBin === 'string') throw new Error(signatureBin)
   const signature = binToHex(signatureBin)
 
-  console.log(`timestamp: ${timestamp}`)
-  console.log(`message: ${message}`)
-  console.log(`timed_message: ${timedMessage}`)
-  console.log(`signature: ${signature}`)
+  return signature
 }
 
 async function generateContractHashSig (privateKey, filePath) {
