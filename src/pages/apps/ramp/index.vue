@@ -59,21 +59,30 @@ import HeaderNav from '../../../components/header-nav'
 import RampShiftForm from '../../../components/ramp/RampShiftForm'
 import FiatRampIndex from '../../../components/ramp/fiat/Index.vue'
 import { loadWallet } from 'src/wallet'
-import { markRaw, provide, ref } from 'vue'
+import { computed, markRaw, provide, ref } from 'vue'
+import { useStore } from 'vuex'
 
 export default {
   setup () {
     const walletHash = ref(null)
+    const privateKeyWif = ref(null)
 
-    async function fetchWalletHash () {
+    const store = useStore()
+    const walletInfo = computed(() => store.getters['global/getWallet']('bch'))
+
+    async function fetchWalletInfo () {
       const wallet = await markRaw(loadWallet())
       walletHash.value = wallet.BCH.getWalletHash()
+
+      const { connectedAddressIndex } = walletInfo.value
+      privateKeyWif.value = await wallet.BCH.getPrivateKey(connectedAddressIndex)
     }
 
-    fetchWalletHash()
+    fetchWalletInfo()
     provide('walletHash', walletHash)
+    provide('privateKeyWif', privateKeyWif)
 
-    return { walletHash }
+    return { walletHash, privateKeyWif }
   },
   components: {
     HeaderNav,

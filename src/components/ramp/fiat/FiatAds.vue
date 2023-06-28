@@ -83,7 +83,7 @@
                         </div>
                       </div>
                       <div class="q-gutter-sm q-pt-sm">
-                        <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.name" />
+                        <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.name" /> -->
                       </div>
                     </div>
                   </q-item-section>
@@ -108,9 +108,10 @@
 // import FiatAdsSell from './FiatAdsSell.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
+import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
-  inject: ['walletHash'],
+  inject: ['walletHash', 'privateKeyWif'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -454,15 +455,19 @@ export default {
     vm.fetchAds()
     vm.sellListings = vm.sortedListings('sell')
     vm.buyListings = vm.sortedListings('buy')
+    console.log('privateKeyWif: ', this.privateKeyWif)
   },
   methods: {
     async fetchAds () {
       const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.privateKeyWif.value, 'AD_LIST', timestamp)
       const headers = {
-        'wallet-hash': 'kipwu68ejj15k9ps0ffupuawmqusv4n0',
-        timestamp: 1687247466349,
-        signature: '3044022046626064beef19b37f4fb1705ea25275bbda30a3465cf27621a4629f9bba29f60220425289bb9904804274fc67cb38d4f55fde7f99fbafaeb8610c86d0f056902bb8'
+        'wallet-hash': this.walletHash.value,
+        timestamp: timestamp,
+        signature: signature
       }
+      console.log('headers:', headers)
       vm.$axios.get(vm.apiURL + '/ad', { headers: headers })
         .then(response => {
           vm.listings = response.data

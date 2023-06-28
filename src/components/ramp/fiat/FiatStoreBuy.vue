@@ -281,19 +281,15 @@ export default {
     FiatStoreBuyProcess
   },
   async mounted () {
-    console.log('inside mounted')
     await this.fetchAdDetail()
     this.isloaded = true
   },
   methods: {
     async fetchAdDetail () {
-      console.log('ad: ', this.ad)
       const vm = this
       const url = `${vm.apiURL}/ad/${this.ad}`
-      console.log('url:', url)
       const response = await vm.$axios.get(url)
       vm.adDetails = response.data
-      console.log('adDetails:', vm.adDetails)
     },
     isAmountValid () {
       if (this.amount === 0 || this.amount === '') {

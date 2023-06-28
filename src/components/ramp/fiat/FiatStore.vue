@@ -501,9 +501,8 @@ export default {
     //   // console.log(currency)
     //   this.selectedFiat = currency
     async fetchFiatCurrencies () {
-      console.log('fetching currency')
       const vm = this
-      const response = await vm.$axios.get(vm.apiURL + '/currency/fiat')
+      vm.$axios.get(vm.apiURL + '/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
           vm.selectedFiat = vm.fiatCurrencies[0]
@@ -515,34 +514,34 @@ export default {
           vm.fiatCurrencies = vm.availableFiat
           vm.selectedFiat = vm.fiatCurrencies[0]
         })
-      console.log(vm.fiatCurrencies)
+      // console.log(vm.fiatCurrencies)
     },
     async fetchStoreListings () {
-      console.log('fetching listings')
+      // console.log('fetching listings')
       const vm = this
       if (this.selectedFiat) {
-        console.log('entering')
+        // console.log('entering')
         const params = {
           currency: this.selectedFiat.abbrev
         }
         vm.loading = true
-        const response = await vm.$axios.get(vm.apiURL + '/ad', { params: params })
+        vm.$axios.get(vm.apiURL + '/ad', { params: params })
           .then(response => {
             vm.listings = response.data
-            console.log('listings: ', vm.listings)
+            // console.log('listings: ', vm.listings)
             vm.loading = false
           })
           .catch(error => {
-            console.log('failed')
+            // console.log('failed')
             console.error(error)
             console.error(error.response)
             vm.loading = false
 
             vm.listings = vm.test_data
           })
-        console.log(response)
+        // console.log(response)
       }
-      console.log(vm.listings)
+      // console.log(vm.listings)
     },
     async selectFiatCurrency (index) {
       this.selectedFiat = this.fiatCurrencies[index]
@@ -565,13 +564,13 @@ export default {
     //   return sorted
     // }
     getFilteredListings () {
-      console.log('filtering list')
+      // console.log('filtering list')
       const vm = this
-      console.log(vm.listings)
+      // console.log(vm.listings)
       const filteredListings = vm.listings.filter(function (listing) {
         return listing.trade_type === vm.transactionType
       })
-      console.log(filteredListings)
+      // console.log(filteredListings)
       return filteredListings
     },
     formatCompletionRate (value) {
@@ -579,13 +578,13 @@ export default {
     }
   },
   async mounted () {
-    console.log('fiat store')
-    console.log(this.transactionType)
+    // console.log('fiat store')
+    // console.log(this.transactionType)
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
 
     this.dataLoaded = true
-    console.log('done')
+    // console.log('done')
   }
 }
 </script>
