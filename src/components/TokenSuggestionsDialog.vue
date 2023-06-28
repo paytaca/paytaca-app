@@ -183,7 +183,7 @@ export default {
             id: token.id || '',
             name: token.name || '',
             symbol: token.symbol || '',
-            logo: token.image_url || '',
+            logo: token.image_url || token.logo || '',
             balance: token.balance || 0,
             decimals: token.decimals || 0,
             isSep20: false

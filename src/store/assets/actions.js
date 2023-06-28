@@ -159,7 +159,8 @@ export async function getMissingAssets (
       const tokenDetails = await wallet.getTokenDetails(tokenId)
       // exclude tokens without metadata
       if (tokenDetails !== null) {
-        finalData.push(result)
+        console.log(tokenDetails)
+        finalData.push(tokenDetails)
       }
     }
     return finalData

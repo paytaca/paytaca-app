@@ -227,9 +227,9 @@ export class BchWallet {
     } else {
       let imageUrl
       if (_metadata.token.uris) {
-        imageUrl = _metadata.token.uris.icon || ''
+        imageUrl = _metadata.token.uris?.icon || ''
       } else {
-        imageUrl = _metadata.uris.icon || ''
+        imageUrl = _metadata.uris?.icon || ''
       }
       return {
         // purposely placed logo as first data here for dynamic display of details on add new asset component
