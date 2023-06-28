@@ -110,14 +110,16 @@ import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 
 export default {
+  inject: ['walletHash'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       openDialog: false,
       dialogName: '',
       selectedIndex: null,
       editListing: {},
-      transactionType: 'buy',
+      transactionType: 'BUY',
       state: 'selection', // 'create' 'edit'
       buyListings: [],
       sellListings: [],
@@ -447,7 +449,32 @@ export default {
     FiatAdsForm,
     FiatAdsDialogs
   },
+  async mounted () {
+    const vm = this
+    vm.fetchAds()
+    vm.sellListings = vm.sortedListings('sell')
+    vm.buyListings = vm.sortedListings('buy')
+  },
   methods: {
+    async fetchAds () {
+      const vm = this
+      const headers = {
+        'wallet-hash': 'kipwu68ejj15k9ps0ffupuawmqusv4n0',
+        timestamp: 1687247466349,
+        signature: '3044022046626064beef19b37f4fb1705ea25275bbda30a3465cf27621a4629f9bba29f60220425289bb9904804274fc67cb38d4f55fde7f99fbafaeb8610c86d0f056902bb8'
+      }
+      vm.$axios.get(vm.apiURL + '/ad', { headers: headers })
+        .then(response => {
+          vm.listings = response.data
+          console.log('listings: ', vm.listings)
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response.data)
+          vm.loading = false
+        })
+    },
     sortedListings (type) {
       const vm = this
 
@@ -506,12 +533,6 @@ export default {
           break
       }
     }
-  },
-  async mounted () {
-    const vm = this
-
-    vm.sellListings = vm.sortedListings('sell')
-    vm.buyListings = vm.sortedListings('buy')
   }
 }
 </script>

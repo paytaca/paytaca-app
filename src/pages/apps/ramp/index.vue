@@ -58,8 +58,23 @@
 import HeaderNav from '../../../components/header-nav'
 import RampShiftForm from '../../../components/ramp/RampShiftForm'
 import FiatRampIndex from '../../../components/ramp/fiat/Index.vue'
+import { loadWallet } from 'src/wallet'
+import { markRaw, provide, ref } from 'vue'
 
 export default {
+  setup () {
+    const walletHash = ref(null)
+
+    async function fetchWalletHash () {
+      const wallet = await markRaw(loadWallet())
+      walletHash.value = wallet.BCH.getWalletHash()
+    }
+
+    fetchWalletHash()
+    provide('walletHash', walletHash)
+
+    return { walletHash }
+  },
   components: {
     HeaderNav,
     RampShiftForm,
@@ -68,7 +83,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: 'fiat', //crypto
+      selectedCurrency: 'fiat', // crypto
       isAllowed: true,
       error: false
     }
@@ -77,7 +92,6 @@ export default {
     const vm = this
     // check permission first
     const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
-
     if (!permission.data.createShift) {
       vm.isAllowed = false
     }
