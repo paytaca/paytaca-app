@@ -166,6 +166,8 @@ export default {
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
     if (mnemonic) {
+      console.log(vm.$store.getters['global/language'])
+      vm.$i18n.locale =  vm.$store.getters['global/language'].value
       await vm.savingInitialChipnet(mnemonic)
       // first check if vaults are empty
       this.$store.dispatch('global/saveExistingWallet')

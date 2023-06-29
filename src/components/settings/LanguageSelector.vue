@@ -83,7 +83,7 @@ export default {
         o.label = this.$t(this.langs[index])
         
         if (n.value === o.value) {
-          this.$store.commit('global/setLanguage', this.$t(this.langs[index]))
+          this.$store.commit('global/setLanguage', this.locale)
         }
         return o
       })
