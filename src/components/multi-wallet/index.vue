@@ -8,7 +8,7 @@
           padding="sm"
           icon="close"
           v-close-popup
-          color="blue-9"
+          color="red-9"
         />
       </div>
       <div class="row no-wrap items-center justify-center q-px-md">

@@ -10,6 +10,7 @@ import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
 import { getWalletByNetwork } from './chipnet'
+import { encodePrivateKeyWif } from '@bitauth/libauth'
 
 const bchjs = new BCHJS()
 /**
@@ -387,12 +388,12 @@ export class JSONPaymentProtocol {
       txBuilder.addInput(utxo.tx_hash, utxo.tx_pos)
       totalInput = totalInput.plus(utxo.value)
       const addressPath = utxo?.address_path || utxo.wallet_index
-      const utxoPkWif = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.retrievePrivateKey(
+      let utxoPkWif = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.retrievePrivateKey(
         getWalletByNetwork(wallet, 'bch').mnemonic,
         getWalletByNetwork(wallet, 'bch').derivationPath,
         addressPath,
       )
-
+      utxoPkWif = encodePrivateKeyWif(utxoPkWif, 'mainnet')
       inputs.push({
         utxo: utxo,
         keyPair: bchjs.ECPair.fromWIF(utxoPkWif),

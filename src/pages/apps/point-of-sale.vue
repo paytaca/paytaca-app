@@ -6,7 +6,7 @@
     />
     <q-card
       class="br-15 q-mx-md q-mt-lg q-mb-md"
-      :style="{ 'margin-top': $q.platform.is.ios ? '55px' : '0'}"
+      :style="{ 'margin-top': $q.platform.is.ios ? '35px' : '0'}"
       :class="[
         darkMode ? 'text-white pt-dark-card' : 'text-black',
       ]"

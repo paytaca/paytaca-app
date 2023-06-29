@@ -9,7 +9,7 @@
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"
-      :style="{ 'margin-top': $q.platform.is.ios ? '10px' : '-35px'}"
+      :style="{ 'margin-top': $q.platform.is.ios ? '-10px' : '-35px'}"
     >
       <q-tab name="hedge" :class="{'text-blue-5': darkMode}" label="Hedge"/>
       <q-tab name="long" :class="{'text-blue-5': darkMode}" label="Long" />

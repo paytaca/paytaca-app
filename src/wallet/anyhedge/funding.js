@@ -5,6 +5,7 @@ import Watchtower from 'watchtower-cash-js'
 import { Wallet } from '../index'
 import { generalProtocolLPBackend, generalProtocolLPAuthToken, anyhedgeBackend } from './backend'
 import { getContractAccessKeys, getContractStatus } from './utils'
+import { encodePrivateKeyWif } from '@bitauth/libauth'
 
 const bchjs = new BCHJS()
 
@@ -498,7 +499,8 @@ export async function createFundingProposal(contractData, position, wallet, addr
 
   const manager = new AnyHedgeManager()
   const fundingProposal = manager.createFundingProposal(contractData, fundingUtxo.txid, fundingUtxo.vout, fundingUtxo.amount)
-  const wif = await wallet.BCH.watchtower.BCH.retrievePrivateKey(wallet.BCH.mnemonic, wallet.BCH.derivationPath, fundingUtxo.address_path)
+  let wif = await wallet.BCH.watchtower.BCH.retrievePrivateKey(wallet.BCH.mnemonic, wallet.BCH.derivationPath, fundingUtxo.address_path)
+  wif = encodePrivateKeyWif(wif, 'mainnet')
   const signedFundingProposal = await manager.signFundingProposal(wif, fundingProposal)
 
   return { fundingUtxo, signedFundingProposal }

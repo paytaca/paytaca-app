@@ -10,7 +10,7 @@
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       style="padding-bottom: 16px;"
       v-model="selectedCurrency"
-      :style="{ 'margin-top': $q.platform.is.ios ? '10px' : '-35px'}"
+      :style="{ 'margin-top': $q.platform.is.ios ? '-10px' : '-35px'}"
     >
       <q-tab
         name="fiat"

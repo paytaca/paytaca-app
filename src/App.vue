@@ -6,6 +6,12 @@
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 
+// Handle JSON serialization of BigInt
+// Source: https://github.com/GoogleChromeLabs/jsbi/issues/30#issuecomment-1006086291
+BigInt.prototype["toJSON"] = function () {
+  return this.toString();
+};
+
 export default {
   name: 'App',
   data () {

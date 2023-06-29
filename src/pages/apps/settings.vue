@@ -1,7 +1,7 @@
 <template>
   <div id="app-container" :class="{'pt-dark': darkMode}">
       <header-nav :title="$t('Settings')" backnavpath="/apps" />
-      <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '-25px'}">
+      <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Security') }}</p>
             <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">

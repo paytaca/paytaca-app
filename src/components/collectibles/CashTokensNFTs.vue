@@ -24,10 +24,7 @@
             @click="() => toggleExpandGroupId(nftGroup?.category)"
           >
             <div class="ellipsis q-space" :class="darkMode ? 'text-grad' : 'text-grey-8'">
-              <span v-if="nftGroup.ungrouped">
-                Ungrouped NFTs
-              </span>
-              <span v-else >
+              <span>
                 {{ nftGroup?.metadata?.name || nftGroup?.category }}
               </span>
             </div>
@@ -115,16 +112,16 @@ function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
 }
 
 const parsedNftGroups = computed(() => {
-  const ungrouped = {
-    key: 'ungrouped',
-    ungrouped: true,
-  }
-  if (!Array.isArray(nftGroups.value)) return [ungrouped]
+  // const ungrouped = {
+  //   key: 'ungrouped',
+  //   ungrouped: true,
+  // }
+  // if (!Array.isArray(nftGroups.value)) return [ungrouped]
   const data = nftGroups.value
     .map(nftGroup => Object.assign({}, nftGroup))
     .filter(nftGroup => nftGroup?.capability === 'minting')
 
-  data.push(ungrouped)
+  // data.push(ungrouped)
   return data
 })
 
