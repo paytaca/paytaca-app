@@ -231,8 +231,8 @@
               <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
               <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
                 <q-item clickable @click="executeSecurityChecking">
-                  <q-item-section>
-                    <q-item-label v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
+                  <q-item-section class="text-black">
+                    <q-item-label :class="{'text-white': darkMode}" v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
                     <q-item-label class="text-center" :class="{'text-white': darkMode}" v-else>{{ $t('ClickToReveal') }}</q-item-label>
                   </q-item-section>
                 </q-item>
