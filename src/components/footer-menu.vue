@@ -13,6 +13,7 @@
             </svg>
           </q-icon>
         </router-link>
+        <br>
         <span @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
@@ -23,6 +24,7 @@
             </svg>
           </q-icon>
         </router-link>
+        <br>
         <span @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
       </button>
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
@@ -33,25 +35,32 @@
             </svg>
           </q-icon>
         </router-link>
+        <br>
         <span @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</span>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'apps-dashboard' }">
           <q-icon class="default-text-color mb-2" size="30px">
             <svg>
-              <use xlink:href="app-apps.svg#icon"></use>
+              <use xlink:href="apps.svg#icon"></use>
             </svg>
           </q-icon>
         </router-link>
-        <span @click="$router.push({ name: 'apps-dashboard' })">{{ $t('Apps') }}</span>
+        <br>
+        <span @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
       </button>
-      <!-- <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
-          <q-icon class="default-text-color mb-2" size="30px" name="sym_o_microwave_gen"/>
-        <span>Wallets</span>
-      </button> -->
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
+        <q-icon class="default-text-color mb-2" size="30px">
+          <svg>
+            <use xlink:href="wallet.svg#icon"></use>
+          </svg>    
+        </q-icon>
+        <br>
+        <span>{{ $t('Wallets') }}</span>
+      </button>
+      <!-- <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>
-      </button>
+      </button> -->
     </div>
   </div>
 </template>

@@ -181,7 +181,7 @@
     />
   </div>
   <div class="text-center col q-mt-sm pt-internet-required" v-if="error">
-    {{ $t('NoInternetConnectionNotice') }} &#128533;
+    {{ $t('BackendDown') }} &#128533;
   </div>
 </template>
 

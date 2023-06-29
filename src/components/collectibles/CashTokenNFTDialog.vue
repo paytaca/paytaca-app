@@ -33,7 +33,7 @@
       <q-tabs v-model="tab">
         <q-tab :class="{'text-blue-5': darkMode}" name="details" label="Details"/>
         <q-tab :class="{'text-blue-5': darkMode}" name="transaction" label="Transaction"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="extension" label="Extensions" :disable="!nft?.extensions"/>
+        <q-tab :class="{'text-blue-5': darkMode}" name="extension" label="Extensions" :disable="!nft?.metadata?.type_metadata?.extensions"/>
       </q-tabs>
       <q-tab-panels
         animated
@@ -118,7 +118,7 @@
           </div>
         </q-tab-panel>
         <q-tab-panel name="extension">
-          <VueJsonPretty :data="nft?.extensions" :deep="2"/>
+          <VueJsonPretty :data="nft?.metadata?.type_metadata?.extensions" :deep="2"/>
         </q-tab-panel>
       </q-tab-panels>
       <div class="q-px-md q-pb-md">
@@ -131,13 +131,14 @@
               name: 'transaction-send',
               query: {
                 assetId: `ct/${nft?.category}`,
-                tokenType: 65,
+                tokenType: 'CT-NFT',
                 image: imageUrl,
-                symbol: nft?.parsedMetadata?.symbol,
+                name: nft?.parsedMetadata?.name,
                 commitment: nft?.commitment,
                 capability: nft?.capability,
                 amount: 0,
                 fixed: true,
+                backPath: '/apps/collectibles'
               }
             }"
           />
@@ -203,7 +204,7 @@ const fallbackName = computed(() => {
   ].join(':')
 })
 
-const transactionUrl = computed(() => `https://blockchair.com/bitcoin-cash/transaction/${props.nft?.currentTxid}/?o=${props.nft?.currentIndex}`)
+const transactionUrl = computed(() => `https://3xpl.com/bitcoin-cash/transaction/${props.nft?.currentTxid}/`)
 
 watch(() => [props.nft?.imageUrl], () => forceFallbackImage.value = false)
 const forceFallbackImage = ref(false)

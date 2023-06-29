@@ -15,7 +15,6 @@ export function ignoredTokenIds (state) {
   if (network === 'chipnet') {
     _ignoredAssets = state.chipnet__ignoredAssets
   }
-
   if (!Array.isArray(_ignoredAssets)) return []
   return _ignoredAssets
     .map(asset => asset && asset.id)

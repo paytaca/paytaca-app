@@ -28,20 +28,20 @@
                 </q-item>
                 <q-item>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Scan</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Scan') }}</q-item-label>
                     <q-banner
                       v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
                       dense
                       :class="[
-                        darkMode ? 'pt-dark' : 'bg-primary',
-                        'rounded-borders q-mt-sm',
+                        darkMode ? 'pt-dark text-white' : 'bg-grey-2',
+                        'rounded-borders q-mt-sm q-mb-md',
                       ]"
                     >
                       UTXO scan completed at {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
                       <template v-slot:action>
                         <q-btn
                           no-caps flat
-                          color="white" label="Dismiss"
+                          color="blue-9" :label="$t('Dismiss')"
                           @click="$store.commit('global/removeUtxoScanTask', bchUtxoScanTaskInfo?.walletHash)"
                         />
                       </template>
@@ -49,42 +49,44 @@
                     <q-item-label
                       :class="[
                         darkMode ? 'pt-dark-label' : 'pp-text',
-                        'row items-center justify-around',
+                        'row items-center justify-around q-mb-sm',
                       ]"
                       style="word-wrap: break-word;"
                     >
-                      <q-btn-group spread class="q-space">
+                      <q-btn-group rounded spread class="q-space">
                         <q-btn
                           no-caps
+                          color="blue-9"
                           padding="xs sm"
                           :disable="bchUtxoScanOngoing"
                           :loading="bchUtxoScanOngoing"
-                          label="UTXO Scan"
+                          :label="$t('UtxoScan')"
                           @click="scanBCHUtxos()"
                         />
                         <q-btn
                           no-caps
+                          color="blue-9"
                           padding="xs sm"
                           :disable="scanningBchAddresses"
                           :loading="scanningBchAddresses"
-                          label="Address Scan"
+                          :label="$t('AddressScan')"
                           @click="scanBCHAddresses()"
                         />
                       </q-btn-group>
                       <div v-if="bchUtxoScanOngoing || scanningBchAddresses" class="text-center text-grey q-my-sm">
                         <template v-if="bchUtxoScanOngoing && scanningBchAddresses">
-                          Scanning for UTXOs and addresses
+                          {{ $t('ScanningForUtxosAndAddr') }}
                         </template>
                         <template v-else-if="bchUtxoScanOngoing">
                           <template v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.queueInfo?.time_start">
                             UTXO scan ongoing, started {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
                           </template>
                           <template>
-                            Scanning for UTXOs
+                            {{ $t('ScanningForUtxos') }}
                           </template>
                         </template>
                         <template v-else-if="scanningBchAddresses">
-                          Scanning for untracked addresses
+                          {{ $t('ScanningForUntrackedAddr') }}
                         </template>
                       </div>
                     </q-item-label>
@@ -119,20 +121,20 @@
                 </q-item>
                 <q-item>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>Scan</q-item-label>
+                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Scan') }}</q-item-label>
                     <q-banner
                       v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.completedAt"
                       dense
                       :class="[
-                        darkMode ? 'pt-dark' : 'bg-primary',
-                        'rounded-borders q-mt-sm',
+                        darkMode ? 'pt-dark text-white' : 'bg-grey-2',
+                        'rounded-borders q-mt-sm q-mb-md',
                       ]"
                     >
                       UTXO scan completed at {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
                       <template v-slot:action>
                         <q-btn
                           no-caps flat
-                          color="white" label="Dismiss"
+                          color="blue-9" :label="$t('Dismiss')"
                           @click="$store.commit('global/removeUtxoScanTask', slpUtxoScanTaskInfo?.walletHash)"
                         />
                       </template>
@@ -140,43 +142,44 @@
                     <q-item-label
                       :class="[
                         darkMode ? 'pt-dark-label' : 'pp-text',
-                        'row items-center justify-around',
+                        'row items-center justify-around q-mb-sm',
                       ]"
                       style="word-wrap: break-word;"
                     >
-                      <q-btn-group spread class="q-space">
+                      <q-btn-group rounded spread class="q-space">
                         <q-btn
                           no-caps
+                          color="blue-9"
                           padding="xs sm"
                           :disable="slpUtxoScanOngoing"
                           :loading="slpUtxoScanOngoing"
-                          label="UTXO Scan"
+                          :label="$t('UtxoScan')"
                           @click="scanSLPUtxos()"
-                        >
-                        </q-btn>
+                        />
                         <q-btn
                           no-caps
+                          color="blue-9"
                           padding="xs sm"
                           :disable="scanningSlpAddresses"
                           :loading="scanningSlpAddresses"
-                          label="Address Scan"
+                          :label="$t('AddressScan')"
                           @click="scanSLPAddresses()"
                         />
                       </q-btn-group>
                       <div v-if="slpUtxoScanOngoing || scanningSlpAddresses" class="text-center text-grey q-my-sm">
                         <template v-if="slpUtxoScanOngoing && scanningSlpAddresses">
-                          Scanning for UTXOs and addresses
+                          {{ $t('ScanningForUtxosAndAddr') }}
                         </template>
                         <template v-else-if="slpUtxoScanOngoing">
                           <template v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.queueInfo?.time_start">
                             UTXO scan ongoing, started {{ formatRelativeTime(slpUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
                           </template>
                           <template>
-                            Scanning for UTXOs
+                            {{ $t('ScanningForUtxos') }}
                           </template>
                         </template>
                         <template v-else-if="scanningSlpAddresses">
-                          Scanning for untracked addresses
+                          {{ $t('ScanningForUntrackedAddr') }}
                         </template>
                       </div>
                     </q-item-label>
@@ -230,7 +233,7 @@
                 <q-item clickable @click="executeSecurityChecking">
                   <q-item-section>
                     <q-item-label v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
-                    <q-item-label class="text-center" v-else>Click to Reveal</q-item-label>
+                    <q-item-label class="text-center" :class="{'text-white': darkMode}" v-else>{{ $t('ClickToReveal') }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -379,7 +382,7 @@ export default {
           vm.wallet = markRaw(wallet)
         })
     },
-    updateUtxoScanTasksStatus(nextUpdate=30*1000, age=0) {
+    updateUtxoScanTasksStatus(nextUpdate=5*1000, age=0) {
       const bchWalletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()  
       const slpWalletHash = this.wallet.SLP.getWalletHash()  
       

@@ -3,8 +3,8 @@
     <div class="row">
       <div class="col 12">
         <div class="pt-header" :style="{ 'padding-top': $q.platform.is.ios ? '60px' : '18px', 'height': $q.platform.is.ios ? '95px' : '70px',}" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
-          <router-link :to="{ path: backnavpath }" class="pt-arrow-left-link" :class="{'text-grad': $store.getters['darkmode/getStatus']}" :style="{width: $q.platform.is.bex ? '375px' : '100%'}">
-            <span class="material-icons" @click="!backnavpath ? $router.go(-1) : null">
+          <router-link :to="{ path: backnavpath }" class="pt-arrow-left-link" :class="{'text-grad': $store.getters['darkmode/getStatus']}" :style="{width: $q.platform.is.bex ? '375px' : '95%'}">
+            <span class="material-icons" @click="backnavpath ?  $router.push({ path: backnavpath }): $router.go(-1)">
                 arrow_back
             </span>
           </router-link>
@@ -27,7 +27,7 @@ export default {
     },
     backnavpath: {
       type: String,
-      default: '',
+      default: null,
     }
   },
 }

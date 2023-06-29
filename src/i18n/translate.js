@@ -13,99 +13,106 @@ const fs = require('fs')
  * 2) run "node translate.js"
  * 
  */
-const words = {
-  Accept: "Accept",
-  Account: "Account",
-  All: "All",
-  Add: "Add",
-  Amount: "Amount",
-  Address: "Address",
-  Applications: "Applications",
-  Approve: "Approve",
-  Apps: "Apps",
-  Balance: "Balance",
-  Biometric: "Biometric",
-  Bridge: "Bridge",
-  Branch: "Branch",
-  Cancel: "Cancel",
-  City: "City",
-  Clear: "Clear",
-  Close: "Close",
-  Country: "Country",
-  Collectibles: "Collectibles",
-  Connect: "Connect",
-  Confirmation: "Confirmation",
-  Continue: "Continue",
-  Copying: "Copying",
-  Create: "Create",
-  Currency: "Currency",
-  Date: "Date",
-  Data: "Data",
-  Decoded: "Decoded",
-  Devices: "Devices",
-  Deadline: "Deadline",
-  Deposit: "Deposit",
-  Disconnected: "Disconnected",
-  Dismiss: "Dismiss",
-  English: "English",
-  Error: "Error",
-  Done: "Done",
-  From: "From",
-  Gas: "Gas",
-  German: "German",
-  Home: "Home",
-  Keep: "Keep",
-  Language: "Language",
-  Link: "Link",
-  Location: "Location",
-  Manage: "Manage",
-  Memo: "Memo",
-  Message: "Message",
-  Name: "Name",
-  or: "or",
-  Personalize: "Personalize",
-  Pin: "PIN",
-  POSID: "POSID",
-  Ramp: "Ramp",
-  Receive: "Receive",
-  Received: "Received",
-  Recipient: "Recipient",
-  Recipients: "Recipients",
-  Refetch: "Refetch",
-  Reject: "Reject",
-  Remove: "Remove",
-  Required: "Required",
-  Raw: "Raw",
-  Retry: "Retry",
-  Route: "Route",
-  Routing: "Routing",
-  Scan: "Scan",
-  Scanning: "Scanning",
-  Security: "Security",
-  Send: "Send",
-  Sender: "Sender",
-  Senders: "Senders",
-  Sent: "Sent",
-  Settings: "Settings",
-  Setup: "Setup",
-  Set: "Set",
-  Skip: "Skip",
-  Slippage: "Slippage",
-  Spanish: "Spanish",
-  Street: "Street",
-  Success: "Success",
-  Swap: "Swap",
-  Sweep: "Sweep",
-  Symbol: "Symbol",
-  To: "To",
-  Tokens: "Tokens",
-  Transactions: "Transactions",
-  Update: "Update",
-  Verify: "Verify",
-  Value: "Value",
-  Version: "Version",
-  Wallet: "Wallet",
-}
+const words = [
+  {
+    Accept: "Accept",
+    Account: "Account",
+    All: "All",
+    Add: "Add",
+    Amount: "Amount",
+    Address: "Address",
+    Applications: "Applications",
+    Approve: "Approve",
+    Apps: "Apps",
+    Balance: "Balance",
+    Biometric: "Biometric",
+    Bridge: "Bridge",
+    Back: "Back",
+    Branch: "Branch",
+    Cancel: "Cancel",
+    City: "City",
+    CashTokens: "CashTokens",
+    Clear: "Clear",
+    Close: "Close",
+    Country: "Country",
+    Collectibles: "Collectibles",
+    Connect: "Connect",
+    Confirmation: "Confirmation",
+    Continue: "Continue",
+    Copying: "Copying",
+    Create: "Create",
+    Currency: "Currency",
+    Date: "Date",
+    Dismiss: "Dismiss",
+    Data: "Data",
+    Decoded: "Decoded",
+    Devices: "Devices",
+    Deadline: "Deadline",
+    Deposit: "Deposit",
+    Disconnected: "Disconnected",
+    Dismiss: "Dismiss",
+    English: "English",
+    Error: "Error",
+    Done: "Done",
+    From: "From",
+    Gas: "Gas",
+    German: "German",
+    Home: "Home",
+    Keep: "Keep",
+    Language: "Language",
+    Link: "Link",
+    Location: "Location",
+    Manage: "Manage",
+    Memo: "Memo",
+    Message: "Message",
+    Name: "Name",
+    or: "or",
+    Personalize: "Personalize",
+    Pin: "PIN",
+    POSID: "POSID",
+    Ramp: "Ramp",
+    Receive: "Receive",
+    Received: "Received",
+    Recipient: "Recipient",
+    Recipients: "Recipients",
+    Refetch: "Refetch",
+    Reject: "Reject",
+    Remove: "Remove",
+    Rename: "Rename",
+    Required: "Required",
+    Raw: "Raw",
+    Retry: "Retry",
+    Route: "Route",
+    Routing: "Routing",
+    Scan: "Scan",
+    Scanning: "Scanning",
+    Security: "Security",
+    Send: "Send",
+    Sender: "Sender",
+    Senders: "Senders",
+    Sent: "Sent",
+    Settings: "Settings",
+    Setup: "Setup",
+    Set: "Set",
+    Skip: "Skip",
+    Slippage: "Slippage",
+    Spanish: "Spanish",
+    Street: "Street",
+    Success: "Success",
+    Swap: "Swap",
+    Sweep: "Sweep",
+    Symbol: "Symbol",
+    To: "To",
+    Tokens: "Tokens",
+    Transactions: "Transactions",
+    Update: "Update",
+    Verify: "Verify",
+    Value: "Value",
+    Version: "Version",
+    Wallet: "Wallet",
+    Wallets: "Wallets",
+  }
+]
 const phrases = {
   /**
    * NOTE: separate text objects if it gets too big in size
@@ -146,8 +153,8 @@ const phrases = {
       CancellingUnlinkRequest: "Cancelling unlink request",
       CreatingUnlinkDeviceRequest: "Creating unlink device request",
       CallRequest: "Call Request",
-      ChineseTraditional: "Chinese (Traditional)",
-      ChineseSimplified: "Chinese (Simplified)",
+      ChineseTraditional: "Chinese Traditional",
+      ChineseSimplified: "Chinese Simplified",
       CallRequestAccepted: "Call request accepted",
       CameraPermissionErrMsg1: "Permission required to access to camera",
       CameraPermissionErrMsg2: "No camera found on this device",
@@ -216,11 +223,11 @@ const phrases = {
       NativeBiometricReason2: "For ownership verification",
       NativeBiometricSubtitle: "Verify your account using fingerprint",
       NewUnlisted: "New / Unlisted",
-      NoCollectibles: "You don\"t own any collectibles yet.",
+      NoCollectibles: "You don\'t own any SLP NFTs yet.",
       NotEnoughBalForSendAmount: "Not enough balance to cover the send amount",
       NotEnoughBchForFee: "Not enough BCH to cover for transaction fee",
-      NoIgnoredAssets: "No ignored assets",
-      NoInternetConnectionNotice: "Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down",
+      NoIgnoredTokens: "No ignored tokens",
+      NoInternetConnectionNotice: "You have lost connection to the internet. This app is offline.",
       NoTokensFound: "No tokens found",
       NoTransactionsToDisplay: "No transactions to display",
       OpenSourceCode: "Open source code",
@@ -320,13 +327,27 @@ const phrases = {
     },
     {
       AppInfo: "App Info",
+      AddressScan: "Address Scan",
+      UtxoScan: "UTXO Scan",
+      BackendDown: "Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down",
+      ClickToReveal: "Click to Reveal",
+      SLPTokens: "SLP Tokens",
+      AddFungibleCashToken: "Add Fungible CashToken",
+      AssetValueNote: "Asset value is based on prices at the time of transaction",
+      CreateOrImportWallet: "Create/Import Wallet",
+      EnterCashTokenCategoryID: "Enter CashToken category ID",
       ManageIgnoredTokens: "Manage Ignored Tokens",
+      ManageTokens: "Manage Tokens",
+      ScanForTokens: "Scan for Tokens",
+      HideTokens: "Hide Tokens",
       OnBoardSettingHeader: "Set Localization Preferences",
       OnBoardSettingDescription: "Adjust settings to fit your native experience",
       POSAdmin: "POS Admin",
+      RenameWallet: "Rename Wallet",
       ShowTokens: "Show Tokens",
+      SwitchWallet: "Switch Wallet",
       SourceCodeRepo: "Source code repository",
-      ShowSmartBCH: "Show SmartBCH",
+      EnableSmartBCH: "Enable SmartBCH",
       UnlinkDeviceRequestCreated: "Unlink device request created",
       UnlinkDeviceRequestFailed: "Unlink device request failed",
       UnlinkPOSDevice: "Unlink POS device",
@@ -339,6 +360,9 @@ const phrases = {
       UnableToResolveLnsAddress: "Unable to resolve LNS name address",
       UnknownErrorOccurred: "Unknown error occurred",
       UnlistedAssets: "Unlisted Assets",
+      ScanningForUtxos: "Scanning for UTXOs",
+      ScanningForUntrackedAddr: "Scanning for untracked addresses",
+      ScanningForUtxosAndAddr: "Scanning for UTXOs and addresses",
       VerifyMnemonicBackupPhrase: "Verify shuffled mnemonic to proceed",
       VerifyPin: "Verify PIN",
       ViewIgnoredTokens: "View ignored tokens",
@@ -357,37 +381,28 @@ const phrases = {
       YouSend: "You send"
     },
   ],
-  dynamic: {
-    ApprovingTokenName: "Approving {tokenInfoName}",
-    DeviceAddedIDNo: "Device added #{ID}",
-    FailedUpdateDeviceIDNo: "Failed to update device #{ID}",
-    RemovedDeviceIDNo: "Removed device #{ID}",
-    RemovingDeviceIDNo: "Removing device #{ID}",
-    RemovePOSDeviceNumName: "Remove POS Device #{ID}{name}",
-    UnlinkPOSDeviceNumName: "Ulink POS Device #{ID}{name}",
-    UpdateDeviceIDNo: "Update device #{ID}",
-    UpdatedDeviceIDNo: "Updated device #{ID}",
-    UpdatingDeviceIDNo: "Updating device #{ID}",
-  }
-}
-
-function write (data, to) {
-  fs.writeFile(`./${to}/index.js`, data, err => {
-    if (err) throw err
-  })
+  dynamic: [
+    {
+      ApprovingTokenName: "Approving {tokenInfoName}",
+      DeviceAddedIDNo: "Device added #{ID}",
+      FailedUpdateDeviceIDNo: "Failed to update device #{ID}",
+      RemovedDeviceIDNo: "Removed device #{ID}",
+      RemovingDeviceIDNo: "Removing device #{ID}",
+      RemovePOSDeviceNumName: "Remove POS Device #{ID}{name}",
+      UnlinkPOSDeviceNumName: "Ulink POS Device #{ID}{name}",
+      UpdateDeviceIDNo: "Update device #{ID}",
+      UpdatedDeviceIDNo: "Updated device #{ID}",
+      UpdatingDeviceIDNo: "Updating device #{ID}",
+    }
+  ]
 }
 
 const TEXT_GROUPS = [
-  words,
+  ...words,
   ...phrases.static,
-  phrases.dynamic
+  ...phrases.dynamic
 ]
-const textGroupKeys = [
-  'words',
-  'static phrases group 1',
-  'static phrases group 2',
-  'dynamic phrases',
-]
+
 // check for supported language codes here
 // https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
 const supportedLangs = [
@@ -397,6 +412,42 @@ const supportedLangs = [
   'zh-cn',
   'de',
 ]
+
+// ordering of keys
+function orderObj (unorderedObj) {
+  return Object.keys(unorderedObj).sort().reduce(
+    (obj, key) => {
+      obj[key] = unorderedObj[key]
+      return obj
+    }, 
+    {}
+  )
+}
+
+// writing to language index files
+function write (data, to) {
+  fs.writeFile(`./${to}/index.js`, data, err => {
+    if (err) throw err
+  })
+}
+
+// get text group label for logging
+function getTextGroupLabel (index) {
+  const wordsLen = words.length
+  const staticPhrasesLen = phrases.static.length
+  const wordsAndStaticPhrasesLen = staticPhrasesLen + wordsLen
+
+  if (index < wordsLen) {
+    return `words group ${index + 1}`
+  } else if (index < wordsAndStaticPhrasesLen) {
+    const groupNo = index - (wordsLen - 1)
+    return `static phrases group ${groupNo}`
+  } else {
+    const groupNo = index - (wordsAndStaticPhrasesLen - 1)
+    return `dynamic phrases group ${groupNo}`
+  }
+}
+
 
 // print out length of texts for verification later after writing to file
 let sum = 0
@@ -422,11 +473,18 @@ let jsonData = {};
 
     let index = 0
     for (const group of TEXT_GROUPS) {
-      console.log(`Translating ${textGroupKeys[index]}...`)
+      if (Object.keys(group).length === 0) {
+        continue
+      }
+
+      const label = getTextGroupLabel(index)
+      console.log(`Translating ${label}...`)
 
       const translatedObj = await translate(group, codes)
+
       // merge the previous and current objects
       Object.assign(jsonData, translatedObj)
+      jsonData = orderObj(jsonData)
       
       let strData = '// NOTE: DONT EDIT THIS FILE\n'
       strData += '// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n'

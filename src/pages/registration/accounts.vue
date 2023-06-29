@@ -6,17 +6,9 @@
         <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
+    <div class="row pt-wallet q-mt-sm justify-center" :class="{'pt-dark': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
       <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
-          <q-btn
-            flat
-            padding="md"
-            icon="arrow_back"
-            color="blue"
-            @click="!$router.push('/')"
-            v-if="!$store.getters['global/isVaultEmpty']"
-          />
           <div class="row">
             <div class="col-12 q-py-sm">
               <q-btn class="full-width bg-blue-9 text-white" @click="initCreateWallet()" :label="$t('CreateNewWallet')" rounded />
@@ -28,6 +20,18 @@
               <q-btn class="full-width bg-blue-9 text-white" @click="() => { importSeedPhrase = true }" :label="$t('RestoreFromSeedPhrase')" rounded />
             </div>
           </div>
+        </div>
+        <div class="col-12 q-mt-md">
+          <q-btn
+            flat
+            padding="md"
+            :label="$t('Back')"
+            icon="arrow_back"
+            class="full-width"
+            color="blue-9"
+            @click="!$router.push('/')"
+            v-if="!$store.getters['global/isVaultEmpty']"
+          />
         </div>
       </div>
       <div class="row" v-else style="margin-top: 60px;">
@@ -56,7 +60,7 @@
 
     <div class="row" v-if="mnemonic.length > 0">
       <div class="pt-get-started q-mt-sm q-pa-lg" :class="{ 'pt-dark': darkMode }">
-        <div class="row" v-if="openSettings">
+        <div class="row justify-center" v-if="openSettings">
           <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5>
           <p class="dim-text" style="margin-top: 10px;">
             {{ $t('OnBoardSettingDescription') }}
@@ -128,7 +132,11 @@
                     @click="showMnemonicTest = false"
                   />
                 </div>
-                <MnemonicTest :mnemonic="mnemonic" class="q-mb-md" @matched="mnemonicVerified = true" />
+                <MnemonicTest
+                  :mnemonic="mnemonic"
+                  @matched="mnemonicVerified = true"
+                  class="q-mb-md"
+                />
               </div>
             </template>
           </div>
@@ -407,6 +415,25 @@ export default {
     }
   },
   async mounted () {
+    // get walletIndex
+    this.walletIndex = this.$store.getters['global/getVault'].length
+
+    if (this.$store.getters['global/isVaultEmpty']) {
+      this.walletIndex = 0
+    }
+
+    const vm = this
+    vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(response => {
+      if (response.status !== 200) return Promise.reject()
+      vm.serverOnline = true
+    }).catch(function () {
+      vm.serverOnline = false
+    })
+
+    if (!this.$store.getters['global/isVaultEmpty']) {
+      return
+    }
+
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [
       { value: 'en-us', label: this.$t('English') },
@@ -416,13 +443,6 @@ export default {
       { value: 'es', label: this.$t('Spanish') },
     ]
     let finalLang = ''
-
-    // get walletIndex
-    this.walletIndex = this.$store.getters['global/getVault'].length
-
-    if (this.$store.getters['global/isVaultEmpty']) {
-      this.walletIndex = 0
-    }
 
     // Adjust paytaca language according to phone's language (if supported by paytaca)
     let deviceLang = null
@@ -457,15 +477,6 @@ export default {
 
     this.$i18n.locale = finalLang.value
     this.$store.commit('global/setLanguage', this.$t(finalLang.label))
-
-    const vm = this
-
-    vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {
-      if (response.status !== 200) return Promise.reject()
-      vm.serverOnline = true
-    }).catch(function () {
-      vm.serverOnline = false
-    })
   }
 }
 </script>

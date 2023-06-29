@@ -11,31 +11,29 @@
       }"
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
     >
-      <div
-        v-if="manageAssets && asset.symbol !== 'BCH'"
-        @click="() => removeAsset(asset)"
-        style="float: right; width: 20px; margin-top: -10px;">
-        <q-btn icon="close" color="white" flat round dense v-close-popup />
-      </div>
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
-        <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 22px; text-align: right;">
+        <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;">
           {{ asset.symbol }}
         </p>
       </div>
       <div class="row" style="margin-top: -7px;">
         <q-space />
-        <div v-if="!balanceLoaded && asset.id === selectedAsset.id" style="width: 100%;">
+        <div v-if="!balanceLoaded && !manageAssets && asset.id === selectedAsset.id" style="width: 100%;">
           <q-skeleton type="rect"/>
         </div>
-        <p v-else class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
-          {{ String(num2shortStr(convertTokenAmount(asset.balance, asset.decimals))).substring(0, 10) }}
-        </p>
-      </div>
-      <div v-if="balanceLoaded" style="margin-top: -30px;">
-        <TokenTypeBadge
-          :assetId="asset.id"
-        />
+        <template v-else>
+          <p v-if="!manageAssets" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
+            {{ String(num2shortStr(convertTokenAmount(asset.balance, asset.decimals))).substring(0, 10) }}
+          </p>
+        </template>
+
+        <div
+          v-if="manageAssets && asset.symbol !== 'BCH'"
+          @click="() => removeAsset(asset)"
+          style="float: right; width: 20px; margin-top: -5px;">
+          <q-btn icon="close" style="background: red; color: white" size="8px" flat round dense v-close-popup />
+        </div>
       </div>
       <!-- <div v-if="balanceLoaded" style="margin-top: -16px;">
         <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
@@ -52,14 +50,10 @@
 <script>
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
-import TokenTypeBadge from './TokenTypeBadge'
 import { getWalletByNetwork, convertTokenAmount } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',
-  components: {
-    TokenTypeBadge,
-  },
   emits: [
     'hide-asset-info',
     'show-asset-info',
@@ -74,7 +68,8 @@ export default {
     assets: { type: Array },
     manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
-    balanceLoaded: { type: Boolean }
+    balanceLoaded: { type: Boolean },
+    isCashToken: { type: Boolean }
   },
   data () {
     return {
@@ -147,37 +142,6 @@ export default {
         }, 200)
       }
     },
-    async addAsset (asset) {
-      const vm = this
-      const wallet = vm.$parent.$parent.wallet
-
-      if (asset.isCashToken) {
-        const tokenId = asset.tokenId
-
-        getWalletByNetwork(wallet, 'bch').getTokenDetails(asset.tokenId).then(details => {
-          vm.$store.commit('assets/addNewAsset', {
-            ...details,
-            balance: 0
-          })
-        })
-        return
-      }
-
-      getWalletByNetwork(wallet, 'slp').getSlpTokenDetails(asset.tokenId).then(function (details) {
-        const token = {
-          id: details.id,
-          symbol: details.symbol,
-          name: details.name,
-          logo: details.image_url,
-          balance: 0
-        }
-        if (details.symbol.length > 0 && details.token_type === 1) {
-          vm.$store.commit('assets/addNewAsset', token)
-          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
-          vm.$store.dispatch('assets/updateTokenIcon', { assetId: token.id })
-        }
-      })
-    },
     addSep20Asset (contractAddress) {
       const vm = this
       this.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
@@ -201,11 +165,15 @@ export default {
       const vm = this
       vm.$q.dialog({
         // need both in passing props for now for backwards compatibility
-        componentProps: { network: this.network, darkMode: this.darkMode },
+        componentProps: {
+          network: vm.network,
+          darkMode: vm.darkMode,
+          isCashToken: vm.isCashToken,
+          wallet: vm.$parent.$parent.wallet
+        },
         component: AddNewAsset
       }).onOk((asset) => {
-        if (this.isSep20) return this.addSep20Asset(asset.tokenId)
-        vm.addAsset(asset)
+        if (vm.isSep20) return vm.addSep20Asset(asset.tokenId)
       }).onCancel(() => {
       })
     },
@@ -243,15 +211,15 @@ export default {
   }
   .btn-add-payment-method {
     border: 0px solid $grey-1;
-    padding: 25px 20px 34px 20px;
+    padding: 20px 20px 34px 20px;
     border-radius: 16px;
     font-size: 25px;
-    height: 87px;
+    height: 78px;
     margin-left: 2px;
     margin-right: 12px;
   }
   .method-cards {
-    height: 87px;
+    height: 78px;
     min-width: 150px;
     border-radius: 16px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);

@@ -32,6 +32,7 @@
       <q-card-section class="q-pt-none q-px-sm">
         <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
           <q-tabs
+            v-if="enableSmartBCH"
             active-color="brandblue"
             class="col-12 q-px-sm q-pb-md pp-fcolor"
             v-model="selectedNetwork"
@@ -68,6 +69,7 @@
                     <TokenTypeBadge
                       :assetId="token.id"
                       class="q-ml-xs"
+                      abbreviate
                     />
                   </q-item-label>
                 </q-item-section>
@@ -163,6 +165,9 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
     parsedTokens () {
       if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
       if (this.selectedNetwork === 'sBCH') return this.parsedSmartchainTokens
@@ -178,7 +183,7 @@ export default {
             id: token.id || '',
             name: token.name || '',
             symbol: token.symbol || '',
-            logo: token.image_url || '',
+            logo: token.image_url || token.logo || '',
             balance: token.balance || 0,
             decimals: token.decimals || 0,
             isSep20: false

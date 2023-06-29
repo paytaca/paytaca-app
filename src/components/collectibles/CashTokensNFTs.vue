@@ -1,7 +1,6 @@
 <template>
   <div :class="[darkMode ? 'pt-dark-label' : 'text-grey-8']">
     <div class="q-mx-md q-px-sm row items-center">
-      <div class="q-space text-h5 q-ml">CashToken NFTs</div>
       <div class="row justify-end">
         <q-btn-toggle
           v-if="parsedNftGroups?.length > 1 || viewType !== 'grid'"
@@ -25,11 +24,8 @@
             @click="() => toggleExpandGroupId(nftGroup?.category)"
           >
             <div class="ellipsis q-space" :class="darkMode ? 'text-grad' : 'text-grey-8'">
-              <span v-if="nftGroup.ungrouped">
-                Ungrouped NFTs
-              </span>
-              <span v-else >
-                {{ nftGroup?.info?.name || nftGroup?.category }}
+              <span>
+                {{ nftGroup?.metadata?.name || nftGroup?.category }}
               </span>
             </div>
             <q-icon
@@ -116,16 +112,16 @@ function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
 }
 
 const parsedNftGroups = computed(() => {
-  const ungrouped = {
-    key: 'ungrouped',
-    ungrouped: true,
-  }
-  if (!Array.isArray(nftGroups.value)) return [ungrouped]
+  // const ungrouped = {
+  //   key: 'ungrouped',
+  //   ungrouped: true,
+  // }
+  // if (!Array.isArray(nftGroups.value)) return [ungrouped]
   const data = nftGroups.value
     .map(nftGroup => Object.assign({}, nftGroup))
     .filter(nftGroup => nftGroup?.capability === 'minting')
 
-  data.push(ungrouped)
+  // data.push(ungrouped)
   return data
 })
 

@@ -29,7 +29,7 @@
     <template v-else>
       <div class="row">
         <div class="col qr-code-container" @click="copyToClipboard(address)">
-          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+          <div class="col col-qr-code q-pl-sm q-pr-sm">
             <div class="row text-center">
               <div class="col row justify-center q-pt-md">
                 <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
@@ -455,7 +455,7 @@ export default {
     color: #636767;
   }
   .qr-code-container {
-    margin-top: 120px;
+    margin-top: 70px;
     padding-left: 28px;
     padding-right: 28px;
   }

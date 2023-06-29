@@ -7,7 +7,7 @@ export default function () {
       code: 'US'
     },
     isChipnet: false,
-    showTokens: false,
+    showTokens: true,
     enableSmartBCH: false,
     wallets: {
       bch: {

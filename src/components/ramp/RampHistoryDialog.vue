@@ -32,7 +32,7 @@
         <q-card-section>
           <div v-if="transactions.length === 0" class="relative text-center q-pt-sm">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
+            <p :class="{ 'text-black': !darkMode, 'text-white': darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
           </div>
           <div v-else>
             <q-card-section style="max-height:50vh;overflow-y:auto;">

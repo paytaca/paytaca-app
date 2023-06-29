@@ -10,6 +10,7 @@
       ]"
     >
       <q-tabs
+        v-if="enableSmartBCH"
         active-color="brandblue"
         class="col-12 q-px-sm q-pb-md pp-fcolor"
         v-model="selectedNetwork"
@@ -74,7 +75,7 @@
         ]"
         style="font-size: 18px"
       >
-        {{ $t('NoIgnoredAssets') }}
+        {{ $t('NoIgnoredTokens') }}
       </div>
     </div>
   </div>
@@ -101,6 +102,9 @@ export default {
       if (this.selectedNetwork === 'sBCH') return this.ignoredSmartchainAssets
 
       return []
+    },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
     },
     ignoredMainchainAssets () {
       return this.$store.getters['assets/ignoredAssets']
