@@ -23,7 +23,7 @@
                   {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
                 </template>
                 <template v-else>
-                  {{ transaction.amount }} {{ transaction.asset.symbol }}
+                  {{ convertTokenAmount(transaction.amount, transaction.asset.decimals, transaction.asset.id === 'bch') }} {{ transaction.asset.symbol }}
                 </template>
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
@@ -186,6 +186,7 @@ import TokenTypeBadge from './TokenTypeBadge'
 import { ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
+import { convertTokenAmount } from 'src/wallet/chipnet'
 
 export default {
   name: 'transaction',
@@ -283,6 +284,7 @@ export default {
   },
   methods: {
     ellipsisText,
+    convertTokenAmount,
     concatenate (array) {
       let addresses = array.map(function (item) {
         return item[0]

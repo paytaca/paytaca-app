@@ -23,8 +23,8 @@
           <q-skeleton type="rect"/>
         </div>
         <template v-else>
-          <p v-if="!manageAssets" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -10px;">
-            {{ String(num2shortStr(convertTokenAmount(asset.balance, asset.decimals))).substring(0, 10) }}
+          <p v-if="!manageAssets" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
+            {{ convertTokenAmount(asset.balance, asset.decimals) }}
           </p>
         </template>
 
@@ -50,7 +50,7 @@
 <script>
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
-import { getWalletByNetwork, convertTokenAmount } from 'src/wallet/chipnet'
+import { convertTokenAmount } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',
@@ -89,23 +89,23 @@ export default {
   },
   methods: {
     convertTokenAmount,
-    num2shortStr(value) {
-      const number = Number(value)
-      const SI_SYMBOL = ["", "K", "M", "G", "T", "P", "E"]
-      const tier = Math.log10(Math.abs(number)) / 3 | 0
+    // num2shortStr(value) {
+    //   const number = Number(value)
+    //   const SI_SYMBOL = ["", "K", "M", "G", "T", "P", "E"]
+    //   const tier = Math.log10(Math.abs(number)) / 3 | 0
 
-      if (tier === 0) return number
+    //   if (tier === 0) return number
 
-      const suffix = SI_SYMBOL[tier]
-      const scale = Math.pow(10, tier * 3)
-      const scaled = number / scale
-      let numStr = scaled.toFixed(1)
+    //   const suffix = SI_SYMBOL[tier]
+    //   const scale = Math.pow(10, tier * 3)
+    //   const scaled = number / scale
+    //   let numStr = scaled.toFixed(1)
 
-      if (numStr.endsWith('0'))
-        numStr = numStr.substring(0, numStr.length - 2)
+    //   if (numStr.endsWith('0'))
+    //     numStr = numStr.substring(0, numStr.length - 2)
 
-       return numStr + suffix
-    },
+    //    return numStr + suffix
+    // },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 

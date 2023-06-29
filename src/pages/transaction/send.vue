@@ -247,7 +247,7 @@
           <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
           <div :class="darkMode ? 'text-white' : 'pp-text'" :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}">
             <p style="font-size: 26px;">Successfully sent</p>
-            <p style="font-size: 28px; margin-top: -10px;">{{ sendData.amount }} {{ asset.symbol }}</p>
+            <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
             <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
               ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
             </p>
@@ -425,7 +425,7 @@ export default {
       wallet: null,
       walletType: '',
       isCashToken: false,
-
+      ctTokenAmount: null,
       forceUseDefaultNftImage: false,
 
       fetchingTokenStats: false,
@@ -1144,12 +1144,12 @@ export default {
             )
           } else {
             if (tokenId) {
-              const sendAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
+              vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: vm.commitment || undefined,
                 capability: vm.capability || undefined
-              }, sendAmount)
+              }, (vm.ctTokenAmount * (10 ** vm.asset.decimals)))
             } else {
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
                 tokenId: tokenId,

@@ -14,7 +14,7 @@
             :class="{'text-grey': darkMode, 'q-mt-sm': !marketValueData?.marketValue }"
             class="q-mb-none transactions-wallet float-right ib-text text-right"
           >
-            <div>{{ +(transaction.amount) }} {{ asset?.symbol }}</div>
+            <div>{{ +(formatAmount(transaction?.amount, asset?.decimals, asset?.id === 'bch')) }} {{ asset?.symbol }}</div>
             <div 
               v-if="marketValueData?.marketValue"
               class="text-caption text-grey"
@@ -58,6 +58,7 @@
   </div>
 </template>
 <script setup>
+import { convertTokenAmount } from 'src/wallet/chipnet'
 import ago from 's-ago'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
@@ -157,6 +158,15 @@ const badges = computed(() => {
 function formatDate (date) {
   return ago(new Date(date))
 }
+
+function formatAmount (amount, decimals, isBCH) {
+  if (isBCH) {
+    return amount
+  } else {
+    return amount / (10 ** decimals)
+  }
+}
+
 </script>
 <style scoped>
 .col-transaction {
