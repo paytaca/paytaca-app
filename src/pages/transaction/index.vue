@@ -822,10 +822,21 @@ export default {
 
     async loadWallets () {
       const vm = this
-      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
 
       const wallet = new Wallet(mnemonic, vm.selectedNetwork)
       vm.wallet = markRaw(wallet)
+
+      const storedWalletHash = vm.$store.getters['global/getWallet']('bch').walletHash
+      const derivedWalletHash = getWalletByNetwork(vm.wallet, 'bch').walletHash
+
+      if (storedWalletHash !== derivedWalletHash) {
+        console.log('INCONSISTENCY DETECTED!')
+        console.log('Wallet index:', walletIndex)
+        this.$store.commit('global/updateCurrentWallet', walletIndex)
+        location.reload()
+      }
 
       if (vm.selectedNetwork === 'BCH') {
         // Create change addresses if nothing is set yet
