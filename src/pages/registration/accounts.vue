@@ -174,6 +174,14 @@ import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 
+function countWords(str) {
+  if (str) {
+    return str.trim().split(/\s+/).length
+  } else {
+    return 0
+  }
+}
+
 export default {
   name: 'registration-accounts',
   components: {
@@ -215,7 +223,11 @@ export default {
   },
   methods: {
     validateSeedPhrase () {
-      return utils.isValidMnemonic(this.seedPhraseBackup)
+      if (countWords(this.seedPhraseBackup) === 12) {
+        return utils.isValidMnemonic(this.seedPhraseBackup)
+      } else {
+        return false
+      }
     },
     cleanUpSeedPhrase (seedPhrase) {
       return seedPhrase.toLowerCase().trim()
