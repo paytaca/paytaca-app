@@ -174,6 +174,7 @@ export default {
         component: AddNewAsset
       }).onOk((asset) => {
         if (vm.isSep20) return vm.addSep20Asset(asset.tokenId)
+        vm.selectAsset(null, asset.data)
       }).onCancel(() => {
       })
     },

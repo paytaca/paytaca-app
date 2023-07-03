@@ -191,6 +191,7 @@ export default {
       this.$emit('ok', {
         isCashToken: this.isCashToken,
         tokenId: this.tokenId,
+        data: this.asset
       })
       this.hide()
     },
