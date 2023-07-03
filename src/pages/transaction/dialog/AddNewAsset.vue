@@ -154,8 +154,10 @@ export default {
         vm.$refs.questForm.validate().then(success => {
           getWalletByNetwork(vm.wallet, 'bch').getTokenDetails(vm.tokenId).then(details => {
             if (details !== null) {
-              vm.addBtnDisabled = false
-              vm.asset = details
+              if (!details.is_nft) {
+                vm.addBtnDisabled = false
+                vm.asset = details
+              }
             }
             vm.loading = false
           })
