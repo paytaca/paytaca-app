@@ -1015,7 +1015,7 @@ export default {
           } else {
             if (isValidTokenAddress(address)) {
               addressIsValid = true
-              formattedAddress = convertCashAddress(address, vm.isChipnet, false)
+              formattedAddress = address
             } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
               if (addressObj.isValidBCHAddress(vm.isChipnet)) {
                 addressIsValid = true
