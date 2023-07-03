@@ -21,15 +21,27 @@
       </q-card-section>
       
       <q-img
-        fit="fill" width="75"
+        fit="fill"
+        width="75"
         :src="imageUrl"
         @error="() => forceFallbackImage = true"
+        @click="fullscreen = true"
       >
         <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
           <q-spinner size="50px"/>
           <span class="text-weight-medium">Loading metadata ...</span>
         </q-inner-loading>
       </q-img>
+
+      <q-dialog v-model="fullscreen">
+        <q-card class="q-dialog-plugin" style="min-width: 80vw;">
+          <q-img
+            :src="imageUrl"
+            class="no-border-radius"
+          />
+        </q-card>
+      </q-dialog>
+
       <q-tabs v-model="tab">
         <q-tab :class="{'text-blue-5': darkMode}" name="details" label="Details"/>
         <q-tab :class="{'text-blue-5': darkMode}" name="transaction" label="Transaction"/>
@@ -187,6 +199,8 @@ const props = defineProps({
   },
 })
 
+const fullscreen = ref(false)
+
 const innerVal = ref(props.modelValue)
 watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 watch(innerVal, () => $emit('update:modelValue', innerVal.value))
@@ -224,3 +238,12 @@ function copyToClipboard(value, message) {
   })
 }
 </script>
+
+<style scoped>
+.nft-img-btn {
+  position: absolute;
+  z-index: 1000;
+  left: 85%;
+  top: 70%;
+}
+</style>
