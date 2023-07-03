@@ -6,8 +6,8 @@
     v-if="state === 'SELECT'"
   >
     <div v-if="dataLoaded">
-      <div class="row no-wrap items-center q-pa-sm q-pt-md">
-        <div>
+      <div class="text-center row no-wrap items-center q-pa-sm q-pt-md">
+        <div class="col">
           <div v-if="selectedFiat" class="q-ml-md text-h5 md-font-size">
             {{ selectedFiat.abbrev }} <q-icon size="sm" name='mdi-menu-down'/>
           </div>
@@ -26,8 +26,11 @@
             </q-list>
           </q-menu>
         </div>
-        <q-space />
-        <div class="q-pr-md">
+        <!-- <q-space /> -->
+        <div class="col">
+          <q-icon size="md" color="blue-grey-9" name='o_account_circle' @click="viewProfile = true"/>
+        </div>
+        <div class="col">
           <q-icon size="sm" name='sym_o_filter_list'/>
         </div>
       </div>
@@ -115,16 +118,24 @@
       :transactionType="state"
     />
   </div>
+  <div v-if="viewProfile">
+    <MiscDialogs
+      :type="'viewProfile'"
+      v-on:back="viewProfile = false"
+    />
+  </div>
 </template>
 <script>
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      viewProfile: false,
       transactionType: 'BUY',
       dataLoaded: false,
       loading: true,
@@ -503,7 +514,8 @@ export default {
   },
   components: {
     FiatStoreForm,
-    ProgressLoader
+    ProgressLoader,
+    MiscDialogs
   },
   methods: {
     // selectFiatCoin (currency) {

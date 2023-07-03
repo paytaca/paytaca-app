@@ -7,7 +7,7 @@ function getWalletData (state, details) {
     if (isChipnet) {
       return state.chipnet__wallets[walletType]
     }
-  } 
+  }
   return state.wallets[walletType]
 }
 
@@ -135,4 +135,13 @@ export function removeUtxoScanTask(state, walletHash='') {
 
 export function updateConnectivityStatus (state, online) {
   state.online = online
+}
+
+export function resetNickName (state) {
+  console.log('resseting name')
+  state.p2pRampUserName = ''
+}
+
+export function editRampNickname (state, nickname) {
+  state.p2pRampUserName = nickname
 }

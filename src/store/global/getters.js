@@ -11,6 +11,11 @@ function getWalletData (state, walletType) {
   return state.wallets[walletType]
 }
 
+export function getRampNickName (state) {
+  console.log(state.p2pRampUserName)
+  return state.p2pRampUserName
+}
+
 export function network (state) {
   return state.network
 }

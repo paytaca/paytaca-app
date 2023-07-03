@@ -1,37 +1,62 @@
 <template>
-  <FiatStore v-if="menu === 'store'"/>
-  <FiatOrders v-if="menu === 'orders'"/>
-  <FiatAds v-if="menu === 'ads'"/>
-  <footerMenu
-    v-on:clicked="switchMenu"
-  />
+  <div v-if="proceed">
+    <FiatStore v-if="menu === 'store'"/>
+    <FiatOrders v-if="menu === 'orders'"/>
+    <FiatAds v-if="menu === 'ads'"/>
+    <footerMenu
+      v-on:clicked="switchMenu"
+    />
+  </div>
+  <div v-else>
+    <MiscDialogs
+      :type="'editNickname'"
+      v-on:submit="updateNickname"
+    />
+  </div>
 </template>
 <script>
 import footerMenu from './footerMenu.vue'
 import FiatStore from './FiatStore.vue'
 import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       menu: 'store',
-      availableFiat: [] //api/ramp-p2p/currency/fiat/
+      // availableFiat: [], //api/ramp-p2p/currency/fiat/
+      nickName: this.$store.getters['global/getRampNickName'],
+      proceed: false
     }
   },
   components: {
     footerMenu,
     FiatStore,
     FiatOrders,
-    FiatAds
+    FiatAds,
+    MiscDialogs
   },
   methods: {
     switchMenu (item) {
       this.menu = item
+    },
+    updateNickname (info) {
+      console.log('updating nickname')
+      console.log(info)
+      this.$store.commit('global/editRampNickname', info.nickname)
+      this.proceed = true
     }
   },
   async mounted () {
+    const vm = this
+
+    // vm.$store.commit('global/resetNickName')
+    if (vm.nickName) {
+      console.log('has name')
+      vm.proceed = true
+    }
     console.log(this.menu)
   }
 }
