@@ -30,7 +30,7 @@
           <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
             <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
             <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
-            <div class="q-mt-md text-center" v-if="$route.query.tokenType === 'CT-NFT'">
+            <div class="q-mt-md text-center" :class="darkMode ? 'text-white' : 'text-black'" v-if="$route.query.tokenType === 'CT-NFT'">
               <span>Name: {{ $route.query.name }}</span>
               <p>Commitment: {{ $route.query.commitment }}</p>
             </div>
@@ -252,10 +252,16 @@
           <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
           <div :class="darkMode ? 'text-white' : 'pp-text'" :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}">
             <p style="font-size: 26px;">{{ $t('SuccessfullySent') }}</p>
-            <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
-            <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
-              ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
-            </p>
+            <template v-if="isNFT">
+              <p style="font-size: 28px; margin-top: -10px;">{{ $route.query.name }}</p>
+            </template>
+            <template v-else>
+              <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
+              <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
+                ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
+              </p>
+            </template>
+
             <p style="font-size: 24px;">to</p>
             <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
               {{ this.sendData.recipientAddress }}

@@ -42,6 +42,7 @@ export class CashNonFungibleToken {
           name: data?.name || this?.parsedGroupMetadata?.name,
           description: data?.description || this?.parsedGroupMetadata?.name,
           imageUrl: convertIpfsUrl(data?.uris?.icon) || this?.parsedGroupMetadata?.imageUrl,
+          imageUrlFull: convertIpfsUrl(data?.uris?.image),
           attributes: data?.extensions?.attributes
         }
       } else {
@@ -62,6 +63,7 @@ export class CashNonFungibleToken {
       description: this.parsedNftMetadata?.description || this.parsedGroupMetadata?.description,
       symbol: this.parsedGroupMetadata?.symbol,
       imageUrl: this.parsedNftMetadata?.imageUrl || this.parsedGroupMetadata?.imageUrl,
+      imageUrlFull: this.parsedNftMetadata?.imageUrlFull || this.parsedGroupMetadata?.imageUrl,
       attributes: this.parsedNftMetadata?.attributes,
     }
   }

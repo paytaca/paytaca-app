@@ -25,22 +25,12 @@
         width="75"
         :src="imageUrl"
         @error="() => forceFallbackImage = true"
-        @click="fullscreen = true"
       >
         <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
           <q-spinner size="50px"/>
           <span class="text-weight-medium">Loading metadata ...</span>
         </q-inner-loading>
       </q-img>
-
-      <q-dialog v-model="fullscreen">
-        <q-card class="q-dialog-plugin" style="min-width: 80vw;">
-          <q-img
-            :src="imageUrl"
-            class="no-border-radius"
-          />
-        </q-card>
-      </q-dialog>
 
       <q-tabs v-model="tab">
         <q-tab :class="{'text-blue-5': darkMode}" name="details" label="Details"/>
@@ -199,8 +189,6 @@ const props = defineProps({
   },
 })
 
-const fullscreen = ref(false)
-
 const innerVal = ref(props.modelValue)
 watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 watch(innerVal, () => $emit('update:modelValue', innerVal.value))
@@ -223,7 +211,7 @@ const transactionUrl = computed(() => `https://3xpl.com/bitcoin-cash/transaction
 watch(() => [props.nft?.imageUrl], () => forceFallbackImage.value = false)
 const forceFallbackImage = ref(false)
 const imageUrl = computed(() => {
-  if (!forceFallbackImage.value && props.nft?.parsedMetadata?.imageUrl) return props.nft?.parsedMetadata?.imageUrl
+  if (!forceFallbackImage.value && props.nft?.parsedMetadata?.imageUrlFull) return props.nft?.parsedMetadata?.imageUrlFull
   return $store.getters['global/getDefaultAssetLogo']?.(`${props.nft?.category}|${props.nft?.commitment}`)
 })
 

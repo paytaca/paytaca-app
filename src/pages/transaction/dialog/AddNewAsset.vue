@@ -46,25 +46,37 @@
           </div>
 
           <q-separator class="q-mt-none" />
-
-          <q-card-actions align="right">
-            <q-btn
-              rounded
-              class="text-white"
-              color="blue-9"
-              padding="0.5em 2em 0.5em 2em"
-              :label="$t('Add')"
-              type="submit"
-              :disable="addBtnDisabled"
-            />
-            <q-btn
-              rounded
-              flat
-              :label="$t('Close')"
-              padding="0.5em 2em 0.5em 2em"
-              :class="[darkMode ? 'text-white' : 'pp-text']"
-              @click="onCancelClick"
-            />
+          
+          <q-card-actions v-if="asset" align="right">
+            <template v-if="asset.is_nft">
+              <q-btn
+                rounded
+                class="text-white"
+                color="blue-9"
+                padding="0.5em 2em 0.5em 2em"
+                :label="$t('View at Collectibles')"
+                @click="$router.push('/apps/collectibles'); hide()"
+              />
+            </template>
+            <template v-else>
+              <q-btn
+                rounded
+                class="text-white"
+                color="blue-9"
+                padding="0.5em 2em 0.5em 2em"
+                :label="$t('Add')"
+                type="submit"
+                :disable="addBtnDisabled"
+              />
+              <q-btn
+                rounded
+                flat
+                :label="$t('Close')"
+                padding="0.5em 2em 0.5em 2em"
+                :class="[darkMode ? 'text-white' : 'pp-text']"
+                @click="onCancelClick"
+              />
+            </template>
           </q-card-actions>
         </q-form>
     </q-card>
@@ -154,10 +166,8 @@ export default {
         vm.$refs.questForm.validate().then(success => {
           getWalletByNetwork(vm.wallet, 'bch').getTokenDetails(vm.tokenId).then(details => {
             if (details !== null) {
-              if (!details.is_nft) {
-                vm.addBtnDisabled = false
-                vm.asset = details
-              }
+              vm.addBtnDisabled = false
+              vm.asset = details
             }
             vm.loading = false
           })

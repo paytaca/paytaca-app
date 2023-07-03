@@ -239,6 +239,7 @@ export class BchWallet {
         'description': _metadata.description,
         'symbol': _metadata.token.symbol,
         'decimals': _metadata.token.decimals,
+        'is_nft': _metadata.is_nft
       }
     } 
   }

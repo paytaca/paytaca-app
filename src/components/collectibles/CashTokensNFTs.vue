@@ -142,14 +142,11 @@ function refresh() {
   fetchNftGroups()
   if(Array.isArray(cashTokensNFTGroups.value)) {
     cashTokensNFTGroups.value.forEach(component => {
-      console.log(cashTokensNFTGroups)
       if (!component?.fetchNfts?.call) return
-      console.log(component.fetchNfts)
       component.fetchNfts()
     })
   }
   if(cashTokensNFTsList.value?.fetchNfts?.call) {
-    console.log(cashTokensNFTsList.value.fetchNfts)
     cashTokensNFTsList.value.fetchNfts()
   }
 }
