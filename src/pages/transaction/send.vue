@@ -172,7 +172,7 @@
             </template>
             <div class="row" v-if="!isNFT">
               <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                Balance: {{ convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch') }}
+                {{ $t('Balance') }}: {{ convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch') }}
                 {{ asset.symbol }}
                 <template v-if="asset.id === 'bch' && setAmountInFiat">
                   = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
@@ -183,7 +183,7 @@
                   @click.prevent="setMaximumSendAmount"
                   style="float: right; text-decoration: none; color: #3b7bf6;"
                 >
-                  MAX
+                  {{ $t('MAX') }}
                 </a>
               </div>
             </div>
@@ -206,7 +206,12 @@
           </form>
         </div>
 
-        <customKeyboard v-if="!showSlider" :custom-keyboard-state="customKeyboardState" v-on:addKey="setAmount" v-on:makeKeyAction="makeKeyAction" />
+        <customKeyboard
+          v-if="!showSlider"
+          :custom-keyboard-state="customKeyboardState"
+          v-on:addKey="setAmount"
+          v-on:makeKeyAction="makeKeyAction"
+        />
 
         <q-list v-if="showSlider" class="absolute-bottom">
           <q-slide-item left-color="blue" @left="slideToSubmit">
@@ -246,7 +251,7 @@
         <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
           <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
           <div :class="darkMode ? 'text-white' : 'pp-text'" :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}">
-            <p style="font-size: 26px;">Successfully sent</p>
+            <p style="font-size: 26px;">{{ $t('SuccessfullySent') }}</p>
             <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
             <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
               ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
@@ -558,7 +563,13 @@ export default {
       return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
     },
     showSlider () {
-      return this.sendData.sending !== true && this.sendData.sent !== true && this.sendErrors.length === 0 && this.sliderStatus === true
+      return (
+        this.sendData.sending !== true &&
+        this.sendData.sent !== true &&
+        this.sendErrors.length === 0 &&
+        this.sliderStatus === true &&
+        this.sendData.amount > 0
+      )
     },
     paymentOTP () {
       if (this.sendData.responseOTP) return this.sendData.responseOTP
@@ -569,18 +580,13 @@ export default {
 
   watch: {
     'sendData.recipientAddress': function (address) {
-      let amount
-      const addressParse = new URLSearchParams(address.split('?')[1])
-      if (addressParse.has('amount')) {
-        amount = parseFloat(addressParse.get('amount'))
-
-        if (amount !== null) {
-          this.sendData.amount = amount
-          this.sendData.fixedAmount = true
-          this.sendData.recipientAddress = address.split('?')[0]
-          this.sendData.fixedRecipientAddress = true
-          this.sliderStatus = true
-        }
+      let amount = this.getBIP21Amount(address)
+      if (!Number.isNaN(amount)) {
+        this.sendData.amount = amount
+        this.sendData.fixedAmount = true
+        this.sendData.recipientAddress = address.split('?')[0]
+        this.sendData.fixedRecipientAddress = true
+        this.sliderStatus = true
       }
 
       if (address && this.isNFT) {
@@ -974,9 +980,24 @@ export default {
       }
       this.sliderStatus = true
     },
+    getBIP21Amount (bip21Uri) {
+      const addressParse = new URLSearchParams(bip21Uri.split('?')[1])
+      if (addressParse.has('amount')) {
+        const amount = parseFloat(addressParse.get('amount'))
+        return amount
+      }
+      return NaN
+    },
     checkAddress (address) {
       if (address.indexOf('?') > -1) {
+        const amount = this.getBIP21Amount(address)
         address = address.split('?')[0]
+
+        if (!Number.isNaN(amount))
+          this.sendData.amount = amount
+
+        if (amount > 0) 
+          this.sliderStatus = true
       }
       const addressValidation = this.validateAddress(address)
       if (addressValidation.valid) {

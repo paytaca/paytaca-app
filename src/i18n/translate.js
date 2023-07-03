@@ -65,6 +65,7 @@ const words = [
     Manage: "Manage",
     Memo: "Memo",
     Message: "Message",
+    MAX: "MAX",
     Name: "Name",
     or: "or",
     Personalize: "Personalize",
@@ -378,7 +379,8 @@ const phrases = {
       Waiting_SEP20_TokenSent: "Waiting for SEP20 token to be sent",
       XpubKey: "xPub Key",
       YouReceive: "You receive",
-      YouSend: "You send"
+      YouSend: "You send",
+      SuccessfullySent: "Successfully sent"
     },
   ],
   dynamic: [
