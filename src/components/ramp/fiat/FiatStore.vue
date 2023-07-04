@@ -119,19 +119,26 @@
 <script>
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
+import { loadP2PWalletInfo, signMessage } from 'src/wallet/ramp'
 
 export default {
+  components: {
+    FiatStoreForm,
+    ProgressLoader
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      wallet: null,
       transactionType: 'BUY',
       dataLoaded: false,
       loading: true,
+      peerInfo: null,
       selectedFiat: null,
       state: 'SELECT',
       selectedListing: {},
-      availableFiat: [  //api/ramp-p2p/currency/fiat/
+      availableFiat: [ // api/ramp-p2p/currency/fiat/
         {
           name: 'Philippine Peso',
           abbrev: 'PHP'
@@ -492,11 +499,66 @@ export default {
       listings: []
     }
   },
-  components: {
-    FiatStoreForm,
-    ProgressLoader
+  async mounted () {
+    this.wallet = await loadP2PWalletInfo('bch')
+    console.log('wallet:', this.wallet)
+    await this.fetchProfile()
+    await this.fetchFiatCurrencies()
+    await this.fetchStoreListings()
+
+    this.dataLoaded = true
   },
   methods: {
+    async fetchProfile () {
+      const vm = this
+      const headers = {
+        'wallet-hash': this.wallet.walletHash
+      }
+      const url = vm.apiURL + '/peer'
+      console.log('url:', url)
+      vm.$axios.get(url, { headers: headers })
+        .then(response => {
+          // Create a new peer profile if peer does not exist
+          if (response.data.length === 0) {
+            vm.createProfile()
+          } else {
+            vm.peerInfo = response.data
+            console.log('peerInfo: ', vm.peerInfo)
+          }
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
+    },
+    createProfile () {
+      const vm = this
+      const timestamp = Date.now()
+      const url = vm.apiURL + '/peer/'
+      signMessage(this.wallet.privateKeyWif, 'PEER_CREATE', timestamp)
+        .then(result => {
+          const signature = result
+          const headers = {
+            'wallet-hash': this.wallet.walletHash,
+            timestamp: timestamp,
+            signature: signature,
+            'public-key': this.wallet.publicKey
+          }
+          console.log('headers:', headers)
+          const body = {
+            nickname: 'Hayao Miyazaki', // TODO: replace with the actual user inputted nickname
+            address: this.wallet.address
+          }
+          vm.$axios.post(url, body, { headers: headers })
+            .then(response => {
+              vm.peerInfo = response.data
+              console.log('peerInfo: ', vm.peerInfo)
+            })
+            .catch(error => {
+              console.error(error)
+              console.error(error.response)
+            })
+        })
+    },
     // selectFiatCoin (currency) {
     //   // console.log(currency)
     //   this.selectedFiat = currency
@@ -576,15 +638,6 @@ export default {
     formatCompletionRate (value) {
       return Math.floor(value).toString()
     }
-  },
-  async mounted () {
-    // console.log('fiat store')
-    // console.log(this.transactionType)
-    await this.fetchFiatCurrencies()
-    await this.fetchStoreListings()
-
-    this.dataLoaded = true
-    // console.log('done')
   }
 }
 </script>

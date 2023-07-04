@@ -66,6 +66,7 @@ export default {
   setup () {
     const walletHash = ref(null)
     const privateKeyWif = ref(null)
+    const publicKey = ref(null)
 
     const store = useStore()
     const walletInfo = computed(() => store.getters['global/getWallet']('bch'))
@@ -76,13 +77,17 @@ export default {
 
       const { connectedAddressIndex } = walletInfo.value
       privateKeyWif.value = await wallet.BCH.getPrivateKey(connectedAddressIndex)
+      publicKey.value = await wallet.BCH.getPublicKey(`0/${connectedAddressIndex}`)
+      console.log('connectedAddressIndex:', connectedAddressIndex)
+      console.log('publicKey.value:', publicKey.value)
     }
 
     fetchWalletInfo()
     provide('walletHash', walletHash)
     provide('privateKeyWif', privateKeyWif)
+    provide('publicKey', publicKey)
 
-    return { walletHash, privateKeyWif }
+    return { walletHash, privateKeyWif, publicKey }
   },
   components: {
     HeaderNav,

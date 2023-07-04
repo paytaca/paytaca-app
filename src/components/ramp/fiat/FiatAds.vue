@@ -20,13 +20,13 @@
           padding="sm"
           class="q-ml-md"
           icon="add"
-          :class="transactionType === 'buy'? 'buy-add-btn': 'sell-add-btn'"
+          :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
           @click="state = 'create'"
         />
       </div>
       <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'buy' }" @click="transactionType='buy'">Buy</button>
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'sell'}" @click="transactionType='sell'">Sell</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell</button>
       </div>
       <div class="q-mt-md">
         <div v-if="checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
@@ -35,7 +35,7 @@
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="transactionType === 'buy'? buyListings : sellListings">
+            <q-virtual-scroll :items="transactionType === 'BUY'? buyListings : sellListings">
               <template v-slot="{ item: listing, index }">
                 <q-item>
                   <q-item-section>
@@ -493,10 +493,10 @@ export default {
       // console.log('edit')
 
       switch (vm.transactionType) {
-        case 'buy':
+        case 'BUY':
           vm.editListing = vm.buyListings[index]
           break
-        case 'sell':
+        case 'SELL':
           vm.editListing = vm.sellListings[index]
           break
       }
@@ -511,7 +511,7 @@ export default {
     },
     checkEmptyListing () {
       const vm = this
-      if (vm.transactionType === 'buy') {
+      if (vm.transactionType === 'BUY') {
         return vm.buyListings.length === 0
       } else {
         return vm.sellListings.length === 0

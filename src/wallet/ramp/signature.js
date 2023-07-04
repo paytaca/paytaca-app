@@ -11,7 +11,7 @@ export async function signMessage (privateKeyWIF, message, timestamp) {
   const privateKeyBin = decodePrivateKeyWif(privateKeyWIF).privateKey
   if (typeof privateKeyBin === 'string') throw (new IncorrectWIFError(privateKeyWIF))
 
-  const messageHash = await sha256.hash(utf8ToBin(message))
+  const messageHash = await sha256.hash(utf8ToBin(timedMessage))
   const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
 
   if (typeof signatureBin === 'string') throw new Error(signatureBin)
