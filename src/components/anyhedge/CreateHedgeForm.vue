@@ -1,7 +1,7 @@
 <template>
 <TransitionGroup name="slide-group" tag="div" style="overflow:hidden;">
   <div v-if="openLiquidityPoolOptsForm.show">
-    <div class="q-mx-sm text-subtitle1">Select liquidity pool</div>
+    <div class="q-mx-sm text-subtitle1">{{ $t('SelectLiquidityPool') }}</div>
     <q-list class="q-my-sm" :dark="darkMode" separator>
       <q-item
         v-for="(pool, index) in liquidityPoolOpts" :key="index"
@@ -33,7 +33,7 @@
       <q-btn
         no-caps
         :disable="!openLiquidityPoolOptsForm.selected"
-        label="Select"
+        :label="$t('Select')"
         color="brandblue"
         class="full-width"
         @click="() => {
@@ -44,7 +44,7 @@
       <q-btn
         no-caps
         outline
-        label="Cancel"
+        :label="$t('Cancel')"
         color="grey"
         class="full-width"
         @click="$emit('cancel')"
@@ -113,7 +113,7 @@
           </q-popup-proxy>
         </div>
         <div v-if="spendableBch !== null">
-          Balance:
+          {{ $t('Balance') }}:
           <q-btn
             flat padding="xs"
             :text-color="darkMode ? 'blue' : 'brandblue'"
@@ -151,7 +151,7 @@
         :dark="darkMode"
         outlined
         dense
-        label="Amount"
+        :label="$t('Amount')"
         suffix="BCH"
         :disable="loading"
         inputmode="decimal"
@@ -175,7 +175,7 @@
         :dark="darkMode"
         outlined
         dense
-        label="Asset"
+        :label="$t('Asset')"
         :options="oracles"
         map-options
         option-value="oraclePubkey"
@@ -193,7 +193,7 @@
       :dark="darkMode"
       outlined
       dense
-      label="Duration"
+      :label="$t('Duration')"
       v-model="createHedgeForm.duration"
       :disable="loading"
       reactive-rules
@@ -208,7 +208,7 @@
         :dark="darkMode"
         outlined
         dense
-        label="Low"
+        :label="$t('Low')"
         suffix="%"
         :disable="loading"
         inputmode="numeric"
@@ -229,7 +229,7 @@
         :dark="darkMode"
         outlined
         dense
-        label="High"
+        :label="$t('High')"
         suffix="%"
         :disable="loading"
         inputmode="numeric"
@@ -268,14 +268,14 @@
     </div> -->
     <q-slide-transition>
       <div v-if="createHedgeForm.autoMatch">
-        <div :class="darkMode ? 'text-white' : 'text-grey-7'">Liquidity Pool</div>
+        <div :class="darkMode ? 'text-white' : 'text-grey-7'">{{ $t('LiquidityPool') }}</div>
         <div class="row items-center justify-center">
           <q-btn-toggle
             :dark="darkMode"
             no-caps
             spread
             class="full-width"
-            label="Liquidity"
+            :label="$t('Liquidity')"
             :disable="loading"
             v-model="createHedgeForm.autoMatchPoolTarget"
             :options="liquidityPoolOpts"
@@ -289,7 +289,7 @@
           :dark="darkMode"
           outlined
           dense
-          label="Match similarity"
+          :label="$t('MatchSimilarity')"
           suffix="%"
           :disable="loading"
           inputmode="numeric"
@@ -303,8 +303,7 @@
             <q-icon name="help" :color="darkMode ? 'grey-7' : 'black'">
               <q-popup-proxy :breakpoint="0">
                 <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
-                  If there is no exact match found from the pool,
-                  a list of similar offers is suggested instead
+                  {{ $t('AnyHedgeNoExactMatchInfo') }}
                 </div>
               </q-popup-proxy>
             </q-icon>
@@ -321,7 +320,7 @@
         no-caps
         :loading="loading"
         :disable="loading"
-        label="Calculate"
+        :label="$t('Calculate')"
         type="submit"
         color="brandblue"
         class="full-width"
@@ -331,7 +330,7 @@
         outline
         :loading="loading"
         :disable="loading"
-        label="Cancel"
+        :label="$t('Cancel')"
         color="grey"
         class="full-width"
         @click="$emit('cancel')"

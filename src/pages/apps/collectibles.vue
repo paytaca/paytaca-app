@@ -1,14 +1,14 @@
 <template>
   <div id="app-container" :class="{'pt-dark': darkMode}">
-    <header-nav title="Collectibles" backnavpath="/apps" />
+    <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
         <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
+            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">{{ $t('ShowReceivingAddress') }}</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">Refresh List</q-item-section>
+            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">{{ $t('RefreshList') }}</q-item-section>
           </q-item>
         </q-list>
       </q-menu>

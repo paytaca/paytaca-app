@@ -48,7 +48,7 @@
           :class="darkMode ? 'text-grey-6' : ''"
           v-if="deposit.coin==='BCH'"
         >
-          Balance: {{ bchBalance }}
+          {{ $t('Balance') }}: {{ bchBalance }}
         </q-item-label>
           <q-item-label
             class="text-right q-mt-sm"
@@ -82,7 +82,7 @@
           {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
         </q-item-label>
         <q-item-label class="text-center" style="font-size: 10px; color: gray;" >
-          {{getNetwork(settle)}}
+          {{ getNetwork(settle) }}
         </q-item-label>
       </q-item-section>
 
@@ -128,7 +128,7 @@
     <q-item class="q-mx-md q-pt-lg" v-show="!isFromBCH">
       <q-item-section class="justify-center">
         <div class="q-pb-sm q-pl-sm">
-          Refund Address
+          {{ $t('RefundAddress') }}
         </div>
         <q-input
           dense
@@ -151,7 +151,7 @@
         :disable="hasError || !shiftAmount || !settleAddress || !amountLoaded || !refundAddress"
         rounded
         no-caps
-        label='Submit'
+        :label="$t('Submit')"
         color="brandblue"
         class="q-space"
         @click="checkData()"
@@ -247,7 +247,7 @@ export default {
           component: RampShiftTokenSelectDialog,
           componentProps: {
             tokenList: this.tokenList,
-            title: 'Select Source',
+            title: this.$t('SelectSource'),
             type: 'source'
           }
         })

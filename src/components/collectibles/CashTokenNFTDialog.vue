@@ -28,14 +28,14 @@
       >
         <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
           <q-spinner size="50px"/>
-          <span class="text-weight-medium">Loading metadata ...</span>
+          <span class="text-weight-medium">{{ $t('LoadingMetadata') }} ...</span>
         </q-inner-loading>
       </q-img>
 
       <q-tabs v-model="tab">
-        <q-tab :class="{'text-blue-5': darkMode}" name="details" label="Details"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="transaction" label="Transaction"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="extension" label="Extensions" :disable="!nft?.metadata?.type_metadata?.extensions"/>
+        <q-tab :class="{'text-blue-5': darkMode}" name="details" :label="$t('Details')"/>
+        <q-tab :class="{'text-blue-5': darkMode}" name="transaction" :label="$t('Transaction')"/>
+        <q-tab :class="{'text-blue-5': darkMode}" name="extension" :label="$t('Extensions')" :disable="!nft?.metadata?.type_metadata?.extensions"/>
       </q-tabs>
       <q-tab-panels
         animated
@@ -53,17 +53,17 @@
           /> -->
           <div class="row items-start q-gutter-x-xs">
             <div class="q-mb-sm" style="flex-grow:0.5;">
-              <div class="text-caption text-grey">Name</div>
+              <div class="text-caption text-grey">{{ $t('Name') }}</div>
               <div v-if="nft?.parsedMetadata?.name" style="word-break: break-all;">{{ nft?.parsedMetadata?.name }}</div>
               <div v-else class="text-grey">---</div>
             </div>
             <div v-if="nft?.parsedMetadata?.symbol" class="q-mb-sm">
-              <div class="text-caption text-grey">Symbol</div>
+              <div class="text-caption text-grey">{{ $t('Symbol') }}</div>
               <div>{{ nft?.parsedMetadata?.symbol }}</div>
             </div>
           </div>
           <div v-if="nft?.parsedMetadata?.description" class="q-mb-sm">
-            <div class="text-caption text-grey">Description</div>
+            <div class="text-caption text-grey">{{ $t('Description') }}</div>
             <div>{{ nft?.parsedMetadata?.description }}</div>
           </div>
           <div
@@ -71,7 +71,7 @@
             style="position:relative;" v-ripple
             @click="copyToClipboard(nft?.category)"
           >
-            <div class="text-caption text-grey">Category ID</div>
+            <div class="text-caption text-grey">{{ $t('CategoryID') }}</div>
             <div v-if="nft?.category" style="word-break: break-all;">
               {{ nft?.category }} <q-icon name="content_copy"/>
             </div>
@@ -82,13 +82,13 @@
               style="position:relative;flex-grow:0.5;" v-ripple
               @click="copyToClipboard(nft?.commitment)"
             >
-              <div class="text-caption text-grey">Commitment</div>
+              <div class="text-caption text-grey">{{ $t('Commitment') }}</div>
               <div v-if="nft?.commitment">
                 {{ nft?.commitment }} <q-icon name="content_copy"/>
               </div>
             </div>
             <div class="q-mb-sm">
-              <div class="text-caption text-grey">Capability</div>
+              <div class="text-caption text-grey">{{ $t('Capability') }}</div>
               <div>{{ nft?.capability }}</div>
             </div>
           </div>
@@ -96,13 +96,13 @@
         <q-tab-panel name="transaction">
           <div class="q-mb-sm rounded-borders">
             <div class="q-mb-sm row items-center">
-              <div class="text-caption text-grey">Transaction</div>
+              <div class="text-caption text-grey">{{ $t('Transaction') }}</div>
               <q-space/>
               <q-btn
                 flat
                 padding="none"
                 no-caps
-                :label="$t('View in Explorer')"
+                :label="$t('ViewInExplorer')"
                 icon="link"
                 target="_blank"
                 :href="transactionUrl"

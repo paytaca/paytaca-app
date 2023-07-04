@@ -15,6 +15,10 @@ const fs = require('fs')
  */
 const words = [
   {
+    Hedge: "Hedge",
+    Long: "Long",
+    Crypto: "Crypto",
+    Fiat: "Fiat",
     Accept: "Accept",
     Account: "Account",
     All: "All",
@@ -112,15 +116,32 @@ const words = [
     Version: "Version",
     Wallet: "Wallet",
     Wallets: "Wallets",
+    Details: "Details",
+    Transaction: "Transaction",
+    Extensions: "Extensions", 
+    Description: "Description",
+    Unlink: "Unlink",
+    Gifts: "Gifts",
+    Commitment: "Commitment",
+    Capability: "Capability",
+    Submit: "Submit",
+    Select: "Select",
+    Duration: "Duration",
+    Low: "Low",
+    Asset: "Asset",
+    Calculate: "Calculate",
+    Expired: "Expired",
+    High: "High",
+    Liquidity: "Liquidity",
   }
 ]
 const phrases = {
   /**
    * NOTE: separate text objects if it gets too big in size
    * bec the translator has a limit (unspecified in docs)
-   */
-  static: [
-    {
+  */
+ static: [
+   {
       ApproveToken: "Approve token",
       AboutTheApp: "About the App",
       Add_SEP20_Token: "Add SEP20 Token",
@@ -195,7 +216,6 @@ const phrases = {
       GeneratingRandomSignature: "Generating random signature",
       GasFee: "Gas fee",
       GasPrice: "Gas Price",
-      Gifts: "Gifts",
       GenerateNewAddress: "Generate new address",
       HasBalance: "Has balance",
       InvalidPhoneNumber: "Invalid phone number",
@@ -323,10 +343,27 @@ const phrases = {
       TransactionId: "Transaction ID",
       TransactionDeadline: "Transaction Deadline",
       TransactionSent: "Transaction Sent",
-      Unlink: "Unlink",
       UnlinkDevice: "Unlink device",
     },
     {
+      TotalHedgeValue: "Total hedge value",
+      NoOngoingContract: "No ongoing contract",
+      UnknownAsset: "Unknown asset",
+      OraclePubkey: "Oracle pubkey",
+      HedgeOffers: "Hedge Offers",
+      ClearFilter: "Clear filter",
+      LiquidityPool: "Liquidity Pool",
+      HedgePositions: "Hedge Positions",
+      LongOffers: "Long Offers",
+      LongPositions: "Long Positions",
+      TotalLongPositions: "Total Long Positions",
+      SelectLiquidityPool: "Select liquidity pool",
+      MatchSimilarity: "Match similarity",
+      AnyHedgeNoExactMatchInfo: "If there is no exact match found from the pool, a list of similar offers is suggested instead",
+      AddAll: "Add All",
+      SelectSource: "Select Source",
+      TransactionHistory: "Transaction History",
+      RefundAddress: "Refund Address",
       AppInfo: "App Info",
       AddressScan: "Address Scan",
       UtxoScan: "UTXO Scan",
@@ -380,7 +417,12 @@ const phrases = {
       XpubKey: "xPub Key",
       YouReceive: "You receive",
       YouSend: "You send",
-      SuccessfullySent: "Successfully sent"
+      SuccessfullySent: "Successfully sent",
+      ShowReceivingAddress: "Show Receiving Address",
+      RefreshList: "Refresh List",
+      LoadingMetadata: "Loading metadata",
+      CategoryID: "Category ID",
+      RampFiatNotice: "Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!",
     },
   ],
   dynamic: [

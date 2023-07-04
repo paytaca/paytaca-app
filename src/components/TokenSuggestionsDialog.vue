@@ -121,7 +121,7 @@
           v-if="parsedTokens.length > 0 && !loading"
           no-caps
           rounded
-          :label="`Add all ${parsedTokens.length}`"
+          :label="`${$t('AddAll')} ${parsedTokens.length}`"
           text-color="white"
           :color="darkMode ? 'blue-9': 'brandblue'"
           @click="addAllTokens()"
