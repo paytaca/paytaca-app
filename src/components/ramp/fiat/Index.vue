@@ -3,6 +3,10 @@
     <FiatStore v-if="menu === 'store'"/>
     <FiatOrders v-if="menu === 'orders'"/>
     <FiatAds v-if="menu === 'ads'"/>
+    <FiatProfileCard
+      v-if="menu === 'profile'"
+      v-on:back="menu = 'store'"
+    />
     <footerMenu
       v-on:clicked="switchMenu"
     />
@@ -19,6 +23,7 @@ import footerMenu from './footerMenu.vue'
 import FiatStore from './FiatStore.vue'
 import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
+import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
@@ -36,6 +41,7 @@ export default {
     FiatStore,
     FiatOrders,
     FiatAds,
+    FiatProfileCard,
     MiscDialogs
   },
   methods: {
@@ -43,21 +49,17 @@ export default {
       this.menu = item
     },
     updateNickname (info) {
-      console.log('updating nickname')
-      console.log(info)
+      // save user info
       this.$store.commit('global/editRampNickname', info.nickname)
       this.proceed = true
     }
   },
   async mounted () {
     const vm = this
-
     // vm.$store.commit('global/resetNickName')
     if (vm.nickName) {
-      console.log('has name')
       vm.proceed = true
     }
-    console.log(this.menu)
   }
 }
 </script>

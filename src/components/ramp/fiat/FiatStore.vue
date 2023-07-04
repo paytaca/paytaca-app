@@ -3,11 +3,11 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     style="min-height:78vh;"
-    v-if="state === 'SELECT'"
+    v-if="state === 'SELECT' && !viewProfile"
   >
     <div v-if="dataLoaded">
-      <div class="text-center row no-wrap items-center q-pa-sm q-pt-md">
-        <div class="col">
+      <div class="row no-wrap items-center q-pa-sm q-pt-md">
+        <div>
           <div v-if="selectedFiat" class="q-ml-md text-h5 md-font-size">
             {{ selectedFiat.abbrev }} <q-icon size="sm" name='mdi-menu-down'/>
           </div>
@@ -26,17 +26,14 @@
             </q-list>
           </q-menu>
         </div>
-        <!-- <q-space /> -->
-        <div class="col">
-          <q-icon size="md" color="blue-grey-9" name='o_account_circle' @click="viewProfile = true"/>
-        </div>
-        <div class="col">
+        <q-space />
+        <div class="q-pr-md">
           <q-icon size="sm" name='sym_o_filter_list'/>
         </div>
       </div>
       <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy BCH</button>
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell BCH</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy Ads</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell Ads</button>
       </div>
       <div class="q-mt-md">
         <div v-if="dataLoaded == true && getFilteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
@@ -55,18 +52,19 @@
                           <span
                             :class="{'pt-dark-label': darkMode}"
                             class="q-mb-none text-uppercase md-font-size"
+                            @click.stop.prevent="viewUserProfile(listing.owner)"
                           >
-                            {{ listing.owner }}
+                            <q-icon size="sm" name='o_account_circle' color="blue-grey-6"/>&nbsp;{{ listing.owner }}
                           </span><br>
                           <div class="row sm-font-size">
-                              <span class="q-mr-sm subtext">{{ listing.trade_count }} total trades </span>
-                              <span class="q-ml-sm subtext">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
+                            <span class="q-mr-sm subtext">{{ listing.trade_count }} total trades </span>
+                            <span class="q-ml-sm subtext">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                           </div>
                           <span
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase lg-font-size"
                           >
-                            {{ listing.price }} {{ selectedFiat.abbrev }}
+                            {{ listing.price }} {{ listing.fiat_currency.abbrev }}
                             <!-- {{ listing.priceType === 'FIXED' ? listing.fixedPrice : listing.floatingPrice }} {{ listing.fiatCurrency.abbrev }} -->
                           </span>
                           <span class="sm-font-size">
@@ -78,22 +76,15 @@
                           </div>
                           <div class="row sm-font-size">
                               <span class="q-mr-md">Limit</span>
-                              <span> {{ listing.trade_floor }} {{ selectedFiat.abbrev }} - {{ listing.trade_ceiling }} {{ selectedFiat.abbrev }}</span>
+                              <span> {{ listing.trade_floor }} {{ listing.fiat_currency.abbrev }} - {{ listing.trade_ceiling }} {{ listing.fiat_currency.abbrev }}</span>
                           </div>
                         </div>
-                        <!-- <div class="text-right sm-font-size">
-                          <span class="subtext">Quantity: {{ listing.cryptoAmount }} BCH</span><br>
-                          <span class="subtext">Limit: {{ listing.tradeFloor }} {{ listing.fiatCurrency.abbrev }} - {{ listing.tradeCeiling }} {{ listing.fiatCurrency.abbrev }}</span> -->
-                          <!-- <span class="subtext">{{ listing.trades }} trades</span><br>
-                          <span class="subtext">{{ listing.completion }}% completion</span> -->
-                        <!-- </div> -->
                       </div>
                       <div class="q-gutter-sm q-pt-sm">
                         <q-badge v-for="method in listing.payment_methods" :key="method.id"
-                        rounded outline :color="transactionType === 'BUY'? 'blue': 'red'">
+                        rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
                         {{ method.payment_type }}
                         </q-badge>
-                        <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.name" /> -->
                       </div>
                     </div>
                   </q-item-section>
@@ -111,24 +102,30 @@
     </div>
   </q-card>
   <!-- Buy/Sell Form Here -->
-  <div v-if="state !== 'SELECT'">
+  <div v-if="state !== 'SELECT' && !viewProfile">
     <FiatStoreForm
       v-on:back="state = 'SELECT'"
       :listingData="selectedListing"
       :transactionType="state"
     />
   </div>
-  <div v-if="viewProfile">
+  <!-- <div v-if="viewProfile">
     <MiscDialogs
       :type="'viewProfile'"
       v-on:back="viewProfile = false"
     />
-  </div>
+  </div> -->
+  <FiatProfileCard
+    v-if="viewProfile"
+    :userInfo="selectedUser"
+    :type="'peer'"
+    v-on:back="viewProfile = false"
+  />
 </template>
 <script>
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
-import MiscDialogs from './dialogs/MiscDialogs.vue'
+import FiatProfileCard from './FiatProfileCard.vue'
 
 export default {
   data () {
@@ -136,12 +133,13 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       viewProfile: false,
-      transactionType: 'BUY',
+      transactionType: 'SELL',
       dataLoaded: false,
       loading: true,
       selectedFiat: null,
-      state: 'SELECT',
+      state: 'SELECT', //'BUY', 'SELL'
       selectedListing: {},
+      selectedUser: null,
       availableFiat: [  //api/ramp-p2p/currency/fiat/
         {
           name: 'Philippine Peso',
@@ -515,7 +513,7 @@ export default {
   components: {
     FiatStoreForm,
     ProgressLoader,
-    MiscDialogs
+    FiatProfileCard
   },
   methods: {
     // selectFiatCoin (currency) {
@@ -531,10 +529,9 @@ export default {
         .catch(error => {
           console.error(error)
           console.error(error.response)
-
-          vm.fiatCurrencies = vm.availableFiat
-          vm.selectedFiat = vm.fiatCurrencies[0]
         })
+      // vm.fiatCurrencies = vm.availableFiat
+      // vm.selectedFiat = vm.fiatCurrencies[0]
     },
     async fetchStoreListings () {
       const vm = this
@@ -554,10 +551,9 @@ export default {
             console.error(error)
             console.error(error.response)
             vm.loading = false
-
-            vm.listings = vm.test_data // remove later
           })
       }
+      // vm.listings = vm.test_data // remove later
     },
     async selectFiatCurrency (index) {
       this.selectedFiat = this.fiatCurrencies[index]
@@ -568,7 +564,7 @@ export default {
       const vm = this
 
       vm.selectedListing = listing
-      vm.state = vm.transactionType
+      vm.state = vm.transactionType === 'SELL' ? 'BUY' : 'SELL'
     },
     // sortedListings () {
     //   const vm = this
@@ -587,10 +583,19 @@ export default {
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
+    },
+    updateNickname (info) {
+      this.$store.commit('global/editRampNickname', info.nickname)
+      // this.proceed = true
+    },
+    viewUserProfile (user) {
+      this.viewProfile = true
+      this.selectedUser = {
+        name: user
+      }
     }
   },
   async mounted () {
-    console.log('fiat store')
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
 
@@ -647,3 +652,5 @@ export default {
   opacity: .5;
 }
 </style>
+
+<!-- Todo: update ad list info -->
