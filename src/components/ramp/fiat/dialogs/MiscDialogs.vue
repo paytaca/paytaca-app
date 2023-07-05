@@ -115,7 +115,7 @@
       </q-card-section>
 
       <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" v-close-popup />
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
         <q-btn :disable="!isNameValid" flat label="Confirm" @click="submitData()" color="blue-6" v-close-popup />
       </q-card-actions>
     </q-card>
@@ -217,23 +217,20 @@ export default {
           vm.info = vm.paymentMethod
           break
         case 'editNickname':
-
           vm.info = {
             nickname: vm.nickname
           }
           break
       }
     },
-    submitData () {
+    async submitData () {
       const vm = this
       vm.stageData()
 
-      // console.log(this.paymentMethod)
-      this.$emit('submit', vm.info)
+      await this.$emit('submit', vm.info)
       this.$emit('back')
     },
     checkName: debounce(async function () {
-      console.log('checking name')
       const vm = this
       this.isNameValid = false
 
@@ -246,9 +243,6 @@ export default {
     }
   },
   async mounted () {
-    // console.log('payment methods')
-    // console.log(this.type)
-
     this.checkDialogType()
   }
 }

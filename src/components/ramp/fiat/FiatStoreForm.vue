@@ -134,7 +134,12 @@
             </div>
           </div>
           <div class="text-right q-mr-lg q-mt-md" v-if="!released">
-            <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_chat"/>
+            <q-icon
+              :class="{shake: disabled}"
+              @click="warnDisabled"
+              class="q-pr-lg"
+              :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_chat"
+            />
           </div>
           <div class="text-right q-mr-lg q-mt-md" v-if="released">
             <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
@@ -173,6 +178,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      disabled: false,
       isloaded: false,
       ad: null,
       fiatAmount: 0,
@@ -237,17 +243,12 @@ export default {
   //   this.isloaded = true
   // },
   methods: {
-    // isAmountValid (value) {
-    //   // amount with comma and decimal regex
-    //   const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
-    //   value = String(value)
-
-    //   if (regex.test(value) && value !== '0') {
-    //     return true
-    //   } else {
-    //     return false
-    //   }
-    // },
+    warnDisabled () {
+      this.disabled = true
+      setTimeout(() => {
+        this.disabled = false
+      }, 1500)
+    },
     async fetchAd () {
       const adId = this.listingData.id
       const url = `${this.apiURL}/ad/${adId}`
@@ -276,7 +277,7 @@ export default {
         }
       }
       // set the minimum trade amount in form
-      this.fiatAmount = this.ad.trade_floor
+      this.fiatAmount = this.ad.trade_floor // remove later
     },
     isValidInputAmount (value) {
       if (value === undefined) return false
@@ -298,12 +299,10 @@ export default {
     }
   },
   async mounted () {
-    console.log('fiat form')
     const vm = this
     // vm.buy = vm.listingData
     await vm.fetchAd()
     vm.isloaded = true
-    console.log('done')
   }
 }
 </script>
@@ -320,5 +319,32 @@ export default {
 }
 .sell-color {
   color: #ed5f59;
+}
+.shake {
+  animation: shake 0.82s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 </style>

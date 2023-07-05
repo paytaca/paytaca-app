@@ -12,7 +12,6 @@ function getWalletData (state, walletType) {
 }
 
 export function getRampNickName (state) {
-  console.log(state.p2pRampUserName)
   return state.p2pRampUserName
 }
 

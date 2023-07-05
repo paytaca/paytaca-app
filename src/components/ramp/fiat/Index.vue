@@ -15,6 +15,7 @@
     <MiscDialogs
       :type="'editNickname'"
       v-on:submit="updateNickname"
+      v-on:back="$router.go(-1)"
     />
   </div>
 </template>
@@ -56,7 +57,7 @@ export default {
   },
   async mounted () {
     const vm = this
-    // vm.$store.commit('global/resetNickName')
+    // vm.$store.commit('global/resetNickName') //remove later
     if (vm.nickName) {
       vm.proceed = true
     }
