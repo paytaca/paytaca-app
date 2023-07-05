@@ -54,11 +54,19 @@
                             class="col-transaction text-uppercase"
                             style="font-size: 16px;"
                           >
-                            {{ listing.fixedPrice }} {{ listing.fiatCurrency.abbrev }}
+                            {{ listing.price }} {{ listing.fiat_currency.abbrev }}
                           </span>
                           <span style="font-size: 12px;">
                             /BCH
                           </span>
+                          <div class="row sm-font-size">
+                            <span class="q-mr-md">Quantity</span>
+                            <span>{{ listing.crypto_amount }} BCH</span>
+                          </div>
+                          <div class="row sm-font-size">
+                            <span class="q-mr-md">Limit</span>
+                            <span> {{ listing.trade_floor }} {{ listing.fiat_currency.abbrev }} - {{ listing.trade_ceiling }} {{ listing.fiat_currency.abbrev }}</span>
+                          </div>
                         </div>
                         <div class="text-right">
                           <q-btn
@@ -83,7 +91,7 @@
                         </div>
                       </div>
                       <div class="q-gutter-sm q-pt-sm">
-                        <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.name" />
+                        <q-badge v-for="method in listing.payment_methods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.payment_type" />
                       </div>
                     </div>
                   </q-item-section>
@@ -124,315 +132,342 @@ export default {
       // listings: [],
       listings: [
         {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
+          owner: 'Andy Webber',
+          trade_type: 'BUY',
+          price_type: 'FIXED',
+          fiat_currency: {
             name: 'Philippine Peso',
             abbrev: 'PHP'
           },
-          cryptoCurrency: {
+          crypto_currency: {
             name: 'Bitcoin Cash',
             abbrev: 'BCH'
           },
-          fixedPrice: 1000, // Work on later
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          timeDurationChoice: 1440,
-          paymentMethods: [
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000, // Work on later
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
+          time_duration_choice: 1440,
+          payment_methods: [
             {
-              name: 'gcash',
+              payment_type: 'gcash',
               account_name: 'Andy Webber',
               account_number: 123845893
             },
             {
-              name: 'paymaya',
+              payment_type: 'paymaya',
               account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
-              name: 'paypal',
+              payment_type: 'paypal',
               account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
         },
         {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
+          owner: 'Agnes Christy',
+          trade_type: 'BUY',
+          price_type: 'FIXED',
+          fiat_currency: {
             name: 'Philippine Peso',
             abbrev: 'PHP'
           },
-          cryptoCurrency: {
+          crypto_currency: {
             name: 'Bitcoin Cash',
             abbrev: 'BCH'
           },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          time_duration_choice: 1440,
-          paymentMethods: [
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000,
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
+          time_duration_choice: 300,
+          payment_methods: [
             {
-              name: 'gcash',
+              payment_type: 'gcash',
               account_name: 'Agnes Christy',
               account_number: 123845893
             },
             {
-              name: 'paymaya',
+              payment_type: 'paymaya',
               account_name: 'Jane Austin',
               account_number: 'jasbdvndsakXZc'
             },
             {
-              name: 'paypal',
+              payment_type: 'paypal',
               account_name: 'Charlotte Bronte',
               account_number: 'sample@gmail.com'
             }
           ]
         },
         {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
+          owner: 'Jane Austin',
+          trade_type: 'BUY',
+          price_type: 'FIXED',
+          fiat_currency: {
             name: 'Philippine Peso',
             abbrev: 'PHP'
           },
-          cryptoCurrency: {
+          crypto_currency: {
             name: 'Bitcoin Cash',
             abbrev: 'BCH'
           },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000,
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
           time_duration_choice: 1440,
-          paymentMethods: [
+          payment_methods: [
             {
-              name: 'gcash',
+              payment_type: 'gcash',
               account_name: 'Jane Austin',
               account_number: 123845893
             },
             {
-              name: 'paymaya',
+              payment_type: 'paymaya',
               account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
-              name: 'paypal',
+              payment_type: 'paypal',
               account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
         },
         {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
+          owner: 'Stephen King',
+          trade_type: 'BUY',
+          price_type: 'FIXED',
+          fiat_currency: {
             name: 'Philippine Peso',
             abbrev: 'PHP'
           },
-          cryptoCurrency: {
+          crypto_currency: {
             name: 'Bitcoin Cash',
             abbrev: 'BCH'
           },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          timeDurationChoice: 1440,
-          paymentMethods: [
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000,
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
+          time_duration_choice: 300,
+          payment_methods: [
             {
-              name: 'gcash',
+              payment_type: 'gcash',
               account_name: 'Stephen King',
               account_number: 123845893
             },
             {
-              name: 'paymaya',
+              payment_type: 'paymaya',
               account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
-              name: 'paypal',
+              payment_type: 'paypal',
               account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
         },
         {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
+          owner: 'James Watson',
+          trade_type: 'BUY',
+          price_type: 'FIXED',
+          fiat_currency: {
             name: 'Philippine Peso',
             abbrev: 'PHP'
           },
-          cryptoCurrency: {
+          crypto_currency: {
             name: 'Bitcoin Cash',
             abbrev: 'BCH'
           },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000,
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
           time_duration_choice: 1440,
-          paymentMethods: [
+          payment_methods: [
             {
-              name: 'gcash',
+              payment_type: 'gcash',
               account_name: 'Stephen King',
               account_number: 123845893
             },
             {
-              name: 'paymaya',
+              payment_type: 'paymaya',
               account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
-              name: 'paypal',
+              payment_type: 'paypal',
               account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
         },
         {
-          tradeType: 'BUY',
-          priceType: 'FIXED',
-          fiatCurrency: {
+          owner: 'Stephen King',
+          trade_type: 'BUY',
+          price_type: 'FIXED',
+          fiat_currency: {
             name: 'Philippine Peso',
             abbrev: 'PHP'
           },
-          cryptoCurrency: {
+          crypto_currency: {
             name: 'Bitcoin Cash',
             abbrev: 'BCH'
           },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000,
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
+          time_duration_choice: 300,
+          payment_methods: [
+            {
+              payment_type: 'gcash',
+              account_name: 'James Watson',
+              account_number: 123845893
+            },
+            {
+              payment_type: 'paymaya',
+              account_name: 'James Watson',
+              account_number: 'jasbdvndsakXZc'
+            },
+            {
+              payment_type: 'paypal',
+              account_name: 'Stephen King',
+              account_number: 'sample@gmail.com'
+            }
+          ]
+        },
+        {
+          owner: 'Charlotte Bronte',
+          trade_type: 'SELL',
+          price_type: 'FIXED',
+          fiat_currency: {
+            name: 'Philippine Peso',
+            abbrev: 'PHP'
+          },
+          crypto_currency: {
+            name: 'Bitcoin Cash',
+            abbrev: 'BCH'
+          },
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000,
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
           time_duration_choice: 1440,
-          paymentMethods: [
+          payment_methods: [
             {
-              name: 'gcash',
-              account_name: 'James Watson',
-              account_number: 123845893
-            },
-            {
-              name: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              name: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          tradeType: 'SELL',
-          priceType: 'FIXED',
-          fiatCurrency: {
-            name: 'Philippine Peso',
-            abbrev: 'PHP'
-          },
-          cryptoCurrency: {
-            name: 'Bitcoin Cash',
-            abbrev: 'BCH'
-          },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          timeDurationChoice: 1440,
-          paymentMethods: [
-            {
-              name: 'gcash',
+              payment_type: 'gcash',
               account_name: 'Charlotte Bronte',
               account_number: 123845893
             },
             {
-              name: 'paymaya',
+              payment_type: 'paymaya',
               account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
-              name: 'paypal',
+              payment_type: 'paypal',
               account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
         },
         {
-          tradeType: 'SELL',
-          priceType: 'FIXED',
-          fiatCurrency: {
+          owner: 'James Watson',
+          trade_type: 'SELL',
+          price_type: 'FIXED',
+          fiat_currency: {
             name: 'Philippine Peso',
             abbrev: 'PHP'
           },
-          cryptoCurrency: {
+          crypto_currency: {
             name: 'Bitcoin Cash',
             abbrev: 'BCH'
           },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
-          time_duration_choice: 1440,
-          paymentMethods: [
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000,
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
+          time_duration_choice: 300,
+          payment_methods: [
             {
-              name: 'gcash',
+              payment_type: 'gcash',
               account_name: 'Charlotte Bronte',
               account_number: 123845893
             },
             {
-              name: 'paymaya',
+              payment_type: 'paymaya',
               account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
-              name: 'paypal',
+              payment_type: 'paypal',
               account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
           ]
         },
         {
-          tradeType: 'SELL',
-          priceType: 'FIXED',
-          fiatCurrency: {
+          owner: 'Jane Austin',
+          trade_type: 'SELL',
+          price_type: 'FIXED',
+          fiat_currency: {
             name: 'Philippine Peso',
             abbrev: 'PHP'
           },
-          cryptoCurrency: {
+          crypto_currency: {
             name: 'Bitcoin Cash',
             abbrev: 'BCH'
           },
-          fixedPrice: 1000,
-          floatingPrice: null,
-          tradeFloor: 100,
-          tradeCeiling: 1000,
-          cryptoAmount: 1,
+          completion_rate: 100,
+          trade_count: 1230,
+          price: 1000,
+          floating_price: null,
+          trade_floor: 100,
+          trade_ceiling: 1000,
+          crypto_amount: 1,
           time_duration_choice: 1440,
-          paymentMethods: [
+          payment_methods: [
             {
-              name: 'gcash',
+              payment_type: 'gcash',
               account_name: 'Jane Austin',
               account_number: 123845893
             },
             {
-              name: 'paymaya',
+              payment_type: 'paymaya',
               account_name: 'James Watson',
               account_number: 'jasbdvndsakXZc'
             },
             {
-              name: 'paypal',
+              payment_type: 'paypal',
               account_name: 'Stephen King',
               account_number: 'sample@gmail.com'
             }
@@ -452,7 +487,7 @@ export default {
       const vm = this
 
       const sorted = vm.listings.filter(function (test) {
-        return test.tradeType.toLowerCase() === type
+        return test.trade_type.toLowerCase() === type
       })
       return sorted
     },
