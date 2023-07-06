@@ -17,7 +17,7 @@
           {{ transactionType === 'BUY' ? 'BUY': 'SELL' }} BY FIAT
         </div>
         <div class="q-mx-lg">
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md" style="font-size: 14px;">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md sm-font-size">
             <div class="row justify-between no-wrap q-mx-lg">
                 <span>Price Type</span>
                 <span class="text-nowrap q-ml-xs">
@@ -44,15 +44,15 @@
           <div class="q-mt-md q-mx-lg">
             <q-input dense filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
                 <template v-slot:prepend>
-                  <span style="font-size: 14px; font-weight: 400;">{{ ad.fiat_currency.abbrev }}</span>
+                  <span class="sm-font-size bold-text">{{ ad.fiat_currency.abbrev }}</span>
                 </template>
                 <template v-slot:append>
                   <!-- <q-icon size="xs" name="close" @click="amount = 0"/>&nbsp; -->
-                  <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" @click="fiatAmount = ad.trade_ceiling"/>
+                  <q-btn class="xs-font-size" padding="none" flat color="primary" label="MAX" @click="fiatAmount = ad.trade_ceiling"/>
                 </template>
             </q-input>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md" style="font-size: 14px;">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md sm-font-size">
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Crypto Amount</span>
               <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
@@ -69,80 +69,101 @@
               <span>Service Fee</span>
               <span class="text-nowrap q-ml-xs">{{ ad.fees.service_fee }}  BCH</span>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg" style="font-weight: 500;">
+            <div class="row justify-between no-wrap q-mx-lg bold-text">
               <span>Total</span>
-              <span class="text-nowrap q-ml-xs ">{{ totalCryptoAmount }} BCH</span>
+              <span class="text-nowrap q-ml-xs ">{{ totalCryptoAmount.toFixed(8) }} BCH</span>
             </div>
           </div>
-          <div class="row q-mx-sm q-py-md">
+          <div class="row q-mx-lg q-py-md">
             <q-btn
               :disabled="!isAmountValid"
               rounded
               no-caps
               :label="transactionType === 'BUY'? 'Buy' : 'Next'"
-              color="brandblue"
+              color="blue-6"
               class="q-space"
               @click="state = 'processing'"></q-btn>
           </div>
         </div>
-        <!-- Process Transaction -->
-        <div v-if="state === 'processing'">
-          <FiatStoreBuyProcess
-            :listingData="buy"
-            :buyAmount="cryptoAmount.toString()"
-            :fiatAmount="fiatAmount"
-            v-on:back="state = 'initial'"
-            v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
-            v-on:pending-release="pendingRelease = true"
-            v-on:released="cryptoReleased"
-          />
+      </div>
+
+      <!-- Process Transaction -->
+      <div v-if="state === 'processing'">
+        <FiatStoreBuyProcess
+          v-if="transactionType === 'BUY'"
+          :listingData="ad"
+          :buyAmount="cryptoAmount.toString()"
+          :fiatAmount="fiatAmount"
+          v-on:back="state = 'initial'"
+          v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
+          v-on:pending-release="pendingRelease = true"
+          v-on:released="cryptoReleased"
+        />
+        <FiatStoreSellProcess
+          v-if="transactionType === 'SELL'"
+          :listingData="ad"
+          :buyAmount="cryptoAmount.toString()"
+          :fiatAmount="fiatAmount"
+          v-on:back="state = 'initial'"
+          v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
+          v-on:pending-release="pendingRelease = true"
+          v-on:released="cryptoReleased"
+        />
+      </div>
+      <div v-if="!hideSellerInfo" class="q-my-lg">
+        <div class="q-mx-lg text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          {{ transactionType === 'BUY' ? 'SELLER INFO' : 'BUYER INFO'}}
         </div>
-        <div v-if="!hideSellerInfo" class="q-my-lg">
-          <div class="q-mx-lg text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-            SELLER INFO
-          </div>
-          <div class="row">
-            <div class="col ib-text">
-              <div class="q-mx-lg q-mt-md">
-                <span
-                  :class="{'pt-dark-label': darkMode}"
-                  class="q-pl-md q-mb-none text-uppercase"
-                  style="font-size: 15px; font-weight: 400;"
-                >
-                  {{ ad.owner }}
-                </span>
-              </div>
-              <div class="q-mx-lg subtext" :class="{'pt-dark-label': darkMode}">
-                <span class="q-pl-md q-mb-none" style="font-size: 12px;">
-                  {{ ad.trade_count }} trades
-                </span>&nbsp;
-                <span class="q-pl-xs q-mb-none" style="font-size: 12px;">
-                  {{ ad.completion_rate }}% completion
-                </span>
-              </div>
+        <div class="row">
+          <div class="col ib-text">
+            <div class="q-mx-lg q-mt-md">
+              <span
+                :class="{'pt-dark-label': darkMode}"
+                class="q-pl-md q-mb-none text-uppercase md-font-size bold-text"
+              >
+                {{ ad.owner }}
+              </span>
             </div>
-            <div class="text-right q-mr-lg q-mt-md" v-if="!released">
-              <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_chat"/>
-            </div>
-            <div class="text-right q-mr-lg q-mt-md" v-if="released">
-              <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
-              <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
+            <div class="q-mx-lg subtext" :class="{'pt-dark-label': darkMode}">
+              <span class="q-pl-md q-mb-none xs-font-size">
+                {{ ad.trade_count }} trades
+              </span>&nbsp;
+              <span class="q-pl-xs q-mb-none xs-font-size">
+                {{ ad.completion_rate }}% completion
+              </span>
             </div>
           </div>
-          <div class="q-mx-lg q-pt-sm">
-            <div class="q-ml-xs  q-gutter-sm">
-              <q-badge v-for="method in ad.payment_methods" :key="method.id" rounded outline :color="transactionType === 'BUY' ? 'blue' : 'red'" :label="method.payment_type"/>
-            </div>
+          <div class="text-right q-mr-lg q-mt-md" v-if="!released">
+            <q-icon
+              :class="{shake: disabled}"
+              @click="warnDisabled"
+              class="q-pr-lg"
+              :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_chat"
+            />
           </div>
-          <div class="q-mx-lg q-mt-md" v-if="pendingRelease">
-            <div class="q-px-lg" style="font-weight: 500;">
-              Seller did not release crypto?
-            </div>
-            <div class="q-pt-xs q-mx-lg subtext">
-              If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal
-            </div>
+          <div class="text-right q-mr-lg q-mt-md" v-if="released">
+            <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
+            <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
           </div>
         </div>
+        <div class="q-mx-lg q-pt-sm">
+          <div class="q-ml-xs  q-gutter-sm">
+            <q-badge v-for="method in ad.payment_methods" :key="method.id" rounded outline :color="transactionType === 'BUY' ? 'blue' : 'red'" :label="method.payment_type"/>
+          </div>
+        </div>
+        <div class="q-mx-lg q-mt-md" v-if="pendingRelease">
+          <div class="q-px-lg bold-text">
+            Seller did not release crypto?
+          </div>
+          <div class="q-pt-xs q-mx-lg subtext">
+            If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="!isloaded">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader/>
       </div>
     </div>
  </q-card>
@@ -150,12 +171,14 @@
 <script>
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
+import ProgressLoader from '../../ProgressLoader.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      disabled: false,
       isloaded: false,
       ad: null,
       fiatAmount: 0,
@@ -193,7 +216,8 @@ export default {
   },
   components: {
     FiatStoreBuyProcess,
-    FiatStoreSellProcess
+    FiatStoreSellProcess,
+    ProgressLoader
   },
   computed: {
     isAmountValid () {
@@ -219,25 +243,41 @@ export default {
   //   this.isloaded = true
   // },
   methods: {
-    // isAmountValid (value) {
-    //   // amount with comma and decimal regex
-    //   const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
-    //   value = String(value)
-
-    //   if (regex.test(value) && value !== '0') {
-    //     return true
-    //   } else {
-    //     return false
-    //   }
-    // },
+    warnDisabled () {
+      this.disabled = true
+      setTimeout(() => {
+        this.disabled = false
+      }, 1500)
+    },
     async fetchAd () {
       const adId = this.listingData.id
       const url = `${this.apiURL}/ad/${adId}`
       const response = await this.$axios.get(url)
-      this.ad = response.data
+        .then(response => {
+          this.ad = response.data
+        })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response)
 
+          this.ad = this.listingData
+          this.ad.fees = {
+            arbitration_fee: 0.00001,
+            service_fee: 0.00001
+          }  // remove later
+        })
+
+      if (!response) {  // remove later
+        console.log('empty')
+        this.ad = this.listingData
+        this.ad.fees = {
+          arbitration_fee: 0.00001,
+          service_fee: 0.00001,
+          hardcoded_fee: 0.00001
+        }
+      }
       // set the minimum trade amount in form
-      this.fiatAmount = this.ad.trade_floor
+      this.fiatAmount = this.ad.trade_floor // remove later
     },
     isValidInputAmount (value) {
       if (value === undefined) return false
@@ -260,8 +300,7 @@ export default {
   },
   async mounted () {
     const vm = this
-    vm.buy = vm.listingData
-
+    // vm.buy = vm.listingData
     await vm.fetchAd()
     vm.isloaded = true
   }
@@ -280,5 +319,32 @@ export default {
 }
 .sell-color {
   color: #ed5f59;
+}
+.shake {
+  animation: shake 0.82s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 </style>

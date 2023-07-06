@@ -36,11 +36,11 @@
         <div class="q-pt-md sm-font-size">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ buy.cryptoAmount }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ buy.crypto_amount }} BCH</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ buy.fiatCurrency.abbrev }}</span>
+            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ buy.fiat_currency.abbrev }}</span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
@@ -147,7 +147,7 @@
             {{ countDown }}
           </div>
           <div>
-            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ fiatAmount }} {{ buy.fiatCurrency.abbrev }}</span> within the time limit...
+            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ fiatAmount }} {{ buy.fiat_currency.abbrev }}</span> within the time limit...
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-md"/>
@@ -161,12 +161,12 @@
             </div>
             <q-list bordered class="q-mx-lg" :dark="darkMode">
               <div
-                v-for="(method, index) in buy.paymentMethods"
+                v-for="(method, index) in buy.payment_methods"
                 :key="index"
               >
                 <q-expansion-item
                   group="somegroup"
-                  :label="method.name.toUpperCase()"
+                  :label="method.payment_type.toUpperCase()"
                 >
                   <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
                     <q-card-section>
@@ -230,7 +230,7 @@
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="subtext row justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ buy.fiatCurrency.abbrev }}</span>
+            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ buy.fiat_currency.abbrev }}</span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
@@ -322,7 +322,7 @@ export default {
   props: {
     listingData: Object,
     buyAmount: String,
-    fiatAmount: String
+    fiatAmount: Number
   },
   emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
   methods: {

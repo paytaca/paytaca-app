@@ -3,7 +3,7 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     style="min-height:78vh;"
-    v-if="state === 'SELECT'"
+    v-if="state === 'SELECT' && !viewProfile"
   >
     <div v-if="dataLoaded">
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
@@ -32,8 +32,8 @@
         </div>
       </div>
       <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy BCH</button>
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell BCH</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy Ads</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell Ads</button>
       </div>
       <div class="q-mt-md">
         <div v-if="dataLoaded == true && filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
@@ -46,22 +46,23 @@
               <template v-slot="{ item: listing }">
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
-                    <div class="q-pt-sm q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                    <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                       <div class="row">
                         <div class="col ib-text">
                           <span
                             :class="{'pt-dark-label': darkMode}"
-                            class="q-mb-none text-uppercase sm-font-size"
+                            class="q-mb-none text-uppercase md-font-size"
+                            @click.stop.prevent="viewUserProfile(listing.owner)"
                           >
-                            {{ listing.owner }}
+                            <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }}
                           </span><br>
-                          <div class="row">
-                              <span class="q-mr-sm subtext">{{ listing.trade_count }} total trades </span>
-                              <span class="q-ml-sm subtext">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
+                          <div class="row sm-font-size">
+                            <span class="q-mr-sm subtext">{{ listing.trade_count }} total trades </span>
+                            <span class="q-ml-sm subtext">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                           </div>
                           <span
                             :class="{'pt-dark-label': darkMode}"
-                            class="col-transaction text-uppercase xm-font-size"
+                            class="col-transaction text-uppercase lg-font-size"
                           >
                             {{ listing.price }} {{ selectedCurrency.symbol }}
                             <!-- {{ listing.priceType === 'FIXED' ? listing.fixedPrice : listing.floatingPrice }} {{ listing.fiatCurrency.symbol }} -->
@@ -69,28 +70,21 @@
                           <span class="sm-font-size">
                             /BCH
                           </span><br>
-                          <div class="row">
+                          <div class="row sm-font-size">
                               <span class="q-mr-md">Quantity</span>
                               <span>{{ listing.crypto_amount }} BCH</span>
                           </div>
-                          <div class="row">
+                          <div class="row sm-font-size">
                               <span class="q-mr-md">Limit</span>
                               <span> {{ listing.trade_floor }} {{ selectedCurrency.symbol }} - {{ listing.trade_ceiling }} {{ selectedCurrency.symbol }}</span>
                           </div>
                         </div>
-                        <!-- <div class="text-right sm-font-size">
-                          <span class="subtext">Quantity: {{ listing.cryptoAmount }} BCH</span><br>
-                          <span class="subtext">Limit: {{ listing.tradeFloor }} {{ listing.fiatCurrency.symbol }} - {{ listing.tradeCeiling }} {{ listing.fiatCurrency.symbol }}</span> -->
-                          <!-- <span class="subtext">{{ listing.trades }} trades</span><br>
-                          <span class="subtext">{{ listing.completion }}% completion</span> -->
-                        <!-- </div> -->
                       </div>
                       <div class="q-gutter-sm q-pt-sm">
                         <q-badge v-for="method in listing.payment_methods" :key="method.id"
-                        rounded outline :color="transactionType === 'BUY'? 'blue': 'red'">
+                        rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
                         {{ method.payment_type }}
                         </q-badge>
-                        <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.name" /> -->
                       </div>
                     </div>
                   </q-item-section>
@@ -108,394 +102,53 @@
     </div>
   </q-card>
   <!-- Buy/Sell Form Here -->
-  <div v-if="state !== 'SELECT'">
+  <div v-if="state !== 'SELECT' && !viewProfile">
     <FiatStoreForm
       v-on:back="state = 'SELECT'"
       :listingData="selectedListing"
       :transactionType="state"
     />
   </div>
+  <!-- <div v-if="viewProfile">
+    <MiscDialogs
+      :type="'viewProfile'"
+      v-on:back="viewProfile = false"
+    />
+  </div> -->
+  <FiatProfileCard
+    v-if="viewProfile"
+    :userInfo="selectedUser"
+    :type="'peer'"
+    v-on:back="viewProfile = false"
+  />
 </template>
 <script>
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
+import FiatProfileCard from './FiatProfileCard.vue'
 import { signMessage } from 'src/wallet/ramp/signature'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
   components: {
     FiatStoreForm,
-    ProgressLoader
+    ProgressLoader,
+    FiatProfileCard
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      viewProfile: false,
       wallet: null,
-      transactionType: 'BUY',
+      transactionType: 'SELL',
       dataLoaded: false,
       loading: true,
       peerProfile: null,
       selectedCurrency: null,
-      state: 'SELECT',
+      state: 'SELECT', //'BUY', 'SELL'
       selectedListing: {},
-      availableFiat: [ // api/ramp-p2p/currency/fiat/
-        {
-          name: 'Philippine Peso',
-          symbol: 'PHP'
-        },
-        {
-          name: 'United States Dollar',
-          symbol: 'USD'
-        },
-        {
-          name: 'Canadian Dollar',
-          symbol: 'CAD'
-        },
-        {
-          name: 'Japanese Yen',
-          symbol: 'JPY'
-        },
-        {
-          name: 'Russian Ruble',
-          symbol: 'RUB'
-        }
-      ],
-      test_data: [
-        {
-          trade_type: 'BUY',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000, // Work on later
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 1440,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'Andy Webber',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          trade_type: 'BUY',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000,
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 300,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'Agnes Christy',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'Jane Austin',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Charlotte Bronte',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          trade_type: 'BUY',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000,
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 1440,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'Jane Austin',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          trade_type: 'BUY',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000,
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 300,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'Stephen King',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          trade_type: 'BUY',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000,
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 1440,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'Stephen King',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          trade_type: 'BUY',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000,
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 300,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'James Watson',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          trade_type: 'SELL',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000,
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 1440,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'Charlotte Bronte',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          trade_type: 'SELL',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000,
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 300,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'Charlotte Bronte',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        },
-        {
-          trade_type: 'SELL',
-          price_type: 'FIXED',
-          fiat_currency: {
-            name: 'Philippine Peso',
-            symbol: 'PHP'
-          },
-          crypto_currency: {
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          completion_rate: 100,
-          trade_count: 1230,
-          price: 1000,
-          floating_price: null,
-          trade_floor: 100,
-          trade_ceiling: 1000,
-          crypto_amount: 1,
-          time_duration_choice: 1440,
-          payment_methods: [
-            {
-              payment_type: 'gcash',
-              account_name: 'Jane Austin',
-              account_number: 123845893
-            },
-            {
-              payment_type: 'paymaya',
-              account_name: 'James Watson',
-              account_number: 'jasbdvndsakXZc'
-            },
-            {
-              payment_type: 'paypal',
-              account_name: 'Stephen King',
-              account_number: 'sample@gmail.com'
-            }
-          ]
-        }
-      ],
+      selectedUser: null,
       fiatCurrencies: [],
       listings: []
     }
@@ -580,8 +233,6 @@ export default {
           .catch(error => {
             console.error(error.response)
             vm.loading = false
-
-            vm.listings = vm.test_data
           })
       }
       // console.log(vm.listings)
@@ -593,10 +244,9 @@ export default {
     },
     selectListing (listing) {
       const vm = this
-      // console.log(listing)
+
       vm.selectedListing = listing
-      // console.log(vm.selectedListing)
-      vm.state = vm.transactionType
+      vm.state = vm.transactionType === 'SELL' ? 'BUY' : 'SELL'
     },
     filteredListings () {
       const vm = this
@@ -607,6 +257,16 @@ export default {
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
+    },
+    updateNickname (info) {
+      this.$store.commit('global/editRampNickname', info.nickname)
+      // this.proceed = true
+    },
+    viewUserProfile (user) {
+      this.viewProfile = true
+      this.selectedUser = {
+        name: user
+      }
     }
   }
 }

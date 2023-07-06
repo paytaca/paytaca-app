@@ -92,7 +92,7 @@
               <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.abbrev }}</span>
             </div>
             <div >
-              <span>Lowest Order Price</span><br>
+              <span>Current Market Price</span><br>
               <span class="xm-font-size" style="float: right;">{{ lowestOrderPrice }} {{ selectedCurrency.abbrev }}</span>
             </div>
           </div>

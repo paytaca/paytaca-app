@@ -5,17 +5,21 @@
     :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="selectMenu('orders')">
-          <q-icon class="mb-2" :class="isActive('orders') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
-        <span>Orders</span>
-      </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="selectMenu('store')">
           <q-icon class="mb-2" :class="isActive('store') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_storefront"/>
-        <span>Store</span>
+        <span>Home</span>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="selectMenu('ads')">
           <q-icon class="mb-2" :class="isActive('ads') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_sell"/>
         <span>Ads</span>
+      </button>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="selectMenu('orders')">
+          <q-icon class="mb-2" :class="isActive('orders') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
+        <span>Orders</span>
+      </button>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="selectMenu('profile')">
+          <q-icon class="mb-2" :class="isActive('profile') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
+        <span>Profile</span>
       </button>
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>

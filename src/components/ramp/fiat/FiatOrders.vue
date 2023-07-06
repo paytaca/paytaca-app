@@ -6,8 +6,8 @@
     >
       <div>
         <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
-          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy Orders</button>
-          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell Orders</button>
+          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Ongoing</button>
+          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Completed</button>
         </div>
       </div>
       <div class="q-mt-md">
@@ -178,8 +178,8 @@ export default {
   background-color: rgb(242, 243, 252);
   color: #4C4F4F;
 }
-.btn-custom.active-buy-btn {
-  background-color: rgb(60, 100, 246) !important;
+.btn-custom.active-transaction-btn {
+  background-color: rgb(13,71,161) !important;
   color: #fff;
 }
 .btn-custom.active-sell-btn {
@@ -200,3 +200,4 @@ export default {
   opacity: .5;
 }
 </style>
+<!-- Todo: Sort data, ongoing/completed -->
