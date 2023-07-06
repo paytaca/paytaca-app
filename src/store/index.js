@@ -13,6 +13,7 @@ import walletconnect from './walletconnect'
 import gifts from './gifts'
 import chat from './chat'
 import notification from './notification'
+import ramp from './ramp'
 
 /*
  * If not building with SSR mode, you can
@@ -37,7 +38,8 @@ export const Store = createStore({
     walletconnect,
     gifts,
     chat,
-    notification
+    notification,
+    ramp
   },
 
   // enable strict mode (adds overhead!)

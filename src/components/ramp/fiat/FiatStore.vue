@@ -8,8 +8,8 @@
     <div v-if="dataLoaded">
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
         <div>
-          <div v-if="selectedFiat" class="q-ml-md text-h5 md-font-size">
-            {{ selectedFiat.abbrev }} <q-icon size="sm" name='mdi-menu-down'/>
+          <div v-if="selectedCurrency" class="q-ml-md text-h5 md-font-size">
+            {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
           </div>
           <q-menu anchor="bottom left" self="top left" >
             <q-list class="text-h5 subtext md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px;">
@@ -18,10 +18,10 @@
                 :key="index"
                 clickable
                 v-close-popup
-                @click="selectFiatCurrency(index)"
+                @click="selectCurrency(index)"
               >
                 <!-- <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ currency }} ({{ index }})</q-item-section> -->
-                <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.abbrev }})</q-item-section>
+                <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.symbol }})</q-item-section>
               </q-item>
             </q-list>
           </q-menu>
@@ -36,13 +36,13 @@
         <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell BCH</button>
       </div>
       <div class="q-mt-md">
-        <div v-if="dataLoaded == true && getFilteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
+        <div v-if="dataLoaded == true && filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="getFilteredListings()">
+            <q-virtual-scroll :items="filteredListings()">
               <template v-slot="{ item: listing }">
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
@@ -63,8 +63,8 @@
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase xm-font-size"
                           >
-                            {{ listing.price }} {{ selectedFiat.abbrev }}
-                            <!-- {{ listing.priceType === 'FIXED' ? listing.fixedPrice : listing.floatingPrice }} {{ listing.fiatCurrency.abbrev }} -->
+                            {{ listing.price }} {{ selectedCurrency.symbol }}
+                            <!-- {{ listing.priceType === 'FIXED' ? listing.fixedPrice : listing.floatingPrice }} {{ listing.fiatCurrency.symbol }} -->
                           </span>
                           <span class="sm-font-size">
                             /BCH
@@ -75,12 +75,12 @@
                           </div>
                           <div class="row">
                               <span class="q-mr-md">Limit</span>
-                              <span> {{ listing.trade_floor }} {{ selectedFiat.abbrev }} - {{ listing.trade_ceiling }} {{ selectedFiat.abbrev }}</span>
+                              <span> {{ listing.trade_floor }} {{ selectedCurrency.symbol }} - {{ listing.trade_ceiling }} {{ selectedCurrency.symbol }}</span>
                           </div>
                         </div>
                         <!-- <div class="text-right sm-font-size">
                           <span class="subtext">Quantity: {{ listing.cryptoAmount }} BCH</span><br>
-                          <span class="subtext">Limit: {{ listing.tradeFloor }} {{ listing.fiatCurrency.abbrev }} - {{ listing.tradeCeiling }} {{ listing.fiatCurrency.abbrev }}</span> -->
+                          <span class="subtext">Limit: {{ listing.tradeFloor }} {{ listing.fiatCurrency.symbol }} - {{ listing.tradeCeiling }} {{ listing.fiatCurrency.symbol }}</span> -->
                           <!-- <span class="subtext">{{ listing.trades }} trades</span><br>
                           <span class="subtext">{{ listing.completion }}% completion</span> -->
                         <!-- </div> -->
@@ -119,7 +119,8 @@
 <script>
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
-import { loadP2PWalletInfo, signMessage } from 'src/wallet/ramp'
+import { signMessage } from 'src/wallet/ramp/signature'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
   components: {
@@ -134,30 +135,30 @@ export default {
       transactionType: 'BUY',
       dataLoaded: false,
       loading: true,
-      peerInfo: null,
-      selectedFiat: null,
+      peerProfile: null,
+      selectedCurrency: null,
       state: 'SELECT',
       selectedListing: {},
       availableFiat: [ // api/ramp-p2p/currency/fiat/
         {
           name: 'Philippine Peso',
-          abbrev: 'PHP'
+          symbol: 'PHP'
         },
         {
           name: 'United States Dollar',
-          abbrev: 'USD'
+          symbol: 'USD'
         },
         {
           name: 'Canadian Dollar',
-          abbrev: 'CAD'
+          symbol: 'CAD'
         },
         {
           name: 'Japanese Yen',
-          abbrev: 'JPY'
+          symbol: 'JPY'
         },
         {
           name: 'Russian Ruble',
-          abbrev: 'RUB'
+          symbol: 'RUB'
         }
       ],
       test_data: [
@@ -166,11 +167,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -203,11 +204,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -240,11 +241,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -277,11 +278,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -314,11 +315,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -351,11 +352,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -388,11 +389,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -425,11 +426,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -462,11 +463,11 @@ export default {
           price_type: 'FIXED',
           fiat_currency: {
             name: 'Philippine Peso',
-            abbrev: 'PHP'
+            symbol: 'PHP'
           },
           crypto_currency: {
             name: 'Bitcoin Cash',
-            abbrev: 'BCH'
+            symbol: 'BCH'
           },
           completion_rate: 100,
           trade_count: 1230,
@@ -500,37 +501,22 @@ export default {
     }
   },
   async mounted () {
+    this.selectedCurrency = this.$store.getters['market/selectedCurrency']
     this.wallet = await loadP2PWalletInfo('bch')
-    console.log('wallet:', this.wallet)
-    await this.fetchProfile()
+    await this.initPeerProfile()
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
-
     this.dataLoaded = true
   },
   methods: {
-    async fetchProfile () {
-      const vm = this
-      const headers = {
-        'wallet-hash': this.wallet.walletHash
+    async initPeerProfile () {
+      this.peerProfile = await this.$store.dispatch('ramp/fetchPeerProfile', this.wallet.walletHash)
+      if (!this.peerProfile.length) {
+        // create peer profile if peer isnt existing
+        this.createPeerProfile()
       }
-      const url = vm.apiURL + '/peer'
-      console.log('url:', url)
-      vm.$axios.get(url, { headers: headers })
-        .then(response => {
-          // Create a new peer profile if peer does not exist
-          if (response.data.length === 0) {
-            vm.createProfile()
-          } else {
-            vm.peerInfo = response.data
-            console.log('peerInfo: ', vm.peerInfo)
-          }
-        })
-        .catch(error => {
-          console.error(error.response)
-        })
     },
-    createProfile () {
+    createPeerProfile () {
       const vm = this
       const timestamp = Date.now()
       const url = vm.apiURL + '/peer/'
@@ -543,7 +529,6 @@ export default {
             signature: signature,
             'public-key': this.wallet.publicKey
           }
-          console.log('headers:', headers)
           const body = {
             nickname: 'Hayao Miyazaki', // TODO: replace with the actual user inputted nickname
             address: this.wallet.address
@@ -559,32 +544,31 @@ export default {
             })
         })
     },
-    // selectFiatCoin (currency) {
-    //   // console.log(currency)
-    //   this.selectedFiat = currency
     async fetchFiatCurrencies () {
       const vm = this
       vm.$axios.get(vm.apiURL + '/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
-          vm.selectedFiat = vm.fiatCurrencies[0]
+          if (!vm.selectedCurrency) {
+            vm.selectedCurrency = vm.fiatCurrencies[0]
+          }
         })
         .catch(error => {
           console.error(error)
           console.error(error.response)
 
           vm.fiatCurrencies = vm.availableFiat
-          vm.selectedFiat = vm.fiatCurrencies[0]
+          if (!vm.selectedCurrency) {
+            vm.selectedCurrency = vm.fiatCurrencies[0]
+          }
         })
       // console.log(vm.fiatCurrencies)
     },
     async fetchStoreListings () {
-      // console.log('fetching listings')
       const vm = this
-      if (this.selectedFiat) {
-        // console.log('entering')
+      if (this.selectedCurrency) {
         const params = {
-          currency: this.selectedFiat.abbrev
+          currency: this.selectedCurrency.symbol
         }
         vm.loading = true
         vm.$axios.get(vm.apiURL + '/ad', { params: params })
@@ -594,19 +578,16 @@ export default {
             vm.loading = false
           })
           .catch(error => {
-            // console.log('failed')
-            console.error(error)
             console.error(error.response)
             vm.loading = false
 
             vm.listings = vm.test_data
           })
-        // console.log(response)
       }
       // console.log(vm.listings)
     },
-    async selectFiatCurrency (index) {
-      this.selectedFiat = this.fiatCurrencies[index]
+    async selectCurrency (index) {
+      this.selectedCurrency = this.fiatCurrencies[index]
       this.listings = []
       this.fetchStoreListings()
     },
@@ -617,22 +598,11 @@ export default {
       // console.log(vm.selectedListing)
       vm.state = vm.transactionType
     },
-    // sortedListings () {
-    //   const vm = this
-
-    //   const sorted = vm.listings.filter(function (listing) {
-    //     return listing.tradeType.toLowerCase() === vm.transactionType
-    //   })
-    //   return sorted
-    // }
-    getFilteredListings () {
-      // console.log('filtering list')
+    filteredListings () {
       const vm = this
-      // console.log(vm.listings)
       const filteredListings = vm.listings.filter(function (listing) {
         return listing.trade_type === vm.transactionType
       })
-      // console.log(filteredListings)
       return filteredListings
     },
     formatCompletionRate (value) {
