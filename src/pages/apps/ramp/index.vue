@@ -58,8 +58,37 @@
 import HeaderNav from '../../../components/header-nav'
 import RampShiftForm from '../../../components/ramp/RampShiftForm'
 import FiatRampIndex from '../../../components/ramp/fiat/Index.vue'
+import { loadWallet } from 'src/wallet'
+import { computed, markRaw, provide, ref } from 'vue'
+import { useStore } from 'vuex'
 
 export default {
+  setup () {
+    const walletHash = ref(null)
+    const privateKeyWif = ref(null)
+    const publicKey = ref(null)
+
+    const store = useStore()
+    const walletInfo = computed(() => store.getters['global/getWallet']('bch'))
+
+    async function fetchWalletInfo () {
+      const wallet = await markRaw(loadWallet())
+      walletHash.value = wallet.BCH.getWalletHash()
+
+      const { connectedAddressIndex } = walletInfo.value
+      privateKeyWif.value = await wallet.BCH.getPrivateKey(connectedAddressIndex)
+      publicKey.value = await wallet.BCH.getPublicKey(`0/${connectedAddressIndex}`)
+      console.log('connectedAddressIndex:', connectedAddressIndex)
+      console.log('publicKey.value:', publicKey.value)
+    }
+
+    fetchWalletInfo()
+    provide('walletHash', walletHash)
+    provide('privateKeyWif', privateKeyWif)
+    provide('publicKey', publicKey)
+
+    return { walletHash, privateKeyWif, publicKey }
+  },
   components: {
     HeaderNav,
     RampShiftForm,
@@ -68,7 +97,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: 'fiat', //crypto
+      selectedCurrency: 'fiat', // crypto
       isAllowed: true,
       error: false
     }
@@ -77,7 +106,6 @@ export default {
     const vm = this
     // check permission first
     const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
-
     if (!permission.data.createShift) {
       vm.isAllowed = false
     }
