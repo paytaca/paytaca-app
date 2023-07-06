@@ -636,7 +636,7 @@ export default {
             return Promise.resolve(response)
           }
           this.sbchLnsName = ''
-          return Promise.reject()
+          // return Promise.reject()
         })
     },
     getWallet (type) {
