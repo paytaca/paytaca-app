@@ -153,7 +153,6 @@ export default {
             this.lnsName = response.name
             return Promise.resolve(response)
           }
-          return Promise.reject()
         })
     },
     getFallbackAssetLogo (asset) {

@@ -89,26 +89,27 @@ const groupedView = computed(() => viewType.value === 'list')
 const fetchingNftGroups = ref(false)
 const nftGroups = ref([].map(CashNonFungibleToken.parse))
 function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
-  if (!props.wallet) return Promise.reject()
-  const params = {
-    wallet_hash: props.wallet.BCH.walletHash,
-    limit: opts?.limit || 10,
-    offset: 0,
+  if (props.wallet) {
+    const params = {
+      wallet_hash: props.wallet.BCH.walletHash,
+      limit: opts?.limit || 10,
+      offset: 0,
+    }
+    fetchingNftGroups.value = true
+    return props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/groups/', { params })
+      .then(response => {
+        if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+        nftGroups.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
+        nftGroups.value.forEach(nft => nft?.fetchMetadata?.())
+        if (response?.data?.count > response?.data?.limit && opts?.checkCount) {
+          return fetchNftGroups({ limit: response?.data?.count, checkCount: false })
+        }
+        return response
+      })
+      .finally(() => {
+        fetchingNftGroups.value = false
+      })
   }
-  fetchingNftGroups.value = true
-  return props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/groups/', { params })
-    .then(response => {
-      if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-      nftGroups.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
-      nftGroups.value.forEach(nft => nft?.fetchMetadata?.())
-      if (response?.data?.count > response?.data?.limit && opts?.checkCount) {
-        return fetchNftGroups({ limit: response?.data?.count, checkCount: false })
-      }
-      return response
-    })
-    .finally(() => {
-      fetchingNftGroups.value = false
-    })
 }
 
 const parsedNftGroups = computed(() => {
