@@ -1,5 +1,5 @@
 <template>
-  <div v-if="proceed">
+  <!-- <div v-if="proceed">
     <FiatStore v-if="menu === 'store'"/>
     <FiatOrders v-if="menu === 'orders'"/>
     <FiatAds v-if="menu === 'ads'"/>
@@ -16,7 +16,32 @@
       :type="'editNickname'"
       v-on:submit="updateNickname"
       v-on:back="proceed ? '' : $router.go(-1)"
-    />
+    /> -->
+  <div>
+    <div v-if="isLoading" class="row justify-center q-ma-lg q-pa-lg">
+      <ProgressLoader/>
+    </div>
+    <div v-else>
+        <div v-if="proceed">
+          <FiatStore v-if="menu === 'store'"/>
+          <FiatOrders v-if="menu === 'orders'"/>
+          <FiatAds v-if="menu === 'ads'"/>
+          <FiatProfileCard
+            v-if="menu === 'profile'"
+            v-on:back="menu = 'store'"
+          />
+          <footerMenu
+            v-on:clicked="switchMenu"
+          />
+        </div>
+        <div v-else>
+          <MiscDialogs
+            :type="'editNickname'"
+            v-on:submit="createRampUser"
+            v-on:back="proceed ? '' : $router.go(-1)"
+          />
+        </div>
+      </div>
   </div>
 </template>
 <script>
@@ -26,14 +51,19 @@ import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { loadWallet } from 'src/wallet'
+import { markRaw } from 'vue'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       menu: 'store',
-      // availableFiat: [], //api/ramp-p2p/currency/fiat/
-      nickName: this.$store.getters['global/getRampNickName'],
+      isLoading: true,
+      wallet: null,
+      user: null,
       proceed: false
     }
   },
@@ -43,23 +73,27 @@ export default {
     FiatOrders,
     FiatAds,
     FiatProfileCard,
-    MiscDialogs
+    MiscDialogs,
+    ProgressLoader
+  },
+  async mounted () {
+    this.wallet = await markRaw(loadWallet())
+    const walletHash = this.wallet.BCH.getWalletHash()
+    this.user = await this.$store.dispatch('ramp/fetchUser', walletHash)
+    if (this.user) {
+      this.proceed = true
+    }
+    this.isLoading = false
   },
   methods: {
     switchMenu (item) {
       this.menu = item
     },
-    updateNickname (info) {
-      // save user info
-      this.$store.commit('global/editRampNickname', info.nickname)
+    async createRampUser (value) {
+      const walletInfo = this.$store.getters['global/getWallet']('bch')
+      const wallet = await loadP2PWalletInfo(walletInfo)
+      await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: wallet })
       this.proceed = true
-    }
-  },
-  async mounted () {
-    const vm = this
-    // vm.$store.commit('global/resetNickName') //remove later
-    if (vm.nickName) {
-      vm.proceed = true
     }
   }
 }

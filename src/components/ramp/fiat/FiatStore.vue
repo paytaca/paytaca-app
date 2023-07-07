@@ -3,9 +3,8 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     style="min-height:78vh;"
-    v-if="state === 'SELECT' && !viewProfile"
-  >
-    <div v-if="dataLoaded">
+    v-if="state === 'SELECT' && !viewProfile">
+    <div>
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
         <div>
           <div v-if="selectedCurrency" class="q-ml-md text-h5 md-font-size">
@@ -32,17 +31,17 @@
         </div>
       </div>
       <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy Ads</button>
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell Ads</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
       </div>
-      <div class="q-mt-md">
-        <div v-if="dataLoaded == true && filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="!loading" class="q-mt-md">
+        <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="filteredListings()">
+            <q-virtual-scroll :items="listings">
               <template v-slot="{ item: listing }">
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
@@ -95,7 +94,7 @@
         </div>
       </div>
     </div>
-    <div v-if="!dataLoaded">
+    <div v-if="loading">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader/>
       </div>
@@ -126,7 +125,7 @@
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-import { signMessage } from 'src/wallet/ramp/signature'
+// import { signMessage } from 'src/wallet/ramp/signature'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
@@ -142,7 +141,7 @@ export default {
       viewProfile: false,
       wallet: null,
       transactionType: 'SELL',
-      dataLoaded: false,
+      // dataLoaded: false,
       loading: true,
       peerProfile: null,
       selectedCurrency: null,
@@ -155,48 +154,17 @@ export default {
   },
   async mounted () {
     this.selectedCurrency = this.$store.getters['market/selectedCurrency']
-    this.wallet = await loadP2PWalletInfo('bch')
-    await this.initPeerProfile()
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    this.wallet = await loadP2PWalletInfo(walletInfo)
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
-    this.dataLoaded = true
+  },
+  watch: {
+    transactionType () {
+      this.fetchStoreListings()
+    }
   },
   methods: {
-    async initPeerProfile () {
-      this.peerProfile = await this.$store.dispatch('ramp/fetchPeerProfile', this.wallet.walletHash)
-      if (!this.peerProfile.length) {
-        // create peer profile if peer isnt existing
-        this.createPeerProfile()
-      }
-    },
-    createPeerProfile () {
-      const vm = this
-      const timestamp = Date.now()
-      const url = vm.apiURL + '/peer/'
-      signMessage(this.wallet.privateKeyWif, 'PEER_CREATE', timestamp)
-        .then(result => {
-          const signature = result
-          const headers = {
-            'wallet-hash': this.wallet.walletHash,
-            timestamp: timestamp,
-            signature: signature,
-            'public-key': this.wallet.publicKey
-          }
-          const body = {
-            nickname: 'Hayao Miyazaki', // TODO: replace with the actual user inputted nickname
-            address: this.wallet.address
-          }
-          vm.$axios.post(url, body, { headers: headers })
-            .then(response => {
-              vm.peerInfo = response.data
-              console.log('peerInfo: ', vm.peerInfo)
-            })
-            .catch(error => {
-              console.error(error)
-              console.error(error.response)
-            })
-        })
-    },
     async fetchFiatCurrencies () {
       const vm = this
       vm.$axios.get(vm.apiURL + '/currency/fiat')
@@ -221,13 +189,14 @@ export default {
       const vm = this
       if (this.selectedCurrency) {
         const params = {
-          currency: this.selectedCurrency.symbol
+          currency: this.selectedCurrency.symbol,
+          trade_type: this.transactionType
         }
         vm.loading = true
         vm.$axios.get(vm.apiURL + '/ad', { params: params })
           .then(response => {
             vm.listings = response.data
-            // console.log('listings: ', vm.listings)
+            console.log('listings: ', vm.listings)
             vm.loading = false
           })
           .catch(error => {
@@ -235,9 +204,8 @@ export default {
             vm.loading = false
           })
       }
-      // console.log(vm.listings)
     },
-    async selectCurrency (index) {
+    selectCurrency (index) {
       this.selectedCurrency = this.fiatCurrencies[index]
       this.listings = []
       this.fetchStoreListings()
@@ -247,13 +215,6 @@ export default {
 
       vm.selectedListing = listing
       vm.state = vm.transactionType === 'SELL' ? 'BUY' : 'SELL'
-    },
-    filteredListings () {
-      const vm = this
-      const filteredListings = vm.listings.filter(function (listing) {
-        return listing.trade_type === vm.transactionType
-      })
-      return filteredListings
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()

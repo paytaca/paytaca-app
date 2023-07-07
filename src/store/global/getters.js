@@ -11,9 +11,9 @@ function getWalletData (state, walletType) {
   return state.wallets[walletType]
 }
 
-export function getRampNickName (state) {
-  return state.p2pRampUserName
-}
+// export function getRampNickName (state) {
+//   return state.p2pRampUserName
+// }
 
 export function network (state) {
   return state.network

@@ -226,9 +226,7 @@ export default {
     async submitData () {
       const vm = this
       vm.stageData()
-
       await this.$emit('submit', vm.info)
-      this.$emit('back')
     },
     checkName: debounce(async function () {
       const vm = this

@@ -137,11 +137,11 @@ export function updateConnectivityStatus (state, online) {
   state.online = online
 }
 
-export function resetNickName (state) { // for testing purposes only, remove later
-  console.log('resseting name')
-  state.p2pRampUserName = ''
-}
+// export function resetNickName (state) { // for testing purposes only, remove later
+//   console.log('resseting name')
+//   state.p2pRampUserName = ''
+// }
 
-export function editRampNickname (state, nickname) {
-  state.p2pRampUserName = nickname
-}
+// export function editRampNickname (state, nickname) {
+//   state.p2pRampUserName = nickname
+// }
