@@ -32,17 +32,17 @@
         </div>
       </div>
       <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy Ads</button>
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell Ads</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
       </div>
       <div class="q-mt-md">
-        <div v-if="dataLoaded == true && filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
+        <div v-if="dataLoaded == true && listings.length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="filteredListings()">
+            <q-virtual-scroll :items="listings">
               <template v-slot="{ item: listing }">
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
@@ -157,48 +157,16 @@ export default {
     this.selectedCurrency = this.$store.getters['market/selectedCurrency']
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
-    await this.initPeerProfile()
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
     this.dataLoaded = true
   },
+  watch: {
+    transactionType () {
+      this.fetchStoreListings()
+    }
+  },
   methods: {
-    async initPeerProfile () {
-      this.peerProfile = this.$store.getters['ramp/getUser']
-      console.log('peerProfile:', this.peerProfile)
-      // if (!this.peerProfile.length) {
-      //   // create peer profile if peer isnt existing
-      //   this.createPeerProfile()
-      // }
-    },
-    createPeerProfile () {
-      const vm = this
-      const timestamp = Date.now()
-      const url = vm.apiURL + '/peer/'
-      signMessage(this.wallet.privateKeyWif, 'PEER_CREATE', timestamp)
-        .then(result => {
-          const signature = result
-          const headers = {
-            'wallet-hash': this.wallet.walletHash,
-            timestamp: timestamp,
-            signature: signature,
-            'public-key': this.wallet.publicKey
-          }
-          const body = {
-            nickname: 'Hayao Miyazaki', // TODO: replace with the actual user inputted nickname
-            address: this.wallet.address
-          }
-          vm.$axios.post(url, body, { headers: headers })
-            .then(response => {
-              vm.peerInfo = response.data
-              console.log('peerInfo: ', vm.peerInfo)
-            })
-            .catch(error => {
-              console.error(error)
-              console.error(error.response)
-            })
-        })
-    },
     async fetchFiatCurrencies () {
       const vm = this
       vm.$axios.get(vm.apiURL + '/currency/fiat')
@@ -223,13 +191,14 @@ export default {
       const vm = this
       if (this.selectedCurrency) {
         const params = {
-          currency: this.selectedCurrency.symbol
+          currency: this.selectedCurrency.symbol,
+          trade_type: this.transactionType
         }
         vm.loading = true
         vm.$axios.get(vm.apiURL + '/ad', { params: params })
           .then(response => {
             vm.listings = response.data
-            // console.log('listings: ', vm.listings)
+            console.log('listings: ', vm.listings)
             vm.loading = false
           })
           .catch(error => {
@@ -237,9 +206,8 @@ export default {
             vm.loading = false
           })
       }
-      // console.log(vm.listings)
     },
-    async selectCurrency (index) {
+    selectCurrency (index) {
       this.selectedCurrency = this.fiatCurrencies[index]
       this.listings = []
       this.fetchStoreListings()
@@ -250,13 +218,13 @@ export default {
       vm.selectedListing = listing
       vm.state = vm.transactionType === 'SELL' ? 'BUY' : 'SELL'
     },
-    filteredListings () {
-      const vm = this
-      const filteredListings = vm.listings.filter(function (listing) {
-        return listing.trade_type === vm.transactionType
-      })
-      return filteredListings
-    },
+    // filteredListings () {
+    //   const vm = this
+    //   const filteredListings = vm.listings.filter(function (listing) {
+    //     return listing.trade_type === vm.transactionType
+    //   })
+    //   return filteredListings
+    // },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
     },
