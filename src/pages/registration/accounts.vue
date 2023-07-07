@@ -263,7 +263,7 @@ export default {
     continueToDashboard () {
       const vm = this
 
-      this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+      this.$store.dispatch('global/updateOnboardingStep', this.steps).then(function () {
         vm.saveToVault()
         vm.$router.push('/')
       })
@@ -427,6 +427,11 @@ export default {
     }
   },
   async mounted () {
+    this.mnemonic = await getMnemonic() || ''
+    if (this.mnemonic.split(" ").length === 12) {
+      this.steps = 9
+    }
+
     // get walletIndex
     this.walletIndex = this.$store.getters['global/getVault'].length
 
