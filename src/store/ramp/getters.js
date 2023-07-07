@@ -1,3 +1,3 @@
-export function getPeerProfile (state) {
-  return state.peerProfile
+export function getUser (state) {
+  return state.user
 }

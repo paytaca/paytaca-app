@@ -1,7 +1,7 @@
-export function updatePeerProfile (state, peerProfile) {
-  state.peerProfile = peerProfile
+export function updateUser (state, user) {
+  state.user = user
 }
 
-export function clearPeerProfile (state) {
-  state.peerProfile = null
+export function clearProfile (state) {
+  state.user = null
 }

@@ -77,7 +77,7 @@ export default function () {
       email: '',
       mobileNumber: ''
     },
-    online: null,
-    p2pRampUserName: ''
+    online: null//,
+    // p2pRampUserName: ''
   }
 }

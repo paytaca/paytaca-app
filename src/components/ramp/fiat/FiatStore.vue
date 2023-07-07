@@ -155,7 +155,8 @@ export default {
   },
   async mounted () {
     this.selectedCurrency = this.$store.getters['market/selectedCurrency']
-    this.wallet = await loadP2PWalletInfo('bch')
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    this.wallet = await loadP2PWalletInfo(walletInfo)
     await this.initPeerProfile()
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
@@ -163,11 +164,12 @@ export default {
   },
   methods: {
     async initPeerProfile () {
-      this.peerProfile = await this.$store.dispatch('ramp/fetchPeerProfile', this.wallet.walletHash)
-      if (!this.peerProfile.length) {
-        // create peer profile if peer isnt existing
-        this.createPeerProfile()
-      }
+      this.peerProfile = this.$store.getters['ramp/getUser']
+      console.log('peerProfile:', this.peerProfile)
+      // if (!this.peerProfile.length) {
+      //   // create peer profile if peer isnt existing
+      //   this.createPeerProfile()
+      // }
     },
     createPeerProfile () {
       const vm = this
