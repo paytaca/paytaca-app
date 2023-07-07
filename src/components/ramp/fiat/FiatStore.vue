@@ -8,8 +8,8 @@
     <div v-if="dataLoaded">
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
         <div>
-          <div v-if="selectedFiat" class="q-ml-md text-h5 md-font-size">
-            {{ selectedFiat.abbrev }} <q-icon size="sm" name='mdi-menu-down'/>
+          <div v-if="selectedCurrency" class="q-ml-md text-h5 md-font-size">
+            {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
           </div>
           <q-menu anchor="bottom left" self="top left" >
             <q-list class="text-h5 subtext md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px;">
@@ -18,10 +18,10 @@
                 :key="index"
                 clickable
                 v-close-popup
-                @click="selectFiatCurrency(index)"
+                @click="selectCurrency(index)"
               >
                 <!-- <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ currency }} ({{ index }})</q-item-section> -->
-                <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.abbrev }})</q-item-section>
+                <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.symbol }})</q-item-section>
               </q-item>
             </q-list>
           </q-menu>
@@ -36,13 +36,13 @@
         <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell Ads</button>
       </div>
       <div class="q-mt-md">
-        <div v-if="dataLoaded == true && getFilteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
+        <div v-if="dataLoaded == true && filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="getFilteredListings()">
+            <q-virtual-scroll :items="filteredListings()">
               <template v-slot="{ item: listing }">
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
@@ -64,8 +64,8 @@
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase lg-font-size"
                           >
-                            {{ listing.price }} {{ listing.fiat_currency.abbrev }}
-                            <!-- {{ listing.priceType === 'FIXED' ? listing.fixedPrice : listing.floatingPrice }} {{ listing.fiatCurrency.abbrev }} -->
+                            {{ listing.price }} {{ selectedCurrency.symbol }}
+                            <!-- {{ listing.priceType === 'FIXED' ? listing.fixedPrice : listing.floatingPrice }} {{ listing.fiatCurrency.symbol }} -->
                           </span>
                           <span class="sm-font-size">
                             /BCH
@@ -76,7 +76,7 @@
                           </div>
                           <div class="row sm-font-size">
                               <span class="q-mr-md">Limit</span>
-                              <span> {{ listing.trade_floor }} {{ listing.fiat_currency.abbrev }} - {{ listing.trade_ceiling }} {{ listing.fiat_currency.abbrev }}</span>
+                              <span> {{ listing.trade_floor }} {{ selectedCurrency.symbol }} - {{ listing.trade_ceiling }} {{ selectedCurrency.symbol }}</span>
                           </div>
                         </div>
                       </div>
@@ -126,17 +126,26 @@
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
+import { signMessage } from 'src/wallet/ramp/signature'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
+  components: {
+    FiatStoreForm,
+    ProgressLoader,
+    FiatProfileCard
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       viewProfile: false,
+      wallet: null,
       transactionType: 'SELL',
       dataLoaded: false,
       loading: true,
-      selectedFiat: null,
+      peerProfile: null,
+      selectedCurrency: null,
       state: 'SELECT', //'BUY', 'SELL'
       selectedListing: {},
       selectedUser: null,
@@ -510,53 +519,92 @@ export default {
       listings: []
     }
   },
-  components: {
-    FiatStoreForm,
-    ProgressLoader,
-    FiatProfileCard
+  async mounted () {
+    this.selectedCurrency = this.$store.getters['market/selectedCurrency']
+    this.wallet = await loadP2PWalletInfo('bch')
+    await this.initPeerProfile()
+    await this.fetchFiatCurrencies()
+    await this.fetchStoreListings()
+    this.dataLoaded = true
   },
   methods: {
-    // selectFiatCoin (currency) {
-    //   // console.log(currency)
-    //   this.selectedFiat = currency
+    async initPeerProfile () {
+      this.peerProfile = await this.$store.dispatch('ramp/fetchPeerProfile', this.wallet.walletHash)
+      if (!this.peerProfile.length) {
+        // create peer profile if peer isnt existing
+        this.createPeerProfile()
+      }
+    },
+    createPeerProfile () {
+      const vm = this
+      const timestamp = Date.now()
+      const url = vm.apiURL + '/peer/'
+      signMessage(this.wallet.privateKeyWif, 'PEER_CREATE', timestamp)
+        .then(result => {
+          const signature = result
+          const headers = {
+            'wallet-hash': this.wallet.walletHash,
+            timestamp: timestamp,
+            signature: signature,
+            'public-key': this.wallet.publicKey
+          }
+          const body = {
+            nickname: 'Hayao Miyazaki', // TODO: replace with the actual user inputted nickname
+            address: this.wallet.address
+          }
+          vm.$axios.post(url, body, { headers: headers })
+            .then(response => {
+              vm.peerInfo = response.data
+              console.log('peerInfo: ', vm.peerInfo)
+            })
+            .catch(error => {
+              console.error(error)
+              console.error(error.response)
+            })
+        })
+    },
     async fetchFiatCurrencies () {
       const vm = this
-      const response = await vm.$axios.get(vm.apiURL + '/currency/fiat')
+      vm.$axios.get(vm.apiURL + '/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
-          vm.selectedFiat = vm.fiatCurrencies[0]
+          if (!vm.selectedCurrency) {
+            vm.selectedCurrency = vm.fiatCurrencies[0]
+          }
         })
         .catch(error => {
           console.error(error)
           console.error(error.response)
+
+          vm.fiatCurrencies = vm.availableFiat
+          if (!vm.selectedCurrency) {
+            vm.selectedCurrency = vm.fiatCurrencies[0]
+          }
         })
-      // vm.fiatCurrencies = vm.availableFiat
-      // vm.selectedFiat = vm.fiatCurrencies[0]
+      // console.log(vm.fiatCurrencies)
     },
     async fetchStoreListings () {
       const vm = this
-      if (this.selectedFiat) {
+      if (this.selectedCurrency) {
         const params = {
-          currency: this.selectedFiat.abbrev
+          currency: this.selectedCurrency.symbol
         }
         vm.loading = true
-        const response = await vm.$axios.get(vm.apiURL + '/ad', { params: params })
+        vm.$axios.get(vm.apiURL + '/ad', { params: params })
           .then(response => {
             vm.listings = response.data
-            console.log('listings: ', vm.listings)
+            // console.log('listings: ', vm.listings)
             vm.loading = false
           })
           .catch(error => {
-            console.log('failed')
-            console.error(error)
             console.error(error.response)
             vm.loading = false
           })
       }
-      // vm.listings = vm.test_data // remove later
+      // console.log(vm.listings)
     },
-    async selectFiatCurrency (index) {
-      this.selectedFiat = this.fiatCurrencies[index]
+    async selectCurrency (index) {
+      this.selectedCurrency = this.fiatCurrencies[index]
       this.listings = []
       this.fetchStoreListings()
     },
@@ -566,15 +614,7 @@ export default {
       vm.selectedListing = listing
       vm.state = vm.transactionType === 'SELL' ? 'BUY' : 'SELL'
     },
-    // sortedListings () {
-    //   const vm = this
-
-    //   const sorted = vm.listings.filter(function (listing) {
-    //     return listing.tradeType.toLowerCase() === vm.transactionType
-    //   })
-    //   return sorted
-    // }
-    getFilteredListings () {
+    filteredListings () {
       const vm = this
       const filteredListings = vm.listings.filter(function (listing) {
         return listing.trade_type === vm.transactionType
@@ -594,12 +634,6 @@ export default {
         name: user
       }
     }
-  },
-  async mounted () {
-    await this.fetchFiatCurrencies()
-    await this.fetchStoreListings()
-
-    this.dataLoaded = true
   }
 }
 </script>

@@ -20,13 +20,13 @@
           padding="sm"
           class="q-ml-md"
           icon="add"
-          :class="transactionType === 'buy'? 'buy-add-btn': 'sell-add-btn'"
+          :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
           @click="state = 'create'"
         />
       </div>
       <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'buy' }" @click="transactionType='buy'">Buy</button>
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'sell'}" @click="transactionType='sell'">Sell</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy</button>
+        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell</button>
       </div>
       <div class="q-mt-md">
         <div v-if="checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
@@ -35,7 +35,7 @@
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="transactionType === 'buy'? buyListings : sellListings">
+            <q-virtual-scroll :items="transactionType === 'BUY'? buyListings : sellListings">
               <template v-slot="{ item: listing, index }">
                 <q-item>
                   <q-item-section>
@@ -91,7 +91,7 @@
                         </div>
                       </div>
                       <div class="q-gutter-sm q-pt-sm">
-                        <q-badge v-for="method in listing.payment_methods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.payment_type" />
+                        <!-- <q-badge v-for="method in listing.payment_methods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.payment_type" /> -->
                       </div>
                     </div>
                   </q-item-section>
@@ -116,16 +116,19 @@
 // import FiatAdsSell from './FiatAdsSell.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
+import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
+  inject: ['walletHash', 'privateKeyWif'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       openDialog: false,
       dialogName: '',
       selectedIndex: null,
       editListing: {},
-      transactionType: 'buy',
+      transactionType: 'BUY',
       state: 'selection', // 'create' 'edit'
       buyListings: [],
       sellListings: [],
@@ -482,7 +485,35 @@ export default {
     FiatAdsForm,
     FiatAdsDialogs
   },
+  async mounted () {
+    const vm = this
+    vm.fetchAds()
+    vm.sellListings = vm.sortedListings('sell')
+    vm.buyListings = vm.sortedListings('buy')
+  },
   methods: {
+    async fetchAds () {
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.privateKeyWif.value, 'AD_LIST', timestamp)
+      const headers = {
+        'wallet-hash': this.walletHash.value,
+        timestamp: timestamp,
+        signature: signature
+      }
+      console.log('headers:', headers)
+      vm.$axios.get(vm.apiURL + '/ad', { headers: headers })
+        .then(response => {
+          vm.listings = response.data
+          console.log('listings: ', vm.listings)
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response.data)
+          vm.loading = false
+        })
+    },
     sortedListings (type) {
       const vm = this
 
@@ -497,10 +528,10 @@ export default {
       // console.log('edit')
 
       switch (vm.transactionType) {
-        case 'buy':
+        case 'BUY':
           vm.editListing = vm.buyListings[index]
           break
-        case 'sell':
+        case 'SELL':
           vm.editListing = vm.sellListings[index]
           break
       }
@@ -515,7 +546,7 @@ export default {
     },
     checkEmptyListing () {
       const vm = this
-      if (vm.transactionType === 'buy') {
+      if (vm.transactionType === 'BUY') {
         return vm.buyListings.length === 0
       } else {
         return vm.sellListings.length === 0
@@ -541,12 +572,6 @@ export default {
           break
       }
     }
-  },
-  async mounted () {
-    const vm = this
-
-    vm.sellListings = vm.sortedListings('sell')
-    vm.buyListings = vm.sortedListings('buy')
   }
 }
 </script>
