@@ -15,7 +15,7 @@
     <MiscDialogs
       :type="'editNickname'"
       v-on:submit="updateNickname"
-      v-on:back="$router.go(-1)"
+      v-on:back="proceed ? '' : $router.go(-1)"
     />
   </div>
 </template>
