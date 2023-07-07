@@ -3,9 +3,8 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     style="min-height:78vh;"
-    v-if="state === 'SELECT' && !viewProfile"
-  >
-    <div v-if="dataLoaded">
+    v-if="state === 'SELECT' && !viewProfile">
+    <div>
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
         <div>
           <div v-if="selectedCurrency" class="q-ml-md text-h5 md-font-size">
@@ -35,8 +34,8 @@
         <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
         <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
       </div>
-      <div class="q-mt-md">
-        <div v-if="dataLoaded == true && listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="!loading" class="q-mt-md">
+        <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
         </div>
@@ -95,7 +94,7 @@
         </div>
       </div>
     </div>
-    <div v-if="!dataLoaded">
+    <div v-if="loading">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader/>
       </div>
@@ -126,7 +125,7 @@
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-import { signMessage } from 'src/wallet/ramp/signature'
+// import { signMessage } from 'src/wallet/ramp/signature'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
@@ -142,7 +141,7 @@ export default {
       viewProfile: false,
       wallet: null,
       transactionType: 'SELL',
-      dataLoaded: false,
+      // dataLoaded: false,
       loading: true,
       peerProfile: null,
       selectedCurrency: null,
@@ -159,7 +158,6 @@ export default {
     this.wallet = await loadP2PWalletInfo(walletInfo)
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
-    this.dataLoaded = true
   },
   watch: {
     transactionType () {
@@ -218,13 +216,6 @@ export default {
       vm.selectedListing = listing
       vm.state = vm.transactionType === 'SELL' ? 'BUY' : 'SELL'
     },
-    // filteredListings () {
-    //   const vm = this
-    //   const filteredListings = vm.listings.filter(function (listing) {
-    //     return listing.trade_type === vm.transactionType
-    //   })
-    //   return filteredListings
-    // },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
     },
