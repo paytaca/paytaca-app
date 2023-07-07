@@ -3,7 +3,7 @@
     <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg" v-if="!showInfo">
         <div class="text-subtitle1 q-space q-mt-sm">
-          Transaction History
+          {{ $t('TransactionHistory') }}
         </div>
         <q-btn
           flat

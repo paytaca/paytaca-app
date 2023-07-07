@@ -3,7 +3,7 @@
     :content-style="contentStyle"
     :text-color="darkMode ? 'white' : ''"
     unelevated class="float-right q-mr-md"
-    :style="{color: darlMode ? 'white' : 'black'}"
+    :style="{color: darkMode ? 'white' : 'black'}"
   >
     <template v-slot:label>
       <TokenTypeBadge :assetId="assetId" />
