@@ -63,7 +63,7 @@ const routes = [
     path: '/accounts',
     component: () => import('layouts/Accounts.vue'),
     children: [
-      { path: '', component: () => import('pages/registration/accounts.vue') }
+      { path: '', component: () => import('pages/registration/accounts.vue'), name: 'create-account', props: route => route.query }
     ]
   },
   {
