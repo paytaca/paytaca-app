@@ -28,11 +28,14 @@
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import { loadWallet } from 'src/wallet'
+import { markRaw } from 'vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       isloaded: false,
       user: null,
       editNickname: false
@@ -52,20 +55,68 @@ export default {
   components: {
     MiscDialogs
   },
+  // computed: {
+  //   user () {
+  //     if (this.type === 'self') {
+  //       return this.$store.getters['ramp/getUser']
+  //     }
+  //   }
+  // }
   methods: {
     processUserData () {
+      // console.log(this.$store.getters['ramp/getUser'].nickname)
       if (this.type === 'self') {
         // get this user's info
         this.user = {
-          name: this.$store.getters['global/getRampNickName']
+          name: this.$store.getters['ramp/getUser'].nickname
         }
+        console.log(this.user)
       } else {
         this.user = this.userInfo
       }
     },
-    updateUserName(info) {
-      this.$store.commit('global/editRampNickname', info.nickname)
-      this.processUserData()
+    async updateUserName (info) {
+      console.log(info)
+      const vm = this
+      const wallet = await markRaw(loadWallet())
+      const walletHash = wallet.BCH.getWalletHash()
+      // this.$store.commit('global/editRampNickname', info.nickname)
+      vm.$axios.put(vm.apiURL + '/peer', {
+        nickname: info.nickname
+      },
+      {
+        headers: {
+          'wallet-hash': walletHash,
+          signature: null,
+          timestamp: null
+        }
+      })
+        .then(response => {
+          console.log(response.data)
+          vm.$store.commit('ramp/updateUser', response.data)
+          this.processUserData()
+        })
+        .catch(error => {
+          console.log(error)
+        })
+
+      // vm.$axios.get(vm.apiURL + '/currency/fiat')
+      //   .then(response => {
+      //     vm.fiatCurrencies = response.data
+      //     if (!vm.selectedCurrency) {
+      //       vm.selectedCurrency = vm.fiatCurrencies[0]
+      //     }
+      //   })
+      //   .catch(error => {
+      //     console.error(error)
+      //     console.error(error.response)
+
+      //     vm.fiatCurrencies = vm.availableFiat
+      //     if (!vm.selectedCurrency) {
+      //       vm.selectedCurrency = vm.fiatCurrencies[0]
+      //     }
+      //   })
+
     }
   },
   async mounted () {
