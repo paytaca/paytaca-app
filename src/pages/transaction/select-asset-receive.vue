@@ -30,7 +30,7 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'">
+          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'" v-if="isCashToken">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
@@ -38,13 +38,16 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none" :class="darkMode ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch')).substring(0, 16) }}</span>
+                  <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/'))).substring(0, 16) }}</span>
                   {{ asset.symbol }}
                 </p>
               </div>
             </div>
           </div>
         </div>
+        <q-banner v-if="!isCashToken" inline-actions class="text-white bg-red text-center q-mt-lg" :class="darkMode ? 'text-white' : 'text-black'" style="width: 90%; margin-left: auto; margin-right: auto;">
+          Receiving SLP tokens is temporarily disabled until further notice.
+        </q-banner>
       </div>
       <div style="height: 90px;" v-if="assets.length > 5"></div>
     </template>

@@ -1027,7 +1027,6 @@ export default {
         forceRecreate = true
       }
     }
-    console.log('force recreate')
     if (forceRecreate) {
       await vm.$store.dispatch('global/updateOnboardingStep', 0)
       vm.$router.push('/accounts?recreate=true')

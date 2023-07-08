@@ -23,7 +23,7 @@
                   {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
                 </template>
                 <template v-else>
-                  {{ convertTokenAmount(transaction.amount, transaction.asset.decimals, transaction.asset.id === 'bch') }} {{ transaction.asset.symbol }}
+                  {{ convertTokenAmount(transaction.amount, transaction.asset.decimals, isBCH=transaction.asset.id === 'bch', isSLP=isSLP=transaction.asset.id.startsWith('slp/')) }} {{ transaction.asset.symbol }}
                 </template>
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
