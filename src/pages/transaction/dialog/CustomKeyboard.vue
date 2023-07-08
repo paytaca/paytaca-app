@@ -86,10 +86,8 @@ export default {
     },
     customKeyboardState () {
       if (this.customKeyboardState === 'show') {
-        console.log('Open keyboard')
         this.keyboard = true
       } else {
-        console.log('Close keyboard')
         this.keyboard = false
       }
     }

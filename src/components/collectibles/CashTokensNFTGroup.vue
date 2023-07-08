@@ -80,32 +80,32 @@ const nftsPagination = ref({count: 0, limit: 0, offset: 0})
 
 const nfts = ref([].map(CashNonFungibleToken.parse))
 function fetchNfts(opts={limit: 0, offset: 0}) {
-  if (!props.wallet) return Promise.reject()
-  
-  const params = {
-    wallet_hash: props.wallet.BCH.walletHash,
-    category: props.category || undefined,
-    has_group: typeof props.ungrouped ==='boolean' ? !Boolean(props.ungrouped) : undefined,
-    capabilityies: ['none', 'mutable'].join(','),
-    has_balance: true,
-    limit: opts?.limit || 10,
-    offset: opts?.offset || 0,
-  }
+  if (props.wallet) {
+    const params = {
+      wallet_hash: props.wallet.BCH.walletHash,
+      category: props.category || undefined,
+      has_group: typeof props.ungrouped ==='boolean' ? !Boolean(props.ungrouped) : undefined,
+      capabilityies: ['none', 'mutable'].join(','),
+      has_balance: true,
+      limit: opts?.limit || 10,
+      offset: opts?.offset || 0,
+    }
 
-  fetchingNfts.value = true
-  props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/', { params })
-    .then(response => {
-      if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-      nfts.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
-      nfts.value.forEach(nft => nft?.fetchMetadata?.())
-      nftsPagination.value.count = response?.data?.count
-      nftsPagination.value.limit = response?.data?.limit
-      nftsPagination.value.offset = response?.data?.offset
-      return response
-    })
-    .finally(() => {
-      fetchingNfts.value = false
-    })
+    fetchingNfts.value = true
+    props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/', { params })
+      .then(response => {
+        if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+        nfts.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
+        nfts.value.forEach(nft => nft?.fetchMetadata?.())
+        nftsPagination.value.count = response?.data?.count
+        nftsPagination.value.limit = response?.data?.limit
+        nftsPagination.value.offset = response?.data?.offset
+        return response
+      })
+      .finally(() => {
+        fetchingNfts.value = false
+      })
+  }
 }
 
 function generateFallbackImage(nft=CashNonFungibleToken.parse()) {

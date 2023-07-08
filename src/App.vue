@@ -198,7 +198,7 @@ export default {
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'
-      document.body.style.minHeight = '650px'
+      document.body.style.minHeight = '700px'
       document.body.style.margin = '0 auto'
 
       vm.$q.bex.on('bex.paytaca.send', event => {

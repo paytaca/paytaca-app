@@ -92,8 +92,8 @@
 </template>
 
 <script>
-import 'capacitor-secure-storage-plugin'
 import ProgressLoader from '../../components/ProgressLoader'
+import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 
 const { SecureStoragePlugin } = Plugins

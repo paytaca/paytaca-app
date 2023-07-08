@@ -38,7 +38,7 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none" :class="$store.getters['darkmode/getStatus'] ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  {{ String(convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch')).substring(0, 16) }}
+                  {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
                   <span>
                     {{ asset.symbol }}
                   </span>

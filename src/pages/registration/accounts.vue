@@ -184,6 +184,12 @@ function countWords(str) {
 
 export default {
   name: 'registration-accounts',
+  props: {
+    recreate: {
+      type: Boolean,
+      default: false
+    }
+  },
   components: {
     ProgressLoader,
     pinDialog,
@@ -262,8 +268,7 @@ export default {
     },
     continueToDashboard () {
       const vm = this
-
-      this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+      this.$store.dispatch('global/updateOnboardingStep', this.steps).then(function () {
         vm.saveToVault()
         vm.$router.push('/')
       })
@@ -278,11 +283,13 @@ export default {
       const vm = this
 
       // Create mnemonic seed, encrypt, and store
-      if (vm.importSeedPhrase) {
-        vm.mnemonicVerified = true
-        vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
-      } else {
-        vm.mnemonic = await generateMnemonic(vm.walletIndex)
+      if (!vm.mnemonic) {
+        if (vm.importSeedPhrase) {
+          vm.mnemonicVerified = true
+          vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
+        } else {
+          vm.mnemonic = await generateMnemonic(vm.walletIndex)
+        }
       }
       vm.steps += 1
 
@@ -418,6 +425,7 @@ export default {
       }
     },
     executeActionTaken (action) {
+      console.log('ACTION:', action)
       const vm = this
       if (action === 'proceed') {
         vm.continueToDashboard()
@@ -427,6 +435,15 @@ export default {
     }
   },
   async mounted () {
+
+    if (this.recreate) {
+      this.mnemonic = await getMnemonic(0) || ''
+      if (this.mnemonic.split(" ").length === 12) {
+        this.steps = 0
+      }
+      this.$store.state.global.vault = []
+    }
+
     // get walletIndex
     this.walletIndex = this.$store.getters['global/getVault'].length
 

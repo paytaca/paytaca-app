@@ -56,7 +56,10 @@
                     flat
                     :label="$t('Manage')"
                     no-caps
-                    :to="{ path: '/apps/settings/ignored-tokens' }"
+                    :to="{
+                      path: '/apps/settings/ignored-tokens',
+                      query: { backNavPath: '/apps/settings' }
+                    }"
                   />
                 </q-item-section>
               </q-item>

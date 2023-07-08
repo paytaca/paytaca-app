@@ -153,7 +153,6 @@ export default {
             this.lnsName = response.name
             return Promise.resolve(response)
           }
-          return Promise.reject()
         })
     },
     getFallbackAssetLogo (asset) {
@@ -455,7 +454,7 @@ export default {
     color: #636767;
   }
   .qr-code-container {
-    margin-top: 70px;
+    margin-top: 40px;
     padding-left: 28px;
     padding-right: 28px;
   }

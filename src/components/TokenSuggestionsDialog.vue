@@ -27,7 +27,10 @@
         class="q-mx-md"
         :text-color="darkMode ? 'blue-5' : 'blue-9'"
         style="margin-top:-1.5rem;"
-        :to="{ path: '/apps/settings/ignored-tokens' }"
+        :to="{
+          path: '/apps/settings/ignored-tokens',
+          query: { backNavPath: '/' }
+        }"
       />
       <q-card-section class="q-pt-none q-px-sm">
         <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
@@ -118,7 +121,7 @@
           v-if="parsedTokens.length > 0 && !loading"
           no-caps
           rounded
-          :label="`Add all ${parsedTokens.length}`"
+          :label="`${$t('AddAll')} ${parsedTokens.length}`"
           text-color="white"
           :color="darkMode ? 'blue-9': 'brandblue'"
           @click="addAllTokens()"

@@ -258,7 +258,7 @@ export default {
         id: 'bch',
         symbol: 'BCH',
         name: 'Bitcoin Cash',
-        logo: 'bitcoin-cash-bch-logo.png',
+        logo: 'bch-logo.png',
         balance: 0
       },
       transactionsFilter: 'all',
@@ -1008,10 +1008,32 @@ export default {
     })
   },
 
-  mounted () {
+  async mounted () {
+    const vm = this
+
+    // Check if preferredSecurity and if it's set as PIN
+    const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
+    let forceRecreate = false
+    if (preferredSecurity === null) {
+      forceRecreate = true
+    } else if (preferredSecurity === 'pin') {
+      // If using PIN, check if it's 6 digits
+      try {
+        const pin =  await SecureStoragePlugin.get({ key: 'pin' })
+        if (pin.value.length < 6) {
+          forceRecreate = true
+        }
+      } catch {
+        forceRecreate = true
+      }
+    }
+    if (forceRecreate) {
+      await vm.$store.dispatch('global/updateOnboardingStep', 0)
+      vm.$router.push('/accounts?recreate=true')
+    }
+
     window.vm = this
     this.handleOpenedNotification()
-    const vm = this
 
     vm.adjustTransactionsDivHeight({ timeout: 50 })
 

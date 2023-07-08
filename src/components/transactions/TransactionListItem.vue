@@ -14,7 +14,7 @@
             :class="{'text-grey': darkMode, 'q-mt-sm': !marketValueData?.marketValue }"
             class="q-mb-none transactions-wallet float-right ib-text text-right"
           >
-            <div>{{ +(formatAmount(transaction?.amount, asset?.decimals, asset?.id === 'bch')) }} {{ asset?.symbol }}</div>
+            <div>{{ +(formatAmount(transaction?.amount, asset?.decimals, isBCH=asset?.id === 'bch', isSLP=asset?.id.startsWith('slp/'))) }} {{ asset?.symbol }}</div>
             <div 
               v-if="marketValueData?.marketValue"
               class="text-caption text-grey"
@@ -58,7 +58,6 @@
   </div>
 </template>
 <script setup>
-import { convertTokenAmount } from 'src/wallet/chipnet'
 import ago from 's-ago'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
@@ -159,8 +158,8 @@ function formatDate (date) {
   return ago(new Date(date))
 }
 
-function formatAmount (amount, decimals, isBCH) {
-  if (isBCH) {
+function formatAmount (amount, decimals, isBCH=false, isSLP=false) {
+  if (isBCH || isSLP) {
     return amount
   } else {
     return amount / (10 ** decimals)

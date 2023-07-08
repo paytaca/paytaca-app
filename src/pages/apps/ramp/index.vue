@@ -1,7 +1,7 @@
 <template>
   <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
-      title="Ramp"
+      :title="$t('Ramp')"
       backnavpath="/apps"
     />
 
@@ -16,18 +16,18 @@
         name="fiat"
         :class="{'text-blue-5': darkMode}"
         disable
-        label="fiat"
+        :label="$t('Fiat')"
       >
         <q-popup-proxy>
           <q-banner :class="darkMode ? 'pt-dark text-white' : 'text-black'" class="q-pa-md br-15 text-center">
-            Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!
+            {{ $t('RampFiatNotice') }}
           </q-banner>
         </q-popup-proxy>
       </q-tab>
       <q-tab
         name="crypto"
         :class="{'text-blue-5': darkMode}"
-        label="crypto"
+        :label="$t('Crypto')"
       />
     </q-tabs>
 

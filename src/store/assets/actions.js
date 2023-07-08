@@ -139,6 +139,8 @@ export async function getMissingAssets (
   }
 
   let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
+  const balanceUrl = `${url}/balance/wallet/${walletHash}`
+
   if (isCashToken) {
     url += '/cashtokens/fungible/'
   } else {
@@ -157,9 +159,12 @@ export async function getMissingAssets (
     for (const result of data.results) {
       const tokenId = result.id.split('/')[1]
       const tokenDetails = await wallet.getTokenDetails(tokenId)
+      
       // exclude tokens without metadata
       if (tokenDetails !== null) {
-        console.log(tokenDetails)
+        const finalBalUrl = `${balanceUrl}/${tokenId}/`
+        const response = await axiosInstance.get(finalBalUrl)
+        tokenDetails.balance = response.data.balance
         finalData.push(tokenDetails)
       }
     }

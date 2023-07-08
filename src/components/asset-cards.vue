@@ -89,23 +89,6 @@ export default {
   },
   methods: {
     convertTokenAmount,
-    // num2shortStr(value) {
-    //   const number = Number(value)
-    //   const SI_SYMBOL = ["", "K", "M", "G", "T", "P", "E"]
-    //   const tier = Math.log10(Math.abs(number)) / 3 | 0
-
-    //   if (tier === 0) return number
-
-    //   const suffix = SI_SYMBOL[tier]
-    //   const scale = Math.pow(10, tier * 3)
-    //   const scaled = number / scale
-    //   let numStr = scaled.toFixed(1)
-
-    //   if (numStr.endsWith('0'))
-    //     numStr = numStr.substring(0, numStr.length - 2)
-
-    //    return numStr + suffix
-    // },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 
@@ -174,6 +157,7 @@ export default {
         component: AddNewAsset
       }).onOk((asset) => {
         if (vm.isSep20) return vm.addSep20Asset(asset.tokenId)
+        vm.selectAsset(null, asset.data)
       }).onCancel(() => {
       })
     },

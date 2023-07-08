@@ -1,6 +1,6 @@
 <template>
   <div class="pt-settings" :class="{'pt-dark': darkMode}">
-    <header-nav :title="$t('IgnoredTokens')"/>
+    <header-nav :title="$t('IgnoredTokens')" :backnavpath="backNavPath" />
     <div
       style="padding-top:100px;height:100vh;"
       :class="[
@@ -94,6 +94,9 @@ export default {
     }
   },
   computed: {
+    backNavPath () {
+      return this.$route.query.backNavPath
+    },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },

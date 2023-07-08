@@ -56,8 +56,8 @@ export function getBlockChainNetwork () {
   return isChipnet ? 'chipnet' : 'mainnet'
 }
 
-export function convertTokenAmount (amount, decimals, isBCH=false) {
-  if (isBCH) return amount
+export function convertTokenAmount (amount, decimals, isBCH=false, isSLP=false) {
+  if (isBCH || isSLP) return amount
   if (amount === 0) return amount
   const parsedAmount = parseInt(amount) || 0
   const parsedDecimals = parseInt(decimals) || 0
