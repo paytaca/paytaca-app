@@ -54,7 +54,12 @@
                       @click="showBranchInfo(branch)"
                     >
                       <q-item-section>
-                        <q-item-label>{{ branch.name }}</q-item-label>
+                        <q-item-label>
+                          {{ branch.name }}
+                          <span v-if="branch?.isMain" class="text-caption text-grey">
+                            ({{ $t('MainBranch', {}, 'Main Branch') }})
+                          </span>
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -368,7 +373,7 @@ function openNewBranchForm() {
   })
 }
 
-const posDevices = ref([ { walletHash: '', posid: -1, name: '', linkedDevice: null, lastActive: 0 } ])
+const posDevices = ref([].map(parsePosDeviceData))
 posDevices.value = []
 const posDevicesPageData = ref({ count: 0, limit: 10, offset: 0 })
 const parsedPosDevicePagination = computed(() => {

@@ -10,7 +10,7 @@ export function refetchMerchantInfo(context, data) {
   if (!data?.walletHash) return Promise.reject()
 
   const watchtower = new Watchtower()
-  return watchtower.BCH._api.get(`paytacapos/merchants/${data.walletHash}`)
+  return watchtower.BCH._api.get(`paytacapos/merchants/${data.walletHash}/`)
     .then(response => {
       if (response?.data?.wallet_hash == data.walletHash) {
         context.commit('updateMerchantInfo', response.data)
@@ -118,6 +118,7 @@ export function refetchBranchInfo(context, data) {
  * @param {Object} data
  * @param {Number} [data.id]
  * @param {String} data.name
+ * @param {Boolean} data.isMain
  * @param {String} data.merchantWalletHash
  * @param {Object} [data.location]
  * @param {String} data.location.landmark
@@ -131,6 +132,7 @@ export function refetchBranchInfo(context, data) {
 export function updateBranchInfo(context, data) {
   const payload = {
     merchant_wallet_hash: data?.merchantWalletHash,
+    is_main: data?.isMain,
   }
   Object.assign(payload, data)
 

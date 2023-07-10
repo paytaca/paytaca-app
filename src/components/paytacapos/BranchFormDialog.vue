@@ -41,6 +41,15 @@
                 val => Boolean(val) || $t('Required', {}, 'Required'),
               ]"
             />
+            <div class="row items-center">
+              <div class="q-space"></div>
+              <q-checkbox
+                dense
+                :dark="darkMode"
+                label="Is main branch"
+                v-model="branchInfoForm.isMain"
+              />
+            </div>
           </div>
           <div class="q-mt-sm q-gutter-sm">
             <div class="text-subtitle1 text-grey">{{ $t('Location', {}, 'Location') }}</div>
@@ -191,6 +200,7 @@ const branchInfo = computed(() => {
 const loading = ref(false)
 const branchInfoForm = ref({
   name: '',
+  isMain: false,
   location: {
     landmark: '',
     location: '',
@@ -227,6 +237,7 @@ onMounted(() => resetForm())
 function resetForm(opts={ clear: false }) {
   if (opts?.clear) {
     branchInfoForm.value.name = ''
+    branchInfoForm.value.isMain = false
     branchInfoForm.value.location.landmark = ''
     branchInfoForm.value.location.location = ''
     branchInfoForm.value.location.street = ''
@@ -238,6 +249,7 @@ function resetForm(opts={ clear: false }) {
   }
 
   branchInfoForm.value.name = branchInfo.value?.name || ''
+  branchInfoForm.value.isMain = branchInfo.value?.isMain || false
   branchInfoForm.value.location.landmark = branchInfo.value?.location?.landmark || ''
   branchInfoForm.value.location.location = branchInfo.value?.location?.location || ''
   branchInfoForm.value.location.street = branchInfo.value?.location?.street || ''
