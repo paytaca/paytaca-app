@@ -71,7 +71,7 @@
               :dark="darkMode"
               bottom-slots
               type="number"
-              :rules="numberRules"
+              :rules="[validateNonNegative]"
               @blur="updatePriceValue(adData.priceType)"
               v-model="priceValue">
               <template v-slot:prepend>
@@ -111,6 +111,8 @@
               rounded
               :dark="darkMode"
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+              type="number"
+              :rules="[validateNonNegative, validateNonZero]"
               v-model="adData.cryptoAmount"
             >
               <template v-slot:prepend>
@@ -125,15 +127,18 @@
             </q-input>
           </div>
         <div class="q-mt-sm q-px-md">
-          <div class="q-pl-sm q-pb-xs sm-font-size">Trade Limit</div>
+          <div class="q-pb-xs q-pl-sm bold-text">Trade Limit</div>
           <div class="row">
             <div class="col-5">
+              <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
               <q-input
                 dense
                 outlined
                 rounded=""
                 :dark="darkMode"
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                type="number"
+                :rules="[validateNonNegative, validateNonZero, validateTradeFloor]"
                 v-model="adData.tradeFloor"
               >
                 <template v-slot:append>
@@ -143,15 +148,18 @@
               </q-input>
             </div>
             <div class="col text-center">
-              <q-icon class="q-pt-sm" name="remove"/>
+              <q-icon class="q-pt-md q-mt-lg" name="remove"/>
             </div>
             <div class="col-5">
+              <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
               <q-input
                 dense
                 outlined
                 rounded=""
                 :dark="darkMode"
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                type="number"
+                :rules="[validateNonNegative, validateNonZero, validateTradeCeiling]"
                 v-model="adData.tradeCeiling"
               >
                 <template v-slot:append>
@@ -266,17 +274,12 @@ export default {
         floatingPrice: 100,
         tradeFloor: null,
         tradeCeiling: null,
-        cryptoAmount: null,
+        cryptoAmount: 0,
         timeDurationChoice: 1440,
         paymentMethods: []
       },
       numberRules: [
-        (val) => {
-          if (val < 0) {
-            return 'Value must be non-negative'
-          }
-          return true // Return true to indicate successful validation
-        }
+
       ],
       // SELECTION OPTIONS
       availableFiat: [ // api/ramp-p2p/currency/fiat/
@@ -520,6 +523,32 @@ export default {
         return false
       }
     },
+    validateNonNegative (val) {
+      if (val < 0) {
+        return 'Value must be non-negative'
+      }
+      return true
+    },
+    validateNonZero (val) {
+      if (val <= 0) {
+        return 'Value must be greater than zero'
+      }
+      return true
+    },
+    // validateTradeFloor () {
+    //   const vm = this
+    //   if (vm.adData.tradeCeiling && vm.adData.tradeFloor >= vm.adData.tradeCeiling) {
+    //     return 'Must be lesser than max trade amount'
+    //   }
+    //   return true
+    // },
+    // validateTradeCeiling () {
+    //   const vm = this
+    //   if (vm.adData.tradeFloor && vm.adData.tradeCeiling <= vm.adData.tradeFloor) {
+    //     return 'Must be greater than min trade amount'
+    //   }
+    //   return true
+    // },
     isAmountValid (value) {
       // amount with comma and decimal regex
       const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
