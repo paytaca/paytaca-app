@@ -407,6 +407,18 @@ function fetchPosDevices(opts) {
         if (rpcClient.ws.readyState == WebSocket.OPEN) posDevices.value.forEach(updateLastActive)
       }
     })
+    .then(() => {
+      if (!posDevices.value?.length) return
+      const missingBranchIds = []
+      posDevices.value.forEach(posDevice => {
+        if (!posDevice?.branchId) return
+        if (!merchantBranch(posDevice?.branchId)) missingBranchIds.push(posDevice?.branchId)
+      })
+
+      missingBranchIds
+        .filter((e,i,s) => s.indexOf(e) === i)
+        .forEach(branchId => $store.dispatch('paytacapos/refetchBranchInfo', { branchId }))
+    })
     .finally(() => {
       fetchingPosDevices.value = false
     })
