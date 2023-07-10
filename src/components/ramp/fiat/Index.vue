@@ -28,10 +28,11 @@
           <FiatAds v-if="menu === 'ads'"/>
           <FiatProfileCard
             v-if="menu === 'profile'"
-            v-on:back="menu = 'store'"
+            v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
           />
           <footerMenu
             v-on:clicked="switchMenu"
+            ref="footer"
           />
         </div>
         <div v-else>

@@ -214,7 +214,7 @@ export default {
       const vm = this
 
       vm.selectedListing = listing
-      vm.state = vm.transactionType === 'SELL' ? 'BUY' : 'SELL'
+      vm.state = vm.transactionType
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()

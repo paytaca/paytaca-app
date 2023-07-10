@@ -10,7 +10,7 @@
     </div>
     <div v-if="step === 1">
       <div>
-        <div class="text-h5 q-mx-lg text-center bold-text lg-font-size" :class="transactionType === 'buy' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+        <div class="text-h5 q-mx-lg text-center bold-text lg-font-size" :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
           <span v-if="adsState === 'create'">POST {{ transactionType.toUpperCase() }} AD</span>
           <span v-if="adsState === 'edit'">EDIT {{ transactionType.toUpperCase() }} AD</span>
         </div>
@@ -26,11 +26,11 @@
             v-model="adData.priceType"
             spread
             class="br-15"
-            :style="transactionType === 'buy' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
+            :style="transactionType === 'BUY' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
             no-caps
             unelevated
-            :toggle-color="transactionType === 'buy' ? 'blue-6': 'red-6'"
-            :text-color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+            :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+            :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
             :options="[
               {label: 'Fixed', value: 'FIXED'},
               {label: 'Floating', value: 'FLOAT'}
@@ -45,7 +45,7 @@
               dense
               rounded
               outlined
-              :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               :dark="darkMode"
               v-model="selectedCurrency"
               :options="availableFiat"
@@ -68,7 +68,7 @@
               dense
               rounded
               outlined
-              :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               :dark="darkMode"
               bottom-slots
               v-model="priceAmount"
@@ -110,7 +110,7 @@
               outlined
               rounded
               :dark="darkMode"
-              :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               v-model="adData.cryptoAmount"
             >
               <template v-slot:prepend>
@@ -133,7 +133,7 @@
                 outlined
                 rounded=""
                 :dark="darkMode"
-                :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 v-model="adData.tradeFloor"
               >
                 <template v-slot:append>
@@ -151,7 +151,7 @@
                 outlined
                 rounded=""
                 :dark="darkMode"
-                :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 v-model="adData.tradeCeiling"
               >
                 <template v-slot:append>
@@ -176,7 +176,7 @@
                 dense
                 outlined
                 rounded
-                :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 :dark="darkMode"
                 v-model="paymentTimeLimit"
                 :options="ptlSelection"
@@ -197,7 +197,7 @@
             :disable="checkPostData()"
             rounded
             no-caps
-            :label="transactionType === 'buy' ? 'Post Ad' : 'Next'"
+            :label="transactionType === 'BUY' ? 'Post Ad' : 'Next'"
             color="blue-6"
             class="q-space"
             @click="checkSubmitOption()"
@@ -328,11 +328,11 @@ export default {
       const vm = this
 
       switch (vm.transactionType) {
-        case 'buy':
+        case 'BUY':
           vm.step = 3
           // console.log(vm.adData)
           break
-        case 'sell':
+        case 'SELL':
           vm.step++
           break
       }
