@@ -223,10 +223,11 @@ export default {
           break
       }
     },
-    async submitData () {
+    submitData () {
       const vm = this
       vm.stageData()
-      await this.$emit('submit', vm.info)
+      this.$emit('submit', vm.info)
+      this.$emit('back') //check later
     },
     checkName: debounce(async function () {
       const vm = this
