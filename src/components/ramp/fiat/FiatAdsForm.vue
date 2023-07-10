@@ -70,6 +70,9 @@
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               :dark="darkMode"
               bottom-slots
+              type="number"
+              :rules="numberRules"
+              @blur="updatePriceValue(adData.priceType)"
               v-model="priceValue">
               <template v-slot:prepend>
                 <q-icon name="remove" @click="decPriceValue()"/>
@@ -267,7 +270,14 @@ export default {
         timeDurationChoice: 1440,
         paymentMethods: []
       },
-
+      numberRules: [
+        (val) => {
+          if (val < 0) {
+            return 'Value must be non-negative'
+          }
+          return true // Return true to indicate successful validation
+        }
+      ],
       // SELECTION OPTIONS
       availableFiat: [ // api/ramp-p2p/currency/fiat/
         {
@@ -347,10 +357,8 @@ export default {
   async mounted () {
     const vm = this
     await vm.getFiatCurrencies()
-    // vm.priceAmount = vm.lowestOrderPrice
     vm.adData.tradeType = vm.transactionType.toUpperCase()
     vm.updatePriceValue(vm.adData.priceType)
-    // this.updateConvertionRate()
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -358,24 +366,38 @@ export default {
   methods: {
     updatePriceValue (priceType) {
       const vm = this
+      let override = false
+      let value = null
+      if (vm.priceValue === '') {
+        override = true
+      }
       switch (priceType) {
         case 'FIXED':
-          vm.priceValue = vm.priceAmount
+          value = vm.priceAmount
+          if (override) value = vm.marketPrice
+          vm.priceValue = value
           break
         case 'FLOATING':
-          vm.priceValue = vm.adData.floatingPrice
+          value = vm.adData.floatingPrice
+          if (override) value = 100
+          vm.priceValue = value
           break
       }
-      // console.log('priceType:', priceType)
-      // console.log('priceValue:', vm.priceValue)
     },
     transformPrice (value) {
-      // console.log('transforming price')
       const vm = this
+      let price = null
       if (vm.adData.priceType === 'FLOATING') {
-        return value * (vm.adData.floatingPrice / 100)
+        price = value * (vm.adData.floatingPrice / 100)
+      } else {
+        price = vm.adData.fixedPrice
       }
-      return vm.adData.fixedPrice
+      if (price === '') {
+        price = 0
+      } else {
+        price = parseFloat(price).toFixed(2)
+      }
+      return price
     },
     closeWSConnection () {
       if (this.websocket) {
@@ -469,10 +491,10 @@ export default {
       vm.step++
     },
     decPriceValue () {
-      this.priceValue--
+      this.priceValue -= 1
     },
     incPriceValue () {
-      this.priceValue++
+      this.priceValue += 1
     },
     updatePaymentTimeLimit () {
       const vm = this
@@ -520,7 +542,6 @@ export default {
           break
       }
     },
-
     updateConvertionRate: debounce(async function () {
       const vm = this
       console.log('updating price')
