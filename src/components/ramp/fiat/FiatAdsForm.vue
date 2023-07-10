@@ -44,7 +44,7 @@
               dense
               rounded
               outlined
-              :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               :dark="darkMode"
               v-model="selectedCurrency"
               :options="fiatCurrencies"
@@ -173,7 +173,7 @@
                 dense
                 outlined
                 rounded
-                :color="transactionType === 'buy' ? 'blue-6': 'red-6'"
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 :dark="darkMode"
                 v-model="paymentTimeLimit"
                 :options="ptlSelection"
@@ -194,7 +194,7 @@
             :disable="checkPostData()"
             rounded
             no-caps
-            :label="transactionType === 'buy' ? 'Post Ad' : 'Next'"
+            :label="transactionType === 'BUY' ? 'Post Ad' : 'Next'"
             color="blue-6"
             class="q-space"
             @click="checkSubmitOption()"
@@ -225,7 +225,6 @@
 import { debounce } from 'quasar'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
-import { add } from 'date-fns'
 
 export default {
   props: {
@@ -244,6 +243,7 @@ export default {
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
       marketPrice: null,
       step: 1,
+      priceValue: null,
       priceAmount: 0,
       floatingPrice: 100, // default: 100%
       paymentTimeLimit: {
@@ -315,30 +315,26 @@ export default {
       websocket: null
     }
   },
-  computed: {
-    priceValue () {
-      const vm = this
-      return vm.adData.priceType === 'FIXED' ? vm.adData.fixedPrice : vm.adData.floatingPrice
-    }
-  },
   watch: {
     marketPrice (value) {
       const vm = this
       vm.priceAmount = vm.transformPrice(value)
-      console.log('priceAmount:', vm.priceAmount)
     },
     'adData.priceType' (value) {
-      console.log('priceType:', value)
       const vm = this
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
-      console.log('priceAmount:', vm.priceAmount)
-      // switch (value) {
-      //   case 'FIXED':
-
-      //     break
-      //   case 'FLOATING':
-      //     break
-      // }
+      vm.updatePriceValue(value)
+    },
+    'priceValue' (value) {
+      const vm = this
+      switch (vm.adData.priceType) {
+        case 'FIXED':
+          vm.adData.fixedPrice = value
+          break
+        case 'FLOATING':
+          vm.adData.floatingPrice = value
+      }
+      vm.priceAmount = vm.transformPrice(vm.marketPrice)
     }
   },
   async created () {
@@ -349,22 +345,34 @@ export default {
     console.log('adData:', vm.adData)
   },
   async mounted () {
-    await this.getFiatCurrencies()
-    this.priceAmount = this.lowestOrderPrice
-    this.adData.tradeType = this.transactionType.toUpperCase()
+    const vm = this
+    await vm.getFiatCurrencies()
+    // vm.priceAmount = vm.lowestOrderPrice
+    vm.adData.tradeType = vm.transactionType.toUpperCase()
+    vm.updatePriceValue(vm.adData.priceType)
     // this.updateConvertionRate()
   },
   beforeUnmount () {
     this.closeWSConnection()
   },
   methods: {
+    updatePriceValue (priceType) {
+      const vm = this
+      switch (priceType) {
+        case 'FIXED':
+          vm.priceValue = vm.priceAmount
+          break
+        case 'FLOATING':
+          vm.priceValue = vm.adData.floatingPrice
+          break
+      }
+      // console.log('priceType:', priceType)
+      // console.log('priceValue:', vm.priceValue)
+    },
     transformPrice (value) {
       // console.log('transforming price')
       const vm = this
       if (vm.adData.priceType === 'FLOATING') {
-        console.log('value:', value)
-        console.log('vm.adData.floatingPrice:', vm.adData.floatingPrice)
-        console.log('value * (vm.adData.floatingPrice / 100):', value * (vm.adData.floatingPrice / 100))
         return value * (vm.adData.floatingPrice / 100)
       }
       return vm.adData.fixedPrice
@@ -398,6 +406,7 @@ export default {
         .then(response => {
           vm.marketPrice = parseFloat(response.data[0].price)
           vm.adData.fixedPrice = vm.marketPrice
+          vm.priceValue = vm.adData.fixedPrice
         })
         .catch(error => {
           console.error(error.response)
@@ -460,31 +469,10 @@ export default {
       vm.step++
     },
     decPriceValue () {
-      const vm = this
-      switch (vm.adData.priceType) {
-        case 'FIXED':
-          vm.adData.fixedPrice--
-          vm.priceAmount = vm.transformPrice(vm.marketPrice)
-          break
-        case 'FLOATING':
-          if (vm.adData.floatingPrice > 0) {
-            vm.adData.floatingPrice--
-            vm.priceAmount = vm.transformPrice(vm.marketPrice)
-          }
-          break
-      }
+      this.priceValue--
     },
     incPriceValue () {
-      const vm = this
-      switch (vm.adData.priceType) {
-        case 'FIXED':
-          vm.adData.fixedPrice++
-          vm.priceAmount = vm.transformPrice(vm.marketPrice)
-          break
-        case 'FLOATING':
-          vm.adData.floatingPrice++
-          vm.priceAmount = vm.transformPrice(vm.marketPrice)
-      }
+      this.priceValue++
     },
     updatePaymentTimeLimit () {
       const vm = this
