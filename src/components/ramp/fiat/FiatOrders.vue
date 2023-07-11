@@ -13,7 +13,7 @@
       <div class="q-mt-md">
         <div v-if="loading == false && filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
+          <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:60vh;overflow-y:auto;">

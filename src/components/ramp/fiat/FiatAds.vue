@@ -31,7 +31,7 @@
       <div class="q-mt-md">
         <div v-if="checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
+          <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">

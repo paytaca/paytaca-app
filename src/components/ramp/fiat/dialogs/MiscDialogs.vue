@@ -17,12 +17,12 @@
               dense
               filled
               :dark="darkMode"
-              v-model="paymentMethod.paymentType"
+              v-model="paymentMethod.payment_type"
               :options="paymentTypes"
               option-label="name"
             >
               <template v-slot:append>
-                <q-icon size="xs" name="close" @click.stop.prevent="paymentMethod.paymentType = ''"/>&nbsp;
+                <q-icon size="xs" name="close" @click.stop.prevent="paymentMethod.payment_type = null"/>&nbsp;
               </template>
             </q-select>
           </div>
@@ -36,10 +36,10 @@
               dense
               filled
               :dark="darkMode"
-              v-model="paymentMethod.accountNumber"
+              v-model="paymentMethod.account_number"
             >
               <template v-slot:append>
-                <q-icon size="xs" name="close" @click="paymentMethod.accountNumber = ''"/>&nbsp;
+                <q-icon size="xs" name="close" @click="paymentMethod.account_number = ''"/>&nbsp;
               </template>
             </q-input>
           </div>
@@ -59,7 +59,7 @@
           </div>
           <div class="col">
             <q-btn
-              :disable="paymentMethod.accountNumber === '' || paymentMethod.paymentType === ''"
+              :disable="paymentMethod.account_number === '' || paymentMethod.payment_type === ''"
               rounded
               label="Confirm"
               color="blue-6"
@@ -69,6 +69,29 @@
           </div>
         </div>
       </div>
+    </q-card>
+  </q-dialog>
+
+  <!-- Payment Deletion Confirmation -->
+  <q-dialog persistent v-model="confirmDeletePaymentMethod">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section class="xm-font-size q-mx-lg">
+        <div class="subtext bold-text text-center">Delete this Payment Method?</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        <span class="lg-font-size bold-text">
+          {{ info.payment_type.name}}:
+        </span><br>
+        <span>
+          {{ info.account_number }}
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions>
     </q-card>
   </q-dialog>
 
@@ -158,15 +181,16 @@ export default {
       // Dialog Model
       addPaymentMethod: false,
       confirmPaymentMethod: false,
+      confirmDeletePaymentMethod: false,
       editNickname: false,
       viewProfile: false,
 
       // Input Model
       nickname: '',
       paymentMethod: {
-        paymentType: '',
-        accountName: '',
-        accountNumber: ''
+        payment_type: '',
+        account_name: '',
+        account_number: ''
 
       },
       paymentTypes: []
@@ -184,12 +208,21 @@ export default {
     checkDialogType () {
       const vm = this
 
+      console.log(vm.type)
       switch (vm.type) {
         case 'addPaymentMethod':
           vm.addPaymentMethod = true
           break
+        case 'editPaymentMethod':
+          this.paymentMethod = this.data
+          vm.addPaymentMethod = true
+          break
         case 'confirmPaymentMethod':
           vm.confirmPaymentMethod = true
+          break
+        case 'confirmDeletePaymentMethod':
+          this.info = this.data
+          vm.confirmDeletePaymentMethod = true
           break
         case 'editNickname':
           vm.editNickname = true
@@ -203,6 +236,9 @@ export default {
       const vm = this
       switch (vm.type) {
         case 'addPaymentMethod':
+          vm.info = vm.paymentMethod
+          break
+        case 'editPaymentMethod':
           vm.info = vm.paymentMethod
           break
         case 'editNickname':
@@ -230,12 +266,11 @@ export default {
       // switching from one dialog to another
     },
     fetchPaymentTypes () {
-      console.log('fetching payment types')
       const vm = this
       vm.$axios.get(vm.apiURL + '/payment-type')
         .then(response => {
           vm.paymentTypes = response.data
-          console.log(vm.paymentTypes)
+          // console.log(vm.paymentTypes)
         })
         .catch(error => {
           console.error(error)
@@ -252,18 +287,6 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-.bold-text {
-  font-weight: 500;
-}
-.sm-font-size {
-  font-size: 12px;
-}
-.md-font-size {
-  font-size: 13px
-}
-.lg-font-size {
-  font-size: 18px;
-}
 .subtext {
   opacity: .5;
 }

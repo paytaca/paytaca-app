@@ -28,8 +28,7 @@
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
-import { loadWallet } from 'src/wallet'
-import { markRaw } from 'vue'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -78,17 +77,19 @@ export default {
     async updateUserName (info) {
       console.log(info)
       const vm = this
-      const wallet = await markRaw(loadWallet())
-      const walletHash = wallet.BCH.getWalletHash()
+
+      const walletInfo = this.$store.getters['global/getWallet']('bch')
+      const wallet = await loadP2PWalletInfo(walletInfo)
+      console.log(wallet)
       // this.$store.commit('global/editRampNickname', info.nickname)
       vm.$axios.put(vm.apiURL + '/peer', {
         nickname: info.nickname
       },
       {
         headers: {
-          'wallet-hash': walletHash,
+          'wallet-hash': wallet.walletHash,
           signature: null,
-          timestamp: null
+          timestamp: Date.now()
         }
       })
         .then(response => {
