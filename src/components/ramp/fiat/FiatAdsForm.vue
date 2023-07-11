@@ -205,7 +205,7 @@
             :disable="checkPostData()"
             rounded
             no-caps
-            :label="transactionType === 'BUY' ? 'Post Ad' : 'Next'"
+            label="Next"
             color="blue-6"
             class="q-space"
             @click="checkSubmitOption()"
@@ -483,14 +483,7 @@ export default {
         time_duration_choice: 5,
         payment_methods: [1, 2]
       }
-      switch (vm.transactionType) {
-        case 'BUY':
-          vm.step = 3
-          break
-        case 'SELL':
-          vm.step++
-          break
-      }
+      vm.step++
     },
     postAd (methods) {
       const vm = this
@@ -523,8 +516,6 @@ export default {
     },
     checkPostData () {
       const vm = this
-      // return false
-      // check if valid amount
       if (!vm.isAmountValid(vm.priceAmount) || !vm.isAmountValid(vm.adData.cryptoAmount) || !vm.isAmountValid(vm.adData.tradeCeiling) || !vm.isAmountValid(vm.adData.tradeFloor)) {
         return true
       } else {
@@ -532,6 +523,7 @@ export default {
       }
     },
     checkTradeLimitComparison () {
+      if (!this.adData.tradeFloor || !this.adData.tradeCeiling) return true
       return Number(this.adData.tradeFloor) < Number(this.adData.tradeCeiling)
     },
     formattedCurrencyNumber (value) {

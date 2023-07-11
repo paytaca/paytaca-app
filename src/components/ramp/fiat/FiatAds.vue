@@ -141,7 +141,6 @@ export default {
     const vm = this
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
-    console.log('wallet:', this.wallet)
 
     vm.fetchAds()
     vm.sellListings = vm.sortedListings('sell')
