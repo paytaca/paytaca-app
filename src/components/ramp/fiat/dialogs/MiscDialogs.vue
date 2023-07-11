@@ -184,8 +184,13 @@ export default {
     checkDialogType () {
       const vm = this
 
+      console.log(vm.type)
       switch (vm.type) {
         case 'addPaymentMethod':
+          vm.addPaymentMethod = true
+          break
+        case 'editPaymentMethod':
+          this.paymentMethod = this.data
           vm.addPaymentMethod = true
           break
         case 'confirmPaymentMethod':
@@ -203,6 +208,9 @@ export default {
       const vm = this
       switch (vm.type) {
         case 'addPaymentMethod':
+          vm.info = vm.paymentMethod
+          break
+        case 'editPaymentMethod':
           vm.info = vm.paymentMethod
           break
         case 'editNickname':
@@ -230,12 +238,11 @@ export default {
       // switching from one dialog to another
     },
     fetchPaymentTypes () {
-      console.log('fetching payment types')
       const vm = this
       vm.$axios.get(vm.apiURL + '/payment-type')
         .then(response => {
           vm.paymentTypes = response.data
-          console.log(vm.paymentTypes)
+          // console.log(vm.paymentTypes)
         })
         .catch(error => {
           console.error(error)

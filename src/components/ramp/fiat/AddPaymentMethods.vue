@@ -21,7 +21,7 @@
         <q-card-section style="max-height:38vh;overflow-y:auto;">
           <q-virtual-scroll :items="paymentMethods">
             <template v-slot="{ item: method, index }">
-              <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              <q-item clickable @click="editMethod(method, index)" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                 <q-item-section>
                   <div class="text-h5" style="font-size: 15px;">
                     {{ method.paymentType.name. toUpperCase() }}
@@ -45,7 +45,7 @@
           label='Add'
           class="q-space text-white"
           color="blue-6"
-          @click="openDialog = true"
+          @click="addMethod"
           v-show="paymentMethods.length < 5"
         />
       </div>
@@ -66,6 +66,7 @@
   <div v-if="openDialog">
     <MiscDialogs
       :type="dialogType"
+      :data="info"
       v-on:back="openDialog = false"
       v-on:submit="receiveDialogInfo"
     />
@@ -81,7 +82,9 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       paymentMethods: [],
       openDialog: false,
-      dialogType: 'addPaymentMethod'
+      dialogType: 'addPaymentMethod',
+      info: {},
+      selectedMethodIndex: null
     }
   },
   emits: ['submit', 'back'],
@@ -106,6 +109,9 @@ export default {
         case 'addPaymentMethod':
           this.updatePayment(data)
           break
+        case 'editPaymentMethod':
+          this.paymentMethods[this.selectedMethodIndex] = data
+          break
         case 'confirmPaymentMethod':
           this.$emit('submit', this.paymentMethods)
           break
@@ -115,11 +121,25 @@ export default {
       this.paymentMethods.push(data)
       // console.log(this.paymentMethods)
     },
+    addMethod () {
+      this.dialogType = 'addPaymentMethod'
+      this.openDialog = true
+    },
+    editMethod (data, index) {
+      this.info = data
+      this.selectedMethodIndex = index
+
+      this.dialogType = 'editPaymentMethod'
+      this.openDialog = true
+    },
+    async savePaymentMethod (method) {
+      console.log('saving method')
+    },
     submitPaymentMethod () {
       this.dialogType = 'confirmPaymentMethod'
 
       this.openDialog = true
-      // console.log(this.paymentMethods)
+      console.log(this.paymentMethods)
       // this.$emit('submit', this.paymentMethods)
     }
   },

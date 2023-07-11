@@ -79,7 +79,7 @@
               :disabled="!isAmountValid"
               rounded
               no-caps
-              :label="transactionType === 'SELL'? 'Buy' : 'Next'"
+              label="Next"
               color="blue-6"
               class="q-space"
               @click="state = 'addPaymentMethods'"></q-btn>
@@ -114,7 +114,11 @@
       <div v-if="state === 'addPaymentMethods'">
         <AddPaymentMethods
           v-on:back="state = 'initial'"
+          v-on:submit="updatePaymentMethods"
         />
+      </div>
+      <div v-if="state === 'confirmation'">
+        Confirmation Page
       </div>
       <!-- <div v-if="!hideSellerInfo" class="q-my-lg">
         <div class="q-mx-lg text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -304,6 +308,10 @@ export default {
     cryptoReleased () {
       this.released = true
       this.pendingRelease = false
+    },
+    updatePaymentMethods (data) {
+      console.log(data)
+      this.state = 'processing'
     }
   },
   async mounted () {
