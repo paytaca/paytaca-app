@@ -71,7 +71,7 @@
               :dark="darkMode"
               bottom-slots
               type="number"
-              :rules="[validateNonNegative]"
+              :rules="numberValidation"
               @blur="updatePriceValue(adData.priceType)"
               v-model="priceValue">
               <template v-slot:prepend>
@@ -101,10 +101,10 @@
 
       <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
 
-      <!-- Total Amount -->
+      <!-- Crypto Amount -->
       <div class="q-mx-lg">
         <div class="q-mt-md q-px-md">
-          <div class="q-pb-xs q-pl-sm bold-text">Total Amount</div>
+          <div class="q-pb-xs q-pl-sm bold-text">Crypto Amount</div>
             <q-input
               dense
               outlined
@@ -112,7 +112,7 @@
               :dark="darkMode"
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               type="number"
-              :rules="[validateNonNegative, validateNonZero]"
+              :rules="numberValidation"
               v-model="adData.cryptoAmount"
             >
               <template v-slot:prepend>
@@ -138,7 +138,7 @@
                 :dark="darkMode"
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 type="number"
-                :rules="[validateNonNegative, validateNonZero, validateTradeFloor]"
+                :rules="tradeLimitValidation"
                 v-model="adData.tradeFloor"
               >
                 <template v-slot:append>
@@ -159,7 +159,7 @@
                 :dark="darkMode"
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 type="number"
-                :rules="[validateNonNegative, validateNonZero, validateTradeCeiling]"
+                :rules="tradeLimitValidation"
                 v-model="adData.tradeCeiling"
               >
                 <template v-slot:append>
@@ -274,7 +274,7 @@ export default {
         floatingPrice: 100,
         tradeFloor: null,
         tradeCeiling: null,
-        cryptoAmount: 0,
+        cryptoAmount: null,
         timeDurationChoice: 1440,
         paymentMethods: []
       },
@@ -325,7 +325,16 @@ export default {
           value: 1440
         }],
       fiatCurrencies: [],
-      websocket: null
+      websocket: null,
+      numberValidation: [
+        (val) => !!val || 'This field is required',
+        (val) => val > 0 || 'Value must be greater than 0'
+      ],
+      tradeLimitValidation: [
+        (val) => !!val || 'This field is required',
+        (val) => val > 0 || 'Value must be greater than 0',
+        (val) => this.checkTradeLimitComparison(val) || 'Min must be less than max trade limit'
+      ]
     }
   },
   watch: {
@@ -355,7 +364,6 @@ export default {
     vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
     await vm.getInitialMarketPrice()
     vm.setupWebsocket()
-    console.log('adData:', vm.adData)
   },
   async mounted () {
     const vm = this
@@ -494,10 +502,10 @@ export default {
       vm.step++
     },
     decPriceValue () {
-      this.priceValue -= 1
+      this.priceValue--
     },
     incPriceValue () {
-      this.priceValue += 1
+      this.priceValue++
     },
     updatePaymentTimeLimit () {
       const vm = this
@@ -523,17 +531,8 @@ export default {
         return false
       }
     },
-    validateNonNegative (val) {
-      if (val < 0) {
-        return 'Value must be non-negative'
-      }
-      return true
-    },
-    validateNonZero (val) {
-      if (val <= 0) {
-        return 'Value must be greater than zero'
-      }
-      return true
+    checkTradeLimitComparison () {
+      return Number(this.adData.tradeFloor) < Number(this.adData.tradeCeiling)
     },
     formattedCurrencyNumber (value) {
       const formattedNumber = parseFloat(value).toLocaleString(undefined, {
@@ -542,20 +541,6 @@ export default {
       })
       return formattedNumber
     },
-    // validateTradeFloor () {
-    //   const vm = this
-    //   if (vm.adData.tradeCeiling && vm.adData.tradeFloor >= vm.adData.tradeCeiling) {
-    //     return 'Must be lesser than max trade amount'
-    //   }
-    //   return true
-    // },
-    // validateTradeCeiling () {
-    //   const vm = this
-    //   if (vm.adData.tradeFloor && vm.adData.tradeCeiling <= vm.adData.tradeFloor) {
-    //     return 'Must be greater than min trade amount'
-    //   }
-    //   return true
-    // },
     isAmountValid (value) {
       // amount with comma and decimal regex
       const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
