@@ -112,14 +112,12 @@
   />
 </template>
 <script>
-// import FiatAdsBuy from './FiatAdsBuy.vue'
-// import FiatAdsSell from './FiatAdsSell.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
-  inject: ['walletHash', 'privateKeyWif'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -136,13 +134,15 @@ export default {
     }
   },
   components: {
-    // FiatAdsBuy,
-    // FiatAdsSell,
     FiatAdsForm,
     FiatAdsDialogs
   },
   async mounted () {
     const vm = this
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    this.wallet = await loadP2PWalletInfo(walletInfo)
+    console.log('wallet:', this.wallet)
+
     vm.fetchAds()
     vm.sellListings = vm.sortedListings('sell')
     vm.buyListings = vm.sortedListings('buy')
@@ -153,9 +153,9 @@ export default {
       console.log(this.walletHash)
       console.log(this.privateKeyWif)
       const timestamp = Date.now()
-      const signature = await signMessage(this.privateKeyWif.value, 'AD_LIST', timestamp)
+      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
       const headers = {
-        'wallet-hash': this.walletHash.value,
+        'wallet-hash': this.wallet.walletHash,
         timestamp: timestamp,
         signature: signature
       }
