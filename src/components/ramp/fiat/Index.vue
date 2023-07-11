@@ -1,4 +1,22 @@
 <template>
+  <!-- <div v-if="proceed">
+    <FiatStore v-if="menu === 'store'"/>
+    <FiatOrders v-if="menu === 'orders'"/>
+    <FiatAds v-if="menu === 'ads'"/>
+    <FiatProfileCard
+      v-if="menu === 'profile'"
+      v-on:back="menu = 'store'"
+    />
+    <footerMenu
+      v-on:clicked="switchMenu"
+    />
+  </div>
+  <div v-else>
+    <MiscDialogs
+      :type="'editNickname'"
+      v-on:submit="updateNickname"
+      v-on:back="proceed ? '' : $router.go(-1)"
+    /> -->
   <div>
     <div v-if="isLoading" class="row justify-center q-ma-lg q-pa-lg">
       <ProgressLoader/>
@@ -10,17 +28,18 @@
           <FiatAds v-if="menu === 'ads'"/>
           <FiatProfileCard
             v-if="menu === 'profile'"
-            v-on:back="menu = 'store'"
+            v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
           />
           <footerMenu
             v-on:clicked="switchMenu"
+            ref="footer"
           />
         </div>
         <div v-else>
           <MiscDialogs
             :type="'editNickname'"
             v-on:submit="createRampUser"
-            v-on:back="$router.go(-1)"
+            v-on:back="processDialog()"
           />
         </div>
       </div>
@@ -46,7 +65,8 @@ export default {
       isLoading: true,
       wallet: null,
       user: null,
-      proceed: false
+      proceed: false,
+      createUser: false
     }
   },
   components: {
@@ -71,7 +91,13 @@ export default {
     switchMenu (item) {
       this.menu = item
     },
+    processDialog () {
+      if (!this.proceed && !this.createUser) {
+        this.$router.go(-1)
+      }
+    },
     async createRampUser (value) {
+      this.createUser = true
       const walletInfo = this.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo)
       await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: wallet })

@@ -150,7 +150,9 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       info: {},
+      isloaded: false,
       isNameValid: false,
 
       // Dialog Model
@@ -167,20 +169,7 @@ export default {
         accountNumber: ''
 
       },
-      paymentTypes: [
-        {
-          name: 'Gcash'
-        },
-        {
-          name: 'Paymaya'
-        },
-        {
-          name: 'Paypal'
-        },
-        {
-          name: 'BPI'
-        }
-      ]
+      paymentTypes: []
     }
   },
   emits: ['back', 'submit'],
@@ -223,10 +212,11 @@ export default {
           break
       }
     },
-    async submitData () {
+    submitData () {
       const vm = this
       vm.stageData()
-      await this.$emit('submit', vm.info)
+      this.$emit('submit', vm.info)
+      this.$emit('back') //check later
     },
     checkName: debounce(async function () {
       const vm = this
@@ -238,10 +228,26 @@ export default {
     }, 500),
     switchDialog (type) {
       // switching from one dialog to another
+    },
+    fetchPaymentTypes () {
+      console.log('fetching payment types')
+      const vm = this
+      vm.$axios.get(vm.apiURL + '/payment-type')
+        .then(response => {
+          vm.paymentTypes = response.data
+          console.log(vm.paymentTypes)
+        })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response)
+        })
     }
   },
   async mounted () {
     this.checkDialogType()
+    this.fetchPaymentTypes()
+
+    this.isloaded = true
   }
 }
 </script>

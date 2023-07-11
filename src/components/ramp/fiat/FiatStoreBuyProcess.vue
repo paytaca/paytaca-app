@@ -326,6 +326,7 @@ export default {
   },
   emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
   methods: {
+    // updated this
     paymentCountdown () {
       const vm = this
       const currentDate = new Date().getTime()
@@ -408,7 +409,7 @@ export default {
       this.$emit('hideSeller')
       this.$emit('pendingRelease')
       this.buyStatus = 'Pending Release'
-      this.releaseCntDwnSim()
+      // this.releaseCntDwnSim()
     }
   },
   setup () {
@@ -421,7 +422,7 @@ export default {
     console.log('Processing')
 
     vm.buy = vm.listingData
-    vm.pendingCntDwnSim()
+    // vm.pendingCntDwnSim()
 
     console.log(vm.listingData)
     console.log(vm.fiatAmount)

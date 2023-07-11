@@ -1,5 +1,13 @@
 <template>
- <div>
+  <div>
+    <q-btn
+      flat
+      padding="md"
+      icon="arrow_back"
+      @click="$emit('back')"
+    />
+  </div>
+  <div class="q-mx-lg">
     <div class="q-mx-sm q-mb-sm text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       PAYMENT METHODS
     </div>
@@ -70,12 +78,13 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       paymentMethods: [],
       openDialog: false,
       dialogType: 'addPaymentMethod'
     }
   },
-  emits: ['submit'],
+  emits: ['submit', 'back'],
   components: {
     MiscDialogs
   },
@@ -122,18 +131,6 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-.bold-text {
-  font-weight: 500;
-}
-.sm-font-size {
-  font-size: 12px;
-}
-.md-font-size {
-  font-size: 13px
-}
-.lg-font-size {
-  font-size: 18px;
-}
 .subtext {
   opacity: .5;
 }
