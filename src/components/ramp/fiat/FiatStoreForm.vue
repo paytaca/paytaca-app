@@ -311,6 +311,8 @@ export default {
     },
     updatePaymentMethods (data) {
       console.log(data)
+      // sa
+
       this.state = 'processing'
     }
   },
