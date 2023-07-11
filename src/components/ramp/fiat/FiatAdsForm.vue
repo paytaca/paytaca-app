@@ -33,9 +33,8 @@
             :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
             :options="[
               {label: 'Fixed', value: 'FIXED'},
-              {label: 'Floating', value: 'FLOAT'}
+              {label: 'Floating', value: 'FLOATING'}
             ]"
-            @update:model-value="updateConvertionRate(); initialPriceAmount();"
           />
         </div>
         <div class="row q-pt-sm q-gutter-sm q-px-md sm-font-size">
@@ -48,14 +47,14 @@
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               :dark="darkMode"
               v-model="selectedCurrency"
-              :options="availableFiat"
-              option-label="abbrev"
+              :options="fiatCurrencies"
+              option-label="symbol"
               @update:model-value="updateFiatCurrency()"
             >
               <template v-slot:option="scope">
                 <q-item v-bind="scope.itemProps">
                   <q-item-section>
-                    <q-item-label>{{ scope.opt.name }} ({{ scope.opt.abbrev }})</q-item-label>
+                    <q-item-label>{{ scope.opt.name }} ({{ scope.opt.symbol }})</q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
@@ -71,15 +70,16 @@
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               :dark="darkMode"
               bottom-slots
-              v-model="priceAmount"
-              @update:model-value="updateConvertionRate()"
-              >
+              type="number"
+              :rules="numberValidation"
+              @blur="updatePriceValue(adData.priceType)"
+              v-model="priceValue">
               <template v-slot:prepend>
-                <q-icon name="remove" @click="decPrice()"/>
+                <q-icon name="remove" @click="decPriceValue()"/>
               </template>
               <template v-slot:append>
-                <q-icon v-if="adData.priceType === 'FLOAT'" size="xs" name="percent" />
-                <q-icon name="add" @click="incPrice()" />
+                <q-icon v-if="adData.priceType === 'FLOATING'" size="xs" name="percent" />
+                <q-icon name="add" @click="incPriceValue()" />
               </template>
             </q-input>
           </div>
@@ -88,12 +88,12 @@
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <div>
               <span>Your Price</span><br>
-              <span v-if="adData.priceType === 'FIXED'" class="bold-text lg-font-size">{{ priceAmount }} {{ selectedCurrency.abbrev }}</span>
-              <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.abbrev }}</span>
+              <span class="bold-text lg-font-size">{{ formattedCurrencyNumber(priceAmount) }}</span>
+              <!-- <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.symbol }}</span> -->
             </div>
             <div >
               <span>Current Market Price</span><br>
-              <span class="xm-font-size" style="float: right;">{{ lowestOrderPrice }} {{ selectedCurrency.abbrev }}</span>
+              <span class="xm-font-size" style="float: right;">{{ formattedCurrencyNumber(marketPrice) }}</span>
             </div>
           </div>
         </div>
@@ -101,16 +101,18 @@
 
       <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
 
-      <!-- Total Amount -->
+      <!-- Crypto Amount -->
       <div class="q-mx-lg">
         <div class="q-mt-md q-px-md">
-          <div class="q-pb-xs q-pl-sm bold-text">Total Amount</div>
+          <div class="q-pb-xs q-pl-sm bold-text">Crypto Amount</div>
             <q-input
               dense
               outlined
               rounded
               :dark="darkMode"
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+              type="number"
+              :rules="numberValidation"
               v-model="adData.cryptoAmount"
             >
               <template v-slot:prepend>
@@ -125,37 +127,43 @@
             </q-input>
           </div>
         <div class="q-mt-sm q-px-md">
-          <div class="q-pl-sm q-pb-xs sm-font-size">Trade Limit</div>
+          <div class="q-pb-xs q-pl-sm bold-text">Trade Limit</div>
           <div class="row">
             <div class="col-5">
+              <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
               <q-input
                 dense
                 outlined
                 rounded=""
                 :dark="darkMode"
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                type="number"
+                :rules="tradeLimitValidation"
                 v-model="adData.tradeFloor"
               >
                 <template v-slot:append>
-                  <span class="xs-font-size">{{ selectedCurrency.abbrev  }}</span>
+                  <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
                   <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                 </template>
               </q-input>
             </div>
             <div class="col text-center">
-              <q-icon class="q-pt-sm" name="remove"/>
+              <q-icon class="q-pt-md q-mt-lg" name="remove"/>
             </div>
             <div class="col-5">
+              <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
               <q-input
                 dense
                 outlined
                 rounded=""
                 :dark="darkMode"
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                type="number"
+                :rules="tradeLimitValidation"
                 v-model="adData.tradeCeiling"
               >
                 <template v-slot:append>
-                  <span class="xs-font-size">{{ selectedCurrency.abbrev  }}</span>
+                  <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
                   <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                 </template>
               </q-input>
@@ -230,47 +238,51 @@ import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 
 export default {
+  props: {
+    transactionType: String,
+    adsState: String
+  },
+  components: {
+    AddPaymentMethods,
+    DisplayConfirmation
+  },
+  emits: ['back'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      wsURL: process.env.RAMP_WS_URL + 'market-price/',
+      marketPrice: null,
       step: 1,
-
-      // V-MODELS
+      priceValue: null,
       priceAmount: 0,
-      floatingPrice: 100,
-      lowestOrderPrice: 7311.71,
+      floatingPrice: 100, // default: 100%
       paymentTimeLimit: {
         label: '1 day',
         value: 1440
       },
-      selectedCurrency: {
-        name: 'Philippine Peso',
-        abbrev: 'PHP'
-      },
-
-      // AD DATA
+      selectedCurrency: null,
       adData: {
-        tradeType: '',
+        tradeType: this.transactionType,
         priceType: 'FIXED',
-        fiatCurrency: {   // get fiat_currency ID
-          name: 'Philippine Peso',
-          abbrev: 'PHP'
-        },
-        cryptoCurrency: {   // get crypro_currency ID
+        fiatCurrency: this.$store.getters['market/selectedCurrency'],
+        cryptoCurrency: { // get crypro_currency ID
           name: 'Bitcoin Cash',
-          abbrev: 'BCH'
+          symbol: 'BCH'
         },
         fixedPrice: null,
-        floatingPrice: null,
-        tradeFloor: 0,
-        tradeCeiling: 0,
-        cryptoAmount: 0,
+        floatingPrice: 100,
+        tradeFloor: null,
+        tradeCeiling: null,
+        cryptoAmount: null,
         timeDurationChoice: 1440,
         paymentMethods: []
       },
+      numberRules: [
 
+      ],
       // SELECTION OPTIONS
-      availableFiat: [  //api/ramp-p2p/currency/fiat/
+      availableFiat: [ // api/ramp-p2p/currency/fiat/
         {
           name: 'Philippine Peso',
           abbrev: 'PHP'
@@ -311,26 +323,169 @@ export default {
         }, {
           label: '1 day',
           value: 1440
-        }]
+        }],
+      fiatCurrencies: [],
+      websocket: null,
+      numberValidation: [
+        (val) => !!val || 'This field is required',
+        (val) => val > 0 || 'Value must be greater than 0'
+      ],
+      tradeLimitValidation: [
+        (val) => !!val || 'This field is required',
+        (val) => val > 0 || 'Value must be greater than 0',
+        (val) => this.checkTradeLimitComparison(val) || 'Min must be less than max trade limit'
+      ]
     }
   },
-  props: {
-    transactionType: String,
-    adsState: String
+  watch: {
+    marketPrice (value) {
+      const vm = this
+      vm.priceAmount = vm.transformPrice(value)
+    },
+    'adData.priceType' (value) {
+      const vm = this
+      vm.priceAmount = vm.transformPrice(vm.marketPrice)
+      vm.updatePriceValue(value)
+    },
+    'priceValue' (value) {
+      const vm = this
+      switch (vm.adData.priceType) {
+        case 'FIXED':
+          vm.adData.fixedPrice = value
+          break
+        case 'FLOATING':
+          vm.adData.floatingPrice = value
+      }
+      vm.priceAmount = vm.transformPrice(vm.marketPrice)
+    }
   },
-  components: {
-    AddPaymentMethods,
-    DisplayConfirmation
+  async created () {
+    const vm = this
+    vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
+    await vm.getInitialMarketPrice()
+    vm.setupWebsocket()
   },
-  emits: ['back'],
+  async mounted () {
+    const vm = this
+    await vm.getFiatCurrencies()
+    vm.adData.tradeType = vm.transactionType.toUpperCase()
+    vm.updatePriceValue(vm.adData.priceType)
+  },
+  beforeUnmount () {
+    this.closeWSConnection()
+  },
   methods: {
+    updatePriceValue (priceType) {
+      const vm = this
+      let override = false
+      let value = null
+      if (vm.priceValue === '') {
+        override = true
+      }
+      switch (priceType) {
+        case 'FIXED':
+          value = vm.priceAmount
+          if (override) value = vm.marketPrice
+          vm.priceValue = value
+          break
+        case 'FLOATING':
+          value = vm.adData.floatingPrice
+          if (override) value = 100
+          vm.priceValue = value
+          break
+      }
+    },
+    transformPrice (value) {
+      const vm = this
+      let price = null
+      if (vm.adData.priceType === 'FLOATING') {
+        price = value * (vm.adData.floatingPrice / 100)
+      } else {
+        price = vm.adData.fixedPrice
+      }
+      if (price === '') {
+        price = 0
+      } else {
+        price = parseFloat(price).toFixed(2)
+      }
+      return price
+    },
+    closeWSConnection () {
+      if (this.websocket) {
+        this.websocket.close()
+      }
+    },
+    setupWebsocket () {
+      const wsUrl = this.wsURL + this.selectedCurrency.symbol + '/'
+      this.websocket = new WebSocket(wsUrl)
+      this.websocket.onopen = () => {
+        console.log('WebSocket connection established to ' + wsUrl)
+      }
+      this.websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        const price = parseFloat(data.price)
+        if (price) {
+          this.marketPrice = price.toFixed(2)
+        }
+      }
+      this.websocket.onclose = () => {
+        console.log('WebSocket connection closed.')
+      }
+    },
+    async getInitialMarketPrice () {
+      const vm = this
+      const url = vm.apiURL + '/utils/market-price'
+      vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
+        .then(response => {
+          vm.marketPrice = parseFloat(response.data[0].price)
+          vm.adData.fixedPrice = vm.marketPrice
+          vm.priceValue = vm.adData.fixedPrice
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
+    },
+    async getFiatCurrencies () {
+      const vm = this
+      vm.$axios.get(vm.apiURL + '/currency/fiat')
+        .then(response => {
+          vm.fiatCurrencies = response.data
+          if (!vm.selectedCurrency) {
+            vm.selectedCurrency = vm.fiatCurrencies[0]
+          }
+          // console.log('fiatCurrencies:', this.fiatCurrencies)
+        })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response)
+
+          vm.fiatCurrencies = vm.availableFiat
+          if (!vm.selectedCurrency) {
+            vm.selectedCurrency = vm.fiatCurrencies[0]
+          }
+        })
+      // console.log(vm.fiatCurrencies)
+    },
     checkSubmitOption () {
       const vm = this
-
+      console.log('data:', this.adData)
+      const ad = this.adData
+      const defaultCrypto = 1
+      const body = {
+        trade_type: ad.tradeType,
+        price_type: ad.priceType,
+        fiat_currency: ad.fiatCurrency,
+        crypto_currency: defaultCrypto,
+        fixed_price: 1000,
+        trade_floor: 100,
+        trade_ceiling: 1000,
+        crypto_amount: 1,
+        time_duration_choice: 5,
+        payment_methods: [1, 2]
+      }
       switch (vm.transactionType) {
         case 'BUY':
           vm.step = 3
-          // console.log(vm.adData)
           break
         case 'SELL':
           vm.step++
@@ -346,48 +501,25 @@ export default {
       // console.log(vm.adData)
       vm.step++
     },
-    decPrice () {
-      const vm = this
-
-      switch (vm.adData.priceType) {
-        case 'FIXED':
-          if (vm.priceAmount <= vm.lowestOrderPrice) {
-            vm.priceAmount = vm.lowestOrderPrice
-          } else {
-            vm.priceAmount--
-          }
-          break
-        case 'FLOAT':
-          if (vm.priceAmount > 0) {
-            vm.priceAmount--
-          }
-          break
-      }
-
-      vm.updateConvertionRate()
+    decPriceValue () {
+      this.priceValue--
     },
-    incPrice () {
-      const vm = this
-
-      switch (vm.adData.priceType) {
-        case 'FIXED':
-          vm.priceAmount++
-          break
-        case 'FLOAT':
-          if (vm.priceAmount < 100) {
-            vm.priceAmount++
-          }
-      }
-
-      vm.updateConvertionRate()
+    incPriceValue () {
+      this.priceValue++
     },
     updatePaymentTimeLimit () {
       const vm = this
       vm.adData.timeDurationChoice = vm.paymentTimeLimit.value
     },
-    updateFiatCurrency () {
+    async updateFiatCurrency () {
       const vm = this
+      console.log('selectedCurrency:', vm.selectedCurrency)
       vm.adData.fiatCurrency = vm.selectedCurrency
+      // update market price subscription
+      vm.marketPrice = null
+      await vm.getInitialMarketPrice()
+      vm.closeWSConnection()
+      vm.setupWebsocket()
     },
     checkPostData () {
       const vm = this
@@ -398,6 +530,16 @@ export default {
       } else {
         return false
       }
+    },
+    checkTradeLimitComparison () {
+      return Number(this.adData.tradeFloor) < Number(this.adData.tradeCeiling)
+    },
+    formattedCurrencyNumber (value) {
+      const formattedNumber = parseFloat(value).toLocaleString(undefined, {
+        style: 'currency',
+        currency: this.adData.fiatCurrency.symbol
+      })
+      return formattedNumber
     },
     isAmountValid (value) {
       // amount with comma and decimal regex
@@ -416,36 +558,27 @@ export default {
         case 'FIXED':
           vm.priceAmount = vm.lowestOrderPrice
           break
-        case 'FLOAT':
+        case 'FLOATING':
           vm.priceAmount = 100
           break
       }
     },
     updateConvertionRate: debounce(async function () {
       const vm = this
-
       console.log('updating price')
+      console.log('priceAmount:', vm.priceAmount)
       switch (vm.adData.priceType) {
         case 'FIXED':
           vm.adData.fixedPrice = vm.priceAmount
-
           vm.adData.floatingPrice = null
           break
-        case 'FLOAT':
+        case 'FLOATING':
           vm.adData.floatingPrice = (vm.lowestOrderPrice * (vm.priceAmount / 100)).toFixed(2) // adjust later
-
           vm.adData.fixedPrice = null
           break
       }
+      console.log('fixedPrice:', vm.adData.fixedPrice)
     }, 500)
-  },
-  async mounted () {
-    const vm = this
-
-    vm.priceAmount = vm.lowestOrderPrice
-    vm.adData.tradeType = vm.transactionType.toUpperCase()
-    vm.updateConvertionRate()
-    // call list of payment types
   }
 }
 </script>

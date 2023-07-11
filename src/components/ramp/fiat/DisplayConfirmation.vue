@@ -14,17 +14,19 @@
     <div class="md-font-size" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
       <div class="q-pt-lg q-mx-lg ">
         <div class="row subtext justify-between no-wrap q-mx-lg">
-          <span>Price Type:</span>
-          <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
+          <span>Fiat Currency</span>
+          <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.name }} ({{ adData.fiatCurrency.symbol }})</span>
         </div>
         <div class="row subtext justify-between no-wrap q-mx-lg">
-          <span>Fiat Currency:</span>
-          <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.name }} ({{ adData.fiatCurrency.abbrev }})</span>
+          <span>Price Type</span>
+          <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg bold-text">
-          <!-- <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price' }}:</span> -->
-          <span>Price:</span>
-          <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? adData.fixedPrice : adData.floatingPrice }} {{ adData.fiatCurrency.abbrev }}</span>
+          <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price Margin' }}</span>
+          <!-- <span>Price:</span> -->
+          <span class="text-nowrap q-ml-xs">
+            {{ adData.priceType === 'FIXED' ? formattedCurrencyNumber(adData.fixedPrice) : adData.floatingPrice }} {{ adData.priceType === 'FLOATING' ? '%' : '' }}
+          </span>
         </div>
       </div>
 
@@ -32,19 +34,19 @@
 
       <div class="q-pt-lg q-mx-lg">
         <div class="row justify-between no-wrap q-mx-lg bold-text">
-          <span>Total Crypto Amount:</span>
+          <span>Crypto Amount</span>
           <span class="text-nowrap q-ml-xs">{{ adData.cryptoAmount }} BCH</span>
         </div>
         <div class="row subtext justify-between no-wrap q-mx-lg">
-          <span>Trade Limit:</span>
-          <span class="text-nowrap q-ml-xs">{{ adData.tradeFloor }}  {{ adData.fiatCurrency.abbrev }}  - {{ adData.tradeCeiling }}  {{ adData.fiatCurrency.abbrev }}</span>
+          <span>Trade Limit</span>
+          <span class="text-nowrap q-ml-xs">{{ formattedCurrencyNumber(adData.tradeFloor) }} - {{ formattedCurrencyNumber(adData.tradeCeiling) }} </span>
         </div>
       </div>
       <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
 
       <div class="q-pt-lg q-mx-lg" >
         <div class="row justify-between no-wrap q-mx-lg bold-text">
-          <span>Payment Time Limit:</span>
+          <span>Payment Time Limit</span>
           <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
         </div>
       </div>
@@ -77,7 +79,6 @@
   <!-- else progress loader -->
 </template>
 <script>
-import { add } from 'date-fns'
 import DragSlide from '../../drag-slide.vue'
 export default {
   data () {
@@ -105,6 +106,15 @@ export default {
     vm.isLoaded = true
 
     console.log(vm.postData)
+  },
+  methods: {
+    formattedCurrencyNumber (value) {
+      const formattedNumber = parseFloat(value).toLocaleString(undefined, {
+        style: 'currency',
+        currency: this.adData.fiatCurrency.symbol
+      })
+      return formattedNumber
+    }
   }
 }
 </script>
