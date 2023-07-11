@@ -88,12 +88,12 @@
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <div>
               <span>Your Price</span><br>
-              <span class="bold-text lg-font-size">{{ priceAmount }} {{ selectedCurrency.symbol }}</span>
+              <span class="bold-text lg-font-size">{{ formattedCurrencyNumber(priceAmount) }}</span>
               <!-- <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.symbol }}</span> -->
             </div>
             <div >
               <span>Current Market Price</span><br>
-              <span class="xm-font-size" style="float: right;">{{ marketPrice }} {{ selectedCurrency.symbol }}</span>
+              <span class="xm-font-size" style="float: right;">{{ formattedCurrencyNumber(marketPrice) }}</span>
             </div>
           </div>
         </div>
@@ -534,6 +534,13 @@ export default {
         return 'Value must be greater than zero'
       }
       return true
+    },
+    formattedCurrencyNumber (value) {
+      const formattedNumber = parseFloat(value).toLocaleString(undefined, {
+        style: 'currency',
+        currency: this.adData.fiatCurrency.symbol
+      })
+      return formattedNumber
     },
     // validateTradeFloor () {
     //   const vm = this
