@@ -89,6 +89,7 @@ export default {
   },
   watch: {
     menu (val) {
+      console.log('pageName:', 'ramp-fiat-' + val)
       this.$router.push({ name: 'ramp-fiat-' + val })
     }
   },

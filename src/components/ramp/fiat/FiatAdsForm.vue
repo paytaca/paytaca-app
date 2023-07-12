@@ -228,6 +228,7 @@
         :ptl="paymentTimeLimit"
         :transaction-type="transactionType"
         v-on:back="step = 1"
+        @success="onSuccess()"
       />
     </div>
   </div>
@@ -363,6 +364,10 @@ export default {
     this.closeWSConnection()
   },
   methods: {
+    onSuccess () {
+      console.log('onSuccess')
+      this.$emit('back')
+    },
     updatePriceValue (priceType) {
       const vm = this
       let override = false

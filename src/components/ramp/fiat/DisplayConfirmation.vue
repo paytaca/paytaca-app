@@ -88,7 +88,7 @@ export default {
       swipeStatus: false
     }
   },
-  emits: ['back'],
+  emits: ['back', 'success'],
   components: {
     RampDragSlide
   },
@@ -102,15 +102,13 @@ export default {
     // vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
-    // console.log('postData:', vm.postData)
+
     // init wallet
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
-    // console.log('wallet:', this.wallet)
   },
   methods: {
     async onSwiped () {
-      console.log('creating ad...')
       const vm = this
       const url = vm.apiURL + '/ad/'
       const timestamp = Date.now()
@@ -120,15 +118,12 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      // console.log('headers:', headers)
       const body = vm.transformPostData()
-      // console.log('body:', body)
       vm.$axios.post(url, body, { headers: headers })
         .then(response => {
           console.log('response:', response.data)
           vm.swipeStatus = true
-          console.log('swipeStatus:', vm.swipeStatus)
-          // vm.$router.go()
+          vm.$emit('success')
         })
         .catch(error => {
           console.error(error.response)
@@ -137,13 +132,10 @@ export default {
     },
     transformPostData () {
       // finalize ad data
-      console.log('transforming data')
       const vm = this
       const defaultCrypto = 'BCH'
       const data = vm.postData
-      console.log('paymentMethods:', data.paymentMethods)
       const idList = data.paymentMethods.map(obj => obj.id)
-      console.log('idList:', idList)
       return {
         trade_type: data.tradeType,
         price_type: data.priceType,

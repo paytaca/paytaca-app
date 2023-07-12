@@ -35,7 +35,8 @@
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="transactionType === 'BUY'? buyListings : sellListings">
+            <!-- <q-virtual-scroll :items="transactionType === 'BUY'? buyListings : sellListings"> -->
+            <q-virtual-scroll :items="listings">
               <template v-slot="{ item: listing, index }">
                 <q-item>
                   <q-item-section>
@@ -137,14 +138,25 @@ export default {
     FiatAdsForm,
     FiatAdsDialogs
   },
+  watch: {
+    state (val) {
+      if (val === 'create') {
+        this.$router.push({ name: 'ads-create' })
+      }
+    },
+    transactionType (val) {
+      // console.log('transactionType:', val)
+      this.fetchAds()
+    }
+  },
   async mounted () {
     const vm = this
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
     vm.fetchAds()
-    vm.sellListings = vm.sortedListings('sell')
-    vm.buyListings = vm.sortedListings('buy')
+    // vm.sellListings = vm.sortedListings('sell')
+    // vm.buyListings = vm.sortedListings('buy')
   },
   methods: {
     async fetchAds () {
@@ -156,8 +168,10 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      console.log('headers:', headers)
-      vm.$axios.get(vm.apiURL + '/ad', { headers: headers })
+      const params = {
+        trade_type: vm.transactionType
+      }
+      vm.$axios.get(vm.apiURL + '/ad', { params: params }, { headers: headers })
         .then(response => {
           vm.listings = response.data
           console.log('listings: ', vm.listings)
@@ -201,11 +215,12 @@ export default {
     },
     checkEmptyListing () {
       const vm = this
-      if (vm.transactionType === 'BUY') {
-        return vm.buyListings.length === 0
-      } else {
-        return vm.sellListings.length === 0
-      }
+      // if (vm.transactionType === 'BUY') {
+      //   return vm.buyListings.length === 0
+      // } else {
+      //   return vm.sellListings.length === 0
+      // }
+      return vm.listings.length === 0
     },
     receiveDialogOption (option) {
       const vm = this

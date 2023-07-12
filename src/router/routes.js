@@ -107,7 +107,14 @@ const routes = [
               {
                 path: 'ads/',
                 name: 'ramp-fiat-ads',
-                component: () => import('src/components/ramp/fiat/FiatAds.vue')
+                component: () => import('src/components/ramp/fiat/FiatAds.vue'),
+                children: [
+                  {
+                    path: 'create/',
+                    name: 'ads-create',
+                    component: () => import('src/components/ramp/fiat/FiatAdsForm.vue')
+                  }
+                ]
               },
               {
                 path: 'orders/',

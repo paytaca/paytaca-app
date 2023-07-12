@@ -81,6 +81,7 @@ export default {
       if (val === 'fiat') {
         vm.pageName += '-store'
       }
+      console.log('pageName:', vm.pageName)
       this.$router.push({ name: vm.pageName })
     }
   },
