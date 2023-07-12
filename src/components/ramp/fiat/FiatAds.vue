@@ -149,8 +149,6 @@ export default {
   methods: {
     async fetchAds () {
       const vm = this
-      console.log(this.walletHash)
-      console.log(this.privateKeyWif)
       const timestamp = Date.now()
       const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
       const headers = {

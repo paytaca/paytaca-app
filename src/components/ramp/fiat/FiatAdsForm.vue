@@ -236,6 +236,8 @@
 import { debounce } from 'quasar'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
+import { signMessage } from '../../../wallet/ramp/signature.js'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
   props: {
@@ -252,6 +254,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
+      wallet: null,
       marketPrice: null,
       step: 1,
       priceValue: null,
@@ -278,32 +281,6 @@ export default {
         timeDurationChoice: 1440,
         paymentMethods: []
       },
-      numberRules: [
-
-      ],
-      // SELECTION OPTIONS
-      availableFiat: [ // api/ramp-p2p/currency/fiat/
-        {
-          name: 'Philippine Peso',
-          abbrev: 'PHP'
-        },
-        {
-          name: 'United States Dollar',
-          abbrev: 'USD'
-        },
-        {
-          name: 'Canadian Dollar',
-          abbrev: 'CAD'
-        },
-        {
-          name: 'Japanese Yen',
-          abbrev: 'JPY'
-        },
-        {
-          name: 'Russian Ruble',
-          abbrev: 'RUB'
-        }
-      ],
       ptlSelection: [
         {
           label: '15 min',
@@ -357,6 +334,13 @@ export default {
           vm.adData.floatingPrice = value
       }
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
+    },
+    async step (value) {
+      console.log('step:', value)
+      // const vm = this
+      // if (vm.step === 3) {
+      //   this.transformAdData()
+      // }
     }
   },
   async created () {
@@ -367,9 +351,13 @@ export default {
   },
   async mounted () {
     const vm = this
+    console.log('step:', vm.step)
     await vm.getFiatCurrencies()
     vm.adData.tradeType = vm.transactionType.toUpperCase()
     vm.updatePriceValue(vm.adData.priceType)
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    console.log('wallet:', this.wallet)
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -466,23 +454,29 @@ export default {
         })
       // console.log(vm.fiatCurrencies)
     },
-    checkSubmitOption () {
+    async getPaymentMethods () {
       const vm = this
-      console.log('data:', this.adData)
-      const ad = this.adData
-      const defaultCrypto = 1
-      const body = {
-        trade_type: ad.tradeType,
-        price_type: ad.priceType,
-        fiat_currency: ad.fiatCurrency,
-        crypto_currency: defaultCrypto,
-        fixed_price: 1000,
-        trade_floor: 100,
-        trade_ceiling: 1000,
-        crypto_amount: 1,
-        time_duration_choice: 5,
-        payment_methods: [1, 2]
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const headers = {
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
       }
+      const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
+      console.log('response:', response.data)
+      // .then(response => {
+      //   console.log(response.data)
+      //   return response.data
+      // })
+      // .catch(error => {
+      //   console.error(error.response)
+      // })
+      return response.data
+    },
+    async checkSubmitOption () {
+      const vm = this
+      console.log('checking submit option')
       vm.step++
     },
     postAd (methods) {
@@ -557,8 +551,6 @@ export default {
     },
     updateConvertionRate: debounce(async function () {
       const vm = this
-      console.log('updating price')
-      console.log('priceAmount:', vm.priceAmount)
       switch (vm.adData.priceType) {
         case 'FIXED':
           vm.adData.fixedPrice = vm.priceAmount
