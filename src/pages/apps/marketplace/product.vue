@@ -10,6 +10,13 @@
     />
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div class="text-h5 q-px-sm">{{ product?.name }}</div>
+      <q-btn
+        v-if="collection?.id == collectionId" class="text-subtitle1 q-mx-sm"
+        no-caps flat padding="none"
+        :to="{ name: 'app-marketplace-collection', params: { collectionId: collection?.id } }"
+      >
+        {{ collection?.name }}
+      </q-btn>
 
       <div class="row items-center justify-center">
         <q-spinner v-if="!initialized && fetchingProduct" size="4em" color="brandblue"/>
@@ -74,13 +81,14 @@
   </q-pull-to-refresh>
 </template>
 <script setup>
-import { Cart, Product } from 'src/marketplace/objects'
+import { Cart, Collection, Product } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 
 const props = defineProps({
+  collectionId: [Number, String],
   productId: [Number, String],
   variantId: [Number, String]
 })
@@ -91,6 +99,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const initialized = ref(false)
 function resetPage() {
   product.value.raw = null
+  collection.value.raw = null
   initialized.value = false
 }
 
@@ -124,6 +133,25 @@ async function addSelectedVariantToCart() {
   $store.dispatch('marketplace/saveCart', cart)
 }
 
+const collection = ref(Collection.parse())
+const fetchingCollection = ref(false)
+function fetchCollection() {
+  if (!props?.collectionId) {
+    collection.value = Collection.parse()
+    return Promise.resolve()
+  }
+
+  fetchingCollection.value = true
+  return backend.get(`connecta/collections/${props?.collectionId}/`)
+    .then(response => {
+      collection.value = Collection.parse(response?.data)
+      return response
+    })
+    .finally(() => {
+      fetchingCollection.value = false
+    })
+}
+
 const product = ref(Product.parse())
 const fetchingProduct = ref(false)
 function fetchProduct() {
@@ -154,7 +182,10 @@ function selectVariantFromProps() {
 
 async function refreshPage(done=() => {}) {
   try {
-    await fetchProduct()
+    await Promise.all([
+      fetchProduct(),
+      fetchCollection(),
+    ])
     selectedVariantIndex.value = 0
   } finally {
     $store.commit('marketplace/setActiveStorefrontId', product.value?.storefrontId)

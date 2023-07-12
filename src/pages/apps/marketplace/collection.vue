@@ -35,7 +35,7 @@
           <div
             v-for="product in products" :key="product?.id"
             class="col-6 col-sm-4 col-md-3 q-pa-sm"
-            @click="() => $router.push({ name: 'app-marketplace-product', params: { productId: product?.id } })"
+            @click="() => $router.push({ name: 'app-marketplace-collection-product', params: { collectionId: collectionId, productId: product?.id } })"
           >
             <q-card :class="[darkMode ? 'pt-dark-card': 'text-black']">
               <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1"/>
