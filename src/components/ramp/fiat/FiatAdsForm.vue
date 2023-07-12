@@ -223,6 +223,7 @@
       </div>
     </div>
     <div v-if="step === 3">
+      <!-- UPDATE LATER -->
       <DisplayConfirmation
         :post-data="adData"
         :ptl="paymentTimeLimit"

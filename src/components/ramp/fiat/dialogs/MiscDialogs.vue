@@ -208,7 +208,7 @@ export default {
     checkDialogType () {
       const vm = this
 
-      console.log(vm.type)
+      // console.log(vm.type)
       switch (vm.type) {
         case 'addPaymentMethod':
           vm.addPaymentMethod = true

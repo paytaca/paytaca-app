@@ -11,55 +11,94 @@
 
     <div class="text-center md-font-size bold-text">Please check to confirm...</div>
 
-    <div class="md-font-size" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-      <div class="q-pt-lg q-mx-lg ">
-        <div class="row subtext justify-between no-wrap q-mx-lg">
-          <span>Fiat Currency</span>
-          <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.name }} ({{ adData.fiatCurrency.symbol }})</span>
+    <div v-if="type === 'ads'">
+      <div class="md-font-size" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <div class="q-pt-lg q-mx-lg ">
+          <div class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Fiat Currency</span>
+            <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.name }} ({{ adData.fiatCurrency.symbol }})</span>
+          </div>
+          <div class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Price Type</span>
+            <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
+          </div>
+          <div class="row justify-between no-wrap q-mx-lg bold-text">
+            <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price Margin' }}</span>
+            <!-- <span>Price:</span> -->
+            <span class="text-nowrap q-ml-xs">
+              {{ adData.priceType === 'FIXED' ? formattedCurrencyNumber(adData.fixedPrice) : adData.floatingPrice }} {{ adData.priceType === 'FLOATING' ? '%' : '' }}
+            </span>
+          </div>
         </div>
-        <div class="row subtext justify-between no-wrap q-mx-lg">
-          <span>Price Type</span>
-          <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
+
+        <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
+
+        <div class="q-pt-lg q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg bold-text">
+            <span>Crypto Amount</span>
+            <span class="text-nowrap q-ml-xs">{{ adData.cryptoAmount }} BCH</span>
+          </div>
+          <div class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Trade Limit</span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrencyNumber(adData.tradeFloor) }} - {{ formattedCurrencyNumber(adData.tradeCeiling) }} </span>
+          </div>
         </div>
-        <div class="row justify-between no-wrap q-mx-lg bold-text">
-          <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price Margin' }}</span>
-          <!-- <span>Price:</span> -->
-          <span class="text-nowrap q-ml-xs">
-            {{ adData.priceType === 'FIXED' ? formattedCurrencyNumber(adData.fixedPrice) : adData.floatingPrice }} {{ adData.priceType === 'FLOATING' ? '%' : '' }}
-          </span>
+        <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
+
+        <div class="q-pt-lg q-mx-lg" >
+          <div class="row justify-between no-wrap q-mx-lg bold-text">
+            <span>Payment Time Limit</span>
+            <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
+          </div>
         </div>
       </div>
+      <div v-if="transactionType === 'sell'">
+        <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
 
-      <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
-
-      <div class="q-pt-lg q-mx-lg">
-        <div class="row justify-between no-wrap q-mx-lg bold-text">
-          <span>Crypto Amount</span>
-          <span class="text-nowrap q-ml-xs">{{ adData.cryptoAmount }} BCH</span>
-        </div>
-        <div class="row subtext justify-between no-wrap q-mx-lg">
-          <span>Trade Limit</span>
-          <span class="text-nowrap q-ml-xs">{{ formattedCurrencyNumber(adData.tradeFloor) }} - {{ formattedCurrencyNumber(adData.tradeCeiling) }} </span>
-        </div>
-      </div>
-      <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
-
-      <div class="q-pt-lg q-mx-lg" >
-        <div class="row justify-between no-wrap q-mx-lg bold-text">
-          <span>Payment Time Limit</span>
-          <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
+        <div class="q-mx-lg q-pt-lg">
+          <div class="q-px-lg bold-text">
+            Payment Methods
+          </div>
+          <div class="q-gutter-sm q-pt-sm q-px-lg">
+            <q-badge v-for="method in adData.paymentMethods" rounded outline color="red" :label="method.paymentType.name" />
+          </div>
         </div>
       </div>
     </div>
-    <div v-if="transactionType === 'sell'">
-      <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
 
-      <div class="q-mx-lg q-pt-lg">
-        <div class="q-px-lg bold-text">
-          Payment Methods
+    <div v-if="type === 'order'">
+      <div class="q-pt-lg">
+        <div class="text-center lg-font-size bold-text" :class="transactionType === 'SELL' ? 'buy-color' : 'sell-color'">
+          <span>{{ transactionType === 'SELL' ? 'Buying': 'Selling' }} BCH {{ transactionType === 'SELL' ? 'from': 'to' }}</span><br>
+          <span>
+            <u>{{ adData.owner}}</u>
+          </span>
         </div>
-        <div class="q-gutter-sm q-pt-sm q-px-lg">
-          <q-badge v-for="method in adData.paymentMethods" rounded outline color="red" :label="method.paymentType.name" />
+        <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
+        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-px-lg q-pt-md md-font-size">
+          <div class="bold-text subtext">
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Fiat Amount</span>
+              <span class="text-nowrap q-ml-xs">{{ fiatAmount }} BCH</span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Crypto Amount</span>
+              <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Payment Time Duration</span>
+              <span class="text-nowrap q-ml-xs">{{ adData.time_duration }} hr</span>
+            </div>
+          </div>
+        </div>
+        <q-separator :dark="darkMode" class="q-mx-lg q-mt-lg"/>
+        <div class="text-center">
+          <div class="md-font-size bold-text q-pt-md">Pay With</div>
+          <div class="q-gutter-sm q-pt-sm q-px-lg">
+            <q-badge v-for="method in adData.payment_methods" :key="method.id" rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
+              {{ method.payment_type }}
+            </q-badge>
+          </div>
         </div>
       </div>
     </div>
@@ -72,7 +111,7 @@
         right: 0,
         zIndex: 1500,
       }"
-      @swiped="true"
+      @swiped="$emit('submit')"
       text="Swipe To Confirm"
     />
   </div>
@@ -89,14 +128,29 @@ export default {
       paymentTimeLimit: null
     }
   },
-  emits: ['back'],
+  emits: ['back', 'submit'],
   components: {
     DragSlide
   },
   props: {
+    type: {
+      type: String,
+      default: 'ads'
+    },
     transactionType: String,
     postData: Object,
-    ptl: Object
+    ptl: {
+      type: Object,
+      default: null
+    },
+    fiatAmount: {
+      type: Number,
+      default: null
+    },
+    cryptoAmount: {
+      type: Number,
+      default: null
+    }
   },
   async mounted () {
     const vm = this
@@ -105,7 +159,11 @@ export default {
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
 
-    console.log(vm.postData)
+    console.log(vm.type)
+    console.log(vm.adData)
+    console.log(vm.transactionType)
+    console.log(vm.fiatAmount)
+    console.log(vm.cryptoAmount)
   },
   methods: {
     formattedCurrencyNumber (value) {
@@ -121,5 +179,11 @@ export default {
 <style lang="scss" scoped>
 .subtext {
   opacity: .5;
+}
+.buy-color {
+  color: rgb(60, 100, 246);
+}
+.sell-color {
+  color: #ed5f59;
 }
 </style>

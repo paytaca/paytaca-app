@@ -146,7 +146,7 @@ export default {
       const timestamp = Date.now()
       const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
 
-      // console.log('fetching payment method')
+      console.log(wallet.walletHash)
       vm.$axios.get(vm.apiURL + '/payment-method',
         {
           headers: {
@@ -289,7 +289,7 @@ export default {
       this.dialogType = 'confirmPaymentMethod'
 
       this.openDialog = true
-      // this.$emit('submit', this.paymentMethods)
+      this.$emit('submit')
     }
   },
   async mounted () {

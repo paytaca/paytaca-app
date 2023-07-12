@@ -114,12 +114,22 @@
       <div v-if="state === 'addPaymentMethods'">
         <AddPaymentMethods
           v-on:back="state = 'initial'"
-          v-on:submit="updatePaymentMethods"
+          v-on:submit="updatedPaymentMethods"
         />
       </div>
       <div v-if="state === 'confirmation'">
-        Confirmation Page
+        <DisplayConfirmation
+          :type="'order'"
+          :post-data="ad"
+          :fiat-amount="parseFloat(fiatAmount)"
+          :crypto-amount="parseFloat(cryptoAmount)"
+          :transaction-type="transactionType"
+          v-on:back="state = 'initial'"
+          v-on:submit="postOrder"
+        />
       </div>
+
+      <!-- UPDATE LATER -->
       <!-- <div v-if="!hideSellerInfo" class="q-my-lg">
         <div class="q-mx-lg text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
           {{ transactionType === 'SELL' ? 'SELLER INFO' : 'BUYER INFO'}}
@@ -183,6 +193,10 @@ import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
+import DisplayConfirmation from './DisplayConfirmation.vue'
+
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
   data () {
@@ -229,7 +243,8 @@ export default {
     FiatStoreBuyProcess,
     FiatStoreSellProcess,
     ProgressLoader,
-    AddPaymentMethods
+    AddPaymentMethods,
+    DisplayConfirmation
   },
   computed: {
     isAmountValid () {
@@ -309,11 +324,21 @@ export default {
       this.released = true
       this.pendingRelease = false
     },
-    updatePaymentMethods (data) {
-      console.log(data)
-      // sa
+    updatedPaymentMethods (data) {
+      // this.state = 'processing'
+      this.state = 'confirmation'
+    },
+    async createOrder () {
+      const vm = this
 
-      this.state = 'processing'
+      const walletInfo = vm.$store.getters['global/getWallet']('bch')
+      const wallet = await loadP2PWalletInfo(walletInfo)
+      const timestamp = Date.now()
+      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+
+    },
+    postOrder () {
+      console.log('posting order')
     }
   },
   async mounted () {
