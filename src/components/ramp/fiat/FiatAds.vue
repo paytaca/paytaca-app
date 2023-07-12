@@ -29,7 +29,7 @@
         <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell</button>
       </div>
       <div class="q-mt-md">
-        <div v-if="checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
+        <div v-if="!loading && checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
@@ -46,9 +46,8 @@
                           <span
                             :class="{'pt-dark-label': darkMode}"
                             class="q-mb-none text-uppercase"
-                            style="font-size: 13px;"
-                          >
-                            Price
+                            style="font-size: 13px;">
+                            {{ listing.price_type }}
                           </span><br>
                           <span
                             :class="{'pt-dark-label': darkMode}"
@@ -68,6 +67,7 @@
                             <span class="q-mr-md">Limit</span>
                             <span> {{ listing.trade_floor }} {{ listing.fiat_currency.symbol }} - {{ listing.trade_ceiling }} {{ listing.fiat_currency.symbol }}</span>
                           </div>
+                          <div class="row" style="font-size: 12px; color: grey">{{ formatDate(listing.created_at) }}</div>
                         </div>
                         <div class="text-right">
                           <q-btn
@@ -131,7 +131,8 @@ export default {
       state: 'selection', // 'create' 'edit'
       buyListings: [],
       sellListings: [],
-      listings: []
+      listings: [],
+      loading: false
     }
   },
   components: {
@@ -151,6 +152,7 @@ export default {
   },
   async mounted () {
     const vm = this
+    vm.loading = true
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
@@ -171,7 +173,7 @@ export default {
       const params = {
         trade_type: vm.transactionType
       }
-      vm.$axios.get(vm.apiURL + '/ad', { params: params }, { headers: headers })
+      vm.$axios.get(vm.apiURL + '/ad', { params: params, headers: headers })
         .then(response => {
           vm.listings = response.data
           console.log('listings: ', vm.listings)
@@ -182,6 +184,13 @@ export default {
           console.error(error.response.data)
           vm.loading = false
         })
+    },
+    formatDate (value) {
+      const datetime = new Date(value)
+      const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }
+      let dateString = datetime.toLocaleString(undefined, options)
+      dateString = dateString.replace(' at', '')
+      return dateString
     },
     sortedListings (type) {
       const vm = this
