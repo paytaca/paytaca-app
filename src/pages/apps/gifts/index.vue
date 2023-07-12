@@ -14,7 +14,7 @@
       />
       <div :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '30px'}">
         <div class="row items-center justify-end q-mx-md q-mb-md q-px-xs q-gutter-sm">
-          <q-btn 
+          <q-btn
             no-caps
             color="primary"
             label="Create Gift"
@@ -233,7 +233,7 @@ export default {
     },
     fetchGifts(opts = { recordType: 'all', limit: 10, offset: 0 }) {
       const recordType = opts?.recordType || 'all'
-      const url = `https://gifts.paytaca.com/api/gifts/${this.walletHash}/list`
+      const url = `https://gifts.paytaca.com/api/paytaca/gifts/${this.walletHash}/list`
       const query = { limit: undefined, offset: undefined, claimed: undefined }
       if (recordType === 'claimed') query.claimed = true
       if (recordType === 'unclaimed') query.claimed = false

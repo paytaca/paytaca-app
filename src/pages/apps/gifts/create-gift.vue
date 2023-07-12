@@ -295,7 +295,7 @@ export default {
         }
       }
       const walletHash = this.wallet.BCH.getWalletHash()
-      const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
+      const url = `https://gifts.paytaca.com/api/paytaca/gifts/${walletHash}/create/`
       axios.post(url, payload).then((resp) => {
         if (resp.status === 200) {
           vm.qrCodeContents = shares[0]
@@ -341,7 +341,7 @@ export default {
         walletHash = this.wallet.BCH.getWalletHash()
       }
 
-      const url = `https://gifts.paytaca.com/api/campaigns/${walletHash}/list/`
+      const url = `https://gifts.paytaca.com/api/paytaca/campaigns/${walletHash}/list/`
       axios.get(url).then((resp) => {
         this.campaignOptions = resp.data.campaigns.map(function (item, index) {
           return {

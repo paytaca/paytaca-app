@@ -107,7 +107,7 @@ export default {
       if (vm.action === 'Recover') {
         giftCode = vm.localShare
       }
-      const url = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
+      const url = `https://gifts.paytaca.com/api/paytaca/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
       const walletHash = this.wallet.BCH.getWalletHash()
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
         const privateKey = sss.combine([giftCode, resp.data.share])
