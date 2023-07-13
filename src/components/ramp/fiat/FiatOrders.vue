@@ -10,8 +10,13 @@
           <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Completed</button>
         </div>
       </div>
-      <div class="q-mt-md">
-        <div v-if="loading == false && filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="loading">
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader/>
+        </div>
+      </div>
+      <div v-else class="q-mt-md">
+        <div v-if="filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
         </div>
@@ -26,21 +31,22 @@
                         <div class="col ib-text">
                           <span
                             :class="{'pt-dark-label': darkMode}"
-                            class="q-mb-none text-uppercase"
-                            style="font-size: 13px;">
+                            class="q-mb-none md-font-size">
                             {{ listing.ad_owner_name }}
                           </span>
                           <div
                             :class="{'pt-dark-label': darkMode}"
-                            class="col-transaction text-uppercase"
-                            style="font-size: 20px;">
-                            {{ orderFiatAmount(listing.locked_price, listing.crypto_amount) }} {{ listing.fiat_currency.abbrev }}
+                            class="col-transaction text-uppercase lg-font-size"
+                            style="font-size: 20px;"
+                            :style="amountColor(listing.trade_type)">
+                            {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount)) }}
                           </div>
-                          <div style="font-size: 12px;">
+                          <div class="sm-font-size">
                             <!-- &asymp; -->
-                            {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div>
-                          <div style="font-size: 12px;"> {{ listing.locked_price }} {{ listing.fiat_currency.abbrev }}/{{ listing.crypto_currency.abbrev }}</div>
-                          <div class="row" style="font-size: 12px; color: grey">{{ formatDate(listing.created_at) }}</div>
+                            <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
+                            {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
+                          <div style="font-size: 12px;"> {{ formattedCurrency(listing.locked_price) }}/BCH</div>
+                          <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
                         </div>
                         <div class="text-right">
                           <span class="row subtext" v-if="isCompleted(listing.status) == false && listing.expiration_date != null">
@@ -70,21 +76,30 @@
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
+  components: {
+    ProgressLoader
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL,
-      loading: true,
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      loading: false,
       transactionType: 'BUY',
-      listings: []
+      listings: [],
+      wallet: null
     }
   },
-  mounted () {
-    this.fetchUserOrders()
+  async mounted () {
+    const vm = this
+    vm.loading = true
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    vm.fetchUserOrders()
   },
   components: {
     ProgressLoader
@@ -93,18 +108,19 @@ export default {
     async fetchUserOrders () {
       const vm = this
 
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
+      // const walletInfo = this.$store.getters['global/getWallet']('bch')
+      // const wallet = await loadP2PWalletInfo(walletInfo)
       const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_LIST', timestamp)
 
       const headers = {
-        'wallet-hash': wallet.walletHash,
-        timestamp: Date.now(),
+        'wallet-hash': vm.wallet.walletHash,
+        timestamp: timestamp,
         signature: signature
       }
       vm.loading = true
-      vm.$axios.get(vm.apiURL + '/ramp-p2p/order', { headers: headers })
+
+      vm.$axios.get(vm.apiURL + '/order', { headers: headers })
         .then(response => {
           vm.listings = response.data
           vm.loading = false
@@ -124,6 +140,13 @@ export default {
       const minutes = elapsedMinutes % 60
       if (hours * -1 > 24) days = hours % 24
       return [days, hours, minutes]
+    },
+    amountColor (tradeType) {
+      if (tradeType === 'SELL') {
+        return 'color: blue;'
+      } else {
+        return 'color: red;'
+      }
     },
     formatExpiration (expirationDate) {
       let [days, hours, minutes] = this.getElapsedTime(expirationDate)
@@ -147,12 +170,19 @@ export default {
       if (status === 'Released' || status === 'Refunded' || status === 'Canceled') return true
       return false
     },
-    formatDate (value) {
-      const datetime = new Date(value)
-      const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }
-      return datetime.toLocaleString(undefined, options)
+    formattedDate (value) {
+      return formatDate(value)
+    },
+    formattedCurrency (value, fiat = true) {
+      if (fiat) {
+        const currency = this.selectedCurrency.symbol
+        return formatCurrency(value, currency)
+      } else {
+        return formatCurrency(value)
+      }
     },
     orderFiatAmount (lockedPrice, cryptoAmount) {
+      console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
       return lockedPrice * cryptoAmount
     },
     filteredListings () {

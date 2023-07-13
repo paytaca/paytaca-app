@@ -19,3 +19,41 @@ export async function loadP2PWalletInfo (walletInfo) {
     address: lastAddress
   }
 }
+
+export function formatCurrency (value, currency) {
+  let formattedNumber = null
+  const parsedValue = parseFloat(value)
+  if (currency) {
+    let maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 2
+    if (parsedValue < 1) {
+      maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 8
+    }
+    formattedNumber = parsedValue.toLocaleString(undefined, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: maximumFractionDigits
+    })
+  } else {
+    formattedNumber = parseFloat(value).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: parsedValue % 1 === 0 ? 0 : 8
+    })
+  }
+  return formattedNumber
+}
+
+export function formatDate (value) {
+  const datetime = new Date(value)
+  const options = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric'
+  }
+  let dateString = datetime.toLocaleString(undefined, options)
+  dateString = dateString.replace(' at', '')
+  return dateString
+}

@@ -70,7 +70,19 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: 'fiat', // crypto
       isAllowed: true,
-      error: false
+      error: false,
+      pageName: 'ramp-fiat-store'
+    }
+  },
+  watch: {
+    selectedCurrency (val) {
+      const vm = this
+      vm.pageName = 'ramp-' + val
+      if (val === 'fiat') {
+        vm.pageName += '-store'
+      }
+      console.log('pageName:', vm.pageName)
+      this.$router.push({ name: vm.pageName })
     }
   },
   async mounted () {
@@ -80,6 +92,7 @@ export default {
     if (!permission.data.createShift) {
       vm.isAllowed = false
     }
+    this.$router.push({ name: vm.pageName })
   }
 }
 </script>

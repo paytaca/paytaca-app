@@ -2,8 +2,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    style="min-height:78vh;"
-  >
+    style="min-height:78vh;">
     <div v-if="state !== 'selection'">
       <FiatAdsForm
         v-on:back="state = 'selection'"
@@ -28,14 +27,20 @@
         <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy</button>
         <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell</button>
       </div>
-      <div class="q-mt-md">
+      <div v-if="loading">
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader/>
+        </div>
+      </div>
+      <div v-else class="q-mt-md">
         <div v-if="checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
           <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="transactionType === 'BUY'? buyListings : sellListings">
+            <!-- <q-virtual-scroll :items="transactionType === 'BUY'? buyListings : sellListings"> -->
+            <q-virtual-scroll :items="listings">
               <template v-slot="{ item: listing, index }">
                 <q-item>
                   <q-item-section>
@@ -45,28 +50,27 @@
                           <span
                             :class="{'pt-dark-label': darkMode}"
                             class="q-mb-none text-uppercase"
-                            style="font-size: 13px;"
-                          >
-                            Price
+                            style="font-size: 13px;">
+                            {{ listing.price_type }}
                           </span><br>
                           <span
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase"
-                            style="font-size: 16px;"
-                          >
-                            {{ listing.price }} {{ listing.fiat_currency.symbol }}
+                            style="font-size: 16px;">
+                            {{ formattedCurrency(listing.price) }}
                           </span>
                           <span style="font-size: 12px;">
                             /BCH
                           </span>
                           <div class="row sm-font-size">
                             <span class="q-mr-md">Quantity</span>
-                            <span>{{ listing.crypto_amount }} BCH</span>
+                            <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
                           </div>
                           <div class="row sm-font-size">
                             <span class="q-mr-md">Limit</span>
-                            <span> {{ listing.trade_floor }} {{ listing.fiat_currency.symbol }} - {{ listing.trade_ceiling }} {{ listing.fiat_currency.symbol }}</span>
+                            <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }} </span>
                           </div>
+                          <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
                         </div>
                         <div class="text-right">
                           <q-btn
@@ -114,14 +118,22 @@
 <script>
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
+import ProgressLoader from '../../ProgressLoader.vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 
 export default {
+  components: {
+    FiatAdsForm,
+    ProgressLoader,
+    FiatAdsDialogs
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      wallet: null,
       openDialog: false,
       dialogName: '',
       selectedIndex: null,
@@ -130,28 +142,31 @@ export default {
       state: 'selection', // 'create' 'edit'
       buyListings: [],
       sellListings: [],
-      listings: []
+      listings: [],
+      loading: false
     }
-  },
-  components: {
-    FiatAdsForm,
-    FiatAdsDialogs
   },
   async mounted () {
     const vm = this
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo)
-    console.log('wallet:', this.wallet)
-
+    vm.loading = true
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
     vm.fetchAds()
-    vm.sellListings = vm.sortedListings('sell')
-    vm.buyListings = vm.sortedListings('buy')
+  },
+  watch: {
+    state (val) {
+      if (val === 'create') {
+        this.$router.push({ name: 'ads-create' })
+      }
+    },
+    transactionType (val) {
+      // console.log('transactionType:', val)
+      this.fetchAds()
+    }
   },
   methods: {
     async fetchAds () {
       const vm = this
-      console.log(this.walletHash)
-      console.log(this.privateKeyWif)
       const timestamp = Date.now()
       const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
       const headers = {
@@ -159,8 +174,8 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      console.log('headers:', headers)
-      vm.$axios.get(vm.apiURL + '/ad', { headers: headers })
+      const params = { trade_type: vm.transactionType }
+      vm.$axios.get(vm.apiURL + '/ad', { params: params, headers: headers })
         .then(response => {
           vm.listings = response.data
           console.log('listings: ', vm.listings)
@@ -171,6 +186,17 @@ export default {
           console.error(error.response.data)
           vm.loading = false
         })
+    },
+    formattedDate (value) {
+      return formatDate(value)
+    },
+    formattedCurrency (value, fiat = true) {
+      if (fiat) {
+        const currency = this.selectedCurrency.symbol
+        return formatCurrency(value, currency)
+      } else {
+        return formatCurrency(value)
+      }
     },
     sortedListings (type) {
       const vm = this
@@ -204,11 +230,12 @@ export default {
     },
     checkEmptyListing () {
       const vm = this
-      if (vm.transactionType === 'BUY') {
-        return vm.buyListings.length === 0
-      } else {
-        return vm.sellListings.length === 0
-      }
+      // if (vm.transactionType === 'BUY') {
+      //   return vm.buyListings.length === 0
+      // } else {
+      //   return vm.sellListings.length === 0
+      // }
+      return vm.listings.length === 0
     },
     receiveDialogOption (option) {
       const vm = this
