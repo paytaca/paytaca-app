@@ -50,32 +50,29 @@
                         <div class="col ib-text">
                           <span
                             :class="{'pt-dark-label': darkMode}"
-                            class="q-mb-none text-uppercase md-font-size"
-                            @click.stop.prevent="viewUserProfile(listing.owner)"
-                          >
-                            <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }}
+                            class="q-mb-none md-font-size"
+                            style="font-weight: 400;"
+                            @click.stop.prevent="viewUserProfile(listing.owner)">
+                            <!-- <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }} -->
+                            {{ listing.owner }}
                           </span><br>
                           <div class="row sm-font-size">
-                            <span class="q-mr-sm subtext">{{ listing.trade_count }} total trades </span>
-                            <span class="q-ml-sm subtext">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
+                            <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
+                            <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                           </div>
                           <span
                             :class="{'pt-dark-label': darkMode}"
-                            class="col-transaction text-uppercase lg-font-size"
-                          >
-                            {{ listing.price }} {{ selectedCurrency.symbol }}
-                            <!-- {{ listing.priceType === 'FIXED' ? listing.fixedPrice : listing.floatingPrice }} {{ listing.fiatCurrency.symbol }} -->
+                            class="col-transaction text-uppercase lg-font-size">
+                            {{ formattedCurrency(listing.price) }}
                           </span>
-                          <span class="sm-font-size">
-                            /BCH
-                          </span><br>
+                          <span class="sm-font-size">/BCH</span><br>
                           <div class="row sm-font-size">
                               <span class="q-mr-md">Quantity</span>
-                              <span>{{ listing.crypto_amount }} BCH</span>
+                              <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
                           </div>
                           <div class="row sm-font-size">
                               <span class="q-mr-md">Limit</span>
-                              <span> {{ listing.trade_floor }} {{ selectedCurrency.symbol }} - {{ listing.trade_ceiling }} {{ selectedCurrency.symbol }}</span>
+                              <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span>
                           </div>
                         </div>
                       </div>
@@ -126,7 +123,7 @@ import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 // import { signMessage } from 'src/wallet/ramp/signature'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 
 export default {
   components: {
@@ -203,6 +200,14 @@ export default {
             console.error(error.response)
             vm.loading = false
           })
+      }
+    },
+    formattedCurrency (value, fiat = true) {
+      if (fiat) {
+        const currency = this.selectedCurrency.symbol
+        return formatCurrency(value, currency)
+      } else {
+        return formatCurrency(value)
       }
     },
     selectCurrency (index) {

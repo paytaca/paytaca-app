@@ -14,11 +14,11 @@
     <div v-if="type === 'ads'">
       <div class="md-font-size" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
         <div class="q-pt-lg q-mx-lg ">
-          <div class="row subtext justify-between no-wrap q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg">
             <span>Fiat Currency</span>
             <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.name }} ({{ adData.fiatCurrency.symbol }})</span>
           </div>
-          <div class="row subtext justify-between no-wrap q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg">
             <span>Price Type</span>
             <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
           </div>
@@ -34,13 +34,13 @@
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
 
         <div class="q-pt-lg q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg">
+            <span>Trade Limit</span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrencyNumber(adData.tradeFloor) }} - {{ formattedCurrencyNumber(adData.tradeCeiling) }} </span>
+          </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Crypto Amount</span>
             <span class="text-nowrap q-ml-xs">{{ adData.cryptoAmount }} BCH</span>
-          </div>
-          <div class="row subtext justify-between no-wrap q-mx-lg">
-            <span>Trade Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ formattedCurrencyNumber(adData.tradeFloor) }} - {{ formattedCurrencyNumber(adData.tradeCeiling) }} </span>
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
@@ -60,7 +60,7 @@
             Payment Methods
           </div>
           <div class="q-gutter-sm q-pt-sm q-px-lg">
-            <q-badge v-for="method in adData.paymentMethods" rounded outline color="red" :label="method.paymentType.name" />
+            <q-badge v-for="method in postData.paymentMethods" :key="method.id" rounded outline color="red" :label="method.paymentType.name" />
           </div>
         </div>
       </div>
@@ -104,6 +104,7 @@
     </div>
 
     <DragSlide
+      v-if="!swipeStatus"
       :style="{
         position: 'fixed',
         bottom: 0,
@@ -123,9 +124,12 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       adData: null,
       isLoaded: false,
-      paymentTimeLimit: null
+      paymentTimeLimit: null,
+      wallet: null,
+      swipeStatus: false
     }
   },
   emits: ['back', 'submit'],
@@ -154,22 +158,18 @@ export default {
   },
   async mounted () {
     const vm = this
-
     vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
-
-    console.log(vm.type)
-    console.log(vm.adData)
-    console.log(vm.transactionType)
-    console.log(vm.fiatAmount)
-    console.log(vm.cryptoAmount)
   },
   methods: {
     formattedCurrencyNumber (value) {
-      const formattedNumber = parseFloat(value).toLocaleString(undefined, {
+      const parsedValue = parseFloat(value)
+      const formattedNumber = parsedValue.toLocaleString(undefined, {
         style: 'currency',
-        currency: this.adData.fiatCurrency.symbol
+        currency: this.postData.fiatCurrency.symbol,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: parsedValue % 1 === 0 ? 0 : 2
       })
       return formattedNumber
     }
