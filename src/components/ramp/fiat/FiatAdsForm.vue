@@ -352,13 +352,12 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('step:', vm.step)
     await vm.getFiatCurrencies()
     vm.adData.tradeType = vm.transactionType.toUpperCase()
     vm.updatePriceValue(vm.adData.priceType)
+
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
-    console.log('wallet:', this.wallet)
   },
   beforeUnmount () {
     this.closeWSConnection()

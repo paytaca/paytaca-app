@@ -56,8 +56,7 @@
                           <span
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase"
-                            style="font-size: 16px;"
-                          >
+                            style="font-size: 16px;">
                             {{ formattedCurrency(listing.price) }}
                           </span>
                           <span style="font-size: 12px;">
@@ -133,7 +132,8 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      preferredCurrency: this.$store.getters['market/selectedCurrency'],
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      wallet: null,
       openDialog: false,
       dialogName: '',
       selectedIndex: null,
@@ -146,6 +146,13 @@ export default {
       loading: false
     }
   },
+  async mounted () {
+    const vm = this
+    vm.loading = true
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    vm.fetchAds()
+  },
   watch: {
     state (val) {
       if (val === 'create') {
@@ -156,15 +163,6 @@ export default {
       // console.log('transactionType:', val)
       this.fetchAds()
     }
-  },
-  async mounted () {
-    const vm = this
-    vm.loading = true
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-    vm.fetchAds()
-    // vm.sellListings = vm.sortedListings('sell')
-    // vm.buyListings = vm.sortedListings('buy')
   },
   methods: {
     async fetchAds () {
@@ -194,7 +192,7 @@ export default {
     },
     formattedCurrency (value, fiat = true) {
       if (fiat) {
-        const currency = this.preferredCurrency.symbol
+        const currency = this.selectedCurrency.symbol
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)

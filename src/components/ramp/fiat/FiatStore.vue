@@ -51,6 +51,7 @@
                           <span
                             :class="{'pt-dark-label': darkMode}"
                             class="q-mb-none md-font-size"
+                            style="font-weight: 400;"
                             @click.stop.prevent="viewUserProfile(listing.owner)">
                             <!-- <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }} -->
                             {{ listing.owner }}

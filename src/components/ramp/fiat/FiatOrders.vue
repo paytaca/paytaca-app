@@ -87,10 +87,11 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      preferredCurrency: this.$store.getters['market/selectedCurrency'],
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
       loading: false,
       transactionType: 'BUY',
-      listings: []
+      listings: [],
+      wallet: null
     }
   },
   async mounted () {
@@ -166,7 +167,7 @@ export default {
     },
     formattedCurrency (value, fiat = true) {
       if (fiat) {
-        const currency = this.preferredCurrency.symbol
+        const currency = this.selectedCurrency.symbol
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)
