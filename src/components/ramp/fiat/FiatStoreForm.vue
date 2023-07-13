@@ -124,6 +124,7 @@
           :fiat-amount="parseFloat(fiatAmount)"
           :crypto-amount="parseFloat(cryptoAmount)"
           :transaction-type="transactionType"
+          :payment-methods="paymentMethods"
           v-on:back="state = 'initial'"
           v-on:submit="postOrder"
         />
@@ -203,6 +204,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      paymentMethods: [],
       disabled: false,
       isloaded: false,
       ad: null,
@@ -325,6 +327,8 @@ export default {
       this.pendingRelease = false
     },
     updatedPaymentMethods (data) {
+      console.log(data)
+      this.paymentMethods = data
       // this.state = 'processing'
       this.state = 'confirmation'
     },
@@ -336,9 +340,30 @@ export default {
       const timestamp = Date.now()
       const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
 
+      const pmId = vm.paymentMethods.map(p => p.id)
+      // const lockedPrice = this.ad.price_type === 'FIXED' ?  this.ad.price : 1000 * () //CHECK LATER
+
+      vm.$axios.post(vm.apiURL + '/order/', {
+        ad: this.ad.id,
+        crypto_amount: parseFloat(vm.cryptoAmount),
+        locked_price: this.ad.price, // fixed: normal price, float: price = marketprice * (floating_price/100)
+        arbiter: 1,
+        payment_methods: pmId
+      },
+      {
+        headers: {
+          'wallet-hash': wallet.walletHash,
+          signature: signature,
+          timestamp: timestamp
+        }
+      })
     },
-    postOrder () {
+    async postOrder () {
+      console.log(this.ad)
       console.log('posting order')
+
+      await this.createOrder()
+      console.log('created Order')
     }
   },
   async mounted () {

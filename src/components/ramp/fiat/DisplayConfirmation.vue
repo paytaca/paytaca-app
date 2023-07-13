@@ -79,7 +79,7 @@
           <div class="bold-text subtext">
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Fiat Amount</span>
-              <span class="text-nowrap q-ml-xs">{{ fiatAmount }} BCH</span>
+              <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ adData.fiat_currency.symbol }}</span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Crypto Amount</span>
@@ -92,13 +92,35 @@
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mx-lg q-mt-lg"/>
-        <div class="text-center">
-          <div class="md-font-size bold-text q-pt-md">Pay With</div>
-          <div class="q-gutter-sm q-pt-sm q-px-lg">
+        <div class="text-center q-px-md">
+          <div class="md-font-size bold-text q-py-sm">Pay With</div>
+          <div class="q-gutter-sm q-px-lg">
             <q-badge v-for="method in adData.payment_methods" :key="method.id" rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
               {{ method.payment_type }}
             </q-badge>
           </div>
+        </div>
+        <div class="text-center q-px-md">
+          <div class="md-font-size bold-text q-py-sm">Your Payment Methods</div>
+          <q-list bordered class="q-mx-lg" :dark="darkMode">
+            <div
+              v-for="(method, index) in paymentMethods"
+              :key="index"
+            >
+              <q-expansion-item
+                group="somegroup"
+                :label="method.payment_type.name.toUpperCase()"
+              >
+                <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
+                  <q-card-section>
+                    <!-- <span>{{ method.account_name }}</span><br> -->
+                    <span class="subtext">{{ method.account_number }}</span>
+                  </q-card-section>
+                </q-card>
+              </q-expansion-item>
+              <q-separator :dark="darkMode" />
+            </div>
+          </q-list>
         </div>
       </div>
     </div>
@@ -150,6 +172,10 @@ export default {
     cryptoAmount: {
       type: Number,
       default: null
+    },
+    paymentMethods: {
+      type: Object,
+      default: null
     }
   },
   async mounted () {
@@ -159,11 +185,7 @@ export default {
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
 
-    console.log(vm.type)
-    console.log(vm.adData)
-    console.log(vm.transactionType)
-    console.log(vm.fiatAmount)
-    console.log(vm.cryptoAmount)
+    console.log(vm.paymentMethods)
   },
   methods: {
     formattedCurrencyNumber (value) {

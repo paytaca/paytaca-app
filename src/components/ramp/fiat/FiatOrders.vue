@@ -69,6 +69,10 @@
     </q-card>
 </template>
 <script>
+import ProgressLoader from '../../ProgressLoader.vue'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { signMessage } from '../../../wallet/ramp/signature.js'
+
 export default {
   data () {
     return {
@@ -82,13 +86,22 @@ export default {
   mounted () {
     this.fetchUserOrders()
   },
+  components: {
+    ProgressLoader
+  },
   methods: {
-    fetchUserOrders () {
+    async fetchUserOrders () {
       const vm = this
+
+      const walletInfo = this.$store.getters['global/getWallet']('bch')
+      const wallet = await loadP2PWalletInfo(walletInfo)
+      const timestamp = Date.now()
+      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+
       const headers = {
-        'wallet-hash': 'kipwu68ejj15k9ps0ffupuawmqusv4n1',
-        timestamp: 1687247466349,
-        signature: '3044022046626064beef19b37f4fb1705ea25275bbda30a3465cf27621a4629f9bba29f60220425289bb9904804274fc67cb38d4f55fde7f99fbafaeb8610c86d0f056902bb8'
+        'wallet-hash': wallet.walletHash,
+        timestamp: Date.now(),
+        signature: signature
       }
       vm.loading = true
       vm.$axios.get(vm.apiURL + '/ramp-p2p/order', { headers: headers })
