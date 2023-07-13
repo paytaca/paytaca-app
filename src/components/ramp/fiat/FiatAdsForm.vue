@@ -88,12 +88,12 @@
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
             <div>
               <span>Your Price</span><br>
-              <span class="bold-text lg-font-size">{{ formattedCurrencyNumber(priceAmount) }}</span>
+              <span class="bold-text lg-font-size">{{ formattedCurrency(priceAmount) }}</span>
               <!-- <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.symbol }}</span> -->
             </div>
             <div >
               <span>Current Market Price</span><br>
-              <span class="xm-font-size" style="float: right;">{{ formattedCurrencyNumber(marketPrice) }}</span>
+              <span class="xm-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
             </div>
           </div>
         </div>
@@ -238,7 +238,7 @@ import { debounce } from 'quasar'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { formatCurrency, loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
   props: {
@@ -364,6 +364,9 @@ export default {
     this.closeWSConnection()
   },
   methods: {
+    formattedCurrency (value) {
+      return formatCurrency(value, this.adData.fiatCurrency.symbol)
+    },
     onSuccess () {
       console.log('onSuccess')
       this.$emit('back')
@@ -524,13 +527,6 @@ export default {
     checkTradeLimitComparison () {
       if (!this.adData.tradeFloor || !this.adData.tradeCeiling) return true
       return Number(this.adData.tradeFloor) < Number(this.adData.tradeCeiling)
-    },
-    formattedCurrencyNumber (value) {
-      const formattedNumber = parseFloat(value).toLocaleString(undefined, {
-        style: 'currency',
-        currency: this.adData.fiatCurrency.symbol
-      })
-      return formattedNumber
     },
     isAmountValid (value) {
       // amount with comma and decimal regex
