@@ -506,7 +506,7 @@ export default {
         signature: signature
       }
       const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
-      console.log('response:', response.data)
+      // console.log('response:', response.data)
       // .then(response => {
       //   console.log(response.data)
       //   return response.data
@@ -518,7 +518,7 @@ export default {
     },
     async checkSubmitOption () {
       const vm = this
-      console.log('checking submit option')
+      // console.log('checking submit option')
       vm.step++
     },
     appendPaymentMethods (paymentMethods) {
@@ -543,7 +543,7 @@ export default {
     },
     async updateFiatCurrency () {
       const vm = this
-      console.log('selectedCurrency:', vm.selectedCurrency)
+      // console.log('selectedCurrency:', vm.selectedCurrency)
       vm.adData.fiatCurrency = vm.selectedCurrency
       // update market price subscription
       vm.marketPrice = null
@@ -597,7 +597,7 @@ export default {
           vm.adData.fixedPrice = null
           break
       }
-      console.log('fixedPrice:', vm.adData.fixedPrice)
+      // console.log('fixedPrice:', vm.adData.fixedPrice)
     }, 500)
   }
 }

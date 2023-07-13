@@ -10,7 +10,7 @@ export async function loadP2PWalletInfo (walletInfo) {
 
   const { lastAddress, connectedAddressIndex } = walletInfo
   const privateKeyWif = await wallet.BCH.getPrivateKey(connectedAddressIndex)
-  const publicKey = await wallet.BCH.getPublicKey(`0/${connectedAddressIndex}`)
+  const publicKey = await wallet.BCH.getPublicKey(connectedAddressIndex)
 
   return {
     walletHash: walletHash,

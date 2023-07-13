@@ -174,7 +174,7 @@ export default {
       }
     },
     orderFiatAmount (lockedPrice, cryptoAmount) {
-      console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
+      // console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
       return lockedPrice * cryptoAmount
     },
     filteredListings () {
