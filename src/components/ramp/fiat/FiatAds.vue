@@ -178,7 +178,7 @@ export default {
       vm.$axios.get(vm.apiURL + '/ad', { params: params, headers: headers })
         .then(response => {
           vm.listings = response.data
-          console.log('listings: ', vm.listings)
+          // console.log('listings: ', vm.listings)
           vm.loading = false
         })
         .catch(error => {
