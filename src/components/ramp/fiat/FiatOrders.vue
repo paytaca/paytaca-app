@@ -6,8 +6,8 @@
     >
       <div>
         <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
-          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Ongoing</button>
-          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Completed</button>
+          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'ONGOING' }" @click="statusType='ONGOING'">Ongoing</button>
+          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
         </div>
       </div>
       <div v-if="loading">
@@ -27,7 +27,7 @@
                 <q-item clickable>
                   <q-item-section>
                     <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <div class="row">
+                      <div class="row q-mx-md">
                         <div class="col ib-text">
                           <span
                             :class="{'pt-dark-label': darkMode}"
@@ -54,7 +54,7 @@
                             <span v-else class="q-mr-xs">Expired for</span>
                             <span>{{ formatExpiration(listing.expiration_date) }}</span>
                           </span>
-                          <span style=";">{{ listing.status }}</span>
+                          <span class="bold-text subtext md-font-size" style=";">{{ listing.status }}</span>
                           <!-- <span class="subtext">{{ listing.status }}</span> -->
                           <!-- <span class="status-text" v-if="listing.status === 'released'">RELEASED</span> -->
                           <!-- <span class="status-text" v-else-if="listing.status.includes('confirmation')">PENDING CONFIRMATION</span> -->
@@ -80,16 +80,14 @@ import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
-  components: {
-    ProgressLoader
-  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      statusType: 'ONGOING',
       loading: false,
-      transactionType: 'BUY',
+      transactionType: '',
       listings: [],
       wallet: null
     }
@@ -123,6 +121,7 @@ export default {
       vm.$axios.get(vm.apiURL + '/order', { headers: headers })
         .then(response => {
           vm.listings = response.data
+          console.log(vm.listings)
           vm.loading = false
         })
         .catch(error => {
@@ -142,7 +141,7 @@ export default {
       return [days, hours, minutes]
     },
     amountColor (tradeType) {
-      if (tradeType === 'SELL') {
+      if (tradeType === 'BUY') {
         return 'color: blue;'
       } else {
         return 'color: red;'
@@ -188,7 +187,11 @@ export default {
     filteredListings () {
       const vm = this
       const sorted = vm.listings.filter(function (listing) {
-        return listing.trade_type === vm.transactionType
+        if (vm.statusType === 'ONGOING') {
+          return !vm.isCompleted(listing.status)
+        } else {
+          return vm.isCompleted(listing.status)
+        }
       })
       return sorted
     }
