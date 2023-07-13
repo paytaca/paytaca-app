@@ -110,6 +110,20 @@ import { signMessage } from '../../../wallet/ramp/signature.js'
 import ProgressLoader from '../../ProgressLoader.vue'
 
 export default {
+  components: {
+    MiscDialogs,
+    ProgressLoader
+  },
+  props: {
+    confirmLabel: {
+      type: String,
+      default: 'Next'
+    },
+    currentPaymentMethods: {
+      type: Array,
+      default: []
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -124,19 +138,11 @@ export default {
     }
   },
   emits: ['submit', 'back'],
-  components: {
-    MiscDialogs,
-    ProgressLoader
-  },
-  props: {
-    confirmLabel: {
-      type: String,
-      default: 'Next'
-    },
-    currentPaymentMethods: {
-      type: Array,
-      default: []
-    }
+  async mounted () {
+    // get payment type list
+    this.paymentMethods = this.currentPaymentMethods
+    await this.fetchPaymentMethod()
+    this.isloaded = true
   },
   methods: {
     async fetchPaymentMethod () {
@@ -164,7 +170,6 @@ export default {
     },
     receiveDialogInfo (data) {
       const vm = this
-
       switch (vm.dialogType) {
         case 'addPaymentMethod':
           vm.updatePayment(data)
@@ -287,17 +292,9 @@ export default {
     },
     submitPaymentMethod () {
       this.dialogType = 'confirmPaymentMethod'
-
       this.openDialog = true
-      this.$emit('submit')
+      // this.$emit('submit', this.paymentMethods)
     }
-  },
-  async mounted () {
-    // get payment type list
-    // this.paymentMethods = this.currentPaymentMethods
-    await this.fetchPaymentMethod()
-
-    this.isloaded = true
   }
 }
 </script>

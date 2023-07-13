@@ -14,11 +14,11 @@
     <div v-if="type === 'ads'">
       <div class="md-font-size" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
         <div class="q-pt-lg q-mx-lg ">
-          <div class="row subtext justify-between no-wrap q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg">
             <span>Fiat Currency</span>
             <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.name }} ({{ adData.fiatCurrency.symbol }})</span>
           </div>
-          <div class="row subtext justify-between no-wrap q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg">
             <span>Price Type</span>
             <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
           </div>
@@ -34,13 +34,13 @@
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
 
         <div class="q-pt-lg q-mx-lg">
+          <div class="row justify-between no-wrap q-mx-lg">
+            <span>Trade Limit</span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrencyNumber(adData.tradeFloor) }} - {{ formattedCurrencyNumber(adData.tradeCeiling) }} </span>
+          </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Crypto Amount</span>
             <span class="text-nowrap q-ml-xs">{{ adData.cryptoAmount }} BCH</span>
-          </div>
-          <div class="row subtext justify-between no-wrap q-mx-lg">
-            <span>Trade Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ formattedCurrencyNumber(adData.tradeFloor) }} - {{ formattedCurrencyNumber(adData.tradeCeiling) }} </span>
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
@@ -103,7 +103,7 @@
       </div>
     </div>
 
-    <RampDragSlide
+    <DragSlide
       v-if="!swipeStatus"
       :style="{
         position: 'fixed',
@@ -119,8 +119,8 @@
   <!-- else progress loader -->
 </template>
 <script>
-// import RampDragSlide from '../../drag-slide.vue'
-import RampDragSlide from './RampDragSlide.vue'
+import DragSlide from '../../drag-slide.vue'
+// import RampDragSlide from './RampDragSlide.vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 export default {
@@ -135,9 +135,10 @@ export default {
       swipeStatus: false
     }
   },
-  emits: ['back', 'submit'],
+  emits: ['back', 'success', 'submit'],
   components: {
-    RampDragSlide
+    // RampDragSlide,
+    DragSlide
   },
   props: {
     type: {
@@ -157,12 +158,12 @@ export default {
     cryptoAmount: {
       type: Number,
       default: null
-    },
-    transactionType: String
+    }
+    // transactionType: String
   },
   async mounted () {
     const vm = this
-    // vm.adData = vm.postData
+    vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
 

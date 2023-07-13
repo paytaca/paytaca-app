@@ -218,7 +218,7 @@
         <AddPaymentMethods
           :confirm-label="'Post Ad'"
           :currentPaymentMethods="adData.paymentMethods"
-          v-on:submit="postAd"
+          v-on:submit="appendPaymentMethods"
         />
       </div>
     </div>
@@ -229,7 +229,7 @@
         :ptl="paymentTimeLimit"
         :transaction-type="transactionType"
         v-on:back="step = 1"
-        @success="onSuccess()"
+        @submit="onSubmit()"
       />
     </div>
   </div>
@@ -256,17 +256,18 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      websocket: null,
       wallet: null,
       marketPrice: null,
-      step: 1,
       priceValue: null,
+      step: 1,
       priceAmount: 0,
       floatingPrice: 100, // default: 100%
       paymentTimeLimit: {
-        label: '1 day',
+        label: '24 hrs',
         value: 1440
       },
-      selectedCurrency: null,
       adData: {
         tradeType: this.transactionType,
         priceType: 'FIXED',
@@ -300,11 +301,10 @@ export default {
           label: '12 hrs',
           value: 720
         }, {
-          label: '1 day',
+          label: '24 hrs',
           value: 1440
         }],
       fiatCurrencies: [],
-      websocket: null,
       numberValidation: [
         (val) => !!val || 'This field is required',
         (val) => val > 0 || 'Value must be greater than 0'
@@ -315,6 +315,24 @@ export default {
         (val) => this.checkTradeLimitComparison(val) || 'Min must be less than max trade limit'
       ]
     }
+  },
+  async mounted () {
+    const vm = this
+    // Setup initial market price and subscription
+    await vm.getInitialMarketPrice()
+    vm.setupWebsocket()
+
+    // Setup wallet info
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+
+    // Initialize data
+    await vm.getFiatCurrencies()
+    vm.adData.tradeType = vm.transactionType.toUpperCase()
+    vm.updatePriceValue(vm.adData.priceType)
+  },
+  beforeUnmount () {
+    this.closeWSConnection()
   },
   watch: {
     marketPrice (value) {
@@ -336,40 +354,56 @@ export default {
           vm.adData.floatingPrice = value
       }
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
-    },
-    async step (value) {
-      console.log('step:', value)
-      // const vm = this
-      // if (vm.step === 3) {
-      //   this.transformAdData()
-      // }
     }
-  },
-  async created () {
-    const vm = this
-    vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
-    await vm.getInitialMarketPrice()
-    vm.setupWebsocket()
-  },
-  async mounted () {
-    const vm = this
-    await vm.getFiatCurrencies()
-    vm.adData.tradeType = vm.transactionType.toUpperCase()
-    vm.updatePriceValue(vm.adData.priceType)
-
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-  },
-  beforeUnmount () {
-    this.closeWSConnection()
   },
   methods: {
     formattedCurrency (value) {
       return formatCurrency(value, this.adData.fiatCurrency.symbol)
     },
-    onSuccess () {
-      console.log('onSuccess')
-      this.$emit('back')
+    async onSubmit () {
+      console.log('onSubmit')
+      const vm = this
+      const url = vm.apiURL + '/ad/'
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
+      const headers = {
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      const body = vm.transformPostData()
+      console.log('adData:', body)
+      vm.$axios.post(url, body, { headers: headers })
+        .then(response => {
+          console.log('response:', response.data)
+          vm.swipeStatus = true
+          this.$emit('back')
+        })
+        .catch(error => {
+          console.error(error.response)
+          vm.swipeStatus = false
+        })
+    },
+    transformPostData () {
+      // finalize ad data
+      const vm = this
+      const defaultCrypto = 'BCH'
+      const data = vm.adData
+      console.log('data:', data)
+      const idList = data.paymentMethods.map(obj => obj.id)
+      return {
+        trade_type: data.tradeType,
+        price_type: data.priceType,
+        fiat_currency: data.fiatCurrency.symbol,
+        crypto_currency: defaultCrypto,
+        fixed_price: parseFloat(data.fixedPrice),
+        floating_price: parseFloat(data.floatingPrice),
+        trade_floor: parseFloat(data.tradeFloor),
+        trade_ceiling: parseFloat(data.tradeCeiling),
+        crypto_amount: parseFloat(data.cryptoAmount),
+        time_duration_choice: data.timeDurationChoice,
+        payment_methods: idList
+      }
     },
     updatePriceValue (priceType) {
       const vm = this
@@ -487,13 +521,14 @@ export default {
       console.log('checking submit option')
       vm.step++
     },
-    postAd (methods) {
+    appendPaymentMethods (paymentMethods) {
+      console.log('Adding payment methods:', paymentMethods)
       const vm = this
       // Finalize Data
       // console.log(methods)
 
-      vm.adData.paymentMethods = methods
-      // console.log(vm.adData)
+      vm.adData.paymentMethods = paymentMethods
+      console.log(vm.adData)
       vm.step++
     },
     decPriceValue () {
