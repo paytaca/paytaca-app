@@ -120,9 +120,6 @@
 </template>
 <script>
 import DragSlide from '../../drag-slide.vue'
-// import RampDragSlide from './RampDragSlide.vue'
-import { signMessage } from '../../../wallet/ramp/signature.js'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
 export default {
   data () {
     return {
@@ -135,9 +132,8 @@ export default {
       swipeStatus: false
     }
   },
-  emits: ['back', 'success', 'submit'],
+  emits: ['back', 'submit'],
   components: {
-    // RampDragSlide,
     DragSlide
   },
   props: {
@@ -159,61 +155,14 @@ export default {
       type: Number,
       default: null
     }
-    // transactionType: String
   },
   async mounted () {
     const vm = this
     vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
-
-    // init wallet
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo)
   },
   methods: {
-    async onSwiped () {
-      const vm = this
-      const url = vm.apiURL + '/ad/'
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
-      const body = vm.transformPostData()
-      vm.$axios.post(url, body, { headers: headers })
-        .then(response => {
-          console.log('response:', response.data)
-          vm.swipeStatus = true
-          vm.$emit('success')
-        })
-        .catch(error => {
-          console.error(error.response)
-          vm.swipeStatus = false
-        })
-    },
-    transformPostData () {
-      // finalize ad data
-      const vm = this
-      const defaultCrypto = 'BCH'
-      const data = vm.postData
-      const idList = data.paymentMethods.map(obj => obj.id)
-      return {
-        trade_type: data.tradeType,
-        price_type: data.priceType,
-        fiat_currency: data.fiatCurrency.symbol,
-        crypto_currency: defaultCrypto,
-        fixed_price: parseFloat(data.fixedPrice),
-        floating_price: parseFloat(data.floatingPrice),
-        trade_floor: parseFloat(data.tradeFloor),
-        trade_ceiling: parseFloat(data.tradeCeiling),
-        crypto_amount: parseFloat(data.cryptoAmount),
-        time_duration_choice: data.timeDurationChoice,
-        payment_methods: idList
-      }
-    },
     formattedCurrencyNumber (value) {
       const parsedValue = parseFloat(value)
       const formattedNumber = parsedValue.toLocaleString(undefined, {
