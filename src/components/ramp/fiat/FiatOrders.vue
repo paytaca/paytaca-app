@@ -246,4 +246,3 @@ export default {
   opacity: .5;
 }
 </style>
-<!-- Todo: Sort data, ongoing/completed -->

@@ -153,6 +153,7 @@ export default {
     this.selectedCurrency = this.$store.getters['market/selectedCurrency']
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
+
     await this.fetchFiatCurrencies()
     await this.fetchStoreListings()
   },
@@ -170,6 +171,7 @@ export default {
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
+          console.log(vm.fiatCurrencies)
         })
         .catch(error => {
           console.error(error)
