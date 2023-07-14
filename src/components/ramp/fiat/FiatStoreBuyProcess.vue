@@ -23,7 +23,7 @@
       alternative-labels
       flat
     >
-      <!-- Step 1 -->
+      <!-- Step 1 : Confirmation, Cick to pay  -->
       <q-step
         :name="1"
         title="Create Order"
@@ -126,7 +126,7 @@
         </div>
       </q-step>
 
-      <!-- Step 2 -->
+      <!-- Step 2 : Awaiting Payment -->
       <q-step
         :name="2"
         title="Pay the Seller"
@@ -214,7 +214,7 @@
           </div>
       </q-step>
 
-      <!-- Step 3 -->
+      <!-- Step 3 : Awaiting Release-->
       <q-step
         :name="3"
         title="Release Crypto"
@@ -326,6 +326,10 @@ export default {
   },
   emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
   methods: {
+    // CHECK WHICH STEP ORDER IN // check this first
+    checkStep () {
+      console.log('checking status')
+    },
     // updated this
     paymentCountdown () {
       const vm = this
@@ -451,3 +455,27 @@ export default {
   font-weight: 500;
 }
 </style>
+
+<!-- STATUS TYPE  -->
+
+<!-- STEP 1 -->
+<!-- SUBMITTED         = 'SBM', _('Submitted')
+ESCROW_PENDING    =  'ESCRW_PN', _('Escrow Pending')
+ESCROWED          = 'ESCRW', _('Escrowed')-->
+
+<!-- STEP 2 -->
+<!-- PAID_PENDING      = 'PD_PN', _('Paid Pending')
+PAID              = 'PD', _('Paid')
+
+STEP 3
+RELEASE_PENDING   = 'RLS_PN', _('Release Pending')
+
+DONE
+RELEASED          = 'RLS', _('Released')
+
+OTHERS
+RELEASE_APPEALED  = 'RLS_APL', _('Appealed for Release')
+REFUND_APPEALED   = 'RFN_APL', _('Appealed for Refund')
+REFUND_PENDING    = 'RFN_PN', _('Refund Pending')
+REFUNDED          = 'RFN', _('Refunded')
+CANCELED          = 'CNCL', _('Canceled')-->
