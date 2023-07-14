@@ -92,7 +92,7 @@
         <!-- Double Check this -->
         <FiatStoreBuyProcess
           v-if="transactionType === 'SELL'"
-          :listingData="ad"
+          :order-data="ad"
           :buyAmount="cryptoAmount.toString()"
           :fiatAmount="fiatAmount"
           v-on:back="state = 'initial'"
@@ -209,7 +209,7 @@ export default {
       isloaded: false,
       ad: null,
       fiatAmount: 0,
-      state: 'initial',
+      state: 'initial', // confirmation
       hideSellerInfo: false,
       pendingRelease: false,
       released: false,
@@ -279,11 +279,14 @@ export default {
       }, 1500)
     },
     async fetchAd () {
+      // console.log('fetching ad')
+      // console.log(this.listingData)
       const adId = this.listingData.id
       const url = `${this.apiURL}/ad/${adId}`
       const response = await this.$axios.get(url)
         .then(response => {
           this.ad = response.data
+          // console.log(this.ad)
         })
         .catch(error => {
           console.error(error)
@@ -296,7 +299,7 @@ export default {
           }  // remove later
         })
 
-      if (!response) {  // remove later
+      if (!this.ad) {  // remove later
         console.log('empty')
         this.ad = this.listingData
         this.ad.fees = {
@@ -327,7 +330,7 @@ export default {
       this.pendingRelease = false
     },
     updatedPaymentMethods (data) {
-      console.log(data)
+      // console.log(data)
       this.paymentMethods = data
       // this.state = 'processing'
       this.state = 'confirmation'
@@ -359,11 +362,9 @@ export default {
       })
     },
     async postOrder () {
-      console.log(this.ad)
-      console.log('posting order')
-
       await this.createOrder()
       console.log('created Order')
+      this.state = 'processing'
     }
   },
   async mounted () {

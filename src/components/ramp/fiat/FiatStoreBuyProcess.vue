@@ -304,23 +304,29 @@
 </template>
 <script>
 import { ref } from 'vue'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       isloaded: false,
       buy: {},
+      order: null,
       buyStatus: 'Pending Confirmation',
       confirmed: false,
       countDown: '',
       timer: null,
       confirmCancel: false,
-      appeal: false
+      appeal: false,
+      wallet: null,
+
     }
   },
   props: {
-    listingData: Object,
+    orderData: Object,
     buyAmount: String,
     fiatAmount: Number
   },
@@ -329,6 +335,18 @@ export default {
     // CHECK WHICH STEP ORDER IN // check this first
     checkStep () {
       console.log('checking status')
+      console.log(this.order)
+    },
+    async fetchOrderData () {
+      const vm = this
+
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+
+      vm.$axios.get(vm.apiURL + '/order/' + vm.order.id)
+        .then(response => {
+          console.log(response.data)
+        })
     },
     // updated this
     paymentCountdown () {
@@ -424,12 +442,13 @@ export default {
   async mounted () {
     const vm = this
     console.log('Processing')
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    this.wallet = await loadP2PWalletInfo(walletInfo)
 
-    vm.buy = vm.listingData
+    vm.order = vm.orderData
+    vm.buy = vm.orderData
     // vm.pendingCntDwnSim()
-
-    console.log(vm.listingData)
-    console.log(vm.fiatAmount)
+    this.checkStep()
 
     vm.isloaded = true
   },

@@ -154,8 +154,9 @@ export default {
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
+    console.log(this.wallet.walletHash)
     await this.fetchFiatCurrencies()
-    await this.fetchStoreListings()
+    this.fetchStoreListings()
   },
   watch: {
     transactionType () {
@@ -165,6 +166,7 @@ export default {
   methods: {
     async fetchFiatCurrencies () {
       const vm = this
+      console.log('fetching currencies')
       vm.$axios.get(vm.apiURL + '/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
@@ -186,6 +188,7 @@ export default {
     },
     async fetchStoreListings () {
       const vm = this
+      console.log('fetching listing')
       if (this.selectedCurrency) {
         const params = {
           currency: this.selectedCurrency.symbol,
