@@ -550,7 +550,6 @@ export class JSONPaymentProtocol {
         'Accept': 'application/json',
       }
       requestOpts.url = 'payment-requests/pay/'
-      requestOpts.url = 'http://localhost:8000/api/payment-requests/pay/'
       requestOpts.data = {
         payment_url: this.parsed.paymentUrl,
         raw_tx_hex: transactions[0],

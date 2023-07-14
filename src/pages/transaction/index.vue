@@ -1064,6 +1064,7 @@ export default {
     background-color: #ECF3F3;
     right: 0;
     left: 0;
+    
   }
   .transaction-row {
     position: relative;
