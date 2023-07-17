@@ -75,8 +75,11 @@
         </div>
       </div>
       <div v-if="state === 'view-order'">
-        View Order List Here
-        <!-- <FiatStoreBuyProcess/> -->
+        <FiatStoreBuyProcess
+          :order-data="selectedOrder"
+          v-on:back="state = 'order-list'"
+        />
+        <!-- check which step the order are in -->
       </div>
     </q-card>
 </template>
@@ -92,6 +95,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      selectedOrder: null,
       statusType: 'ONGOING',
       state: 'order-list',
       loading: false,
@@ -130,7 +134,7 @@ export default {
       vm.$axios.get(vm.apiURL + '/order', { headers: headers })
         .then(response => {
           vm.listings = response.data
-          console.log(vm.listings)
+          // console.log(vm.listings)
           vm.loading = false
         })
         .catch(error => {
@@ -139,7 +143,8 @@ export default {
         })
     },
     selectOrder (data) {
-      console.log(data)
+      // console.log(data)
+      this.selectedOrder = data
       this.state = 'view-order'
     },
     getElapsedTime (expirationDate) {

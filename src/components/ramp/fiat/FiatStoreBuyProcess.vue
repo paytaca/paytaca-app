@@ -5,7 +5,7 @@
         flat
         padding="md"
         icon="arrow_back"
-        @click="cancelingOrder"
+        @click="$emit('back')"
       />
     </div>
     <q-stepper
@@ -36,15 +36,15 @@
         <div class="q-pt-md sm-font-size">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ buy.crypto_amount }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount }} BCH</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ buy.fiat_currency.abbrev }}</span>
+            <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} {{ order.fiat_currency.symbol }}</span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" :class="buyStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ buyStatus }}</span>
+            <span class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-sm"/>
@@ -116,11 +116,12 @@
           <div class="sm-font-size">
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row q-pt-sm justify-between no-wrap q-mx-lg">
               <span>Address:</span>
-              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
+              <!-- Check later -->
+              <span class="text-nowrap q-ml-xs">{{ contract.contract_address }}</span>
             </div>
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
               <span>Balance:</span>
-              <span class="text-nowrap q-ml-xs">{{ buyAmount }} BCH</span>
+              <span class="text-nowrap q-ml-xs">temp BCH</span>
             </div>
           </div>
         </div>
@@ -147,7 +148,7 @@
             {{ countDown }}
           </div>
           <div>
-            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ fiatAmount }} {{ buy.fiat_currency.abbrev }}</span> within the time limit...
+            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ getFiatAmount }} {{ order.fiat_currency.symbol }}</span> within the time limit...
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-md"/>
@@ -160,8 +161,9 @@
               <span class="q-px-sm">Pay the amount using the methods below</span>
             </div>
             <q-list bordered class="q-mx-lg" :dark="darkMode">
+              <!-- Add ad payment methods later -->
               <div
-                v-for="(method, index) in buy.payment_methods"
+                v-for="(method, index) in ad.payment_methods"
                 :key="index"
               >
                 <q-expansion-item
@@ -226,18 +228,18 @@
         <div class="text-center q-pt-md sm-font-size">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="subtext row justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ buyAmount }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount }} BCH</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="subtext row justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ buy.fiat_currency.abbrev }}</span>
+            <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} {{ order.fiat_currency.symbol }}</span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" v-if="buyStatus !== 'Expired'" :class="buyStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ buyStatus }}</span>
-            <span class="text-nowrap q-ml-xs text-red-6" v-if="buyStatus === 'Expired'">{{ buyStatus }}</span>
+            <span class="text-nowrap q-ml-xs" v-if="order.status !== 'Canceled'" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
+            <span class="text-nowrap q-ml-xs text-red-6" v-if="order.status === 'Canceled'">{{ order.status }}</span>
           </div>
-          <div class="row q-pt-md" v-if="buyStatus === 'Expired'">
+          <div class="row q-pt-md" v-if="order.status === 'Canceled'">
             <q-btn
               rounded
               no-caps
@@ -248,7 +250,7 @@
             />
           </div>
         </div>
-        <div v-if="buyStatus === 'Pending Release'">
+        <div v-if="order.status === 'Release Pending'">
           <q-separator :dark="darkMode" class="q-mt-md"/>
           <div class="text-center q-px-md q-pt-md text-center">
             <div class="q-px-lg md-font-size">
@@ -265,6 +267,15 @@
       </q-step>
     </q-stepper>
   </div>
+
+  <!-- Progress Loader -->
+  <div v-if="!isloaded">
+    <div class="row justify-center q-py-lg" style="margin-top: 50px">
+      <ProgressLoader/>
+    </div>
+  </div>
+
+  <!-- Move Dialog -->
   <q-dialog persistent v-model="confirmCancel">
     <q-card style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
@@ -306,6 +317,8 @@
 import { ref } from 'vue'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { sign } from 'openpgp'
 
 export default {
   data () {
@@ -313,46 +326,97 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       isloaded: false,
-      buy: {},
+      status: 'prcessing', // 'view-order' 'released' 'cancelled'
+      // buy: {},
       order: null,
-      buyStatus: 'Pending Confirmation',
+      contract: null,
+      ad: null, // ad fetch ad later
+      // buyStatus: 'Pending Confirmation',
       confirmed: false,
       countDown: '',
       timer: null,
       confirmCancel: false,
       appeal: false,
-      wallet: null,
-
+      wallet: null
     }
   },
   props: {
-    orderData: Object,
-    buyAmount: String,
-    fiatAmount: Number
+    orderData: Object
   },
   emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
+  components: {
+    ProgressLoader
+  },
+  computed: {
+    getFiatAmount () {
+      return parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+    }
+  },
   methods: {
     // CHECK WHICH STEP ORDER IN // check this first
     checkStep () {
       console.log('checking status')
-      console.log(this.order)
+
+      switch (this.order.status) {
+        case 'Submitted':
+        case 'Escrow Pending':
+          this.step = 1
+          console.log('1')
+          break
+        case 'Escrowed':
+          this.step = 1
+          this.confirmed = true
+          this.paymentCountdown()
+          console.log('1')
+          break
+        case 'Paid Pending':
+        case 'Paid':
+          this.step = 2
+          console.log('2')
+          break
+        case 'Release Pending':
+          this.step = 3
+          console.log('3')
+          break
+        case 'Released':
+          this.status = 'released'
+          break
+        case 'Canceled':
+        case 'Appealed for Release':
+        case 'Appealed for Refund':
+        case 'Refund Pending':
+        case 'Refunded':
+          this.status = 'cancelled'
+          break
+      }
     },
     async fetchOrderData () {
       const vm = this
-
+      console.log('fetching data')
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
 
-      vm.$axios.get(vm.apiURL + '/order/' + vm.order.id)
+      await vm.$axios.get(vm.apiURL + '/order/' + vm.orderData.id, {
+        headers: {
+          'wallet-hash': vm.wallet.walletHash,
+          timestamp: timestamp,
+          signature: signature
+        }
+      })
         .then(response => {
+          vm.order = response.data.order
+          vm.contract = response.data.contract
           console.log(response.data)
+        })
+        .catch(error => {
+          console.log(error)
         })
     },
     // updated this
     paymentCountdown () {
       const vm = this
       const currentDate = new Date().getTime()
-      const expiryDate = new Date(currentDate + 15 * 60 * 60 * 1000)
+      const expiryDate = new Date(currentDate + 15 * 60 * 60 * 1000) // update later
 
       vm.timer = setInterval(function () {
         const now = new Date().getTime()
@@ -376,16 +440,16 @@ export default {
       }, 1000)
     },
     proceedToPayment () {
-      this.$emit('hideSeller')
+      // this.$emit('hideSeller')
       this.$refs.stepper.next()
     },
     cancelingOrder () {
-      console.log(this.confirmed)
+      // console.log(this.confirmed)
       if (this.confirmed) {
         clearInterval(this.timer)
         this.timer = null
       }
-      if (this.buyStatus === 'Released' || this.buyStatus === 'Pending Release') {
+      if (this.order.status === 'Released' || this.order.status === 'Release Pending') {
         this.$emit('pendingRelease')
       }
       this.$emit('back')
@@ -401,7 +465,7 @@ export default {
         if (now === expire) {
           clearInterval(x)
           // vm.$refs.stepper.next()
-          vm.buyStatus = 'Released'
+          vm.order.status = 'Released'
           vm.$emit('released')
           // vm.buyStatus = 'Expired'
           clearInterval(vm.timer)
@@ -430,7 +494,7 @@ export default {
       this.$refs.stepper.next()
       this.$emit('hideSeller')
       this.$emit('pendingRelease')
-      this.buyStatus = 'Pending Release'
+      this.order.status = 'Release Pending'
       // this.releaseCntDwnSim()
     }
   },
@@ -445,9 +509,9 @@ export default {
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
-    vm.order = vm.orderData
-    vm.buy = vm.orderData
-    // vm.pendingCntDwnSim()
+    // vm.buy = vm.orderData // remove later
+
+    await this.fetchOrderData()
     this.checkStep()
 
     vm.isloaded = true
@@ -474,27 +538,3 @@ export default {
   font-weight: 500;
 }
 </style>
-
-<!-- STATUS TYPE  -->
-
-<!-- STEP 1 -->
-<!-- SUBMITTED         = 'SBM', _('Submitted')
-ESCROW_PENDING    =  'ESCRW_PN', _('Escrow Pending')
-ESCROWED          = 'ESCRW', _('Escrowed')-->
-
-<!-- STEP 2 -->
-<!-- PAID_PENDING      = 'PD_PN', _('Paid Pending')
-PAID              = 'PD', _('Paid')
-
-STEP 3
-RELEASE_PENDING   = 'RLS_PN', _('Release Pending')
-
-DONE
-RELEASED          = 'RLS', _('Released')
-
-OTHERS
-RELEASE_APPEALED  = 'RLS_APL', _('Appealed for Release')
-REFUND_APPEALED   = 'RFN_APL', _('Appealed for Refund')
-REFUND_PENDING    = 'RFN_PN', _('Refund Pending')
-REFUNDED          = 'RFN', _('Refunded')
-CANCELED          = 'CNCL', _('Canceled')-->
