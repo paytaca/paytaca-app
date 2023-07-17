@@ -150,7 +150,7 @@ export default {
       const walletInfo = this.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo)
       const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
 
       // console.log(wallet.walletHash)
       vm.$axios.get(vm.apiURL + '/payment-method',
