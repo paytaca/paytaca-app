@@ -185,7 +185,7 @@
                 STEP 2:
               </span>
               <span class="q-px-sm">
-                <span class="hl-text">After</span> transfering funds, click on the <span class="hl-text">"Confirm Payment"</span> button below to notify the the seller.
+                <span class="bold-text md-font-size">After</span> transfering funds, click on the <span class="bold-text md-font-size">"Confirm Payment"</span> button below to notify the the seller.
               </span>
               <div class="q-px-md q-pt-sm">
                 <div>
@@ -327,11 +327,9 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       isloaded: false,
       status: 'prcessing', // 'view-order' 'released' 'cancelled'
-      // buy: {},
       order: null,
       contract: null,
       ad: null, // ad fetch ad later
-      // buyStatus: 'Pending Confirmation',
       confirmed: false,
       countDown: '',
       timer: null,
@@ -390,9 +388,27 @@ export default {
           break
       }
     },
+    async fetchAdData () {
+      const vm = this
+
+      const adId = vm.order.ad.id
+      const url = `${vm.apiURL}/ad/${adId}`
+
+      await vm.$axios.get(url)
+        .then(response => {
+          vm.ad = response.data
+        })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response)
+        })
+    },
+    async fetchPaymentMethod () {
+      // get ad payment method
+    },
     async fetchOrderData () {
       const vm = this
-      console.log('fetching data')
+
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
 
@@ -406,7 +422,6 @@ export default {
         .then(response => {
           vm.order = response.data.order
           vm.contract = response.data.contract
-          console.log(response.data)
         })
         .catch(error => {
           console.log(error)
@@ -484,7 +499,7 @@ export default {
         if (now === expire) {
           clearInterval(x)
           // vm.$refs.stepper.next()
-          vm.buyStatus = 'Pending Payment'
+          // vm.buyStatus = 'Pending Payment'
           vm.confirmed = true
           vm.paymentCountdown()
         }
@@ -495,6 +510,7 @@ export default {
       this.$emit('hideSeller')
       this.$emit('pendingRelease')
       this.order.status = 'Release Pending'
+      this.paymentCountdown() //update later
       // this.releaseCntDwnSim()
     }
   },
@@ -509,9 +525,8 @@ export default {
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
-    // vm.buy = vm.orderData // remove later
-
     await this.fetchOrderData()
+    await this.fetchAdData()
     this.checkStep()
 
     vm.isloaded = true
@@ -532,9 +547,5 @@ export default {
   }
   .ib-text {
   display: inline-block;
-}
-.hl-text {
-  font-size: 15px;
-  font-weight: 500;
 }
 </style>

@@ -134,7 +134,6 @@ export default {
       vm.$axios.get(vm.apiURL + '/order', { headers: headers })
         .then(response => {
           vm.listings = response.data
-          // console.log(vm.listings)
           vm.loading = false
         })
         .catch(error => {

@@ -286,7 +286,7 @@ export default {
       const response = await this.$axios.get(url)
         .then(response => {
           this.ad = response.data
-          // console.log(this.ad)
+          console.log(this.ad)
         })
         .catch(error => {
           console.error(error)

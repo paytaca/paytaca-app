@@ -146,7 +146,9 @@ export default {
       selectedListing: {},
       selectedUser: null,
       fiatCurrencies: [],
-      listings: []
+      listings: [],
+      page: 1,
+      total_pages: null
     }
   },
   async mounted () {
@@ -154,7 +156,7 @@ export default {
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
-    console.log(this.wallet.walletHash)
+    // console.log(this.wallet.walletHash)
     await this.fetchFiatCurrencies()
     this.fetchStoreListings()
   },
@@ -166,14 +168,13 @@ export default {
   methods: {
     async fetchFiatCurrencies () {
       const vm = this
-      console.log('fetching currencies')
+
       vm.$axios.get(vm.apiURL + '/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
-          console.log(vm.fiatCurrencies)
         })
         .catch(error => {
           console.error(error)
@@ -184,21 +185,23 @@ export default {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
         })
-      // console.log(vm.fiatCurrencies)
     },
     async fetchStoreListings () {
       const vm = this
-      console.log('fetching listing')
+
       if (this.selectedCurrency) {
         const params = {
           currency: this.selectedCurrency.symbol,
-          trade_type: this.transactionType
+          trade_type: this.transactionType,
+          limit: 10,
+          page: vm.page
         }
         vm.loading = true
         vm.$axios.get(vm.apiURL + '/ad', { params: params })
           .then(response => {
-            vm.listings = response.data
-            // console.log('listings: ', vm.listings)
+            vm.listings = response.data.ads
+            vm.total_pages = response.data.total_pages
+            console.log('listings: ', vm.listings)
             vm.loading = false
           })
           .catch(error => {
