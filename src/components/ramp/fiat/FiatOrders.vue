@@ -4,78 +4,88 @@
       :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
       style="min-height:78vh;"
     >
-      <div>
-        <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
-          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'ONGOING' }" @click="statusType='ONGOING'">Ongoing</button>
-          <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
+      <div v-if="state === 'order-list'">
+        <div>
+          <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction" :class="{'pt-dark-card': darkMode}" style="font-size: 15px;">
+            <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'ONGOING' }" @click="statusType='ONGOING'">Ongoing</button>
+            <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
+          </div>
         </div>
-      </div>
-      <div v-if="loading">
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader/>
+        <div v-if="loading">
+          <div class="row justify-center q-py-lg" style="margin-top: 50px">
+            <ProgressLoader/>
+          </div>
         </div>
-      </div>
-      <div v-else class="q-mt-md">
-        <div v-if="filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
-        </div>
-        <div v-else>
-          <q-card-section style="max-height:60vh;overflow-y:auto;">
-            <q-virtual-scroll :items="filteredListings()">
-              <template v-slot="{ item: listing }">
-                <q-item clickable>
-                  <q-item-section>
-                    <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <div class="row q-mx-md">
-                        <div class="col ib-text">
-                          <span
-                            :class="{'pt-dark-label': darkMode}"
-                            class="q-mb-none md-font-size">
-                            {{ listing.ad_owner_name }}
-                          </span>
-                          <div
-                            :class="{'pt-dark-label': darkMode}"
-                            class="col-transaction text-uppercase lg-font-size"
-                            style="font-size: 20px;"
-                            :style="amountColor(listing.trade_type)">
-                            {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount)) }}
+        <div v-else class="q-mt-md">
+          <div v-if="filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
+            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
+          </div>
+          <div v-else>
+            <q-card-section style="max-height:60vh;overflow-y:auto;">
+              <q-virtual-scroll :items="filteredListings()">
+                <template v-slot="{ item: listing }">
+                  <q-item clickable @click="selectOrder(listing)">
+                    <q-item-section>
+                      <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                        <div class="row q-mx-md">
+                          <div class="col ib-text">
+                            <span
+                              :class="{'pt-dark-label': darkMode}"
+                              class="q-mb-none md-font-size">
+                              {{ listing.ad_owner_name }}
+                            </span>
+                            <div
+                              :class="{'pt-dark-label': darkMode}"
+                              class="col-transaction text-uppercase lg-font-size"
+                              style="font-size: 20px;"
+                              :style="amountColor(listing.trade_type)">
+                              {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount)) }}
+                            </div>
+                            <div class="sm-font-size">
+                              <!-- &asymp; -->
+                              <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
+                              {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
+                            <div style="font-size: 12px;"> {{ formattedCurrency(listing.locked_price) }}/BCH</div>
+                            <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
                           </div>
-                          <div class="sm-font-size">
-                            <!-- &asymp; -->
-                            <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
-                            {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                          <div style="font-size: 12px;"> {{ formattedCurrency(listing.locked_price) }}/BCH</div>
-                          <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
+                          <div class="text-right">
+                            <span class="row subtext" v-if="isCompleted(listing.status) == false && listing.expiration_date != null">
+                              <span v-if="isExpired(listing.expiration_date) == false" class="q-mr-xs">Expires in </span>
+                              <span v-else class="q-mr-xs">Expired for</span>
+                              <span>{{ formatExpiration(listing.expiration_date) }}</span>
+                            </span>
+                            <span class="bold-text subtext md-font-size" style=";">{{ listing.status }}</span>
+                            <!-- <span class="subtext">{{ listing.status }}</span> -->
+                            <!-- <span class="status-text" v-if="listing.status === 'released'">RELEASED</span> -->
+                            <!-- <span class="status-text" v-else-if="listing.status.includes('confirmation')">PENDING CONFIRMATION</span> -->
+                            <!-- <span class="status-text" v-else-if="listing.status.startsWith('pending-')">{{ listing.status.replace('-', ' ').toUpperCase() }}</span> -->
+                          </div>
                         </div>
-                        <div class="text-right">
-                          <span class="row subtext" v-if="isCompleted(listing.status) == false && listing.expiration_date != null">
-                            <span v-if="isExpired(listing.expiration_date) == false" class="q-mr-xs">Expires in </span>
-                            <span v-else class="q-mr-xs">Expired for</span>
-                            <span>{{ formatExpiration(listing.expiration_date) }}</span>
-                          </span>
-                          <span class="bold-text subtext md-font-size" style=";">{{ listing.status }}</span>
-                          <!-- <span class="subtext">{{ listing.status }}</span> -->
-                          <!-- <span class="status-text" v-if="listing.status === 'released'">RELEASED</span> -->
-                          <!-- <span class="status-text" v-else-if="listing.status.includes('confirmation')">PENDING CONFIRMATION</span> -->
-                          <!-- <span class="status-text" v-else-if="listing.status.startsWith('pending-')">{{ listing.status.replace('-', ' ').toUpperCase() }}</span> -->
+                        <div class="q-gutter-sm q-pt-sm">
+                          <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'BUY'? 'blue': 'red'" :label="method" /> -->
                         </div>
                       </div>
-                      <div class="q-gutter-sm q-pt-sm">
-                        <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'BUY'? 'blue': 'red'" :label="method" /> -->
-                      </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-virtual-scroll>
-          </q-card-section>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-virtual-scroll>
+            </q-card-section>
+          </div>
         </div>
+      </div>
+      <div v-if="state === 'view-order'">
+        <FiatStoreBuyProcess
+          :order-data="selectedOrder"
+          v-on:back="state = 'order-list'"
+        />
+        <!-- check which step the order are in -->
       </div>
     </q-card>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
+import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
@@ -85,7 +95,9 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      selectedOrder: null,
       statusType: 'ONGOING',
+      state: 'order-list',
       loading: false,
       transactionType: '',
       listings: [],
@@ -100,7 +112,8 @@ export default {
     vm.fetchUserOrders()
   },
   components: {
-    ProgressLoader
+    ProgressLoader,
+    FiatStoreBuyProcess
   },
   methods: {
     async fetchUserOrders () {
@@ -121,13 +134,17 @@ export default {
       vm.$axios.get(vm.apiURL + '/order', { headers: headers })
         .then(response => {
           vm.listings = response.data
-          console.log(vm.listings)
           vm.loading = false
         })
         .catch(error => {
           console.error(error)
           vm.loading = false
         })
+    },
+    selectOrder (data) {
+      // console.log(data)
+      this.selectedOrder = data
+      this.state = 'view-order'
     },
     getElapsedTime (expirationDate) {
       const currentTime = new Date().getTime() // Replace with your start timestamp
@@ -246,4 +263,3 @@ export default {
   opacity: .5;
 }
 </style>
-<!-- Todo: Sort data, ongoing/completed -->

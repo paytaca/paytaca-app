@@ -241,6 +241,7 @@ export default {
     },
     async fetchFiatCurrencies () {
       const vm = this
+
       vm.$axios.get(vm.apiURL + '/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
@@ -260,6 +261,7 @@ export default {
     },
     async fetchStoreListings () {
       const vm = this
+
       if (this.selectedCurrency) {
         const params = {
           currency: vm.selectedCurrency.symbol,

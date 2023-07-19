@@ -48,7 +48,7 @@
         <div class="q-pt-lg q-mx-lg" >
           <div class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Payment Time Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
+            <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span>
           </div>
         </div>
       </div>
@@ -87,7 +87,7 @@
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Payment Time Duration</span>
-              <span class="text-nowrap q-ml-xs">{{ adData.time_duration }} hr</span>
+              <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span>
             </div>
           </div>
         </div>
@@ -110,7 +110,9 @@
               <q-expansion-item
                 group="somegroup"
                 :label="method.payment_type.name.toUpperCase()"
+                :header-class="checkMatchingPaymentMethod(method.payment_type.name, adData.payment_methods) ? 'bold-text text-grey-6' : 'text-grey-6'"
               >
+                <!-- ^ higlight header-class payment method on seller/buyer list -->
                 <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
                   <q-card-section>
                     <!-- <span>{{ method.account_name }}</span><br> -->
@@ -187,7 +189,7 @@ export default {
     vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
-    console.log(vm.paymentMethods)
+    // console.log(vm.adData)
   },
   methods: {
     formattedCurrencyNumber (value) {
@@ -199,6 +201,10 @@ export default {
         maximumFractionDigits: parsedValue % 1 === 0 ? 0 : 2
       })
       return formattedNumber
+    },
+    checkMatchingPaymentMethod (userPM, adMethodList) {
+      adMethodList = adMethodList.map(p => p.payment_type)
+      return adMethodList.includes(userPM)
     }
   }
 }
