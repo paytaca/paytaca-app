@@ -315,9 +315,13 @@ function confirmDeleteBranch() {
           })
           onDialogCancel()
         })
-        .catch(() => {
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMessage
+          if (typeof data?.detail == String && data?.detail) errorMessage = data?.detail
+          if (Array.isArray(data) && data?.length) errorMessage = data?.[0]
           $q.dialog({
-            message: $t('FailedRemoveBranch', {}, 'Failed to remove branch'),
+            message: errorMessage || $t('FailedRemoveBranch', {}, 'Failed to remove branch'),
             class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
           })
         })
