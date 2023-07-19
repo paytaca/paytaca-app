@@ -1,7 +1,7 @@
 export default function () {
   return {
     user: null,
-    itemsPerPage: 10,
+    itemsPerPage: 20,
     storeBuyPageNumber: null,
     storeBuyTotalPages: null,
     storeBuyItemsCount: 0,

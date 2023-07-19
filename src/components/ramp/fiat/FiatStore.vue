@@ -45,7 +45,7 @@
               ref="infiniteScroll"
               :items="listings"
               @load="loadMoreData"
-              :offset="10"
+              :offset="0"
               :scroll-target="scrollTargetRef">
               <template v-slot:loading>
                 <div class="row justify-center q-my-md" v-if="hasMoreData">
@@ -53,7 +53,6 @@
                 </div>
               </template>
               <div v-for="(listing, index) in listings" :key="index">
-              <!-- <template v-slot="{ item: listing }"> -->
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
                     <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -96,7 +95,6 @@
                     </div>
                   </q-item-section>
                 </q-item>
-              <!-- </template> -->
               </div>
             </q-infinite-scroll>
           </q-list>
@@ -134,14 +132,12 @@
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-// import { signMessage } from 'src/wallet/ramp/signature'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
 
 export default {
   setup () {
     const scrollTargetRef = ref(null)
-
     return {
       scrollTargetRef
     }
@@ -175,7 +171,7 @@ export default {
       vm.resetAndScrollToTop()
       vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
       vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
-      console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
+      console.log(this.transactionType, ': totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
       if (vm.pageNumber === null || vm.totalPages === null) {
         this.fetchStoreListings()
       }
@@ -194,12 +190,10 @@ export default {
     },
     buyListings () {
       const ads = this.$store.getters['ramp/getStoreBuyListings']
-      console.log('buy listings:', ads)
       return ads
     },
     sellListings () {
       const ads = this.$store.getters['ramp/getStoreSellListings']
-      console.log('sell listings:', ads)
       return ads
     },
     hasMoreData () {
@@ -230,14 +224,15 @@ export default {
       scrollElement.scrollTop = 0
     },
     async loadMoreData (_, done) {
-      const vm = this
-      if (!vm.hasMoreData) return
       console.log('loadMoreData')
-      // console.log('transactionType:', vm.transactionType)
+      const vm = this
+      if (!vm.hasMoreData) {
+        done()
+        return
+      }
       vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](vm.transactionType)
       vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](vm.transactionType)
-      // console.log('totalPages:', vm.totalPages)
-      // console.log('pageNumber:', vm.pageNumber)
+
       if (vm.pageNumber <= vm.totalPages) {
         await vm.fetchStoreListings()
       }
@@ -261,14 +256,10 @@ export default {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
         })
-      // console.log(vm.fiatCurrencies)
     },
     async fetchStoreListings () {
       const vm = this
       if (this.selectedCurrency) {
-        const tradeType = vm.transactionType === 'BUY' ? 'SELL' : 'BUY'
-        console.log('transactionType:', vm.transactionType)
-        console.log('tradeType:', tradeType)
         const params = {
           currency: vm.selectedCurrency.symbol,
           trade_type: vm.transactionType
@@ -279,16 +270,6 @@ export default {
           console.error(error)
         }
         vm.loading = false
-        // vm.$axios.get(vm.apiURL + '/ad', { params: params })
-        //   .then(response => {
-        //     vm.listings = response.data.ads
-        //     console.log('listings: ', vm.listings)
-        //     vm.loading = false
-        //   })
-        //   .catch(error => {
-        //     console.error(error.response)
-        //     vm.loading = false
-        //   })
       }
     },
     formattedCurrency (value, fiat = true) {

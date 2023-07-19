@@ -18,7 +18,7 @@ export function updateStoreBuyListings (state, data) {
 }
 
 export function updateStoreSellListings (state, data) {
-  console.log('data:', data)
+  // console.log('data:', data)
   state.storeSellListings.push(...data.ads)
   console.log('storeSellListings:', state.storeSellListings)
   state.storeSellTotalPages = data.total_pages
@@ -30,7 +30,7 @@ export function setMoreDataAvailability (state, value) {
 }
 
 export function resetStorePagination (state) {
-  state.itemsPerPage = 10
+  state.itemsPerPage = 20
   state.storeBuyPageNumber = null
   state.storeBuyTotalPages = null
   state.storeBuyItemsCount = 0

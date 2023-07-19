@@ -12,11 +12,9 @@ export function getStoreSellListings (state) {
 
 export function getTotalPages (state) {
   return function ({ component = null, transactionType = null }) {
-    console.log('component:', component, 'transactionType:', transactionType)
     if (component === 'store') {
       switch (transactionType) {
         case 'SELL':
-          console.log('>>> state.storeSellTotalPages:', state.storeSellTotalPages)
           return state.storeSellTotalPages
         case 'BUY':
           return state.storeBuyTotalPages
@@ -48,7 +46,6 @@ export function getPageNumber (state) {
 
 export function getStoreTotalPages (state) {
   return function (transactionType) {
-    console.log('getStoreTotalPages (tx_type):', transactionType)
     switch (transactionType) {
       case 'SELL':
         return state.storeSellTotalPages
@@ -62,7 +59,6 @@ export function getStoreTotalPages (state) {
 
 export function getStorePageNumber (state) {
   return function (transactionType) {
-    console.log('getStorePageNumber (tx_type):', transactionType)
     switch (transactionType) {
       case 'SELL':
         return state.storeSellPageNumber
