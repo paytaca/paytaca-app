@@ -61,16 +61,16 @@ export async function fetchStoreAds (context, params) {
     storeCurrentPage = state.storeSellPageNumber
     storeTotalPages = state.storeSellTotalPages
   }
-  console.log('storeCurrentPage:', storeCurrentPage)
+  // console.log('storeCurrentPage:', storeCurrentPage)
   if (storeCurrentPage <= storeTotalPages) {
     if (storeCurrentPage !== null) storeCurrentPage++
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
     params.page = storeCurrentPage
     params.limit = state.itemsPerPage
-    console.log('params:', params)
+    // console.log('params:', params)
     try {
       const data = await axiosInstance.get(apiURL, { params: params })
-      console.log('data:', data)
+      // console.log('data:', data)
       switch (params.trade_type) {
         case 'BUY':
           context.commit('updateStoreBuyListings', data.data)

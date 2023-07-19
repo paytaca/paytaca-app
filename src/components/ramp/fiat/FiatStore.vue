@@ -100,10 +100,10 @@
           </q-list>
         </div>
       </div>
-    </div>
-    <div v-if="loading">
-      <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader/>
+      <div v-else>
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader/>
+        </div>
       </div>
     </div>
   </q-card>
@@ -171,8 +171,9 @@ export default {
       vm.resetAndScrollToTop()
       vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
       vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
-      console.log(this.transactionType, ': totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
+      // console.log(this.transactionType, ': totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
       if (vm.pageNumber === null || vm.totalPages === null) {
+        vm.loading = true
         this.fetchStoreListings()
       }
     }
@@ -205,7 +206,7 @@ export default {
     vm.loading = true
     vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
     vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
-    console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
+    // console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
     vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
 
     const walletInfo = vm.$store.getters['global/getWallet']('bch')

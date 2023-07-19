@@ -12,7 +12,7 @@ export function setCurrentPage (state, page) {
 
 export function updateStoreBuyListings (state, data) {
   state.storeBuyListings.push(...data.ads)
-  console.log('storeBuyListings:', state.storeBuyListings)
+  // console.log('storeBuyListings:', state.storeBuyListings)
   state.storeBuyTotalPages = data.total_pages
   state.storeBuyItemsCount = data.count
 }
@@ -20,7 +20,7 @@ export function updateStoreBuyListings (state, data) {
 export function updateStoreSellListings (state, data) {
   // console.log('data:', data)
   state.storeSellListings.push(...data.ads)
-  console.log('storeSellListings:', state.storeSellListings)
+  // console.log('storeSellListings:', state.storeSellListings)
   state.storeSellTotalPages = data.total_pages
   state.storeSellItemsCount = data.count
 }
