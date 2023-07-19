@@ -1,4 +1,4 @@
-import Watchtower from 'watchtower-cash-js'
+import { backend as posBackend } from "src/wallet/pos"
 
 /**
  * 
@@ -9,8 +9,7 @@ import Watchtower from 'watchtower-cash-js'
 export function refetchMerchantInfo(context, data) {
   if (!data?.walletHash) return Promise.reject()
 
-  const watchtower = new Watchtower()
-  return watchtower.BCH._api.get(`paytacapos/merchants/${data.walletHash}/`)
+  return posBackend.get(`paytacapos/merchants/${data.walletHash}/`)
     .then(response => {
       if (response?.data?.wallet_hash == data.walletHash) {
         context.commit('updateMerchantInfo', response.data)
@@ -51,8 +50,7 @@ export function updateMerchantInfo(context, data) {
   }
   Object.assign(payload, data)
 
-  const watchtower = new Watchtower()
-  return watchtower.BCH._api.post(`paytacapos/merchants/`, payload)
+  return posBackend.post(`paytacapos/merchants/`, payload)
     .then(response => {
       if (response?.data?.wallet_hash == data.walletHash) {
         context.commit('updateMerchantInfo', response.data)
@@ -70,9 +68,8 @@ export function updateMerchantInfo(context, data) {
 export function refetchBranches(context, data) {
   if (!data?.walletHash) return
 
-  const watchtower = new Watchtower()
   const params = { wallet_hash: data.walletHash }
-  return watchtower.BCH._api.get(`paytacapos/branches/`, { params })
+  return posBackend.get(`paytacapos/branches/`, { params })
     .then(response => {
       if (Array.isArray(response?.data?.results)) {
         context.commit('clearBranchInfo')
@@ -94,9 +91,8 @@ export function refetchBranchInfo(context, data) {
   if (!data?.branchId) return
   const merchantWalletHash = context.state.merchantInfo?.walletHash
 
-  const watchtower = new Watchtower()
   const params = { wallet_hash: merchantWalletHash, limit: 50 }
-  return watchtower.BCH._api.get(`paytacapos/branches/${data.branchId}/`, { params })
+  return posBackend.get(`paytacapos/branches/${data.branchId}/`, { params })
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
       if (response.data?.merchant?.wallet_hash != merchantWalletHash) {
@@ -136,13 +132,12 @@ export function updateBranchInfo(context, data) {
   }
   Object.assign(payload, data)
 
-  const watchtower = new Watchtower()
   const update = Boolean(data?.id)
   let apiCall
   if (update) {
-    apiCall = watchtower.BCH._api.put(`paytacapos/branches/${payload?.id}/`, payload)
+    apiCall = posBackend.put(`paytacapos/branches/${payload?.id}/`, payload)
   } else {
-    apiCall = watchtower.BCH._api.post(`paytacapos/branches/`, payload)
+    apiCall = posBackend.post(`paytacapos/branches/`, payload)
   }
 
   return apiCall
@@ -168,9 +163,8 @@ export function deleteBranch(context, data) {
   if (!data?.branchId) return
   const merchantWalletHash = context.state.merchantInfo?.walletHash
 
-  const watchtower = new Watchtower() 
   const params = { wallet_hash: merchantWalletHash }
-  return watchtower.BCH._api.delete(`paytacapos/branches/${data.branchId}/`, { params })
+  return posBackend.delete(`paytacapos/branches/${data.branchId}/`, { params })
     .then(response => {
       const status = response.status
       if([404, 204].indexOf(status) < 0) return Promise.reject({ response })
@@ -214,8 +208,7 @@ export function generateLinkCode(context, data) {
     encrypted_xpubkey: data?.encryptedXpubkey,
     signature: data?.signature,
   }
-  const watchtower = new Watchtower() 
-  return watchtower.BCH._api.post('paytacapos/devices/generate_link_device_code/', _data)
+  return posBackend.post('paytacapos/devices/generate_link_device_code/', _data)
     .then(response => {
       if (!response?.data?.code) return Promise.reject({ response })
 
