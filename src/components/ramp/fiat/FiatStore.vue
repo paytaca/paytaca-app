@@ -41,7 +41,12 @@
         </div>
         <div v-else>
           <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:scroll;">
-            <q-infinite-scroll :items="listings" @load="loadMoreData" :offset="10" :scroll-target="scrollTargetRef">
+            <q-infinite-scroll
+              ref="infiniteScroll"
+              :items="listings"
+              @load="loadMoreData"
+              :offset="10"
+              :scroll-target="scrollTargetRef">
               <template v-slot:loading>
                 <div class="row justify-center q-my-md" v-if="hasMoreData">
                   <q-spinner-dots color="primary" size="40px" />
@@ -166,7 +171,14 @@ export default {
   },
   watch: {
     transactionType () {
-      // this.fetchStoreListings()
+      const vm = this
+      vm.resetAndScrollToTop()
+      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
+      console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
+      if (vm.pageNumber === null || vm.totalPages === null) {
+        this.fetchStoreListings()
+      }
     }
   },
   computed: {
@@ -191,8 +203,7 @@ export default {
       return ads
     },
     hasMoreData () {
-      const vm = this
-      return (vm.pageNumber <= vm.totalPages)
+      return (this.pageNumber <= this.totalPages)
     }
   },
   async mounted () {
@@ -200,13 +211,24 @@ export default {
     vm.loading = true
     vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
     vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
+    console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
     vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
+
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
+
     await vm.fetchFiatCurrencies()
     await vm.fetchStoreListings()
   },
   methods: {
+    resetAndScrollToTop () {
+      this.$refs.infiniteScroll.reset()
+      this.scrollToTop()
+    },
+    scrollToTop () {
+      const scrollElement = this.$refs.scrollTargetRef.$el
+      scrollElement.scrollTop = 0
+    },
     async loadMoreData (_, done) {
       const vm = this
       if (!vm.hasMoreData) return
@@ -214,8 +236,8 @@ export default {
       // console.log('transactionType:', vm.transactionType)
       vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](vm.transactionType)
       vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](vm.transactionType)
-      console.log('totalPages:', vm.totalPages)
-      console.log('pageNumber:', vm.pageNumber)
+      // console.log('totalPages:', vm.totalPages)
+      // console.log('pageNumber:', vm.pageNumber)
       if (vm.pageNumber <= vm.totalPages) {
         await vm.fetchStoreListings()
       }

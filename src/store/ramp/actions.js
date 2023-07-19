@@ -54,7 +54,7 @@ export async function createUser (context, data) {
 }
 
 export async function fetchStoreAds (context, params) {
-  console.log('inside fetchAds')
+  // console.log('inside fetchAds')
   const state = context.state
   let storeCurrentPage = state.storeBuyPageNumber
   let storeTotalPages = state.storeBuyTotalPages
@@ -62,15 +62,15 @@ export async function fetchStoreAds (context, params) {
     storeCurrentPage = state.storeSellPageNumber
     storeTotalPages = state.storeSellTotalPages
   }
-  console.log('page:', storeCurrentPage, 'totalPages:', storeTotalPages)
+  // console.log('page:', storeCurrentPage, 'totalPages:', storeTotalPages)
   if (storeCurrentPage <= storeTotalPages) {
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
     params.page = storeCurrentPage
     params.limit = 10 // state.itemsPerPage
-    console.log('params:', params)
+    // console.log('params:', params)
     try {
       const data = await axiosInstance.get(apiURL, { params: params })
-      console.log('data:', data)
+      // console.log('data:', data)
 
       switch (params.trade_type) {
         case 'BUY':

@@ -31,13 +31,13 @@ export function setMoreDataAvailability (state, value) {
 
 export function resetStorePagination (state) {
   state.itemsPerPage = 10
-  state.storeBuyPageNumber = 1
-  state.storeBuyTotalPages = 1
+  state.storeBuyPageNumber = null
+  state.storeBuyTotalPages = null
   state.storeBuyItemsCount = 0
   state.storeBuyListings = []
 
-  state.storeSellPageNumber = 1
-  state.storeSellTotalPages = 1
+  state.storeSellPageNumber = null
+  state.storeSellTotalPages = null
   state.storeSellItemsCount = 0
   state.storeSellListings = []
 }

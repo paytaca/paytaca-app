@@ -2,13 +2,13 @@ export default function () {
   return {
     user: null,
     itemsPerPage: 10,
-    storeBuyPageNumber: 1,
-    storeBuyTotalPages: 1,
+    storeBuyPageNumber: null,
+    storeBuyTotalPages: null,
     storeBuyItemsCount: 0,
     storeBuyListings: [],
 
-    storeSellPageNumber: 1,
-    storeSellTotalPages: 1,
+    storeSellPageNumber: null,
+    storeSellTotalPages: null,
     storeSellItemsCount: 0,
     storeSellListings: []
   }
