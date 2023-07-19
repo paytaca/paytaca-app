@@ -40,9 +40,15 @@
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
-          <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="listings">
-              <template v-slot="{ item: listing }">
+          <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:scroll;">
+            <q-infinite-scroll :items="listings" @load="loadMoreData" :offset="10" :scroll-target="scrollTargetRef">
+              <template v-slot:loading>
+                <div class="row justify-center q-my-md" v-if="hasMoreData">
+                  <q-spinner-dots color="primary" size="40px" />
+                </div>
+              </template>
+              <div v-for="(listing, index) in listings" :key="index">
+              <!-- <template v-slot="{ item: listing }"> -->
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
                     <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -85,9 +91,10 @@
                     </div>
                   </q-item-section>
                 </q-item>
-              </template>
-            </q-virtual-scroll>
-          </q-card-section>
+              <!-- </template> -->
+              </div>
+            </q-infinite-scroll>
+          </q-list>
         </div>
       </div>
     </div>
@@ -124,8 +131,16 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 // import { signMessage } from 'src/wallet/ramp/signature'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+
+    return {
+      scrollTargetRef
+    }
+  },
   components: {
     FiatStoreForm,
     ProgressLoader,
@@ -138,30 +153,74 @@ export default {
       viewProfile: false,
       wallet: null,
       transactionType: 'SELL',
-      // dataLoaded: false,
       loading: true,
       peerProfile: null,
       selectedCurrency: null,
-      state: 'SELECT', //'BUY', 'SELL'
+      state: 'SELECT',
       selectedListing: {},
       selectedUser: null,
       fiatCurrencies: [],
-      listings: []
+      totalPages: null,
+      pageNumber: null
     }
-  },
-  async mounted () {
-    this.selectedCurrency = this.$store.getters['market/selectedCurrency']
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo)
-    await this.fetchFiatCurrencies()
-    await this.fetchStoreListings()
   },
   watch: {
     transactionType () {
-      this.fetchStoreListings()
+      // this.fetchStoreListings()
     }
   },
+  computed: {
+    listings () {
+      const vm = this
+      switch (vm.transactionType) {
+        case 'BUY':
+          return vm.buyListings
+        case 'SELL':
+          return vm.sellListings
+      }
+      return []
+    },
+    buyListings () {
+      const ads = this.$store.getters['ramp/getStoreBuyListings']
+      console.log('buy listings:', ads)
+      return ads
+    },
+    sellListings () {
+      const ads = this.$store.getters['ramp/getStoreSellListings']
+      console.log('sell listings:', ads)
+      return ads
+    },
+    hasMoreData () {
+      const vm = this
+      return (vm.pageNumber <= vm.totalPages)
+    }
+  },
+  async mounted () {
+    const vm = this
+    vm.loading = true
+    vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
+    vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
+    vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    await vm.fetchFiatCurrencies()
+    await vm.fetchStoreListings()
+  },
   methods: {
+    async loadMoreData (_, done) {
+      const vm = this
+      if (!vm.hasMoreData) return
+      console.log('loadMoreData')
+      // console.log('transactionType:', vm.transactionType)
+      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](vm.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](vm.transactionType)
+      console.log('totalPages:', vm.totalPages)
+      console.log('pageNumber:', vm.pageNumber)
+      if (vm.pageNumber <= vm.totalPages) {
+        await vm.fetchStoreListings()
+      }
+      done()
+    },
     async fetchFiatCurrencies () {
       const vm = this
       vm.$axios.get(vm.apiURL + '/currency/fiat')
@@ -185,21 +244,29 @@ export default {
     async fetchStoreListings () {
       const vm = this
       if (this.selectedCurrency) {
+        const tradeType = vm.transactionType === 'BUY' ? 'SELL' : 'BUY'
+        console.log('transactionType:', vm.transactionType)
+        console.log('tradeType:', tradeType)
         const params = {
-          currency: this.selectedCurrency.symbol,
-          trade_type: this.transactionType
+          currency: vm.selectedCurrency.symbol,
+          trade_type: vm.transactionType
         }
-        vm.loading = true
-        vm.$axios.get(vm.apiURL + '/ad', { params: params })
-          .then(response => {
-            vm.listings = response.data.ads
-            console.log('listings: ', vm.listings)
-            vm.loading = false
-          })
-          .catch(error => {
-            console.error(error.response)
-            vm.loading = false
-          })
+        try {
+          await vm.$store.dispatch('ramp/fetchStoreAds', params)
+        } catch (error) {
+          console.error(error)
+        }
+        vm.loading = false
+        // vm.$axios.get(vm.apiURL + '/ad', { params: params })
+        //   .then(response => {
+        //     vm.listings = response.data.ads
+        //     console.log('listings: ', vm.listings)
+        //     vm.loading = false
+        //   })
+        //   .catch(error => {
+        //     console.error(error.response)
+        //     vm.loading = false
+        //   })
       }
     },
     formattedCurrency (value, fiat = true) {

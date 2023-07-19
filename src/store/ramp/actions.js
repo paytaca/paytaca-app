@@ -52,3 +52,43 @@ export async function createUser (context, data) {
         })
     })
 }
+
+export async function fetchStoreAds (context, params) {
+  console.log('inside fetchAds')
+  const state = context.state
+  let storeCurrentPage = state.storeBuyPageNumber
+  let storeTotalPages = state.storeBuyTotalPages
+  if (params.trade_type === 'SELL') {
+    storeCurrentPage = state.storeSellPageNumber
+    storeTotalPages = state.storeSellTotalPages
+  }
+  console.log('page:', storeCurrentPage, 'totalPages:', storeTotalPages)
+  if (storeCurrentPage <= storeTotalPages) {
+    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
+    params.page = storeCurrentPage
+    params.limit = 10 // state.itemsPerPage
+    console.log('params:', params)
+    try {
+      const data = await axiosInstance.get(apiURL, { params: params })
+      console.log('data:', data)
+
+      switch (params.trade_type) {
+        case 'BUY':
+          context.commit('updateStoreBuyListings', data.data)
+          context.commit('incStoreBuyPage')
+          break
+        case 'SELL':
+          context.commit('updateStoreSellListings', data.data)
+          context.commit('incStoreSellPage')
+          break
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+      throw error
+    }
+  }
+}
+
+export function resetStorePagination (context) {
+  context.commit('resetStorePagination')
+}
