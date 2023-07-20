@@ -228,7 +228,7 @@ export default {
       console.log('loadMoreData')
       const vm = this
       if (!vm.hasMoreData) {
-        done()
+        done(true)
         return
       }
       vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](vm.transactionType)
