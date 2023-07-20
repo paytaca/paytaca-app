@@ -5,7 +5,7 @@
     style="min-height:78vh;">
     <div v-if="state !== 'selection'">
       <FiatAdsForm
-        v-on:back="state = 'selection'"
+        @back="onBack()"
         :adsState="state"
         :transactionType="transactionType"
       />
@@ -32,16 +32,25 @@
           <ProgressLoader/>
         </div>
       </div>
-      <div v-else class="q-mt-md">
-        <div v-if="checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
+      <div v-else class="q-mt-md q-mx-md">
+        <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
-          <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <!-- <q-virtual-scroll :items="transactionType === 'BUY'? buyListings : sellListings"> -->
-            <q-virtual-scroll :items="listings">
-              <template v-slot="{ item: listing, index }">
+          <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:auto;">
+            <q-infinite-scroll
+              ref="infiniteScroll"
+              :items="listings"
+              @load="loadMoreData"
+              :offset="0"
+              :scroll-target="scrollTargetRef">
+              <template v-slot:loading>
+                <div class="row justify-center q-my-md" v-if="hasMoreData">
+                  <q-spinner-dots color="primary" size="40px" />
+                </div>
+              </template>
+              <div v-for="(listing, index) in listings" :key="index">
                 <q-item>
                   <q-item-section>
                     <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -100,9 +109,9 @@
                     </div>
                   </q-item-section>
                 </q-item>
-              </template>
-            </q-virtual-scroll>
-          </q-card-section>
+              </div>
+            </q-infinite-scroll>
+          </q-list>
         </div>
       </div>
     </div>
@@ -121,8 +130,17 @@ import FiatAdsForm from './FiatAdsForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+    const infiniteScroll = ref(null)
+    return {
+      scrollTargetRef,
+      infiniteScroll
+    }
+  },
   components: {
     FiatAdsForm,
     ProgressLoader,
@@ -140,18 +158,13 @@ export default {
       editListing: {},
       transactionType: 'BUY',
       state: 'selection', // 'create' 'edit'
-      buyListings: [],
-      sellListings: [],
-      listings: [],
-      loading: false
+      // buyListings: [],
+      // sellListings: [],
+      // listings: [],
+      loading: false,
+      totalPages: null,
+      pageNumber: null
     }
-  },
-  async mounted () {
-    const vm = this
-    vm.loading = true
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-    vm.fetchAds()
   },
   watch: {
     state (val) {
@@ -159,12 +172,90 @@ export default {
         this.$router.push({ name: 'ads-create' })
       }
     },
-    transactionType (val) {
-      // console.log('transactionType:', val)
-      this.fetchAds()
+    transactionType () {
+      const vm = this
+      vm.resetAndScrollToTop()
+      vm.updatePaginationValues()
+      console.log('>>> user has switched transaction type')
+      console.log('pageNumber:', this.pageNumber, 'totalPages:', vm.totalPages)
+      if (vm.pageNumber === null || vm.totalPages === null) {
+        vm.loading = true
+        this.fetchAds()
+      }
     }
   },
+  computed: {
+    listings () {
+      const vm = this
+      switch (vm.transactionType) {
+        case 'BUY':
+          return vm.buyListings
+        case 'SELL':
+          return vm.sellListings
+      }
+      return []
+    },
+    buyListings () {
+      return this.$store.getters['ramp/getAdsBuyListings']
+    },
+    sellListings () {
+      return this.$store.getters['ramp/getAdsSellListings']
+    },
+    hasMoreData () {
+      const vm = this
+      vm.updatePaginationValues()
+      console.log('hasMoreData:', (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages)))
+      return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
+    }
+  },
+  async mounted () {
+    const vm = this
+    vm.loading = true
+    vm.updatePaginationValues()
+    console.log('<<<<<<<pageNumber:', this.pageNumber, 'totalPages:', vm.totalPages)
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+
+    await vm.fetchAds()
+  },
   methods: {
+    async onBack () {
+      const vm = this
+      vm.state = 'selection'
+      await vm.$store.dispatch('ramp/resetAdsPagination')
+      await vm.fetchAds()
+      vm.updatePaginationValues()
+    },
+    updatePaginationValues () {
+      const vm = this
+      vm.totalPages = vm.$store.getters['ramp/getAdsTotalPages'](this.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getAdsPageNumber'](this.transactionType)
+    },
+    resetAndScrollToTop () {
+      if (this.$refs.infiniteScroll) {
+        this.$refs.infiniteScroll.reset()
+      }
+      this.scrollToTop()
+    },
+    scrollToTop () {
+      if (this.$refs.scrollTargetRef) {
+        const scrollElement = this.$refs.scrollTargetRef.$el
+        scrollElement.scrollTop = 0
+      }
+    },
+    async loadMoreData (_, done) {
+      console.log('loadMoreData')
+      const vm = this
+      if (!vm.hasMoreData) {
+        done(true)
+        return
+      }
+      vm.updatePaginationValues()
+      if (vm.pageNumber < vm.totalPages) {
+        await vm.fetchAds()
+      }
+      done()
+    },
     async fetchAds () {
       const vm = this
       const timestamp = Date.now()
@@ -176,17 +267,12 @@ export default {
       }
       console.log('headers:', headers)
       const params = { trade_type: vm.transactionType }
-      vm.$axios.get(vm.apiURL + '/ad', { params: params, headers: headers })
-        .then(response => {
-          vm.listings = response.data.ads
-          console.log('listings: ', vm.listings)
-          vm.loading = false
-        })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response.data)
-          vm.loading = false
-        })
+      try {
+        await vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, headers: headers })
+      } catch (error) {
+        console.error(error)
+      }
+      vm.loading = false
     },
     formattedDate (value) {
       return formatDate(value)

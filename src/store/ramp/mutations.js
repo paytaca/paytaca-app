@@ -31,7 +31,6 @@ export function incStoreSellPage (state) {
 }
 
 export function resetStorePagination (state) {
-  state.itemsPerPage = 20
   state.storeBuyPageNumber = null
   state.storeBuyTotalPages = null
   state.storeBuyItemsCount = 0
@@ -78,3 +77,9 @@ export function resetAdsPagination (state) {
 }
 
 // ~ ads mutations ~ //
+
+export function resetPagination (state) {
+  state.itemsPerPage = 20
+  resetStorePagination(state)
+  resetAdsPagination(state)
+}

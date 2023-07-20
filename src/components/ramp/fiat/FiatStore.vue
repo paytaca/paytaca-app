@@ -40,7 +40,7 @@
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
-          <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:scroll;">
+          <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:auto;">
             <q-infinite-scroll
               ref="infiniteScroll"
               :items="listings"
@@ -220,12 +220,16 @@ export default {
       vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
     },
     resetAndScrollToTop () {
-      this.$refs.infiniteScroll.reset()
+      if (this.$refs.infiniteScroll) {
+        this.$refs.infiniteScroll.reset()
+      }
       this.scrollToTop()
     },
     scrollToTop () {
-      const scrollElement = this.$refs.scrollTargetRef.$el
-      scrollElement.scrollTop = 0
+      if (this.$refs.scrollTargetRef) {
+        const scrollElement = this.$refs.scrollTargetRef.$el
+        scrollElement.scrollTop = 0
+      }
     },
     async loadMoreData (_, done) {
       console.log('loadMoreData')
@@ -268,7 +272,7 @@ export default {
           trade_type: vm.transactionType
         }
         try {
-          await vm.$store.dispatch('ramp/fetchStoreAds', { component: 'store', params: params })
+          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params })
         } catch (error) {
           console.error(error)
         }

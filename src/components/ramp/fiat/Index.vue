@@ -81,7 +81,9 @@ export default {
   async mounted () {
     this.wallet = await markRaw(loadWallet())
     const walletHash = this.wallet.BCH.getWalletHash()
-    await this.$store.dispatch('ramp/resetStorePagination')
+    // await this.$store.dispatch('ramp/resetStorePagination')
+    // await this.$store.dispatch('ramp/resetAdsPagination')
+    await this.$store.dispatch('ramp/resetPagination')
     this.user = await this.$store.dispatch('ramp/fetchUser', walletHash)
     if (this.user) {
       this.proceed = true

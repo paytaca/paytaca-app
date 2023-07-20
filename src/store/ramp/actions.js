@@ -53,9 +53,8 @@ export async function createUser (context, data) {
     })
 }
 
-export async function fetchStoreAds (context, { component = null, params = null, headers = null }) {
+export async function fetchAds (context, { component = null, params = null, headers = null }) {
   const state = context.state
-  // console.log('inside fetchStoreAds')
   console.log('component:', component, '| params:', params, '| headers:', headers)
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
@@ -99,7 +98,7 @@ export async function fetchStoreAds (context, { component = null, params = null,
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
     params.page = pageNumber
     params.limit = state.itemsPerPage
-
+    console.log('params:', params)
     try {
       const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
 
@@ -177,4 +176,12 @@ export async function fetchOwnedAds (context, params, headers) {
 
 export function resetStorePagination (context) {
   context.commit('resetStorePagination')
+}
+
+export function resetAdsPagination (context) {
+  context.commit('resetAdsPagination')
+}
+
+export function resetPagination (context) {
+  context.commit('resetPagination')
 }
