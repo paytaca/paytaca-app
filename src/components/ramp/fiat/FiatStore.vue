@@ -225,7 +225,7 @@ export default {
       scrollElement.scrollTop = 0
     },
     async loadMoreData (_, done) {
-      console.log('loadMoreData')
+      // console.log('loadMoreData')
       const vm = this
       if (!vm.hasMoreData) {
         done()

@@ -160,7 +160,7 @@ export default {
             signature: signature,
             timestamp: timestamp
           }
-        })x
+        })
         .then(response => {
           this.paymentMethods = response.data
         })
