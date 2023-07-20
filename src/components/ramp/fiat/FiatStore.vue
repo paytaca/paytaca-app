@@ -169,9 +169,7 @@ export default {
     transactionType () {
       const vm = this
       vm.resetAndScrollToTop()
-      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
-      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
-      // console.log(this.transactionType, ': totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
+      vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
         vm.loading = true
         this.fetchStoreListings()
@@ -198,14 +196,14 @@ export default {
       return ads
     },
     hasMoreData () {
-      return (this.pageNumber <= this.totalPages)
+      this.updatePaginationValues()
+      return (this.pageNumber < this.totalPages)
     }
   },
   async mounted () {
     const vm = this
     vm.loading = true
-    vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
-    vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
+    vm.updatePaginationValues()
     // console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
     vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
 
@@ -216,6 +214,11 @@ export default {
     await vm.fetchStoreListings()
   },
   methods: {
+    updatePaginationValues () {
+      const vm = this
+      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
+    },
     resetAndScrollToTop () {
       this.$refs.infiniteScroll.reset()
       this.scrollToTop()
@@ -231,10 +234,8 @@ export default {
         done(true)
         return
       }
-      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](vm.transactionType)
-      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](vm.transactionType)
-
-      if (vm.pageNumber <= vm.totalPages) {
+      vm.updatePaginationValues()
+      if (vm.pageNumber < vm.totalPages) {
         await vm.fetchStoreListings()
       }
       done()
@@ -261,14 +262,13 @@ export default {
     },
     async fetchStoreListings () {
       const vm = this
-
       if (this.selectedCurrency) {
         const params = {
           currency: vm.selectedCurrency.symbol,
           trade_type: vm.transactionType
         }
         try {
-          await vm.$store.dispatch('ramp/fetchStoreAds', params)
+          await vm.$store.dispatch('ramp/fetchStoreAds', { component: 'store', params: params })
         } catch (error) {
           console.error(error)
         }

@@ -2,14 +2,6 @@ export function getUser (state) {
   return state.user
 }
 
-export function getStoreBuyListings (state) {
-  return state.storeBuyListings
-}
-
-export function getStoreSellListings (state) {
-  return state.storeSellListings
-}
-
 export function getTotalPages (state) {
   return function ({ component = null, transactionType = null }) {
     if (component === 'store') {
@@ -44,6 +36,16 @@ export function getPageNumber (state) {
   }
 }
 
+// store getters //
+
+export function getStoreBuyListings (state) {
+  return state.storeBuyListings
+}
+
+export function getStoreSellListings (state) {
+  return state.storeSellListings
+}
+
 export function getStoreTotalPages (state) {
   return function (transactionType) {
     switch (transactionType) {
@@ -69,3 +71,42 @@ export function getStorePageNumber (state) {
     }
   }
 }
+
+// store getters //
+
+// ads getters //
+export function getAdsBuyListings (state) {
+  return state.adsBuyListings
+}
+
+export function getAdsSellListings (state) {
+  return state.adsSellListings
+}
+
+export function getAdsTotalPages (state) {
+  return function (transactionType) {
+    switch (transactionType) {
+      case 'SELL':
+        return state.adsSellTotalPages
+      case 'BUY':
+        return state.adsBuyTotalPages
+      default:
+        return null
+    }
+  }
+}
+
+export function getAdsPageNumber (state) {
+  return function (transactionType) {
+    switch (transactionType) {
+      case 'SELL':
+        return state.adsSellPageNumber
+      case 'BUY':
+        return state.adsBuyPageNumber
+      default:
+        return null
+    }
+  }
+}
+
+// ads getters //

@@ -2,6 +2,8 @@ export default function () {
   return {
     user: null,
     itemsPerPage: 20,
+
+    // store pagination
     storeBuyPageNumber: null,
     storeBuyTotalPages: null,
     storeBuyItemsCount: 0,
@@ -10,6 +12,15 @@ export default function () {
     storeSellPageNumber: null,
     storeSellTotalPages: null,
     storeSellItemsCount: 0,
-    storeSellListings: []
+    storeSellListings: [],
+
+    // ads pagination
+    adsBuyPageNumber: null,
+    adsBuyTotalPages: null,
+    adsBuyListings: [],
+
+    adsSellPageNumber: null,
+    adsSellTotalPages: null,
+    adsSellListings: []
   }
 }

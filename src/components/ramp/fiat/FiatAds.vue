@@ -174,6 +174,7 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
+      console.log('headers:', headers)
       const params = { trade_type: vm.transactionType }
       vm.$axios.get(vm.apiURL + '/ad', { params: params, headers: headers })
         .then(response => {
