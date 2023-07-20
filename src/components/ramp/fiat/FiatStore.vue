@@ -40,9 +40,19 @@
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
-          <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <q-virtual-scroll :items="listings">
-              <template v-slot="{ item: listing }">
+          <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:scroll;">
+            <q-infinite-scroll
+              ref="infiniteScroll"
+              :items="listings"
+              @load="loadMoreData"
+              :offset="0"
+              :scroll-target="scrollTargetRef">
+              <template v-slot:loading>
+                <div class="row justify-center q-my-md" v-if="hasMoreData">
+                  <q-spinner-dots color="primary" size="40px" />
+                </div>
+              </template>
+              <div v-for="(listing, index) in listings" :key="index">
                 <q-item clickable @click="selectListing(listing)">
                   <q-item-section>
                     <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -85,15 +95,15 @@
                     </div>
                   </q-item-section>
                 </q-item>
-              </template>
-            </q-virtual-scroll>
-          </q-card-section>
+              </div>
+            </q-infinite-scroll>
+          </q-list>
         </div>
       </div>
-    </div>
-    <div v-if="loading">
-      <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader/>
+      <div v-else>
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader/>
+        </div>
       </div>
     </div>
   </q-card>
@@ -122,10 +132,16 @@
 import FiatStoreForm from './FiatStoreForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-// import { signMessage } from 'src/wallet/ramp/signature'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+    return {
+      scrollTargetRef
+    }
+  },
   components: {
     FiatStoreForm,
     ProgressLoader,
@@ -138,34 +154,91 @@ export default {
       viewProfile: false,
       wallet: null,
       transactionType: 'SELL',
-      // dataLoaded: false,
       loading: true,
       peerProfile: null,
       selectedCurrency: null,
-      state: 'SELECT', //'BUY', 'SELL'
+      state: 'SELECT',
       selectedListing: {},
       selectedUser: null,
       fiatCurrencies: [],
-      listings: [],
-      page: 1,
-      total_pages: null
+      totalPages: null,
+      pageNumber: null
     }
-  },
-  async mounted () {
-    this.selectedCurrency = this.$store.getters['market/selectedCurrency']
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo)
-
-    // console.log(this.wallet.walletHash)
-    await this.fetchFiatCurrencies()
-    this.fetchStoreListings()
   },
   watch: {
     transactionType () {
-      this.fetchStoreListings()
+      const vm = this
+      vm.resetAndScrollToTop()
+      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
+      // console.log(this.transactionType, ': totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
+      if (vm.pageNumber === null || vm.totalPages === null) {
+        vm.loading = true
+        this.fetchStoreListings()
+      }
     }
   },
+  computed: {
+    listings () {
+      const vm = this
+      switch (vm.transactionType) {
+        case 'BUY':
+          return vm.buyListings
+        case 'SELL':
+          return vm.sellListings
+      }
+      return []
+    },
+    buyListings () {
+      const ads = this.$store.getters['ramp/getStoreBuyListings']
+      return ads
+    },
+    sellListings () {
+      const ads = this.$store.getters['ramp/getStoreSellListings']
+      return ads
+    },
+    hasMoreData () {
+      return (this.pageNumber <= this.totalPages)
+    }
+  },
+  async mounted () {
+    const vm = this
+    vm.loading = true
+    vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
+    vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
+    // console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
+    vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
+
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+
+    await vm.fetchFiatCurrencies()
+    await vm.fetchStoreListings()
+  },
   methods: {
+    resetAndScrollToTop () {
+      this.$refs.infiniteScroll.reset()
+      this.scrollToTop()
+    },
+    scrollToTop () {
+      const scrollElement = this.$refs.scrollTargetRef.$el
+      scrollElement.scrollTop = 0
+    },
+    async loadMoreData (_, done) {
+      console.log('loadMoreData')
+      const vm = this
+      if (!vm.hasMoreData) {
+        done()
+        return
+      }
+      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](vm.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](vm.transactionType)
+
+      if (vm.pageNumber <= vm.totalPages) {
+        await vm.fetchStoreListings()
+      }
+      done()
+    },
     async fetchFiatCurrencies () {
       const vm = this
 
@@ -191,23 +264,15 @@ export default {
 
       if (this.selectedCurrency) {
         const params = {
-          currency: this.selectedCurrency.symbol,
-          trade_type: this.transactionType,
-          limit: 10,
-          page: vm.page
+          currency: vm.selectedCurrency.symbol,
+          trade_type: vm.transactionType
         }
-        vm.loading = true
-        vm.$axios.get(vm.apiURL + '/ad', { params: params })
-          .then(response => {
-            vm.listings = response.data.ads
-            vm.total_pages = response.data.total_pages
-            console.log('listings: ', vm.listings)
-            vm.loading = false
-          })
-          .catch(error => {
-            console.error(error.response)
-            vm.loading = false
-          })
+        try {
+          await vm.$store.dispatch('ramp/fetchStoreAds', params)
+        } catch (error) {
+          console.error(error)
+        }
+        vm.loading = false
       }
     },
     formattedCurrency (value, fiat = true) {

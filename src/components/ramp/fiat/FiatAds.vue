@@ -177,8 +177,8 @@ export default {
       const params = { trade_type: vm.transactionType }
       vm.$axios.get(vm.apiURL + '/ad', { params: params, headers: headers })
         .then(response => {
-          vm.listings = response.data
-          // console.log('listings: ', vm.listings)
+          vm.listings = response.data.ads
+          console.log('listings: ', vm.listings)
           vm.loading = false
         })
         .catch(error => {
