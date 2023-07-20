@@ -204,7 +204,6 @@ export default {
     hasMoreData () {
       const vm = this
       vm.updatePaginationValues()
-      console.log('hasMoreData:', (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages)))
       return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
     }
   },
@@ -212,7 +211,6 @@ export default {
     const vm = this
     vm.loading = true
     vm.updatePaginationValues()
-    console.log('<<<<<<<pageNumber:', this.pageNumber, 'totalPages:', vm.totalPages)
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
 
