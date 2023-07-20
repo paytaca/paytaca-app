@@ -246,12 +246,13 @@ export default {
       const walletInfo = vm.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo)
       const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+      let signature = ''
 
       switch (vm.dialogType) {
         case 'addPaymentMethod':
           // posting new payment method
 
+          signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_CREATE', timestamp)
           vm.$axios.post(vm.apiURL + '/payment-method/', {
             payment_type: info.payment_type.id,
             account_name: vm.$store.getters['ramp/getUser'].nickname,
@@ -276,6 +277,7 @@ export default {
         case 'editPaymentMethod':
           // editing payment method
 
+          signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_UPDATE', timestamp)
           vm.$axios.put(vm.apiURL + '/payment-method/' + vm.selectedMethodIndex, {
             account_name: vm.$store.getters['ramp/getUser'].nickname,
             account_number: info.account_number
