@@ -109,6 +109,7 @@ export default {
     vm.loading = true
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
+    console.log(vm.wallet.walletHash)
     vm.fetchUserOrders()
   },
   components: {

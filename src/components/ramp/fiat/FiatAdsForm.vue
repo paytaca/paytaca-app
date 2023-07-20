@@ -318,13 +318,17 @@ export default {
   },
   async mounted () {
     const vm = this
+    console.log('fiat ads form')
     // Setup initial market price and subscription
     await vm.getInitialMarketPrice()
-    vm.setupWebsocket()
+    await vm.setupWebsocket()
+
+    console.log('done')
 
     // Setup wallet info
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
+    console.log(vm.wallet)
 
     // Initialize data
     await vm.getFiatCurrencies()

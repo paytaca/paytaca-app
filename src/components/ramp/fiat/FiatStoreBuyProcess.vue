@@ -362,18 +362,16 @@ export default {
           console.log('1')
           break
         case 'Escrowed':
-          this.step = 1
+          this.step = 2
           this.confirmed = true
           this.paymentCountdown()
-          console.log('1')
+          console.log('2')
           break
         case 'Paid Pending':
         case 'Paid':
-          this.step = 2
-          console.log('2')
-          break
         case 'Release Pending':
           this.step = 3
+          this.paymentCountdown()
           console.log('3')
           break
         case 'Released':
@@ -431,7 +429,7 @@ export default {
     paymentCountdown () {
       const vm = this
       const currentDate = new Date().getTime()
-      const expiryDate = new Date(currentDate + 15 * 60 * 60 * 1000) // update later
+      const expiryDate = new Date(vm.order.expiration_date)
 
       vm.timer = setInterval(function () {
         const now = new Date().getTime()
