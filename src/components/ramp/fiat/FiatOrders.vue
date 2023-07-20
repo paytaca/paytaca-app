@@ -46,8 +46,8 @@
                               <!-- &asymp; -->
                               <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
                               {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                            <div style="font-size: 12px;"> {{ formattedCurrency(listing.locked_price) }}/BCH</div>
-                            <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
+                            <div class="xs-font-size"> {{ formattedCurrency(listing.locked_price) }}/BCH</div>
+                            <div class="row xs-font-size" style="color: grey">{{ formattedDate(listing.created_at) }}</div>
                           </div>
                           <div class="text-right">
                             <span class="row subtext" v-if="isCompleted(listing.status) == false && listing.expiration_date != null">
