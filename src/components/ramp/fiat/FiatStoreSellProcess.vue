@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pt-md q-px-md">
+  <div class="q-pt-md q-px-md" v-if="isloaded">
     <div>
       <q-btn
         flat
@@ -23,50 +23,97 @@
       alternative-labels
       flat
     >
+      <!-- STEP 1 -->
       <q-step
         :name="1"
-        title="Create Order"
+        title="Escrow Fund"
         prefix="1"
         :done="step > 1"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
-          Create Order
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
+          Escrow Fund
         </div>
-        <FiatStoreSellInit
-          v-if="isloaded"
-          :listing-data="sell"
-          :crypto-amount="cryptoAmount"
-          v-on:pymnt-methods="setPaymentMethods"
-          v-on:confirmed="confirmedOrder"
-        />
+
+        <div class="q-pt-sm" style="font-size: 13px;">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Contract Address:</span>
+            <span class="text-nowrap q-ml-xs">contract addr</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Crypto Amount:</span>
+            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount}} BCH</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Arbitration Fee:</span>
+            <span class="text-nowrap q-ml-xs">{{ ad.fees.arbitration_fee }} BCH</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Service Fee:</span>
+            <span class="text-nowrap q-ml-xs">{{ ad.fees.service_fee }} BCH</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg bold-text">
+            <span>Total:</span>
+            <span class="text-nowrap q-ml-xs">{{ totalAmount }} BCH</span>
+          </div>
+        </div>
+        <div class="q-py-sm">
+            <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              TRADE CONTRACT
+            </div>
+            <div class="q-pt-md sm-font-size">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+              <span>Seller Address:</span>
+              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+              <span>Buyer Address:</span>
+              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+              <span>Arbiter Address:</span>
+              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row q-pt-md">
+          <q-btn
+            rounded
+            no-caps
+            label='Escrow Crypto'
+            class="q-space text-white"
+            color="blue-6"
+            @click="$refs.stepper.next()"
+          />
+        </div>
       </q-step>
 
+      <!-- STEP 2 -->
       <q-step
         :name="2"
         title="Await Payment"
         prefix="2"
         :done="step > 2"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
           Pending Payment
         </div>
         <div class="q-pt-sm" style="font-size: 13px;">
           <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount}} PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} PHP</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Price:</span>
-            <span class="text-nowrap q-ml-xs">6871.41 PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ ad.price }} PHP</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount }} BCH</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg" style="font-weight: 500;">
+          <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" v-if="sellStatus !== 'Expired'" :class="sellStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ sellStatus }}</span>
-            <span class="text-nowrap q-ml-xs text-red-6" v-if="sellStatus === 'Expired'">{{ sellStatus }}</span>
+            <span class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
           </div>
 
           <div class="q-py-sm" v-if="!paid && sellStatus !== 'Expired'">
@@ -191,6 +238,7 @@
         </div>
       </q-step>
 
+      <!-- STEP 3 -->
       <q-step
         :name="3"
         title="Release Crypto"
@@ -283,6 +331,14 @@
       </template> -->
     </q-stepper>
   </div>
+
+  <!-- Progress Loader -->
+  <div v-if="!isloaded">
+    <div class="row justify-center q-py-lg" style="margin-top: 50px">
+      <ProgressLoader/>
+    </div>
+  </div>
+
   <!-- Successful Sell Notif -->
   <q-dialog
     v-model="receivedPayment"
@@ -367,13 +423,19 @@
 </template>
 <script>
 import { ref } from 'vue'
-import FiatStoreSellInit from './FiatStoreSellInit.vue'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { signMessage } from '../../../wallet/ramp/signature.js'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      wallet: null,
       sell: {},
+      order: null,
+      ad: null,
       isloaded: false,
       countDown: '',
       timer: null,
@@ -386,15 +448,101 @@ export default {
     }
   },
   props: {
+    orderData: {
+      type: Object,
+      default: null
+    },
     listingData: Object,
     cryptoAmount: Number,
     fiatAmount: String
   },
   components: {
-    FiatStoreSellInit
+    ProgressLoader
   },
   emits: ['back', 'hideBuyer'],
+  computed: {
+    totalAmount () {
+      const total = parseFloat(this.order.crypto_amount) + parseFloat(this.ad.fees.arbitration_fee) + parseFloat(this.ad.fees.service_fee)
+      return total.toFixed(8)
+    },
+    getFiatAmount () {
+      return parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+    }
+  },
   methods: {
+    checkStep () {
+      console.log('checking status')
+
+      switch (this.order.status) {
+        case 'Submitted':
+        case 'Escrow Pending':
+          this.step = 1
+          console.log('1')
+          break
+        case 'Escrowed':
+        case 'Paid Pending':
+          this.step = 2
+          this.confirmed = true
+          this.paymentCountdown()
+          console.log('2')
+          break
+        case 'Paid':
+        case 'Release Pending':
+          this.step = 3
+          this.paymentCountdown()
+          console.log('3')
+          break
+        case 'Released':
+          this.step = 3
+          this.status = 'released'
+          break
+        case 'Canceled':
+        case 'Appealed for Release':
+        case 'Appealed for Refund':
+        case 'Refund Pending':
+        case 'Refunded':
+          this.status = 'cancelled'
+          break
+      }
+    },
+    async fetchOrderData () {
+      const vm = this
+
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+
+      await vm.$axios.get(vm.apiURL + '/order/' + vm.orderData.id, {
+        headers: {
+          'wallet-hash': vm.wallet.walletHash,
+          timestamp: timestamp,
+          signature: signature
+        }
+      })
+        .then(response => {
+          vm.order = response.data.order
+          vm.contract = response.data.contract
+          console.log(vm.order)
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    async fetchAdData () {
+      const vm = this
+
+      const adId = vm.order.ad.id
+      const url = `${vm.apiURL}/ad/${adId}`
+
+      await vm.$axios.get(url)
+        .then(response => {
+          vm.ad = response.data
+          console.log(vm.ad)
+        })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response)
+        })
+    },
     paymentCountdown () {
       const vm = this
       const currentDate = new Date().getTime()
@@ -479,10 +627,18 @@ export default {
   },
   async mounted () {
     const vm = this
+    console.log('Processing Sell Order')
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
 
-    console.log(vm.fiatAmount)
+    console.log(vm.wallet)
+
+    await vm.fetchOrderData()
+    await vm.fetchAdData()
+    vm.checkStep()
+
     vm.sell = vm.listingData
-    this.isloaded = true
+    vm.isloaded = true
   }
 }
 </script>

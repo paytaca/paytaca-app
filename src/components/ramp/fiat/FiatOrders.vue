@@ -76,6 +76,12 @@
       </div>
       <div v-if="state === 'view-order'">
         <FiatStoreBuyProcess
+          v-if="selectedOrder.trade_type === 'BUY'"
+          :order-data="selectedOrder"
+          v-on:back="state = 'order-list'"
+        />
+        <FiatStoreSellProcess
+          v-if="selectedOrder.trade_type === 'SELL'"
           :order-data="selectedOrder"
           v-on:back="state = 'order-list'"
         />
@@ -86,6 +92,7 @@
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
+import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
@@ -114,7 +121,8 @@ export default {
   },
   components: {
     ProgressLoader,
-    FiatStoreBuyProcess
+    FiatStoreBuyProcess,
+    FiatStoreSellProcess
   },
   methods: {
     async fetchUserOrders () {

@@ -100,7 +100,7 @@
         />
         <FiatStoreSellProcess
           v-if="transactionType === 'BUY'"
-          :listingData="ad"
+          :listingData="order"
           :buyAmount="cryptoAmount.toString()"
           :fiatAmount="fiatAmount"
           v-on:back="state = 'initial'"

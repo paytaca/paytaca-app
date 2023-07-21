@@ -148,7 +148,7 @@
             {{ countDown }}
           </div>
           <div>
-            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ getFiatAmount }} {{ order.fiat_currency.symbol }}</span> within the time limit...
+            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ getFiatAmount.toFixed(2) }} {{ order.fiat_currency.symbol }}</span> within the time limit...
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-md"/>
@@ -163,7 +163,7 @@
             <q-list bordered class="q-mx-lg" :dark="darkMode">
               <!-- Add ad payment methods later -->
               <div
-                v-for="(method, index) in ad.payment_methods"
+                v-for="(method, index) in order.ad.payment_methods"
                 :key="index"
               >
                 <q-expansion-item
@@ -171,7 +171,7 @@
                   :label="method.payment_type.toUpperCase()"
                 >
                   <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
-                    <q-card-section>
+                    <q-card-section class="text-center subtext">
                       <span>{{ method.account_name }}</span><br>
                       <span>{{ method.account_number }}</span>
                     </q-card-section>
@@ -205,15 +205,15 @@
           </q-scroll-area>
         </div>
         <div class="row q-pt-md">
-            <q-btn
-              rounded
-              no-caps
-              label='Confirm Payment'
-              class="q-space text-white"
-              color="blue-6"
-              @click="confirmPayment"
-            />
-          </div>
+          <q-btn
+            rounded
+            no-caps
+            label='Confirm Payment'
+            class="q-space text-white"
+            color="blue-6"
+            @click="confirmPayment"
+          />
+        </div>
       </q-step>
 
       <!-- Step 3 : Awaiting Release-->
@@ -223,7 +223,7 @@
         prefix="3"
       >
         <div class="q-mx-lg text-h5 text-center lg-font-size">
-          Release Crypto
+          Crypto Release
         </div>
         <div class="text-center q-pt-md sm-font-size">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="subtext row justify-between no-wrap q-mx-lg">
@@ -264,9 +264,60 @@
             </div>
           </div>
         </div>
+        <div class="q-my-lg">
+          <div class="q-mx-md text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            <!-- {{ transactionType === 'SELL' ? 'SELLER INFO' : 'BUYER INFO'}} -->
+            SELLER INFO
+          </div>
+          <div class="row">
+            <div class="col ib-text">
+              <div class="q-mx-sm q-mt-md">
+                <span
+                  :class="{'pt-dark-label': darkMode}"
+                  class="q-pl-md q-mb-none text-uppercase md-font-size bold-text"
+                >
+                  {{ ad.owner }}
+                </span>
+              </div>
+              <div class="q-mx-sm subtext" :class="{'pt-dark-label': darkMode}">
+                <span class="q-pl-md q-mb-none xs-font-size">
+                  {{ ad.trade_count }} trades
+                </span>&nbsp;
+                <span class="q-pl-xs q-mb-none xs-font-size">
+                  {{ ad.completion_rate }}% completion
+                </span>
+              </div>
+            </div>
+            <div class="text-right q-mr-lg q-mt-md" v-if="order.status === 'Released'">
+              <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
+              <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
+            </div>
+            <div class="text-right q-mr-sm q-mt-md" v-else>
+              <q-icon
+                class="q-pr-lg"
+                :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_chat"
+              />
+            </div>
+          </div>
+          <div class="q-mx-sm q-pt-sm" >
+            <div class="q-ml-xs  q-gutter-sm">
+              <q-badge v-for="method in ad.payment_methods" :key="method.id" rounded outline :color="order.trade_type === 'SELL' ? 'red' : 'blue'" :label="method.payment_type"/>
+            </div>
+          </div>
+          <div class="q-mx-sm q-mt-md">
+            <div class="q-px-lg bold-text">
+              Seller did not release crypto?
+            </div>
+            <div class="q-pt-xs q-mx-lg subtext">
+              If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal
+            </div>
+          </div>
+        </div>
       </q-step>
     </q-stepper>
   </div>
+
+  <!-- Add Feedback UI  -->
 
   <!-- Progress Loader -->
   <div v-if="!isloaded">
@@ -375,6 +426,7 @@ export default {
           console.log('3')
           break
         case 'Released':
+          this.step = 3
           this.status = 'released'
           break
         case 'Canceled':
@@ -401,9 +453,6 @@ export default {
           console.error(error.response)
         })
     },
-    async fetchPaymentMethod () {
-      // get ad payment method
-    },
     async fetchOrderData () {
       const vm = this
 
@@ -420,6 +469,7 @@ export default {
         .then(response => {
           vm.order = response.data.order
           vm.contract = response.data.contract
+          console.log(vm.order)
         })
         .catch(error => {
           console.log(error)
@@ -428,7 +478,7 @@ export default {
     // updated this
     paymentCountdown () {
       const vm = this
-      const currentDate = new Date().getTime()
+      // const currentDate = new Date().getTime()
       const expiryDate = new Date(vm.order.expiration_date)
 
       vm.timer = setInterval(function () {
@@ -467,49 +517,39 @@ export default {
       }
       this.$emit('back')
     },
-    releaseCntDwnSim () {
+    async sendConfirmPayment () {
       const vm = this
 
-      const expire = 10
-      let now = 0
+      const url = this.apiURL + '/order/' + vm.order.id + '/confirm-payment/buyer'
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
 
-      const x = setInterval(function () {
-        now++
-        if (now === expire) {
-          clearInterval(x)
-          // vm.$refs.stepper.next()
-          vm.order.status = 'Released'
-          vm.$emit('released')
-          // vm.buyStatus = 'Expired'
-          clearInterval(vm.timer)
-          vm.timer = null
-        }
-      }, 1000)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp,
+        // pubkey: vm.wallet.publicKey
+      }
+      console.log(headers)
+      await vm.$axios.post(url, {}, {
+        headers: headers
+      })
+        .then(response => {
+          console.log(response.data)
+          this.fetchOrderData()
+        })
+        .catch(error => {
+          console.log(error)
+        })
     },
-    pendingCntDwnSim () {
-      const vm = this
+    async confirmPayment () {
+      this.isloaded = false
+      await this.sendConfirmPayment()
 
-      const expire = 5
-      let now = 0
-
-      const x = setInterval(function () {
-        now++
-        if (now === expire) {
-          clearInterval(x)
-          // vm.$refs.stepper.next()
-          // vm.buyStatus = 'Pending Payment'
-          vm.confirmed = true
-          vm.paymentCountdown()
-        }
-      }, 1000)
-    },
-    confirmPayment () {
       this.$refs.stepper.next()
-      this.$emit('hideSeller')
-      this.$emit('pendingRelease')
-      this.order.status = 'Release Pending'
-      this.paymentCountdown() //update later
-      // this.releaseCntDwnSim()
+      // this.$emit('hideSeller')
+      // this.$emit('pendingRelease')
+      this.isloaded = true
     }
   },
   setup () {
@@ -519,7 +559,7 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('Processing')
+    console.log('Processing buy order')
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
