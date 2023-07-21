@@ -50,7 +50,6 @@
                 dense
                 rounded
                 outlined
-                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 :dark="darkMode"
                 v-model="selectedCurrency"
                 :options="fiatCurrencies"
@@ -60,7 +59,9 @@
                 <template v-slot:option="scope">
                   <q-item v-bind="scope.itemProps">
                     <q-item-section>
-                      <q-item-label>{{ scope.opt.name }} ({{ scope.opt.symbol }})</q-item-label>
+                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                        {{ scope.opt.name }} ({{ scope.opt.symbol }})
+                      </q-item-label>
                     </q-item-section>
                   </q-item>
                 </template>
@@ -330,6 +331,7 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
+
     // Setup initial market price and subscription
     await vm.getInitialMarketPrice()
     vm.setupWebsocket()
@@ -380,28 +382,24 @@ export default {
     async fetchAdDetail () {
       const vm = this
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
-      vm.$axios.get(url)
-        .then(response => {
-          // console.log('fetchAdDetail response:', response.data)
-          const data = response.data
-          vm.adData.tradeType = data.trade_type
-          vm.adData.priceType = data.price_type
-          vm.adData.floatingPrice = data.floating_price
-          vm.adData.fiatCurrency = data.fiat_currency
-          vm.adData.tradeFloor = data.trade_floor
-          vm.adData.tradeCeiling = data.trade_ceiling
-          vm.adData.cryptoAmount = data.crypto_amount
-          vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
-          // console.log('paymentTimeLimit:', vm.paymentTimeLimit)
+      try {
+        const response = await vm.$axios.get(url)
+        const data = response.data
+        vm.adData.tradeType = data.trade_type
+        vm.adData.priceType = data.price_type
+        vm.adData.floatingPrice = data.floating_price
+        vm.adData.fiatCurrency = data.fiat_currency
+        vm.adData.tradeFloor = data.trade_floor
+        vm.adData.tradeCeiling = data.trade_ceiling
+        vm.adData.cryptoAmount = data.crypto_amount
+        vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
 
-          vm.updatePriceValue(vm.adData.priceType)
-          // console.log('adData:', vm.adData)
-          vm.loading = false
-        })
-        .catch(error => {
-          console.error(error.response)
-          vm.swipeStatus = false
-        })
+        vm.updatePriceValue(vm.adData.priceType)
+        vm.loading = false
+      } catch (error) {
+        console.error(error.response)
+        vm.swipeStatus = false
+      }
     },
     formattedCurrency (value) {
       return formatCurrency(value, this.adData.fiatCurrency.symbol)
@@ -514,36 +512,34 @@ export default {
     async getInitialMarketPrice () {
       const vm = this
       const url = vm.apiURL + '/utils/market-price'
-      vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
-        .then(response => {
-          vm.marketPrice = parseFloat(response.data[0].price)
-          vm.adData.fixedPrice = vm.marketPrice
-          vm.priceValue = vm.adData.fixedPrice
-        })
-        .catch(error => {
-          console.error(error.response)
-        })
+      try {
+        const response = await vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
+        vm.marketPrice = parseFloat(response.data[0].price)
+        vm.adData.fixedPrice = vm.marketPrice
+        vm.priceValue = vm.adData.fixedPrice
+      } catch (error) {
+        console.error(error.response)
+      }
     },
     async getFiatCurrencies () {
       const vm = this
-      vm.$axios.get(vm.apiURL + '/currency/fiat')
-        .then(response => {
-          vm.fiatCurrencies = response.data
-          if (!vm.selectedCurrency) {
-            vm.selectedCurrency = vm.fiatCurrencies[0]
-          }
-          // console.log('fiatCurrencies:', this.fiatCurrencies)
-        })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response)
+      const url = vm.apiURL + '/currency/fiat'
+      try {
+        const response = await vm.$axios.get(url)
+        vm.fiatCurrencies = response.data
+        if (!vm.selectedCurrency) {
+          vm.selectedCurrency = vm.fiatCurrencies[0]
+        }
+        console.log('>>>fiatCurrencies:', this.fiatCurrencies)
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
 
-          vm.fiatCurrencies = vm.availableFiat
-          if (!vm.selectedCurrency) {
-            vm.selectedCurrency = vm.fiatCurrencies[0]
-          }
-        })
-      // console.log(vm.fiatCurrencies)
+        vm.fiatCurrencies = vm.availableFiat
+        if (!vm.selectedCurrency) {
+          vm.selectedCurrency = vm.fiatCurrencies[0]
+        }
+      }
     },
     async getPaymentMethods () {
       const vm = this
