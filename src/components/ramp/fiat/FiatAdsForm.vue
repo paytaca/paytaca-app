@@ -401,11 +401,7 @@ export default {
         vm.swipeStatus = false
       }
     },
-    formattedCurrency (value) {
-      return formatCurrency(value, this.adData.fiatCurrency.symbol)
-    },
     async onSubmit () {
-      // console.log('onSubmit')
       const vm = this
       const url = vm.apiURL + '/ad/'
       const timestamp = Date.now()
@@ -416,7 +412,6 @@ export default {
         signature: signature
       }
       const body = vm.transformPostData()
-      // console.log('adData:', body)
       vm.$axios.post(url, body, { headers: headers })
         .then(response => {
           console.log('response:', response.data)
@@ -428,12 +423,77 @@ export default {
           vm.swipeStatus = false
         })
     },
+    async getInitialMarketPrice () {
+      const vm = this
+      const url = vm.apiURL + '/utils/market-price'
+      try {
+        const response = await vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
+        vm.marketPrice = parseFloat(response.data[0].price)
+        vm.updatePriceValue(vm.adData.priceType)
+      } catch (error) {
+        console.error(error.response)
+      }
+    },
+    async getFiatCurrencies () {
+      const vm = this
+      const url = vm.apiURL + '/currency/fiat'
+      try {
+        const response = await vm.$axios.get(url)
+        vm.fiatCurrencies = response.data
+        if (!vm.selectedCurrency) {
+          vm.selectedCurrency = vm.fiatCurrencies[0]
+        }
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
+
+        vm.fiatCurrencies = vm.availableFiat
+        if (!vm.selectedCurrency) {
+          vm.selectedCurrency = vm.fiatCurrencies[0]
+        }
+      }
+    },
+    async getPaymentMethods () {
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const headers = {
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
+      // console.log('response:', response.data)
+      // .then(response => {
+      //   console.log(response.data)
+      //   return response.data
+      // })
+      // .catch(error => {
+      //   console.error(error.response)
+      // })
+      return response.data
+    },
+    async checkSubmitOption () {
+      const vm = this
+      // console.log('checking submit option')
+      vm.step++
+    },
+    async updateFiatCurrency () {
+      const vm = this
+      vm.marketPrice = null
+      vm.adData.fiatCurrency = vm.selectedCurrency
+      await vm.getInitialMarketPrice()
+      vm.closeWSConnection()
+      vm.setupWebsocket()
+    },
+    formattedCurrency (value) {
+      return formatCurrency(value, this.adData.fiatCurrency.symbol)
+    },
     transformPostData () {
       // finalize ad data
       const vm = this
       const defaultCrypto = 'BCH'
       const data = vm.adData
-      // console.log('data:', data)
       const idList = data.paymentMethods.map(obj => obj.id)
       return {
         trade_type: data.tradeType,
@@ -509,63 +569,6 @@ export default {
         console.log('WebSocket connection closed.')
       }
     },
-    async getInitialMarketPrice () {
-      const vm = this
-      const url = vm.apiURL + '/utils/market-price'
-      try {
-        const response = await vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
-        vm.marketPrice = parseFloat(response.data[0].price)
-        vm.adData.fixedPrice = vm.marketPrice
-        vm.priceValue = vm.adData.fixedPrice
-      } catch (error) {
-        console.error(error.response)
-      }
-    },
-    async getFiatCurrencies () {
-      const vm = this
-      const url = vm.apiURL + '/currency/fiat'
-      try {
-        const response = await vm.$axios.get(url)
-        vm.fiatCurrencies = response.data
-        if (!vm.selectedCurrency) {
-          vm.selectedCurrency = vm.fiatCurrencies[0]
-        }
-        console.log('>>>fiatCurrencies:', this.fiatCurrencies)
-      } catch (error) {
-        console.error(error)
-        console.error(error.response)
-
-        vm.fiatCurrencies = vm.availableFiat
-        if (!vm.selectedCurrency) {
-          vm.selectedCurrency = vm.fiatCurrencies[0]
-        }
-      }
-    },
-    async getPaymentMethods () {
-      const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
-      const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
-      // console.log('response:', response.data)
-      // .then(response => {
-      //   console.log(response.data)
-      //   return response.data
-      // })
-      // .catch(error => {
-      //   console.error(error.response)
-      // })
-      return response.data
-    },
-    async checkSubmitOption () {
-      const vm = this
-      // console.log('checking submit option')
-      vm.step++
-    },
     appendPaymentMethods (paymentMethods) {
       console.log('Adding payment methods:', paymentMethods)
       const vm = this
@@ -585,16 +588,6 @@ export default {
     updatePaymentTimeLimit () {
       const vm = this
       vm.adData.timeDurationChoice = vm.paymentTimeLimit.value
-    },
-    async updateFiatCurrency () {
-      const vm = this
-      // console.log('selectedCurrency:', vm.selectedCurrency)
-      vm.adData.fiatCurrency = vm.selectedCurrency
-      // update market price subscription
-      vm.marketPrice = null
-      await vm.getInitialMarketPrice()
-      vm.closeWSConnection()
-      vm.setupWebsocket()
     },
     checkPostData () {
       const vm = this
