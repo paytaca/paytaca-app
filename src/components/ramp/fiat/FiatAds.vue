@@ -8,6 +8,7 @@
         @back="onBack()"
         :adsState="state"
         :transactionType="transactionType"
+        :selectedAdId="selectedAdId"
       />
     </div>
     <div v-if="state === 'selection'">
@@ -89,7 +90,7 @@
                             icon="edit"
                             size="sm"
                             color="grey-6"
-                            @click="editAds(index)"
+                            @click="editAds(listing.id)"
                           />
                           <q-btn
                             outline
@@ -163,7 +164,8 @@ export default {
       // listings: [],
       loading: false,
       totalPages: null,
-      pageNumber: null
+      pageNumber: null,
+      selectedAdId: null
     }
   },
   watch: {
@@ -176,8 +178,8 @@ export default {
       const vm = this
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
-      console.log('>>> user has switched transaction type')
-      console.log('pageNumber:', this.pageNumber, 'totalPages:', vm.totalPages)
+      // console.log('>>> user has switched transaction type')
+      // console.log('pageNumber:', this.pageNumber, 'totalPages:', vm.totalPages)
       if (vm.pageNumber === null || vm.totalPages === null) {
         vm.loading = true
         this.fetchAds()
@@ -220,6 +222,7 @@ export default {
     async onBack () {
       const vm = this
       vm.state = 'selection'
+      vm.selectedAdId = null
       await vm.$store.dispatch('ramp/resetAdsPagination')
       await vm.fetchAds()
       vm.updatePaginationValues()
@@ -263,7 +266,7 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      console.log('headers:', headers)
+      // console.log('headers:', headers)
       const params = { trade_type: vm.transactionType }
       try {
         await vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, headers: headers })
@@ -291,19 +294,20 @@ export default {
       })
       return sorted
     },
-    editAds (index) {
+    editAds (id) {
       const vm = this
       vm.state = 'edit'
-      // console.log('edit')
+      console.log('selectedAdId:', id)
+      vm.selectedAdId = id
 
-      switch (vm.transactionType) {
-        case 'BUY':
-          vm.editListing = vm.buyListings[index]
-          break
-        case 'SELL':
-          vm.editListing = vm.sellListings[index]
-          break
-      }
+      // switch (vm.transactionType) {
+      //   case 'BUY':
+      //     vm.editListing = vm.buyListings[index]
+      //     break
+      //   case 'SELL':
+      //     vm.editListing = vm.sellListings[index]
+      //     break
+      // }
     },
     deleteAds (index) {
       const vm = this
