@@ -57,3 +57,22 @@ export function formatDate (value) {
   dateString = dateString.replace(' at', '')
   return dateString
 }
+
+export function getPaymentTimeLimit (timeValue) {
+  switch (timeValue) {
+    case 15:
+      return { label: '15 mins', value: 15 }
+    case 30:
+      return { label: '30 mins', value: 30 }
+    case 60:
+      return { label: '1 hr', value: 60 }
+    case 300:
+      return { label: '5 hrs', value: 300 }
+    case 720:
+      return { label: '12 hrs', value: 720 }
+    case 1440:
+      return { label: '24 hrs', value: 1440 }
+    default:
+      return ''
+  }
+}

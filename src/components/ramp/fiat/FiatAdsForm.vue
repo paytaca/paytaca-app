@@ -247,7 +247,7 @@ import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { debounce } from 'quasar'
 import { signMessage } from '../../../wallet/ramp/signature.js'
-import { formatCurrency, loadP2PWalletInfo } from 'src/wallet/ramp'
+import { formatCurrency, loadP2PWalletInfo, getPaymentTimeLimit} from 'src/wallet/ramp'
 
 export default {
   props: {
@@ -407,6 +407,8 @@ export default {
           vm.adData.tradeFloor = data.trade_floor
           vm.adData.tradeCeiling = data.trade_ceiling
           vm.adData.cryptoAmount = data.crypto_amount
+          vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
+          console.log('paymentTimeLimit:', vm.paymentTimeLimit)
 
           vm.updatePriceValue(vm.adData.priceType)
           console.log('adData:', vm.adData)
