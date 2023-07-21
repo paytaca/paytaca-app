@@ -342,7 +342,7 @@ export default {
     await vm.getFiatCurrencies()
     vm.adData.tradeType = vm.transactionType.toUpperCase()
 
-    console.log('selectedAdId:', vm.selectedAdId)
+    // console.log('selectedAdId:', vm.selectedAdId)
     if (vm.selectedAdId !== null) {
       await vm.fetchAdDetail()
     } else {
@@ -382,24 +382,8 @@ export default {
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
       vm.$axios.get(url)
         .then(response => {
-          console.log('fetchAdDetail response:', response.data)
+          // console.log('fetchAdDetail response:', response.data)
           const data = response.data
-          /**
-          tradeType: this.transactionType,
-          priceType: 'FIXED',
-          fiatCurrency: this.$store.getters['market/selectedCurrency'],
-          cryptoCurrency: { // get crypro_currency ID
-            name: 'Bitcoin Cash',
-            symbol: 'BCH'
-          },
-          fixedPrice: null,
-          floatingPrice: 100,
-          tradeFloor: null,
-          tradeCeiling: null,
-          cryptoAmount: null,
-          timeDurationChoice: 1440,
-          paymentMethods: []
-           */
           vm.adData.tradeType = data.trade_type
           vm.adData.priceType = data.price_type
           vm.adData.floatingPrice = data.floating_price
@@ -408,10 +392,10 @@ export default {
           vm.adData.tradeCeiling = data.trade_ceiling
           vm.adData.cryptoAmount = data.crypto_amount
           vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
-          console.log('paymentTimeLimit:', vm.paymentTimeLimit)
+          // console.log('paymentTimeLimit:', vm.paymentTimeLimit)
 
           vm.updatePriceValue(vm.adData.priceType)
-          console.log('adData:', vm.adData)
+          // console.log('adData:', vm.adData)
           vm.loading = false
         })
         .catch(error => {
@@ -423,7 +407,7 @@ export default {
       return formatCurrency(value, this.adData.fiatCurrency.symbol)
     },
     async onSubmit () {
-      console.log('onSubmit')
+      // console.log('onSubmit')
       const vm = this
       const url = vm.apiURL + '/ad/'
       const timestamp = Date.now()
@@ -434,7 +418,7 @@ export default {
         signature: signature
       }
       const body = vm.transformPostData()
-      console.log('adData:', body)
+      // console.log('adData:', body)
       vm.$axios.post(url, body, { headers: headers })
         .then(response => {
           console.log('response:', response.data)
@@ -451,7 +435,7 @@ export default {
       const vm = this
       const defaultCrypto = 'BCH'
       const data = vm.adData
-      console.log('data:', data)
+      // console.log('data:', data)
       const idList = data.paymentMethods.map(obj => obj.id)
       return {
         trade_type: data.tradeType,
@@ -486,8 +470,8 @@ export default {
           vm.priceValue = value
           break
       }
-      console.log('priceType:', priceType)
-      console.log('value:', value)
+      // console.log('priceType:', priceType)
+      // console.log('value:', value)
     },
     transformPrice (value) {
       const vm = this

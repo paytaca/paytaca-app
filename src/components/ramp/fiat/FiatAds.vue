@@ -223,8 +223,8 @@ export default {
       const vm = this
       vm.state = 'selection'
       vm.selectedAdId = null
-      await vm.$store.dispatch('ramp/resetAdsPagination')
-      await vm.fetchAds()
+      // await vm.$store.dispatch('ramp/resetAdsPagination')
+      // await vm.fetchAds()
       vm.updatePaginationValues()
     },
     updatePaginationValues () {
