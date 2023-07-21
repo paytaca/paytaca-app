@@ -273,6 +273,13 @@ function updateMerchantInfo() {
         message: $t('MerchantDetailsSaved', {}, 'Merchant details saved'),
       })
     })
+    .then(() => {
+      if (!$store.getters['paytacapos/merchantBranchs']?.length) {
+        $store.dispatch('paytacapos/refetchBranches', {
+          walletHash: $store.getters['paytacapos/merchantInfo']?.walletHash,
+        })
+      }
+    })
     .finally(() => {
       loading.value = false
     })
