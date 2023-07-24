@@ -68,18 +68,18 @@
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase"
                             style="font-size: 16px;">
-                            {{ formattedCurrency(listing.price) }}
+                            {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
                           </span>
                           <span style="font-size: 12px;">
                             /BCH
                           </span>
                           <div class="row sm-font-size">
                             <span class="q-mr-md">Quantity</span>
-                            <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
+                            <span>{{ formattedCurrency(listing.crypto_amount, null, false) }} BCH</span>
                           </div>
                           <div class="row sm-font-size">
                             <span class="q-mr-md">Limit</span>
-                            <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }} </span>
+                            <span> {{ formattedCurrency(listing.trade_floor, listing.fiat_currency.symbol) }} - {{ formattedCurrency(listing.trade_ceiling, listing.fiat_currency.symbol) }} </span>
                           </div>
                           <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
                         </div>
@@ -160,9 +160,6 @@ export default {
       editListing: {},
       transactionType: 'BUY',
       state: 'selection', // 'create' 'edit'
-      // buyListings: [],
-      // sellListings: [],
-      // listings: [],
       loading: false,
       totalPages: null,
       pageNumber: null,
@@ -179,7 +176,6 @@ export default {
       const vm = this
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
-      // console.log('>>> user has switched transaction type')
       // console.log('pageNumber:', this.pageNumber, 'totalPages:', vm.totalPages)
       if (vm.pageNumber === null || vm.totalPages === null) {
         vm.loading = true
@@ -221,7 +217,6 @@ export default {
   },
   methods: {
     async onSubmit () {
-      console.log('onSubmitted')
       const vm = this
       vm.state = 'selection'
       vm.selectedAdId = null
@@ -287,9 +282,8 @@ export default {
     formattedDate (value) {
       return formatDate(value)
     },
-    formattedCurrency (value, fiat = true) {
+    formattedCurrency (value, currency, fiat = true) {
       if (fiat) {
-        const currency = this.selectedCurrency.symbol
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)

@@ -258,7 +258,7 @@ import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { debounce } from 'quasar'
 import { signMessage } from '../../../wallet/ramp/signature.js'
-import { formatCurrency, loadP2PWalletInfo, getPaymentTimeLimit} from 'src/wallet/ramp'
+import { formatCurrency, loadP2PWalletInfo, getPaymentTimeLimit } from 'src/wallet/ramp'
 
 export default {
   props: {
@@ -342,12 +342,12 @@ export default {
     const vm = this
     vm.loading = true
 
-    // Setup initial market price and subscription
-    await vm.getInitialMarketPrice()
-
     if (vm.selectedAdId !== null) {
       await vm.fetchAdDetail()
     }
+
+    // Setup initial market price and subscription
+    await vm.getInitialMarketPrice()
 
     vm.updatePriceValue(vm.adData.priceType)
     vm.loading = false
@@ -401,6 +401,9 @@ export default {
         vm.adData.tradeCeiling = data.trade_ceiling
         vm.adData.cryptoAmount = data.crypto_amount
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
+        console.log('data:', data)
+        vm.selectedCurrency = data.fiat_currency
+        console.log('selectedCurrency:', vm.selectedCurrency)
       } catch (error) {
         console.error(error.response)
         vm.swipeStatus = false
