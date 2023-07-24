@@ -178,6 +178,7 @@
             </div>
           </div>
         </div>
+
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
 
         <!-- Payment Time Limit -->
@@ -195,8 +196,17 @@
                   :dark="darkMode"
                   v-model="paymentTimeLimit"
                   :options="ptlSelection"
-                  @update:modelValue="updatePaymentTimeLimit()"
-                />
+                  @update:modelValue="updatePaymentTimeLimit()">
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section>
+                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                        {{ scope.opt.label }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
                   <!-- <template v-slot:append>
                     <q-icon size="xs" name="close" @click.stop.prevent="ptl = ''"/>&nbsp;
                   </template> -->
