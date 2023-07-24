@@ -401,9 +401,7 @@ export default {
         vm.adData.tradeCeiling = data.trade_ceiling
         vm.adData.cryptoAmount = data.crypto_amount
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
-        console.log('data:', data)
         vm.selectedCurrency = data.fiat_currency
-        console.log('selectedCurrency:', vm.selectedCurrency)
       } catch (error) {
         console.error(error.response)
         vm.swipeStatus = false
@@ -492,9 +490,10 @@ export default {
     },
     async updateFiatCurrency () {
       const vm = this
-      vm.marketPrice = null
-      vm.adData.fiatCurrency = vm.selectedCurrency
+      vm.priceValue = ''
       await vm.getInitialMarketPrice()
+      vm.priceAmount = vm.transformPrice(vm.marketPrice)
+      vm.adData.fiatCurrency = vm.selectedCurrency
       vm.closeWSConnection()
       vm.setupWebsocket()
     },

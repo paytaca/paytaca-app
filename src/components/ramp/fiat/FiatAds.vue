@@ -212,7 +212,6 @@ export default {
     vm.updatePaginationValues()
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
-
     await vm.fetchAds()
   },
   methods: {
