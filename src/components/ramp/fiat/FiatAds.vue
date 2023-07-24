@@ -6,6 +6,7 @@
     <div v-if="state !== 'selection'">
       <FiatAdsForm
         @back="onBack()"
+        @submit="onSubmit()"
         :adsState="state"
         :transactionType="transactionType"
         :selectedAdId="selectedAdId"
@@ -219,13 +220,21 @@ export default {
     await vm.fetchAds()
   },
   methods: {
+    async onSubmit () {
+      console.log('onSubmitted')
+      const vm = this
+      vm.state = 'selection'
+      vm.selectedAdId = null
+      vm.loading = true
+      await vm.$store.dispatch('ramp/resetAdsPagination')
+      await vm.fetchAds()
+      vm.updatePaginationValues()
+      vm.loading = false
+    },
     async onBack () {
       const vm = this
       vm.state = 'selection'
       vm.selectedAdId = null
-      // await vm.$store.dispatch('ramp/resetAdsPagination')
-      // await vm.fetchAds()
-      vm.updatePaginationValues()
     },
     updatePaginationValues () {
       const vm = this

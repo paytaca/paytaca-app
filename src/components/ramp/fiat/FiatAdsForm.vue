@@ -261,7 +261,7 @@ export default {
     DisplayConfirmation,
     ProgressLoader
   },
-  emits: ['back'],
+  emits: ['back', 'submit'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -334,22 +334,16 @@ export default {
 
     // Setup initial market price and subscription
     await vm.getInitialMarketPrice()
-    vm.setupWebsocket()
 
-    // Setup wallet info
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-
-    // Initialize data
-    await vm.getFiatCurrencies()
-    vm.adData.tradeType = vm.transactionType.toUpperCase()
-
-    // console.log('selectedAdId:', vm.selectedAdId)
     if (vm.selectedAdId !== null) {
       await vm.fetchAdDetail()
-    } else {
-      vm.updatePriceValue(vm.adData.priceType)
     }
+
+    vm.updatePriceValue(vm.adData.priceType)
+    vm.loading = false
+    vm.setupWebsocket()
+    vm.adData.tradeType = vm.transactionType.toUpperCase()
+    await vm.getFiatCurrencies()
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -381,6 +375,10 @@ export default {
   methods: {
     async fetchAdDetail () {
       const vm = this
+      if (vm.wallet === null) {
+        const walletInfo = this.$store.getters['global/getWallet']('bch')
+        vm.wallet = await loadP2PWalletInfo(walletInfo)
+      }
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
       try {
         const response = await vm.$axios.get(url)
@@ -393,9 +391,6 @@ export default {
         vm.adData.tradeCeiling = data.trade_ceiling
         vm.adData.cryptoAmount = data.crypto_amount
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
-
-        vm.updatePriceValue(vm.adData.priceType)
-        vm.loading = false
       } catch (error) {
         console.error(error.response)
         vm.swipeStatus = false
@@ -403,6 +398,10 @@ export default {
     },
     async onSubmit () {
       const vm = this
+      if (vm.wallet === null) {
+        const walletInfo = this.$store.getters['global/getWallet']('bch')
+        vm.wallet = await loadP2PWalletInfo(walletInfo)
+      }
       const url = vm.apiURL + '/ad/'
       const timestamp = Date.now()
       const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
@@ -416,7 +415,7 @@ export default {
         .then(response => {
           console.log('response:', response.data)
           vm.swipeStatus = true
-          this.$emit('back')
+          this.$emit('submit')
         })
         .catch(error => {
           console.error(error.response)
@@ -534,16 +533,20 @@ export default {
     transformPrice (value) {
       const vm = this
       let price = null
-      if (vm.adData.priceType === 'FLOATING') {
-        price = value * (vm.adData.floatingPrice / 100)
-      } else {
-        price = vm.adData.fixedPrice
+      switch (vm.adData.priceType) {
+        case 'FLOATING':
+          price = value * (vm.adData.floatingPrice / 100)
+          break
+        case 'FIXED': {
+          const fixedPrice = Number(vm.adData.fixedPrice)
+          price = fixedPrice
+          if (price === 0) {
+            price = vm.marketPrice
+          }
+          break
+        }
       }
-      if (price === '') {
-        price = 0
-      } else {
-        price = parseFloat(price).toFixed(2)
-      }
+      price = Number(parseFloat(price).toFixed(2))
       return price
     },
     closeWSConnection () {
