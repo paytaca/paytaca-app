@@ -120,16 +120,11 @@
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 type="number"
                 :rules="numberValidation"
-                v-model="adData.cryptoAmount"
-              >
+                v-model="adData.cryptoAmount">
                 <template v-slot:prepend>
                   <span class="bold-text xs-font-size">
                     BCH
                   </span>
-                </template>
-                <template v-slot:append>
-                  <q-icon size="xs" name="close" @click="amount = 0"/>
-                  <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                 </template>
               </q-input>
             </div>
@@ -298,7 +293,7 @@ export default {
           name: 'Bitcoin Cash',
           symbol: 'BCH'
         },
-        fixedPrice: null,
+        fixedPrice: 0,
         floatingPrice: 100,
         tradeFloor: null,
         tradeCeiling: null,

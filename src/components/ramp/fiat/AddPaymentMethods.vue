@@ -50,7 +50,7 @@
                         icon="delete"
                         color="grey-6"
                         class="q-ml-xs"
-                        @click="deleteMethod(method)"
+                        @click="removeMethod(index, method)"
                         />
                     </div>
                   </div>
@@ -177,8 +177,11 @@ export default {
         case 'editPaymentMethod':
           vm.updatePayment(data)
           break
-        case 'confirmDeletePaymentMethod':
-          vm.deletePaymentMethod(this.selectedMethodIndex)
+        // case 'confirmDeletePaymentMethod':
+        //   vm.deletePaymentMethod(this.selectedMethodIndex)
+        //   break
+        case 'confirmRemovePaymentMethod':
+          vm.removePaymentMethod(this.selectedMethodIndex)
           break
         case 'confirmPaymentMethod':
           vm.$emit('submit', vm.paymentMethods)
@@ -212,6 +215,19 @@ export default {
       this.selectedMethodIndex = data.id
       this.dialogType = 'confirmDeletePaymentMethod'
       this.openDialog = true
+    },
+    removeMethod (index, data) {
+      console.log('confirmRemovePaymentMethod:', data)
+      this.info = data
+      this.selectedMethodIndex = index // data.id
+      this.dialogType = 'confirmRemovePaymentMethod'
+      this.openDialog = true
+    },
+    removePaymentMethod (index) {
+      console.log('removing payment method from list:', index)
+      console.log('payment methods:', this.paymentMethods)
+      this.paymentMethods.splice(index, 1)
+      console.log('spliced payment methods:', this.paymentMethods)
     },
     // processes
     async deletePaymentMethod (index) {

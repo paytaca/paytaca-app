@@ -95,6 +95,29 @@
     </q-card>
   </q-dialog>
 
+  <!-- Payment Removal Confirmation -->
+  <q-dialog persistent v-model="confirmRemovePaymentMethod">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section class="xm-font-size q-mx-lg">
+        <div class="subtext bold-text text-center">Remove this Payment Method?</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        <span class="lg-font-size bold-text">
+          {{ info.payment_type.name}}:
+        </span><br>
+        <span>
+          {{ info.account_number }}
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
   <!-- Payment Method Confirmation -->
   <q-dialog persistent v-model="confirmPaymentMethod">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
@@ -182,6 +205,7 @@ export default {
       addPaymentMethod: false,
       confirmPaymentMethod: false,
       confirmDeletePaymentMethod: false,
+      confirmRemovePaymentMethod: false,
       editNickname: false,
       viewProfile: false,
 
@@ -223,6 +247,11 @@ export default {
         case 'confirmDeletePaymentMethod':
           this.info = this.data
           vm.confirmDeletePaymentMethod = true
+          break
+        case 'confirmRemovePaymentMethod':
+          this.info = this.data
+          console.log('info:', this.info)
+          vm.confirmRemovePaymentMethod = true
           break
         case 'editNickname':
           vm.editNickname = true
