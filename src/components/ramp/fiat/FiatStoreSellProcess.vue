@@ -5,7 +5,7 @@
         flat
         padding="xs"
         icon="arrow_back"
-        @click="$emit('back')"
+        @click="returnList()"
       />
     </div>
     <q-stepper
@@ -34,7 +34,7 @@
           Escrow Fund
         </div>
 
-        <div class="q-pt-sm" style="font-size: 13px;">
+        <div class="q-pt-sm sm-font-size">
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Contract Address:</span>
             <span class="text-nowrap q-ml-xs">contract addr</span>
@@ -57,7 +57,7 @@
           </div>
         </div>
         <div class="q-py-sm">
-            <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               TRADE CONTRACT
             </div>
             <div class="q-pt-md sm-font-size">
@@ -83,7 +83,7 @@
             label='Escrow Crypto'
             class="q-space text-white"
             color="blue-6"
-            @click="$refs.stepper.next()"
+            @click="escrowCrypto()"
           />
         </div>
       </q-step>
@@ -98,8 +98,8 @@
         <div class="q-mx-lg text-h5 text-center lg-font-size">
           Pending Payment
         </div>
-        <div class="q-pt-sm" style="font-size: 13px;">
-          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+        <div class="q-pt-sm sm-font-size">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row  bold-text subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
             <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} PHP</span>
           </div>
@@ -116,47 +116,47 @@
             <span class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
           </div>
 
-          <div class="q-py-sm" v-if="!paid && sellStatus !== 'Expired'">
-            <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          <div class="q-py-sm" v-if="hasContractInfo">
+            <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               CONTRACT INFO
             </div>
-            <div style="font-size: 13px">
+            <div class="sm-font-size">
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row q-pt-md justify-between no-wrap q-mx-lg">
                 <span>Address:</span>
                 <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
               </div>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
                 <span>Balance:</span>
-                <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+                <span class="text-nowrap q-ml-xs">[balance amount] BCH</span>
               </div>
             </div>
           </div>
 
-          <!-- <div v-if="sellStatus === 'Released'">
+          <!-- <div v-if="order.status === 'Released'">
             Here
           </div> -->
-          <div v-if="sellStatus !== 'Released'">
-            <div v-if="sellStatus === 'Expired'">
+          <div v-if="order.status !== 'Released'">
+            <div v-if="order.status === 'Expired'">
               <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-              <div class="q-py-sm text-center" style="font-size: 18px; font-weight: 500; color: #ed5f59;">
+              <div class="q-py-sm text-center lg-font-size bold-text" style="color: #ed5f59;">
                 <q-icon size="xs" name="info" color="red-5"/>&nbsp;
                 <span>Buyer Has Timed Out</span>
               </div>
             </div>
-            <div class="text-center q-mt-sm" v-else>
+            <div class="text-center q-mt-sm" v-if="hasCountDown">
               <q-separator :dark="darkMode" />
-              <div class="q-pt-sm" style="font-size: 15px;">
-                <span v-if="paid">Confirm payment within time limit to release the crypto...</span>
-                <span v-else>Expect payment within...</span>
+              <div class="q-pt-sm md-font-size">
+                <div class="q-px-lg" v-if="order.status === 'Paid'">Confirm payment within time limit to release the crypto...</div>
+                <div v-if="order.status === 'Paid Pending'">Expect payment within...</div>
               </div>
-              <div v-if="paid" class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
+              <div v-if="order.status === 'Paid'" class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
                 {{ countDown }}
               </div>
               <div v-else class="text-center" style="font-size: 40px; color: rgb(60, 100, 246);">
                 {{ countDown }}
               </div>
             </div>
-            <div class="q-mt-sm" v-if="paid || sellStatus === 'Expired'">
+            <div class="q-mt-sm" v-if="order.status === 'Paid' || order.status === 'Expired'">
               <div class="row text-center q-gutter-sm q-mx-lg">
                 <div :class="$q.platform.is.mobile? 'col-4' : 'col'">
                   <q-btn
@@ -165,7 +165,7 @@
                     label='Appeal'
                     class="q-space text-white full-width"
                     style="background-color: #ed5f59;"
-                    @click="appeal = true"
+                    @click="submitAppealConfirmation()"
                   />
                 </div>
                 <div :class="$q.platform.is.mobile? 'col-7' : 'col'">
@@ -175,11 +175,11 @@
                     label='Confirm Payment'
                     class="q-space text-white full-width"
                     color="blue-6"
-                    @click="confirmPayment = true"
+                    @click="paymentConfirmation()"
                   />
                 </div>
               </div>
-              <div class="q-px-xs q-pt-md q-pb-xs" style="font-size: 12px;">
+              <div class="q-px-xs q-pt-md q-pb-xs xs-font-size">
                 <div>
                   <q-icon size="sm" name="info" color="blue-grey-6"/>
                   <span class="q-pl-xs subtext">
@@ -222,19 +222,15 @@
             </div>
           </div> -->
           <div v-if="!paid">
-            <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               MY PAYMENT METHODS
             </div>
             <div class="q-pt-md">
-              <div class="q-gutter-sm" :class="$q.platform.is.mobile? '' : 'text-center'">
-                <q-badge v-for="method in paymentMethods" rounded outline color="red" :label="method.type"/>
+              <div class="q-gutter-sm text-center">
+                <q-badge v-for="method in paymentMethods" rounded outline color="red" :label="method.payment_type.name"/>
               </div>
             </div>
           </div>
-          <!-- <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
-            <span>Status:</span>
-            <span class="text-nowrap q-ml-xs">{{ buyStatus }}</span>
-          </div> -->
         </div>
       </q-step>
 
@@ -371,61 +367,22 @@
       </div>
     </q-card>
   </q-dialog>
-  <!-- Confirm Payment -->
-  <q-dialog persistent v-model="confirmPayment">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Confirm Payment?</div>
-      </q-card-section>
 
-      <q-card-section class="text-center q-pt-none">
-        <div>
-          This will release the crypto held by the escrow account to the buyer.
-        </div>
-        <div class="q-pt-md">
-          I confirm that I have received payment from the buyer.
-        </div>
-
-      </q-card-section>
-
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="confirmingPayment" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-
-  <!-- Appeal Dialog -->
-  <q-dialog full-width persistent v-model="appeal">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Submitting an Appeal&nbsp;&nbsp;<q-icon size="xs" name="info" color="blue-grey-6"/></div>
-      </q-card-section>
-
-      <q-card-section class="text-center q-pt-none q-px-md">
-        <span>
-          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
-        </span><br><br>
-        <span class="q-pt-lg">
-          Submitting an appeal will raise dispute on the funds which requires the intervention of the smart contract's assigned Arbiter.
-        </span><br><br>
-        <span class="q-pt-lg">
-          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
-        </span>
-      </q-card-section>
-
-      <q-card-actions class="q-pt-xs text-center" align="center">
-        <q-btn flat label="Cancel" color="red" v-close-popup />
-        <q-btn flat label="I understand, proceed" color="blue-6" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+  <div v-if="openDialog">
+    <MiscDialogs
+      :type="dialogType"
+      :data="info"
+      v-on:back="openDialog = false"
+      v-on:submit="receiveDialogInfo"
+    />
+  </div>
 </template>
 <script>
 import { ref } from 'vue'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
   data () {
@@ -440,11 +397,12 @@ export default {
       countDown: '',
       timer: null,
       receivedPayment: false,
-      confirmPayment: false,
-      appeal: false,
       paid: false,
       sellStatus: 'Pending Payment',
-      paymentMethods: []
+      paymentMethods: [],
+      dialogType: '',
+      openDialog: false,
+      info: null
     }
   },
   props: {
@@ -457,7 +415,8 @@ export default {
     fiatAmount: String
   },
   components: {
-    ProgressLoader
+    ProgressLoader,
+    MiscDialogs
   },
   emits: ['back', 'hideBuyer'],
   computed: {
@@ -467,32 +426,44 @@ export default {
     },
     getFiatAmount () {
       return parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+    },
+    hasCountDown () {
+      const stat = ['Escrowed', 'Paid Pending', 'Paid', 'Release Pending']
+
+      return stat.includes(this.order.status)
+    },
+    hasContractInfo () {
+      const stat = ['Paid', 'Expired']
+      return !stat.includes(this.order.status)
+    },
+    isExpired () {
+      return true
     }
   },
   methods: {
-    checkStep () {
-      console.log('checking status')
-
+    async checkStep () {
       switch (this.order.status) {
         case 'Submitted':
-        case 'Escrow Pending':
           this.step = 1
-          console.log('1')
           break
-        case 'Escrowed':
-        case 'Paid Pending':
+        case 'Escrow Pending': // no timer
           this.step = 2
           this.confirmed = true
-          this.paymentCountdown()
-          console.log('2')
+          this.fetchPaymentMethod()
           break
+        case 'Escrowed': // has timer
+        case 'Paid Pending':
         case 'Paid':
+          this.step = 2
+          this.confirmed = true
+          this.fetchPaymentMethod()
+          await this.paymentCountdown()
+          break
         case 'Release Pending':
           this.step = 3
           this.paymentCountdown()
-          console.log('3')
           break
-        case 'Released':
+        case 'Released': // stopped timer
           this.step = 3
           this.status = 'released'
           break
@@ -504,6 +475,28 @@ export default {
           this.status = 'cancelled'
           break
       }
+    },
+    async fetchPaymentMethod () {
+      const vm = this
+
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
+
+      // console.log(wallet.walletHash)
+      await vm.$axios.get(vm.apiURL + '/payment-method',
+        {
+          headers: {
+            'wallet-hash': vm.wallet.walletHash,
+            signature: signature,
+            timestamp: timestamp
+          }
+        })
+        .then(response => {
+          this.paymentMethods = response.data
+        })
+        .catch(error => {
+          console.log(error)
+        })
     },
     async fetchOrderData () {
       const vm = this
@@ -521,7 +514,6 @@ export default {
         .then(response => {
           vm.order = response.data.order
           vm.contract = response.data.contract
-          console.log(vm.order)
         })
         .catch(error => {
           console.log(error)
@@ -536,7 +528,6 @@ export default {
       await vm.$axios.get(url)
         .then(response => {
           vm.ad = response.data
-          console.log(vm.ad)
         })
         .catch(error => {
           console.error(error)
@@ -545,8 +536,8 @@ export default {
     },
     paymentCountdown () {
       const vm = this
-      const currentDate = new Date().getTime()
-      const expiryDate = new Date(currentDate + 24 * 60 * 60 * 1000)
+      // const currentDate = new Date().getTime()
+      const expiryDate = new Date(vm.order.expiration_date) // change later
 
       vm.timer = setInterval(function () {
         const now = new Date().getTime()
@@ -561,7 +552,6 @@ export default {
         }
 
         vm.countDown = hours + ':' + minutes + ':' + seconds
-        // console.log(vm.countDown)
         if (distance < 0) {
           clearInterval(vm.timer)
           vm.countDown = 'Expired'
@@ -569,36 +559,18 @@ export default {
         }
       }, 1000)
     },
-    releaseCntDwnSim () {
+    async escrowCrypto () {
+      // Add escrow crypto process later
       const vm = this
+      vm.isloaded = false
+      vm.$refs.stepper.next()
+      vm.order.status = 'Escrow Pending'
+      vm.fetchPaymentMethod()
+      await vm.paymentCountdown()
 
-      const expire = 10
-      let now = 0
+      // this.$refs.stepper.next()
 
-      const x = setInterval(function () {
-        now++
-        if (now === expire) {
-          clearInterval(x)
-          // vm.$refs.stepper.next()
-          // vm.buyStatus = 'Released'
-          // vm.$emit('released')
-          // vm.buyStatus = 'Expired'
-          clearInterval(vm.timer)
-          vm.timer = null
-          // vm.receivedPayment = true
-
-          // vm.paid = true
-          // vm.sellStatus = 'Pending Release'
-          vm.sellStatus = 'Expired'
-          console.log(vm.receivedPayment)
-        }
-      }, 1000)
-    },
-    confirmedOrder () {
-      this.paymentCountdown()
-      this.releaseCntDwnSim()
-      this.$refs.stepper.next()
-      this.$emit('hideBuyer')
+      vm.isloaded = true
     },
     confirmingPayment () {
       clearInterval(this.timer)
@@ -608,16 +580,28 @@ export default {
       this.sellStatus = 'Released'
 
       this.$emit('hideBuyer')
-      // console.log(this.receivedPayment)
     },
     getDate () {
       const date = new Date()
       return date.toLocaleString('default', { month: 'long' }) + ' ' + date.getDate() + ', ' + date.getFullYear()
     },
-    setPaymentMethods (data) {
-      console.log('setting payment methods')
-      console.log(data)
-      this.paymentMethods = data
+    returnList () {
+      this.$emit('back')
+      clearInterval(this.timer)
+    },
+    // opening dialog
+    submitAppealConfirmation () {
+      this.dialogType = 'submitAppeal'
+      this.openDialog = true
+    },
+    paymentConfirmation () {
+      this.dialogType = 'confirmPayment'
+      this.openDialog = true
+    },
+
+    // recieving dialog
+    receiveDialogInfo () {
+      this.openDialog = false
     }
   },
   setup () {
@@ -627,11 +611,8 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('Processing Sell Order')
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
-
-    console.log(vm.wallet)
 
     await vm.fetchOrderData()
     await vm.fetchAdData()

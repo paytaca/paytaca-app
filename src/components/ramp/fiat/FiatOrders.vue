@@ -55,7 +55,8 @@
                               <span v-else class="q-mr-xs">Expired for</span>
                               <span>{{ formatExpiration(listing.expiration_date) }}</span>
                             </span>
-                            <span class="bold-text subtext md-font-size" style=";">{{ listing.status }}</span>
+                            <span v-if="listing.expiration_date && isExpired(listing.expiration_date)" class="bold-text subtext md-font-size" style=";">Expired</span>
+                            <span v-else class="bold-text subtext md-font-size" style=";">{{ listing.status }}</span>
                             <!-- <span class="subtext">{{ listing.status }}</span> -->
                             <!-- <span class="status-text" v-if="listing.status === 'released'">RELEASED</span> -->
                             <!-- <span class="status-text" v-else-if="listing.status.includes('confirmation')">PENDING CONFIRMATION</span> -->
@@ -116,7 +117,7 @@ export default {
     vm.loading = true
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
-    console.log(vm.wallet.walletHash)
+    // console.log(vm.wallet.walletHash)
     vm.fetchUserOrders()
   },
   components: {
@@ -157,13 +158,13 @@ export default {
     },
     getElapsedTime (expirationDate) {
       const currentTime = new Date().getTime() // Replace with your start timestamp
-      expirationDate = new Date(expirationDate).getTime()
-      const elapsedMilliseconds = expirationDate - currentTime
-      const elapsedMinutes = Math.floor(elapsedMilliseconds / (1000 * 60))
-      let days = 0
-      const hours = Math.floor(elapsedMinutes / 60)
-      const minutes = elapsedMinutes % 60
-      if (hours * -1 > 24) days = hours % 24
+      expirationDate = new Date(expirationDate)
+      const distance = expirationDate - currentTime
+
+      const days = Math.floor(distance / (24 * 3600 * 1000))
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+
       return [days, hours, minutes]
     },
     amountColor (tradeType) {
@@ -175,10 +176,12 @@ export default {
     },
     formatExpiration (expirationDate) {
       let [days, hours, minutes] = this.getElapsedTime(expirationDate)
+
       if (days < 0) days = days * -1
       if (hours < 0) hours = hours * -1
       if (minutes < 0) minutes = minutes * -1
       let formattedElapsedTime = ''
+
       if (days > 0) {
         formattedElapsedTime = `${days} days`
       } else {

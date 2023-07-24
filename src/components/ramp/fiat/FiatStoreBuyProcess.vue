@@ -1,5 +1,5 @@
 <template>
-  <div class="q-px-md full-width" v-if="isloaded" >
+  <div class="q-px-md full-width" v-if="isloaded">
     <div>
       <q-btn
         flat
@@ -236,8 +236,12 @@
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" v-if="order.status !== 'Canceled'" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
-            <span class="text-nowrap q-ml-xs text-red-6" v-if="order.status === 'Canceled'">{{ order.status }}</span>
+            <div v-if="!checkStatus">
+              <span class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
+            </div>
+            <div v-else>
+              <span class="text-nowrap q-ml-xs text-red-6">{{ order.status }}</span>
+            </div>
           </div>
           <div class="row q-pt-md" v-if="order.status === 'Canceled'">
             <q-btn
@@ -399,6 +403,14 @@ export default {
   computed: {
     getFiatAmount () {
       return parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+    },
+    checkStatus () {
+      const stat = this.order.status.toLowerCase()
+      if (stat.includes('canceled') || stat.includes('expired')) {
+        return true
+      } else {
+        return false
+      }
     }
   },
   methods: {
@@ -494,10 +506,10 @@ export default {
         }
 
         vm.countDown = hours + ':' + minutes + ':' + seconds
-        // console.log(vm.countDown)
         if (distance < 0) {
           clearInterval(vm.timer)
           vm.countDown = 'Expired'
+          vm.order.status = 'Expired'
           // vm.shiftExpired = true
         }
       }, 1000)
@@ -507,7 +519,6 @@ export default {
       this.$refs.stepper.next()
     },
     cancelingOrder () {
-      // console.log(this.confirmed)
       if (this.confirmed) {
         clearInterval(this.timer)
         this.timer = null
@@ -530,12 +541,12 @@ export default {
         timestamp: timestamp,
         // pubkey: vm.wallet.publicKey
       }
-      console.log(headers)
+      // console.log(headers)
       await vm.$axios.post(url, {}, {
         headers: headers
       })
         .then(response => {
-          console.log(response.data)
+          // console.log(response.data)
           this.fetchOrderData()
         })
         .catch(error => {
@@ -559,13 +570,12 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('Processing buy order')
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
     await this.fetchOrderData()
     await this.fetchAdData()
-    this.checkStep()
+    await this.checkStep()
 
     vm.isloaded = true
   },
