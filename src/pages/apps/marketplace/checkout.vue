@@ -105,6 +105,22 @@
           </div>
         </q-tab-panel>
         <q-tab-panel name="delivery" :dark="darkMode">
+          <template v-if="formData?.delivery?.rider?.id">
+            <div class="text-subtitle1">Rider</div>
+            <q-field
+              dense outlined readonly
+              :dark="darkMode"
+              :model-value="formData?.delivery?.rider?.id"
+              class="q-mb-sm"
+            >
+              <template v-slot:control>
+                <div class="">
+                  <div>{{ formData?.delivery?.rider?.fullName }}</div>
+                  <div>{{ formData?.delivery?.rider?.phoneNumber }}</div>
+                </div>
+              </template>
+            </q-field>
+          </template>
           <q-form @submit="() => submitDeliveryAddress().then(() => nextTab())">
             <q-banner v-if="formErrors?.delivery?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
               <div v-if="formErrors?.delivery?.detail?.length === 1">
@@ -117,6 +133,11 @@
             <q-banner v-if="formErrors?.payment?.deliveryFee" class="bg-red text-white rounded-borders q-mb-md">
               {{ formErrors?.payment?.deliveryFee }}
             </q-banner>
+
+            <div class="row items-center q-mb-sm">
+              <div class="text-subtitle1">Contact</div>
+              <q-space/>
+            </div>
             <div class="row items-start">
               <q-input
                 outlined
@@ -386,6 +407,13 @@
                     class="text-underline"
                   />
                 </div>
+
+                <div v-if="formData?.delivery?.rider?.id">
+                  <q-separator spaced :dark="darkMode"/>
+                  <div class="text-subtitle2">Rider</div>
+                  <div>{{ formData?.delivery?.rider?.fullName }}</div>
+                  <div>{{ formData?.delivery?.rider?.phoneNumber }}</div>
+                </div>
               </q-card>
             </div>
             <div class="q-space q-pa-xs">
@@ -493,7 +521,7 @@
 <script setup>
 import { backend } from 'src/marketplace/backend'
 import { Checkout, Rider } from 'src/marketplace/objects'
-import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
+import { errorParser, formatTimestampToText, getISOWithTimezone } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
@@ -569,7 +597,10 @@ function resetTabs() {
   tabs.value.active = tabs.value.opts[0].name
   nextTab()
   setTimeout(() => {
-    if (validCoordinates.value) nextTab()
+    if (validCoordinates.value) {
+      nextTab()
+      findRider({ replaceExisting: false })
+    }
   }, 1)
 }
 
@@ -593,15 +624,18 @@ const formData = ref({
       longitude: null,
       latitude: null,
     },
+    rider: [].map(Rider.parse)[0],
   },
 })
 
 function resetFormData() {
+  const existingRider = formData.value.delivery?.rider
   formData.value = {
     payment: {
       escrowRefundAddress: checkout.value?.payment?.escrowRefundAddress || bchAddress.value,
     },
     delivery: {
+      rider: existingRider,
       firstName: checkout?.value?.deliveryAddress?.firstName || '',
       lastName: checkout?.value?.deliveryAddress?.lastName || '',
       phoneNumber: checkout?.value?.deliveryAddress?.phoneNumber || '',
@@ -817,6 +851,57 @@ function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
     .finally(() => loading.value = false)
 }
 
+async function findRider(opts={ replaceExisting: false }) {
+  if (!opts?.replaceExisting && formData.value?.delivery?.rider?.id) return
+  loading.value = true
+  loadingMsg.value = 'Finding a rider'
+
+  const riders = await findRiders().catch(() => [])
+  loading.value = false
+  loadingMsg.value = ''
+
+  formData.value.delivery.rider = riders[0]
+  if (!riders?.length) {
+    $q.dialog({
+      title: 'No riders nearby found',
+      message: 'We might have trouble delivering your order. Do you wish to proceed?',
+      persistent: true,
+      cancel: { flat: true, noCaps: true, label: 'Cancel', color: 'grey' },
+      ok: { flat: true, noCaps: true, label: 'Proceed', color: 'brandblue' },
+      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    }).onCancel(() => {
+      $router.replace({ params: { cartId: undefined } })
+      $router.go(-1)
+    })
+  }
+}
+
+function findRiders() {
+  const searchParams = { limit: 3, offset: 0, active: true }
+  const data = {
+    longitude: checkoutStorefront.value?.location?.longitude,
+    latitude: checkoutStorefront.value?.location?.latitude,
+    unit: "m",
+    radius: 5000,
+    sort: "asc",
+  }
+
+  const listParams = Object.assign({
+    availability: getISOWithTimezone(new Date()),
+  }, searchParams) 
+  return Promise.all([
+    backend.post('connecta-express/riders/search/', data, { params: searchParams }),
+    backend.get('connecta-express/riders/', { params: listParams }),
+  ]).then(responses => {
+    const toArray = (val) => Array.isArray(val) ? val : []
+    const riders = responses
+      .map(response => toArray(response?.data?.results))
+      .reduce((list, results) => list.concat(results), [])
+      .map(Rider.parse)
+      .filter((e, i, s) => s.findIndex(e1 => e1?.id === e?.id) === i)
+    return riders
+  })
+}
 
 function updateDeliveryFee() {
   loading.value = true
@@ -855,6 +940,7 @@ async function submitDeliveryAddress() {
   }
 
   return saveDeliveryAddress().then(() => updateDeliveryFee())
+    .then(() => findRider({ replaceExisting: false }))
 }
 
 function saveDeliveryAddress() {
@@ -946,6 +1032,10 @@ function updateCheckout(data) {
 }
 
 async function completeCheckout() {
+  const data = {
+    rider_id: formData.value?.delivery?.rider?.id || undefined,
+  }
+
   const dialog = $q.dialog({
     title: 'Creating order',
     progress: true,
@@ -956,7 +1046,7 @@ async function completeCheckout() {
   loading.value = true
   loadingMsg.value = 'Creating order'
   await updateBchPrice()
-  return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`)
+  return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`, data)
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
 

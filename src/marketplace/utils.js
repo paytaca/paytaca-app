@@ -58,6 +58,28 @@ export function formatTimestampToText(timestamp) {
   return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
 }
 
+/**
+ * @param {Date} date 
+ */
+export function getTimezoneOffsetString(date) {
+  const offsetMinutes = date.getTimezoneOffset();
+  const offsetHours = -Math.floor(offsetMinutes / 60);
+  const offsetMinutesAbs = Math.abs(offsetMinutes % 60);
+  const prefix = offsetHours >= 0 ? '+' : ''
+  return `${prefix}${offsetHours.toString().padStart(2, '0')}:${offsetMinutesAbs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * @param {Date} date 
+ */
+export function getISOWithTimezone(date) {
+  const timezoneOffsetString = getTimezoneOffsetString(date);
+  const translatedDate = new Date(date.setMinutes(date.getMinutes() - date.getTimezoneOffset()))
+  const isoString = translatedDate.toISOString();
+
+
+  return `${isoString.substring(0, isoString.length - 1)}${timezoneOffsetString}`;
+}
 
 export function parsePaymentStatusColor(value) {
   switch(value) {

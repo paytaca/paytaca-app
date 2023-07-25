@@ -717,6 +717,10 @@ export class Rider {
     this.distance = data?.distance
     this.currentLocation = data?.current_location
   }
+
+  get fullName() {
+    return [this.firstName, this.lastName].filter(Boolean).join(' ')
+  }
 }
 
 
