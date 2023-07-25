@@ -113,7 +113,8 @@
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
+            <span v-if="isExpired" class="text-red-6 text-nowrap q-ml-xs">Expired</span>
+            <span v-else class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
           </div>
 
           <div class="q-py-sm" v-if="hasContractInfo">
@@ -136,26 +137,29 @@
             Here
           </div> -->
           <div v-if="order.status !== 'Released'">
-            <div v-if="order.status === 'Expired'">
+            <div v-if="isExpired">
               <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
               <div class="q-py-sm text-center lg-font-size bold-text" style="color: #ed5f59;">
                 <q-icon size="xs" name="info" color="red-5"/>&nbsp;
                 <span>Buyer Has Timed Out</span>
               </div>
             </div>
-            <div class="text-center q-mt-sm" v-if="hasCountDown">
-              <q-separator :dark="darkMode" />
-              <div class="q-pt-sm md-font-size">
-                <div class="q-px-lg" v-if="order.status === 'Paid'">Confirm payment within time limit to release the crypto...</div>
-                <div v-if="order.status === 'Paid Pending'">Expect payment within...</div>
-              </div>
-              <div v-if="order.status === 'Paid'" class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
-                {{ countDown }}
-              </div>
-              <div v-else class="text-center" style="font-size: 40px; color: rgb(60, 100, 246);">
-                {{ countDown }}
+            <div v-else>
+              <div class="text-center q-mt-sm" v-if="hasCountDown">
+                <q-separator :dark="darkMode" />
+                <div class="q-pt-sm md-font-size">
+                  <div class="q-px-lg" v-if="order.status === 'Paid'">Confirm payment within time limit to release the crypto...</div>
+                  <div v-if="order.status === 'Paid Pending'">Expect payment within...</div>
+                </div>
+                <div v-if="order.status === 'Paid'" class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
+                  {{ countDown }}
+                </div>
+                <div v-else class="text-center" style="font-size: 40px; color: rgb(60, 100, 246);">
+                  {{ countDown }}
+                </div>
               </div>
             </div>
+
             <div class="q-mt-sm" v-if="order.status === 'Paid' || order.status === 'Expired'">
               <div class="row text-center q-gutter-sm q-mx-lg">
                 <div :class="$q.platform.is.mobile? 'col-4' : 'col'">
@@ -221,7 +225,7 @@
               />
             </div>
           </div> -->
-          <div v-if="!paid">
+          <div v-if="!order.status === 'Paid'">
             <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               MY PAYMENT METHODS
             </div>
@@ -240,45 +244,45 @@
         title="Release Crypto"
         prefix="3"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
           Release Crypto
         </div>
-        <div class="q-pt-md" style="font-size: 13px;">
-          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+        <div class="q-pt-md sm-f" style="font-size: 13px;">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row bold-text subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} {{ order.fiat_currency .symbol }}</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Price:</span>
-            <span class="text-nowrap q-ml-xs">6871.41 PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ ad.price }}</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount }} BCH</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg" style="font-weight: 500;">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" v-if="sellStatus !== 'Expired'" :class="sellStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ sellStatus }}</span>
-            <span class="text-nowrap q-ml-xs text-red-6" v-if="sellStatus === 'Expired'">{{ sellStatus }}</span>
+            <span class="text-nowrap q-ml-xs" v-if="!isExpired" :class="order.status.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ order.status }}</span>
+            <span class="text-nowrap q-ml-xs text-red-6" v-if="isExpired">Expired</span>
           </div>
         </div>
         <div class="text-center">
-          <div class="text-h5" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          <div class="text-h5 md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
             RELEASED
           </div>
-          <div class="q-pt-sm" style="font-size: 18px;">
-            {{ getDate() }}
+          <div class="q-pt-sm md-font-size">
+            [date here]
           </div>
         </div>
         <div class="q-pt-sm">
-          <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
             TRADE INFO
           </div>
           <div class="q-pt-md">
             <div  class="row justify-between no-wrap q-mx-lg">
               <div>
-                <span style="font-size: 13px;">Buyer</span><br>
-                <span style="font-weight: 500; font-size: 15px;">{{ sell.name }}</span>
+                <span class="sm-font-size">Buyer</span><br>
+                <span class="bold-text md-font-size">{{ order.ad.owner.nickname }}</span>
               </div>
               <div class="q-pt-sm text-right">
                 <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
@@ -288,8 +292,8 @@
             <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
             <div  class="row justify-between no-wrap q-mx-lg q-pt-md">
               <div>
-                <span style="font-size: 13px;">Arbiter</span><br>
-                <span style="font-weight: 500; font-size: 15px;">Atty. Ruby Von Rails</span>
+                <span class="sm-font-size">Arbiter</span><br>
+                <span class="md-font-size bold-text">Atty. Ruby Von Rails</span>
               </div>
               <div class="q-pt-sm text-right">
                 <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
@@ -299,19 +303,16 @@
             <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
           </div>
           <div>
-            <div class="text-h5 q-pt-md text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            <div class="text-h5 q-pt-md text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               PAYMENT METHOD
             </div>
             <div class="q-pt-md">
-              <div class="q-gutter-sm" :class="$q.platform.is.mobile? '' : 'text-center'">
-                <!-- <q-badge rounded outline color="red" :label="paymentMethods[0].type"/> -->
-                <div class="q-mx-lg text-center">
-                  <div class="text-h5" style="font-size: 15px;">
-                    {{ paymentMethods[0].type.toUpperCase() }}
-                  </div>
-                  <div class="subtext" style="font-weight: 500;">
-                    {{ paymentMethods[0].info }}
-                  </div>
+              <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                MY PAYMENT METHODS
+              </div>
+              <div class="q-pt-md">
+                <div class="q-gutter-sm text-center">
+                  <q-badge v-for="method in paymentMethods" rounded outline color="red" :label="method.payment_type.name"/>
                 </div>
               </div>
             </div>
@@ -437,7 +438,17 @@ export default {
       return !stat.includes(this.order.status)
     },
     isExpired () {
-      return true
+      const vm = this
+      console.log(vm.order.expiration_date)
+
+      const now = new Date().getTime()
+      const expiryDate = new Date(vm.order.expiration_date)
+
+      if (expiryDate < now && vm.order.expiration_date) {
+        return true
+      } else {
+        return false
+      }
     }
   },
   methods: {
@@ -568,8 +579,6 @@ export default {
       vm.fetchPaymentMethod()
       await vm.paymentCountdown()
 
-      // this.$refs.stepper.next()
-
       vm.isloaded = true
     },
     confirmingPayment () {
@@ -617,9 +626,14 @@ export default {
     await vm.fetchOrderData()
     await vm.fetchAdData()
     vm.checkStep()
+    console.log(vm.isExpired)
 
     vm.sell = vm.listingData
     vm.isloaded = true
+  },
+  beforeUnmount () {
+    clearInterval(this.timer)
+    this.timer = null
   }
 }
 </script>
