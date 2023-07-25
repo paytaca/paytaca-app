@@ -483,6 +483,10 @@ export class DeliveryAddress {
     this.location = Location.parse(data?.location)
     this.distance = data?.distance
   }
+
+  get fullName() {
+    return [this.firstName, this.lastName].filter(Boolean).join(' ')
+  }
 }
 
 export class Checkout {
@@ -525,6 +529,20 @@ export class Checkout {
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
     }
+  }
+
+  updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
+    if (opts?.abortIfCompleted && this?.orderId) return Promise.resolve('checkout is completed')
+    if (opts?.age && this.payment?.bchPrice?.timestamp > Date.now() - opts?.age) {
+      return Promise.resolve('price is still new')
+    }
+
+    return backend.post(`connecta/checkouts/${this.id}/update_bch_price/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.raw = response?.data
+        return Promise.resolve(response)
+      })
   }
 }
 

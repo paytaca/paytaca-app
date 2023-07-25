@@ -282,6 +282,8 @@
             </div>
             <div class="q-mt-sm">
               <q-btn
+                :loading="loading"
+                :disable="loading"
                 no-caps
                 label="Save"
                 type="submit"
@@ -371,10 +373,7 @@
               >
                 <div class="text-subtitle1">Delivery</div>
                 <q-separator :dark="darkMode"/>
-                <div>
-                  {{ checkout?.deliveryAddress?.firstName }}
-                  {{ checkout?.deliveryAddress?.lastName }}
-                </div>
+                <div>{{ checkout?.deliveryAddress?.fullName }}</div>
                 <div>{{ checkout?.deliveryAddress?.phoneNumber }}</div>
                 <div @click="() => displayDeliveryAddressLocation()">
                   <div>{{ checkout?.deliveryAddress?.location?.formatted }}</div>
@@ -390,17 +389,12 @@
               </q-card>
             </div>
             <div class="q-space q-pa-xs">
-              <q-card
-                :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-pa-sm']"
-              >
-              <div class="q-px-sm">
-                <div class="text-subtitle1">Items</div>
-                <q-separator :dark="darkMode"/>
-              </div>
+              <q-card :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-pa-sm']">
+              <div class="q-px-sm text-subtitle1">Items</div>
+              <q-separator :dark="darkMode" class="q-mx-sm"/>
               <table class="full-width items-table">
                 <tr>
                   <th class="full-width">Item</th>
-                  <th>Price</th>
                   <th>Quantity</th>
                   <th>Subtotal</th>
                 </tr>
@@ -428,8 +422,7 @@
                     </q-btn>
                   </td>
                   <td class="text-center" style="white-space:nowrap;">{{ cartItem?.quantity }}</td>
-                  <td class="text-center" style="white-space:nowrap;">{{ cartItem?.variant?.price }} {{ checkoutCurrency }}</td>
-                  <td class="text-center" style="white-space:nowrap;">{{ cartItem?.variant?.price * cartItem?.quantity }} {{ checkoutCurrency }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ (cartItem?.variant?.price * cartItem?.quantity) }} {{ checkoutCurrency }}</td>
                 </tr>
               </table>
               </q-card>
@@ -448,10 +441,7 @@
             <q-icon name="help" size="sm" class="q-my-sm"/>
             <q-menu
               anchor="bottom right" self="top right"
-              :class="[
-                darkMode ? 'pt-dark' : 'text-black',
-                'q-pa-sm'
-              ]"
+              :class="[ darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']"
             >
               BCH address of customer. Used as receipient in case of refund on payment
             </q-menu>
@@ -502,7 +492,7 @@
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
-import { Checkout } from 'src/marketplace/objects'
+import { Checkout, Rider } from 'src/marketplace/objects'
 import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
@@ -736,50 +726,27 @@ function geocode() {
     })
 }
 
-const formErrors = ref({
-  detail: [],
-  payment: {
-    deliveryFee: '',
-    escrowRefundAddress: '',
-  },
-  delivery: {
+function createEmptyFormErrors() {
+  return {
     detail: [],
-    firstName: '',
-    lastName: '',
-    phoneNumber: '',
-    location: {
-      address1: '',
-      address2: '',
-      street: '',
-      city: '',
-      state: '',
-      country: '',
-      longitude: '',
-      latitude: '',
+    payment: { deliveryFee: '', escrowRefundAddress: '' },
+    delivery: {
+      detail: [],
+      firstName: '',
+      lastName: '',
+      phoneNumber: '',
+      location: {
+        address1: '', address2: '',
+        street: '', city: '',
+        state: '', country: '',
+        longitude: '', latitude: '',
+      },
     }
   }
-})
-
+} 
+const formErrors = ref(createEmptyFormErrors())
 function resetFormErrors() {
-  formErrors.value.detail = []
-  formErrors.value.payment.deliveryFee = ''
-  formErrors.value.payment.escrowRefundAddress = ''
-  formErrors.value.delivery = {
-    detail: [],
-    firstName: '',
-    lastName: '',
-    phoneNumber: '',
-    location: {
-      address1: '',
-      address2: '',
-      street: '',
-      city: '',
-      state: '',
-      country: '',
-      longitude: '',
-      latitude: '',
-    }
-  }
+  formErrors.value = createEmptyFormErrors()
 }
 
 let unsubscribeCacheCartMutation = null 
@@ -820,11 +787,7 @@ const checkoutAmounts = computed(() => {
   return data
 })
 function toggleAmountsDisplay() {
-  if (isNaN(checkoutBchPrice.value)) {
-    displayBch.value = false
-    return
-  }
-  displayBch.value = !displayBch.value
+  displayBch.value = !displayBch.value && !isNaN(checkoutBchPrice.value)
 }
 
 function fetchCheckout() {
@@ -847,24 +810,13 @@ function saveCart() {
   $store.dispatch('marketplace/saveCart', checkout.value.cart)
 }
 
-
 function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
-  if (opts?.abortIfCompleted && checkout.value?.orderId) return Promise.resolve('checkout is completed')
-  if (opts?.age && checkout.value?.payment?.bchPrice?.timestamp > Date.now() - opts?.age) {
-    return Promise.resolve('price is still new')
-  }
-
   loading.value = true
-  return backend.post(`connecta/checkouts/${checkout.value.id}/update_bch_price/`)
-    .then(response => {
-      if (!response?.data?.id) return Promise.reject({ response })
-      checkout.value.raw = response?.data
-      resetFormData()
-    })
-    .finally(() => {
-      loading.value = false
-    })
+  return checkout.value.updateBchPrice(opts)
+    .then(() => resetFormData())
+    .finally(() => loading.value = false)
 }
+
 
 function updateDeliveryFee() {
   loading.value = true
@@ -958,9 +910,7 @@ function saveDeliveryAddress() {
 function savePayment() {
   loadingMsg.value = 'Updating payment'
   return updateCheckout({
-    payment: {
-      escrow_refund_address: formData.value.payment.escrowRefundAddress,
-    }
+    payment: { escrow_refund_address: formData.value.payment.escrowRefundAddress },
   })
   .finally(() => resetFormErrors())
   .catch(error => {
@@ -995,7 +945,7 @@ function updateCheckout(data) {
     })
 }
 
-function completeCheckout() {
+async function completeCheckout() {
   const dialog = $q.dialog({
     title: 'Creating order',
     progress: true,
@@ -1005,6 +955,7 @@ function completeCheckout() {
   })
   loading.value = true
   loadingMsg.value = 'Creating order'
+  await updateBchPrice()
   return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`)
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
@@ -1040,14 +991,12 @@ function completeCheckout() {
 }
 
 const checkoutStorefrontId = computed(() => checkout.value?.cart?.storefrontId)
-watch(
-  checkoutStorefrontId,
-  () => {
-    if (!checkout.value?.cart?.storefrontId) return
-    $store.commit('marketplace/setActiveStorefrontId', checkout.value?.cart?.storefrontId)
-    if (!checkoutStorefront.value?.id) fetchCheckoutStorefront()
-  }
-)
+watch(checkoutStorefrontId, () => {
+  if (!checkout.value?.cart?.storefrontId) return
+  $store.commit('marketplace/setActiveStorefrontId', checkout.value?.cart?.storefrontId)
+  if (!checkoutStorefront.value?.id) fetchCheckoutStorefront()
+})
+
 const checkoutStorefront = computed(() => $store.getters['marketplace/getStorefront']?.(checkout.value?.cart?.storefrontId))
 function fetchCheckoutStorefront() {
   if (!checkoutStorefrontId.value) Promise.reject()
@@ -1059,6 +1008,7 @@ function displayStorefrontLocation() {
   if (!checkoutStorefront.value?.location?.validCoordinates) return
 
   return displayCoordinates({
+    hideCancel: true,
     headerText: checkoutStorefront.value?.name,
     latitude: Number(checkoutStorefront.value?.location?.latitude),
     longitude: Number(checkoutStorefront.value?.location?.longitude),
@@ -1069,17 +1019,20 @@ function displayDeliveryAddressLocation() {
   if (!checkout.value?.deliveryAddress?.location?.validCoordinates) return
 
   return displayCoordinates({
+    hideCancel: true,
+    headerText: 'Delivery address',
     latitude: Number(checkout.value?.deliveryAddress?.location?.latitude),
     longitude: Number(checkout.value?.deliveryAddress?.location?.longitude),
   })
 }
 
-function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefined }) {
+function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefined, hideCancel: undefined }) {
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
       static: true,
       headerText: opts?.headerText,
+      hideCancel: opts?.hideCancel,
       initLocation: { latitude: opts?.latitude, longitude: opts?.longitude }
     }
   })
