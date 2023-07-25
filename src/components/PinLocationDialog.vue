@@ -17,6 +17,7 @@
       </div>
       <q-card-actions>
         <q-btn
+          v-if="!hideCancel"
           no-caps
           :label="$t('Cancel', {}, 'Cancel')"
           outline
@@ -59,6 +60,7 @@ const props = defineProps({
   headerText: String,
   initLocation: Object,
   static: Boolean,
+  hideCancel: Boolean,
 })
 
 const mapUid = computed(() => `leaflet-map-${uid.value}`)
@@ -73,10 +75,12 @@ function initMap() {
     zoom: 13,
     preferCanvas: true,
   }
+  let autoLocate = true
   if (Number.isFinite(props.initLocation?.latitude) && Number.isFinite(props.initLocation?.longitude)) {
     mapOptions.center[0] = props.initLocation?.latitude
     mapOptions.center[1] = props.initLocation?.longitude
     mapOptions.zoom = 18
+    autoLocate = false
   }
 
   const _map = new leaflet.Map(mapUid.value, mapOptions)
@@ -94,8 +98,10 @@ function initMap() {
   map.value = markRaw(_map)
 
   _map.on('move', () => updateCoordinates())
-  _map.locate({setView: true, maxZoom: 16})
-  _map.on('locationfound', console.log)
+  if (autoLocate && !props.static) {
+    _map.locate({setView: true, maxZoom: 16})
+    _map.on('locationfound', () => updateCoordinates())
+  }
 
   if (props.static) {
    _map.off('move') 
