@@ -327,7 +327,7 @@ export default {
   async mounted () {
     const vm = this
     vm.checkDialogType()
-    // vm.fetchPaymentTypes()
+    vm.fetchPaymentTypes()
     if (vm.addPaymentMethod) {
       vm.selectedPaymentMethods = vm.currentPaymentMethods.map((element) => {
         element.selected = false

@@ -185,11 +185,8 @@ export default {
     },
     // opening dialog
     addMethod () {
-      console.log('addMethod')
       this.dialogType = 'addPaymentMethod'
       this.openDialog = true
-      console.log('dialogType:', this.dialogType)
-      console.log('openDialog:', this.openDialog)
     },
     editMethod (data) {
       this.info = data
@@ -280,6 +277,7 @@ export default {
             .catch(error => {
               console.error(error)
               console.error(error.response)
+              vm.openDialog = false
             })
 
           break
