@@ -147,9 +147,6 @@ export default {
   async mounted () {
     // get payment type list
     this.paymentMethods = this.currentPaymentMethods
-    if (this.paymentMethods === null) {
-      await this.fetchPaymentMethod()
-    }
     this.isloaded = true
   },
   methods: {
@@ -161,6 +158,7 @@ export default {
       this.openDialog = false
     },
     receiveDialogInfo (data) {
+      console.log('>>>>>>>>>>> data:', data)
       const vm = this
       switch (vm.dialogType) {
         case 'addPaymentMethod':
@@ -173,7 +171,7 @@ export default {
         //   vm.deletePaymentMethod(this.selectedMethodIndex)
         //   break
         case 'confirmRemovePaymentMethod':
-          vm.removePaymentMethod(this.selectedMethodIndex)
+          vm.removePaymentMethod(data)
           break
         case 'confirmPaymentMethod':
           vm.$emit('submit', vm.paymentMethods)
@@ -182,12 +180,9 @@ export default {
     },
     async updatePayment (data) {
       const vm = this
-      vm.isloaded = false
-
+      vm.loading = true
       await vm.savePaymentMethod(data)
-      await vm.fetchPaymentMethod()
-
-      vm.isloaded = true
+      vm.loading = false
     },
     // opening dialog
     addMethod () {
@@ -209,13 +204,16 @@ export default {
       this.openDialog = true
     },
     removeMethod (index, data) {
+      console.log('removeMethod')
       this.info = data
       this.selectedMethodIndex = index // data.id
       this.dialogType = 'confirmRemovePaymentMethod'
       this.openDialog = true
     },
-    removePaymentMethod (index) {
-      this.paymentMethods.splice(index, 1)
+    removePaymentMethod (method) {
+      const vm = this
+      vm.paymentMethods = vm.paymentMethods.filter((element) => element.id !== method.id)
+      this.openDialog = false
     },
     // processes
     async deletePaymentMethod (index) {
@@ -269,9 +267,14 @@ export default {
               timestamp: timestamp
             }
           })
-            // .then(response => {
-            //   console.log(response.data)
-            // })
+            .then(response => {
+              console.log(response.data)
+              if (vm.paymentMethods.length < 5) {
+                vm.paymentMethods.push(response.data)
+              }
+              console.log('paymentMethods:', vm.paymentMethods)
+              vm.addMethod()
+            })
             .catch(error => {
               console.error(error)
               console.error(error.response)

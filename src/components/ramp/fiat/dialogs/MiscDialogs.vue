@@ -72,7 +72,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="addPaymentMethod" @hide="$emit('back')">
+  <q-dialog persistent v-model="addPaymentMethod">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section class="xm-font-size q-mx-lg">
         <div class="bold-text text-center">Select Payment Methods</div>
@@ -124,7 +124,19 @@
         </q-list>
       </q-card-section>
       <q-card-section>
-        <div v-if="!loading" class="row q-mx-md">
+        <div v-if="!loading" class="row justify-center q-mx-md">
+          <div class="q-mx-sm q-px-md">
+            <q-btn
+              outline
+              rounded
+              label='Add new'
+              color="blue-6"
+              class="q-space text-white full-width"
+              @click="addNewPaymentMethod()"
+              v-close-popup>
+            </q-btn>
+          </div>
+          <div class="q-mx-sm q-px-md">
             <q-btn
               rounded
               color="blue-6"
@@ -136,6 +148,7 @@
               </template>
             </q-btn>
           </div>
+        </div>
       </q-card-section>
 
       <!-- <q-card-actions class="text-center" align="center">
@@ -184,10 +197,10 @@
         </span>
       </q-card-section>
 
-      <q-card-actions class="text-center" align="center">
+      <q-card-section class="text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
         <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
-      </q-card-actions>
+      </q-card-section>
     </q-card>
   </q-dialog>
 
@@ -286,10 +299,12 @@ export default {
       info: {},
       loading: false,
       isNameValid: false,
+      dialogType: '',
 
       // Dialog Model
       createPaymentMethod: false,
       addPaymentMethod: false,
+      editPaymentMethod: false,
       confirmPaymentMethod: false,
       confirmDeletePaymentMethod: false,
       confirmRemovePaymentMethod: false,
@@ -310,22 +325,28 @@ export default {
     }
   },
   async mounted () {
-    this.checkDialogType()
-    this.fetchPaymentTypes()
-    if (this.addPaymentMethod) {
-      this.selectedPaymentMethods = this.currentPaymentMethods.map((element) => {
+    const vm = this
+    vm.checkDialogType()
+    vm.fetchPaymentTypes()
+    if (vm.addPaymentMethod) {
+      vm.selectedPaymentMethods = vm.currentPaymentMethods.map((element) => {
         element.selected = false
-        if (this.selectedPaymentMethods.includes(element)) {
+        if (vm.selectedPaymentMethods.includes(element)) {
           element.selected = true
           return element
         }
         return element
       })
     }
-    await this.fetchPaymentMethod()
-    this.loading = false
+    await vm.fetchPaymentMethod()
+    vm.loading = false
   },
   methods: {
+    addNewPaymentMethod () {
+      const vm = this
+      vm.dialogType = 'createPaymentMethod'
+      vm.createPaymentMethod = true
+    },
     submitUpdatedPaymentMethods () {
       this.$emit('back', this.selectedPaymentMethods)
     },
@@ -375,10 +396,8 @@ export default {
     },
     checkDialogType () {
       const vm = this
-
-      console.log(vm.type)
-      console.log('opts:', vm.paymentMethodOpts)
-      switch (vm.type) {
+      vm.dialogType = vm.type
+      switch (vm.dialogType) {
         case 'createPaymentMethod':
           vm.createPaymentMethod = true
           break
@@ -387,7 +406,7 @@ export default {
           break
         case 'editPaymentMethod':
           this.paymentMethod = this.data
-          vm.addPaymentMethod = true
+          vm.editPaymentMethod = true
           break
         case 'confirmPaymentMethod':
           vm.confirmPaymentMethod = true
@@ -397,8 +416,7 @@ export default {
           vm.confirmDeletePaymentMethod = true
           break
         case 'confirmRemovePaymentMethod':
-          this.info = this.data
-          console.log('info:', this.info)
+          vm.info = vm.data
           vm.confirmRemovePaymentMethod = true
           break
         case 'editNickname':
@@ -408,32 +426,36 @@ export default {
           vm.viewProfile = true
           break
       }
-      console.log('vm.addPaymentMethod:', vm.addPaymentMethod)
     },
     stageData () {
       const vm = this
-      switch (vm.type) {
+      console.log('dialogType:', vm.dialogType)
+      switch (vm.dialogType) {
         case 'createPaymentMethod':
           vm.info = vm.paymentMethod
-          break
+          return 'submit'
         case 'addPaymentMethod':
           vm.info = vm.selectedPaymentMethods
-          break
+          return 'back'
         case 'editPaymentMethod':
           vm.info = vm.paymentMethod
-          break
+          return 'submit'
         case 'editNickname':
           vm.info = {
             nickname: vm.nickname
           }
-          break
+          return 'submit'
+        case 'confirmRemovePaymentMethod':
+          vm.info = vm.data
+          return 'submit'
       }
     },
     submitData () {
       const vm = this
-      vm.stageData()
-      this.$emit('submit', vm.info)
-      this.$emit('back') //check later
+      const emitName = vm.stageData()
+      console.log('vm.info:', vm.info)
+      this.$emit(emitName, vm.info)
+      // this.$emit('back', vm.info)
     },
     checkName: debounce(async function () {
       const vm = this
