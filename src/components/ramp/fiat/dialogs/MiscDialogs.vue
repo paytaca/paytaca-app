@@ -327,7 +327,7 @@ export default {
   async mounted () {
     const vm = this
     vm.checkDialogType()
-    vm.fetchPaymentTypes()
+    // vm.fetchPaymentTypes()
     if (vm.addPaymentMethod) {
       vm.selectedPaymentMethods = vm.currentPaymentMethods.map((element) => {
         element.selected = false
@@ -338,8 +338,7 @@ export default {
         return element
       })
     }
-    await vm.fetchPaymentMethod()
-    vm.loading = false
+    vm.fetchPaymentMethod()
   },
   methods: {
     addNewPaymentMethod () {
@@ -380,12 +379,18 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          vm.loading = false
         })
     },
     updateSelectedPaymentMethods (paymentMethod) {
       console.log('updateSelectedPaymentMethods:', paymentMethod)
       const vm = this
+
       if (paymentMethod.selected) {
+        if (vm.selectedPaymentMethods.length >= 5) {
+          paymentMethod.selected = !paymentMethod.selected
+          return
+        }
         if (!vm.selectedPaymentMethods.includes(paymentMethod)) {
           vm.selectedPaymentMethods.push(paymentMethod)
         }
@@ -447,6 +452,9 @@ export default {
           return 'submit'
         case 'confirmRemovePaymentMethod':
           vm.info = vm.data
+          return 'submit'
+        default:
+          vm.info = vm.selectedPaymentMethods
           return 'submit'
       }
     },

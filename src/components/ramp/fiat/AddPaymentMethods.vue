@@ -32,7 +32,7 @@
                         {{ method.account_number }}
                       </div>
                     </div>
-                    <div class="text-right q-pt-sm">
+                    <!-- <div class="text-right q-pt-sm">
                       <q-btn
                         outline
                         rounded
@@ -52,7 +52,7 @@
                         class="q-ml-xs"
                         @click="removeMethod(index, method)"
                         />
-                    </div>
+                    </div> -->
                   </div>
                 </q-item-section>
               </q-item>
@@ -67,11 +67,10 @@
           outline
           rounded
           no-caps
-          label='Add'
+          label='Select Methods'
           class="q-space text-white"
           color="blue-6"
           @click="addMethod"
-          v-show="paymentMethods.length < 5"
         />
       </div>
     </div>
@@ -186,8 +185,11 @@ export default {
     },
     // opening dialog
     addMethod () {
+      console.log('addMethod')
       this.dialogType = 'addPaymentMethod'
       this.openDialog = true
+      console.log('dialogType:', this.dialogType)
+      console.log('openDialog:', this.openDialog)
     },
     editMethod (data) {
       this.info = data
@@ -206,7 +208,7 @@ export default {
     removeMethod (index, data) {
       console.log('removeMethod')
       this.info = data
-      this.selectedMethodIndex = index // data.id
+      // this.selectedMethodIndex = index // data.id
       this.dialogType = 'confirmRemovePaymentMethod'
       this.openDialog = true
     },
@@ -273,7 +275,7 @@ export default {
                 vm.paymentMethods.push(response.data)
               }
               console.log('paymentMethods:', vm.paymentMethods)
-              vm.addMethod()
+              vm.openDialog = false
             })
             .catch(error => {
               console.error(error)
