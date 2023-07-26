@@ -92,7 +92,8 @@
     <MiscDialogs
       :type="dialogType"
       :data="info"
-      v-on:back="openDialog = false"
+      :current-payment-methods="paymentMethods"
+      v-on:back="onBack"
       v-on:submit="receiveDialogInfo"
     />
   </div>
@@ -121,7 +122,7 @@ export default {
     },
     currentPaymentMethods: {
       type: Array,
-      default: []
+      default: null
     }
   },
   data () {
@@ -141,32 +142,15 @@ export default {
   async mounted () {
     // get payment type list
     this.paymentMethods = this.currentPaymentMethods
-    await this.fetchPaymentMethod()
+    if (this.paymentMethods === null) {
+      await this.fetchPaymentMethod()
+    }
     this.isloaded = true
   },
   methods: {
-    async fetchPaymentMethod () {
-      const vm = this
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
-      const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
-
-      // console.log(wallet.walletHash)
-      vm.$axios.get(vm.apiURL + '/payment-method',
-        {
-          headers: {
-            'wallet-hash': wallet.walletHash,
-            signature: signature,
-            timestamp: timestamp
-          }
-        })
-        .then(response => {
-          this.paymentMethods = response.data
-        })
-        .catch(error => {
-          console.log(error)
-        })
+    onBack (data) {
+      this.paymentMethods = data
+      this.openDialog = false
     },
     receiveDialogInfo (data) {
       const vm = this

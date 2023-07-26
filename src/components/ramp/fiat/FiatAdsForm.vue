@@ -380,14 +380,24 @@ export default {
   methods: {
     async fetchAdDetail () {
       const vm = this
+      let timestamp = null
+      let signature = null
       if (vm.wallet === null) {
         const walletInfo = this.$store.getters['global/getWallet']('bch')
         vm.wallet = await loadP2PWalletInfo(walletInfo)
+        timestamp = Date.now()
+        signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
       }
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
       try {
-        const response = await vm.$axios.get(url)
+        const response = await vm.$axios.get(url, { headers: headers })
         const data = response.data
+        console.log('data:', data)
         vm.adData.tradeType = data.trade_type
         vm.adData.priceType = data.price_type
         vm.adData.floatingPrice = data.floating_price
@@ -395,6 +405,7 @@ export default {
         vm.adData.tradeFloor = data.trade_floor
         vm.adData.tradeCeiling = data.trade_ceiling
         vm.adData.cryptoAmount = data.crypto_amount
+        vm.adData.paymentMethods = data.payment_methods
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
         vm.selectedCurrency = data.fiat_currency
       } catch (error) {

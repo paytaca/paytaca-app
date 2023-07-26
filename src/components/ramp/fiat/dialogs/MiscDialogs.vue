@@ -1,10 +1,10 @@
 <template>
 
-  <!-- Add Payment Method -->
-  <q-dialog full-width persistent v-model="addPaymentMethod">
+  <!-- Create Payment Method -->
+  <q-dialog full-width persistent v-model="createPaymentMethod">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
-        <div class="text-h5 text-center lg-font-size">Add Payment Method</div>
+        <div class="text-h5 text-center lg-font-size">Create Payment Method</div>
       </q-card-section>
 
       <div>
@@ -69,6 +69,76 @@
           </div>
         </div>
       </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="addPaymentMethod" @hide="$emit('back')">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section class="xm-font-size q-mx-lg">
+        <div class="bold-text text-center">Select Payment Methods</div>
+      </q-card-section>
+
+      <q-card-section class="text-left q-pt-sm q-mx-md">
+        <q-list style="max-height:60vh; overflow:auto;">
+          <div v-for="(option, index) in paymentMethodOpts" :key="index">
+            <q-item rounded :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              <q-item-section>
+                <div class="q-py-none row">
+                  <!-- <div class="row"> -->
+                    <div class="col ib-text">
+                      <span
+                        :class="{'pt-dark-label': darkMode}"
+                        class="q-mb-none"
+                        style="font-size: 10px;">
+                        {{ option.payment_type.name }}
+                      </span><br>
+                      <span
+                        :class="{'pt-dark-label': darkMode}"
+                        class="q-mb-none text-uppercase"
+                        style="font-size: 12px;">
+                        {{ option.account_name }}
+                      </span><br>
+                      <span
+                        :class="{'pt-dark-label': darkMode}"
+                        class="q-mb-none text-uppercase"
+                        style="font-size: 12px;">
+                        {{ option.account_number }}
+                      </span>
+                    </div>
+                    <div>
+                      <q-checkbox
+                        v-model:model-value="option.selected"
+                        @update:model-value="updateSelectedPaymentMethods(option)"
+                        color="cyan"
+                        keep-color
+                      />
+                    </div>
+                  <!-- </div> -->
+                </div>
+              </q-item-section>
+            </q-item>
+          </div>
+        </q-list>
+      </q-card-section>
+      <q-card-section>
+        <div class="row q-mx-md">
+            <q-btn
+              rounded
+              color="blue-6"
+              class="q-space text-white full-width"
+              @click="submitUpdatedPaymentMethods()"
+              v-close-popup>
+              <template v-slot:default>
+                Select ({{ selectedPaymentMethods.length }})
+              </template>
+            </q-btn>
+          </div>
+      </q-card-section>
+
+      <!-- <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions> -->
     </q-card>
   </q-dialog>
 
@@ -190,9 +260,22 @@
     </q-card>
   </q-dialog>
 </template>
+
 <script>
 import { debounce } from 'quasar'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { signMessage } from '../../../../wallet/ramp/signature.js'
+
 export default {
+  emits: ['back', 'submit'],
+  props: {
+    type: String,
+    data: {
+      type: Object,
+      default: null
+    },
+    currentPaymentMethods: Array
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -202,6 +285,7 @@ export default {
       isNameValid: false,
 
       // Dialog Model
+      createPaymentMethod: false,
       addPaymentMethod: false,
       confirmPaymentMethod: false,
       confirmDeletePaymentMethod: false,
@@ -217,23 +301,82 @@ export default {
         account_number: ''
 
       },
-      paymentTypes: []
+      paymentTypes: [],
+      paymentMethodOpts: [],
+      selectedPaymentMethods: []
     }
   },
-  emits: ['back', 'submit'],
-  props: {
-    type: String,
-    data: {
-      type: Object,
-      default: null
+  async mounted () {
+    this.checkDialogType()
+    this.fetchPaymentTypes()
+    if (this.addPaymentMethod) {
+      this.selectedPaymentMethods = this.currentPaymentMethods.map((element) => {
+        element.selected = false
+        if (this.selectedPaymentMethods.includes(element)) {
+          element.selected = true
+          return element
+        }
+        return element
+      })
     }
+    await this.fetchPaymentMethod()
+    this.isloaded = true
   },
   methods: {
+    submitUpdatedPaymentMethods () {
+      this.$emit('back', this.selectedPaymentMethods)
+    },
+    async fetchPaymentMethod () {
+      const vm = this
+      const walletInfo = this.$store.getters['global/getWallet']('bch')
+      const wallet = await loadP2PWalletInfo(walletInfo)
+      const timestamp = Date.now()
+      const signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
+      vm.$axios.get(vm.apiURL + '/payment-method',
+        {
+          headers: {
+            'wallet-hash': wallet.walletHash,
+            signature: signature,
+            timestamp: timestamp
+          }
+        })
+        .then(response => {
+          const data = response.data
+          if (vm.addPaymentMethod) {
+            vm.paymentMethodOpts = data.map((element) => {
+              const selected = vm.selectedPaymentMethods.some((item) => {
+                return item.id === element.id
+              })
+              element.selected = selected
+              return element
+            })
+          }
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    updateSelectedPaymentMethods (paymentMethod) {
+      console.log('updateSelectedPaymentMethods:', paymentMethod)
+      const vm = this
+      if (paymentMethod.selected) {
+        if (!vm.selectedPaymentMethods.includes(paymentMethod)) {
+          vm.selectedPaymentMethods.push(paymentMethod)
+        }
+      } else {
+        vm.selectedPaymentMethods = vm.selectedPaymentMethods.filter((element) => element.id !== paymentMethod.id)
+      }
+      console.log('selectedPaymentMethods:', vm.selectedPaymentMethods)
+    },
     checkDialogType () {
       const vm = this
 
-      // console.log(vm.type)
+      console.log(vm.type)
+      console.log('opts:', vm.paymentMethodOpts)
       switch (vm.type) {
+        case 'createPaymentMethod':
+          vm.createPaymentMethod = true
+          break
         case 'addPaymentMethod':
           vm.addPaymentMethod = true
           break
@@ -260,12 +403,16 @@ export default {
           vm.viewProfile = true
           break
       }
+      console.log('vm.addPaymentMethod:', vm.addPaymentMethod)
     },
     stageData () {
       const vm = this
       switch (vm.type) {
-        case 'addPaymentMethod':
+        case 'createPaymentMethod':
           vm.info = vm.paymentMethod
+          break
+        case 'addPaymentMethod':
+          vm.info = vm.selectedPaymentMethods
           break
         case 'editPaymentMethod':
           vm.info = vm.paymentMethod
@@ -306,12 +453,6 @@ export default {
           console.error(error.response)
         })
     }
-  },
-  async mounted () {
-    this.checkDialogType()
-    this.fetchPaymentTypes()
-
-    this.isloaded = true
   }
 }
 </script>
