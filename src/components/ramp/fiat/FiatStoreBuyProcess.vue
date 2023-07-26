@@ -204,10 +204,19 @@
             </div>
           </q-scroll-area>
         </div>
-        <div class="row q-pt-md">
+        <div class="row q-gutter-sm q-pt-md">
           <q-btn
             rounded
             no-caps
+            dense
+            label='Cancel'
+            class="q-space text-white"
+            color="red-6"
+          />
+          <q-btn
+            rounded
+            no-caps
+            dense
             label='Confirm Payment'
             class="q-space text-white"
             color="blue-6"
@@ -236,11 +245,16 @@
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
-            <div v-if="!checkStatus">
-              <span class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
+            <div v-if="isExpired">
+              <span class="text-nowrap q-ml-xs text-red-6">Expired</span>
             </div>
             <div v-else>
-              <span class="text-nowrap q-ml-xs text-red-6">{{ order.status }}</span>
+              <div v-if="!checkStatus">
+                <span class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
+              </div>
+              <div v-else>
+                <span class="text-nowrap q-ml-xs text-red-6">{{ order.status }}</span>
+              </div>
             </div>
           </div>
           <div class="row q-pt-md" v-if="order.status === 'Canceled'">
@@ -254,13 +268,13 @@
             />
           </div>
         </div>
-        <div v-if="order.status === 'Release Pending'">
+        <div v-if="hasCountDown">
           <q-separator :dark="darkMode" class="q-mt-md"/>
           <div class="text-center q-px-md q-pt-md text-center">
             <div class="q-px-lg md-font-size">
               Your Crypto is pending for release by the seller
             </div>
-            <div class="text-center text-h2" style="font-size: 40px; color: #ed5f59;">
+            <div class="text-center text-h2" style="font-size: 35px; color: #ed5f59;">
               {{ countDown }}
             </div>
             <div>
@@ -268,9 +282,85 @@
             </div>
           </div>
         </div>
-        <div class="q-my-lg">
+        <q-separator :dark="darkMode" class="q-mt-sm"/>
+        <div>
+          <div class="q-mx-sm q-mt-md">
+            <div class="q-px-lg bold-text">
+              Seller did not release crypto?
+            </div>
+            <div class="q-pt-xs q-mx-lg subtext">
+              If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal.
+            </div>
+          </div>
+          <div class="row q-pt-md q-mx-md">
+            <q-btn
+              rounded
+              no-caps
+              dense
+              label='Send an Appeal'
+              class="q-space text-white"
+              color="blue-6"
+              @click="appeal = true"
+            />
+          </div>
+        </div>
+        <div class="q-pt-sm" v-if="hasFeedback">
+          <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            FEEDBACK
+          </div>
+          <div>
+            <div  class="text-center q-mx-lg">
+              <div>
+                <div class="q-pt-sm">
+                  <q-rating
+                    v-model="ratingModel"
+                    size="md"
+                    color="amber-8"
+                    icon="star"
+                  />
+                </div>
+                <div class="q-mx-sm subtext" :class="{'pt-dark-label': darkMode}">
+                  <span class="q-pl-md q-mb-none xs-font-size">
+                    {{ ad.trade_count }} trades
+                  </span>&nbsp;
+                  <span class="q-pl-xs q-mb-none xs-font-size">
+                    {{ ad.completion_rate }}% completion
+                  </span>
+                </div>
+                <span class="bold-text q-mb-none md-font-size">{{ order.ad.owner.nickname }}</span><br>
+                <span class="xs-font-size">Rate this Buyer</span><br>
+              </div>
+            </div>
+            <!-- <div  class="text-center q-mx-lg">
+              <div>
+                <div class="q-pt-sm">
+                  <q-rating
+                    v-model="ratingModel"
+                    size="md"
+                    color="blue-8"
+                    icon="star"
+                  />
+                </div>
+                <span class="bold-text md-font-size">Atty. Ruby Von Rails</span><br>
+                <span class="xs-font-size">Rate this Arbiter</span><br>
+              </div>
+            </div> -->
+            <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
+          </div>
+          <div>
+            <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+            <div class="q-pt-sm q-pl-lg">
+              <span class="bold-text text-grey-7">Comment</span>
+              <q-input class="q-pt-sm" dense rounded outlined v-model="comment" label="Add a comment" />
+            </div>
+            <div class="text-center q-pt-sm">
+              <span class="text-blue"><u>Show comments</u></span>
+            </div>
+          </div>
+        </div>
+        <!-- <div class="q-my-lg">
           <div class="q-mx-md text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-            <!-- {{ transactionType === 'SELL' ? 'SELLER INFO' : 'BUYER INFO'}} -->
+            {{ transactionType === 'SELL' ? 'SELLER INFO' : 'BUYER INFO'}}
             SELLER INFO
           </div>
           <div class="row">
@@ -308,15 +398,7 @@
               <q-badge v-for="method in ad.payment_methods" :key="method.id" rounded outline :color="order.trade_type === 'SELL' ? 'red' : 'blue'" :label="method.payment_type"/>
             </div>
           </div>
-          <div class="q-mx-sm q-mt-md">
-            <div class="q-px-lg bold-text">
-              Seller did not release crypto?
-            </div>
-            <div class="q-pt-xs q-mx-lg subtext">
-              If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal
-            </div>
-          </div>
-        </div>
+        </div> -->
       </q-step>
     </q-stepper>
   </div>
@@ -406,7 +488,28 @@ export default {
     },
     checkStatus () {
       const stat = this.order.status.toLowerCase()
-      if (stat.includes('canceled') || stat.includes('expired')) {
+      if (stat.includes('canceled') || this.isExpired) {
+        return true
+      } else {
+        return false
+      }
+    },
+    hasCountDown () {
+      const stat = ['Escrowed', 'Paid Pending', 'Paid', 'Release Pending']
+      return stat.includes(this.order.status) && !this.isExpired
+    },
+    hasFeedback () {
+      const stat = ['Released', 'Canceled', 'Refunded']
+      return stat.includes(this.order.status)
+    },
+    isExpired () {
+      const vm = this
+      console.log(vm.order.expiration_date)
+
+      const now = new Date().getTime()
+      const expiryDate = new Date(vm.order.expiration_date)
+
+      if (expiryDate < now && vm.order.expiration_date) {
         return true
       } else {
         return false
@@ -499,17 +602,20 @@ export default {
         const distance = expiryDate - now
 
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+        let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
         let seconds = Math.floor((distance % (1000 * 60)) / 1000)
         if (seconds.toString().length < 2) {
           seconds = '0' + seconds
+        }
+        if (minutes.toString().length < 2) {
+          minutes = '0' + minutes
         }
 
         vm.countDown = hours + ':' + minutes + ':' + seconds
         if (distance < 0) {
           clearInterval(vm.timer)
           vm.countDown = 'Expired'
-          vm.order.status = 'Expired'
+          // vm.order.status = 'Expired'
           // vm.shiftExpired = true
         }
       }, 1000)

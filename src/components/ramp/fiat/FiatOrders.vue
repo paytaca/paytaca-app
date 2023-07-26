@@ -55,7 +55,7 @@
                               <span v-else class="q-mr-xs">Expired for</span>
                               <span>{{ formatExpiration(listing.expiration_date) }}</span>
                             </span>
-                            <span v-if="listing.expiration_date && isExpired(listing.expiration_date)" class="bold-text subtext md-font-size" style=";">Expired</span>
+                            <span v-if="listing.expiration_date && isExpired(listing.expiration_date) && statusType === 'ONGOING'" class="bold-text subtext md-font-size" style=";">Expired</span>
                             <span v-else class="bold-text subtext md-font-size" style=";">{{ listing.status }}</span>
                             <!-- <span class="subtext">{{ listing.status }}</span> -->
                             <!-- <span class="status-text" v-if="listing.status === 'released'">RELEASED</span> -->

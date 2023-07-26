@@ -117,7 +117,7 @@
             <span v-else class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
           </div>
 
-          <div class="q-py-sm" v-if="hasContractInfo">
+          <div class="q-py-sm" v-if="hasExtraInfo">
             <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               CONTRACT INFO
             </div>
@@ -148,8 +148,8 @@
               <div class="text-center q-mt-sm" v-if="hasCountDown">
                 <q-separator :dark="darkMode" />
                 <div class="q-pt-sm md-font-size">
-                  <div class="q-px-lg" v-if="order.status === 'Paid'">Confirm payment within time limit to release the crypto...</div>
-                  <div v-if="order.status === 'Paid Pending'">Expect payment within...</div>
+                  <div class="q-px-lg" >{{ countDownText }}</div>
+                  <!-- <div v-if="order.status === 'Paid Pending'">Expect payment within...</div> -->
                 </div>
                 <div v-if="order.status === 'Paid'" class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
                   {{ countDown }}
@@ -159,49 +159,48 @@
                 </div>
               </div>
             </div>
-
-            <div class="q-mt-sm" v-if="order.status === 'Paid' || order.status === 'Expired'">
-              <div class="row text-center q-gutter-sm q-mx-lg">
-                <div :class="$q.platform.is.mobile? 'col-4' : 'col'">
-                  <q-btn
-                    rounded
-                    no-caps
-                    label='Appeal'
-                    class="q-space text-white full-width"
-                    style="background-color: #ed5f59;"
-                    @click="submitAppealConfirmation()"
-                  />
-                </div>
-                <div :class="$q.platform.is.mobile? 'col-7' : 'col'">
-                  <q-btn
-                    rounded
-                    no-caps
-                    label='Confirm Payment'
-                    class="q-space text-white full-width"
-                    color="blue-6"
-                    @click="paymentConfirmation()"
-                  />
-                </div>
+          </div>
+          <div class="q-mt-sm" v-if="order.status === 'Released' || isExpired">
+            <div class="row text-center q-gutter-sm q-mx-lg">
+              <div :class="$q.platform.is.mobile? 'col-4' : 'col'">
+                <q-btn
+                  rounded
+                  no-caps
+                  label='Appeal'
+                  class="q-space text-white full-width"
+                  style="background-color: #ed5f59;"
+                  @click="submitAppealConfirmation()"
+                />
               </div>
-              <div class="q-px-xs q-pt-md q-pb-xs xs-font-size">
-                <div>
-                  <q-icon size="sm" name="info" color="blue-grey-6"/>
-                  <span class="q-pl-xs subtext">
-                    Click on "Appeal" to start the refund process if you have not received payment.
-                  </span>
-                </div>
-                <div class="q-pt-xs">
-                  <q-icon size="sm" name="info" color="blue-grey-6"/>
-                  <span class="q-pl-xs subtext">
-                    Click on "Confirm Payment" to release the funds.
-                  </span>
-                </div>
-                <div class="q-pt-xs">
-                  <q-icon size="sm" name="info" color="orange-6"/>
-                  <span class="q-pl-xs subtext">
-                    Do not click on "Confirm Payment" if you did not receive payment from the buyer to avoid financial loss.
-                  </span>
-                </div>
+              <div :class="$q.platform.is.mobile? 'col-7' : 'col'">
+                <q-btn
+                  rounded
+                  no-caps
+                  label='Confirm Payment'
+                  class="q-space text-white full-width"
+                  color="blue-6"
+                  @click="paymentConfirmation()"
+                />
+              </div>
+            </div>
+            <div class="q-px-xs q-pt-md q-pb-xs xs-font-size">
+              <div>
+                <q-icon size="sm" name="info" color="blue-grey-6"/>
+                <span class="q-pl-xs subtext">
+                  Click on "Appeal" to start the refund process if you have not received payment.
+                </span>
+              </div>
+              <div class="q-pt-xs">
+                <q-icon size="sm" name="info" color="blue-grey-6"/>
+                <span class="q-pl-xs subtext">
+                  Click on "Confirm Payment" to release the funds.
+                </span>
+              </div>
+              <div class="q-pt-xs">
+                <q-icon size="sm" name="info" color="orange-6"/>
+                <span class="q-pl-xs subtext">
+                  Do not click on "Confirm Payment" if you did not receive payment from the buyer to avoid financial loss.
+                </span>
               </div>
             </div>
           </div>
@@ -225,9 +224,15 @@
               />
             </div>
           </div> -->
-          <div v-if="!order.status === 'Paid'">
+          <div v-if="hasExtraInfo">
+            <div class="text-h5 q-pt-md text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              BUYER PAYMENT METHOD
+            </div>
+            <div class="q-gutter-sm text-center q-py-md">
+                <q-badge v-for="method in order.ad.payment_methods" rounded outline color="blue" :label="method.payment_type"/>
+              </div>
             <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              MY PAYMENT METHODS
+              MY PAYMENT METHODS <q-icon size="xs" name='o_edit' color="blue-grey-6"/>
             </div>
             <div class="q-pt-md">
               <div class="q-gutter-sm text-center">
@@ -261,60 +266,74 @@
             <span class="text-nowrap q-ml-xs">{{ order.crypto_amount }} BCH</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg bold-text">
+            <span>Completed on:</span>
+            <span class="text-nowrap q-ml-xs">[date here]</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg bold-text" v-if="order.status === 'Released'">
             <span>Status:</span>
             <span class="text-nowrap q-ml-xs" v-if="!isExpired" :class="order.status.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ order.status }}</span>
             <span class="text-nowrap q-ml-xs text-red-6" v-if="isExpired">Expired</span>
           </div>
         </div>
-        <div class="text-center">
+        <!-- <div class="text-center">
           <div class="text-h5 md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
             RELEASED
           </div>
-          <div class="q-pt-sm md-font-size">
-            [date here]
+          <div class="q-pt-sm md-font-size subtext">
+            Awaiting...
           </div>
-        </div>
+        </div> -->
         <div class="q-pt-sm">
           <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-            TRADE INFO
+            FEEDBACK
           </div>
-          <div class="q-pt-md">
-            <div  class="row justify-between no-wrap q-mx-lg">
+          <div>
+            <div  class="text-center q-mx-lg">
               <div>
-                <span class="sm-font-size">Buyer</span><br>
-                <span class="bold-text md-font-size">{{ order.ad.owner.nickname }}</span>
-              </div>
-              <div class="q-pt-sm text-right">
-                <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
-                <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
+                <div class="q-pt-sm">
+                  <q-rating
+                    v-model="ratingModel"
+                    size="md"
+                    color="amber-8"
+                    icon="star"
+                  />
+                </div>
+                <div class="q-mx-sm subtext" :class="{'pt-dark-label': darkMode}">
+                  <span class="q-pl-md q-mb-none xs-font-size">
+                    {{ ad.trade_count }} trades
+                  </span>&nbsp;
+                  <span class="q-pl-xs q-mb-none xs-font-size">
+                    {{ ad.completion_rate }}% completion
+                  </span>
+                </div>
+                <span class="bold-text q-mb-none md-font-size">{{ order.ad.owner.nickname }}</span><br>
+                <span class="xs-font-size">Rate this Buyer</span><br>
               </div>
             </div>
-            <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-            <div  class="row justify-between no-wrap q-mx-lg q-pt-md">
+            <!-- <div  class="text-center q-mx-lg">
               <div>
-                <span class="sm-font-size">Arbiter</span><br>
-                <span class="md-font-size bold-text">Atty. Ruby Von Rails</span>
+                <div class="q-pt-sm">
+                  <q-rating
+                    v-model="ratingModel"
+                    size="md"
+                    color="blue-8"
+                    icon="star"
+                  />
+                </div>
+                <span class="bold-text md-font-size">Atty. Ruby Von Rails</span><br>
+                <span class="xs-font-size">Rate this Arbiter</span><br>
               </div>
-              <div class="q-pt-sm text-right">
-                <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
-                <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
-              </div>
-            </div>
+            </div> -->
             <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
           </div>
           <div>
-            <div class="text-h5 q-pt-md text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              PAYMENT METHOD
+            <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+            <div class="q-pt-sm q-pl-lg">
+              <span class="bold-text text-grey-7">Comment</span>
+              <q-input class="q-pt-sm" dense rounded outlined v-model="comment" label="Add a comment" />
             </div>
-            <div class="q-pt-md">
-              <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                MY PAYMENT METHODS
-              </div>
-              <div class="q-pt-md">
-                <div class="q-gutter-sm text-center">
-                  <q-badge v-for="method in paymentMethods" rounded outline color="red" :label="method.payment_type.name"/>
-                </div>
-              </div>
+            <div class="text-center q-pt-sm">
+              <span class="text-blue"><u>Show comments</u></span>
             </div>
           </div>
         </div>
@@ -403,7 +422,9 @@ export default {
       paymentMethods: [],
       dialogType: '',
       openDialog: false,
-      info: null
+      info: null,
+      ratingModel: 0,
+      comment: ''
     }
   },
   props: {
@@ -433,9 +454,19 @@ export default {
 
       return stat.includes(this.order.status)
     },
-    hasContractInfo () {
+    // change var name
+    hasExtraInfo () {
       const stat = ['Paid', 'Expired']
       return !stat.includes(this.order.status)
+    },
+    countDownText () {
+      if (this.order.status === 'Escrowed' || this.order.status === 'Paid Pending') {
+        return 'Expect Payment within...'
+      } else if (this.order.status === 'Paid') {
+        return 'Confirm payment within time limit to release the crypto...'
+      } else {
+        return ''
+      }
     },
     isExpired () {
       const vm = this
@@ -460,17 +491,18 @@ export default {
         case 'Escrow Pending': // no timer
           this.step = 2
           this.confirmed = true
-          this.fetchPaymentMethod()
+          // this.fetchPaymentMethod()
           break
         case 'Escrowed': // has timer
         case 'Paid Pending':
         case 'Paid':
           this.step = 2
           this.confirmed = true
-          this.fetchPaymentMethod()
+          // this.fetchPaymentMethod()
           await this.paymentCountdown()
           break
         case 'Release Pending':
+        case 'Appealed for Release':
           this.step = 3
           this.paymentCountdown()
           break
@@ -479,12 +511,14 @@ export default {
           this.status = 'released'
           break
         case 'Canceled':
-        case 'Appealed for Release':
         case 'Appealed for Refund':
         case 'Refund Pending':
         case 'Refunded':
           this.status = 'cancelled'
           break
+      }
+      if (this.isExpired) {
+        this.step = 2
       }
     },
     async fetchPaymentMethod () {
@@ -549,6 +583,7 @@ export default {
       const vm = this
       // const currentDate = new Date().getTime()
       const expiryDate = new Date(vm.order.expiration_date) // change later
+      console.log(expiryDate)
 
       vm.timer = setInterval(function () {
         const now = new Date().getTime()
@@ -556,10 +591,13 @@ export default {
         const distance = expiryDate - now
 
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+        let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
         let seconds = Math.floor((distance % (1000 * 60)) / 1000)
         if (seconds.toString().length < 2) {
           seconds = '0' + seconds
+        }
+        if (minutes.toString().length < 2) {
+          minutes = '0' + minutes
         }
 
         vm.countDown = hours + ':' + minutes + ':' + seconds
@@ -625,6 +663,7 @@ export default {
 
     await vm.fetchOrderData()
     await vm.fetchAdData()
+    await vm.fetchPaymentMethod()
     vm.checkStep()
     console.log(vm.isExpired)
 
