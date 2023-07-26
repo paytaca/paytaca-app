@@ -139,6 +139,11 @@ export default {
     }
   },
   emits: ['submit', 'back'],
+  watch: {
+    paymentMethods (value) {
+      console.log('paymentMethods:', value)
+    }
+  },
   async mounted () {
     // get payment type list
     this.paymentMethods = this.currentPaymentMethods
@@ -149,7 +154,10 @@ export default {
   },
   methods: {
     onBack (data) {
-      this.paymentMethods = data
+      console.log('onBack:', data)
+      if (data !== undefined) {
+        this.paymentMethods = data
+      }
       this.openDialog = false
     },
     receiveDialogInfo (data) {
@@ -201,17 +209,13 @@ export default {
       this.openDialog = true
     },
     removeMethod (index, data) {
-      console.log('confirmRemovePaymentMethod:', data)
       this.info = data
       this.selectedMethodIndex = index // data.id
       this.dialogType = 'confirmRemovePaymentMethod'
       this.openDialog = true
     },
     removePaymentMethod (index) {
-      console.log('removing payment method from list:', index)
-      console.log('payment methods:', this.paymentMethods)
       this.paymentMethods.splice(index, 1)
-      console.log('spliced payment methods:', this.paymentMethods)
     },
     // processes
     async deletePaymentMethod (index) {

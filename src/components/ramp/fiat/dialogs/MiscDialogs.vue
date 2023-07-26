@@ -80,7 +80,10 @@
 
       <q-card-section class="text-left q-pt-sm q-mx-md">
         <q-list style="max-height:60vh; overflow:auto;">
-          <div v-for="(option, index) in paymentMethodOpts" :key="index">
+          <div v-if="loading" class="row justify-center q-my-md">
+            <q-spinner-dots color="primary" size="40px" />
+          </div>
+          <div v-else v-for="(option, index) in paymentMethodOpts" :key="index">
             <q-item rounded :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               <q-item-section>
                 <div class="q-py-none row">
@@ -121,7 +124,7 @@
         </q-list>
       </q-card-section>
       <q-card-section>
-        <div class="row q-mx-md">
+        <div v-if="!loading" class="row q-mx-md">
             <q-btn
               rounded
               color="blue-6"
@@ -281,7 +284,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       info: {},
-      isloaded: false,
+      loading: false,
       isNameValid: false,
 
       // Dialog Model
@@ -320,7 +323,7 @@ export default {
       })
     }
     await this.fetchPaymentMethod()
-    this.isloaded = true
+    this.loading = false
   },
   methods: {
     submitUpdatedPaymentMethods () {
@@ -328,6 +331,7 @@ export default {
     },
     async fetchPaymentMethod () {
       const vm = this
+      vm.loading = true
       const walletInfo = this.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo)
       const timestamp = Date.now()
@@ -351,6 +355,7 @@ export default {
               return element
             })
           }
+          vm.loading = false
         })
         .catch(error => {
           console.log(error)
