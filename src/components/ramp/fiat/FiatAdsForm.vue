@@ -229,6 +229,7 @@
     <div v-if="step === 2">
       <div class="q-px-md">
         <AddPaymentMethods
+          :type="'Ads'"
           :confirm-label="'Post Ad'"
           :currentPaymentMethods="adData.paymentMethods"
           v-on:submit="appendPaymentMethods"

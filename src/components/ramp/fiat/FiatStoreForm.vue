@@ -82,7 +82,8 @@
               label="Next"
               color="blue-6"
               class="q-space"
-              @click="state = 'addPaymentMethods'"></q-btn>
+              @click="checkPaymentMethod()"></q-btn>
+              <!-- click="state = 'addPaymentMethods'" -->
           </div>
         </div>
       </div>
@@ -111,6 +112,7 @@
       </div>
       <div v-if="state === 'addPaymentMethods'">
         <AddPaymentMethods
+          :type="'General'"
           v-on:back="state = 'initial'"
           v-on:submit="updatedPaymentMethods"
         />
@@ -207,6 +209,7 @@ export default {
       isloaded: false,
       ad: null,
       order: null,
+      wallet: null,
       fiatAmount: 0,
       state: 'initial', // confirmation
       hideSellerInfo: false,
@@ -277,6 +280,28 @@ export default {
         this.disabled = false
       }, 1500)
     },
+    async fetchPaymentMethods () {
+      const vm = this
+
+      const url = `${vm.apiURL}/payment-method`
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+
+      await vm.$axios.get(url, {
+        headers: {
+          'wallet-hash': vm.wallet.walletHash,
+          signature: signature,
+          timestamp: timestamp
+        }
+      })
+        .then(response => {
+          console.log(response.data)
+          this.paymentMethods = response.data
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
     async fetchAd () {
       // console.log('fetching ad')
       // console.log(this.listingData)
@@ -310,6 +335,17 @@ export default {
       // set the minimum trade amount in form
       this.fiatAmount = this.ad.trade_floor // remove later
     },
+    async checkPaymentMethod () {
+      await this.fetchPaymentMethods()
+
+      if (this.paymentMethods.length === 0) {
+        console.log('empty')
+        this.state = 'addPaymentMethods'
+      } else {
+        console.log(this.paymentMethods.length, 'items')
+        this.state = 'confirmation'
+      }
+    },
     isValidInputAmount (value) {
       if (value === undefined) return false
       const parsedValue = parseFloat(value)
@@ -337,10 +373,8 @@ export default {
     async createOrder () {
       const vm = this
 
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
       const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
 
       const pmId = vm.paymentMethods.map(p => p.id)
       // const lockedPrice = this.ad.price_type === 'FIXED' ?  this.ad.price : 1000 * () //CHECK LATER
@@ -354,7 +388,7 @@ export default {
       },
       {
         headers: {
-          'wallet-hash': wallet.walletHash,
+          'wallet-hash': vm.wallet.walletHash,
           signature: signature,
           timestamp: timestamp
         }
@@ -376,6 +410,8 @@ export default {
   async mounted () {
     const vm = this
     // vm.buy = vm.listingData
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
     await vm.fetchAd()
     vm.isloaded = true
   }
