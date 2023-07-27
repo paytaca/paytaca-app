@@ -16,200 +16,213 @@
         </div>
       </div>
       <!-- Price Settings -->
-      <div class="q-px-lg">
-        <div class="q-mx-lg q-pb-sm q-pt-md bold-text">
-          Price Setting
-        </div>
-        <div class="text-center q-mx-md">
-          <q-btn-toggle
-            dense
-            v-model="adData.priceType"
-            spread
-            class="br-15"
-            :style="transactionType === 'BUY' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
-            no-caps
-            unelevated
-            :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-            :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-            :options="[
-              {label: 'Fixed', value: 'FIXED'},
-              {label: 'Floating', value: 'FLOATING'}
-            ]"
-          />
-        </div>
-        <div class="row q-pt-sm q-gutter-sm q-px-md sm-font-size">
-          <div class="col-4">
-            <div class="q-pl-sm q-pb-xs">Fiat</div>
-            <q-select
-              dense
-              rounded
-              outlined
-              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-              :dark="darkMode"
-              v-model="selectedCurrency"
-              :options="fiatCurrencies"
-              option-label="symbol"
-              @update:model-value="updateFiatCurrency()"
-            >
-              <template v-slot:option="scope">
-                <q-item v-bind="scope.itemProps">
-                  <q-item-section>
-                    <q-item-label>{{ scope.opt.name }} ({{ scope.opt.symbol }})</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-select>
-          </div>
-          <div class="col">
-            <!-- <q-select :dark="darkMode" rounded outlined v-model="selectedCurrency" :options="Object.keys(availableFiat)" label="Fiat Currency" /> -->
-            <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price Margin' }}</div>
-            <q-input
-              dense
-              rounded
-              outlined
-              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-              :dark="darkMode"
-              bottom-slots
-              type="number"
-              :rules="numberValidation"
-              @blur="updatePriceValue(adData.priceType)"
-              v-model="priceValue">
-              <template v-slot:prepend>
-                <q-icon name="remove" @click="decPriceValue()"/>
-              </template>
-              <template v-slot:append>
-                <q-icon v-if="adData.priceType === 'FLOATING'" size="xs" name="percent" />
-                <q-icon name="add" @click="incPriceValue()" />
-              </template>
-            </q-input>
-          </div>
-        </div>
-        <div class="sm-font-size">
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-            <div>
-              <span>Your Price</span><br>
-              <span class="bold-text lg-font-size">{{ formattedCurrency(priceAmount) }}</span>
-              <!-- <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.symbol }}</span> -->
-            </div>
-            <div >
-              <span>Current Market Price</span><br>
-              <span class="xm-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
-            </div>
-          </div>
+      <div v-if="loading">
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader/>
         </div>
       </div>
-
-      <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-
-      <!-- Crypto Amount -->
-      <div class="q-mx-lg">
-        <div class="q-mt-md q-px-md">
-          <div class="q-pb-xs q-pl-sm bold-text">Crypto Amount</div>
-            <q-input
-              dense
-              outlined
-              rounded
-              :dark="darkMode"
-              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-              type="number"
-              :rules="numberValidation"
-              v-model="adData.cryptoAmount"
-            >
-              <template v-slot:prepend>
-                <span class="bold-text xs-font-size">
-                  BCH
-                </span>
-              </template>
-              <template v-slot:append>
-                <q-icon size="xs" name="close" @click="amount = 0"/>
-                <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
-              </template>
-            </q-input>
-          </div>
-        <div class="q-mt-sm q-px-md">
-          <div class="q-pb-xs q-pl-sm bold-text">Trade Limit</div>
-          <div class="row">
-            <div class="col-5">
-              <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
-              <q-input
-                dense
-                outlined
-                rounded=""
-                :dark="darkMode"
-                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                type="number"
-                :rules="tradeLimitValidation"
-                v-model="adData.tradeFloor"
-              >
-                <template v-slot:append>
-                  <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
-                  <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
-                </template>
-              </q-input>
-            </div>
-            <div class="col text-center">
-              <q-icon class="q-pt-md q-mt-lg" name="remove"/>
-            </div>
-            <div class="col-5">
-              <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
-              <q-input
-                dense
-                outlined
-                rounded=""
-                :dark="darkMode"
-                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                type="number"
-                :rules="tradeLimitValidation"
-                v-model="adData.tradeCeiling"
-              >
-                <template v-slot:append>
-                  <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
-                  <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
-                </template>
-              </q-input>
-            </div>
-          </div>
-        </div>
-      </div>
-      <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-
-      <!-- Payment Time Limit -->
-      <div class="q-mx-lg q-pt-md">
+      <div v-else>
         <div class="q-px-lg">
-          <div class="q-pt-sm bold-text">Payment Time Limit</div>
+          <div class="q-mx-lg q-pb-sm q-pt-md bold-text">
+            Price Setting
+          </div>
+          <div class="text-center q-mx-md">
+            <q-btn-toggle
+              dense
+              v-model="adData.priceType"
+              spread
+              class="br-15"
+              :style="transactionType === 'BUY' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
+              no-caps
+              unelevated
+              :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+              :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+              :options="[
+                {label: 'Fixed', value: 'FIXED'},
+                {label: 'Floating', value: 'FLOATING'}
+              ]"
+            />
+          </div>
+          <div class="row q-pt-sm q-gutter-sm q-px-md sm-font-size">
+            <div class="col-4">
+              <div class="q-pl-sm q-pb-xs">Fiat</div>
+              <q-select
+                dense
+                rounded
+                outlined
+                :dark="darkMode"
+                v-model="selectedCurrency"
+                :options="fiatCurrencies"
+                option-label="symbol"
+                @update:model-value="updateFiatCurrency()"
+              >
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section>
+                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                        {{ scope.opt.name }} ({{ scope.opt.symbol }})
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+            </div>
+            <div class="col">
+              <!-- <q-select :dark="darkMode" rounded outlined v-model="selectedCurrency" :options="Object.keys(availableFiat)" label="Fiat Currency" /> -->
+              <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price Margin' }}</div>
+              <q-input
+                dense
+                rounded
+                outlined
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                :dark="darkMode"
+                bottom-slots
+                type="number"
+                :rules="numberValidation"
+                @blur="updatePriceValue(adData.priceType)"
+                v-model="priceValue">
+                <template v-slot:prepend>
+                  <q-icon name="remove" @click="decPriceValue()"/>
+                </template>
+                <template v-slot:append>
+                  <q-icon v-if="adData.priceType === 'FLOATING'" size="xs" name="percent" />
+                  <q-icon name="add" @click="incPriceValue()" />
+                </template>
+              </q-input>
+            </div>
+          </div>
+          <div class="sm-font-size">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <div>
+                <span>Your Price</span><br>
+                <span class="bold-text lg-font-size">{{ formattedCurrency(priceAmount) }}</span>
+                <!-- <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.symbol }}</span> -->
+              </div>
+              <div >
+                <span>Current Market Price</span><br>
+                <span class="xm-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="q-mx-md q-pt-sm">
-          <div>
-            <q-select
+
+        <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+
+        <!-- Crypto Amount -->
+        <div class="q-mx-lg">
+          <div class="q-mt-md q-px-md">
+            <div class="q-pb-xs q-pl-sm bold-text">Crypto Amount</div>
+              <q-input
                 dense
                 outlined
                 rounded
-                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 :dark="darkMode"
-                v-model="paymentTimeLimit"
-                :options="ptlSelection"
-                @update:modelValue="updatePaymentTimeLimit()"
-              />
-                <!-- <template v-slot:append>
-                  <q-icon size="xs" name="close" @click.stop.prevent="ptl = ''"/>&nbsp;
-                </template> -->
-              <!-- </q-select> -->
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                type="number"
+                :rules="numberValidation"
+                v-model="adData.cryptoAmount">
+                <template v-slot:prepend>
+                  <span class="bold-text xs-font-size">
+                    BCH
+                  </span>
+                </template>
+              </q-input>
+            </div>
+          <div class="q-mt-sm q-px-md">
+            <div class="q-pb-xs q-pl-sm bold-text">Trade Limit</div>
+            <div class="row">
+              <div class="col-5">
+                <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
+                <q-input
+                  dense
+                  outlined
+                  rounded=""
+                  :dark="darkMode"
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                  type="number"
+                  :rules="tradeLimitValidation"
+                  v-model="adData.tradeFloor"
+                >
+                  <template v-slot:append>
+                    <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
+                    <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
+                  </template>
+                </q-input>
+              </div>
+              <div class="col text-center">
+                <q-icon class="q-pt-md q-mt-lg" name="remove"/>
+              </div>
+              <div class="col-5">
+                <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
+                <q-input
+                  dense
+                  outlined
+                  rounded=""
+                  :dark="darkMode"
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                  type="number"
+                  :rules="tradeLimitValidation"
+                  v-model="adData.tradeCeiling"
+                >
+                  <template v-slot:append>
+                    <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
+                    <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
+                  </template>
+                </q-input>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- NEXT STEP -->
-      <div class="q-mx-lg">
-        <div class="row q-mx-sm q-py-lg">
-          <q-btn
-            :disable="checkPostData()"
-            rounded
-            no-caps
-            label="Next"
-            color="blue-6"
-            class="q-space"
-            @click="checkSubmitOption()"
-          />
+        <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+
+        <!-- Payment Time Limit -->
+        <div class="q-mx-lg q-pt-md">
+          <div class="q-px-lg">
+            <div class="q-pt-sm bold-text">Payment Time Limit</div>
+          </div>
+          <div class="q-mx-md q-pt-sm">
+            <div>
+              <q-select
+                  dense
+                  outlined
+                  rounded
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                  :dark="darkMode"
+                  v-model="paymentTimeLimit"
+                  :options="ptlSelection"
+                  @update:modelValue="updatePaymentTimeLimit()">
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section>
+                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                        {{ scope.opt.label }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+                  <!-- <template v-slot:append>
+                    <q-icon size="xs" name="close" @click.stop.prevent="ptl = ''"/>&nbsp;
+                  </template> -->
+                <!-- </q-select> -->
+            </div>
+          </div>
+        </div>
+
+        <!-- NEXT STEP -->
+        <div class="q-mx-lg">
+          <div class="row q-mx-sm q-py-lg">
+            <q-btn
+              :disable="checkPostData()"
+              rounded
+              no-caps
+              label="Next"
+              color="blue-6"
+              class="q-space"
+              @click="checkSubmitOption()"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -235,27 +248,31 @@
   </div>
 </template>
 <script>
-import { debounce } from 'quasar'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
+import ProgressLoader from '../../ProgressLoader.vue'
+import { debounce } from 'quasar'
 import { signMessage } from '../../../wallet/ramp/signature.js'
-import { formatCurrency, loadP2PWalletInfo } from 'src/wallet/ramp'
+import { formatCurrency, loadP2PWalletInfo, getPaymentTimeLimit } from 'src/wallet/ramp'
 
 export default {
   props: {
     transactionType: String,
-    adsState: String
+    adsState: String,
+    selectedAdId: Number
   },
   components: {
     AddPaymentMethods,
-    DisplayConfirmation
+    DisplayConfirmation,
+    ProgressLoader
   },
-  emits: ['back'],
+  emits: ['back', 'submit'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
+      loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
       wallet: null,
@@ -276,7 +293,7 @@ export default {
           name: 'Bitcoin Cash',
           symbol: 'BCH'
         },
-        fixedPrice: null,
+        fixedPrice: 0,
         floatingPrice: 100,
         tradeFloor: null,
         tradeCeiling: null,
@@ -318,22 +335,20 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('fiat ads form')
+    vm.loading = true
+
+    if (vm.selectedAdId !== null) {
+      await vm.fetchAdDetail()
+    }
+
     // Setup initial market price and subscription
     await vm.getInitialMarketPrice()
-    await vm.setupWebsocket()
 
-    console.log('done')
-
-    // Setup wallet info
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-    console.log(vm.wallet)
-
-    // Initialize data
-    await vm.getFiatCurrencies()
-    vm.adData.tradeType = vm.transactionType.toUpperCase()
     vm.updatePriceValue(vm.adData.priceType)
+    vm.loading = false
+    vm.setupWebsocket()
+    vm.adData.tradeType = vm.transactionType.toUpperCase()
+    await vm.getFiatCurrencies()
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -341,7 +356,9 @@ export default {
   watch: {
     marketPrice (value) {
       const vm = this
-      vm.priceAmount = vm.transformPrice(value)
+      if (vm.adData.priceType === 'FLOATING') {
+        vm.priceAmount = vm.transformPrice(value)
+      }
     },
     'adData.priceType' (value) {
       const vm = this
@@ -361,12 +378,46 @@ export default {
     }
   },
   methods: {
-    formattedCurrency (value) {
-      return formatCurrency(value, this.adData.fiatCurrency.symbol)
+    async fetchAdDetail () {
+      const vm = this
+      let timestamp = null
+      let signature = null
+      if (vm.wallet === null) {
+        const walletInfo = this.$store.getters['global/getWallet']('bch')
+        vm.wallet = await loadP2PWalletInfo(walletInfo)
+        timestamp = Date.now()
+        signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
+      }
+      const url = vm.apiURL + '/ad/' + vm.selectedAdId
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      try {
+        const response = await vm.$axios.get(url, { headers: headers })
+        const data = response.data
+        vm.adData.tradeType = data.trade_type
+        vm.adData.priceType = data.price_type
+        vm.adData.floatingPrice = data.floating_price
+        vm.adData.fiatCurrency = data.fiat_currency
+        vm.adData.tradeFloor = data.trade_floor
+        vm.adData.tradeCeiling = data.trade_ceiling
+        vm.adData.cryptoAmount = data.crypto_amount
+        vm.adData.paymentMethods = data.payment_methods
+        vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
+        vm.selectedCurrency = data.fiat_currency
+      } catch (error) {
+        console.error(error.response)
+        vm.swipeStatus = false
+      }
     },
     async onSubmit () {
-      console.log('onSubmit')
       const vm = this
+      if (vm.wallet === null) {
+        const walletInfo = this.$store.getters['global/getWallet']('bch')
+        vm.wallet = await loadP2PWalletInfo(walletInfo)
+      }
       const url = vm.apiURL + '/ad/'
       const timestamp = Date.now()
       const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
@@ -376,24 +427,79 @@ export default {
         signature: signature
       }
       const body = vm.transformPostData()
-      console.log('adData:', body)
       vm.$axios.post(url, body, { headers: headers })
-        .then(response => {
-          console.log('response:', response.data)
+        .then(_response => {
           vm.swipeStatus = true
-          this.$emit('back')
+          this.$emit('submit')
         })
         .catch(error => {
           console.error(error.response)
           vm.swipeStatus = false
         })
     },
+    async getInitialMarketPrice () {
+      const vm = this
+      const url = vm.apiURL + '/utils/market-price'
+      try {
+        const response = await vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
+        vm.marketPrice = parseFloat(response.data[0].price)
+        vm.updatePriceValue(vm.adData.priceType)
+      } catch (error) {
+        console.error(error.response)
+      }
+    },
+    async getFiatCurrencies () {
+      const vm = this
+      const url = vm.apiURL + '/currency/fiat'
+      try {
+        const response = await vm.$axios.get(url)
+        vm.fiatCurrencies = response.data
+        if (!vm.selectedCurrency) {
+          vm.selectedCurrency = vm.fiatCurrencies[0]
+        }
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
+
+        vm.fiatCurrencies = vm.availableFiat
+        if (!vm.selectedCurrency) {
+          vm.selectedCurrency = vm.fiatCurrencies[0]
+        }
+      }
+    },
+    async getPaymentMethods () {
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const headers = {
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
+      return response.data
+    },
+    async checkSubmitOption () {
+      const vm = this
+      vm.step++
+    },
+    async updateFiatCurrency () {
+      const vm = this
+      vm.priceValue = ''
+      await vm.getInitialMarketPrice()
+      vm.priceAmount = vm.transformPrice(vm.marketPrice)
+      vm.adData.fiatCurrency = vm.selectedCurrency
+      vm.closeWSConnection()
+      vm.setupWebsocket()
+    },
+    formattedCurrency (value) {
+      return formatCurrency(value, this.adData.fiatCurrency.symbol)
+    },
     transformPostData () {
       // finalize ad data
       const vm = this
       const defaultCrypto = 'BCH'
       const data = vm.adData
-      console.log('data:', data)
       const idList = data.paymentMethods.map(obj => obj.id)
       return {
         trade_type: data.tradeType,
@@ -432,16 +538,20 @@ export default {
     transformPrice (value) {
       const vm = this
       let price = null
-      if (vm.adData.priceType === 'FLOATING') {
-        price = value * (vm.adData.floatingPrice / 100)
-      } else {
-        price = vm.adData.fixedPrice
+      switch (vm.adData.priceType) {
+        case 'FLOATING':
+          price = value * (vm.adData.floatingPrice / 100)
+          break
+        case 'FIXED': {
+          const fixedPrice = Number(vm.adData.fixedPrice)
+          price = fixedPrice
+          if (price === 0) {
+            price = vm.marketPrice
+          }
+          break
+        }
       }
-      if (price === '') {
-        price = 0
-      } else {
-        price = parseFloat(price).toFixed(2)
-      }
+      price = Number(parseFloat(price).toFixed(2))
       return price
     },
     closeWSConnection () {
@@ -460,79 +570,16 @@ export default {
         const price = parseFloat(data.price)
         if (price) {
           this.marketPrice = price.toFixed(2)
+          console.log('Updated market price to :', this.marketPrice)
         }
       }
       this.websocket.onclose = () => {
         console.log('WebSocket connection closed.')
       }
     },
-    async getInitialMarketPrice () {
-      const vm = this
-      const url = vm.apiURL + '/utils/market-price'
-      vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
-        .then(response => {
-          vm.marketPrice = parseFloat(response.data[0].price)
-          vm.adData.fixedPrice = vm.marketPrice
-          vm.priceValue = vm.adData.fixedPrice
-        })
-        .catch(error => {
-          console.error(error.response)
-        })
-    },
-    async getFiatCurrencies () {
-      const vm = this
-      vm.$axios.get(vm.apiURL + '/currency/fiat')
-        .then(response => {
-          vm.fiatCurrencies = response.data
-          if (!vm.selectedCurrency) {
-            vm.selectedCurrency = vm.fiatCurrencies[0]
-          }
-          // console.log('fiatCurrencies:', this.fiatCurrencies)
-        })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response)
-
-          vm.fiatCurrencies = vm.availableFiat
-          if (!vm.selectedCurrency) {
-            vm.selectedCurrency = vm.fiatCurrencies[0]
-          }
-        })
-      // console.log(vm.fiatCurrencies)
-    },
-    async getPaymentMethods () {
-      const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
-      const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
-      // console.log('response:', response.data)
-      // .then(response => {
-      //   console.log(response.data)
-      //   return response.data
-      // })
-      // .catch(error => {
-      //   console.error(error.response)
-      // })
-      return response.data
-    },
-    async checkSubmitOption () {
-      const vm = this
-      // console.log('checking submit option')
-      vm.step++
-    },
     appendPaymentMethods (paymentMethods) {
-      console.log('Adding payment methods:', paymentMethods)
       const vm = this
-      // Finalize Data
-      // console.log(methods)
-
       vm.adData.paymentMethods = paymentMethods
-      console.log(vm.adData)
       vm.step++
     },
     decPriceValue () {
@@ -544,16 +591,6 @@ export default {
     updatePaymentTimeLimit () {
       const vm = this
       vm.adData.timeDurationChoice = vm.paymentTimeLimit.value
-    },
-    async updateFiatCurrency () {
-      const vm = this
-      // console.log('selectedCurrency:', vm.selectedCurrency)
-      vm.adData.fiatCurrency = vm.selectedCurrency
-      // update market price subscription
-      vm.marketPrice = null
-      await vm.getInitialMarketPrice()
-      vm.closeWSConnection()
-      vm.setupWebsocket()
     },
     checkPostData () {
       const vm = this
@@ -601,7 +638,6 @@ export default {
           vm.adData.fixedPrice = null
           break
       }
-      // console.log('fixedPrice:', vm.adData.fixedPrice)
     }, 500)
   }
 }

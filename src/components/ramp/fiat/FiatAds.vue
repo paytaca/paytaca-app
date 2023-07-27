@@ -5,9 +5,11 @@
     style="min-height:78vh;">
     <div v-if="state !== 'selection'">
       <FiatAdsForm
-        v-on:back="state = 'selection'"
+        @back="onFormBack()"
+        @submit="onSubmit()"
         :adsState="state"
         :transactionType="transactionType"
+        :selectedAdId="selectedAdId"
       />
     </div>
     <div v-if="state === 'selection'">
@@ -32,16 +34,25 @@
           <ProgressLoader/>
         </div>
       </div>
-      <div v-else class="q-mt-md">
-        <div v-if="checkEmptyListing()" class="relative text-center" style="margin-top: 50px;">
+      <div v-else class="q-mt-md q-mx-md">
+        <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
-          <q-card-section style="max-height:58vh;overflow-y:auto;">
-            <!-- <q-virtual-scroll :items="transactionType === 'BUY'? buyListings : sellListings"> -->
-            <q-virtual-scroll :items="listings">
-              <template v-slot="{ item: listing, index }">
+          <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:auto;">
+            <q-infinite-scroll
+              ref="infiniteScroll"
+              :items="listings"
+              @load="loadMoreData"
+              :offset="0"
+              :scroll-target="scrollTargetRef">
+              <template v-slot:loading>
+                <div class="row justify-center q-my-md" v-if="hasMoreData">
+                  <q-spinner-dots color="primary" size="40px" />
+                </div>
+              </template>
+              <div v-for="(listing, index) in listings" :key="index">
                 <q-item>
                   <q-item-section>
                     <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -57,18 +68,18 @@
                             :class="{'pt-dark-label': darkMode}"
                             class="col-transaction text-uppercase"
                             style="font-size: 16px;">
-                            {{ formattedCurrency(listing.price) }}
+                            {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
                           </span>
                           <span style="font-size: 12px;">
                             /BCH
                           </span>
                           <div class="row sm-font-size">
                             <span class="q-mr-md">Quantity</span>
-                            <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
+                            <span>{{ formattedCurrency(listing.crypto_amount, null, false) }} BCH</span>
                           </div>
                           <div class="row sm-font-size">
                             <span class="q-mr-md">Limit</span>
-                            <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }} </span>
+                            <span> {{ formattedCurrency(listing.trade_floor, listing.fiat_currency.symbol) }} - {{ formattedCurrency(listing.trade_ceiling, listing.fiat_currency.symbol) }} </span>
                           </div>
                           <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
                         </div>
@@ -80,7 +91,7 @@
                             icon="edit"
                             size="sm"
                             color="grey-6"
-                            @click="editAds(index)"
+                            @click="onEditAd(listing.id)"
                           />
                           <q-btn
                             outline
@@ -90,7 +101,7 @@
                             icon="delete"
                             color="grey-6"
                             class="q-ml-xs"
-                            @click="deleteAds(index)"
+                            @click="onDeleteAd(listing.id)"
                           />
                         </div>
                       </div>
@@ -100,9 +111,9 @@
                     </div>
                   </q-item-section>
                 </q-item>
-              </template>
-            </q-virtual-scroll>
-          </q-card-section>
+              </div>
+            </q-infinite-scroll>
+          </q-list>
         </div>
       </div>
     </div>
@@ -111,7 +122,7 @@
   <FiatAdsDialogs
     v-if="openDialog === true"
     :type="dialogName"
-    v-on:back="openDialog = false"
+    v-on:back="onDialogBack"
     v-on:selected-option="receiveDialogOption"
   />
 </template>
@@ -121,8 +132,17 @@ import FiatAdsForm from './FiatAdsForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+    const infiniteScroll = ref(null)
+    return {
+      scrollTargetRef,
+      infiniteScroll
+    }
+  },
   components: {
     FiatAdsForm,
     ProgressLoader,
@@ -140,18 +160,11 @@ export default {
       editListing: {},
       transactionType: 'BUY',
       state: 'selection', // 'create' 'edit'
-      buyListings: [],
-      sellListings: [],
-      listings: [],
-      loading: false
+      loading: false,
+      totalPages: null,
+      pageNumber: null,
+      selectedAdId: null
     }
-  },
-  async mounted () {
-    const vm = this
-    vm.loading = true
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-    vm.fetchAds()
   },
   watch: {
     state (val) {
@@ -159,10 +172,46 @@ export default {
         this.$router.push({ name: 'ads-create' })
       }
     },
-    transactionType (val) {
-      // console.log('transactionType:', val)
-      this.fetchAds()
+    transactionType () {
+      const vm = this
+      vm.resetAndScrollToTop()
+      vm.updatePaginationValues()
+      if (vm.pageNumber === null || vm.totalPages === null) {
+        vm.loading = true
+        this.fetchAds()
+      }
     }
+  },
+  computed: {
+    listings () {
+      const vm = this
+      switch (vm.transactionType) {
+        case 'BUY':
+          return vm.buyListings
+        case 'SELL':
+          return vm.sellListings
+      }
+      return []
+    },
+    buyListings () {
+      return this.$store.getters['ramp/getAdsBuyListings']
+    },
+    sellListings () {
+      return this.$store.getters['ramp/getAdsSellListings']
+    },
+    hasMoreData () {
+      const vm = this
+      vm.updatePaginationValues()
+      return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
+    }
+  },
+  async mounted () {
+    const vm = this
+    vm.loading = true
+    vm.updatePaginationValues()
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    await vm.fetchAds()
   },
   methods: {
     async fetchAds () {
@@ -175,86 +224,122 @@ export default {
         signature: signature
       }
       const params = { trade_type: vm.transactionType }
-      vm.$axios.get(vm.apiURL + '/ad', { params: params, headers: headers })
-        .then(response => {
-          vm.listings = response.data.ads
-          console.log('listings: ', vm.listings)
-          vm.loading = false
-        })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response.data)
-          vm.loading = false
-        })
+      try {
+        await vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, headers: headers })
+      } catch (error) {
+        console.error(error)
+      }
+      vm.loading = false
+    },
+    async loadMoreData (_, done) {
+      const vm = this
+      if (!vm.hasMoreData) {
+        done(true)
+        return
+      }
+      vm.updatePaginationValues()
+      if (vm.pageNumber < vm.totalPages) {
+        await vm.fetchAds()
+      }
+      done()
+    },
+    async deleteAd () {
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_DELETE', timestamp)
+      const headers = {
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      const url = vm.apiURL + '/ad/' + vm.selectedAdId
+      try {
+        await vm.$axios.delete(url, { headers: headers })
+
+        setTimeout(() => {
+          vm.dialogName = 'notifyDeleteAd'
+          vm.openDialog = true
+        }, 50)
+      } catch (error) {
+        console.error(error.response)
+      }
+      vm.loading = false
+    },
+    async resetAndRefetchListings () {
+      // reset pagination and reload ads list
+      const vm = this
+      vm.loading = true
+      await vm.$store.dispatch('ramp/resetAdsPagination')
+      await vm.fetchAds()
+      vm.updatePaginationValues()
+      vm.loading = false
+    },
+    onSubmit () {
+      const vm = this
+      vm.state = 'selection'
+      vm.selectedAdId = null
+      vm.resetAndRefetchListings()
+    },
+    onDialogBack () {
+      const vm = this
+      vm.openDialog = false
+      switch (vm.dialogName) {
+        case 'notifyDeleteAd':
+          vm.resetAndRefetchListings()
+          break
+      }
+    },
+    onFormBack () {
+      const vm = this
+      vm.state = 'selection'
+      vm.selectedAdId = null
+    },
+    onEditAd (id) {
+      const vm = this
+      vm.state = 'edit'
+      vm.selectedAdId = id
+    },
+    onDeleteAd (id) {
+      const vm = this
+      vm.dialogName = 'deleteAd'
+      vm.openDialog = true
+      vm.selectedAdId = id
+    },
+    receiveDialogOption (option) {
+      const vm = this
+      switch (vm.dialogName) {
+        case 'deleteAd':
+          if (option === 'confirm') {
+            vm.deleteAd()
+          }
+          break
+      }
+    },
+    updatePaginationValues () {
+      const vm = this
+      vm.totalPages = vm.$store.getters['ramp/getAdsTotalPages'](this.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getAdsPageNumber'](this.transactionType)
+    },
+    resetAndScrollToTop () {
+      if (this.$refs.infiniteScroll) {
+        this.$refs.infiniteScroll.reset()
+      }
+      this.scrollToTop()
+    },
+    scrollToTop () {
+      if (this.$refs.scrollTargetRef) {
+        const scrollElement = this.$refs.scrollTargetRef.$el
+        scrollElement.scrollTop = 0
+      }
     },
     formattedDate (value) {
       return formatDate(value)
     },
-    formattedCurrency (value, fiat = true) {
+    formattedCurrency (value, currency, fiat = true) {
       if (fiat) {
-        const currency = this.selectedCurrency.symbol
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)
-      }
-    },
-    sortedListings (type) {
-      const vm = this
-
-      const sorted = vm.listings.filter(function (test) {
-        return test.trade_type.toLowerCase() === type
-      })
-      return sorted
-    },
-    editAds (index) {
-      const vm = this
-      vm.state = 'edit'
-      // console.log('edit')
-
-      switch (vm.transactionType) {
-        case 'BUY':
-          vm.editListing = vm.buyListings[index]
-          break
-        case 'SELL':
-          vm.editListing = vm.sellListings[index]
-          break
-      }
-    },
-    deleteAds (index) {
-      const vm = this
-      // console.log('delete')
-
-      vm.dialogName = 'deleteAd'
-      vm.openDialog = true
-      vm.selectedIndex = index
-    },
-    checkEmptyListing () {
-      const vm = this
-      // if (vm.transactionType === 'BUY') {
-      //   return vm.buyListings.length === 0
-      // } else {
-      //   return vm.sellListings.length === 0
-      // }
-      return vm.listings.length === 0
-    },
-    receiveDialogOption (option) {
-      const vm = this
-
-      switch (vm.dialogName) {
-        case 'deleteAd':
-          if (option === 'confirm') {
-            if (vm.transactionType === 'BUY') {
-              vm.buyListings.splice(vm.selectedIndex, 1)
-            } else {
-              vm.sellListings.splice(vm.selectedIndex, 1)
-            }
-
-            setTimeout(() => {
-              vm.dialogName = 'notifyDeleteAd'
-              vm.openDialog = true
-            }, 50)
-          }
-          break
       }
     }
   }

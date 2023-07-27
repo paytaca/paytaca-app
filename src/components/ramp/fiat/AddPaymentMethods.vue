@@ -32,7 +32,7 @@
                         {{ method.account_number }}
                       </div>
                     </div>
-                    <div class="text-right q-pt-sm">
+                    <!-- <div class="text-right q-pt-sm">
                       <q-btn
                         outline
                         rounded
@@ -50,9 +50,9 @@
                         icon="delete"
                         color="grey-6"
                         class="q-ml-xs"
-                        @click="deleteMethod(method)"
+                        @click="removeMethod(index, method)"
                         />
-                    </div>
+                    </div> -->
                   </div>
                 </q-item-section>
               </q-item>
@@ -67,11 +67,10 @@
           outline
           rounded
           no-caps
-          label='Add'
+          label='Select Methods'
           class="q-space text-white"
           color="blue-6"
           @click="addMethod"
-          v-show="paymentMethods.length < 5"
         />
       </div>
     </div>
@@ -92,7 +91,8 @@
     <MiscDialogs
       :type="dialogType"
       :data="info"
-      v-on:back="openDialog = false"
+      :current-payment-methods="paymentMethods"
+      v-on:back="onBack"
       v-on:submit="receiveDialogInfo"
     />
   </div>
@@ -121,7 +121,7 @@ export default {
     },
     currentPaymentMethods: {
       type: Array,
-      default: []
+      default: null
     }
   },
   data () {
@@ -141,32 +141,14 @@ export default {
   async mounted () {
     // get payment type list
     this.paymentMethods = this.currentPaymentMethods
-    await this.fetchPaymentMethod()
     this.isloaded = true
   },
   methods: {
-    async fetchPaymentMethod () {
-      const vm = this
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
-      const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
-
-      // console.log(wallet.walletHash)
-      vm.$axios.get(vm.apiURL + '/payment-method',
-        {
-          headers: {
-            'wallet-hash': wallet.walletHash,
-            signature: signature,
-            timestamp: timestamp
-          }
-        })
-        .then(response => {
-          this.paymentMethods = response.data
-        })
-        .catch(error => {
-          console.log(error)
-        })
+    onBack (data) {
+      if (data !== undefined) {
+        this.paymentMethods = data
+      }
+      this.openDialog = false
     },
     receiveDialogInfo (data) {
       const vm = this
@@ -177,8 +159,11 @@ export default {
         case 'editPaymentMethod':
           vm.updatePayment(data)
           break
-        case 'confirmDeletePaymentMethod':
-          vm.deletePaymentMethod(this.selectedMethodIndex)
+        // case 'confirmDeletePaymentMethod':
+        //   vm.deletePaymentMethod(this.selectedMethodIndex)
+        //   break
+        case 'confirmRemovePaymentMethod':
+          vm.removePaymentMethod(data)
           break
         case 'confirmPaymentMethod':
           vm.$emit('submit', vm.paymentMethods)
@@ -187,12 +172,9 @@ export default {
     },
     async updatePayment (data) {
       const vm = this
-      vm.isloaded = false
-
+      vm.loading = true
       await vm.savePaymentMethod(data)
-      await vm.fetchPaymentMethod()
-
-      vm.isloaded = true
+      vm.loading = false
     },
     // opening dialog
     addMethod () {
@@ -208,14 +190,23 @@ export default {
     },
     deleteMethod (data) {
       this.info = data
-      // console.log('confirmDeletePaymentMethod')
       this.selectedMethodIndex = data.id
       this.dialogType = 'confirmDeletePaymentMethod'
       this.openDialog = true
     },
+    removeMethod (index, data) {
+      this.info = data
+      // this.selectedMethodIndex = index // data.id
+      this.dialogType = 'confirmRemovePaymentMethod'
+      this.openDialog = true
+    },
+    removePaymentMethod (method) {
+      const vm = this
+      vm.paymentMethods = vm.paymentMethods.filter((element) => element.id !== method.id)
+      this.openDialog = false
+    },
     // processes
     async deletePaymentMethod (index) {
-      // console.log('deleting payment method')
       const vm = this
 
       vm.isloaded = false
@@ -240,7 +231,6 @@ export default {
       vm.isloaded = true
     },
     async savePaymentMethod (info) {
-      // console.log('saving payment method')
       const vm = this
 
       const walletInfo = vm.$store.getters['global/getWallet']('bch')
@@ -265,12 +255,16 @@ export default {
               timestamp: timestamp
             }
           })
-            // .then(response => {
-            //   console.log(response.data)
-            // })
+            .then(response => {
+              if (vm.paymentMethods.length < 5) {
+                vm.paymentMethods.push(response.data)
+              }
+              vm.openDialog = false
+            })
             .catch(error => {
               console.error(error)
               console.error(error.response)
+              vm.openDialog = false
             })
 
           break

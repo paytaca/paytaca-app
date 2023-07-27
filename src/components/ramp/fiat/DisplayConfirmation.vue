@@ -48,7 +48,8 @@
         <div class="q-pt-lg q-mx-lg" >
           <div class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Payment Time Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span>
+            <!-- <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span> -->
+            <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
           </div>
         </div>
       </div>
@@ -189,7 +190,6 @@ export default {
     vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
-    // console.log(vm.adData)
   },
   methods: {
     formattedCurrencyNumber (value) {
