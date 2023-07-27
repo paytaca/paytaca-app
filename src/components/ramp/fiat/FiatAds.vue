@@ -101,7 +101,7 @@
                             icon="delete"
                             color="grey-6"
                             class="q-ml-xs"
-                            @click="deleteAds(index)"
+                            @click="openDeleteAdDialog(listing)"
                           />
                         </div>
                       </div>
@@ -122,7 +122,7 @@
   <FiatAdsDialogs
     v-if="openDialog === true"
     :type="dialogName"
-    v-on:back="openDialog = false"
+    v-on:back="onDialogBack"
     v-on:selected-option="receiveDialogOption"
   />
 </template>
@@ -215,18 +215,59 @@ export default {
     await vm.fetchAds()
   },
   methods: {
+    async deleteAd () {
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_DELETE', timestamp)
+      const headers = {
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      console.log('headers:', headers)
+      const url = vm.apiURL + '/ad/' + vm.selectedAdId
+      console.log('url:', url)
+      try {
+        const response = await vm.$axios.delete(url, { headers: headers })
+        console.log('response:', response.data)
+
+        setTimeout(() => {
+          vm.dialogName = 'notifyDeleteAd'
+          vm.openDialog = true
+        }, 50)
+      } catch (error) {
+        console.error(error.response)
+      }
+      vm.loading = false
+    },
     async onSubmit () {
+      // reset state and variables
       const vm = this
       vm.state = 'selection'
       vm.selectedAdId = null
+      vm.resetAndRefetchListings()
+    },
+    async resetAndRefetchListings () {
+      // reset pagination and reload ads list
+      const vm = this
       vm.loading = true
       await vm.$store.dispatch('ramp/resetAdsPagination')
       await vm.fetchAds()
       vm.updatePaginationValues()
       vm.loading = false
     },
+    onDialogBack () {
+      const vm = this
+      vm.openDialog = false
+      switch (vm.dialogName) {
+        case 'notifyDeleteAd':
+          vm.resetAndRefetchListings()
+          break
+      }
+    },
     async onBack () {
       const vm = this
+      console.log('onBack')
       vm.state = 'selection'
       vm.selectedAdId = null
     },
@@ -311,13 +352,12 @@ export default {
       //     break
       // }
     },
-    deleteAds (index) {
+    openDeleteAdDialog (listing) {
       const vm = this
-      // console.log('delete')
-
       vm.dialogName = 'deleteAd'
       vm.openDialog = true
-      vm.selectedIndex = index
+      vm.selectedAdId = listing.id
+      console.log('selectedAdId:', vm.selectedAdId)
     },
     checkEmptyListing () {
       const vm = this
@@ -334,16 +374,12 @@ export default {
       switch (vm.dialogName) {
         case 'deleteAd':
           if (option === 'confirm') {
-            if (vm.transactionType === 'BUY') {
-              vm.buyListings.splice(vm.selectedIndex, 1)
-            } else {
-              vm.sellListings.splice(vm.selectedIndex, 1)
-            }
-
-            setTimeout(() => {
-              vm.dialogName = 'notifyDeleteAd'
-              vm.openDialog = true
-            }, 50)
+            // if (vm.transactionType === 'BUY') {
+            //   vm.buyListings.splice(vm.selectedIndex, 1)
+            // } else {
+            //   vm.sellListings.splice(vm.selectedIndex, 1)
+            // }
+            vm.deleteAd()
           }
           break
       }
