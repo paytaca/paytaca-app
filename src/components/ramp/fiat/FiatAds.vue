@@ -215,6 +215,37 @@ export default {
     await vm.fetchAds()
   },
   methods: {
+    async fetchAds () {
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const headers = {
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      // console.log('headers:', headers)
+      const params = { trade_type: vm.transactionType }
+      try {
+        await vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, headers: headers })
+      } catch (error) {
+        console.error(error)
+      }
+      vm.loading = false
+    },
+    async loadMoreData (_, done) {
+      console.log('loadMoreData')
+      const vm = this
+      if (!vm.hasMoreData) {
+        done(true)
+        return
+      }
+      vm.updatePaginationValues()
+      if (vm.pageNumber < vm.totalPages) {
+        await vm.fetchAds()
+      }
+      done()
+    },
     async deleteAd () {
       const vm = this
       const timestamp = Date.now()
@@ -241,7 +272,6 @@ export default {
       vm.loading = false
     },
     async onSubmit () {
-      // reset state and variables
       const vm = this
       vm.state = 'selection'
       vm.selectedAdId = null
@@ -288,37 +318,6 @@ export default {
         scrollElement.scrollTop = 0
       }
     },
-    async loadMoreData (_, done) {
-      console.log('loadMoreData')
-      const vm = this
-      if (!vm.hasMoreData) {
-        done(true)
-        return
-      }
-      vm.updatePaginationValues()
-      if (vm.pageNumber < vm.totalPages) {
-        await vm.fetchAds()
-      }
-      done()
-    },
-    async fetchAds () {
-      const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
-      // console.log('headers:', headers)
-      const params = { trade_type: vm.transactionType }
-      try {
-        await vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, headers: headers })
-      } catch (error) {
-        console.error(error)
-      }
-      vm.loading = false
-    },
     formattedDate (value) {
       return formatDate(value)
     },
@@ -328,14 +327,6 @@ export default {
       } else {
         return formatCurrency(value)
       }
-    },
-    sortedListings (type) {
-      const vm = this
-
-      const sorted = vm.listings.filter(function (test) {
-        return test.trade_type.toLowerCase() === type
-      })
-      return sorted
     },
     editAds (id) {
       const vm = this
@@ -359,26 +350,12 @@ export default {
       vm.selectedAdId = listing.id
       console.log('selectedAdId:', vm.selectedAdId)
     },
-    checkEmptyListing () {
-      const vm = this
-      // if (vm.transactionType === 'BUY') {
-      //   return vm.buyListings.length === 0
-      // } else {
-      //   return vm.sellListings.length === 0
-      // }
-      return vm.listings.length === 0
-    },
     receiveDialogOption (option) {
       const vm = this
 
       switch (vm.dialogName) {
         case 'deleteAd':
           if (option === 'confirm') {
-            // if (vm.transactionType === 'BUY') {
-            //   vm.buyListings.splice(vm.selectedIndex, 1)
-            // } else {
-            //   vm.sellListings.splice(vm.selectedIndex, 1)
-            // }
             vm.deleteAd()
           }
           break
