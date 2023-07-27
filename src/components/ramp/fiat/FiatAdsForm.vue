@@ -397,7 +397,6 @@ export default {
       try {
         const response = await vm.$axios.get(url, { headers: headers })
         const data = response.data
-        console.log('data:', data)
         vm.adData.tradeType = data.trade_type
         vm.adData.priceType = data.price_type
         vm.adData.floatingPrice = data.floating_price
@@ -429,8 +428,7 @@ export default {
       }
       const body = vm.transformPostData()
       vm.$axios.post(url, body, { headers: headers })
-        .then(response => {
-          console.log('response:', response.data)
+        .then(_response => {
           vm.swipeStatus = true
           this.$emit('submit')
         })
@@ -479,19 +477,10 @@ export default {
         signature: signature
       }
       const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
-      // console.log('response:', response.data)
-      // .then(response => {
-      //   console.log(response.data)
-      //   return response.data
-      // })
-      // .catch(error => {
-      //   console.error(error.response)
-      // })
       return response.data
     },
     async checkSubmitOption () {
       const vm = this
-      // console.log('checking submit option')
       vm.step++
     },
     async updateFiatCurrency () {
@@ -545,8 +534,6 @@ export default {
           vm.priceValue = value
           break
       }
-      // console.log('priceType:', priceType)
-      // console.log('value:', value)
     },
     transformPrice (value) {
       const vm = this
@@ -591,13 +578,8 @@ export default {
       }
     },
     appendPaymentMethods (paymentMethods) {
-      console.log('Adding payment methods:', paymentMethods)
       const vm = this
-      // Finalize Data
-      // console.log(methods)
-
       vm.adData.paymentMethods = paymentMethods
-      console.log(vm.adData)
       vm.step++
     },
     decPriceValue () {
@@ -656,7 +638,6 @@ export default {
           vm.adData.fixedPrice = null
           break
       }
-      // console.log('fixedPrice:', vm.adData.fixedPrice)
     }, 500)
   }
 }

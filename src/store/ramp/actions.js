@@ -55,7 +55,6 @@ export async function createUser (context, data) {
 
 export async function fetchAds (context, { component = null, params = null, headers = null }) {
   const state = context.state
-  // console.log('component:', component, '| params:', params, '| headers:', headers)
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
   let totalPages = null
@@ -89,8 +88,6 @@ export async function fetchAds (context, { component = null, params = null, head
       return
   }
 
-  console.log('pageNumber:', pageNumber, 'totalPages:', totalPages)
-
   if (pageNumber < totalPages || (!pageNumber && !totalPages)) {
     // Increment page by 1 if not fetching data for the first time
     if (pageNumber !== null) pageNumber++
@@ -98,7 +95,6 @@ export async function fetchAds (context, { component = null, params = null, head
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
     params.page = pageNumber
     params.limit = state.itemsPerPage
-    // console.log('params:', params)
     try {
       const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
 

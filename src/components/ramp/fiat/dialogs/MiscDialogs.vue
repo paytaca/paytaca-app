@@ -391,12 +391,11 @@ export default {
           vm.loading = false
         })
         .catch(error => {
-          console.log(error)
+          console.log(error.response)
           vm.loading = false
         })
     },
     updateSelectedPaymentMethods (paymentMethod) {
-      // console.log('updateSelectedPaymentMethods:', paymentMethod)
       const vm = this
 
       if (paymentMethod.selected) {
@@ -411,7 +410,6 @@ export default {
       } else {
         vm.selectedPaymentMethods = vm.selectedPaymentMethods.filter((element) => element.id !== paymentMethod.id)
       }
-      console.log('selectedPaymentMethods:', vm.selectedPaymentMethods)
     },
     checkDialogType () {
       const vm = this
@@ -448,7 +446,6 @@ export default {
     },
     stageData () {
       const vm = this
-      console.log('dialogType:', vm.dialogType)
       switch (vm.dialogType) {
         case 'createPaymentMethod':
           vm.info = vm.paymentMethod
@@ -475,7 +472,6 @@ export default {
     submitData () {
       const vm = this
       const emitName = vm.stageData()
-      console.log('vm.info:', vm.info)
       this.$emit(emitName, vm.info)
       // this.$emit('back', vm.info)
     },
@@ -495,7 +491,6 @@ export default {
       vm.$axios.get(vm.apiURL + '/payment-type')
         .then(response => {
           vm.paymentTypes = response.data
-          // console.log(vm.paymentTypes)
         })
         .catch(error => {
           console.error(error)

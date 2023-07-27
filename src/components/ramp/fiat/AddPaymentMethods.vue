@@ -138,11 +138,6 @@ export default {
     }
   },
   emits: ['submit', 'back'],
-  watch: {
-    paymentMethods (value) {
-      console.log('paymentMethods:', value)
-    }
-  },
   async mounted () {
     // get payment type list
     this.paymentMethods = this.currentPaymentMethods
@@ -150,14 +145,12 @@ export default {
   },
   methods: {
     onBack (data) {
-      console.log('onBack:', data)
       if (data !== undefined) {
         this.paymentMethods = data
       }
       this.openDialog = false
     },
     receiveDialogInfo (data) {
-      console.log('>>>>>>>>>>> data:', data)
       const vm = this
       switch (vm.dialogType) {
         case 'addPaymentMethod':
@@ -197,13 +190,11 @@ export default {
     },
     deleteMethod (data) {
       this.info = data
-      // console.log('confirmDeletePaymentMethod')
       this.selectedMethodIndex = data.id
       this.dialogType = 'confirmDeletePaymentMethod'
       this.openDialog = true
     },
     removeMethod (index, data) {
-      console.log('removeMethod')
       this.info = data
       // this.selectedMethodIndex = index // data.id
       this.dialogType = 'confirmRemovePaymentMethod'
@@ -216,7 +207,6 @@ export default {
     },
     // processes
     async deletePaymentMethod (index) {
-      // console.log('deleting payment method')
       const vm = this
 
       vm.isloaded = false
@@ -241,7 +231,6 @@ export default {
       vm.isloaded = true
     },
     async savePaymentMethod (info) {
-      // console.log('saving payment method')
       const vm = this
 
       const walletInfo = vm.$store.getters['global/getWallet']('bch')
@@ -267,11 +256,9 @@ export default {
             }
           })
             .then(response => {
-              console.log(response.data)
               if (vm.paymentMethods.length < 5) {
                 vm.paymentMethods.push(response.data)
               }
-              console.log('paymentMethods:', vm.paymentMethods)
               vm.openDialog = false
             })
             .catch(error => {

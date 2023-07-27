@@ -190,7 +190,6 @@ export default {
     vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
-    console.log('adData:', vm.adData)
   },
   methods: {
     formattedCurrencyNumber (value) {

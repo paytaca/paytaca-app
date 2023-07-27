@@ -10,14 +10,12 @@ export function clearProfile (state) {
 
 export function updateStoreBuyListings (state, data) {
   state.storeBuyListings.push(...data.ads)
-  // console.log('storeBuyListings:', state.storeBuyListings)
   state.storeBuyTotalPages = data.total_pages
   state.storeBuyItemsCount = data.count
 }
 
 export function updateStoreSellListings (state, data) {
   state.storeSellListings.push(...data.ads)
-  // console.log('storeSellListings:', state.storeSellListings)
   state.storeSellTotalPages = data.total_pages
   state.storeSellItemsCount = data.count
 }
@@ -48,13 +46,11 @@ export function resetStorePagination (state) {
 
 export function updateAdsBuyListings (state, data) {
   state.adsBuyListings.push(...data.ads)
-  console.log('adsBuyListings:', state.adsBuyListings)
   state.adsBuyTotalPages = data.total_pages
 }
 
 export function updateAdsSellListings (state, data) {
   state.adsSellListings.push(...data.ads)
-  console.log('adsSellListings:', state.adsSellListings)
   state.adsSellTotalPages = data.total_pages
 }
 
