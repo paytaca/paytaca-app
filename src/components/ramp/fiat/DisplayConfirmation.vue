@@ -84,11 +84,11 @@
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Crypto Amount</span>
-              <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+              <span class="text-nowrap q-ml-xs">{{ cryptoAmount.toFixed(8) }} BCH</span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Payment Time Duration</span>
-              <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span>
+              <span class="text-nowrap q-ml-xs">{{ adData.time_duration/60 }} hours</span>
             </div>
           </div>
         </div>

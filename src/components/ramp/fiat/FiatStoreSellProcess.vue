@@ -1,11 +1,11 @@
 <template>
-  <div class="q-pt-md q-px-md">
+  <div class="q-pt-md q-px-md" v-if="isloaded">
     <div>
       <q-btn
         flat
         padding="xs"
         icon="arrow_back"
-        @click="$emit('back')"
+        @click="returnList()"
       />
     </div>
     <q-stepper
@@ -23,134 +23,184 @@
       alternative-labels
       flat
     >
+      <!-- STEP 1 -->
       <q-step
         :name="1"
-        title="Create Order"
+        title="Escrow Fund"
         prefix="1"
         :done="step > 1"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
-          Create Order
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
+          Escrow Fund
         </div>
-        <FiatStoreSellInit
-          v-if="isloaded"
-          :listing-data="sell"
-          :crypto-amount="cryptoAmount"
-          v-on:pymnt-methods="setPaymentMethods"
-          v-on:confirmed="confirmedOrder"
-        />
+
+        <div class="q-pt-sm sm-font-size">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Contract Address:</span>
+            <span class="text-nowrap q-ml-xs">contract addr</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Crypto Amount:</span>
+            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount}} BCH</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Arbitration Fee:</span>
+            <span class="text-nowrap q-ml-xs">{{ ad.fees.arbitration_fee }} BCH</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+            <span>Service Fee:</span>
+            <span class="text-nowrap q-ml-xs">{{ ad.fees.service_fee }} BCH</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg bold-text">
+            <span>Total:</span>
+            <span class="text-nowrap q-ml-xs">{{ totalAmount }} BCH</span>
+          </div>
+        </div>
+        <div class="q-py-sm">
+            <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              TRADE CONTRACT
+            </div>
+            <div class="q-pt-md sm-font-size">
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+              <span>Seller Address:</span>
+              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+              <span>Buyer Address:</span>
+              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+              <span>Arbiter Address:</span>
+              <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row q-pt-md">
+          <q-btn
+            rounded
+            no-caps
+            label='Escrow Crypto'
+            class="q-space text-white"
+            color="blue-6"
+            @click="escrowCrypto()"
+          />
+        </div>
       </q-step>
 
+      <!-- STEP 2 -->
       <q-step
         :name="2"
         title="Await Payment"
         prefix="2"
         :done="step > 2"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
           Pending Payment
         </div>
-        <div class="q-pt-sm" style="font-size: 13px;">
-          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+        <div class="q-pt-sm sm-font-size">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row  bold-text subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount}} PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} PHP</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Price:</span>
-            <span class="text-nowrap q-ml-xs">6871.41 PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ ad.price }} PHP</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount }} BCH</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg" style="font-weight: 500;">
+          <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" v-if="sellStatus !== 'Expired'" :class="sellStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ sellStatus }}</span>
-            <span class="text-nowrap q-ml-xs text-red-6" v-if="sellStatus === 'Expired'">{{ sellStatus }}</span>
+            <span v-if="isExpired" class="text-red-6 text-nowrap q-ml-xs">Expired</span>
+            <span v-else class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
           </div>
 
-          <div class="q-py-sm" v-if="!paid && sellStatus !== 'Expired'">
-            <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+          <div class="q-py-sm" v-if="hasExtraInfo">
+            <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               CONTRACT INFO
             </div>
-            <div style="font-size: 13px">
+            <div class="sm-font-size">
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row q-pt-md justify-between no-wrap q-mx-lg">
                 <span>Address:</span>
                 <span class="text-nowrap q-ml-xs">bitcoincash:qzvn7q***tgnvldj7l2</span>
               </div>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
                 <span>Balance:</span>
-                <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+                <span class="text-nowrap q-ml-xs">[balance amount] BCH</span>
               </div>
             </div>
           </div>
 
-          <!-- <div v-if="sellStatus === 'Released'">
+          <!-- <div v-if="order.status === 'Released'">
             Here
           </div> -->
-          <div v-if="sellStatus !== 'Released'">
-            <div v-if="sellStatus === 'Expired'">
+          <div v-if="order.status !== 'Released'">
+            <div v-if="isExpired">
               <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-              <div class="q-py-sm text-center" style="font-size: 18px; font-weight: 500; color: #ed5f59;">
+              <div class="q-py-sm text-center lg-font-size bold-text" style="color: #ed5f59;">
                 <q-icon size="xs" name="info" color="red-5"/>&nbsp;
                 <span>Buyer Has Timed Out</span>
               </div>
             </div>
-            <div class="text-center q-mt-sm" v-else>
-              <q-separator :dark="darkMode" />
-              <div class="q-pt-sm" style="font-size: 15px;">
-                <span v-if="paid">Confirm payment within time limit to release the crypto...</span>
-                <span v-else>Expect payment within...</span>
-              </div>
-              <div v-if="paid" class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
-                {{ countDown }}
-              </div>
-              <div v-else class="text-center" style="font-size: 40px; color: rgb(60, 100, 246);">
-                {{ countDown }}
+            <div v-else>
+              <div class="text-center q-mt-sm" v-if="hasCountDown">
+                <q-separator :dark="darkMode" />
+                <div class="q-pt-sm md-font-size">
+                  <div class="q-px-lg" >{{ countDownText }}</div>
+                  <!-- <div v-if="order.status === 'Paid Pending'">Expect payment within...</div> -->
+                </div>
+                <div v-if="order.status === 'Paid'" class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
+                  {{ countDown }}
+                </div>
+                <div v-else class="text-center" style="font-size: 40px; color: rgb(60, 100, 246);">
+                  {{ countDown }}
+                </div>
               </div>
             </div>
-            <div class="q-mt-sm" v-if="paid || sellStatus === 'Expired'">
-              <div class="row text-center q-gutter-sm q-mx-lg">
-                <div :class="$q.platform.is.mobile? 'col-4' : 'col'">
-                  <q-btn
-                    rounded
-                    no-caps
-                    label='Appeal'
-                    class="q-space text-white full-width"
-                    style="background-color: #ed5f59;"
-                    @click="appeal = true"
-                  />
-                </div>
-                <div :class="$q.platform.is.mobile? 'col-7' : 'col'">
-                  <q-btn
-                    rounded
-                    no-caps
-                    label='Confirm Payment'
-                    class="q-space text-white full-width"
-                    color="blue-6"
-                    @click="confirmPayment = true"
-                  />
-                </div>
+          </div>
+          <div class="q-mt-sm" v-if="order.status === 'Released' || isExpired">
+            <div class="row text-center q-gutter-sm q-mx-lg">
+              <div :class="$q.platform.is.mobile? 'col-4' : 'col'">
+                <q-btn
+                  rounded
+                  no-caps
+                  label='Appeal'
+                  class="q-space text-white full-width"
+                  style="background-color: #ed5f59;"
+                  @click="submitAppealConfirmation()"
+                />
               </div>
-              <div class="q-px-xs q-pt-md q-pb-xs" style="font-size: 12px;">
-                <div>
-                  <q-icon size="sm" name="info" color="blue-grey-6"/>
-                  <span class="q-pl-xs subtext">
-                    Click on "Appeal" to start the refund process if you have not received payment.
-                  </span>
-                </div>
-                <div class="q-pt-xs">
-                  <q-icon size="sm" name="info" color="blue-grey-6"/>
-                  <span class="q-pl-xs subtext">
-                    Click on "Confirm Payment" to release the funds.
-                  </span>
-                </div>
-                <div class="q-pt-xs">
-                  <q-icon size="sm" name="info" color="orange-6"/>
-                  <span class="q-pl-xs subtext">
-                    Do not click on "Confirm Payment" if you did not receive payment from the buyer to avoid financial loss.
-                  </span>
-                </div>
+              <div :class="$q.platform.is.mobile? 'col-7' : 'col'">
+                <q-btn
+                  rounded
+                  no-caps
+                  label='Confirm Payment'
+                  class="q-space text-white full-width"
+                  color="blue-6"
+                  @click="paymentConfirmation()"
+                />
+              </div>
+            </div>
+            <div class="q-px-xs q-pt-md q-pb-xs xs-font-size">
+              <div>
+                <q-icon size="sm" name="info" color="blue-grey-6"/>
+                <span class="q-pl-xs subtext">
+                  Click on "Appeal" to start the refund process if you have not received payment.
+                </span>
+              </div>
+              <div class="q-pt-xs">
+                <q-icon size="sm" name="info" color="blue-grey-6"/>
+                <span class="q-pl-xs subtext">
+                  Click on "Confirm Payment" to release the funds.
+                </span>
+              </div>
+              <div class="q-pt-xs">
+                <q-icon size="sm" name="info" color="orange-6"/>
+                <span class="q-pl-xs subtext">
+                  Do not click on "Confirm Payment" if you did not receive payment from the buyer to avoid financial loss.
+                </span>
               </div>
             </div>
           </div>
@@ -174,102 +224,116 @@
               />
             </div>
           </div> -->
-          <div v-if="!paid">
-            <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              MY PAYMENT METHODS
+          <div v-if="hasExtraInfo">
+            <div class="text-h5 q-pt-md text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              BUYER PAYMENT METHOD
+            </div>
+            <div class="q-gutter-sm text-center q-py-md">
+                <q-badge v-for="method in order.ad.payment_methods" rounded outline color="blue" :label="method.payment_type"/>
+              </div>
+            <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              MY PAYMENT METHODS <q-icon size="xs" name='o_edit' color="blue-grey-6"/>
             </div>
             <div class="q-pt-md">
-              <div class="q-gutter-sm" :class="$q.platform.is.mobile? '' : 'text-center'">
-                <q-badge v-for="method in paymentMethods" rounded outline color="red" :label="method.type"/>
+              <div class="q-gutter-sm text-center">
+                <q-badge v-for="method in paymentMethods" rounded outline color="red" :label="method.payment_type.name"/>
               </div>
             </div>
           </div>
-          <!-- <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
-            <span>Status:</span>
-            <span class="text-nowrap q-ml-xs">{{ buyStatus }}</span>
-          </div> -->
         </div>
       </q-step>
 
+      <!-- STEP 3 -->
       <q-step
         :name="3"
         title="Release Crypto"
         prefix="3"
       >
-        <div class="q-mx-lg text-h5 text-center" style="font-size: 18px;">
+        <div class="q-mx-lg text-h5 text-center lg-font-size">
           Release Crypto
         </div>
-        <div class="q-pt-md" style="font-size: 13px;">
-          <div style="font-weight: 500;" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
+        <div class="q-pt-md sm-f" style="font-size: 13px;">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row bold-text subtext justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} {{ order.fiat_currency .symbol }}</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Price:</span>
-            <span class="text-nowrap q-ml-xs">6871.41 PHP</span>
+            <span class="text-nowrap q-ml-xs">{{ ad.price }}</span>
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
             <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount }} BCH</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg" style="font-weight: 500;">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg bold-text">
+            <span>Completed on:</span>
+            <span class="text-nowrap q-ml-xs">[date here]</span>
+          </div>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg bold-text" v-if="order.status === 'Released'">
             <span>Status:</span>
-            <span class="text-nowrap q-ml-xs" v-if="sellStatus !== 'Expired'" :class="sellStatus.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ sellStatus }}</span>
-            <span class="text-nowrap q-ml-xs text-red-6" v-if="sellStatus === 'Expired'">{{ sellStatus }}</span>
+            <span class="text-nowrap q-ml-xs" v-if="!isExpired" :class="order.status.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ order.status }}</span>
+            <span class="text-nowrap q-ml-xs text-red-6" v-if="isExpired">Expired</span>
           </div>
         </div>
-        <div class="text-center">
-          <div class="text-h5" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+        <!-- <div class="text-center">
+          <div class="text-h5 md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
             RELEASED
           </div>
-          <div class="q-pt-sm" style="font-size: 18px;">
-            {{ getDate() }}
+          <div class="q-pt-sm md-font-size subtext">
+            Awaiting...
           </div>
-        </div>
+        </div> -->
         <div class="q-pt-sm">
-          <div class="text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-            TRADE INFO
+          <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            FEEDBACK
           </div>
-          <div class="q-pt-md">
-            <div  class="row justify-between no-wrap q-mx-lg">
+          <div>
+            <div  class="text-center q-mx-lg">
               <div>
-                <span style="font-size: 13px;">Buyer</span><br>
-                <span style="font-weight: 500; font-size: 15px;">{{ sell.name }}</span>
-              </div>
-              <div class="q-pt-sm text-right">
-                <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
-                <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
+                <div class="q-pt-sm">
+                  <q-rating
+                    v-model="ratingModel"
+                    size="md"
+                    color="amber-8"
+                    icon="star"
+                  />
+                </div>
+                <div class="q-mx-sm subtext" :class="{'pt-dark-label': darkMode}">
+                  <span class="q-pl-md q-mb-none xs-font-size">
+                    {{ ad.trade_count }} trades
+                  </span>&nbsp;
+                  <span class="q-pl-xs q-mb-none xs-font-size">
+                    {{ ad.completion_rate }}% completion
+                  </span>
+                </div>
+                <span class="bold-text q-mb-none md-font-size">{{ order.ad.owner.nickname }}</span><br>
+                <span class="xs-font-size">Rate this Buyer</span><br>
               </div>
             </div>
-            <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-            <div  class="row justify-between no-wrap q-mx-lg q-pt-md">
+            <!-- <div  class="text-center q-mx-lg">
               <div>
-                <span style="font-size: 13px;">Arbiter</span><br>
-                <span style="font-weight: 500; font-size: 15px;">Atty. Ruby Von Rails</span>
+                <div class="q-pt-sm">
+                  <q-rating
+                    v-model="ratingModel"
+                    size="md"
+                    color="blue-8"
+                    icon="star"
+                  />
+                </div>
+                <span class="bold-text md-font-size">Atty. Ruby Von Rails</span><br>
+                <span class="xs-font-size">Rate this Arbiter</span><br>
               </div>
-              <div class="q-pt-sm text-right">
-                <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_up"/>
-                <q-icon class="q-pr-lg" :color="darkMode? 'grey-5' : 'grey-7'" size="sm" name="o_thumb_down"/>
-              </div>
-            </div>
+            </div> -->
             <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
           </div>
           <div>
-            <div class="text-h5 q-pt-md text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              PAYMENT METHOD
+            <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+            <div class="q-pt-sm q-pl-lg">
+              <span class="bold-text text-grey-7">Comment</span>
+              <q-input class="q-pt-sm" dense rounded outlined v-model="comment" label="Add a comment" />
             </div>
-            <div class="q-pt-md">
-              <div class="q-gutter-sm" :class="$q.platform.is.mobile? '' : 'text-center'">
-                <!-- <q-badge rounded outline color="red" :label="paymentMethods[0].type"/> -->
-                <div class="q-mx-lg text-center">
-                  <div class="text-h5" style="font-size: 15px;">
-                    {{ paymentMethods[0].type.toUpperCase() }}
-                  </div>
-                  <div class="subtext" style="font-weight: 500;">
-                    {{ paymentMethods[0].info }}
-                  </div>
-                </div>
-              </div>
+            <div class="text-center q-pt-sm">
+              <span class="text-blue"><u>Show comments</u></span>
             </div>
           </div>
         </div>
@@ -283,6 +347,14 @@
       </template> -->
     </q-stepper>
   </div>
+
+  <!-- Progress Loader -->
+  <div v-if="!isloaded">
+    <div class="row justify-center q-py-lg" style="margin-top: 50px">
+      <ProgressLoader/>
+    </div>
+  </div>
+
   <!-- Successful Sell Notif -->
   <q-dialog
     v-model="receivedPayment"
@@ -315,90 +387,203 @@
       </div>
     </q-card>
   </q-dialog>
-  <!-- Confirm Payment -->
-  <q-dialog persistent v-model="confirmPayment">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Confirm Payment?</div>
-      </q-card-section>
 
-      <q-card-section class="text-center q-pt-none">
-        <div>
-          This will release the crypto held by the escrow account to the buyer.
-        </div>
-        <div class="q-pt-md">
-          I confirm that I have received payment from the buyer.
-        </div>
-
-      </q-card-section>
-
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="confirmingPayment" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-
-  <!-- Appeal Dialog -->
-  <q-dialog full-width persistent v-model="appeal">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Submitting an Appeal&nbsp;&nbsp;<q-icon size="xs" name="info" color="blue-grey-6"/></div>
-      </q-card-section>
-
-      <q-card-section class="text-center q-pt-none q-px-md">
-        <span>
-          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
-        </span><br><br>
-        <span class="q-pt-lg">
-          Submitting an appeal will raise dispute on the funds which requires the intervention of the smart contract's assigned Arbiter.
-        </span><br><br>
-        <span class="q-pt-lg">
-          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
-        </span>
-      </q-card-section>
-
-      <q-card-actions class="q-pt-xs text-center" align="center">
-        <q-btn flat label="Cancel" color="red" v-close-popup />
-        <q-btn flat label="I understand, proceed" color="blue-6" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+  <div v-if="openDialog">
+    <MiscDialogs
+      :type="dialogType"
+      :data="info"
+      v-on:back="openDialog = false"
+      v-on:submit="receiveDialogInfo"
+    />
+  </div>
 </template>
 <script>
 import { ref } from 'vue'
-import FiatStoreSellInit from './FiatStoreSellInit.vue'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { signMessage } from '../../../wallet/ramp/signature.js'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      wallet: null,
       sell: {},
+      order: null,
+      ad: null,
       isloaded: false,
       countDown: '',
       timer: null,
       receivedPayment: false,
-      confirmPayment: false,
-      appeal: false,
       paid: false,
       sellStatus: 'Pending Payment',
-      paymentMethods: []
+      paymentMethods: [],
+      dialogType: '',
+      openDialog: false,
+      info: null,
+      ratingModel: 0,
+      comment: ''
     }
   },
   props: {
+    orderData: {
+      type: Object,
+      default: null
+    },
     listingData: Object,
     cryptoAmount: Number,
     fiatAmount: String
   },
   components: {
-    FiatStoreSellInit
+    ProgressLoader,
+    MiscDialogs
   },
   emits: ['back', 'hideBuyer'],
+  computed: {
+    totalAmount () {
+      const total = parseFloat(this.order.crypto_amount) + parseFloat(this.ad.fees.arbitration_fee) + parseFloat(this.ad.fees.service_fee)
+      return total.toFixed(8)
+    },
+    getFiatAmount () {
+      return parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+    },
+    hasCountDown () {
+      const stat = ['Escrowed', 'Paid Pending', 'Paid', 'Release Pending']
+
+      return stat.includes(this.order.status)
+    },
+    // change var name
+    hasExtraInfo () {
+      const stat = ['Paid', 'Expired']
+      return !stat.includes(this.order.status)
+    },
+    countDownText () {
+      if (this.order.status === 'Escrowed' || this.order.status === 'Paid Pending') {
+        return 'Expect Payment within...'
+      } else if (this.order.status === 'Paid') {
+        return 'Confirm payment within time limit to release the crypto...'
+      } else {
+        return ''
+      }
+    },
+    isExpired () {
+      const vm = this
+      console.log(vm.order.expiration_date)
+
+      const now = new Date().getTime()
+      const expiryDate = new Date(vm.order.expiration_date)
+
+      if (expiryDate < now && vm.order.expiration_date) {
+        return true
+      } else {
+        return false
+      }
+    }
+  },
   methods: {
+    async checkStep () {
+      switch (this.order.status) {
+        case 'Submitted':
+          this.step = 1
+          break
+        case 'Escrow Pending': // no timer
+          this.step = 2
+          this.confirmed = true
+          // this.fetchPaymentMethod()
+          break
+        case 'Escrowed': // has timer
+        case 'Paid Pending':
+        case 'Paid':
+          this.step = 2
+          this.confirmed = true
+          // this.fetchPaymentMethod()
+          await this.paymentCountdown()
+          break
+        case 'Release Pending':
+        case 'Appealed for Release':
+          this.step = 3
+          this.paymentCountdown()
+          break
+        case 'Released': // stopped timer
+          this.step = 3
+          this.status = 'released'
+          break
+        case 'Canceled':
+        case 'Appealed for Refund':
+        case 'Refund Pending':
+        case 'Refunded':
+          this.status = 'cancelled'
+          break
+      }
+      if (this.isExpired) {
+        this.step = 2
+      }
+    },
+    async fetchPaymentMethod () {
+      const vm = this
+
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
+
+      // console.log(wallet.walletHash)
+      await vm.$axios.get(vm.apiURL + '/payment-method',
+        {
+          headers: {
+            'wallet-hash': vm.wallet.walletHash,
+            signature: signature,
+            timestamp: timestamp
+          }
+        })
+        .then(response => {
+          this.paymentMethods = response.data
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    async fetchOrderData () {
+      const vm = this
+
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+
+      await vm.$axios.get(vm.apiURL + '/order/' + vm.orderData.id, {
+        headers: {
+          'wallet-hash': vm.wallet.walletHash,
+          timestamp: timestamp,
+          signature: signature
+        }
+      })
+        .then(response => {
+          vm.order = response.data.order
+          vm.contract = response.data.contract
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    async fetchAdData () {
+      const vm = this
+
+      const adId = vm.order.ad.id
+      const url = `${vm.apiURL}/ad/${adId}`
+
+      await vm.$axios.get(url)
+        .then(response => {
+          vm.ad = response.data
+        })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response)
+        })
+    },
     paymentCountdown () {
       const vm = this
-      const currentDate = new Date().getTime()
-      const expiryDate = new Date(currentDate + 24 * 60 * 60 * 1000)
+      // const currentDate = new Date().getTime()
+      const expiryDate = new Date(vm.order.expiration_date) // change later
+      console.log(expiryDate)
 
       vm.timer = setInterval(function () {
         const now = new Date().getTime()
@@ -406,14 +591,16 @@ export default {
         const distance = expiryDate - now
 
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+        let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
         let seconds = Math.floor((distance % (1000 * 60)) / 1000)
         if (seconds.toString().length < 2) {
           seconds = '0' + seconds
         }
+        if (minutes.toString().length < 2) {
+          minutes = '0' + minutes
+        }
 
         vm.countDown = hours + ':' + minutes + ':' + seconds
-        // console.log(vm.countDown)
         if (distance < 0) {
           clearInterval(vm.timer)
           vm.countDown = 'Expired'
@@ -421,36 +608,16 @@ export default {
         }
       }, 1000)
     },
-    releaseCntDwnSim () {
+    async escrowCrypto () {
+      // Add escrow crypto process later
       const vm = this
+      vm.isloaded = false
+      vm.$refs.stepper.next()
+      vm.order.status = 'Escrow Pending'
+      vm.fetchPaymentMethod()
+      await vm.paymentCountdown()
 
-      const expire = 10
-      let now = 0
-
-      const x = setInterval(function () {
-        now++
-        if (now === expire) {
-          clearInterval(x)
-          // vm.$refs.stepper.next()
-          // vm.buyStatus = 'Released'
-          // vm.$emit('released')
-          // vm.buyStatus = 'Expired'
-          clearInterval(vm.timer)
-          vm.timer = null
-          // vm.receivedPayment = true
-
-          // vm.paid = true
-          // vm.sellStatus = 'Pending Release'
-          vm.sellStatus = 'Expired'
-          console.log(vm.receivedPayment)
-        }
-      }, 1000)
-    },
-    confirmedOrder () {
-      this.paymentCountdown()
-      this.releaseCntDwnSim()
-      this.$refs.stepper.next()
-      this.$emit('hideBuyer')
+      vm.isloaded = true
     },
     confirmingPayment () {
       clearInterval(this.timer)
@@ -460,16 +627,28 @@ export default {
       this.sellStatus = 'Released'
 
       this.$emit('hideBuyer')
-      // console.log(this.receivedPayment)
     },
     getDate () {
       const date = new Date()
       return date.toLocaleString('default', { month: 'long' }) + ' ' + date.getDate() + ', ' + date.getFullYear()
     },
-    setPaymentMethods (data) {
-      console.log('setting payment methods')
-      console.log(data)
-      this.paymentMethods = data
+    returnList () {
+      this.$emit('back')
+      clearInterval(this.timer)
+    },
+    // opening dialog
+    submitAppealConfirmation () {
+      this.dialogType = 'submitAppeal'
+      this.openDialog = true
+    },
+    paymentConfirmation () {
+      this.dialogType = 'confirmPayment'
+      this.openDialog = true
+    },
+
+    // recieving dialog
+    receiveDialogInfo () {
+      this.openDialog = false
     }
   },
   setup () {
@@ -479,10 +658,21 @@ export default {
   },
   async mounted () {
     const vm = this
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
 
-    console.log(vm.fiatAmount)
+    await vm.fetchOrderData()
+    await vm.fetchAdData()
+    await vm.fetchPaymentMethod()
+    vm.checkStep()
+    console.log(vm.isExpired)
+
     vm.sell = vm.listingData
-    this.isloaded = true
+    vm.isloaded = true
+  },
+  beforeUnmount () {
+    clearInterval(this.timer)
+    this.timer = null
   }
 }
 </script>

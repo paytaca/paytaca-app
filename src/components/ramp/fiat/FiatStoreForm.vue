@@ -55,7 +55,7 @@
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md sm-font-size">
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Crypto Amount</span>
-              <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
+              <span class="text-nowrap q-ml-xs">{{ cryptoAmount.toFixed(8) }} BCH</span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Arbitration Fee</span>
@@ -92,9 +92,7 @@
         <!-- Double Check this -->
         <FiatStoreBuyProcess
           v-if="transactionType === 'SELL'"
-          :order-data="ad"
-          :buyAmount="cryptoAmount.toString()"
-          :fiatAmount="fiatAmount"
+          :order-data="order"
           v-on:back="state = 'initial'"
           v-on:hide-seller="hideSellerInfo = !hideSellerInfo"
           v-on:pending-release="pendingRelease = true"
@@ -102,7 +100,7 @@
         />
         <FiatStoreSellProcess
           v-if="transactionType === 'BUY'"
-          :listingData="ad"
+          :listingData="order"
           :buyAmount="cryptoAmount.toString()"
           :fiatAmount="fiatAmount"
           v-on:back="state = 'initial'"
@@ -208,6 +206,7 @@ export default {
       disabled: false,
       isloaded: false,
       ad: null,
+      order: null,
       fiatAmount: 0,
       state: 'initial', // confirmation
       hideSellerInfo: false,
@@ -346,9 +345,9 @@ export default {
       const pmId = vm.paymentMethods.map(p => p.id)
       // const lockedPrice = this.ad.price_type === 'FIXED' ?  this.ad.price : 1000 * () //CHECK LATER
 
-      vm.$axios.post(vm.apiURL + '/order/', {
+      await vm.$axios.post(vm.apiURL + '/order/', {
         ad: this.ad.id,
-        crypto_amount: parseFloat(vm.cryptoAmount),
+        crypto_amount: parseFloat(vm.cryptoAmount).toFixed(8),
         locked_price: this.ad.price, // fixed: normal price, float: price = marketprice * (floating_price/100)
         arbiter: 1,
         payment_methods: pmId
@@ -360,9 +359,16 @@ export default {
           timestamp: timestamp
         }
       })
+        .then(response => {
+          vm.order = response.data.data.order
+        })
+        .catch(error =>{
+          console.log(error)
+        })
     },
     async postOrder () {
       await this.createOrder()
+      console.log(this.order)
       console.log('created Order')
       this.state = 'processing'
     }

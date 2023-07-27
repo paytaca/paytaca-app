@@ -276,6 +276,56 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <!-- Appeal Dialog -->
+  <q-dialog full-width persistent v-model="submitAppeal">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Submitting an Appeal&nbsp;&nbsp;<q-icon size="xs" name="info" color="blue-grey-6"/></div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none q-px-md">
+        <span>
+          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
+        </span><br><br>
+        <span class="q-pt-lg">
+          Submitting an appeal will raise dispute on the funds which requires the intervention of the smart contract's assigned Arbiter.
+        </span><br><br>
+        <span class="q-pt-lg">
+          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-xs text-center" align="center">
+        <q-btn flat label="Cancel" @click="$emit('back')" color="red" v-close-popup />
+        <q-btn flat label="I understand, proceed" @click="submitData()" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- confirm payment -->
+  <q-dialog persistent v-model="confirmPayment">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Confirm Payment?</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        <div>
+          This will release the crypto held by the escrow account to the buyer.
+        </div>
+        <div class="q-pt-md">
+          I confirm that I have received payment from the buyer.
+        </div>
+
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -311,6 +361,8 @@ export default {
       confirmRemovePaymentMethod: false,
       editNickname: false,
       viewProfile: false,
+      submitAppeal: false,
+      confirmPayment: false,
       maxMethodReached: false,
 
       // Input Model
@@ -441,6 +493,13 @@ export default {
           break
         case 'viewProfile':
           vm.viewProfile = true
+          break
+        case 'submitAppeal':
+          vm.submitAppeal = true
+          break
+        case 'confirmPayment':
+          console.log('confirming payment')
+          vm.confirmPayment = true
           break
       }
     },
