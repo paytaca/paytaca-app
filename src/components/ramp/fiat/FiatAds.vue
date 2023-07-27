@@ -5,7 +5,7 @@
     style="min-height:78vh;">
     <div v-if="state !== 'selection'">
       <FiatAdsForm
-        @back="onBack()"
+        @back="onFormBack()"
         @submit="onSubmit()"
         :adsState="state"
         :transactionType="transactionType"
@@ -91,7 +91,7 @@
                             icon="edit"
                             size="sm"
                             color="grey-6"
-                            @click="editAds(listing.id)"
+                            @click="onEditAd(listing.id)"
                           />
                           <q-btn
                             outline
@@ -101,7 +101,7 @@
                             icon="delete"
                             color="grey-6"
                             class="q-ml-xs"
-                            @click="openDeleteAdDialog(listing)"
+                            @click="onDeleteAd(listing.id)"
                           />
                         </div>
                       </div>
@@ -176,7 +176,6 @@ export default {
       const vm = this
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
-      // console.log('pageNumber:', this.pageNumber, 'totalPages:', vm.totalPages)
       if (vm.pageNumber === null || vm.totalPages === null) {
         vm.loading = true
         this.fetchAds()
@@ -224,7 +223,6 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      // console.log('headers:', headers)
       const params = { trade_type: vm.transactionType }
       try {
         await vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, headers: headers })
@@ -234,7 +232,6 @@ export default {
       vm.loading = false
     },
     async loadMoreData (_, done) {
-      console.log('loadMoreData')
       const vm = this
       if (!vm.hasMoreData) {
         done(true)
@@ -255,12 +252,9 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      console.log('headers:', headers)
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
-      console.log('url:', url)
       try {
-        const response = await vm.$axios.delete(url, { headers: headers })
-        console.log('response:', response.data)
+        await vm.$axios.delete(url, { headers: headers })
 
         setTimeout(() => {
           vm.dialogName = 'notifyDeleteAd'
@@ -271,12 +265,6 @@ export default {
       }
       vm.loading = false
     },
-    async onSubmit () {
-      const vm = this
-      vm.state = 'selection'
-      vm.selectedAdId = null
-      vm.resetAndRefetchListings()
-    },
     async resetAndRefetchListings () {
       // reset pagination and reload ads list
       const vm = this
@@ -285,6 +273,12 @@ export default {
       await vm.fetchAds()
       vm.updatePaginationValues()
       vm.loading = false
+    },
+    onSubmit () {
+      const vm = this
+      vm.state = 'selection'
+      vm.selectedAdId = null
+      vm.resetAndRefetchListings()
     },
     onDialogBack () {
       const vm = this
@@ -295,11 +289,31 @@ export default {
           break
       }
     },
-    async onBack () {
+    onFormBack () {
       const vm = this
-      console.log('onBack')
       vm.state = 'selection'
       vm.selectedAdId = null
+    },
+    onEditAd (id) {
+      const vm = this
+      vm.state = 'edit'
+      vm.selectedAdId = id
+    },
+    onDeleteAd (id) {
+      const vm = this
+      vm.dialogName = 'deleteAd'
+      vm.openDialog = true
+      vm.selectedAdId = id
+    },
+    receiveDialogOption (option) {
+      const vm = this
+      switch (vm.dialogName) {
+        case 'deleteAd':
+          if (option === 'confirm') {
+            vm.deleteAd()
+          }
+          break
+      }
     },
     updatePaginationValues () {
       const vm = this
@@ -326,39 +340,6 @@ export default {
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)
-      }
-    },
-    editAds (id) {
-      const vm = this
-      vm.state = 'edit'
-      console.log('selectedAdId:', id)
-      vm.selectedAdId = id
-
-      // switch (vm.transactionType) {
-      //   case 'BUY':
-      //     vm.editListing = vm.buyListings[index]
-      //     break
-      //   case 'SELL':
-      //     vm.editListing = vm.sellListings[index]
-      //     break
-      // }
-    },
-    openDeleteAdDialog (listing) {
-      const vm = this
-      vm.dialogName = 'deleteAd'
-      vm.openDialog = true
-      vm.selectedAdId = listing.id
-      console.log('selectedAdId:', vm.selectedAdId)
-    },
-    receiveDialogOption (option) {
-      const vm = this
-
-      switch (vm.dialogName) {
-        case 'deleteAd':
-          if (option === 'confirm') {
-            vm.deleteAd()
-          }
-          break
       }
     }
   }
