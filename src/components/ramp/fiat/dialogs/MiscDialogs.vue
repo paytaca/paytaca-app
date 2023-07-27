@@ -74,8 +74,9 @@
 
   <q-dialog persistent v-model="addPaymentMethod">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section class="xm-font-size q-mx-lg">
+      <q-card-section class="xm-font-size q-mx-md">
         <div class="bold-text text-center">Select Payment Methods</div>
+        <div v-if="maxMethodReached" class="subtext text-center" style="font-size: 13px;"><i>Select only up to 5 methods</i></div>
       </q-card-section>
 
       <q-card-section class="text-left q-pt-sm q-mx-md">
@@ -310,6 +311,7 @@ export default {
       confirmRemovePaymentMethod: false,
       editNickname: false,
       viewProfile: false,
+      maxMethodReached: false,
 
       // Input Model
       nickname: '',
@@ -322,6 +324,16 @@ export default {
       paymentTypes: [],
       paymentMethodOpts: [],
       selectedPaymentMethods: []
+    }
+  },
+  watch: {
+    selectedPaymentMethods (value) {
+      const vm = this
+      if (value.length >= 5) {
+        vm.maxMethodReached = true
+      } else {
+        vm.maxMethodReached = false
+      }
     }
   },
   async mounted () {
@@ -338,6 +350,7 @@ export default {
         return element
       })
     }
+    vm.maxMethodReached = vm.selectedPaymentMethods.length >= 5
     vm.fetchPaymentMethod()
   },
   methods: {
@@ -383,12 +396,13 @@ export default {
         })
     },
     updateSelectedPaymentMethods (paymentMethod) {
-      console.log('updateSelectedPaymentMethods:', paymentMethod)
+      // console.log('updateSelectedPaymentMethods:', paymentMethod)
       const vm = this
 
       if (paymentMethod.selected) {
         if (vm.selectedPaymentMethods.length >= 5) {
           paymentMethod.selected = !paymentMethod.selected
+          vm.maxMethodReached = true
           return
         }
         if (!vm.selectedPaymentMethods.includes(paymentMethod)) {
