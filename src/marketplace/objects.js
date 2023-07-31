@@ -513,6 +513,9 @@ export class Checkout {
    * @param {Object} data.cart
    * @param {Object} data.delivery_address
    * @param {Object} data.payment
+   * @param {Number} [data.total_paid]
+   * @param {Number} [data.total_pending_payment]
+   * @param {Number} [data.total_payments]
    * @param {{ currency: CurrencyInfo, price: Number, timestamp: String | Number}} data.payment.bch_price
    * @param {Number} data.payment.delivery_fee
    */
@@ -529,6 +532,27 @@ export class Checkout {
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
     }
+    this.totalPaid = data?.total_paid
+    this.totalPendingPayment = data?.total_pending_payment
+    this.totalPayments = data?.total_payments
+  }
+
+  get totalPaymentsSent() {
+    return (parseFloat(this.totalPaid) || 0) + (parseFloat(this.totalPendingPayment) || 0)
+  }
+
+  get total() {
+    const total = (parseFloat(this.cart?.subtotal) || 0) + (parseFloat(this.payment?.deliveryFee) || 0)
+    return Math.round(total * 10 ** 3) / 10 ** 3
+  }
+
+  get change() {
+    const change = Math.max(this.totalPaymentsSent - this.total, 0)
+    return Math.round(change * 10 ** 3) / 10 ** 3
+  }
+
+  get balanceToPay() {
+    return Math.max(this.total - this.totalPaymentsSent, 0)
   }
 
   updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
@@ -544,6 +568,7 @@ export class Checkout {
         return Promise.resolve(response)
       })
   }
+
 }
 
 export class OrderItem {
@@ -799,6 +824,7 @@ export class Payment {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {Number} data.checkout_id
    * @param {Number} data.order_id
    * @param {{ code:String, symbol:String }} data.currency
    * @param {String} data.status
@@ -811,6 +837,7 @@ export class Payment {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.checkoutId = data?.checkout_id
     this.orderId = data?.order_id
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.status = data?.status
