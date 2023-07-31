@@ -8,7 +8,7 @@
     />
   </div>
   <div class="q-mx-lg" v-if="isloaded">
-    <div class="q-mx-sm q-mb-sm text-h5 text-center" style="font-size: 15px; font-weight: 500;" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+    <div class="q-mx-sm q-mb-sm text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       PAYMENT METHODS
     </div>
     <div class="subtext q-pt-xs q-pl-lg"><i>Add up to 5 methods</i></div>
@@ -151,10 +151,14 @@ export default {
     this.wallet = await loadP2PWalletInfo(walletInfo)
 
     if (this.type === 'General') {
+      console.log('General')
       await this.fetchPaymentMethod()
+      console.log(this.paymentMethods.length)
     }
-
-    this.paymentMethods = this.currentPaymentMethods
+    if (this.type === 'Ads') {
+      console.log('Ads')
+      this.paymentMethods = this.currentPaymentMethods
+    }
     this.isloaded = true
   },
   methods: {
