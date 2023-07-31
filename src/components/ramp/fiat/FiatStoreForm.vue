@@ -27,18 +27,18 @@
             <div class="row justify-between no-wrap q-mx-lg">
                 <span>Price</span>
                 <span class="text-nowrap q-ml-xs">
-                {{ ad.price }} {{ ad.fiat_currency.symbol }}
+                {{ formattedCurrency(ad.price, ad.fiat_currency.symbol) }}
                 </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ ad.trade_floor }} {{ ad.fiat_currency.symbol }} - {{ ad.trade_ceiling }} {{ ad.fiat_currency.symbol }}
+                {{ formattedCurrency(ad.trade_floor, ad.fiat_currency.symbol) }} - {{ formattedCurrency(ad.trade_ceiling, ad.fiat_currency.symbol) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Payment Time Limit</span>
-              <span class="text-nowrap q-ml-xs">{{ ad.time_duration}}</span>
+              <span class="text-nowrap q-ml-xs">{{ formattedTimeLimit(ad.time_duration).label}}</span>
             </div>
           </div>
           <div class="q-mt-md q-mx-lg">
@@ -55,9 +55,13 @@
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md sm-font-size">
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Crypto Amount</span>
-              <span class="text-nowrap q-ml-xs">{{ cryptoAmount.toFixed(8) }} BCH</span>
+              <span class="text-nowrap q-ml-xs">{{ cryptoAmount }} BCH</span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
+              <span>Fees</span>
+              <span class="text-nowrap q-ml-xs">{{ totalFees }} BCH</span>
+            </div>
+            <!-- <div class="row justify-between no-wrap q-mx-lg">
               <span>Arbitration Fee</span>
               <span class="text-nowrap q-ml-xs">{{ ad.fees.arbitration_fee }} BCH</span>
             </div>
@@ -68,10 +72,10 @@
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Service Fee</span>
               <span class="text-nowrap q-ml-xs">{{ ad.fees.service_fee }}  BCH</span>
-            </div>
+            </div> -->
             <div class="row justify-between no-wrap q-mx-lg bold-text">
               <span>Total</span>
-              <span class="text-nowrap q-ml-xs ">{{ totalCryptoAmount.toFixed(8) }} BCH</span>
+              <span class="text-nowrap q-ml-xs ">{{ totalCryptoAmount }} BCH</span>
             </div>
           </div>
           <div class="row q-mx-lg q-py-md">
@@ -196,7 +200,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { formatCurrency, loadP2PWalletInfo, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
@@ -251,6 +255,11 @@ export default {
     DisplayConfirmation
   },
   computed: {
+    totalFees () {
+      const ad = this.ad
+      const fees = ad.fees.arbitration_fee + ad.fees.hardcoded_fee + ad.fees.service_fee
+      return fees.toFixed(8)
+    },
     isAmountValid () {
       const amount = this.fiatAmount
       const parsedValue = parseFloat(amount)
@@ -262,11 +271,10 @@ export default {
       return true
     },
     cryptoAmount () {
-      return this.fiatAmount / this.ad.price
+      return (this.fiatAmount / this.ad.price).toFixed(8)
     },
     totalCryptoAmount () {
-      const fees = this.ad.fees
-      return this.cryptoAmount + fees.hardcoded_fee + fees.arbitration_fee + fees.service_fee
+      return (Number(this.cryptoAmount) + Number(this.totalFees)).toFixed(8)
     }
   },
   // async mounted () {
@@ -345,6 +353,12 @@ export default {
         console.log(this.paymentMethods.length, 'items')
         this.state = 'confirmation'
       }
+    },
+    formattedCurrency (value, symbol) {
+      return formatCurrency(value, symbol)
+    },
+    formattedTimeLimit (value) {
+      return getPaymentTimeLimit(value)
     },
     isValidInputAmount (value) {
       if (value === undefined) return false

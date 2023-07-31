@@ -60,6 +60,8 @@ export function formatDate (value) {
 
 export function getPaymentTimeLimit (timeValue) {
   switch (timeValue) {
+    case 5:
+      return { label: '5 mins', value: 5 }
     case 15:
       return { label: '15 mins', value: 15 }
     case 30:
