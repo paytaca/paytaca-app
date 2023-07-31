@@ -960,7 +960,7 @@ export class EscrowContract {
 
   get bchAmounts() {
     const SATS_PER_BCH = 10 ** 8
-    const toBch = val => Math.floor(val) / SATS_PER_BCH
+    const toBch = val => Math.round(val) / SATS_PER_BCH
     const data = {
       amount: toBch(this.amountSats),
       serviceFee: toBch(this.serviceFeeSats),

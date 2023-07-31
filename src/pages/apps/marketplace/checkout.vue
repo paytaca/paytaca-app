@@ -393,82 +393,74 @@
                 <div v-if="displayBch" class="text-right">{{ checkoutAmounts.totalPaymentsSent.bch }} BCH</div>
                 <div v-else class="text-right">{{ checkoutAmounts.totalPaymentsSent.currency }} {{ checkoutCurrency }}</div>
               </div>
-              <div v-if="checkoutAmounts.change.currency >= 0" class="row items-start text-h6"  @click="toggleAmountsDisplay">
-                <div class="q-space">Change</div>
-                <div v-if="displayBch" class="text-right">{{ checkoutAmounts.change.bch }} BCH</div>
-                <div v-else class="text-right">{{ checkoutAmounts.change.currency }} {{ checkoutCurrency }}</div>
-              </div>
-              <div v-else-if="checkoutAmounts.balanceToPay.currency" class="row items-start text-subtitle1"  @click="toggleAmountsDisplay">
+              <div v-if="checkoutAmounts.balanceToPay.currency" class="row items-start text-subtitle1"  @click="toggleAmountsDisplay">
                 <div class="q-space">Remaining</div>
                 <div v-if="displayBch" class="text-right">{{ checkoutAmounts.balanceToPay.bch }} BCH</div>
                 <div v-else class="text-right">{{ checkoutAmounts.balanceToPay.currency }} {{ checkoutCurrency }}</div>
               </div>
+              <div v-else-if="checkoutAmounts.change.currency >= 0" class="row items-start text-h6"  @click="toggleAmountsDisplay">
+                <div class="q-space">Change</div>
+                <div v-if="displayBch" class="text-right">{{ checkoutAmounts.change.bch }} BCH</div>
+                <div v-else class="text-right">{{ checkoutAmounts.change.currency }} {{ checkoutCurrency }}</div>
+              </div>
             </template>
           </div>
+
           <div v-if="creatingPayment" class="text-center q-my-sm">
             <q-spinner size="3em"/>
             <div>Creating payment</div>
           </div>
-          <div v-else-if="bchPaymentData?.url" class="row justify-center q-my-sm" @click="() => showBchPaymentEscrowContract()">
-            <div>
-              <div class="row items-center q-mb-xs">
-                <q-btn
-                  v-if="transactionsReceived?.length"
-                  flat
-                  padding="none xs"
-                  no-caps :label="`Received (${transactionsReceived.length})`"
-                  @click.stop
-                >
-                  <q-menu :class="[darkMode ? 'pt-dark' : 'text-black']"> 
-                    <q-item
-                      v-for="(txReceived, index) in transactionsReceived" :key="index"
-                      clickable
-                      v-ripple
-                      :dark="darkMode"
-                      v-close-popup
-                      @click="displayReceivedTransaction(txReceived)"
-                    >
-                      <q-item-section v-if="txReceived?.logo" side>
-                        <img :src="txReceived?.logo" height="25"/>
-                      </q-item-section>
-                      <q-item-section>
-                        <q-item-label class="ellipsis">{{ txReceived?.txid }}</q-item-label>
-                        <q-item-label class="ellipsis">{{ txReceived?.address }}</q-item-label>
-                      </q-item-section>
-                      <q-item-section class="text-right">
-                        <q-item-label caption>
-                          {{ txReceived?.amount }} {{ txReceived?.tokenSymbol }}
-                        </q-item-label>
-                        <q-item-label v-if="txReceived?.marketValue?.amount && txReceived?.marketValue?.symbol" caption>
-                          {{ txReceived?.marketValue?.amount }} {{ txReceived?.marketValue?.symbol }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-menu>
-                </q-btn>
-                <q-space/>
-                <q-btn
-                  flat
-                  padding="xs xs"
-                  no-caps
-                  icon="content_copy"
-                  label="Copy link"
-                  @click.stop="() => copyToClipboard(bchPaymentData?.url)"
-                />
-              </div>
-              <div class="col-qr-code">
-                <qr-code :text="bchPaymentData?.url"/>
-              </div>
-              <div class="text-center">
-                <div class="text-h6">{{ bchPaymentData?.bchAmount }} BCH</div>
-                <div v-if="bchPaymentData?.fiatAmount" class="text-subtitle1">
-                  {{ bchPaymentData?.fiatAmount }}
-                  {{ bchPaymentData?.currency }}
+          <template v-else-if="bchPaymentData?.url">
+            <q-tabs v-model="bchPaymentState.tab" class="q-mb-xs">
+              <q-tab name="wallet" icon="account_balance_wallet"/>
+              <q-tab name="qrcode" icon="mdi-qrcode-scan"/>
+            </q-tabs>
+            <q-tab-panels v-model="bchPaymentState.tab" animated keep-alive class="payment-mode-panels q-my-sm">
+              <q-tab-panel name="wallet">
+                <div @click="() => showBchPaymentEscrowContract()">
+                  <div class="text-subtitle1 q-mx-md q-mb-sm" style="word-break: break-all;">
+                    {{ bchPaymentData?.address }}
+                    <q-icon name="open_in_new"/>
+                  </div>
+                  <q-btn
+                    no-caps color="brandblue"
+                    class="full-width"
+                    @click.stop="() => sendBchPayment()"
+                  >
+                    Pay {{ bchPaymentData.bchAmount }} BCH
+                  </q-btn>
+                  <div class="text-right q-mt-xs">
+                    Balance: {{ bchWalletBalance }} BCH
+                  </div>
                 </div>
-                <div class="text-subtitle2" style="word-break: break-all;">{{ bchPaymentData?.address }}</div>
-              </div>
-            </div>
-          </div>
+              </q-tab-panel>
+              <q-tab-panel name="qrcode">
+                <div class="row justify-center" @click="() => showBchPaymentEscrowContract()">
+                  <div>
+                    <div class="row items-center q-mb-xs">
+                      <q-space/>
+                      <q-btn
+                        flat padding="xs"
+                        icon="content_copy"
+                        no-caps label="Copy link"
+                        @click.stop="() => copyToClipboard(bchPaymentData?.url)"
+                      />
+                    </div>
+                    <div class="col-qr-code"><qr-code :text="bchPaymentData?.url"/></div>
+                    <div class="text-center">
+                      <div class="text-h6">{{ bchPaymentData?.bchAmount }} BCH</div>
+                      <div v-if="bchPaymentData?.fiatAmount" class="text-subtitle1" style="line-height:0.75em;">
+                        {{ bchPaymentData?.fiatAmount }} {{ bchPaymentData?.currency }}
+                      </div>
+                      <div class="text-subtitle2" style="word-break: break-all;">{{ bchPaymentData?.address }}</div>
+                    </div>
+                  </div>
+                </div>
+              </q-tab-panel>
+            </q-tab-panels>
+          </template>
+          
+          <q-separator spaced :dark="darkMode"/>
           <div class="q-mt-sm">
             <q-btn
               :disable="loading"
@@ -615,7 +607,12 @@
                 <div v-if="displayBch">{{ checkoutAmounts.totalPaymentsSent.bch }} BCH</div>
                 <div v-else>{{ checkoutAmounts.totalPaymentsSent.currency }} {{ checkoutCurrency }}</div>
               </div>
-              <div v-if="checkoutAmounts.change.currency >= 0" class="row items-start text-h6">
+              <div v-if="checkoutAmounts.balanceToPay.currency" class="row items-start text-subtitle1">
+                <div class="q-space">Remaining</div>
+                <div v-if="displayBch">{{ checkoutAmounts.balanceToPay.bch }} BCH</div>
+                <div v-else>{{ checkoutAmounts.balanceToPay.currency }} {{ checkoutCurrency }}</div>
+              </div>
+              <div v-else-if="checkoutAmounts.change.currency >= 0" class="row items-start text-h6">
                 <div class="q-space">Change</div>
                 <div v-if="displayBch">{{ checkoutAmounts.change.bch }} BCH</div>
                 <div v-else>{{ checkoutAmounts.change.currency }} {{ checkoutCurrency }}</div>
@@ -643,7 +640,8 @@ import { backend } from 'src/marketplace/backend'
 import { Checkout, Rider, Payment } from 'src/marketplace/objects'
 import { TransactionListener } from 'src/wallet/transaction-listener'
 import { errorParser, formatTimestampToText, getISOWithTimezone } from 'src/marketplace/utils'
-import { useQuasar } from 'quasar'
+import { Wallet, loadWallet } from 'src/wallet'
+import { debounce, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue'
@@ -654,7 +652,6 @@ import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wr
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import PaymentsListDialog from 'src/components/marketplace/PaymentsListDialog.vue'
 import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dialog.vue'
-import ReceiveUpdateDialog from 'src/components/marketplace/ReceiveUpdateDialog.vue'
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -727,6 +724,7 @@ function resetTabs() {
       nextTab()
       findRider({ replaceExisting: false })
     }
+    if (!checkout.value.balanceToPay) setTimeout(() => nextTab(), 10)
   }, 1)
 }
 
@@ -1153,10 +1151,11 @@ function savePayment() {
 
 const creatingPayment = ref(false)
 const payments = ref([].map(Payment.parse))
-const payment = computed(() => payments.value.find(payment => {
-  if (payment.status != 'pending') return
-  return payment.amount == checkout.value.balanceToPay
-}))
+const payment = computed(() => {
+  return payments.value.find(payment => {
+    return payment.status == 'pending' && payment.amount == checkout.value.balanceToPay
+  })
+})
 const showPaymentsListDialog = ref(false)
 watch(() => [tabs.value.active], async () => {
   if (tabs.value.active != 'payment') return
@@ -1173,9 +1172,10 @@ function fetchPayments() {
   fetchPaymentPromise.value = backend.get('connecta/payments/', { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-      payments.value = response?.data?.results?.map(Payment.parse)
-        .filter(payment => payment?.checkoutId == checkout.value?.id)
-      console.log(payments.value)
+      const parsedData = response?.data?.results?.map(Payment.parse)
+          .filter(payment => payment?.checkoutId == checkout.value?.id)
+
+      payments.value = parsedData
       return response
     })
   return fetchPaymentPromise
@@ -1210,12 +1210,12 @@ function createPayment() {
     })
 }
 
+const bchPaymentState = ref({ tab: 'wallet' })
 const bchPaymentData = computed(() => {
   const data = {
     escrowContract: payment.value?.escrowContract,
     bchPrice: payment.value?.bchPrice,
-    address: payment.value?.escrowContract?.address,
-    // address: 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5',
+    address: payment.value?.escrowContract?.address || payment.value?.escrowContractAddress,
     bchAmount: parseFloat(payment.value?.escrowContract?.bchAmounts?.total),
     fiatAmount: 0,
     currency: payment.value?.bchPrice?.currency?.symbol,
@@ -1240,38 +1240,14 @@ const transactionsReceived = ref([].map(() => {
   const data = txListener.value.parseWebsocketDataReceived()
   return Object.assign({ marketValue: { symbol: '', price: 0, amount: 0 } }, data)
 }))
-transactionsReceived.value.push({
-    "amount": 0.02669041,
-    "value": 2669041,
-    "txid": "573d177b9eb4a4e55a0056801a0b7166141f6b33177fadb62b93003449892f94",
-    "index": 0,
-    "address": "bchtest:ppk4qw7cryju2t5zx5t2vssjdzudqdy4n5xhe4af02",
-    "tokenName": "bch",
-    "tokenId": "slp/bch",
-    "tokenSymbol": "BCH",
-    "addressPath": "",
-    "senders": [
-        "bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5",
-        "bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5"
-    ],
-    "source": "WatchTower",
-    "logo": "bch-logo.png",
-    "marketValue": {
-        "symbol": "PHP",
-        "price": 13931.82,
-        "amount": 372
-    }
-})
-transactionsReceived.value.push(txListener.value.parseWebsocketDataReceived({"token_name": "bch", "token_id": "slp/bch", "token_symbol": "bch", "token_decimals": 8, "amount": null, "value": 2669041, "address": "bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5", "source": "WatchTower", "txid": "1fd1d12337dc8370657d95da1080f291707672dc1d1862180b93e8d6ea7da428", "block": null, "index": 0, "address_path": "0/0", "senders": ["bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5"]}))
 
-watch(() => [payment.value?.escrowContractAddress], () => {
-  payment.value?.fetchEscrowContract?.()
-    .then(() => checkPaymentFundingTx())
-})
+watch(() => [payment.value?.escrowContractAddress], debounce(() => {
+  payment.value?.fetchEscrowContract?.().then(() => checkPaymentFundingTx())
+}, 250))
 watch(() => [bchPaymentData.value?.address], () => {
   txListener.value.address = bchPaymentData.value?.address
   txListener.value.addListener(txListenerCallback)
-  txListener.value.connect()
+  if (txListener.value.readyState != WebSocket.OPEN) txListener.value.connect()
 })
 const txListenerCallback = (msg, parsedData) => {
   const price = parseFloat(bchPaymentData.value.bchPrice?.price)
@@ -1296,22 +1272,6 @@ const txListenerCallback = (msg, parsedData) => {
     })
 }
 
-
-function displayReceivedTransaction (data) {
-  $q.dialog({
-    component: ReceiveUpdateDialog,
-    componentProps: {
-      txid: data?.txid,
-      address: data?.address,
-      amount: data?.amount,
-      tokenCurrency: data?.tokenSymbol,
-      marketValue: data?.marketValue?.amount,
-      marketValueCurrency: data?.marketValue?.currency,
-      logo: data?.logo,
-    }
-  })
-}
-
 function getFundingTxFromReceivedTxs() {
   return transactionsReceived.value.find(tx => {
     if (tx.address != bchPaymentData.value.address) return false
@@ -1321,7 +1281,8 @@ function getFundingTxFromReceivedTxs() {
 }
 
 function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived()) {
-  if (!txData?.txid || isNaN(txData?.index) || !txData?.value) return Promise.reject()
+  if (!txData?.txid) return Promise.reject()
+
   const data = {
     funding_txid: txData.txid,
     funding_vout: txData.index,
@@ -1338,6 +1299,56 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     .finally(() => {
       loading.value = false
       loadingMsg.value = ''
+    })
+}
+
+const bchWalletBalance = computed(() => {
+  const asset = $store.getters['assets/getAsset']?.('bch')?.[0]
+  return asset?.spendable
+})
+const wallet = ref([].map(() => new Wallet())[0])
+async function initWallet () {
+  wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
+}
+
+async function sendBchPayment() {
+  const amount = bchPaymentData.value.bchAmount
+  const address = bchPaymentData.value.address
+  // const changeAddress = $store.getters['global/getChangeAddress']('bch')
+  const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
+  if (!wallet.value) await initWallet()
+
+  const dialog = $q.dialog({
+    title: 'Sending payment',
+    mesage: `Sending ${amount} BCH to ${address}`,
+    persistent: true,
+    progress: true,
+    ok: false,
+    cancel: false,
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+
+  wallet.value.BCH.sendBch(amount, address, changeAddress)
+    .then(result => {
+      if (!result.success) return Promise.reject(result)
+
+      savePaymentFundingTx({ txid: result.txid, address: address }).then(() => {
+        if (tabs.value.active == 'payment') nextTab()
+      })
+      dialog.hide()
+    })
+    .catch(error => {
+      let errorMessage = error?.error || ''
+      if (errorMessage.indexOf('not enough balance in sender') > -1) {
+        errorMessage = 'Not enough balance to cover the send amount and transaction fee'
+      } else if (errorMessage.indexOf('has insufficient priority') > -1) {
+        errorMessage = 'Not enough balance to cover the transaction fee'
+      }
+
+      dialog.update({ title: 'Unable to send payment', message: errorMessage })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false, ok: true })
     })
 }
 
@@ -1529,5 +1540,12 @@ table.items-table td {
     border: 4px solid #ed5f59;
     background: white;
     padding: 12px;
+  }
+
+  .payment-mode-panels.q-tab-panels {
+    background: inherit;
+  }
+  .payment-mode-panels .q-tab-panel {
+    padding: unset;
   }
 </style>
