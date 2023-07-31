@@ -115,6 +115,7 @@ export default {
     ProgressLoader
   },
   props: {
+    type: String,
     confirmLabel: {
       type: String,
       default: 'Next'
@@ -134,7 +135,8 @@ export default {
       info: {},
       selectedMethodIndex: null,
       state: '',
-      isloaded: false
+      isloaded: false,
+      wallet: null
     }
   },
   emits: ['submit', 'back'],
@@ -145,6 +147,13 @@ export default {
   // },
   async mounted () {
     // get payment type list
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    this.wallet = await loadP2PWalletInfo(walletInfo)
+
+    if (this.type === 'General') {
+      await this.fetchPaymentMethod()
+    }
+
     this.paymentMethods = this.currentPaymentMethods
     this.isloaded = true
   },
@@ -214,18 +223,39 @@ export default {
       this.openDialog = false
     },
     // processes
+    async fetchPaymentMethod () {
+      const vm = this
+
+      const url = `${vm.apiURL}/payment-method`
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+
+      await vm.$axios.get(url, {
+        headers: {
+          'wallet-hash': vm.wallet.walletHash,
+          signature: signature,
+          timestamp: timestamp
+        }
+      })
+        .then(response => {
+          console.log(response.data)
+          this.paymentMethods = response.data
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
     async deletePaymentMethod (index) {
       const vm = this
 
       vm.isloaded = false
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
+
       const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
 
       await vm.$axios.delete(vm.apiURL + '/payment-method/' + index, {
         headers: {
-          'wallet-hash': wallet.walletHash,
+          'wallet-hash': vm.wallet.walletHash,
           signature: signature,
           timestamp: timestamp
         }
@@ -241,8 +271,6 @@ export default {
     async savePaymentMethod (info) {
       const vm = this
 
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
       const timestamp = Date.now()
       let signature = ''
 
@@ -250,7 +278,7 @@ export default {
         case 'addPaymentMethod':
           // posting new payment method
 
-          signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_CREATE', timestamp)
+          signature = await signMessage(vm.wallet.privateKeyWif, 'PAYMENT_METHOD_CREATE', timestamp)
           vm.$axios.post(vm.apiURL + '/payment-method/', {
             payment_type: info.payment_type.id,
             account_name: vm.$store.getters['ramp/getUser'].nickname,
@@ -258,7 +286,7 @@ export default {
           },
           {
             headers: {
-              'wallet-hash': wallet.walletHash,
+              'wallet-hash': vm.wallet.walletHash,
               signature: signature,
               timestamp: timestamp
             }
@@ -280,14 +308,14 @@ export default {
         case 'editPaymentMethod':
           // editing payment method
 
-          signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_UPDATE', timestamp)
+          signature = await signMessage(vm.wallet.privateKeyWif, 'PAYMENT_METHOD_UPDATE', timestamp)
           vm.$axios.put(vm.apiURL + '/payment-method/' + vm.selectedMethodIndex, {
             account_name: vm.$store.getters['ramp/getUser'].nickname,
             account_number: info.account_number
           },
           {
             headers: {
-              'wallet-hash': wallet.walletHash,
+              'wallet-hash': vm.wallet.walletHash,
               signature: signature,
               timestamp: timestamp
             }

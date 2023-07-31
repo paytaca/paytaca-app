@@ -70,7 +70,7 @@
               label='Cancel'
               class="q-space text-white"
               style="background-color: #ed5f59;"
-              @click="confirmCancel = true"
+              @click="cancelOrderConfirmation()"
             />
           </div>
         </div>
@@ -94,7 +94,7 @@
                 label='Cancel'
                 class="q-space text-white full-width"
                 style="background-color: #ed5f59;"
-                @click="confirmCancel = true"
+                @click="cancelOrderConfirmation()"
               />
             </div>
             <div class="col">
@@ -209,7 +209,7 @@
             rounded
             no-caps
             dense
-            label='Cancel'
+            label='Appeal'
             class="q-space text-white"
             color="red-6"
           />
@@ -263,7 +263,7 @@
               no-caps
               label='Appeal'
               class="q-space text-white"
-              color="blue-6"
+              color="red-6"
               @click="appeal = true"
             />
           </div>
@@ -299,7 +299,7 @@
               dense
               label='Send an Appeal'
               class="q-space text-white"
-              color="blue-6"
+              color="red-6"
               @click="appeal = true"
             />
           </div>
@@ -405,6 +405,7 @@
 
   <!-- Add Feedback UI  -->
 
+
   <!-- Progress Loader -->
   <div v-if="!isloaded">
     <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -412,19 +413,16 @@
     </div>
   </div>
 
-  <!-- Move Dialog -->
-  <q-dialog persistent v-model="confirmCancel">
-    <q-card style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Cancel Trade?</div>
-      </q-card-section>
+  <!-- Dialogs -->
+  <div v-if="openDialog">
+    <MiscDialogs
+      :type="dialogType"
+      v-on:back="openDialog = false"
+      v-on:submit="cancelingOrder()"
+    />
+  </div>
 
-      <q-card-actions class="q-pt-lg text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="cancelingOrder" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+  <!-- Move Dialog -->
   <q-dialog full-width persistent v-model="appeal">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
@@ -456,6 +454,7 @@ import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { sign } from 'openpgp'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
   data () {
@@ -463,6 +462,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       isloaded: false,
+      openDialog: false,
+      dialogType: '',
       status: 'prcessing', // 'view-order' 'released' 'cancelled'
       order: null,
       contract: null,
@@ -480,7 +481,8 @@ export default {
   },
   emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
   components: {
-    ProgressLoader
+    ProgressLoader,
+    MiscDialogs
   },
   computed: {
     getFiatAmount () {
@@ -624,14 +626,46 @@ export default {
       // this.$emit('hideSeller')
       this.$refs.stepper.next()
     },
+    cancelOrderConfirmation () {
+      const vm = this
+      vm.dialogType = 'confirmCancelOrder'
+      vm.openDialog = true
+
+      console.log('order', vm.order.id)
+    },
+    async cancelOrder () {
+      console.log('cancelling order')
+      const vm = this
+
+      const url = this.apiURL + '/order/' + vm.order.id + '/cancel'
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
+
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+
+      await vm.$axios.post(url, {}, {
+        headers: headers
+      })
+        .then(response => {
+          console.log(response.data)
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
     cancelingOrder () {
       if (this.confirmed) {
         clearInterval(this.timer)
         this.timer = null
       }
-      if (this.order.status === 'Released' || this.order.status === 'Release Pending') {
-        this.$emit('pendingRelease')
-      }
+      this.cancelOrder()
+      // if (this.order.status === 'Released' || this.order.status === 'Release Pending') {
+      //   this.$emit('pendingRelease')
+      // }
       this.$emit('back')
     },
     async sendConfirmPayment () {
@@ -639,7 +673,7 @@ export default {
 
       const url = this.apiURL + '/order/' + vm.order.id + '/confirm-payment/buyer'
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
 
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
@@ -663,7 +697,7 @@ export default {
       this.isloaded = false
       await this.sendConfirmPayment()
 
-      this.$refs.stepper.next()
+      this.checkStep()
       // this.$emit('hideSeller')
       // this.$emit('pendingRelease')
       this.isloaded = true

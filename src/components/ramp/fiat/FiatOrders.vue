@@ -79,7 +79,7 @@
         <FiatStoreBuyProcess
           v-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
-          v-on:back="state = 'order-list'"
+          v-on:back="returnOrderList()"
         />
         <FiatStoreSellProcess
           v-if="selectedOrder.trade_type === 'SELL'"
@@ -223,6 +223,14 @@ export default {
         }
       })
       return sorted
+    },
+    returnOrderList () {
+      this.loading = true
+
+      this.fetchUserOrders()
+      this.state = 'order-list'
+
+      this.loading = false
     }
   }
 }

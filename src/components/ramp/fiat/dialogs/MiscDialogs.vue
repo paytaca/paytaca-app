@@ -326,6 +326,46 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <!-- Cancel Order -->
+  <q-dialog persistent v-model="confirmCancelOrder">
+    <q-card style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Cancel Trade?</div>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-lg text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Sending Appeal Confirmation Todo-->
+  <!-- <q-dialog full-width persistent v-model="appeal">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Submitting an Appeal</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <span>
+          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
+        </span><br><br>
+        <span class="q-pt-lg">
+          Submitting an appeal will raise a dispute on the funds which requires the intervention of the smart contract's assigned <span class="bold-text">Arbiter</span>.
+        </span><br><br>
+        <span class="q-pt-lg">
+          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-lg text-center" align="center">
+        <q-btn flat label="Cancel" color="red" v-close-popup />
+        <q-btn flat label="I understand, proceed" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog> -->
 </template>
 
 <script>
@@ -363,6 +403,7 @@ export default {
       viewProfile: false,
       submitAppeal: false,
       confirmPayment: false,
+      confirmCancelOrder: false,
       maxMethodReached: false,
 
       // Input Model
@@ -501,6 +542,9 @@ export default {
         case 'confirmPayment':
           console.log('confirming payment')
           vm.confirmPayment = true
+          break
+        case 'confirmCancelOrder':
+          vm.confirmCancelOrder = true
           break
       }
     },
