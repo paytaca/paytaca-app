@@ -29,7 +29,7 @@
 
       <div v-if="initialized" class="q-mb-md">
         <div v-if="!orders?.length" class="text-grey text-center">No orders</div>
-        <q-card v-else class="q-py-sm">
+        <q-card v-else class="q-py-sm" :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
           <q-list separator >
             <q-item
               v-for="order in orders" :key="order?.id"
