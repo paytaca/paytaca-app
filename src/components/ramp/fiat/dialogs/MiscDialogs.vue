@@ -462,6 +462,7 @@ export default {
       } else {
         vm.selectedPaymentMethods = vm.selectedPaymentMethods.filter((element) => element.id !== paymentMethod.id)
       }
+      // console.log('selectedPaymentMethods:', vm.selectedPaymentMethods)
     },
     checkDialogType () {
       const vm = this

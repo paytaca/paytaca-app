@@ -138,6 +138,11 @@ export default {
     }
   },
   emits: ['submit', 'back'],
+  // watch: {
+  //   paymentMethods (value) {
+  //     console.log('paymentMethods:', value)
+  //   }
+  // },
   async mounted () {
     // get payment type list
     this.paymentMethods = this.currentPaymentMethods
@@ -145,6 +150,7 @@ export default {
   },
   methods: {
     onBack (data) {
+      // console.log('onBack:', data)
       if (data !== undefined) {
         this.paymentMethods = data
       }
@@ -152,6 +158,8 @@ export default {
     },
     receiveDialogInfo (data) {
       const vm = this
+      // console.log('receiveDialogInfo:', data)
+      // console.log('dialogType:', vm.dialogType)
       switch (vm.dialogType) {
         case 'addPaymentMethod':
           vm.updatePayment(data)
@@ -259,6 +267,7 @@ export default {
               if (vm.paymentMethods.length < 5) {
                 vm.paymentMethods.push(response.data)
               }
+              // console.log('paymentMethods:', vm.paymentMethods)
               vm.openDialog = false
             })
             .catch(error => {
