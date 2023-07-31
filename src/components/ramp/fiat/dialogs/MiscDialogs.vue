@@ -455,6 +455,7 @@ export default {
     submitUpdatedPaymentMethods () {
       this.$emit('back', this.selectedPaymentMethods)
     },
+    
     async fetchPaymentMethod () {
       const vm = this
       vm.loading = true

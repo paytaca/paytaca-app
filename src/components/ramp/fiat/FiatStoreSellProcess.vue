@@ -148,19 +148,19 @@
               <div class="text-center q-mt-sm" v-if="hasCountDown">
                 <q-separator :dark="darkMode" />
                 <div class="q-pt-sm md-font-size">
-                  <div class="q-px-lg" >{{ countDownText }}</div>
+                  <div class="q-px-lg" >Expect Payment within...</div>
                   <!-- <div v-if="order.status === 'Paid Pending'">Expect payment within...</div> -->
                 </div>
-                <div v-if="order.status === 'Paid'" class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
+                <div class="text-center" style="font-size: 35px; color: rgb(60, 100, 246);">
                   {{ countDown }}
                 </div>
-                <div v-else class="text-center" style="font-size: 40px; color: rgb(60, 100, 246);">
+                <!-- <div v-else class="text-center" style="font-size: 30px; color: rgb(60, 100, 246);">
                   {{ countDown }}
-                </div>
+                </div> -->
               </div>
             </div>
           </div>
-          <div class="q-mt-sm" v-if="order.status === 'Released' || isExpired">
+          <div v-if="order.status === 'Paid Pending'">
             <div class="row text-center q-gutter-sm q-mx-lg">
               <div :class="$q.platform.is.mobile? 'col-4' : 'col'">
                 <q-btn
@@ -240,6 +240,20 @@
               </div>
             </div>
           </div>
+
+          <div v-if="hasAppealBtn">
+            <div class="row q-pt-md q-mx-md">
+              <q-btn
+                rounded
+                no-caps
+                dense
+                label='Send an Appeal'
+                class="q-space text-white"
+                color="red-6"
+                @click="appeal = true"
+              />
+            </div>
+          </div>
         </div>
       </q-step>
 
@@ -269,12 +283,13 @@
             <span>Completed on:</span>
             <span class="text-nowrap q-ml-xs">[date here]</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg bold-text" v-if="order.status === 'Released'">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Status:</span>
             <span class="text-nowrap q-ml-xs" v-if="!isExpired" :class="order.status.toLowerCase().includes('pending') ? 'text-orange-6' : 'text-green-6'">{{ order.status }}</span>
-            <span class="text-nowrap q-ml-xs text-red-6" v-if="isExpired">Expired</span>
+            <span class="text-nowrap q-ml-xs text-red-6" v-else>Expired</span>
           </div>
         </div>
+
         <!-- <div class="text-center">
           <div class="text-h5 md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
             RELEASED
@@ -283,6 +298,22 @@
             Awaiting...
           </div>
         </div> -->
+
+
+        <div v-if="hasAppealBtn">
+          <div class="row q-pt-md q-mx-md">
+            <q-btn
+              rounded
+              no-caps
+              dense
+              label='Send an Appeal'
+              class="q-space text-white"
+              color="red-6"
+              @click="appeal = true"
+            />
+          </div>
+        </div>
+
         <div class="q-pt-sm">
           <div class="text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
             FEEDBACK
@@ -303,7 +334,7 @@
                     {{ ad.trade_count }} trades
                   </span>&nbsp;
                   <span class="q-pl-xs q-mb-none xs-font-size">
-                    {{ ad.completion_rate }}% completion
+                    {{ ad.completion_rate.toFixed(2) }}% completion
                   </span>
                 </div>
                 <span class="bold-text q-mb-none md-font-size">{{ order.ad.owner.nickname }}</span><br>
@@ -456,18 +487,23 @@ export default {
     },
     // change var name
     hasExtraInfo () {
-      const stat = ['Paid', 'Expired']
+      const stat = ['Paid', 'Paid Pending', 'Expired']
       return !stat.includes(this.order.status)
     },
-    countDownText () {
-      if (this.order.status === 'Escrowed' || this.order.status === 'Paid Pending') {
-        return 'Expect Payment within...'
-      } else if (this.order.status === 'Paid') {
-        return 'Confirm payment within time limit to release the crypto...'
-      } else {
-        return ''
-      }
+    hasAppealBtn () {
+      const stat = ['Escrowed', 'Paid', 'Release Pending']
+
+      return stat.includes(this.order.status) || this.isExpired
     },
+    // countDownText () {
+    //   if (this.order.status === 'Escrowed' || this.order.status === 'Paid Pending') {
+    //     return 'Expect Payment within...'
+    //   } else if (this.order.status === 'Paid') {
+    //     return 'Confirm payment within time limit to release the crypto...'
+    //   } else {
+    //     return ''
+    //   }
+    // },
     isExpired () {
       const vm = this
       console.log(vm.order.expiration_date)
@@ -518,7 +554,7 @@ export default {
           break
       }
       if (this.isExpired) {
-        this.step = 2
+        this.step = 3
       }
     },
     async fetchPaymentMethod () {

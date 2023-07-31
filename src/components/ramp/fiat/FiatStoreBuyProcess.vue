@@ -324,11 +324,11 @@
                     {{ ad.trade_count }} trades
                   </span>&nbsp;
                   <span class="q-pl-xs q-mb-none xs-font-size">
-                    {{ ad.completion_rate }}% completion
+                    {{ ad.completion_rate.toFixed(2) }}% completion
                   </span>
                 </div>
                 <span class="bold-text q-mb-none md-font-size">{{ order.ad.owner.nickname }}</span><br>
-                <span class="xs-font-size">Rate this Buyer</span><br>
+                <span class="xs-font-size">Rate this Seller</span><br>
               </div>
             </div>
             <!-- <div  class="text-center q-mx-lg">
@@ -473,7 +473,9 @@ export default {
       timer: null,
       confirmCancel: false,
       appeal: false,
-      wallet: null
+      wallet: null,
+      ratingModel: 0,
+      comment: ''
     }
   },
   props: {
@@ -553,6 +555,10 @@ export default {
         case 'Refunded':
           this.status = 'cancelled'
           break
+      }
+
+      if (this.isExpired) {
+        this.step = 3
       }
     },
     async fetchAdData () {
@@ -697,6 +703,7 @@ export default {
       this.isloaded = false
       await this.sendConfirmPayment()
 
+      await this.fetchOrderData()
       this.checkStep()
       // this.$emit('hideSeller')
       // this.$emit('pendingRelease')
