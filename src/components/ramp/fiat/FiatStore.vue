@@ -30,9 +30,9 @@
           <q-icon size="sm" name='sym_o_filter_list'/>
         </div>
       </div>
-      <div class="br-15 q-py-md q-gutter-sm q-mx-lg text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
-        <button class="btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
+      <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
+        <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
+        <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
       </div>
       <div v-if="!loading" class="q-mt-md">
         <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
@@ -317,7 +317,7 @@ export default {
 <style lang="scss" scoped>
 .btn-custom {
   height: 40px;
-  width: 47%;
+  width: 40%;
   border-radius: 20px;
   border: none;
   color: #4C4F4F;
