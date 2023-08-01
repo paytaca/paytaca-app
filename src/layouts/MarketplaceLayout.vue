@@ -61,6 +61,9 @@
             />
           </div>
           <div class="q-mt-sm">
+            <div v-if="!activeStorefrontCart?.items?.length && activeStorefront?.id" class="text-center text-grey q-mb-md q-mt-lg">
+              Add items to cart
+            </div>
             <div
               v-for="cartItem in activeStorefrontCart?.items" :key="`${activeStorefrontCart?.id}-${cartItem?.variant?.id}`"
               dense

@@ -48,6 +48,10 @@
         </q-btn>
       </div>
       <div class="q-px-sm text-caption text-grey">#{{ order.id }}</div>
+      <q-banner v-if="order?.status == 'cancelled' && order?.cancelReason" class="text-white bg-red q-ma-sm rounded-borders">
+        <div class="text-caption top">Cancel reason:</div>
+        <div class="q-mt-xs">{{ order?.cancelReason }}</div>
+      </q-banner>
       <div class="row items-start items-delivery-address-panel">
         <div v-if="order?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
           <q-card

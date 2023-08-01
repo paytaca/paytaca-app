@@ -44,6 +44,10 @@ export class Location {
     return [addressStr, this.street, this.city, this.state, this.country].filter(Boolean).join(', ') 
   }
 
+  get formattedCityAddress() {
+    return [this.city, this.state || this.country].filter(Boolean).join(', ') 
+  }
+
   get validCoordinates() {
     return isFinite(parseFloat(this.longitude)) && isFinite(parseFloat(this.latitude))
   }
@@ -632,6 +636,7 @@ export class Order {
    * @param {Number} data.total_pending_payment
    * @param {Number} data.total_payments
    * @param {{ delivery_fee:Number, escrow_refund_address:String }} data.payment
+   * @param {String} [data.cancel_reason]
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
   */
@@ -654,6 +659,7 @@ export class Order {
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
     }
+    this.cancelReason = data?.cancel_reason
 
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt

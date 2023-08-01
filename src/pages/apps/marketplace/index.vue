@@ -23,13 +23,11 @@
             <q-img :src="storefront?.imageUrl || noImage" ratio="1.75"/>
             <q-card-section class="q-py-sm">
               <div class="ellipsis-3-lines">{{ storefront.name }}</div>
-              <div class="row items-start text-caption no-wrap">
+              <div v-if="storefront?.location?.formattedCityAddress" class="row items-start text-caption no-wrap">
                 <div>
                   <q-icon name="location_on"/>
                 </div>
-                <div>
-                  {{ [storefront?.location?.city, storefront?.location?.state || storefront?.location?.country].filter(Boolean).join(', ') }}
-                </div>
+                <div>{{ storefront?.location?.formattedCityAddress }}</div>
               </div>
             </q-card-section>
           </q-card>
