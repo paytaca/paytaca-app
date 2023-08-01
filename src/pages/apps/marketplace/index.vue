@@ -169,7 +169,7 @@ async function fetchOrders(opts = { limit: 0, offset: 0 }) {
     ref: await $store.dispatch('marketplace/getCartRef'),
     limit: opts?.limit || 10,
     offset: opts?.offset || undefined,
-    exclude_statuses: 'completed',
+    exclude_statuses: ['completed', 'cancelled'].join(','),
   }
   fetchingOrders.value = true
   return backend.get(`connecta/orders/`, { params })
