@@ -1103,10 +1103,12 @@ function findRiders() {
   })
 }
 
+const updateDeliveryFeePromise = ref()
 function updateDeliveryFee() {
   loadingState.value.deliveryFee = true
   loadingMsg.value = 'Calculating delivery fee'
-  return backend.post(`connecta/checkouts/${checkout.value.id}/update_delivery_fee/`)
+  updateDeliveryFeePromise.value = backend.post(`connecta/checkouts/${checkout.value.id}/update_delivery_fee/`)
+  return updateDeliveryFeePromise.value
     .finally(() => resetFormData())
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
@@ -1233,6 +1235,7 @@ watch(() => [tabs.value.active], async () => {
 
   if (checkout.value.totalPayable < 0) return
   await fetchPaymentPromise.value
+  await updateDeliveryFeePromise.value
   if (!payment.value) return createPayment()
 })
 
@@ -1251,7 +1254,7 @@ function fetchPayments() {
   return fetchPaymentPromise
 }
 
-function createPayment() {
+const createPayment = debounce(() => {
   if (checkout.value.balanceToPay <= 0) return Promise.resolve('Checkout paid')
   const data = {
     checkout_id: checkout.value.id,
@@ -1276,7 +1279,8 @@ function createPayment() {
       loadingState.value.creatingPayment = false
       loadingMsg.value = resolveLoadingMsg()
     })
-}
+}, 250)
+
 
 const bchPaymentState = ref({ tab: '' })
 const bchPaymentData = computed(() => {
