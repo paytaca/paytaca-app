@@ -406,7 +406,7 @@
             </template>
           </div>
 
-          <div v-if="creatingPayment" class="text-center q-my-sm">
+          <div v-if="loadingState.creatingPayment" class="text-center q-my-sm">
             <q-spinner size="3em"/>
             <div>Creating payment</div>
           </div>
@@ -728,8 +728,30 @@ function resetTabs() {
   }, 1)
 }
 
-const loading = ref(false)
+const loadingState = ref({
+  price: false,
+  rider: false,
+  deliveryFee: false,
+  deliveryAddress: false,
+  creatingPayment: false,
+  payment: false,
+  completing: false,
+})
+const loading = computed(() => {
+  return Object.getOwnPropertyNames(loadingState.value)
+    .reduce((loading, property) => loading || loadingState.value[property], false)
+})
 const loadingMsg = ref('')
+function resolveLoadingMsg() {
+  if (loadingState.value.completing) return 'Creating order'
+  if (loadingState.value.payment) return 'Updating payment'
+  if (loadingState.value.creatingPayment) return 'Creating payment'
+  if (loadingState.value.deliveryAddress) return 'Updating delivery address'
+  if (loadingState.value.deliveryFee) return 'Calculating delivery fee'
+  if (loadingState.value.rider) return 'Finding a rider'
+  return ''
+}
+
 const formData = ref({
   payment: {
     escrowRefundAddress: '',
@@ -976,20 +998,20 @@ function saveCart() {
 }
 
 function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
-  loading.value = true
+  loadingState.value.price = true
   return checkout.value.updateBchPrice(opts)
     .then(() => resetFormData())
-    .finally(() => loading.value = false)
+    .finally(() => loadingState.value.price = false)
 }
 
 async function findRider(opts={ replaceExisting: false }) {
   if (!opts?.replaceExisting && formData.value?.delivery?.rider?.id) return
-  loading.value = true
+  loadingState.value.rider = true
   loadingMsg.value = 'Finding a rider'
 
   const riders = await findRiders().catch(() => [])
-  loading.value = false
-  loadingMsg.value = ''
+  loadingState.value.rider = false
+  loadingMsg.value = resolveLoadingMsg()
 
   formData.value.delivery.rider = riders[0]
   if (!riders?.length) {
@@ -1035,7 +1057,7 @@ function findRiders() {
 }
 
 function updateDeliveryFee() {
-  loading.value = true
+  loadingState.value.deliveryFee = true
   loadingMsg.value = 'Calculating delivery fee'
   return backend.post(`connecta/checkouts/${checkout.value.id}/update_delivery_fee/`)
     .finally(() => resetFormData())
@@ -1050,14 +1072,14 @@ function updateDeliveryFee() {
       return Promise.reject(error)
     })
     .finally(() => {
-      loading.value = false
-      loadingMsg.value = ''
+      loadingState.value.deliveryFee = false
+      loadingMsg.value = resolveLoadingMsg()
     })
 }
 
 async function submitDeliveryAddress() {
   try {
-    loading.value = true
+    loadingState.value.deliveryAddress = true
     loadingMsg.value = 'Locating address'
     if (!validCoordinates.value) await geocode()
     if (!validCoordinates.value) {
@@ -1066,8 +1088,8 @@ async function submitDeliveryAddress() {
       return Promise.reject()
     }
   } finally {
-    loading.value = false
-    loadingMsg.value = ''
+    loadingState.value.deliveryAddress = false
+    loadingMsg.value = resolveLoadingMsg()
   }
 
   return saveDeliveryAddress().then(() => updateDeliveryFee())
@@ -1075,6 +1097,7 @@ async function submitDeliveryAddress() {
 }
 
 function saveDeliveryAddress() {
+  loadingState.value.deliveryAddress = true
   loadingMsg.value = 'Updating address'
   return updateCheckout({
     delivery_address: {
@@ -1120,7 +1143,8 @@ function saveDeliveryAddress() {
     return Promise.reject(error)
   })
   .finally(() => {
-    loadingMsg.value = ''
+    loadingState.value.deliveryAddress = false
+    loadingMsg.value = resolveLoadingMsg()
   })
 }
 
@@ -1145,11 +1169,10 @@ function savePayment() {
     return Promise.reject(error)
   })
   .finally(() => {
-    loadingMsg.value = ''
+    loadingMsg.value = resolveLoadingMsg()
   })
 }
 
-const creatingPayment = ref(false)
 const payments = ref([].map(Payment.parse))
 const payment = computed(() => {
   return payments.value.find(payment => {
@@ -1192,8 +1215,7 @@ function createPayment() {
     // amount: 100,
   }
 
-  creatingPayment.value = true
-  loading.value = true
+  loadingState.value.creatingPayment = true
   loadingMsg.value = 'Creating payment'
   return backend.post('connecta/payments/', data)
     .then(response => {
@@ -1204,9 +1226,8 @@ function createPayment() {
       return response
     })
     .finally(() => {
-      creatingPayment.value = false
-      loading.value = false
-      loadingMsg.value = ''
+      loadingState.value.creatingPayment = false
+      loadingMsg.value = resolveLoadingMsg()
     })
 }
 
@@ -1288,7 +1309,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     funding_vout: txData.index,
     funding_sats: txData.value,
   }
-  loading.value = true
+  loadingState.value.payment = true
   loadingMsg.value = 'Saving payment transaction'
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
     .then(response => {
@@ -1297,8 +1318,8 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
       return response
     })
     .finally(() => {
-      loading.value = false
-      loadingMsg.value = ''
+      loadingState.value.payment = false
+      loadingMsg.value = resolveLoadingMsg()
     })
 }
 
@@ -1357,7 +1378,7 @@ function checkPaymentFundingTx() {
   if (!escrowContract?.address) return Promise.resolve()
   if (escrowContract?.fundingTxid) return Promise.resolve()
 
-  loading.value = true
+  loadingState.value.payment = true
   loadingMsg.value = 'Checking payment'
   return backend.post(`connecta/escrow/${escrowContract?.address}/resolve_funding_transaction/`)
     .then(response => {
@@ -1370,21 +1391,18 @@ function checkPaymentFundingTx() {
       return response
     })
     .finally(() => {
-      loading.value = false
-      loadingMsg.value = ''
+      loadingState.value.payment = false
+      loadingMsg.value = resolveLoadingMsg()
     })
 }
 
 function updateCheckout(data) {
-  loading.value = true
   return backend.patch(`connecta/checkouts/${checkout.value.id}/`, data)
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
       checkout.value.raw = response?.data
       resetFormData()
       return response
-    }).finally(() => {
-      loading.value = false
     })
 }
 
@@ -1400,7 +1418,7 @@ async function completeCheckout() {
     persistent: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
-  loading.value = true
+  loadingState.value.completing = true
   loadingMsg.value = 'Creating order'
   await updateBchPrice()
   return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`, data)
@@ -1432,8 +1450,8 @@ async function completeCheckout() {
     })
     .finally(() => {
       dialog.update({ progress: false, ok: true })
-      loading.value = false
-      loadingMsg.value = ''
+      loadingState.value.completing = false
+      loadingMsg.value = resolveLoadingMsg()
     })
 }
 
