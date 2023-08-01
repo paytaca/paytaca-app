@@ -83,6 +83,7 @@
               label="Edit Ad"
               color="blue-6"
               class="q-space"
+              @click="state = 'edit-ad'"
               />
           </div>
           <div class="row q-mx-lg q-py-md" v-else>
@@ -138,6 +139,14 @@
           :payment-methods="filterPaymentMethod()"
           v-on:back="state = 'initial'"
           v-on:submit="postOrder"
+        />
+      </div>
+      <div v-if="state === 'edit-ad'">
+        <FiatAdsForm
+          @back="state = 'initial'"
+          :adsState="'edit'"
+          :transactionType="transactionType"
+          :selectedAdId="ad.id"
         />
       </div>
 
@@ -203,6 +212,7 @@
 <script>
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
+import FiatAdsForm from './FiatAdsForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
@@ -257,6 +267,7 @@ export default {
   components: {
     FiatStoreBuyProcess,
     FiatStoreSellProcess,
+    FiatAdsForm,
     ProgressLoader,
     AddPaymentMethods,
     DisplayConfirmation
