@@ -134,6 +134,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
+import { selectedCurrency } from 'src/store/market/getters'
 
 export default {
   setup () {
@@ -174,6 +175,9 @@ export default {
         vm.loading = true
         this.fetchStoreListings()
       }
+    },
+    selectedCurrency (value) {
+      this.resetAndRefetchListings()
     }
   },
   computed: {
@@ -214,36 +218,6 @@ export default {
     await vm.fetchStoreListings()
   },
   methods: {
-    updatePaginationValues () {
-      const vm = this
-      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
-      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
-    },
-    resetAndScrollToTop () {
-      if (this.$refs.infiniteScroll) {
-        this.$refs.infiniteScroll.reset()
-      }
-      this.scrollToTop()
-    },
-    scrollToTop () {
-      if (this.$refs.scrollTargetRef) {
-        const scrollElement = this.$refs.scrollTargetRef.$el
-        scrollElement.scrollTop = 0
-      }
-    },
-    async loadMoreData (_, done) {
-      // console.log('loadMoreData')
-      const vm = this
-      if (!vm.hasMoreData) {
-        done(true)
-        return
-      }
-      vm.updatePaginationValues()
-      if (vm.pageNumber < vm.totalPages) {
-        await vm.fetchStoreListings()
-      }
-      done()
-    },
     async fetchFiatCurrencies () {
       const vm = this
 
@@ -279,6 +253,45 @@ export default {
         vm.loading = false
       }
     },
+    async loadMoreData (_, done) {
+      // console.log('loadMoreData')
+      const vm = this
+      if (!vm.hasMoreData) {
+        done(true)
+        return
+      }
+      vm.updatePaginationValues()
+      if (vm.pageNumber < vm.totalPages) {
+        await vm.fetchStoreListings()
+      }
+      done()
+    },
+    async resetAndRefetchListings () {
+      // reset pagination and reload ads list
+      const vm = this
+      vm.loading = true
+      await vm.$store.dispatch('ramp/resetStorePagination')
+      await vm.fetchStoreListings()
+      vm.updatePaginationValues()
+      vm.loading = false
+    },
+    updatePaginationValues () {
+      const vm = this
+      vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getStorePageNumber'](this.transactionType)
+    },
+    resetAndScrollToTop () {
+      if (this.$refs.infiniteScroll) {
+        this.$refs.infiniteScroll.reset()
+      }
+      this.scrollToTop()
+    },
+    scrollToTop () {
+      if (this.$refs.scrollTargetRef) {
+        const scrollElement = this.$refs.scrollTargetRef.$el
+        scrollElement.scrollTop = 0
+      }
+    },
     formattedCurrency (value, fiat = true) {
       if (fiat) {
         const currency = this.selectedCurrency.symbol
@@ -289,8 +302,6 @@ export default {
     },
     selectCurrency (index) {
       this.selectedCurrency = this.fiatCurrencies[index]
-      this.listings = []
-      this.fetchStoreListings()
     },
     selectListing (listing) {
       const vm = this
