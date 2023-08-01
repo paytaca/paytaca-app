@@ -1,3 +1,13 @@
+export async function asyncSleep(interval) {
+  return new Promise((resolve, reject) => {
+    try {
+      setTimeout(() => resolve(), interval)
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
 /**
  * @param {String} url
  * @param {Object} reconnectOpts 
