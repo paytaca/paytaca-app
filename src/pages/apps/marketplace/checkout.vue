@@ -991,6 +991,7 @@ const checkout = ref(Checkout.parse())
 const checkoutCurrency = computed(() => checkout.value?.currency?.symbol)
 const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice?.price || undefined)
 const displayBch = ref(true)
+watch(checkoutBchPrice, () => displayBch.value = displayBch.value && !isNaN(checkoutBchPrice))
 const checkoutAmounts = computed(() => {
   const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
   const data = {
@@ -1479,7 +1480,7 @@ async function completeCheckout() {
   })
   loadingState.value.completing = true
   loadingMsg.value = 'Creating order'
-  await updateBchPrice()
+  await updateBchPrice().catch(console.error)
   return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`, data)
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
