@@ -1,5 +1,5 @@
 <template>
-  <q-list v-if="!swiped" class="absolute-bottom">
+  <q-list v-if="!swiped" :class="[disableAbsoluteBottom ? '' : 'absolute-bottom']">
     <q-slide-item left-color="blue" @left="slide">
       <template v-slot:left>
         <div style="font-size: 15px" class="text-body1">
@@ -34,6 +34,7 @@ export default {
     }
   },
   props: {
+    disableAbsoluteBottom: Boolean,
     text: {
       type: String,
       default: ''
@@ -47,7 +48,7 @@ export default {
         } catch {}
       }, 2000)
       this.swiped = true
-      this.$emit('swiped')
+      this.$emit('swiped', () => this.swiped = false)
     }
   },
   async mounted () {

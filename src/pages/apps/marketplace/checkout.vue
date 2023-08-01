@@ -449,14 +449,15 @@
                   </div>
                   <div class="text-body1" style="word-break: break-all;">{{ bchPaymentData?.address }}</div>
                 </div>
-                <q-btn
+                <div class="text-right q-mt-xs">Balance: {{ bchWalletBalance }} BCH</div>
+                <!-- <q-btn
                   no-caps label="Send"
                   color="brandblue"
                   class="full-width"
                   @click.stop="() => sendBchPayment()"
-                />
-                <div class="text-right q-mt-xs">Balance: {{ bchWalletBalance }} BCH</div>
+                /> -->
               </q-card-section>
+              <DragSlide disable-absolute-bottom class="q-r-mt-md" @swiped="onSendBchPaymentSwipe"/>
             </q-card>
           </q-dialog>
 
@@ -695,6 +696,8 @@ import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wr
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import PaymentsListDialog from 'src/components/marketplace/PaymentsListDialog.vue'
 import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dialog.vue'
+import DragSlide from 'src/components/drag-slide.vue'
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -1374,6 +1377,18 @@ const bchWalletBalance = computed(() => {
 const wallet = ref([].map(() => new Wallet())[0])
 async function initWallet () {
   wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
+}
+
+function onSendBchPaymentSwipe(resetSwipe=()=>{}) {
+  $q.dialog({
+    component: SecurityCheckDialog,
+  })
+    .onOk(() => {
+      sendBchPayment()
+        .then(() => bchPaymentState.value.tab = '')
+        .finally(() => resetSwipe())
+    })
+    .onCancel(() => resetSwipe())
 }
 
 async function sendBchPayment() {
