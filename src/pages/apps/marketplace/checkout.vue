@@ -410,34 +410,78 @@
             <q-spinner size="3em"/>
             <div>Creating payment</div>
           </div>
-          <template v-else-if="bchPaymentData?.url">
-            <q-tabs v-model="bchPaymentState.tab" class="q-mb-xs">
-              <q-tab name="wallet" icon="account_balance_wallet"/>
-              <q-tab name="qrcode" icon="mdi-qrcode-scan"/>
-            </q-tabs>
-            <q-tab-panels v-model="bchPaymentState.tab" animated keep-alive class="payment-mode-panels q-my-sm">
-              <q-tab-panel name="wallet">
-                <div @click="() => showBchPaymentEscrowContract()">
-                  <div class="text-subtitle1 q-mx-md q-mb-sm" style="word-break: break-all;">
-                    {{ bchPaymentData?.address }}
-                    <q-icon name="open_in_new"/>
-                  </div>
-                  <q-btn
-                    no-caps color="brandblue"
-                    class="full-width"
-                    @click.stop="() => sendBchPayment()"
-                  >
-                    Pay {{ bchPaymentData.bchAmount }} BCH
-                  </q-btn>
-                  <div class="text-right q-mt-xs">
-                    Balance: {{ bchWalletBalance }} BCH
-                  </div>
+          <template v-if="bchPaymentData.url">
+            <q-btn
+              :disable="loadingState.creatingPayment"
+              no-caps label="Pay with wallet"
+              icon="mdi-wallet"
+              color="brandblue"
+              class="full-width q-my-sm"
+              @click="() => bchPaymentState.tab = 'wallet'"
+            />
+            <q-btn
+              :disable="loadingState.creatingPayment"
+              no-caps label="Scan to pay"
+              icon="mdi-qrcode-scan"
+              color="brandblue"
+              class="full-width q-my-sm"
+              @click="() => bchPaymentState.tab = 'qrcode'"
+            />
+            <q-separator spaced :dark="darkMode"/>
+          </template>
+          <q-dialog
+            :model-value="bchPaymentState.tab === 'wallet'"
+            position="bottom"
+            @hide="() => bchPaymentState.tab = 'select'"
+          >
+            <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+              <q-card-section>
+                <div class="row items-center no-wrap">
+                  <div class="text-h6">Pay with wallet</div>
+                  <q-space/>
+                  <q-btn flat icon="close" v-close-popup class="q-r-mr-sm"/>
                 </div>
-              </q-tab-panel>
-              <q-tab-panel name="qrcode">
-                <div class="row justify-center" @click="() => showBchPaymentEscrowContract()">
+                <div class="text-center q-my-md" @click="() => showBchPaymentEscrowContract()">
+                  <q-icon name="open_in_new" class="float-right"/>
+                  <div class="text-h5">{{ bchPaymentData?.bchAmount }} BCH</div>
+                  <div v-if="bchPaymentData?.fiatAmount" class="text-subtitle1 q-mb-md" style="line-height:0.75em;">
+                    {{ bchPaymentData?.fiatAmount }} {{ bchPaymentData?.currency }}
+                  </div>
+                  <div class="text-body1" style="word-break: break-all;">{{ bchPaymentData?.address }}</div>
+                </div>
+                <q-btn
+                  no-caps label="Send"
+                  color="brandblue"
+                  class="full-width"
+                  @click.stop="() => sendBchPayment()"
+                />
+                <div class="text-right q-mt-xs">Balance: {{ bchWalletBalance }} BCH</div>
+              </q-card-section>
+            </q-card>
+          </q-dialog>
+
+          <q-dialog
+            :model-value="bchPaymentState.tab === 'qrcode'"
+            position="bottom"
+            persistent
+            @hide="() => bchPaymentState.tab = 'select'"
+          >
+            <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+              <q-card-section>
+                <div class="row items-center no-wrap">
+                  <div class="text-h6">Scan to pay</div>
+                  <q-space/>
+                  <q-btn flat icon="close" v-close-popup class="q-r-mr-sm"/>
+                </div>
+                <div class="row justify-center">
                   <div>
                     <div class="row items-center q-mb-xs">
+                      <q-btn
+                        flat padding="xs"
+                        no-caps label="Payment details"
+                        class="text-underline"
+                        @click="() => showBchPaymentEscrowContract()"
+                      />
                       <q-space/>
                       <q-btn
                         flat padding="xs"
@@ -456,16 +500,15 @@
                     </div>
                   </div>
                 </div>
-              </q-tab-panel>
-            </q-tab-panels>
-          </template>
-          
-          <q-separator spaced :dark="darkMode"/>
+              </q-card-section>
+            </q-card>
+          </q-dialog>
+
           <div class="q-mt-sm">
             <q-btn
               :disable="loading"
               no-caps
-              label="Review"
+              :label="(bchPaymentData.url && checkout.balanceToPay) ? 'Pay later' : 'Review'"
               color="brandblue"
               class="full-width"
               @click="() => savePayment().then(() => nextTab())"
@@ -1231,7 +1274,7 @@ function createPayment() {
     })
 }
 
-const bchPaymentState = ref({ tab: 'wallet' })
+const bchPaymentState = ref({ tab: '' })
 const bchPaymentData = computed(() => {
   const data = {
     escrowContract: payment.value?.escrowContract,
@@ -1287,6 +1330,7 @@ const txListenerCallback = (msg, parsedData) => {
   else transactionsReceived.value.push(parsedData)
 
   const fundingTx = getFundingTxFromReceivedTxs()
+  if (fundingTx) bchPaymentState.value.tab = ''
   savePaymentFundingTx(fundingTx)
     .then(() => {
       if (tabs.value.active == 'payment') nextTab()
@@ -1335,8 +1379,8 @@ async function initWallet () {
 async function sendBchPayment() {
   const amount = bchPaymentData.value.bchAmount
   const address = bchPaymentData.value.address
-  // const changeAddress = $store.getters['global/getChangeAddress']('bch')
-  const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
+  const changeAddress = $store.getters['global/getChangeAddress']('bch')
+  // const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
   if (!wallet.value) await initWallet()
 
   const dialog = $q.dialog({
