@@ -2,21 +2,42 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    style="min-height:50vh;"
+    style="min-height:78vh;"
   >
-    <div>
-      <q-btn
-        flat
-        padding="md"
-        icon="arrow_back"
-        @click="$emit('back')"
-      />
-    </div>
-    <div class="text-center q-pt-none" v-if="isloaded">
-      <q-icon size="5em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-      <div class="bold-text lg-font-size q-pt-sm">
-        {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+    <div v-if="state === 'initial'">
+      <div>
+        <q-btn
+          flat
+          padding="md"
+          icon="arrow_back"
+          @click="$emit('back')"
+        />
       </div>
+      <div class="text-center q-pt-none" v-if="isloaded">
+        <q-icon size="5em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+        <div class="bold-text lg-font-size q-pt-sm">
+          {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+        </div>
+      </div>
+      <!-- create order btn -->
+      <div class="row q-mx-lg q-py-md">
+        <q-btn
+          rounded
+          no-caps
+          label="Edit Payment Methods"
+          color="grey-6"
+          class="q-space"
+          @click="state= 'edit-pm'"
+          >
+        </q-btn>
+      </div>
+    </div>
+    <div v-if="state === 'edit-pm'">
+      <AddPaymentMethods
+        :type="'Profile'"
+        v-on:back="state = 'initial'"
+        v-on:submit="state === 'edit-pm'"
+      />
     </div>
   </q-card>
   <MiscDialogs
@@ -28,6 +49,7 @@
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import AddPaymentMethods from './AddPaymentMethods.vue'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
@@ -37,7 +59,8 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       isloaded: false,
       user: null,
-      editNickname: false
+      editNickname: false,
+      state: 'initial'
     }
   },
   props: {
@@ -52,7 +75,8 @@ export default {
   },
   emits: ['back'],
   components: {
-    MiscDialogs
+    MiscDialogs,
+    AddPaymentMethods
   },
   // computed: {
   //   user () {

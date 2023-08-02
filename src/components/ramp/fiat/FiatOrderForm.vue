@@ -99,8 +99,9 @@
     <div v-if="state === 'add-payment-method'">
       <AddPaymentMethods
         :type="'General'"
+        :ad-payment-method="ad.payment_methods"
         v-on:back="state = 'initial'"
-        v-on:submit="state = 'initial'"
+        v-on:submit="recievePaymentMethods"
       />
     </div>
    </q-card>
@@ -188,7 +189,9 @@ export default {
       await vm.$axios.post(vm.apiURL + '/order/', {},
         {
           headers: {
-
+            'wallet-hash': vm.wallet.walltHash,
+            signature: signature,
+            timestamp: timestamp
           }
         })
     },
@@ -224,6 +227,9 @@ export default {
     //       console.log(error)
     //     })
     // },
+    recievePaymentMethods (item) {
+      console.log(item)
+    },
     submit () {
       switch (this.ad.trade_type) {
         case 'SELL':
