@@ -110,3 +110,40 @@ export function getAdsPageNumber (state) {
 }
 
 // ads getters //
+
+// orders getters //
+export function getOngoingOrders (state) {
+  return state.ongoingOrders
+}
+
+export function getCompletedOrders(state) {
+  return state.completedOrders
+}
+
+export function getOrdersTotalPages (state) {
+  return function (orderState) {
+    switch (orderState) {
+      case 'ONGOING':
+        return state.ongoingOrdersTotalPages
+      case 'COMPLETED':
+        return state.completedOrdersTotalPages
+      default:
+        return null
+    }
+  }
+}
+
+export function getOrdersPageNumber (state) {
+  return function (orderState) {
+    switch (orderState) {
+      case 'ONGOING':
+        return state.ongoingOrdersPageNumber
+      case 'COMPLETED':
+        return state.completedOrdersPageNumber
+      default:
+        return null
+    }
+  }
+}
+
+// orders getters //

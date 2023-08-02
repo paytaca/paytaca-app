@@ -17,14 +17,24 @@
           </div>
         </div>
         <div v-else class="q-mt-md">
-          <div v-if="filteredListings().length == 0" class="relative text-center" style="margin-top: 50px;">
+          <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
           </div>
           <div v-else>
-            <q-card-section style="max-height:60vh;overflow-y:auto;">
-              <q-virtual-scroll :items="filteredListings()">
-                <template v-slot="{ item: listing }">
+            <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:auto;">
+              <q-infinite-scroll
+              ref="infiniteScroll"
+              :items="listings"
+              @load="loadMoreData"
+              :offset="0"
+              :scroll-target="scrollTargetRef">
+                <template v-slot:loading>
+                  <div class="row justify-center q-my-md" v-if="hasMoreData">
+                    <q-spinner-dots color="primary" size="40px" />
+                  </div>
+                </template>
+                <div v-for="(listing, index) in listings" :key="index">
                   <q-item clickable @click="selectOrder(listing)">
                     <q-item-section>
                       <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -33,7 +43,7 @@
                             <span
                               :class="{'pt-dark-label': darkMode}"
                               class="q-mb-none md-font-size">
-                              {{ listing.ad_owner_name }}
+                              {{ listing.ad.owner.nickname }}
                             </span>
                             <div
                               :class="{'pt-dark-label': darkMode}"
@@ -69,9 +79,9 @@
                       </div>
                     </q-item-section>
                   </q-item>
-                </template>
-              </q-virtual-scroll>
-            </q-card-section>
+                </div>
+              </q-infinite-scroll>
+            </q-list>
           </div>
         </div>
       </div>
@@ -96,29 +106,66 @@ import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+    const infiniteScroll = ref(null)
+    return {
+      scrollTargetRef,
+      infiniteScroll
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      wallet: null,
       selectedOrder: null,
       statusType: 'ONGOING',
       state: 'order-list',
-      loading: false,
       transactionType: '',
-      listings: [],
-      wallet: null
+      // listings: [],
+      loading: false,
+      totalPages: null,
+      pageNumber: null
+    }
+  },
+  computed: {
+    listings () {
+      const vm = this
+      switch (vm.statusType) {
+        case 'ONGOING':
+          return vm.ongoingOrders
+        case 'COMPLETED':
+          return vm.completedOrders
+      }
+      return []
+    },
+    ongoingOrders () {
+      const temp = this.$store.getters['ramp/getOngoingOrders']
+      console.log('temp:', temp)
+      return temp
+    },
+    completedOrders () {
+      return this.$store.getters['ramp/getCompletedOrders']
+    },
+    hasMoreData () {
+      const vm = this
+      vm.updatePaginationValues()
+      return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
     }
   },
   async mounted () {
     const vm = this
     vm.loading = true
+    vm.updatePaginationValues()
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
-    // console.log(vm.wallet.walletHash)
-    vm.fetchUserOrders()
+    await vm.fetchOrders()
+    // vm.fetchUserOrders()
   },
   components: {
     ProgressLoader,
@@ -126,6 +173,35 @@ export default {
     FiatStoreSellProcess
   },
   methods: {
+    async fetchOrders () {
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'ORDER_LIST', timestamp)
+      const headers = {
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      const params = { state: vm.statusType }
+      try {
+        await vm.$store.dispatch('ramp/fetchOrders', { orderState: vm.statusType, params: params, headers: headers })
+      } catch (error) {
+        console.error(error)
+      }
+      vm.loading = false
+    },
+    async loadMoreData (_, done) {
+      const vm = this
+      if (!vm.hasMoreData) {
+        done(true)
+        return
+      }
+      vm.updatePaginationValues()
+      if (vm.pageNumber < vm.totalPages) {
+        await vm.fetchOrders()
+      }
+      done()
+    },
     async fetchUserOrders () {
       const vm = this
 
@@ -150,6 +226,19 @@ export default {
           console.error(error)
           vm.loading = false
         })
+    },
+    async resetAndRefetchListings () {
+      const vm = this
+      vm.loading = true
+      await vm.$store.dispatch('ramp/resetOrdersPagination')
+      await vm.fetchOrders()
+      vm.updatePaginationValues()
+      vm.loading = false
+    },
+    updatePaginationValues () {
+      const vm = this
+      vm.totalPages = vm.$store.getters['ramp/getOrdersTotalPages'](vm.statusType)
+      vm.pageNumber = vm.$store.getters['ramp/getOrdersPageNumber'](vm.statusType)
     },
     selectOrder (data) {
       // console.log(data)
@@ -213,17 +302,17 @@ export default {
       // console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
       return lockedPrice * cryptoAmount
     },
-    filteredListings () {
-      const vm = this
-      const sorted = vm.listings.filter(function (listing) {
-        if (vm.statusType === 'ONGOING') {
-          return !vm.isCompleted(listing.status)
-        } else {
-          return vm.isCompleted(listing.status)
-        }
-      })
-      return sorted
-    },
+    // filteredListings () {
+    //   const vm = this
+    //   const sorted = vm.listings.filter(function (listing) {
+    //     if (vm.statusType === 'ONGOING') {
+    //       return !vm.isCompleted(listing.status)
+    //     } else {
+    //       return vm.isCompleted(listing.status)
+    //     }
+    //   })
+    //   return sorted
+    // },
     returnOrderList () {
       this.loading = true
 

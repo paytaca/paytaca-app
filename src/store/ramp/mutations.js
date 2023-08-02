@@ -74,8 +74,43 @@ export function resetAdsPagination (state) {
 
 // ~ ads mutations ~ //
 
+// ~ orders mutations ~ //
+
+export function updateOngoingOrders (state, data) {
+  state.ongoingOrders.push(...data.orders)
+  console.log('ongoingOrders:', state.ongoingOrders)
+  state.ongoingOrdersTotalPages = data.total_pages
+}
+
+export function updateCompletedOrders (state, data) {
+  state.completedOrders.push(...data.orders)
+  console.log('completedOrders:', state.completedOrders)
+  state.completedOrdersTotalPages = data.total_pages
+}
+
+export function incOngoingOrdersPage (state) {
+  state.ongoingOrdersPageNumber++
+}
+
+export function incCompletedOrdersPage (state) {
+  state.completedOrdersPageNumber++
+}
+
+export function resetOrdersPagination (state) {
+  state.ongoingOrdersPageNumber = null
+  state.ongoingOrdersTotalPages = null
+  state.ongoingOrders = []
+
+  state.completedOrdersPageNumber = null
+  state.completedOrdersTotalPages = null
+  state.completedOrders = []
+}
+
+// ~ orders mutations ~ //
+
 export function resetPagination (state) {
   state.itemsPerPage = 20
   resetStorePagination(state)
   resetAdsPagination(state)
+  resetOrdersPagination(state)
 }

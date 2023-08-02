@@ -131,6 +131,52 @@ export async function fetchAds (context, { component = null, params = null, head
   }
 }
 
+export async function fetchOrders (context, { orderState = null, params = null, headers = null }) {
+  const state = context.state
+  // Setup pagination parameters based on component & transaction type
+  let pageNumber = null
+  let totalPages = null
+  switch (orderState) {
+    case 'ONGOING':
+      pageNumber = state.ongoingOrdersPageNumber
+      totalPages = state.ongoingOrdersTotalPages
+      break
+    case 'COMPLETED':
+      pageNumber = state.completedOrdersPageNumber
+      totalPages = state.completedOrdersTotalPages
+      break
+    default:
+      return
+  }
+
+  if (pageNumber < totalPages || (!pageNumber && !totalPages)) {
+    // Increment page by 1 if not fetching data for the first time
+    if (pageNumber !== null) pageNumber++
+
+    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
+    params.page = pageNumber
+    params.limit = state.itemsPerPage
+    try {
+      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
+      console.log('headers:', headers)
+      console.log('data:', data)
+      switch (orderState) {
+        case 'ONGOING':
+          context.commit('updateOngoingOrders', data.data)
+          context.commit('incOngoingOrdersPage')
+          break
+        case 'COMPLETED':
+          context.commit('updateCompletedOrders', data.data)
+          context.commit('incCompletedOrdersPage')
+          break
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+      throw error
+    }
+  }
+}
+
 export async function fetchOwnedAds (context, params, headers) {
   const state = context.state
 

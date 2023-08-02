@@ -266,13 +266,17 @@ export default {
       vm.loading = false
     },
     async resetAndRefetchListings () {
-      // reset pagination and reload ads list
       const vm = this
       vm.loading = true
       await vm.$store.dispatch('ramp/resetAdsPagination')
       await vm.fetchAds()
       vm.updatePaginationValues()
       vm.loading = false
+    },
+    updatePaginationValues () {
+      const vm = this
+      vm.totalPages = vm.$store.getters['ramp/getAdsTotalPages'](this.transactionType)
+      vm.pageNumber = vm.$store.getters['ramp/getAdsPageNumber'](this.transactionType)
     },
     onSubmit () {
       const vm = this
@@ -314,11 +318,6 @@ export default {
           }
           break
       }
-    },
-    updatePaginationValues () {
-      const vm = this
-      vm.totalPages = vm.$store.getters['ramp/getAdsTotalPages'](this.transactionType)
-      vm.pageNumber = vm.$store.getters['ramp/getAdsPageNumber'](this.transactionType)
     },
     resetAndScrollToTop () {
       if (this.$refs.infiniteScroll) {

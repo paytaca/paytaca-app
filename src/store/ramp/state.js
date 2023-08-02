@@ -21,6 +21,15 @@ export default function () {
 
     adsSellPageNumber: null,
     adsSellTotalPages: null,
-    adsSellListings: []
+    adsSellListings: [],
+
+    // orders pagination
+    ongoingOrdersPageNumber: null,
+    ongoingOrdersTotalPages: null,
+    ongoingOrders: [],
+
+    completedOrdersPageNumber: null,
+    completedOrdersTotalPages: null,
+    completedOrders: []
   }
 }
