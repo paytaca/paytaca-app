@@ -1,3 +1,22 @@
+export function setShopListOpts(state, data) {
+  state.shopListOpts = data
+}
+
+/**
+ * @param {Object} state
+ * @param {Object} data 
+ * @param {Number} data.lat
+ * @param {Number} data.lon
+ * @param {Number} data.timestamp
+ */
+export function updateLocationData(state, data) {
+  state.location = {
+    lat: data?.lat,
+    lon: data?.lon,
+    timestamp: data?.timestamp,
+  }
+}
+
 /**
  * @param {Object} state 
  * @param {Object} data 

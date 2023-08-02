@@ -1,9 +1,41 @@
+import { Geolocation } from '@capacitor/geolocation'
 import BCHJS from '@psf/bch-js'
 import { backend, setSignerData } from 'src/marketplace/backend'
 import { Cart } from 'src/marketplace/objects'
 import { loadWallet } from 'src/wallet'
 
 const bchjs = new BCHJS()
+
+/**
+ * @param {Object} context
+ * @param {Object} opts
+ * @param {Number} opts.maxAge
+ */
+export async function updateLocation(context, opts={ maxAge: 86400 * 1000 }) {
+  if (opts?.maxAge) {
+    const age = Date.now() - context?.state?.location?.timestamp
+    const expired = isNaN(age) || age > opts?.maxAge
+    if (!expired) return Promise.resolve('Device location has not reached max age')
+  }
+
+  const permission = await Geolocation.checkPermissions()
+  const granted = permission?.location == 'granted' || permission?.coarseLocation == 'granted'
+  if (!granted) return Promise.reject('No permission')
+  const geolocateOpts = {
+    enableHighAccuracy: permission?.location == 'granted',
+    maximumAge: 30 * 1000,
+    timeout: 10 * 1000,
+  }
+  return Geolocation.getCurrentPosition(geolocateOpts)
+    .then(response => {
+      context.commit('updateLocationData', {
+        timestamp: response?.timestamp,
+        lat: response?.coords?.latitude,
+        lon: response?.coords?.longitude,
+      })
+      return response
+    })
+}
 
 export function getCartRef(context) {
   const walletHash = context.rootGetters['global/getWallet']('bch')?.walletHash

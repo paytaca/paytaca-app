@@ -10,7 +10,18 @@
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div class="text-h5 q-px-xs">Shops</div>
+      <div class="row items-center">
+        <div class="text-h5 q-px-xs">Shops</div>
+        <q-btn
+          flat
+          rounded
+          icon="settings"
+          padding="xs"
+          size="sm"
+          @click="() => openStorefrontListOptsForm()"
+        />
+
+      </div>
       <div v-if="!initialized && fetchingStorefronts" class="row items-center justify-center">
         <q-spinner size="4em" color="brandblue"/>
       </div>
@@ -108,6 +119,7 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Order, Storefront } from 'src/marketplace/objects'
+import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 import { computed, ref, onMounted, watch } from 'vue'
@@ -120,6 +132,7 @@ watch(() => [$route.name], () => {
 })
 
 
+const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -137,11 +150,53 @@ onMounted(() => refreshPage())
 const fetchingStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
 const storefrontsPagination = ref({ count: 0, limit: 0, offset: 0 })
-function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
+const updateLocationPromise = ref()
+onMounted(() => {
+  updateLocationPromise.value = $store.dispatch('marketplace/updateLocation').catch(err => {
+    console.error(err)
+    return err
+  })
+})
+const storefrontListOpts = computed(() => {
+  const data = {
+    radius: ($store.getters['marketplace/shopListOpts']?.radius || 30) * 1000,
+  }
+  return data
+})
+watch(storefrontListOpts, () => fetchStorefronts(), { deep: true })
+function openStorefrontListOptsForm() {
+  $q.dialog({
+    title: 'Shops options',
+    message: 'Find shops within the set distance',
+    position: 'bottom',
+    prompt: {
+      clearable: true,
+      outlined: true,
+      dark: darkMode.value,
+      model: storefrontListOpts.value?.radius / 1000,
+      type: 'number',
+      suffix: 'km',
+    },
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+  .onOk(data => $store.commit('marketplace/setShopListOpts', { radius: parseFloat(data) }))
+}
+async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
+  await updateLocationPromise.value
+  const customerCoordinates = $store.getters['marketplace/customerCoordinates']
   const params = {
     limit: opts?.limit || 10,
     offset: opts?.offset || undefined,
+    distance: '',
   }
+  if (!isNaN(customerCoordinates?.lat) && !isNaN(customerCoordinates.lon)) {
+    params.distance = btoa(JSON.stringify({
+      lat: customerCoordinates?.lat,
+      lon: customerCoordinates?.lon,
+      radius: storefrontListOpts.value?.radius,
+    }))
+  }
+
   fetchingStorefronts.value = true
   return backend.get(`connecta/storefronts/`, { params })
     .then(response => {

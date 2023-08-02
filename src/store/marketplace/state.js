@@ -1,5 +1,9 @@
 export default function () {
   return {
+    shopListOpts: {
+      radius: 30, // kilometers
+    },
+    location: { lat: NaN, lon: NaN, timestamp: 0 },
     customerData: {
       id: 0,
       ref: '',
