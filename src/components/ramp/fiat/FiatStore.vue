@@ -109,12 +109,17 @@
   </q-card>
   <!-- Buy/Sell Form Here -->
   <div v-if="state !== 'SELECT' && !viewProfile">
-    <FiatStoreForm
+    <FiatOrderForm
+      :ad-id="selectedListing.id"
+      v-on:back="state = 'SELECT'"
+    />
+    <!-- <FiatStoreForm
       v-on:back="state = 'SELECT'"
       :listingData="selectedListing"
       :transactionType="state"
-    />
+    /> -->
   </div>
+
   <!-- <div v-if="viewProfile">
     <MiscDialogs
       :type="'viewProfile'"
@@ -130,6 +135,7 @@
 </template>
 <script>
 import FiatStoreForm from './FiatStoreForm.vue'
+import FiatOrderForm from './FiatOrderForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
@@ -145,6 +151,7 @@ export default {
   },
   components: {
     FiatStoreForm,
+    FiatOrderForm,
     ProgressLoader,
     FiatProfileCard
   },

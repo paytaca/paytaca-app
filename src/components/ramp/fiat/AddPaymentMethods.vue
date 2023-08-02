@@ -5,6 +5,7 @@
       padding="md"
       icon="arrow_back"
       @click="$emit('back')"
+      v-if="type !== 'Ads'"
     />
   </div>
   <div class="q-mx-lg" v-if="isloaded">

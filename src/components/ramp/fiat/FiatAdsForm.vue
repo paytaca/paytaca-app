@@ -439,12 +439,14 @@ export default {
         })
     },
     async getInitialMarketPrice () {
+      console.log('initial markeprice')
       const vm = this
       const url = vm.apiURL + '/utils/market-price'
       try {
         const response = await vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
         vm.marketPrice = parseFloat(response.data[0].price)
         vm.updatePriceValue(vm.adData.priceType)
+        console.log(response)
       } catch (error) {
         console.error(error.response)
       }
