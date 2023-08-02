@@ -158,8 +158,6 @@ export async function fetchOrders (context, { orderState = null, params = null, 
     params.limit = state.itemsPerPage
     try {
       const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
-      console.log('headers:', headers)
-      console.log('data:', data)
       switch (orderState) {
         case 'ONGOING':
           context.commit('updateOngoingOrders', data.data)
@@ -222,6 +220,10 @@ export function resetStorePagination (context) {
 
 export function resetAdsPagination (context) {
   context.commit('resetAdsPagination')
+}
+
+export function resetOrdersPagination (context) {
+  context.commit('resetOrdersPagination')
 }
 
 export function resetPagination (context) {

@@ -78,13 +78,11 @@ export function resetAdsPagination (state) {
 
 export function updateOngoingOrders (state, data) {
   state.ongoingOrders.push(...data.orders)
-  console.log('ongoingOrders:', state.ongoingOrders)
   state.ongoingOrdersTotalPages = data.total_pages
 }
 
 export function updateCompletedOrders (state, data) {
   state.completedOrders.push(...data.orders)
-  console.log('completedOrders:', state.completedOrders)
   state.completedOrdersTotalPages = data.total_pages
 }
 

@@ -466,7 +466,7 @@ export default {
     ProgressLoader,
     MiscDialogs
   },
-  emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
+  emits: ['back', 'updated', 'canceled', 'hideSeller', 'pendingRelease', 'released'],
   props: {
     orderData: Object
   },
@@ -620,11 +620,10 @@ export default {
     },
     async handleDialogResponse () {
       const vm = this
-      console.log('dialogType:', vm.dialogType)
       switch (vm.dialogType) {
         case 'confirmCancelOrder':
           await vm.cancelOrder()
-          this.$emit('back')
+          this.$emit('canceled')
           break
       }
     },
@@ -666,7 +665,6 @@ export default {
       const vm = this
       vm.dialogType = 'confirmCancelOrder'
       vm.openDialog = true
-      console.log('Cancelling order?', vm.order.id)
     },
     async cancelOrder () {
       const vm = this
@@ -689,12 +687,6 @@ export default {
         console.log(error.response)
       }
     },
-    // cancelingOrder () {
-    //   this.cancelOrder()
-    //   // if (this.order.status === 'Released' || this.order.status === 'Release Pending') {
-    //   //   this.$emit('pendingRelease')
-    //   // }
-    // },
     async sendConfirmPayment () {
       const vm = this
 

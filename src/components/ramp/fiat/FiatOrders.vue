@@ -90,11 +90,15 @@
           v-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
           v-on:back="returnOrderList()"
+          @updated="onUpdated"
+          @canceled="onCanceled"
         />
         <FiatStoreSellProcess
           v-if="selectedOrder.trade_type === 'SELL'"
           :order-data="selectedOrder"
           v-on:back="state = 'order-list'"
+          @updated="onUpdated"
+          @canceled="onCanceled"
         />
         <!-- check which step the order are in -->
       </div>
@@ -134,8 +138,7 @@ export default {
     }
   },
   watch: {
-    statusType (value) {
-      console.log('statusType:', value)
+    statusType () {
       const vm = this
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
@@ -157,9 +160,7 @@ export default {
       return []
     },
     ongoingOrders () {
-      const temp = this.$store.getters['ramp/getOngoingOrders']
-      console.log('temp:', temp)
-      return temp
+      return this.$store.getters['ramp/getOngoingOrders']
     },
     completedOrders () {
       return this.$store.getters['ramp/getCompletedOrders']
@@ -263,6 +264,17 @@ export default {
         const scrollElement = this.$refs.scrollTargetRef.$el
         scrollElement.scrollTop = 0
       }
+    },
+    onUpdated () {
+      const vm = this
+      vm.state = 'order-list'
+      vm.resetAndRefetchListings()
+    },
+    onCanceled () {
+      const vm = this
+      vm.state = 'order-list'
+      vm.statusType = 'COMPLETED'
+      vm.resetAndRefetchListings()
     },
     selectOrder (data) {
       // console.log(data)
