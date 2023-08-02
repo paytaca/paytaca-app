@@ -73,13 +73,13 @@
   </q-dialog>
 
   <q-dialog persistent v-model="addPaymentMethod">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section class="xm-font-size q-mx-md">
+    <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section class="q-mx-sm">
         <div class="bold-text text-center">Select Payment Methods</div>
         <div v-if="maxMethodReached" class="subtext text-center" style="font-size: 13px;"><i>Select only up to 5 methods</i></div>
       </q-card-section>
 
-      <q-card-section class="text-left q-pt-sm q-mx-md">
+      <q-card-section class="text-left q-pt-sm q-mx-xs">
         <q-list style="max-height:60vh; overflow:auto;">
           <div v-if="loading" class="row justify-center q-my-md">
             <q-spinner-dots color="primary" size="40px" />
@@ -125,30 +125,26 @@
         </q-list>
       </q-card-section>
       <q-card-section>
-        <div v-if="!loading" class="row justify-center q-mx-md">
-          <div class="q-mx-sm q-px-md">
+        <div v-if="!loading" class="row q-gutter-sm justify-center">
             <q-btn
               outline
               rounded
               label='Add new'
               color="blue-6"
-              class="q-space text-white full-width"
               @click="addNewPaymentMethod()"
+              style="font-size: 12px;"
               v-close-popup>
             </q-btn>
-          </div>
-          <div class="q-mx-sm q-px-md">
             <q-btn
               rounded
               color="blue-6"
-              class="q-space text-white full-width"
               @click="submitUpdatedPaymentMethods()"
+              style="font-size: 12px;"
               v-close-popup>
               <template v-slot:default>
                 Select ({{ selectedPaymentMethods.length }})
               </template>
             </q-btn>
-          </div>
         </div>
       </q-card-section>
 
