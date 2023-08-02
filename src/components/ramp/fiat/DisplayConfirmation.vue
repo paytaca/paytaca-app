@@ -208,13 +208,15 @@ export default {
       return adMethodList.includes(userPM)
     },
     matchPaymentMethod () {
-      console.log(this.paymentMethods)
+      // console.log('paymentMethods:', this.paymentMethods)
 
       const adMethod = this.adData.payment_methods
-      console.log(adMethod)
+      // console.log('adMethod:', adMethod)
 
-      const matched = adMethod.map(p => p.payment_type)
-      console.log(matched)
+      if (adMethod) {
+        const matched = adMethod.map(p => p.payment_type)
+        console.log('matched:', matched)
+      }
     }
   }
 }
