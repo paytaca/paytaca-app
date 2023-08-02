@@ -41,7 +41,8 @@
               <span class="text-nowrap q-ml-xs">{{ ad.time_duration}}</span>
             </div>
           </div>
-          <div class="q-mt-md q-mx-lg">
+          <q-separator :dark="darkMode" class="q-mt-sm q-mx-md" v-if="isOwner"/>
+          <div class="q-mt-md q-mx-lg" v-if="!isOwner">
             <q-input dense filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
                 <template v-slot:prepend>
                   <span class="sm-font-size bold-text">{{ ad.fiat_currency.symbol }}</span>
@@ -74,7 +75,18 @@
               <span class="text-nowrap q-ml-xs ">{{ totalCryptoAmount.toFixed(8) }} BCH</span>
             </div>
           </div>
-          <div class="row q-mx-lg q-py-md">
+          <div class="row q-mx-lg q-py-md" v-if="isOwner">
+            <q-btn
+              :disabled="!isAmountValid"
+              rounded
+              no-caps
+              label="Edit Ad"
+              color="blue-6"
+              class="q-space"
+              @click="state = 'edit-ad'"
+              />
+          </div>
+          <div class="row q-mx-lg q-py-md" v-else>
             <q-btn
               :disabled="!isAmountValid"
               rounded
@@ -124,9 +136,17 @@
           :fiat-amount="parseFloat(fiatAmount)"
           :crypto-amount="parseFloat(cryptoAmount)"
           :transaction-type="transactionType"
-          :payment-methods="paymentMethods"
+          :payment-methods="filterPaymentMethod()"
           v-on:back="state = 'initial'"
           v-on:submit="postOrder"
+        />
+      </div>
+      <div v-if="state === 'edit-ad'">
+        <FiatAdsForm
+          @back="state = 'initial'"
+          :adsState="'edit'"
+          :transactionType="transactionType"
+          :selectedAdId="ad.id"
         />
       </div>
 
@@ -192,6 +212,7 @@
 <script>
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
+import FiatAdsForm from './FiatAdsForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
@@ -246,6 +267,7 @@ export default {
   components: {
     FiatStoreBuyProcess,
     FiatStoreSellProcess,
+    FiatAdsForm,
     ProgressLoader,
     AddPaymentMethods,
     DisplayConfirmation
@@ -267,6 +289,9 @@ export default {
     totalCryptoAmount () {
       const fees = this.ad.fees
       return this.cryptoAmount + fees.hardcoded_fee + fees.arbitration_fee + fees.service_fee
+    },
+    isOwner () {
+      return this.ad.owner === this.$store.getters['ramp/getUser'].nickname
     }
   },
   // async mounted () {
@@ -279,6 +304,18 @@ export default {
       setTimeout(() => {
         this.disabled = false
       }, 1500)
+    },
+    filterPaymentMethod () {
+      // console.log(this.paymentMethods)
+
+      const adMethod = this.ad.payment_methods
+      const adPaymentTypes = adMethod.map(p => p.payment_type)
+
+      const match = this.paymentMethods.filter(function (method) {
+        return adPaymentTypes.includes(method.payment_type.name)
+      })
+      console.log('matched:', match)
+      return match
     },
     async fetchPaymentMethods () {
       const vm = this
@@ -297,6 +334,7 @@ export default {
         .then(response => {
           console.log(response.data)
           this.paymentMethods = response.data
+          // this.filterPaymentMethod()
         })
         .catch(error => {
           console.log(error)
@@ -310,7 +348,7 @@ export default {
       const response = await this.$axios.get(url)
         .then(response => {
           this.ad = response.data
-          console.log(this.ad)
+          // console.log(this.ad)
         })
         .catch(error => {
           console.error(error)
@@ -338,11 +376,11 @@ export default {
     async checkPaymentMethod () {
       await this.fetchPaymentMethods()
 
-      if (this.paymentMethods.length === 0) {
+      if (this.filterPaymentMethod().length === 0) {
         console.log('empty')
         this.state = 'addPaymentMethods'
       } else {
-        console.log(this.paymentMethods.length, 'items')
+        console.log(this.filterPaymentMethod().length, 'items')
         this.state = 'confirmation'
       }
     },
@@ -376,9 +414,11 @@ export default {
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
 
-      const pmId = vm.paymentMethods.map(p => p.id)
+      const pmId = vm.filterPaymentMethod().map(p => p.id)
+      console.log(pmId)
       // const lockedPrice = this.ad.price_type === 'FIXED' ?  this.ad.price : 1000 * () //CHECK LATER
 
+      console.log(this.ad)
       await vm.$axios.post(vm.apiURL + '/order/', {
         ad: this.ad.id,
         crypto_amount: parseFloat(vm.cryptoAmount).toFixed(8),
@@ -413,6 +453,7 @@ export default {
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
     await vm.fetchAd()
+    // console.log(vm.isOwner)
     vm.isloaded = true
   }
 }

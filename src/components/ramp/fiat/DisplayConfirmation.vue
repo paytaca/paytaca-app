@@ -111,7 +111,6 @@
               <q-expansion-item
                 group="somegroup"
                 :label="method.payment_type.name.toUpperCase()"
-                v-if="checkMatchingPaymentMethod(method.payment_type.name, adData.payment_methods)"
               >
                 <!-- ^ higlight header-class payment method on seller/buyer list -->
                 <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
@@ -190,7 +189,6 @@ export default {
     vm.adData = vm.postData
     vm.paymentTimeLimit = vm.ptl
     vm.isLoaded = true
-    vm.matchPaymentMethod()
   },
   methods: {
     formattedCurrencyNumber (value) {
@@ -202,19 +200,6 @@ export default {
         maximumFractionDigits: parsedValue % 1 === 0 ? 0 : 2
       })
       return formattedNumber
-    },
-    checkMatchingPaymentMethod (userPM, adMethodList) {
-      adMethodList = adMethodList.map(p => p.payment_type)
-      return adMethodList.includes(userPM)
-    },
-    matchPaymentMethod () {
-      console.log(this.paymentMethods)
-
-      const adMethod = this.adData.payment_methods
-      console.log(adMethod)
-
-      const matched = adMethod.map(p => p.payment_type)
-      console.log(matched)
     }
   }
 }
