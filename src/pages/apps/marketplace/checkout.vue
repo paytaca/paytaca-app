@@ -1088,6 +1088,11 @@ function findRiders() {
 
   const listParams = Object.assign({
     availability: getISOWithTimezone(new Date()),
+    distance: btoa(JSON.stringify({
+      lat: checkoutStorefront.value?.location?.latitude,
+      lon: checkoutStorefront.value?.location?.longitude,
+      radius: 5000,
+    }))
   }, searchParams) 
   return Promise.all([
     backend.post('connecta-express/riders/search/', data, { params: searchParams }),
