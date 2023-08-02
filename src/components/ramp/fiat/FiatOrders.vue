@@ -133,6 +133,18 @@ export default {
       pageNumber: null
     }
   },
+  watch: {
+    statusType (value) {
+      console.log('statusType:', value)
+      const vm = this
+      vm.resetAndScrollToTop()
+      vm.updatePaginationValues()
+      if (vm.pageNumber === null || vm.totalPages === null) {
+        vm.loading = true
+        this.fetchOrders()
+      }
+    }
+  },
   computed: {
     listings () {
       const vm = this
@@ -239,6 +251,18 @@ export default {
       const vm = this
       vm.totalPages = vm.$store.getters['ramp/getOrdersTotalPages'](vm.statusType)
       vm.pageNumber = vm.$store.getters['ramp/getOrdersPageNumber'](vm.statusType)
+    },
+    resetAndScrollToTop () {
+      if (this.$refs.infiniteScroll) {
+        this.$refs.infiniteScroll.reset()
+      }
+      this.scrollToTop()
+    },
+    scrollToTop () {
+      if (this.$refs.scrollTargetRef) {
+        const scrollElement = this.$refs.scrollTargetRef.$el
+        scrollElement.scrollTop = 0
+      }
     },
     selectOrder (data) {
       // console.log(data)
