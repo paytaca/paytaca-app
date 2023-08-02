@@ -182,7 +182,7 @@
   <q-dialog persistent v-model="confirmRemovePaymentMethod">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section class="xm-font-size q-mx-lg">
-        <div class="subtext bold-text text-center">Remove this Payment Method?</div>
+        <div class="text-center">Remove this Payment Method?</div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
@@ -236,7 +236,7 @@
             @update:model-value="checkName()"
           >
             <template v-slot:append>
-              <q-icon size="xs" name="close"/>&nbsp;
+              <q-icon size="xs" name="close" @click="nickname = ''"/>&nbsp;
             </template>
           </q-input>
         </div>
@@ -427,8 +427,10 @@ export default {
   },
   async mounted () {
     const vm = this
+
+    await vm.fetchPaymentTypes()
+
     vm.checkDialogType()
-    vm.fetchPaymentTypes()
     if (vm.addPaymentMethod) {
       vm.selectedPaymentMethods = vm.currentPaymentMethods.map((element) => {
         element.selected = false
@@ -506,6 +508,7 @@ export default {
       vm.dialogType = vm.type
       switch (vm.dialogType) {
         case 'createPaymentMethod':
+          vm.filterPaymentTypes()
           vm.createPaymentMethod = true
           break
         case 'addPaymentMethod':
@@ -513,7 +516,7 @@ export default {
           break
         case 'editPaymentMethod':
           this.paymentMethod = this.data
-          vm.editPaymentMethod = true
+          vm.createPaymentMethod = true
           break
         case 'confirmPaymentMethod':
           vm.confirmPaymentMethod = true
@@ -527,6 +530,7 @@ export default {
           vm.confirmRemovePaymentMethod = true
           break
         case 'editNickname':
+          vm.nickname = vm.$store.getters['ramp/getUser'].nickname
           vm.editNickname = true
           break
         case 'viewProfile':
@@ -588,12 +592,17 @@ export default {
         this.isNameValid = true
       }
     }, 500),
-    switchDialog (type) {
-      // switching from one dialog to another
+    filterPaymentTypes () {
+      const currentMethods = this.data.map(p => p.name)
+      const match = this.paymentTypes.filter(function (method) {
+        return !currentMethods.includes(method.name)
+      })
+
+      this.paymentTypes = match
     },
-    fetchPaymentTypes () {
+    async fetchPaymentTypes () {
       const vm = this
-      vm.$axios.get(vm.apiURL + '/payment-type')
+      await vm.$axios.get(vm.apiURL + '/payment-type')
         .then(response => {
           vm.paymentTypes = response.data
         })
