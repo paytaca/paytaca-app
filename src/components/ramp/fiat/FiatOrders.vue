@@ -340,7 +340,7 @@ export default {
     returnOrderList () {
       this.loading = true
 
-      this.fetchUserOrders()
+      // this.fetchUserOrders()
       this.state = 'order-list'
 
       this.loading = false

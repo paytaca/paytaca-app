@@ -331,7 +331,7 @@
   <q-dialog persistent v-model="confirmCancelOrder">
     <q-card style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
-        <div class="text-h6 text-center">Cancel Trade?</div>
+        <div class="text-h6 text-center">Cancel this order?</div>
       </q-card-section>
 
       <q-card-actions class="q-pt-lg text-center" align="center">
@@ -455,7 +455,6 @@ export default {
     submitUpdatedPaymentMethods () {
       this.$emit('back', this.selectedPaymentMethods)
     },
-    
     async fetchPaymentMethod () {
       const vm = this
       vm.loading = true
@@ -569,6 +568,9 @@ export default {
         case 'confirmRemovePaymentMethod':
           vm.info = vm.data
           return 'submit'
+        case 'confirmCancelOrder':
+          vm.info = vm.data
+          return 'submit'
         default:
           vm.info = vm.selectedPaymentMethods
           return 'submit'
@@ -577,6 +579,8 @@ export default {
     submitData () {
       const vm = this
       const emitName = vm.stageData()
+      console.log('emitName:', emitName)
+      console.log('vm.info:', vm.info)
       this.$emit(emitName, vm.info)
       // this.$emit('back', vm.info)
     },

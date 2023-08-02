@@ -70,7 +70,7 @@
               label='Cancel'
               class="q-space text-white"
               style="background-color: #ed5f59;"
-              @click="cancelOrderConfirmation()"
+              @click="onCancelOrder()"
             />
           </div>
         </div>
@@ -94,7 +94,7 @@
                 label='Cancel'
                 class="q-space text-white full-width"
                 style="background-color: #ed5f59;"
-                @click="cancelOrderConfirmation()"
+                @click="onCancelOrder()"
               />
             </div>
             <div class="col">
@@ -418,7 +418,7 @@
     <MiscDialogs
       :type="dialogType"
       v-on:back="openDialog = false"
-      v-on:submit="cancelingOrder()"
+      v-on:submit="handleDialogResponse()"
     />
   </div>
 
@@ -457,6 +457,19 @@ import { sign } from 'openpgp'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
+  setup () {
+    return {
+      step: ref(1)
+    }
+  },
+  components: {
+    ProgressLoader,
+    MiscDialogs
+  },
+  emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
+  props: {
+    orderData: Object
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -477,14 +490,6 @@ export default {
       ratingModel: 0,
       comment: ''
     }
-  },
-  props: {
-    orderData: Object
-  },
-  emits: ['back', 'hideSeller', 'pendingRelease', 'released'],
-  components: {
-    ProgressLoader,
-    MiscDialogs
   },
   computed: {
     getFiatAmount () {
@@ -519,6 +524,21 @@ export default {
         return false
       }
     }
+  },
+  async mounted () {
+    const vm = this
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    this.wallet = await loadP2PWalletInfo(walletInfo)
+
+    await this.fetchOrderData()
+    await this.fetchAdData()
+    await this.checkStep()
+
+    vm.isloaded = true
+  },
+  beforeUnmount () {
+    clearInterval(this.timer)
+    this.timer = null
   },
   methods: {
     // CHECK WHICH STEP ORDER IN // check this first
@@ -598,6 +618,16 @@ export default {
           console.log(error)
         })
     },
+    async handleDialogResponse () {
+      const vm = this
+      console.log('dialogType:', vm.dialogType)
+      switch (vm.dialogType) {
+        case 'confirmCancelOrder':
+          await vm.cancelOrder()
+          this.$emit('back')
+          break
+      }
+    },
     // updated this
     paymentCountdown () {
       const vm = this
@@ -632,48 +662,39 @@ export default {
       // this.$emit('hideSeller')
       this.$refs.stepper.next()
     },
-    cancelOrderConfirmation () {
+    onCancelOrder () {
       const vm = this
       vm.dialogType = 'confirmCancelOrder'
       vm.openDialog = true
-
-      console.log('order', vm.order.id)
+      console.log('Cancelling order?', vm.order.id)
     },
     async cancelOrder () {
-      console.log('cancelling order')
       const vm = this
-
+      if (vm.confirmed) {
+        clearInterval(vm.timer)
+        vm.timer = null
+      }
       const url = this.apiURL + '/order/' + vm.order.id + '/cancel'
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
-
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CANCEL', timestamp)
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
         timestamp: timestamp
       }
-
-      await vm.$axios.post(url, {}, {
-        headers: headers
-      })
-        .then(response => {
-          console.log(response.data)
-        })
-        .catch(error => {
-          console.log(error)
-        })
-    },
-    cancelingOrder () {
-      if (this.confirmed) {
-        clearInterval(this.timer)
-        this.timer = null
+      try {
+        const response = await vm.$axios.post(url, {}, { headers: headers })
+        console.log(response.data)
+      } catch (error) {
+        console.log(error.response)
       }
-      this.cancelOrder()
-      // if (this.order.status === 'Released' || this.order.status === 'Release Pending') {
-      //   this.$emit('pendingRelease')
-      // }
-      this.$emit('back')
     },
+    // cancelingOrder () {
+    //   this.cancelOrder()
+    //   // if (this.order.status === 'Released' || this.order.status === 'Release Pending') {
+    //   //   this.$emit('pendingRelease')
+    //   // }
+    // },
     async sendConfirmPayment () {
       const vm = this
 
@@ -709,26 +730,6 @@ export default {
       // this.$emit('pendingRelease')
       this.isloaded = true
     }
-  },
-  setup () {
-    return {
-      step: ref(1)
-    }
-  },
-  async mounted () {
-    const vm = this
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo)
-
-    await this.fetchOrderData()
-    await this.fetchAdData()
-    await this.checkStep()
-
-    vm.isloaded = true
-  },
-  beforeUnmount () {
-    clearInterval(this.timer)
-    this.timer = null
   }
 }
 </script>
