@@ -112,6 +112,7 @@
     <FiatOrderForm
       :ad-id="selectedListing.id"
       v-on:back="state = 'SELECT'"
+      @order-canceled="onOrderCanceled"
     />
     <!-- <FiatStoreForm
       v-on:back="state = 'SELECT'"
@@ -149,6 +150,7 @@ export default {
       scrollTargetRef
     }
   },
+  emits: ['orderCanceled'],
   components: {
     FiatStoreForm,
     FiatOrderForm,
@@ -306,6 +308,9 @@ export default {
       } else {
         return formatCurrency(value)
       }
+    },
+    onOrderCanceled () {
+      this.$emit('orderCanceled')
     },
     selectCurrency (index) {
       this.selectedCurrency = this.fiatCurrencies[index]

@@ -123,6 +123,12 @@ export default {
       infiniteScroll
     }
   },
+  props: {
+    initStatusType: {
+      type: String,
+      default: 'ONGOING'
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -130,7 +136,7 @@ export default {
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       wallet: null,
       selectedOrder: null,
-      statusType: 'ONGOING',
+      statusType: this.initStatusType,
       state: 'order-list',
       transactionType: '',
       // listings: [],
@@ -176,6 +182,11 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
+    console.log('initStatusType:', vm.initStatusType)
+    console.log('statusType:', vm.statusType)
+    // if (vm.initStatusType) {
+    //   vm.statusType = vm.initStatusType
+    // }
     vm.updatePaginationValues()
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)

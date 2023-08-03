@@ -23,8 +23,14 @@
     </div>
     <div v-else>
         <div v-if="proceed">
-          <FiatStore v-if="menu === 'store'"/>
-          <FiatOrders v-if="menu === 'orders'"/>
+          <FiatStore
+            v-if="menu === 'store'"
+            @order-canceled="onOrderCanceled"
+          />
+          <FiatOrders
+            v-if="menu === 'orders'"
+            :init-status-type="initStatusType"
+          />
           <FiatAds v-if="menu === 'ads'"/>
           <FiatProfileCard
             v-if="menu === 'profile'"
@@ -66,7 +72,8 @@ export default {
       wallet: null,
       user: null,
       proceed: false,
-      createUser: false
+      createUser: false,
+      initStatusType: 'ONGOING'
     }
   },
   components: {
@@ -92,6 +99,7 @@ export default {
     menu (val) {
       // console.log('pageName:', 'ramp-fiat-' + val)
       this.$router.push({ name: 'ramp-fiat-' + val })
+      this.initStatusType = 'ONGOING'
     }
   },
   methods: {
@@ -109,6 +117,10 @@ export default {
       const wallet = await loadP2PWalletInfo(walletInfo)
       await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: wallet })
       this.proceed = true
+    },
+    onOrderCanceled () {
+      this.menu = 'orders'
+      this.initStatusType = 'COMPLETED'
     }
   }
 }

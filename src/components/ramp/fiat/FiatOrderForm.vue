@@ -40,7 +40,7 @@
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Payment Time Limit</span>
-              <span class="text-nowrap q-ml-xs">{{ ptlFormat }}</span>
+              <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
             </div>
           </div>
 
@@ -107,6 +107,7 @@
       <FiatStoreBuyProcess
         :order-data="order"
         @back="onBack"
+        @canceled="onOrderCanceled"
       />
     </div>
    </q-card>
@@ -116,7 +117,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
@@ -140,18 +141,10 @@ export default {
     AddPaymentMethods,
     FiatStoreBuyProcess
   },
-  emits: ['back'],
+  emits: ['back', 'orderCanceled'],
   computed: {
-    ptlFormat () {
-      const ptl = {
-        15: '15 min',
-        30: '30 min',
-        60: '1 hour',
-        300: '5 hours',
-        720: '12 hours',
-        1440: '24 hours'
-      }
-      return ptl[this.ad.time_duration]
+    paymentTimeLimit () {
+      return getPaymentTimeLimit(this.ad.time_duration)
     },
     cryptoAmount () {
       return (this.fiatAmount / this.ad.price).toFixed(8)
@@ -219,6 +212,9 @@ export default {
     },
     onBack () {
       this.$emit('back')
+    },
+    onOrderCanceled () {
+      this.$emit('orderCanceled')
     },
     // async createOrder () {
     //   const vm = this

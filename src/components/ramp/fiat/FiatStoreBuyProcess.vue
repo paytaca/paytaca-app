@@ -676,6 +676,10 @@ export default {
     },
     async cancelOrder () {
       const vm = this
+      if (!vm.wallet) {
+        const walletInfo = vm.$store.getters['global/getWallet']('bch')
+        vm.wallet = await loadP2PWalletInfo(walletInfo)
+      }
       if (vm.confirmed) {
         clearInterval(vm.timer)
         vm.timer = null
