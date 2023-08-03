@@ -50,13 +50,15 @@
                               class="col-transaction text-uppercase lg-font-size"
                               style="font-size: 20px;"
                               :style="amountColor(listing.trade_type)">
-                              {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount)) }}
+                              {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
                             </div>
                             <div class="sm-font-size">
                               <!-- &asymp; -->
                               <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
                               {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                            <div class="xs-font-size"> {{ formattedCurrency(listing.locked_price) }}/BCH</div>
+                            <div class="xs-font-size">
+                              <span class="q-pr-sm">Price</span> {{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}
+                            </div>
                             <div class="row xs-font-size" style="color: grey">{{ formattedDate(listing.created_at) }}</div>
                           </div>
                           <div class="text-right">
@@ -195,6 +197,7 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
+      console.log('headers:', headers)
       const params = { state: vm.statusType }
       try {
         await vm.$store.dispatch('ramp/fetchOrders', { orderState: vm.statusType, params: params, headers: headers })
@@ -326,9 +329,8 @@ export default {
     formattedDate (value) {
       return formatDate(value)
     },
-    formattedCurrency (value, fiat = true) {
-      if (fiat) {
-        const currency = this.selectedCurrency.symbol
+    formattedCurrency (value, currency = null) {
+      if (currency) {
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)

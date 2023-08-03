@@ -496,7 +496,11 @@ export default {
       vm.setupWebsocket()
     },
     formattedCurrency (value) {
-      return formatCurrency(value, this.adData.fiatCurrency.symbol)
+      const currency = this.adData.fiatCurrency
+      if (currency) {
+        return formatCurrency(value, currency.symbol)
+      }
+      return formatCurrency(value)
     },
     transformPostData () {
       // finalize ad data
