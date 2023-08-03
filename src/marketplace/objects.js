@@ -685,6 +685,15 @@ export class Order {
     return this.total - totalPayments
   }
 
+  get totalPaymentsSent() {
+    return (parseFloat(this.totalPaid) || 0) + (parseFloat(this.totalPendingPayment) || 0)
+  }
+
+  get change() {
+    const change = Math.max((parseFloat(this.totalPaid) || 0) - this.total, 0)
+    return Math.round(change * 10 ** 3) / 10 ** 3
+  }
+
   get paymentStatus() {
     if (this.totalPaid >= this.total) return 'paid'
     if (this.totalPaid > 0) return 'partially_paid'

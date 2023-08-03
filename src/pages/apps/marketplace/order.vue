@@ -198,6 +198,15 @@
               Amount sent by customer but not yet received
             </q-menu>
           </div>
+          <div
+            v-if="orderAmounts.change.currency"
+            class="row items-start text-h6"
+            @click.stop
+          >
+            <div class="q-space">Change</div>
+            <div v-if="displayBch">{{ orderAmounts.change.bch }} BCH</div>
+            <div v-else>{{ orderAmounts.change.currency }} {{ orderCurrency }}</div>
+          </div>
         </template>
       </div>
     </div>
@@ -285,6 +294,7 @@ const orderAmounts = computed(() => {
     total: { currency: 0, bch: 0 },
     totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
     totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
+    change: { currency: parseFloat(order.value.change), bch: 0}
   }
   data.total.currency = Number(data.subtotal.currency) + Number(data.deliveryFee.currency)
   data.total.currency = Math.round(data.total.currency * 10 ** 3) / 10 ** 3
@@ -295,12 +305,14 @@ const orderAmounts = computed(() => {
     data.total.bch = parseBch(data.total.currency / orderBchPrice.value)
     data.totalPaid.bch = parseBch(data.totalPaid.currency / orderBchPrice.value)
     data.totalPendingPayment.bch = parseBch(data.totalPendingPayment.currency / orderBchPrice.value)
+    data.change.bch = parseBch(data.change.currency / orderBchPrice.value)
   } else {
     data.subtotal.bch = null
     data.deliveryFee.bch = null
     data.total.bch = null
     data.totalPaid.bch = null
     data.totalPendingPayment.bch = null
+    data.change.bch = null
   }
 
   return data
