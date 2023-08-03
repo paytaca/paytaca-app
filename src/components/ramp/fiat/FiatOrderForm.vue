@@ -182,18 +182,29 @@ export default {
     },
     async createOrder () {
       const vm = this
-
+      const tradeType = vm.ad.trade_type
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
 
-      await vm.$axios.post(vm.apiURL + '/order/', {},
-        {
-          headers: {
-            'wallet-hash': vm.wallet.walltHash,
-            signature: signature,
-            timestamp: timestamp
-          }
-        })
+      let info = {
+        ad: vm.ad.id,
+        crypto_amount: vm.cryptoAmount,
+        locked_price: 0
+      }
+
+      await vm.$axios.post(vm.apiURL + '/order/', {
+        ad: vm.ad.id,
+        crypto_amount: vm.cryptoAmount,
+        locked_price: 0,
+        arbiter: 1,
+        payment_methods:0
+      }, {
+        headers: {
+          'wallet-hash': vm.wallet.walltHash,
+          signature: signature,
+          timestamp: timestamp
+        }
+      })
     },
     // async createOrder () {
     //   const vm = this
@@ -232,11 +243,9 @@ export default {
     },
     submit () {
       switch (this.ad.trade_type) {
-        case 'SELL':
-          console.log('create buy order')
+        case 'SELL': // check later
           break
         case 'BUY':
-          console.log('create sell order')
           this.state = 'add-payment-method'
           break
       }
@@ -244,7 +253,6 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('creating order', this.adId)
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
 

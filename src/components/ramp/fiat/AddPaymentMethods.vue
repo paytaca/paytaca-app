@@ -9,7 +9,7 @@
     />
   </div>
   <div class="q-mx-lg" v-if="isloaded">
-    <div v-if="adPaymentMethod">
+    <!-- <div v-if="adPaymentMethod">
       <div class="q-mx-sm q-mb-sm text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
         SELLER PAYMENT METHOD
       </div>
@@ -19,13 +19,13 @@
           {{ method.payment_type }}
         </q-badge>
       </div>
-    </div>
+    </div> -->
     <div class="q-mx-sm q-mb-sm text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       PAYMENT METHODS
     </div>
     <div class="subtext q-pt-xs q-pl-lg"><i>Add up to 5 methods</i></div>
     <div>
-      <div v-if="paymentMethods.length === 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
         <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
         <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">No Payment Method Added</p>
       </div>
@@ -70,6 +70,36 @@
               </q-item>
             </template>
           </q-virtual-scroll>
+          <div v-if="type === 'General' && emptyPaymentMethods.length !== 0">
+            <q-virtual-scroll :items="emptyPaymentMethods">
+            <template v-slot="{ item: method, index }">
+              <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                <q-item-section>
+                  <div class="row">
+                    <div class="col">
+                      <div class="text-h5" style="font-size: 15px;">
+                        {{ method }}
+                      </div>
+                      <div class="subtext bold-text">
+                        <div class="row q-pt-sm">
+                          <q-btn
+                            outline
+                            rounded
+                            no-caps
+                            icon="add"
+                            class="q-space text-white"
+                            color="blue-6"
+                            @click="addMethodFromAd(method)"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-virtual-scroll>
+          </div>
         </q-card-section>
       </div>
     </div>
@@ -99,7 +129,7 @@
       />
     </div>
     <div>
-      <div class="row q-pt-lg q-mx-sm" v-if="type === 'Profile'">
+      <div class="row q-mx-sm" v-if="type === 'Profile'">
         <q-btn
           v-if="paymentMethods.length - paymentTypes.length !== 0"
           outline
@@ -162,6 +192,7 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       paymentMethods: [],
       paymentTypes: [],
+      emptyPaymentMethods: [],
       openDialog: false,
       dialogType: 'addPaymentMethod',
       info: {},
@@ -185,8 +216,8 @@ export default {
 
     switch (vm.type) {
       case 'General':
-        console.log('General')
         await vm.fetchPaymentMethod()
+        await vm.fetchPaymentTypes()
         break
       case 'Ads':
         vm.paymentMethods = this.currentPaymentMethods
@@ -212,11 +243,10 @@ export default {
       // console.log('receiveDialogInfo:', data)
       // console.log('dialogType:', vm.dialogType)
       switch (vm.dialogType) {
+        case 'addMethodFromAd':
+        case 'editPaymentMethod':
         case 'createPaymentMethod':
         case 'addPaymentMethod':
-          vm.updatePayment(data)
-          break
-        case 'editPaymentMethod':
           vm.updatePayment(data)
           break
         case 'confirmDeletePaymentMethod':
@@ -240,6 +270,13 @@ export default {
     createMethod () {
       this.info = this.paymentMethods.map(p => p.payment_type)
       this.dialogType = 'createPaymentMethod'
+      this.openDialog = true
+    },
+    addMethodFromAd (data) {
+      const selectedType = this.paymentTypes.filter(p => p.name === data)[0]
+      this.info = selectedType
+
+      this.dialogType = 'addMethodFromAd'
       this.openDialog = true
     },
     addMethod () {
@@ -271,10 +308,9 @@ export default {
       this.openDialog = false
     },
     filterPaymentMethod () {
-      // console.log(this.paymentMethods)
-
       const adMethod = this.adPaymentMethod
       let adPaymentTypes = []
+
       try {
         adPaymentTypes = adMethod.map(p => p.payment_type)
       } catch {
@@ -284,7 +320,10 @@ export default {
       const match = this.paymentMethods.filter(function (method) {
         return adPaymentTypes.includes(method.payment_type.name)
       })
-      console.log('matched:', match)
+
+      const temp = match.map(p => p.payment_type.name)
+      this.emptyPaymentMethods = adPaymentTypes.filter(method => !temp.includes(method))
+
       return match
     },
     async fetchPaymentTypes () {
@@ -292,7 +331,6 @@ export default {
       await vm.$axios.get(vm.apiURL + '/payment-type')
         .then(response => {
           vm.paymentTypes = response.data
-          console.log(response.data)
         })
         .catch(error => {
           console.error(error)
@@ -315,21 +353,15 @@ export default {
         }
       })
         .then(response => {
-          // console.log(response.data)
           this.paymentMethods = response.data
 
           if (vm.adPaymentMethod) {
             this.paymentMethods = vm.filterPaymentMethod()
-            // console.log('diff', vm.response.data.length - this.paymentMethods.length)
           }
         })
         .catch(error => {
           console.log(error)
         })
-
-
-      // console.log('types', this.paymentTypes.length)
-      // console.log(this.paymentMethods.length)
     },
     async deletePaymentMethod (index) {
       const vm = this
@@ -352,6 +384,7 @@ export default {
         })
 
       await vm.fetchPaymentMethod()
+      this.openDialog = false
       vm.isloaded = true
     },
     async savePaymentMethod (info) {
@@ -361,6 +394,7 @@ export default {
       let signature = ''
 
       switch (vm.dialogType) {
+        case 'addMethodFromAd':
         case 'createPaymentMethod':
         case 'addPaymentMethod':
           // posting new payment method
@@ -382,7 +416,6 @@ export default {
               if (vm.paymentMethods.length < 5) {
                 vm.paymentMethods.push(response.data)
               }
-              // console.log('paymentMethods:', vm.paymentMethods)
               vm.openDialog = false
             })
             .catch(error => {
@@ -408,6 +441,10 @@ export default {
             }
           })
           break
+      }
+
+      if (this.dialogType === 'addMethodFromAd') {
+        this.fetchPaymentMethod()
       }
     },
     submitPaymentMethod () {
