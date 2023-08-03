@@ -34,16 +34,16 @@
           Order Created
         </div>
         <div class="q-pt-md sm-font-size">
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
-            <span>Crypto Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ order.crypto_amount }} BCH</span>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+            <span>Crypto Amount</span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(order.crypto_amount) }}</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row subtext justify-between no-wrap q-mx-lg">
-            <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} {{ order.fiat_currency.symbol }}</span>
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+            <span>Fiat Amount</span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(fiatAmount, order.fiat_currency.symbol) }} </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-            <span>Status:</span>
+            <span>Status</span>
             <span class="text-nowrap q-ml-xs" :class="order.status.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status }}</span>
           </div>
         </div>
@@ -51,18 +51,18 @@
 
         <!-- Pending Confirmation -->
         <div class="q-mt-md q-px-md" v-if="!confirmed">
-          <div>
-            <q-icon size="sm" name="info" color="blue-6"/>
-            <span class="q-pl-xs">
-              Wait for the seller to confirm your order.
+          <div class="row">
+            <q-icon class="col-auto q-pr-sm" size="sm" name="info" color="blue-6"/>
+            <span class="col">
+              Please wait for the seller to confirm your order.
             </span>
           </div>
-          <div class="q-pt-xs">
+          <!-- <div class="q-pt-xs">
             <q-icon size="sm" name="info" color="blue-6"/>
             <span class="q-pl-xs">
               The crypto asset will be escrowed once the seller confirms your order. You will be notified of this event.
             </span>
-          </div>
+          </div> -->
           <div class="row q-pt-md">
             <q-btn
               rounded
@@ -148,7 +148,7 @@
             {{ countDown }}
           </div>
           <div>
-            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ getFiatAmount.toFixed(2) }} {{ order.fiat_currency.symbol }}</span> within the time limit...
+            Please pay  <span class="text-blue-6 text-h5 lg-font-size">{{ fiatAmount.toFixed(2) }} {{ order.fiat_currency.symbol }}</span> within the time limit...
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-md"/>
@@ -241,7 +241,7 @@
           </div>
           <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="subtext row justify-between no-wrap q-mx-lg">
             <span>Fiat Amount:</span>
-            <span class="text-nowrap q-ml-xs">{{ getFiatAmount }} {{ order.fiat_currency.symbol }}</span>
+            <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ order.fiat_currency.symbol }}</span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
             <span>Status:</span>
@@ -450,7 +450,7 @@
 </template>
 <script>
 import { ref } from 'vue'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { sign } from 'openpgp'
@@ -492,7 +492,7 @@ export default {
     }
   },
   computed: {
-    getFiatAmount () {
+    fiatAmount () {
       return parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
     },
     checkStatus () {
@@ -625,6 +625,13 @@ export default {
           await vm.cancelOrder()
           this.$emit('canceled')
           break
+      }
+    },
+    formattedCurrency (value, currency = null) {
+      if (currency) {
+        return formatCurrency(value, currency)
+      } else {
+        return formatCurrency(value)
       }
     },
     // updated this

@@ -29,13 +29,13 @@
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Price</span>
               <span class="text-nowrap q-ml-xs">
-                {{ ad.price }} {{ ad.fiat_currency.symbol }}
+                {{ formattedCurrency(ad.price, ad.fiat_currency.symbol) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ ad.trade_floor }} {{ ad.fiat_currency.symbol }} - {{ ad.trade_ceiling }} {{ ad.fiat_currency.symbol }}
+                {{ formattedCurrency(ad.trade_floor, ad.fiat_currency.symbol) }} - {{ formattedCurrency(ad.trade_ceiling, ad.fiat_currency.symbol) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
@@ -46,8 +46,8 @@
 
           <!-- Fiat Input -->
           <div class="q-mt-md q-mx-lg">
-            <div class="xs-font-size subtext q-pb-sm q-pl-sm">Fiat Amount</div>
-            <q-input dense filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
+            <div class="xs-font-size subtext q-pb-xs q-pl-sm">Fiat Amount</div>
+            <q-input class="q-pb-xs" filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
               <template v-slot:prepend>
                 <span class="sm-font-size bold-text">{{ ad.fiat_currency.symbol }}</span>
               </template>
@@ -56,10 +56,7 @@
                 <q-btn class="xs-font-size" padding="none" flat color="primary" label="MAX" @click="fiatAmount = ad.trade_ceiling"/>
               </template>
             </q-input>
-
-            <div class="text-right bold-text subtext sm-font-size q-pr-sm">
-              ≈ {{ cryptoAmount }} BCH
-            </div>
+            <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ formattedCurrency(cryptoAmount) }} BCH</div>
 
             <div v-if="ad.trade_type === 'BUY'">
               <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
@@ -110,7 +107,7 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
@@ -169,6 +166,13 @@ export default {
         .catch(error => {
           console.log(error)
         })
+    },
+    formattedCurrency (value, currency = null) {
+      if (currency) {
+        return formatCurrency(value, currency)
+      } else {
+        return formatCurrency(value)
+      }
     },
     isValidInputAmount (value) {
       if (value === undefined) return false
