@@ -65,6 +65,17 @@
                         @click="deleteMethod(method)"
                         />
                     </div>
+                    <div class="text-right q-pt-sm"  v-if="type === 'General' && emptyPaymentMethods.length !== 0">
+                      <q-btn
+                        outline
+                        rounded
+                        padding="sm"
+                        size="sm"
+                        icon="done"
+                        color="grey-6"
+                        class="q-ml-xs"
+                        />
+                    </div>
                   </div>
                 </q-item-section>
               </q-item>
@@ -192,6 +203,7 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       paymentMethods: [],
       paymentTypes: [],
+      selectedMethods: [], // TODO
       emptyPaymentMethods: [],
       openDialog: false,
       dialogType: 'addPaymentMethod',
