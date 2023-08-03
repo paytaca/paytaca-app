@@ -28,8 +28,7 @@
         :name="1"
         title="Create Order"
         :done="step > 1"
-        prefix="1"
-      >
+        prefix="1">
         <div class="q-mx-lg text-h5 text-center lg-font-size">
           Order Created
         </div>
@@ -527,13 +526,15 @@ export default {
   },
   async mounted () {
     const vm = this
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo)
-
-    await this.fetchOrderData()
-    await this.fetchAdData()
-    await this.checkStep()
-
+    if (!vm.orderData) {
+      const walletInfo = vm.$store.getters['global/getWallet']('bch')
+      vm.wallet = await loadP2PWalletInfo(walletInfo)
+      await vm.fetchOrderData()
+      await vm.fetchAdData()
+    } else {
+      vm.order = vm.orderData
+    }
+    vm.checkStep()
     vm.isloaded = true
   },
   beforeUnmount () {

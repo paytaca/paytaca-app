@@ -101,11 +101,20 @@
         v-on:submit="recievePaymentMethods"
       />
     </div>
+
+    <!-- Buy process -->
+    <div v-if="state === 'buy-process'">
+      <FiatStoreBuyProcess
+        :order-data="order"
+        @back="onBack"
+      />
+    </div>
    </q-card>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
+import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -115,13 +124,12 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-
       wallet: null,
       ad: null,
       isloaded: false,
       state: 'initial',
-
-      fiatAmount: 0
+      fiatAmount: 0,
+      order: null
     }
   },
   props: {
@@ -129,7 +137,8 @@ export default {
   },
   components: {
     ProgressLoader,
-    AddPaymentMethods
+    AddPaymentMethods,
+    FiatStoreBuyProcess
   },
   emits: ['back'],
   computed: {
@@ -186,18 +195,30 @@ export default {
     },
     async createOrder () {
       const vm = this
-
+      // console.log('ad:', vm.ad)
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
-
-      await vm.$axios.post(vm.apiURL + '/order/', {},
-        {
-          headers: {
-            'wallet-hash': vm.wallet.walltHash,
-            signature: signature,
-            timestamp: timestamp
-          }
-        })
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const body = {
+        ad: vm.ad.id,
+        crypto_amount: vm.cryptoAmount
+      }
+      // console.log('headers:', headers)
+      // console.log('body:', body)
+      try {
+        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
+        vm.order = response.data.order
+        vm.state = 'buy-process'
+      } catch (error) {
+        console.error(error.response)
+      }
+    },
+    onBack () {
+      this.$emit('back')
     },
     // async createOrder () {
     //   const vm = this
@@ -235,13 +256,15 @@ export default {
       console.log(item)
     },
     submit () {
-      switch (this.ad.trade_type) {
+      const vm = this
+      switch (vm.ad.trade_type) {
         case 'SELL':
           console.log('create buy order')
+          vm.createOrder()
           break
         case 'BUY':
           console.log('create sell order')
-          this.state = 'add-payment-method'
+          vm.state = 'add-payment-method'
           break
       }
     }
