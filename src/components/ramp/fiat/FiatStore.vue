@@ -162,7 +162,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       viewProfile: false,
-      wallet: null,
       transactionType: 'SELL',
       loading: true,
       peerProfile: null,
@@ -220,9 +219,6 @@ export default {
     // console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
     vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
 
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-
     await vm.fetchFiatCurrencies()
     await vm.fetchStoreListings()
   },
@@ -254,10 +250,12 @@ export default {
           currency: vm.selectedCurrency.symbol,
           trade_type: vm.transactionType
         }
+        const walletInfo = vm.$store.getters['global/getWallet']('bch')
+        const wallet = await loadP2PWalletInfo(walletInfo)
         const timestamp = Date.now()
-        const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+        const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
         const headers = {
-          'wallet-hash': vm.wallet.walletHash,
+          'wallet-hash': wallet.walletHash,
           signature: signature,
           timestamp: timestamp
         }

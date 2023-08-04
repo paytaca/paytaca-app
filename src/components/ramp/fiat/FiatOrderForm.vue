@@ -164,7 +164,7 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     },
     isOwner () {
-      return this.ad.owner === this.$store.getters['ramp/getUser'].nickname
+      return this.ad.is_owned
     }
   },
   async mounted () {
@@ -189,6 +189,7 @@ export default {
       try {
         const response = await vm.$axios.get(url, { headers: headers })
         vm.ad = response.data
+        console.log('ad:', vm.ad)
         // set the minimum trade amount in form
         this.fiatAmount = this.ad.trade_floor // remove later
       } catch (error) {
