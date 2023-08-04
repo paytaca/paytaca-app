@@ -99,8 +99,10 @@ export async function saveExistingWallet (context) {
   
   // check if vault keys are valid
   if (vault.length > 0) {
-    if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
-      context.commit('clearVault')
+    if (vault[0]) {
+      if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+        context.commit('clearVault')
+      }
     }
   }
 
@@ -140,4 +142,13 @@ export async function switchWallet (context, index) {
   context.commit('updateWalletSnapshot', info)
   context.commit('updateWalletIndex', index)
   context.commit('updateCurrentWallet', index)
+}
+
+export async function deleteWallet (context, index) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      context.commit('deleteWallet', index)
+      resolve()
+    }, 1000)
+  })
 }

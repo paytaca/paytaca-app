@@ -78,14 +78,19 @@ export default {
       let count = 1
 
       const tempVault = vm.$store.getters['global/getVault']
+      console.log("CURRENT INDEX:", this.currentIndex)
 
       for (const item in tempVault) {
         const wallet = tempVault[item]
-        if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
-          const name = 'Personal Wallet #' + count
-          vm.$store.commit('global/updateWalletName', { index: item, name: name })
+        console.log('WALLET:', wallet)
+        if (wallet) {  
+          console.log('PASOK')
+          if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
+            const name = 'Personal Wallet #' + count
+            vm.$store.commit('global/updateWalletName', { index: item, name: name })
+          }
+          count++
         }
-        count++
       }
     },
     switchWallet (index) {
@@ -98,7 +103,8 @@ export default {
 
         this.$store.dispatch('global/switchWallet', index)
 
-        location.reload()
+        this.$router.push('/')
+        setTimeout(() => { location.reload() }, 500)
       }
       this.hide()
     },
@@ -151,7 +157,8 @@ export default {
       // console.log(tempVault)
 
       // tempVault.unshift(tempVault.splice(vm.currentIndex, 1)[0])
-      vm.vault = tempVault
+      vm.vault = tempVault.filter((wallet) => { if (Object.keys(wallet).length > 0) { return wallet }})
+      console.log('VAULT:', vm.vault)
     },
     getAssetData (index) {
       if (this.currentIndex === index) {
