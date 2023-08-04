@@ -43,8 +43,9 @@ export function formatCurrency (value, currency) {
   return formattedNumber
 }
 
-export function formatDate (value) {
-  const datetime = new Date(value)
+export function formatDate (date, relative = false) {
+  const datetime = new Date(date)
+  let dateString = null
   const options = {
     year: 'numeric',
     month: 'long',
@@ -53,9 +54,48 @@ export function formatDate (value) {
     minute: 'numeric',
     second: 'numeric'
   }
-  let dateString = datetime.toLocaleString(undefined, options)
-  dateString = dateString.replace(' at', '')
+  if (relative) {
+    dateString = formatRelativeDate(datetime)
+  } else {
+    dateString = datetime.toLocaleString(undefined, options)
+    dateString = dateString.replace(' at', '')
+  }
+
   return dateString
+}
+
+export function formatRelativeDate (date) {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  let dateString = ''
+
+  if (date >= today) {
+    dateString = 'Today'
+  } else if (date >= yesterday) {
+    dateString = 'Yesterday'
+  } else {
+    const elapsedMs = now - date
+    const elapsedSeconds = Math.round(elapsedMs / 1000)
+    const elapsedMinutes = Math.round(elapsedSeconds / 60)
+    const elapsedHours = Math.round(elapsedMinutes / 60)
+    const elapsedDays = Math.round(elapsedHours / 24)
+
+    if (elapsedDays < 7) {
+      dateString = `${elapsedDays} days ago`
+    } else if (elapsedDays < 30) {
+      const elapsedWeeks = Math.round(elapsedDays / 7)
+      dateString = `${elapsedWeeks} weeks ago`
+    } else if (elapsedDays < 365) {
+      const elapsedMonths = Math.round(elapsedDays / 30)
+      dateString = `${elapsedMonths} months ago`
+    } else {
+      const elapsedYears = Math.round(elapsedDays / 365)
+      dateString = `${elapsedYears} years ago`
+    }
+  }
+  return dateString.toLocaleLowerCase()
 }
 
 export function getPaymentTimeLimit (timeValue) {

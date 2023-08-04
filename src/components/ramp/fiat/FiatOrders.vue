@@ -59,7 +59,7 @@
                             <div class="xs-font-size">
                               <span class="q-pr-sm">Price</span> {{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}
                             </div>
-                            <div class="row xs-font-size" style="color: grey">{{ formattedDate(listing.created_at) }}</div>
+                            <div class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div>
                           </div>
                           <div class="text-right">
                             <span class="row subtext" v-if="isCompleted(listing.status) == false && listing.expiration_date != null">
@@ -338,7 +338,8 @@ export default {
       return false
     },
     formattedDate (value) {
-      return formatDate(value)
+      const relative = true
+      return formatDate(value, relative)
     },
     formattedCurrency (value, currency = null) {
       if (currency) {
