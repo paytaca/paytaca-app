@@ -14,7 +14,7 @@
           </span>
           <div class="text-center q-pt-sm">
             <q-select
-              :disable="dialogType === 'addMethodFromAd'"
+              :disable="dialogType === 'addMethodFromAd' || dialogType === 'editPaymentMethod'"
               dense
               filled
               :dark="darkMode"

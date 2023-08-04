@@ -9,17 +9,6 @@
     />
   </div>
   <div class="q-mx-lg" v-if="isloaded">
-    <!-- <div v-if="adPaymentMethod">
-      <div class="q-mx-sm q-mb-sm text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-        SELLER PAYMENT METHOD
-      </div>
-      <div class="q-gutter-sm q-py-sm text-center">
-        <q-badge v-for="method in adPaymentMethod" :key="method.id"
-          rounded outline color="blue">
-          {{ method.payment_type }}
-        </q-badge>
-      </div>
-    </div> -->
     <div class="q-mx-sm q-mb-sm text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       PAYMENT METHODS
     </div>
@@ -72,8 +61,9 @@
                         padding="sm"
                         size="sm"
                         icon="done"
-                        color="grey-6"
+                        :color="selectButtonColor(method.payment_type.name)"
                         class="q-ml-xs"
+                        @click="selectMethod(method.payment_type)"
                         />
                     </div>
                   </div>
@@ -100,7 +90,7 @@
                             icon="add"
                             class="q-space text-white"
                             color="blue-6"
-                            @click="addMethodFromAd(method)"
+                            @click="addMethodFromAd(method, index)"
                           />
                         </div>
                       </div>
@@ -130,13 +120,13 @@
     </div>
     <div class="row q-pt-lg q-mx-sm" v-if="type !== 'Profile'">
       <q-btn
-        :disable="paymentMethods.length === 0"
+        :disable="disableSubmit"
         rounded
         no-caps
         :label="confirmLabel"
         class="q-space text-white"
         color="blue-6"
-        @click="submitPaymentMethod"
+        @click="submitPaymentMethod()"
       />
     </div>
     <div>
@@ -242,6 +232,18 @@ export default {
 
     this.isloaded = true
   },
+  computed: {
+    disableSubmit () {
+      let isDisabled = false
+      if (this.paymentMethods.length === 0) {
+        isDisabled = true
+      }
+      if (this.selectedMethods.length === 0 && this.type === 'General') {
+        isDisabled = true
+      }
+      return isDisabled
+    }
+  },
   methods: {
     onBack (data) {
       // console.log('onBack:', data)
@@ -268,7 +270,13 @@ export default {
           vm.removePaymentMethod(data)
           break
         case 'confirmPaymentMethod':
-          vm.$emit('submit', vm.paymentMethods)
+          if (vm.type === 'Ads') {
+            console.log('ads')
+            vm.$emit('submit', vm.paymentMethods)
+          } else if (vm.type === 'General') {
+            console.log('general')
+            vm.$emit('submit', vm.selectedMethods)
+          }
           break
       }
     },
@@ -313,6 +321,18 @@ export default {
       // this.selectedMethodIndex = index // data.id
       this.dialogType = 'confirmRemovePaymentMethod'
       this.openDialog = true
+    },
+    selectMethod (data, index) {
+      const temp = this.selectedMethods.map(p => p.name)
+      if (temp.includes(data.name)) {
+        this.selectedMethods.splice(index, 1)
+      } else {
+        this.selectedMethods.push(data)
+      }
+    },
+    selectButtonColor (type) {
+      const temp = this.selectedMethods.map(p => p.name)
+      return temp.includes(type) ? 'blue-6' : 'grey-6'
     },
     removePaymentMethod (method) {
       const vm = this

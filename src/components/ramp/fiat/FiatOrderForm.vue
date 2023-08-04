@@ -45,7 +45,7 @@
           </div>
 
           <!-- Fiat Input -->
-          <div class="q-mt-md q-mx-lg">
+          <div class="q-mt-md q-mx-lg" v-if="!isOwner">
             <div class="xs-font-size subtext q-pb-sm q-pl-sm">Fiat Amount</div>
             <q-input dense filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
               <template v-slot:prepend>
@@ -73,7 +73,7 @@
           </div>
 
           <!-- create order btn -->
-          <div class="row q-mx-lg q-py-md">
+          <div class="row q-mx-lg q-py-md" v-if="!isOwner">
             <q-btn
               :disabled="!isValidInputAmount(fiatAmount)"
               rounded
@@ -82,6 +82,18 @@
               :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
               class="q-space"
               @click="submit()">
+            </q-btn>
+          </div>
+
+          <!-- edit ad button: For ad owners only -->
+          <div class="row q-mx-lg q-py-md" v-if="isOwner">
+            <q-btn
+              rounded
+              no-caps
+              label="Edit Ad"
+              :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+              class="q-space"
+              @click="state = 'edit-ad'">
             </q-btn>
           </div>
         </div>
@@ -104,11 +116,20 @@
         v-on:submit="recievePaymentMethods"
       />
     </div>
+    <div v-if="state === 'edit-ad'">
+        <FiatAdsForm
+          @back="state = 'initial'"
+          :adsState="'edit'"
+          :transactionType="ad.trade_type"
+          :selectedAdId="ad.id"
+        />
+      </div>
    </q-card>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
+import FiatAdsForm from './FiatAdsForm.vue'
 
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -132,7 +153,8 @@ export default {
   },
   components: {
     ProgressLoader,
-    AddPaymentMethods
+    AddPaymentMethods,
+    FiatAdsForm
   },
   emits: ['back'],
   computed: {
@@ -152,6 +174,9 @@ export default {
     },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
+    },
+    isOwner () {
+      return this.ad.owner === this.$store.getters['ramp/getUser'].nickname
     }
   },
   methods: {
