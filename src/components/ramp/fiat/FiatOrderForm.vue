@@ -70,7 +70,7 @@
           </div>
 
           <!-- create order btn -->
-          <div class="row q-mx-lg q-py-md">
+          <div class="row q-mx-lg q-py-md" v-if="!isOwner">
             <q-btn
               :disabled="!isValidInputAmount(fiatAmount)"
               rounded
@@ -79,6 +79,18 @@
               :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
               class="q-space"
               @click="submit()">
+            </q-btn>
+          </div>
+
+          <!-- edit ad button: For ad owners only -->
+          <div class="row q-mx-lg q-py-md" v-if="isOwner">
+            <q-btn
+              rounded
+              no-caps
+              label="Edit Ad"
+              :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+              class="q-space"
+              @click="state = 'edit-ad'">
             </q-btn>
           </div>
         </div>
@@ -101,21 +113,20 @@
         v-on:submit="recievePaymentMethods"
       />
     </div>
-
-    <!-- Buy process -->
-    <div v-if="state === 'buy-process'">
-      <FiatStoreBuyProcess
-        :order-data="order"
-        @back="onBack"
-        @canceled="onOrderCanceled"
-      />
-    </div>
+    <div v-if="state === 'edit-ad'">
+        <FiatAdsForm
+          @back="state = 'initial'"
+          :adsState="'edit'"
+          :transactionType="ad.trade_type"
+          :selectedAdId="ad.id"
+        />
+      </div>
    </q-card>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
-import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
+import FiatAdsForm from './FiatAdsForm.vue'
 
 import { loadP2PWalletInfo, formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -139,7 +150,7 @@ export default {
   components: {
     ProgressLoader,
     AddPaymentMethods,
-    FiatStoreBuyProcess
+    FiatAdsForm
   },
   emits: ['back', 'orderCanceled'],
   computed: {
@@ -151,6 +162,9 @@ export default {
     },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
+    },
+    isOwner () {
+      return this.ad.owner === this.$store.getters['ramp/getUser'].nickname
     }
   },
   async mounted () {
