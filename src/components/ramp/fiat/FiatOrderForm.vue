@@ -113,20 +113,29 @@
         v-on:submit="recievePaymentMethods"
       />
     </div>
+    <!-- Edit Ad -->
     <div v-if="state === 'edit-ad'">
-        <FiatAdsForm
-          @back="state = 'initial'"
-          :adsState="'edit'"
-          :transactionType="ad.trade_type"
-          :selectedAdId="ad.id"
-        />
-      </div>
+      <FiatAdsForm
+        @back="state = 'initial'"
+        :adsState="'edit'"
+        :transactionType="ad.trade_type"
+        :selectedAdId="ad.id"
+      />
+    </div>
+    <!-- Buy Process -->
+    <div v-if="state === 'buy-process'">
+      <FiatStoreBuyProcess
+        :order-data="order"
+        @back="onBack"
+      />
+    </div>
    </q-card>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
+import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 
 import { loadP2PWalletInfo, formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -150,7 +159,8 @@ export default {
   components: {
     ProgressLoader,
     AddPaymentMethods,
-    FiatAdsForm
+    FiatAdsForm,
+    FiatStoreBuyProcess
   },
   emits: ['back', 'orderCanceled'],
   computed: {
@@ -242,38 +252,6 @@ export default {
     onOrderCanceled () {
       this.$emit('orderCanceled')
     },
-    // async createOrder () {
-    //   const vm = this
-
-    //   const timestamp = Date.now()
-    //   const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
-
-    //   const pmId = vm.filterPaymentMethod().map(p => p.id)
-    //   console.log(pmId)
-    //   // const lockedPrice = this.ad.price_type === 'FIXED' ?  this.ad.price : 1000 * () //CHECK LATER
-
-    //   console.log(this.ad)
-    //   await vm.$axios.post(vm.apiURL + '/order/', {
-    //     ad: this.ad.id,
-    //     crypto_amount: parseFloat(vm.cryptoAmount).toFixed(8),
-    //     locked_price: this.ad.price, // fixed: normal price, float: price = marketprice * (floating_price/100)
-    //     arbiter: 1,
-    //     payment_methods: pmId
-    //   },
-    //   {
-    //     headers: {
-    //       'wallet-hash': vm.wallet.walletHash,
-    //       signature: signature,
-    //       timestamp: timestamp
-    //     }
-    //   })
-    //     .then(response => {
-    //       vm.order = response.data.data.order
-    //     })
-    //     .catch(error =>{
-    //       console.log(error)
-    //     })
-    // },
     recievePaymentMethods (item) {
       console.log(item)
     },
