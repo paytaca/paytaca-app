@@ -75,12 +75,12 @@ export function updateCurrentWallet (state, index) {
 }
 
 export function deleteWallet (state, index) {
-  // Empty out the wallet in the vault
-  state.vault.splice(index, 1, {})
-  const newVault = JSON.stringify(state.vault)
-  state.vault = JSON.parse(newVault)
-  // Reset the walletIndex to 0
-  state.walletIndex = 0
+  // Mark wallet as deleted
+  state.vault[index].deleted = true
+  // Reset the walletIndex to an undeleted wallet
+  const undeletedWallets = []
+  state.vault.map((wallet, index) => { if(wallet.deleted !==true) { undeletedWallets.push(index) } })
+  state.walletIndex = undeletedWallets[0]
   // Delete the mnemonic seed phrase for this wallet
   deleteMnemonic(index)
 }

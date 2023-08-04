@@ -20,34 +20,36 @@
       <q-card-section class="q-pt-sm" v-if="isloading">
         <q-virtual-scroll :items="vault">
           <template v-slot="{ item: wallet, index }">
-            <q-item class="q-pb-sm" clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" @click="selectedIndex = index">
-              <q-item-section style="overflow-wrap: break-word;">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                  <span class="text-h5" style="font-size: 15px;">{{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></span>
-                  <span  class="text-nowrap q-ml-xs q-mt-sm" :class="{'text-grey': darkMode}">
-                    {{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}
-                  </span>
-                </div>
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                  <span style="font-size: 12px; color: gray;">
-                    {{ arrangeAddressText(wallet) }}
-                  </span>
-                  <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">
-                    {{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
-                  </span>
-                </div>
-                <q-menu anchor="bottom right" self="top end" >
-                  <q-list class="text-h5" :class="{'pt-dark-card': darkMode}" style="min-width: 150px; font-size: 15px;">
-                    <q-item clickable v-close-popup>
-                      <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">{{ $t('SwitchWallet') }}</q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="openRenameDialog()">{{ $t('Rename') }}</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-item-section>
-            </q-item>
+            <template v-if="wallet.deleted !== true">
+              <q-item class="q-pb-sm" clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" @click="selectedIndex = index">
+                <q-item-section style="overflow-wrap: break-word;">
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                    <span class="text-h5" style="font-size: 15px;">{{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></span>
+                    <span  class="text-nowrap q-ml-xs q-mt-sm" :class="{'text-grey': darkMode}">
+                      {{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}
+                    </span>
+                  </div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                    <span style="font-size: 12px; color: gray;">
+                      {{ arrangeAddressText(wallet) }}
+                    </span>
+                    <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">
+                      {{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                    </span>
+                  </div>
+                  <q-menu anchor="bottom right" self="top end" >
+                    <q-list class="text-h5" :class="{'pt-dark-card': darkMode}" style="min-width: 150px; font-size: 15px;">
+                      <q-item clickable v-close-popup>
+                        <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">{{ $t('SwitchWallet') }}</q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="openRenameDialog()">{{ $t('Rename') }}</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-item-section>
+              </q-item>
+            </template>
           </template>
         </q-virtual-scroll>
       </q-card-section>
@@ -83,30 +85,28 @@ export default {
       for (const item in tempVault) {
         const wallet = tempVault[item]
         console.log('WALLET:', wallet)
-        if (wallet) {  
-          console.log('PASOK')
-          if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
-            const name = 'Personal Wallet #' + count
-            vm.$store.commit('global/updateWalletName', { index: item, name: name })
-          }
-          count++
+        if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
+          const name = 'Personal Wallet #' + count
+          vm.$store.commit('global/updateWalletName', { index: item, name: name })
         }
+        count++
       }
     },
     switchWallet (index) {
+      const vm = this
       if (index !== this.currentIndex) {
         const asset = this.$store.getters['assets/getAllAssets']
         // const ignoredAssets = this.$store.getters['assets/ignoredAssets']
 
-        this.$store.commit('assets/updateVaultSnapshot', { index: this.currentIndex, snapshot: asset })
-        this.$store.commit('assets/updatedCurrentAssets', index)
+        vm.$store.commit('assets/updateVaultSnapshot', { index: vm.currentIndex, snapshot: asset })
+        vm.$store.commit('assets/updatedCurrentAssets', index)
 
-        this.$store.dispatch('global/switchWallet', index)
-
-        this.$router.push('/')
-        setTimeout(() => { location.reload() }, 500)
+        vm.$store.dispatch('global/switchWallet', index).then(function () {
+          vm.$router.push('/')
+          setTimeout(() => { location.reload() }, 500)
+        })
       }
-      this.hide()
+      vm.hide()
     },
     hide () {
       this.$refs.dialog.hide()
@@ -157,7 +157,7 @@ export default {
       // console.log(tempVault)
 
       // tempVault.unshift(tempVault.splice(vm.currentIndex, 1)[0])
-      vm.vault = tempVault.filter((wallet) => { if (Object.keys(wallet).length > 0) { return wallet }})
+      vm.vault = tempVault
       console.log('VAULT:', vm.vault)
     },
     getAssetData (index) {

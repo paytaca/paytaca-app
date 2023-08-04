@@ -687,17 +687,17 @@ export default {
       })
     },
     switchWallet (index) {
+      const vm = this
       if (index !== this.currentIndex) {
         const asset = this.$store.getters['assets/getAllAssets']
-        this.$store.commit('assets/updateVaultSnapshot', { index: this.currentIndex, snapshot: asset })
-        this.$store.commit('assets/updatedCurrentAssets', index)
+        vm.$store.commit('assets/updateVaultSnapshot', { index: vm.currentIndex, snapshot: asset })
+        vm.$store.commit('assets/updatedCurrentAssets', index)
 
-        this.$store.dispatch('global/switchWallet', index)
-
-        this.$router.push('/')
-        setTimeout(() => { location.reload() }, 500)
+        vm.$store.dispatch('global/switchWallet', index).then(function () {
+          vm.$router.push('/')
+          setTimeout(() => { location.reload() }, 500)
+        })
       }
-      this.hide()
     },
     deleteWallet () {
       const vm = this
@@ -707,12 +707,12 @@ export default {
       console.log(vault)
       this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(function () {
         const vault = vm.$store.state.global.vault
-        const vaultCheck = vault.filter(function (wallet) { if (Object.keys(wallet).length > 0) { return wallet }})
+        const vaultCheck = vault.filter(function (wallet) { if (wallet.deleted !== true) { return wallet }})
         if (vaultCheck.length === 0) {
           vm.$store.commit('global/clearVault')
           vm.$router.push('/accounts')
         } else {
-          // vm.switchWallet(0)
+          vm.switchWallet(vm.$store.getters['global/getWalletIndex'])
         }
       })
     }

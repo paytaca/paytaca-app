@@ -126,22 +126,28 @@ export async function saveExistingWallet (context) {
 }
 
 export async function switchWallet (context, index) {
-  // const snapshot = context.getters.getAllWalletTypes
-  const wallet = context.getters.getAllWalletTypes
-  const chipnet = context.getters.getAllChipnetTypes
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
 
-  const currentIndex = context.getters.getWalletIndex
-  const walletName = context.getters.getVault[currentIndex].name
+      const wallet = context.getters.getAllWalletTypes
+      const chipnet = context.getters.getAllChipnetTypes
+    
+      const currentIndex = context.getters.getWalletIndex
+      const walletName = context.getters.getVault[currentIndex].name
+    
+      const info = {
+        index: currentIndex,
+        walletSnapshot: wallet,
+        chipnetSnapshot: chipnet,
+        name: walletName
+      }
+      context.commit('updateWalletSnapshot', info)
+      context.commit('updateWalletIndex', index)
+      context.commit('updateCurrentWallet', index)
 
-  const info = {
-    index: currentIndex,
-    walletSnapshot: wallet,
-    chipnetSnapshot: chipnet,
-    name: walletName
-  }
-  context.commit('updateWalletSnapshot', info)
-  context.commit('updateWalletIndex', index)
-  context.commit('updateCurrentWallet', index)
+      resolve()
+    }, 1000)
+  })
 }
 
 export async function deleteWallet (context, index) {
