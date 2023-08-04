@@ -127,6 +127,7 @@
       <FiatStoreBuyProcess
         :order-data="order"
         @back="onBack"
+        @canceled="onOrderCanceled"
       />
     </div>
    </q-card>
@@ -250,6 +251,7 @@ export default {
       this.$emit('back')
     },
     onOrderCanceled () {
+      console.log('onOrderCanceled')
       this.$emit('orderCanceled')
     },
     recievePaymentMethods (item) {

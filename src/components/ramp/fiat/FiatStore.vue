@@ -315,6 +315,7 @@ export default {
       }
     },
     onOrderCanceled () {
+      console.log('onOrderCanceled')
       this.$emit('orderCanceled')
     },
     selectCurrency (index) {
