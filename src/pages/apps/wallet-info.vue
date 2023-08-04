@@ -688,9 +688,10 @@ export default {
     },
     switchWallet (index) {
       const vm = this
-      if (index !== this.currentIndex) {
+      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
+      if (index !== currentWalletIndex) {
         const asset = this.$store.getters['assets/getAllAssets']
-        vm.$store.commit('assets/updateVaultSnapshot', { index: vm.currentIndex, snapshot: asset })
+        vm.$store.commit('assets/updateVaultSnapshot', { index: currentWalletIndex, snapshot: asset })
         vm.$store.commit('assets/updatedCurrentAssets', index)
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {
@@ -707,12 +708,18 @@ export default {
       console.log(vault)
       this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(function () {
         const vault = vm.$store.state.global.vault
-        const vaultCheck = vault.filter(function (wallet) { if (wallet.deleted !== true) { return wallet }})
+        const undeletedWallets = []
+        const vaultCheck = vault.filter(function (wallet, index) {
+          if (wallet.deleted !== true) {
+            undeletedWallets.push(index)
+            return wallet
+          }
+        })
         if (vaultCheck.length === 0) {
           vm.$store.commit('global/clearVault')
           vm.$router.push('/accounts')
         } else {
-          vm.switchWallet(vm.$store.getters['global/getWalletIndex'])
+          vm.switchWallet(undeletedWallets[0])
         }
       })
     }

@@ -383,7 +383,6 @@ export default {
   },
   methods: {
     openPriceChart () {
-      // console.log('opening price chart')
       this.$q.dialog({
         component: PriceChart
       })

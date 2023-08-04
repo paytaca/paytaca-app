@@ -80,11 +80,9 @@ export default {
       let count = 1
 
       const tempVault = vm.$store.getters['global/getVault']
-      console.log("CURRENT INDEX:", this.currentIndex)
 
       for (const item in tempVault) {
         const wallet = tempVault[item]
-        console.log('WALLET:', wallet)
         if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
           const name = 'Personal Wallet #' + count
           vm.$store.commit('global/updateWalletName', { index: item, name: name })
@@ -154,11 +152,7 @@ export default {
       let tempVault = vm.$store.getters['global/getVault']
       tempVault = JSON.stringify(tempVault)
       tempVault = JSON.parse(tempVault)
-      // console.log(tempVault)
-
-      // tempVault.unshift(tempVault.splice(vm.currentIndex, 1)[0])
       vm.vault = tempVault
-      console.log('VAULT:', vm.vault)
     },
     getAssetData (index) {
       if (this.currentIndex === index) {
@@ -184,7 +178,6 @@ export default {
     await this.$store.dispatch('global/saveExistingWallet')
     await this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash})
 
-    // console.log(vm.isChipnet)
     vm.processVaultName()
     vm.arrangeVaultData()
     vm.isloading = true
