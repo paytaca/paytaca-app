@@ -299,7 +299,8 @@ export default {
       return (Number(this.cryptoAmount) + Number(this.totalFees)).toFixed(8)
     },
     isOwner () {
-      return this.ad.owner === this.$store.getters['ramp/getUser'].nickname
+      // return this.ad.owner === this.$store.getters['ramp/getUser'].nickname
+      return this.ad.is_owned
     }
   },
   // async mounted () {

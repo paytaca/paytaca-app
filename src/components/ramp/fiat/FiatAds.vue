@@ -223,11 +223,11 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      const params = { trade_type: vm.transactionType }
+      const params = { trade_type: vm.transactionType, owned: true }
       try {
         await vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, headers: headers })
       } catch (error) {
-        console.error(error)
+        console.error(error.response)
       }
       vm.loading = false
     },

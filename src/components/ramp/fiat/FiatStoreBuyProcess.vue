@@ -533,6 +533,7 @@ export default {
       await vm.fetchAdData()
     } else {
       vm.order = vm.orderData
+      console.log('order:', vm.order)
     }
     vm.checkStep()
     vm.isloaded = true

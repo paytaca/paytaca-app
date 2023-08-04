@@ -153,21 +153,33 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     }
   },
+  async mounted () {
+    const vm = this
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+
+    await vm.fetchAd()
+    vm.isloaded = true
+  },
   methods: {
     async fetchAd () {
       const vm = this
-
       const url = `${vm.apiURL}/ad/${vm.adId}`
-
-      await vm.$axios.get(url)
-        .then(response => {
-          vm.ad = response.data
-          // set the minimum trade amount in form
-          this.fiatAmount = this.ad.trade_floor // remove later
-        })
-        .catch(error => {
-          console.log(error)
-        })
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      try {
+        const response = await vm.$axios.get(url, { headers: headers })
+        vm.ad = response.data
+        // set the minimum trade amount in form
+        this.fiatAmount = this.ad.trade_floor // remove later
+      } catch (error) {
+        console.log(error.response)
+      }
     },
     formattedCurrency (value, currency = null) {
       if (currency) {
@@ -188,7 +200,6 @@ export default {
     },
     async createOrder () {
       const vm = this
-      // console.log('ad:', vm.ad)
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
       const headers = {
@@ -264,14 +275,6 @@ export default {
           break
       }
     }
-  },
-  async mounted () {
-    const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-
-    await vm.fetchAd()
-    vm.isloaded = true
   }
 }
 </script>

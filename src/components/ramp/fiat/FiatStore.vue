@@ -141,7 +141,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
-import { selectedCurrency } from 'src/store/market/getters'
+import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
   setup () {
@@ -254,8 +254,15 @@ export default {
           currency: vm.selectedCurrency.symbol,
           trade_type: vm.transactionType
         }
+        const timestamp = Date.now()
+        const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+        const headers = {
+          'wallet-hash': vm.wallet.walletHash,
+          signature: signature,
+          timestamp: timestamp
+        }
         try {
-          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params })
+          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers })
         } catch (error) {
           console.error(error)
         }
