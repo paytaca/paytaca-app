@@ -267,7 +267,6 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('creating order', this.adId)
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
 

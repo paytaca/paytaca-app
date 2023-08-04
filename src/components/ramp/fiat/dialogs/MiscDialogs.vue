@@ -14,6 +14,7 @@
           </span>
           <div class="text-center q-pt-sm">
             <q-select
+              :disable="dialogType === 'addMethodFromAd'"
               dense
               filled
               :dark="darkMode"
@@ -159,7 +160,7 @@
   <q-dialog persistent v-model="confirmDeletePaymentMethod">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section class="xm-font-size q-mx-lg">
-        <div class="subtext bold-text text-center">Delete this Payment Method?</div>
+        <div class="text-center">Delete this Payment Method?</div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
@@ -518,6 +519,10 @@ export default {
           this.paymentMethod = this.data
           vm.createPaymentMethod = true
           break
+        case 'addMethodFromAd':
+          this.paymentMethod.payment_type = this.data
+          vm.createPaymentMethod = true
+          break
         case 'confirmPaymentMethod':
           vm.confirmPaymentMethod = true
           break
@@ -540,7 +545,7 @@ export default {
           vm.submitAppeal = true
           break
         case 'confirmPayment':
-          console.log('confirming payment')
+          // console.log('confirming payment')
           vm.confirmPayment = true
           break
         case 'confirmCancelOrder':
@@ -560,10 +565,16 @@ export default {
         case 'editPaymentMethod':
           vm.info = vm.paymentMethod
           return 'submit'
+        case 'addMethodFromAd':
+          vm.info = vm.paymentMethod
+          return 'submit'
         case 'editNickname':
           vm.info = {
             nickname: vm.nickname
           }
+          return 'submit'
+        case 'confirmDeletePaymentMethod':
+          vm.confirmDeletePaymentMethod = false
           return 'submit'
         case 'confirmRemovePaymentMethod':
           vm.info = vm.data
@@ -579,8 +590,8 @@ export default {
     submitData () {
       const vm = this
       const emitName = vm.stageData()
-      console.log('emitName:', emitName)
-      console.log('vm.info:', vm.info)
+      // console.log('emitName:', emitName)
+      // console.log('vm.info:', vm.info)
       this.$emit(emitName, vm.info)
       // this.$emit('back', vm.info)
     },
