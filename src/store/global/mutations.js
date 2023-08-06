@@ -1,3 +1,5 @@
+import { deleteMnemonic } from './../../wallet'
+
 function getWalletData (state, details) {
   const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
   const walletType = details.type
@@ -70,6 +72,13 @@ export function updateCurrentWallet (state, index) {
   chipnet = JSON.parse(chipnet)
 
   state.chipnet__wallets = chipnet
+}
+
+export function deleteWallet (state, index) {
+  // Mark wallet as deleted
+  state.vault[index].deleted = true
+  // Delete the mnemonic seed phrase for this wallet
+  deleteMnemonic(index)
 }
 
 export function toggleIsChipnet (state) {
@@ -200,3 +209,4 @@ export function removeUtxoScanTask(state, walletHash='') {
 export function updateConnectivityStatus (state, online) {
   state.online = online
 }
+

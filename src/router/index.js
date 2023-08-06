@@ -35,7 +35,8 @@ export default function ({ store }) {
     if (to.path === '/') {
       try {
         // Check if first mnemonic exists
-        const mnemonic = await getMnemonic(0)
+        const currentWalletIndex = store.getters['global/getWalletIndex']
+        const mnemonic = await getMnemonic(currentWalletIndex)
         if (mnemonic) {
           next()
         } else {

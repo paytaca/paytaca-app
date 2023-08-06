@@ -245,6 +245,14 @@
               </div>
             </div>
           </div>
+          <div class="row" style="margin-top: 20px;">
+            <div class="col">
+              <p class="section-title">Wallet Deletion</p>
+              <q-btn color="red" style="width: 100%;" @click="showDeleteDialog()" :disable="disableDeleteButton">
+                Delete Wallet Now
+              </q-btn>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -292,6 +300,8 @@ export default {
       slpAddressScanResponseDialog: null,
 
       prevUtxoStatusUpdateTimeout: null,
+
+      disableDeleteButton: false
     }
   },
   computed: {
@@ -657,6 +667,61 @@ export default {
       } else {
         this.pinDialogAction = ''
       }
+    },
+    showDeleteDialog () {
+      const vm = this
+      vm.disableDeleteButton = true
+      vm.$q.dialog({
+        title: 'Delete Wallet',
+        message: 'Are you sure you want to delete this wallet?',
+        dark: true,
+        cancel: true,
+        seamless: true,
+        ok: 'Yes',
+      }).onOk(() => {
+        console.log('Proceed to delete wallet')
+        vm.deleteWallet()
+      }).onCancel(() => {
+        console.log('Cancelled')
+        vm.disableDeleteButton = false
+      })
+    },
+    switchWallet (index) {
+      const vm = this
+      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
+      if (index !== currentWalletIndex) {
+        const asset = this.$store.getters['assets/getAllAssets']
+        vm.$store.commit('assets/updateVaultSnapshot', { index: currentWalletIndex, snapshot: asset })
+        vm.$store.commit('assets/updatedCurrentAssets', index)
+
+        vm.$store.dispatch('global/switchWallet', index).then(function () {
+          vm.$router.push('/')
+          setTimeout(() => { location.reload() }, 500)
+        })
+      }
+    },
+    deleteWallet () {
+      const vm = this
+      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
+      console.log('Wallet Index:', currentWalletIndex)
+      const vault = this.$store.state.global.vault
+      console.log(vault)
+      this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(function () {
+        const vault = vm.$store.state.global.vault
+        const undeletedWallets = []
+        const vaultCheck = vault.filter(function (wallet, index) {
+          if (wallet.deleted !== true) {
+            undeletedWallets.push(index)
+            return wallet
+          }
+        })
+        if (vaultCheck.length === 0) {
+          vm.$store.commit('global/clearVault')
+          vm.$router.push('/accounts')
+        } else {
+          vm.switchWallet(undeletedWallets[0])
+        }
+      })
     }
   },
   beforeUnmount() {

@@ -383,7 +383,6 @@ export default {
   },
   methods: {
     openPriceChart () {
-      // console.log('opening price chart')
       this.$q.dialog({
         component: PriceChart
       })
@@ -835,7 +834,7 @@ export default {
         console.log('INCONSISTENCY DETECTED!')
         console.log('Wallet index:', walletIndex)
         this.$store.commit('global/updateCurrentWallet', walletIndex)
-        location.reload()
+        // location.reload()
       }
 
       if (vm.selectedNetwork === 'BCH') {
