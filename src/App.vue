@@ -296,6 +296,7 @@ export default {
 body {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;  /* Firefox */
+  overscroll-behavior: none;
 }
 
 body::-webkit-scrollbar { 

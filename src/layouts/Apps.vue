@@ -1,5 +1,5 @@
 <template>
-  <div @touchmove.prevent>
+  <div>
     <router-view />
   </div>
 </template>
