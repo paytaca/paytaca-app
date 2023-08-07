@@ -78,7 +78,7 @@
               :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
               :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
               class="q-space"
-              @click="submit()">
+              @click="orderConfirm()">
             </q-btn>
           </div>
 
@@ -113,6 +113,14 @@
         v-on:submit="recievePaymentMethods"
       />
     </div>
+    <!-- Dialogs -->
+    <div v-if="openDialog">
+      <MiscDialogs
+        :type="dialogType"
+        v-on:back="openDialog = false"
+        v-on:submit="recieveDialogsInfo"
+      />
+    </div>
     <!-- Edit Ad -->
     <div v-if="state === 'edit-ad'">
       <FiatAdsForm
@@ -136,6 +144,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 import { loadP2PWalletInfo, formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -150,7 +159,9 @@ export default {
       isloaded: false,
       state: 'initial',
       fiatAmount: 0,
-      order: null
+      order: null,
+      openDialog: false,
+      dialogType: ''
     }
   },
   props: {
@@ -160,7 +171,8 @@ export default {
     ProgressLoader,
     AddPaymentMethods,
     FiatAdsForm,
-    FiatStoreBuyProcess
+    FiatStoreBuyProcess,
+    MiscDialogs
   },
   emits: ['back', 'orderCanceled'],
   computed: {
@@ -186,6 +198,10 @@ export default {
     vm.isloaded = true
   },
   methods: {
+    orderConfirm () {
+      this.dialogType = 'confirmOrderCreate'
+      this.openDialog = true
+    },
     async fetchAd () {
       const vm = this
       const url = `${vm.apiURL}/ad/${vm.adId}`
@@ -253,7 +269,11 @@ export default {
       this.$emit('orderCanceled')
     },
     recievePaymentMethods (item) {
+      console.log('recieving data')
       console.log(item)
+    },
+    recieveDialogsInfo (item) {
+      console.log('here')
     },
     submit () {
       const vm = this
