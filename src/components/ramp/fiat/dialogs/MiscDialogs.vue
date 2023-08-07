@@ -599,6 +599,8 @@ export default {
         case 'confirmCancelOrder':
           vm.info = vm.data
           return 'submit'
+        case 'confirmOrderCreate':
+          return 'submit'
         default:
           vm.info = vm.selectedPaymentMethods
           return 'submit'

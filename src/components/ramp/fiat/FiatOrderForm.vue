@@ -45,7 +45,7 @@
           </div>
 
           <!-- Fiat Input -->
-          <div class="q-mt-md q-mx-lg">
+          <div class="q-mt-md q-mx-lg" v-if="!isOwner">
             <div class="xs-font-size subtext q-pb-xs q-pl-sm">Fiat Amount</div>
             <q-input class="q-pb-xs" filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
               <template v-slot:prepend>
@@ -78,7 +78,7 @@
               :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
               :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
               class="q-space"
-              @click="orderConfirm()">
+              @click="submit()">
             </q-btn>
           </div>
 
@@ -162,7 +162,8 @@ export default {
       fiatAmount: 0,
       order: null,
       openDialog: false,
-      dialogType: ''
+      dialogType: '',
+      paymentMethods: null
     }
   },
   props: {
@@ -187,6 +188,7 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     },
     isOwner () {
+      console.log(this.ad.is_owned)
       return this.ad.is_owned
     }
   },
@@ -241,6 +243,7 @@ export default {
       return true
     },
     async createOrder () {
+      console.log('creating order')
       const vm = this
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
@@ -249,9 +252,14 @@ export default {
         signature: signature,
         timestamp: timestamp
       }
-      const body = {
+      let body = {
         ad: vm.ad.id,
         crypto_amount: vm.cryptoAmount
+      }
+      if (vm.ad.trade_type === 'BUY') {
+        const temp = this.paymentMethods.map(p => p.id)
+        console.log(temp)
+        body.payment_methods = temp
       }
       // console.log('headers:', headers)
       // console.log('body:', body)
@@ -272,17 +280,22 @@ export default {
     },
     recievePaymentMethods (item) {
       console.log('recieving data')
-      console.log(item)
+
+      this.paymentMethods = item
+      console.log(this.paymentMethods)
+      this.createOrder()
     },
     recieveDialogsInfo (item) {
       console.log('here')
+      this.createOrder()
+()
     },
     submit () {
       const vm = this
       switch (vm.ad.trade_type) {
         case 'SELL':
           console.log('create buy order')
-          vm.createOrder()
+          vm.orderConfirm()
           break
         case 'BUY':
           console.log('create sell order')
@@ -304,5 +317,3 @@ export default {
     opacity: .5;
   }
   </style>
-
-<!-- TODO: AD bch balance checker later to prevent insufficient balance order -->

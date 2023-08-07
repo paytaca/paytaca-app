@@ -599,6 +599,7 @@ export default {
         })
     },
     async fetchOrderData () {
+      console.log('fetching order')
       const vm = this
 
       const timestamp = Date.now()
