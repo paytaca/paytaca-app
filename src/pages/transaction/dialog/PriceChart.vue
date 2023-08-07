@@ -62,7 +62,7 @@ export default {
       const vm = this
       // vm.isloaded = false
       vm.networkError = false
-      const url = 'https://api.coingecko.com/api/v3/coins/bitcoin-cash/market_chart?vs_currency=' + vm.selectedCurrency + '&days=1&interval=hourly'
+      const url = 'https://api.coingecko.com/api/v3/coins/bitcoin-cash/market_chart?vs_currency=' + vm.selectedCurrency + '&days=1'
 
       // request Data
       const resp = await vm.$axios.get(url)
