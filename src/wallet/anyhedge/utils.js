@@ -1,6 +1,6 @@
 import axios from 'axios'
 import BCHJS from '@psf/bch-js'
-import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256 } from '@bitauth/libauth';
+import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256, hexToBin } from '@bitauth/libauth';
 import { IncorrectWIFError } from '@generalprotocols/anyhedge'
 import { ContractData } from '@generalprotocols/anyhedge';
 import { Wallet } from '../index'
@@ -98,4 +98,11 @@ export function estimateCounterPartySats(opts) {
         sats = opts.satoshis / multiplier
     }
     return Math.round(sats)
+}
+
+
+export function txHexToHash(txHex='') {
+    const digest1 = sha256.hash(hexToBin(txHex))
+    const digest2 = sha256.hash(digest1)
+    return binToHex(digest2.reverse())   
 }
