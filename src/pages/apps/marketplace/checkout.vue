@@ -82,7 +82,7 @@
               </q-btn>
             </div>
             <div class="col-3 q-pa-xs">
-              {{ cartItem?.variant?.price }}
+              {{ cartItem?.variant?.markupPrice }}
               {{ checkoutCurrency }}
             </div>
             <div class="col-3 q-pa-xs">
@@ -580,7 +580,7 @@
                     </q-btn>
                   </td>
                   <td class="text-center" style="white-space:nowrap;">{{ cartItem?.quantity }}</td>
-                  <td class="text-center" style="white-space:nowrap;">{{ (cartItem?.variant?.price * cartItem?.quantity) }} {{ checkoutCurrency }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ (cartItem?.variant?.markupPrice * cartItem?.quantity) }} {{ checkoutCurrency }}</td>
                 </tr>
               </table>
               </q-card>

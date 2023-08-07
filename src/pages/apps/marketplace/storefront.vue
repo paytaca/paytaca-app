@@ -117,9 +117,9 @@
               <q-card-section>
                 <div class="text-body1 ellipsis">{{ product?.name }}</div>
                 <div>
-                  {{ product.minPrice }}
-                  <template v-if="product?.minPrice != product?.maxPrice">
-                    - {{ product?.maxPrice }}
+                  {{ product.minMarkupPrice }}
+                  <template v-if="product?.minMarkupPrice != product?.maxMarkupPrice">
+                    - {{ product?.maxMarkupPrice }}
                   </template>
                   {{ getStorefrontCurrency(product?.storefrontId) }}
                 </div>

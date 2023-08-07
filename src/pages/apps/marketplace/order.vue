@@ -154,8 +154,8 @@
                   </q-btn>
                 </td>
                 <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.variant?.price }} {{ orderCurrency }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.variant?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
               </tr>
             </table>
           </q-card>

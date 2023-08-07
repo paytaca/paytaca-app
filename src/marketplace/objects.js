@@ -151,6 +151,7 @@ export class Variant {
    * @param {String} data.image_url
    * @param {String} data.name
    * @param {Number} data.price
+   * @param {Number} data.markup_price
    * @param {Number} data.total_stocks
    * @param {Number} data.expired_stocks
    * @param {{ id:Number, name:String, image_url:String }} [data.product]
@@ -164,6 +165,7 @@ export class Variant {
     this.imageUrl = data?.image_url
     this.name = data?.name
     this.price = data?.price
+    this.markupPrice = data?.markup_price
     this.totalStocks = data?.total_stocks
     this.expiredStocks = data?.expired_stocks
 
@@ -209,6 +211,8 @@ export class Product {
    * @param {Number} data.variants_count
    * @param {Number} [data.min_price]
    * @param {Number} [data.max_price]
+   * @param {Number} [data.min_markup_price]
+   * @param {Number} [data.max_markup_price]
    * @param {Number} [data.storefront_id]
    * @param {String} [data.created_at]
    * @param {Object[]} [data.variants]
@@ -227,6 +231,8 @@ export class Product {
     this.variantsCount = data?.variants_count
     this.minPrice = data?.min_price
     this.maxPrice = data?.max_price
+    this.minMarkupPrice = data?.min_markup_price
+    this.maxMarkupPrice = data?.max_markup_price
     this.storefrontId = data?.storefront_id
     if(data?.created_at) this.createdAt = new Date(data?.created_at)
 

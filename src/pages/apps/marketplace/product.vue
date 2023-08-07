@@ -48,13 +48,13 @@
               </q-item-section>
               <q-item-section avatar>
                 <q-item-label>
-                  {{ variant?.price }} {{ currency }}
+                  {{ variant?.markupPrice }} {{ currency }}
                 </q-item-label>
               </q-item-section>
             </q-item>
           </template>
           <template v-else>
-            <div class="text-subtitle1 text-center">{{ selectedVariant?.price }} {{ currency }}</div>
+            <div class="text-subtitle1 text-center">{{ selectedVariant?.markupPrice }} {{ currency }}</div>
           </template>
           <div v-if="selectedVariant?.id">
             <q-input

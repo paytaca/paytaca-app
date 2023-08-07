@@ -92,7 +92,7 @@
                 </q-btn>
               </div>
               <div class="col-3 q-pa-xs">
-                {{ cartItem?.variant?.price }}
+                {{ cartItem?.variant?.markupPrice }}
                 {{ getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
               </div>
               <div class="col-3 q-pa-xs">
