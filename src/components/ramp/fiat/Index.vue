@@ -97,14 +97,15 @@ export default {
   },
   watch: {
     menu (val) {
-      // console.log('pageName:', 'ramp-fiat-' + val)
+      console.log('pageName:', 'ramp-fiat-' + val)
       this.$router.push({ name: 'ramp-fiat-' + val })
-      this.initStatusType = 'ONGOING'
+      // this.initStatusType = 'ONGOING'
     }
   },
   methods: {
     switchMenu (item) {
       this.menu = item
+      this.$refs.footer.selectMenu(this.menu)
     },
     processDialog () {
       if (!this.proceed && !this.createUser) {
@@ -119,7 +120,8 @@ export default {
       this.proceed = true
     },
     onOrderCanceled () {
-      this.menu = 'orders'
+      console.log('onOrderCanceled')
+      this.switchMenu('orders')
       this.initStatusType = 'COMPLETED'
     }
   }
