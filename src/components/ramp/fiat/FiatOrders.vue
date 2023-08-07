@@ -90,6 +90,7 @@
       <div v-if="state === 'view-order'">
         <FiatBuyProcess
           :order-data="selectedOrder"
+          @back="state = 'order-list'"
         />
         <!-- <FiatStoreBuyProcess
           v-if="selectedOrder.trade_type === 'BUY'"

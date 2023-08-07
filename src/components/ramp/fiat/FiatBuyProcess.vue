@@ -5,6 +5,7 @@
         flat
         padding="md"
         icon="arrow_back"
+        @click="emit('back')"
       />
     </div>
     <div v-if="step === 1">
@@ -76,6 +77,7 @@ export default {
       default: null
     }
   },
+  emits: ['back'],
   async mounted () {
     console.log('Updated Buying Process')
     const vm = this
