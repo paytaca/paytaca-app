@@ -43,7 +43,7 @@
                             <span
                               :class="{'pt-dark-label': darkMode}"
                               class="q-mb-none md-font-size">
-                              {{ listing.ad.owner.nickname }}
+                              {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded outline size="sm" color="blue-6" label="You" />
                             </span>
                             <div
                               :class="{'pt-dark-label': darkMode}"
@@ -89,6 +89,7 @@
       </div>
       <div v-if="state === 'view-order'">
         <FiatBuyProcess
+          v-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
           @back="state = 'order-list'"
         />
@@ -99,14 +100,18 @@
           @updated="onUpdated"
           @canceled="onCanceled"
         /> -->
-        <FiatStoreSellProcess
+        <FiatSellProcess
+          v-if="selectedOrder.trade_type === 'SELL'"
+          :order-data="selectedOrder"
+          @back="state = 'order-list'"
+        />
+        <!-- <FiatStoreSellProcess
           v-if="selectedOrder.trade_type === 'SELL'"
           :order-data="selectedOrder"
           v-on:back="state = 'order-list'"
           @updated="onUpdated"
           @canceled="onCanceled"
-        />
-        <!-- check which step the order are in -->
+        /> -->
       </div>
     </q-card>
 </template>
@@ -116,6 +121,7 @@ import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 
 import FiatBuyProcess from './FiatBuyProcess.vue'
+import FiatSellProcess from './FiatSellProcess.vue'
 
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -184,6 +190,9 @@ export default {
       const vm = this
       vm.updatePaginationValues()
       return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
+    },
+    userInfo () {
+      return this.$store.getters['ramp/getUser']
     }
   },
   async mounted () {
@@ -204,7 +213,8 @@ export default {
     ProgressLoader,
     FiatStoreBuyProcess,
     FiatStoreSellProcess,
-    FiatBuyProcess
+    FiatBuyProcess,
+    FiatSellProcess
   },
   methods: {
     async fetchOrders () {

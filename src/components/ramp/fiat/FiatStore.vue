@@ -130,12 +130,12 @@
   <FiatProfileCard
     v-if="viewProfile"
     :userInfo="selectedUser"
-    :type="'peer'"
+    :type="isOwner ? 'self' : 'peer'"
     v-on:back="viewProfile = false"
   />
 </template>
 <script>
-import FiatStoreForm from './FiatStoreForm.vue'
+// import FiatStoreForm from './FiatStoreForm.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
@@ -152,7 +152,7 @@ export default {
   },
   emits: ['orderCanceled'],
   components: {
-    FiatStoreForm,
+    // FiatStoreForm,
     FiatOrderForm,
     ProgressLoader,
     FiatProfileCard
@@ -210,6 +210,10 @@ export default {
     hasMoreData () {
       this.updatePaginationValues()
       return (this.pageNumber < this.totalPages)
+    },
+    isOwner () {
+      // console.log(this.selectedOrder.is_owned)
+      return this.selectedUser.name === this.$store.getters['ramp/getUser'].nickname
     }
   },
   async mounted () {
