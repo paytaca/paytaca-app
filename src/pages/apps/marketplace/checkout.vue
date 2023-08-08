@@ -101,7 +101,7 @@
           </div>
           <div class="q-px-xs q-mt-md row items-center text-subtitle1">
             <div class="q-space">Subtotal</div>
-            <div>{{ checkout?.cart?.subtotal }} {{ checkoutCurrency }}</div>
+            <div>{{ checkout?.cart?.markupSubtotal }} {{ checkoutCurrency }}</div>
           </div>
         </q-tab-panel>
         <q-tab-panel name="delivery" :dark="darkMode">
@@ -771,7 +771,7 @@ function resetTabs() {
       findRider({ replaceExisting: false })
     }
     if (!checkout.value.balanceToPay) setTimeout(() => nextTab(), 10)
-  }, 1)
+  }, 10)
 }
 
 const loadingState = ref({
@@ -995,7 +995,7 @@ watch(checkoutBchPrice, () => displayBch.value = displayBch.value && !isNaN(chec
 const checkoutAmounts = computed(() => {
   const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
   const data = {
-    subtotal: { currency: checkout.value?.cart?.subtotal || 0, bch: 0 },
+    subtotal: { currency: checkout.value?.cart?.markupSubtotal || 0, bch: 0 },
     deliveryFee: { currency: checkout.value?.payment?.deliveryFee || 0, bch: 0 },
     total: { currency: checkout.value?.total, bch: 0 },
     totalPaymentsSent: { currency: parseFloat(checkout.value.totalPaymentsSent), bch: 0 },

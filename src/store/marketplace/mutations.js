@@ -99,6 +99,7 @@ export function cacheStorefront(state, data) {
  * @param {Number} data.storefront_id
  * @param {String} data.ref
  * @param {Number} data.subtotal
+ * @param {Number} data.markup_subtotal
  * @param {{ variant:VariantAPI, quantity:Number }[]} items
  */
 export function cacheCart(state, data) {

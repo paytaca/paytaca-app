@@ -55,6 +55,7 @@ export default function () {
           last_name: '',
         },
         subtotal: 0,
+        markup_subtotal: 0,
         items: [].map(() => {
           return {
             quantity: 0,

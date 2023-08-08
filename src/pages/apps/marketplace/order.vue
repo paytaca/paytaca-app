@@ -154,8 +154,8 @@
                   </q-btn>
                 </td>
                 <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.displayPrice }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.displayPrice * orderItem?.quantity }} {{ orderCurrency }}</td>
               </tr>
             </table>
           </q-card>
@@ -289,7 +289,7 @@ function fetchOrder() {
 const orderAmounts = computed(() => {
   const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
   const data = {
-    subtotal: { currency: order.value?.subtotal || 0, bch: 0 },
+    subtotal: { currency: order.value?.markupSubtotal || 0, bch: 0 },
     deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
     total: { currency: 0, bch: 0 },
     totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },

@@ -110,14 +110,14 @@
               </div>
             </div>
           </div>
-          <div v-if="activeStorefrontCart?.subtotal" class="row items-center q-mx-xs q-mt-md">
+          <div v-if="activeStorefrontCart?.markupSubtotal" class="row items-center q-mx-xs q-mt-md">
             <div class="text-h6 q-space q-pr-xs">Subtotal</div>
             <div class="text-body1">
-              {{ activeStorefrontCart?.subtotal }}
+              {{ activeStorefrontCart?.markupSubtotal }}
               {{ getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
             </div>
           </div>
-          <div v-if="activeStorefrontCart?.subtotal" class="q-mt-sm">
+          <div v-if="activeStorefrontCart?.markupSubtotal" class="q-mt-sm">
             <q-btn
               v-close-popup
               no-caps

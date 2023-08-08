@@ -317,6 +317,7 @@ export class Cart {
    * @param {Number} data.order_id
    * @param {Number} data.storefront_id
    * @param {Number} data.subtotal
+   * @param {Number} data.markup_subtotal
    * @param {Object} data.customer
    * @param {Object[]} data.items
    */
@@ -327,6 +328,7 @@ export class Cart {
     this.orderId = data?.order_id
     this.storefrontId = data?.storefront_id
     this.subtotal = data?.subtotal
+    this.markupSubtotal = data?.markup_subtotal
     this.customer = Customer.parse(data?.customer)
     this.items = data?.items?.map?.(CartItem.parse)
   }
@@ -552,7 +554,7 @@ export class Checkout {
   }
 
   get total() {
-    const total = (parseFloat(this.cart?.subtotal) || 0) + (parseFloat(this.payment?.deliveryFee) || 0)
+    const total = (parseFloat(this.cart?.markupSubtotal) || 0) + (parseFloat(this.payment?.deliveryFee) || 0)
     return Math.round(total * 10 ** 3) / 10 ** 3
   }
 
@@ -601,6 +603,7 @@ export class OrderItem {
    * @param {Number} data.item_name
    * @param {Number} data.quantity
    * @param {Number} data.price
+   * @param {Number} data.markup_price
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -609,6 +612,11 @@ export class OrderItem {
     this.itemName = data?.item_name
     this.quantity = data?.quantity
     this.price = data?.price
+    this.markupPrice = data?.markup_price
+  }
+
+  get displayPrice() {
+    return this.markupPrice || this.price
   }
 }
 
@@ -638,6 +646,7 @@ export class Order {
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
    * @param {Number} data.subtotal
+   * @param {Number} data.markup_subtotal
    * @param {Number} data.total_paid
    * @param {Number} data.total_pending_payment
    * @param {Number} data.total_payments
@@ -658,6 +667,7 @@ export class Order {
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.items = data?.items?.map?.(OrderItem.parse)
     this.subtotal = data?.subtotal
+    this.markupSubtotal = data?.markup_subtotal
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
     this.totalPayments = data?.total_payments
