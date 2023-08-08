@@ -88,15 +88,19 @@
         </div>
       </div>
       <div v-if="state === 'view-order'">
+        <FiatOrderConfirm
+          v-if="selectedOrder.is_ad_owner"
+          :order-id="selectedOrder.id"
+        />
         <FiatStoreBuyProcess
-          v-if="selectedOrder.trade_type === 'BUY'"
+          v-else-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
           v-on:back="returnOrderList()"
           @updated="onUpdated"
           @canceled="onCanceled"
         />
         <FiatStoreSellProcess
-          v-if="selectedOrder.trade_type === 'SELL'"
+          v-else-if="selectedOrder.trade_type === 'SELL'"
           :order-data="selectedOrder"
           v-on:back="state = 'order-list'"
           @updated="onUpdated"
@@ -108,6 +112,7 @@
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
+import FiatOrderConfirm from './FiatOrderConfirm.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
@@ -122,6 +127,12 @@ export default {
       scrollTargetRef,
       infiniteScroll
     }
+  },
+  components: {
+    ProgressLoader,
+    FiatStoreBuyProcess,
+    FiatStoreSellProcess,
+    FiatOrderConfirm
   },
   props: {
     initStatusType: {
@@ -192,11 +203,6 @@ export default {
     vm.wallet = await loadP2PWalletInfo(walletInfo)
     await vm.fetchOrders()
     // vm.fetchUserOrders()
-  },
-  components: {
-    ProgressLoader,
-    FiatStoreBuyProcess,
-    FiatStoreSellProcess
   },
   methods: {
     async fetchOrders () {
@@ -291,7 +297,7 @@ export default {
       vm.resetAndRefetchListings()
     },
     selectOrder (data) {
-      // console.log(data)
+      console.log('selectedOrder:', data)
       this.selectedOrder = data
       this.state = 'view-order'
     },

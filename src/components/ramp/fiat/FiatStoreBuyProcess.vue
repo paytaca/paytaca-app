@@ -452,7 +452,6 @@ import { ref } from 'vue'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { sign } from 'openpgp'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {

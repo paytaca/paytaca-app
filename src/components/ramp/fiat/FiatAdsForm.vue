@@ -337,6 +337,7 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
+    console.log('selectedAdId:', vm.selectedAdId)
 
     if (vm.selectedAdId !== null) {
       await vm.fetchAdDetail()
@@ -400,6 +401,7 @@ export default {
         const data = response.data
         vm.adData.tradeType = data.trade_type
         vm.adData.priceType = data.price_type
+        vm.adData.fixedPrice = data.fixed_price
         vm.adData.floatingPrice = data.floating_price
         vm.adData.fiatCurrency = data.fiat_currency
         vm.adData.tradeFloor = data.trade_floor
@@ -408,6 +410,7 @@ export default {
         vm.adData.paymentMethods = data.payment_methods
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
         vm.selectedCurrency = data.fiat_currency
+        console.log('adData:', vm.adData)
       } catch (error) {
         console.error(error.response)
         vm.swipeStatus = false
@@ -419,7 +422,7 @@ export default {
         const walletInfo = this.$store.getters['global/getWallet']('bch')
         vm.wallet = await loadP2PWalletInfo(walletInfo)
       }
-      const url = vm.apiURL + '/ad/'
+      let url = vm.apiURL + '/ad/'
       const timestamp = Date.now()
       const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
       const headers = {
@@ -428,15 +431,21 @@ export default {
         signature: signature
       }
       const body = vm.transformPostData()
-      vm.$axios.post(url, body, { headers: headers })
-        .then(_response => {
-          vm.swipeStatus = true
-          this.$emit('submit')
-        })
-        .catch(error => {
-          console.error(error.response)
-          vm.swipeStatus = false
-        })
+      try {
+        let response = null
+        if (vm.adsState === 'create') {
+          response = await vm.$axios.post(url, body, { headers: headers })
+        } else if (vm.adsState === 'edit') {
+          url = url + vm.selectedAdId
+          response = await vm.$axios.put(url, body, { headers: headers })
+        }
+        console.log('response:', response)
+        vm.swipeStatus = true
+        vm.$emit('submit')
+      } catch (error) {
+        console.error(error.response)
+        vm.swipeStatus = false
+      }
     },
     async getInitialMarketPrice () {
       console.log('initial markeprice')
