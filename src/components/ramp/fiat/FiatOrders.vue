@@ -89,8 +89,9 @@
       </div>
       <div v-if="state === 'view-order'">
         <FiatBuyProcess
+          v-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
-          @back="state = 'order-list'"
+          @back="onBack"
         />
         <!-- <FiatStoreBuyProcess
           v-if="selectedOrder.trade_type === 'BUY'"
@@ -276,6 +277,9 @@ export default {
       await vm.fetchOrders()
       vm.updatePaginationValues()
       vm.loading = false
+    },
+    onBack () {
+      this.state = 'order-list'
     },
     updatePaginationValues () {
       const vm = this

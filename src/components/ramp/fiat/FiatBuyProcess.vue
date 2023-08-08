@@ -5,7 +5,7 @@
         flat
         padding="md"
         icon="arrow_back"
-        @click="emit('back')"
+        @click="$emit('back')"
       />
     </div>
     <div v-if="step === 1">
