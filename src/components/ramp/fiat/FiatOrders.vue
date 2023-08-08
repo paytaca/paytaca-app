@@ -88,11 +88,19 @@
         </div>
       </div>
       <div v-if="state === 'view-order'">
-        <FiatBuyProcess
-          v-if="selectedOrder.trade_type === 'BUY'"
-          :order-data="selectedOrder"
-          @back="onBack"
-        />
+        <div v-if="selectedOrder.trade_type === 'BUY'">
+          <TransferToEscrowProcess
+            v-if="selectedOrder.status === 'Escrow Pending'"
+            :order-id="selectedOrder.id"
+            :amount="transferAmount"
+            @back="onBack"
+          />
+          <FiatBuyProcess
+            v-else
+            :order-data="selectedOrder"
+            @back="onBack"
+          />
+        </div>
         <!-- <FiatStoreBuyProcess
           v-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
@@ -100,13 +108,21 @@
           @updated="onUpdated"
           @canceled="onCanceled"
         /> -->
-        <FiatStoreSellProcess
-          v-else-if="selectedOrder.trade_type === 'SELL'"
-          :order-data="selectedOrder"
-          v-on:back="state = 'order-list'"
-          @updated="onUpdated"
-          @canceled="onCanceled"
-        />
+        <div v-if="selectedOrder.trade_type === 'SELL'">
+          <TransferToEscrowProcess
+            v-if="selectedOrder.status === 'Escrow Pending'"
+            :order-id="selectedOrder.id"
+            :amount="transferAmount"
+            @back="onBack"
+          />
+          <FiatStoreSellProcess
+            v-else
+            :order-data="selectedOrder"
+            v-on:back="state = 'order-list'"
+            @updated="onUpdated"
+            @canceled="onCanceled"
+          />
+        </div>
         <!-- check which step the order are in -->
       </div>
     </q-card>
@@ -116,9 +132,8 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import FiatOrderConfirm from './FiatOrderConfirm.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
-
+import TransferToEscrowProcess from './TransferToEscrowProcess.vue'
 import FiatBuyProcess from './FiatBuyProcess.vue'
-
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import { ref } from 'vue'
@@ -136,7 +151,8 @@ export default {
     ProgressLoader,
     FiatStoreBuyProcess,
     FiatStoreSellProcess,
-    FiatOrderConfirm
+    FiatBuyProcess,
+    TransferToEscrowProcess
   },
   props: {
     initStatusType: {
@@ -172,6 +188,9 @@ export default {
     }
   },
   computed: {
+    transferAmount () {
+      return this.selectedOrder.crypto_amount
+    },
     listings () {
       const vm = this
       switch (vm.statusType) {
@@ -208,12 +227,6 @@ export default {
     await vm.fetchOrders()
     // vm.fetchUserOrders()
   },
-  components: {
-    ProgressLoader,
-    FiatStoreBuyProcess,
-    FiatStoreSellProcess,
-    FiatBuyProcess
-  },
   methods: {
     async fetchOrders () {
       const vm = this
@@ -224,7 +237,6 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      console.log('headers:', headers)
       const params = { state: vm.statusType }
       try {
         await vm.$store.dispatch('ramp/fetchOrders', { orderState: vm.statusType, params: params, headers: headers })
