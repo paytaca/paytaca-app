@@ -88,17 +88,17 @@
         </div>
       </div>
       <div v-if="state === 'view-order'">
-        <FiatOrderConfirm
-          v-if="selectedOrder.is_ad_owner"
-          :order-id="selectedOrder.id"
+        <FiatBuyProcess
+          :order-data="selectedOrder"
+          @back="state = 'order-list'"
         />
-        <FiatStoreBuyProcess
-          v-else-if="selectedOrder.trade_type === 'BUY'"
+        <!-- <FiatStoreBuyProcess
+          v-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
           v-on:back="returnOrderList()"
           @updated="onUpdated"
           @canceled="onCanceled"
-        />
+        /> -->
         <FiatStoreSellProcess
           v-else-if="selectedOrder.trade_type === 'SELL'"
           :order-data="selectedOrder"
@@ -115,6 +115,9 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import FiatOrderConfirm from './FiatOrderConfirm.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
+
+import FiatBuyProcess from './FiatBuyProcess.vue'
+
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import { ref } from 'vue'
@@ -203,6 +206,12 @@ export default {
     vm.wallet = await loadP2PWalletInfo(walletInfo)
     await vm.fetchOrders()
     // vm.fetchUserOrders()
+  },
+  components: {
+    ProgressLoader,
+    FiatStoreBuyProcess,
+    FiatStoreSellProcess,
+    FiatBuyProcess
   },
   methods: {
     async fetchOrders () {

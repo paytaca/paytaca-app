@@ -338,6 +338,19 @@
     </q-card>
   </q-dialog>
 
+  <!-- confirm order create -->
+  <q-dialog persistent v-model="confirmOrderCreate">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Create Order?</div>
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
   <!-- Sending Appeal Confirmation Todo-->
   <!-- <q-dialog full-width persistent v-model="appeal">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
@@ -402,6 +415,7 @@ export default {
       confirmPayment: false,
       confirmCancelOrder: false,
       maxMethodReached: false,
+      confirmOrderCreate: false,
 
       // Input Model
       nickname: '',
@@ -551,6 +565,9 @@ export default {
         case 'confirmCancelOrder':
           vm.confirmCancelOrder = true
           break
+        case 'confirmOrderCreate':
+          vm.confirmOrderCreate = true
+          break
       }
     },
     stageData () {
@@ -581,6 +598,8 @@ export default {
           return 'submit'
         case 'confirmCancelOrder':
           vm.info = vm.data
+          return 'submit'
+        case 'confirmOrderCreate':
           return 'submit'
         default:
           vm.info = vm.selectedPaymentMethods

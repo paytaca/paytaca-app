@@ -45,7 +45,7 @@
           </div>
 
           <!-- Fiat Input -->
-          <div class="q-mt-md q-mx-lg">
+          <div class="q-mt-md q-mx-lg" v-if="!isOwner">
             <div class="xs-font-size subtext q-pb-xs q-pl-sm">Fiat Amount</div>
             <q-input class="q-pb-xs" filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
               <template v-slot:prepend>
@@ -113,6 +113,14 @@
         v-on:submit="recievePaymentMethods"
       />
     </div>
+    <!-- Dialogs -->
+    <div v-if="openDialog">
+      <MiscDialogs
+        :type="dialogType"
+        v-on:back="openDialog = false"
+        v-on:submit="recieveDialogsInfo"
+      />
+    </div>
     <!-- Edit Ad -->
     <div v-if="state === 'edit-ad'">
       <FiatAdsForm
@@ -127,6 +135,7 @@
       <FiatStoreBuyProcess
         :order-data="order"
         @back="onBack"
+        @canceled="onOrderCanceled"
       />
     </div>
    </q-card>
@@ -136,6 +145,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 import { loadP2PWalletInfo, formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -150,7 +160,10 @@ export default {
       isloaded: false,
       state: 'initial',
       fiatAmount: 0,
-      order: null
+      order: null,
+      openDialog: false,
+      dialogType: '',
+      paymentMethods: null
     }
   },
   props: {
@@ -160,7 +173,8 @@ export default {
     ProgressLoader,
     AddPaymentMethods,
     FiatAdsForm,
-    FiatStoreBuyProcess
+    FiatStoreBuyProcess,
+    MiscDialogs
   },
   emits: ['back', 'orderCanceled'],
   computed: {
@@ -174,6 +188,7 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     },
     isOwner () {
+      console.log(this.ad.is_owned)
       return this.ad.is_owned
     }
   },
@@ -186,6 +201,10 @@ export default {
     vm.isloaded = true
   },
   methods: {
+    orderConfirm () {
+      this.dialogType = 'confirmOrderCreate'
+      this.openDialog = true
+    },
     async fetchAd () {
       const vm = this
       const url = `${vm.apiURL}/ad/${vm.adId}`
@@ -224,6 +243,7 @@ export default {
       return true
     },
     async createOrder () {
+      console.log('creating order')
       const vm = this
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
@@ -232,9 +252,14 @@ export default {
         signature: signature,
         timestamp: timestamp
       }
-      const body = {
+      let body = {
         ad: vm.ad.id,
         crypto_amount: vm.cryptoAmount
+      }
+      if (vm.ad.trade_type === 'BUY') {
+        const temp = this.paymentMethods.map(p => p.id)
+        console.log(temp)
+        body.payment_methods = temp
       }
       // console.log('headers:', headers)
       // console.log('body:', body)
@@ -250,17 +275,27 @@ export default {
       this.$emit('back')
     },
     onOrderCanceled () {
+      console.log('onOrderCanceled')
       this.$emit('orderCanceled')
     },
     recievePaymentMethods (item) {
-      console.log(item)
+      console.log('recieving data')
+
+      this.paymentMethods = item
+      console.log(this.paymentMethods)
+      this.createOrder()
+    },
+    recieveDialogsInfo (item) {
+      console.log('here')
+      this.createOrder()
+()
     },
     submit () {
       const vm = this
       switch (vm.ad.trade_type) {
         case 'SELL':
           console.log('create buy order')
-          vm.createOrder()
+          vm.orderConfirm()
           break
         case 'BUY':
           console.log('create sell order')
@@ -282,5 +317,3 @@ export default {
     opacity: .5;
   }
   </style>
-
-<!-- TODO: AD bch balance checker later to prevent insufficient balance order -->

@@ -54,7 +54,7 @@
                         @click="deleteMethod(method)"
                         />
                     </div>
-                    <div class="text-right q-pt-sm"  v-if="type === 'General' && emptyPaymentMethods.length !== 0">
+                    <div class="text-right q-pt-sm"  v-if="type === 'General'">
                       <q-btn
                         outline
                         rounded
@@ -63,7 +63,7 @@
                         icon="done"
                         :color="selectButtonColor(method.payment_type.name)"
                         class="q-ml-xs"
-                        @click="selectMethod(method.payment_type)"
+                        @click="selectMethod(method)"
                         />
                     </div>
                   </div>
@@ -271,12 +271,11 @@ export default {
           break
         case 'confirmPaymentMethod':
           if (vm.type === 'Ads') {
-            console.log('ads')
             vm.$emit('submit', vm.paymentMethods)
-          } else if (vm.type === 'General') {
-            console.log('general')
-            vm.$emit('submit', vm.selectedMethods)
           }
+          break
+        case 'confirmOrderCreate':
+          vm.$emit('submit', vm.selectedMethods)
           break
       }
     },
@@ -287,6 +286,10 @@ export default {
       vm.loading = false
     },
     // opening dialog
+    orderConfirm () {
+      this.dialogType = 'confirmOrderCreate'
+      this.openDialog = true
+    },
     createMethod () {
       this.info = this.paymentMethods.map(p => p.payment_type)
       this.dialogType = 'createPaymentMethod'
@@ -323,15 +326,16 @@ export default {
       this.openDialog = true
     },
     selectMethod (data, index) {
-      const temp = this.selectedMethods.map(p => p.name)
-      if (temp.includes(data.name)) {
-        this.selectedMethods.splice(index, 1)
+      const temp = this.selectedMethods.map(p => p.payment_type.name)
+      if (temp.includes(data.payment_type.name)) {
+        this.selectedMethods = this.selectedMethods.filter(p => p.payment_type.name !== data.payment_type.name)
       } else {
         this.selectedMethods.push(data)
       }
+      console.log(this.selectedMethods)
     },
     selectButtonColor (type) {
-      const temp = this.selectedMethods.map(p => p.name)
+      const temp = this.selectedMethods.map(p => p.payment_type.name)
       return temp.includes(type) ? 'blue-6' : 'grey-6'
     },
     removePaymentMethod (method) {
@@ -480,9 +484,14 @@ export default {
       }
     },
     submitPaymentMethod () {
-      this.dialogType = 'confirmPaymentMethod'
-      this.openDialog = true
-      // this.$emit('submit')
+      if (this.type === 'General') {
+        console.log('here')
+        this.orderConfirm()
+      } else {
+        this.dialogType = 'confirmPaymentMethod'
+        this.openDialog = true
+        // this.$emit('submit')
+      }
     }
   }
 }
