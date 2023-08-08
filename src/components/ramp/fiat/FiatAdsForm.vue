@@ -337,7 +337,6 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
-    console.log('selectedAdId:', vm.selectedAdId)
 
     if (vm.selectedAdId !== null) {
       await vm.fetchAdDetail()
@@ -410,7 +409,6 @@ export default {
         vm.adData.paymentMethods = data.payment_methods
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
         vm.selectedCurrency = data.fiat_currency
-        console.log('adData:', vm.adData)
       } catch (error) {
         console.error(error.response)
         vm.swipeStatus = false
@@ -448,13 +446,14 @@ export default {
       }
     },
     async getInitialMarketPrice () {
-      console.log('initial markeprice')
       const vm = this
       const url = vm.apiURL + '/utils/market-price'
       try {
         const response = await vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
         vm.marketPrice = parseFloat(response.data[0].price)
-        vm.updatePriceValue(vm.adData.priceType)
+        if (vm.adsState === 'create') {
+          vm.updatePriceValue(vm.adData.priceType)
+        }
         console.log(response)
       } catch (error) {
         console.error(error.response)
@@ -540,7 +539,8 @@ export default {
       }
       switch (priceType) {
         case 'FIXED':
-          value = vm.priceAmount
+          if (vm.adsState === 'create') value = vm.priceAmount
+          if (vm.adsState === 'edit') value = vm.adData.fixedPrice
           if (override) value = vm.marketPrice
           vm.priceValue = value
           break
