@@ -91,7 +91,8 @@
         <div v-if="selectedOrder.trade_type === 'BUY'">
           <TransferToEscrowProcess
             v-if="selectedOrder.status === 'Escrow Pending'"
-            :order-id="selectedOrder.id"
+            :wallet="wallet"
+            :order="selectedOrder"
             :amount="transferAmount"
             @back="onBack"
           />
@@ -111,7 +112,8 @@
         <div v-if="selectedOrder.trade_type === 'SELL'">
           <TransferToEscrowProcess
             v-if="selectedOrder.status === 'Escrow Pending'"
-            :order-id="selectedOrder.id"
+            :wallet="wallet"
+            :order="selectedOrder"
             :amount="transferAmount"
             @back="onBack"
           />
@@ -129,7 +131,6 @@
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
-import FiatOrderConfirm from './FiatOrderConfirm.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 import TransferToEscrowProcess from './TransferToEscrowProcess.vue'
@@ -225,7 +226,7 @@ export default {
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
     await vm.fetchOrders()
-    // vm.fetchUserOrders()
+    vm.wallet.balance = (await vm.wallet.wallet.BCH.getBalance()).balance
   },
   methods: {
     async fetchOrders () {

@@ -63,8 +63,8 @@
                 </template>
             </q-input>
         </div>
-        <div v-if="balance" class="row q-mt-sm md-font-size" style="color: grey">
-          Balance: {{ balance }} BCH
+        <div v-if="wallet && wallet.balance" class="row q-mt-sm md-font-size" style="color: grey">
+          Balance: {{ wallet.balance }} BCH
         </div>
         <div class="row" v-if="sendErrors.length > 0">
           <div class="col">
@@ -106,8 +106,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      wallet: null,
-      balance: null,
       adData: null,
       loading: false,
       selectedArbiter: null,
@@ -123,8 +121,8 @@ export default {
     DragSlide
   },
   props: {
-    orderId: {
-      type: Number,
+    order: {
+      type: Object,
       default: null
     },
     amount: {
@@ -134,14 +132,24 @@ export default {
     fees: {
       type: Number,
       default: 0
+    },
+    wallet: {
+      type: Object,
+      default: null
     }
   },
   watch: {
-    transferAmount () {
-      return this.checkSufficientBalance()
-    },
-    balance () {
-      return this.checkSufficientBalance()
+    selectedArbiter () {
+      this.contractAddress = ' '
+      this.generateContractAddress()
+    }
+  },
+  computed: {
+    balanceExceeded () {
+      if (this.transferAmount > parseFloat(this.wallet.balance)) {
+        return true
+      }
+      return false
     }
   },
   async mounted () {
@@ -149,39 +157,19 @@ export default {
     vm.loading = true
     vm.transferAmount = vm.amount
     vm.setupWebsocket()
+    if (vm.order) {
+      vm.selectedArbiter = vm.order.arbiter
+    }
     await vm.fetchArbiters()
     await vm.generateContractAddress()
     if (vm.contractAddress !== ' ') {
       vm.loading = false
     }
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
-    vm.balance = (await vm.wallet.wallet.BCH.getBalance()).balance
   },
   beforeUnmount () {
     this.closeWSConnection()
   },
   methods: {
-    checkSufficientBalance () {
-      if (this.transferAmount > parseFloat(this.balance)) {
-        this.balanceExceeded = true
-      } else {
-        this.balanceExceeded = false
-      }
-    },
-    onSwipe () {
-      this.showDragSlide = false
-      this.showSecurityDialog()
-    },
-    showSecurityDialog () {
-      Dialog.create({
-        component: SecurityCheckDialog
-      })
-        .onOk(() => this.completePayment())
-        .onDismiss(() => {
-          this.showDragSlide = false
-        })
-    },
     async completePayment () {
       // Send crypto to smart contract
       const vm = this
@@ -204,7 +192,7 @@ export default {
       try {
         const response = await vm.$axios.get(url)
         vm.arbiterOptions = response.data
-        if (vm.arbiterOptions.length > 0) {
+        if (!vm.selectedArbiter && vm.arbiterOptions.length > 0) {
           vm.selectedArbiter = vm.arbiterOptions[0]
         }
       } catch (error) {
@@ -223,13 +211,12 @@ export default {
         signature: signature
       }
       vm.loading = true
-      const url = vm.apiURL + '/order/' + vm.orderId + '/generate-contract'
+      const url = vm.apiURL + '/order/' + vm.order.id + '/generate-contract'
       const body = {
         arbiter: vm.selectedArbiter.id
       }
       try {
         const response = await vm.$axios.post(url, body, { headers: headers })
-        console.log('response:', response.data)
         if (response.data.data) {
           const data = response.data.data
           if (data.contract_address) {
@@ -240,8 +227,28 @@ export default {
         console.error(error.response)
       }
     },
+    checkSufficientBalance () {
+      if (this.transferAmount > parseFloat(this.balance)) {
+        this.balanceExceeded = true
+      } else {
+        this.balanceExceeded = false
+      }
+    },
+    onSwipe () {
+      this.showDragSlide = false
+      this.showSecurityDialog()
+    },
+    showSecurityDialog () {
+      Dialog.create({
+        component: SecurityCheckDialog
+      })
+        .onOk(() => this.completePayment())
+        .onDismiss(() => {
+          this.showDragSlide = false
+        })
+    },
     setupWebsocket () {
-      const wsUrl = this.wsURL + this.orderId + '/'
+      const wsUrl = this.wsURL + this.order.id + '/'
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
         console.log('WebSocket connection established to ' + wsUrl)
