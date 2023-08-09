@@ -189,7 +189,7 @@ export default {
   },
   computed: {
     transferAmount () {
-      return this.selectedOrder.crypto_amount
+      return Number(this.selectedOrder.crypto_amount)
     },
     listings () {
       const vm = this

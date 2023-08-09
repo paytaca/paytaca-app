@@ -10,10 +10,11 @@
       </div>
       <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
-      <div :dark="darkMode">
+      <div class="q-mx-lg">
         <div class="row q-mt-md">
             <q-select
-                class="col q-mx-lg"
+                class="col"
+                :dark="darkMode"
                 filled
                 v-model="selectedArbiter"
                 label="Arbiter"
@@ -37,29 +38,48 @@
         <div class="row q-mt-md">
             <q-input
                 readonly
-                class="col q-mx-lg"
+                class="col"
+                :dark="darkMode"
                 filled
                 v-model="contractAddress"
                 label="Contract Address"
-                style="width: 250px;">
+                style="width: 250px;"
+                :loading="!contractAddress || contractAddress === ' '">
             </q-input>
         </div>
         <div class="row q-mt-md">
             <q-input
                 readonly
-                class="col q-mx-lg"
+                class="col"
+                :dark="darkMode"
                 filled
                 v-model="transferAmount"
                 label="Transfer Amount"
+                :error="balanceExceeded"
+                :error-message="balanceExceeded? $t('Balance exceeded') : ''"
                 style="width: 250px;">
                 <template #append>
                     BCH
                 </template>
             </q-input>
         </div>
+        <div v-if="balance" class="row q-mt-sm md-font-size" style="color: grey">
+          Balance: {{ balance }} BCH
+        </div>
+        <div class="row" v-if="sendErrors.length > 0">
+          <div class="col">
+            <ul style="margin-left: -40px; list-style: none;">
+              <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
+                <q-icon name="error" left/>
+                {{ error }}
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
+
       <DragSlide
-        v-if="showDragSlide"
+        v-if="!loading && showDragSlide && contractAddress !== ' '"
         :style="{
           position: 'fixed',
           bottom: 0,
@@ -86,14 +106,16 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
+      wallet: null,
+      balance: null,
       adData: null,
       loading: false,
-      wallet: null,
       selectedArbiter: null,
       arbiterOptions: [],
       contractAddress: ' ',
       transferAmount: ' ',
-      showDragSlide: true
+      showDragSlide: true,
+      sendErrors: []
     }
   },
   emits: ['back', 'submit'],
@@ -114,6 +136,14 @@ export default {
       default: 0
     }
   },
+  watch: {
+    transferAmount () {
+      return this.checkSufficientBalance()
+    },
+    balance () {
+      return this.checkSufficientBalance()
+    }
+  },
   async mounted () {
     const vm = this
     vm.loading = true
@@ -121,12 +151,24 @@ export default {
     vm.setupWebsocket()
     await vm.fetchArbiters()
     await vm.generateContractAddress()
-    vm.loading = false
+    if (vm.contractAddress !== ' ') {
+      vm.loading = false
+    }
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    vm.balance = (await vm.wallet.wallet.BCH.getBalance()).balance
   },
   beforeUnmount () {
     this.closeWSConnection()
   },
   methods: {
+    checkSufficientBalance () {
+      if (this.transferAmount > parseFloat(this.balance)) {
+        this.balanceExceeded = true
+      } else {
+        this.balanceExceeded = false
+      }
+    },
     onSwipe () {
       this.showDragSlide = false
       this.showSecurityDialog()
@@ -141,14 +183,26 @@ export default {
         })
     },
     async completePayment () {
-      console.log('completing payment')
+      // Send crypto to smart contract
+      const vm = this
+      try {
+        const result = await vm.wallet.wallet.BCH.sendBch(vm.transferAmount, vm.contractAddress)
+        if (result.error.indexOf('not enough balance in sender') > -1) {
+          vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
+        } else if (result.error.indexOf('has insufficient priority') > -1) {
+          vm.sendErrors.push('Not enough balance to cover the transaction fee')
+        } else {
+          vm.sendErrors.push(result.error)
+        }
+      } catch (error) {
+        console.error(error)
+      }
     },
     async fetchArbiters () {
       const vm = this
       const url = vm.apiURL + '/arbiter'
       try {
         const response = await vm.$axios.get(url)
-        console.log('response:', response.data)
         vm.arbiterOptions = response.data
         if (vm.arbiterOptions.length > 0) {
           vm.selectedArbiter = vm.arbiterOptions[0]
@@ -173,15 +227,14 @@ export default {
       const body = {
         arbiter: vm.selectedArbiter.id
       }
-      console.log('url:', url)
-      console.log('body:', body)
       try {
         const response = await vm.$axios.post(url, body, { headers: headers })
         console.log('response:', response.data)
-        const data = response.data.data
-        console.log('contract_address:', data.contract_address)
-        if (data.contract_address) {
-          vm.contractAddress = data.contract_address
+        if (response.data.data) {
+          const data = response.data.data
+          if (data.contract_address) {
+            vm.contractAddress = data.contract_address
+          }
         }
       } catch (error) {
         console.error(error.response)
@@ -195,11 +248,10 @@ export default {
       }
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        console.log('data:', data)
-        const price = parseFloat(data.price)
-        if (price) {
-          this.marketPrice = price.toFixed(2)
-          console.log('Updated market price to :', this.marketPrice)
+        const contractAddress = data.result.contract_address
+        if (contractAddress) {
+          this.contractAddress = contractAddress
+          console.log('Updated contract address to :', this.contractAddress)
         }
       }
       this.websocket.onclose = () => {
