@@ -88,11 +88,15 @@
         </div>
       </div>
       <div v-if="state === 'view-order'">
-        <FiatBuyProcess
+        <FiatProcessOrder
+          :order-data="selectedOrder"
+          @back="returnOrderList()"
+        />
+        <!-- <FiatBuyProcess
           v-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
           @back="state = 'order-list'"
-        />
+        /> -->
         <!-- <FiatStoreBuyProcess
           v-if="selectedOrder.trade_type === 'BUY'"
           :order-data="selectedOrder"
@@ -100,11 +104,13 @@
           @updated="onUpdated"
           @canceled="onCanceled"
         /> -->
-        <FiatSellProcess
+        <!-- <FiatSellProcess
           v-if="selectedOrder.trade_type === 'SELL'"
           :order-data="selectedOrder"
           @back="state = 'order-list'"
-        />
+        /> -->
+
+
         <!-- <FiatStoreSellProcess
           v-if="selectedOrder.trade_type === 'SELL'"
           :order-data="selectedOrder"
@@ -117,11 +123,8 @@
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
-import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
-import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 
-import FiatBuyProcess from './FiatBuyProcess.vue'
-import FiatSellProcess from './FiatSellProcess.vue'
+import FiatProcessOrder from './FiatProcessOrder.vue'
 
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -211,10 +214,7 @@ export default {
   },
   components: {
     ProgressLoader,
-    FiatStoreBuyProcess,
-    FiatStoreSellProcess,
-    FiatBuyProcess,
-    FiatSellProcess
+    FiatProcessOrder
   },
   methods: {
     async fetchOrders () {
@@ -381,13 +381,14 @@ export default {
     //   })
     //   return sorted
     // },
-    returnOrderList () {
-      this.loading = true
+    async returnOrderList () {
+      const vm = this
+      vm.state = 'order-list'
+      vm.loading = true
 
-      // this.fetchUserOrders()
-      this.state = 'order-list'
+      await vm.resetAndRefetchListings()
 
-      this.loading = false
+      vm.loading = false
     }
   }
 }
