@@ -996,20 +996,34 @@ export class EscrowContract {
     this.settlementType = data?.settlement_type
   }
 
+  get sats() {
+    return {
+      amount: this.amountSats,
+      serviceFee: this.serviceFeeSats,
+      arbitrationFee: this.arbitrationFeeSats,
+      deliveryFee: this.deliveryFeeKeyNft?.amount || 0,
+      networkFee: 1000,
+    }
+  }
+
   get bchAmounts() {
     const SATS_PER_BCH = 10 ** 8
     const toBch = val => Math.round(val) / SATS_PER_BCH
     const data = {
-      amount: toBch(this.amountSats),
-      serviceFee: toBch(this.serviceFeeSats),
-      arbitrationFee: toBch(this.arbitrationFeeSats),
-      deliveryFee: toBch(this.deliveryFeeKeyNft?.amount || 0),
-      networkFee: toBch(1000),
-      total: 0,
+      amount: toBch(this.sats.amount),
+      serviceFee: toBch(this.sats.serviceFee),
+      arbitrationFee: toBch(this.sats.arbitrationFee),
+      deliveryFee: toBch(this.sats.deliveryFee),
+      networkFee: toBch(this.sats.networkFee),
+      total: toBch(
+        this.sats.amount +
+        this.sats.serviceFee +
+        this.sats.arbitrationFee +
+        this.sats.deliveryFee +
+        this.sats.networkFee,
+      ),
     }
 
-    data.total = data.amount + data.serviceFee + data.arbitrationFee + data.deliveryFee + data.networkFee
-    data.total = toBch(data.total * SATS_PER_BCH)
     return data
   }
 
