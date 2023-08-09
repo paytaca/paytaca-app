@@ -548,10 +548,14 @@ export default {
           vm.info = vm.data
           vm.confirmRemovePaymentMethod = true
           break
-        case 'editNickname':
-          vm.nickname = vm.$store.getters['ramp/getUser'].nickname
+        case 'editNickname': {
+          const user = vm.$store.getters['ramp/getUser']
+          if (user) {
+            vm.nickname = user.nickname
+          }
           vm.editNickname = true
           break
+        }
         case 'viewProfile':
           vm.viewProfile = true
           break
