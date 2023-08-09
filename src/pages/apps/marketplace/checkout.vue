@@ -1230,7 +1230,7 @@ function savePayment() {
 const payments = ref([].map(Payment.parse))
 const payment = computed(() => {
   return payments.value.find(payment => {
-    return payment.status == 'pending' && payment.amount == checkout.value.balanceToPay
+    return payment.status == 'pending' && payment.totalAmount == checkout.value.balanceToPay
   })
 })
 const showPaymentsListDialog = ref(false)
@@ -1272,7 +1272,7 @@ const createPayment = debounce(() => {
 
   loadingState.value.creatingPayment = true
   loadingMsg.value = 'Creating payment'
-  return backend.post('connecta/payments/', data)
+  return backend.post(`connecta/checkouts/${checkout.value.id}/payment/`, data)
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
       payments.value.unshift(Payment.parse(response?.data))

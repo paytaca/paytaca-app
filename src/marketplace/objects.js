@@ -861,6 +861,7 @@ export class Payment {
    * @param {String} data.status
    * @param {Object} data.bch_price
    * @param {Number} data.amount
+   * @param {Number} data.markup_amount
    * @param {String} data.transaction_timestamp
    * @param {String} data.created_at
    * @param {String} data.escrow_contract_address
@@ -874,6 +875,7 @@ export class Payment {
     this.status = data?.status
     this.bchPrice = BchPrice.parse(data?.bch_price)
     this.amount = data?.amount
+    this.markupAmount = data?.markup_amount
     if (data?.transaction_timestamp) this.transactionTimestamp = new Date(data?.transaction_timestamp)
     else if (this.transactionTimestamp) delete this.transactionTimestamp
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
@@ -885,6 +887,11 @@ export class Payment {
     const satsPerBch = 10 ** 8
     const bch = this.amount / this.bchPrice.price
     return Math.round(bch * satsPerBch) / satsPerBch
+  }
+
+  get totalAmount() {
+    const totalAmount = (parseFloat(this.amount) || 0) + (parseFloat(this.markupAmount) || 0)
+    return Math.round(totalAmount * 10 ** 3) / 10 ** 3
   }
 
   get isEscrow() {
