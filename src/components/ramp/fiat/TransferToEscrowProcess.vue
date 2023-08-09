@@ -70,11 +70,6 @@
         @swiped="onSwipe"
         text="Swipe To Escrow"
       />
-      <SecurityCheckDialog
-        v-if="showSecurityDialog"
-        :show-dialog="showSecurityDialog"
-        :dark-mode="darkMode"
-      />
     </div>
     <!-- else progress loader -->
   </template>
@@ -83,6 +78,7 @@ import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from 'src/wallet/ramp/signature'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import { Dialog } from 'quasar'
 
 export default {
   data () {
@@ -93,19 +89,16 @@ export default {
       adData: null,
       loading: false,
       wallet: null,
-      swipeStatus: false,
       selectedArbiter: null,
       arbiterOptions: [],
       contractAddress: ' ',
       transferAmount: ' ',
-      showDragSlide: true,
-      showSecurityDialog: false
+      showDragSlide: true
     }
   },
   emits: ['back', 'submit'],
   components: {
-    DragSlide,
-    SecurityCheckDialog
+    DragSlide
   },
   props: {
     orderId: {
@@ -135,11 +128,19 @@ export default {
   },
   methods: {
     onSwipe () {
-      console.log('onSwipe')
       this.showDragSlide = false
-      this.showSecurityDialog = true
+      this.showSecurityDialog()
     },
-    completePayment () {
+    showSecurityDialog () {
+      Dialog.create({
+        component: SecurityCheckDialog
+      })
+        .onOk(() => this.completePayment())
+        .onDismiss(() => {
+          this.showDragSlide = false
+        })
+    },
+    async completePayment () {
       console.log('completing payment')
     },
     async fetchArbiters () {
