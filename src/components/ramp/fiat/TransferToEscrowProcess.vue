@@ -142,6 +142,8 @@ export default {
     selectedArbiter () {
       this.contractAddress = ' '
       this.generateContractAddress()
+      // this.closeWSConnection()
+      // this.setupWebsocket()
     }
   },
   computed: {
@@ -157,9 +159,7 @@ export default {
     vm.loading = true
     vm.transferAmount = vm.amount
     vm.setupWebsocket()
-    if (vm.order) {
-      vm.selectedArbiter = vm.order.arbiter
-    }
+    await vm.fetchOrderDetail()
     await vm.fetchArbiters()
     await vm.generateContractAddress()
     if (vm.contractAddress !== ' ') {
@@ -186,6 +186,21 @@ export default {
         console.error(error)
       }
     },
+    async fetchOrderDetail () {
+      const vm = this
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash
+      }
+      vm.loading = true
+      const url = vm.apiURL + '/order/' + vm.order.id
+      try {
+        const response = await vm.$axios.get(url, { headers: headers })
+        console.log('response:', response.data)
+        vm.selectedArbiter = response.data.order.arbiter
+      } catch (error) {
+        console.error(error.response)
+      }
+    },
     async fetchArbiters () {
       const vm = this
       const url = vm.apiURL + '/arbiter'
@@ -201,12 +216,10 @@ export default {
     },
     async generateContractAddress () {
       const vm = this
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
       const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'ORDER_LIST', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'CONTRACT_CREATE', timestamp)
       const headers = {
-        'wallet-hash': wallet.walletHash,
+        'wallet-hash': vm.wallet.walletHash,
         timestamp: timestamp,
         signature: signature
       }
