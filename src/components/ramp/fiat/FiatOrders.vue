@@ -89,13 +89,24 @@
       </div>
       <div v-if="state === 'view-order'">
         <div v-if="selectedOrder.trade_type === 'BUY'">
-          <TransferToEscrowProcess
-            v-if="selectedOrder.status === 'Escrow Pending'"
-            :wallet="wallet"
-            :order="selectedOrder"
-            :amount="transferAmount"
-            @back="onBack"
-          />
+          <div v-if="selectedOrder.is_ad_owner">
+            <TransferToEscrowProcess
+              v-if="selectedOrderStep === 'Confirmed'"
+              :wallet="wallet"
+              :order="selectedOrder"
+              :amount="transferAmount"
+              @back="onBack"
+              @success="onEscrowSuccess"
+            />
+            <VerifyEscrowTx
+              v-if="selectedOrderStep === 'Escrow Pending'"
+              :wallet="wallet"
+              :order-id="selectedOrder.id"
+              :tx-id="transactionId"
+              @back="onBack"
+              @success="onVerifyTxSuccess"
+            />
+          </div>
           <FiatBuyProcess
             v-else
             :order-data="selectedOrder"
@@ -110,13 +121,24 @@
           @canceled="onCanceled"
         /> -->
         <div v-if="selectedOrder.trade_type === 'SELL'">
-          <TransferToEscrowProcess
-            v-if="selectedOrder.status === 'Escrow Pending'"
-            :wallet="wallet"
-            :order="selectedOrder"
-            :amount="transferAmount"
-            @back="onBack"
-          />
+          <div v-if="selectedOrder.is_ad_owner">
+            <TransferToEscrowProcess
+              v-if="selectedOrderStep === 'Confirmed'"
+              :wallet="wallet"
+              :order="selectedOrder"
+              :amount="transferAmount"
+              @back="onBack"
+              @success="onEscrowSuccess"
+            />
+            <VerifyEscrowTx
+              v-if="selectedOrderStep === 'Escrow Pending'"
+              :wallet="wallet"
+              :order-id="selectedOrder.id"
+              :tx-id="transactionId"
+              @back="onBack"
+              @success="onVerifyTxSuccess"
+            />
+          </div>
           <FiatStoreSellProcess
             v-else
             :order-data="selectedOrder"
@@ -134,6 +156,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 import TransferToEscrowProcess from './TransferToEscrowProcess.vue'
+import VerifyEscrowTx from './VerifyEscrowTx.vue'
 import FiatBuyProcess from './FiatBuyProcess.vue'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -150,10 +173,11 @@ export default {
   },
   components: {
     ProgressLoader,
-    FiatStoreBuyProcess,
+    // FiatStoreBuyProcess,
     FiatStoreSellProcess,
     FiatBuyProcess,
-    TransferToEscrowProcess
+    TransferToEscrowProcess,
+    VerifyEscrowTx
   },
   props: {
     initStatusType: {
@@ -171,7 +195,8 @@ export default {
       statusType: this.initStatusType,
       state: 'order-list',
       transactionType: '',
-      // listings: [],
+      transactionId: '',
+      selectedOrderStep: null,
       loading: false,
       totalPages: null,
       pageNumber: null
@@ -217,11 +242,6 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
-    console.log('initStatusType:', vm.initStatusType)
-    console.log('statusType:', vm.statusType)
-    // if (vm.initStatusType) {
-    //   vm.statusType = vm.initStatusType
-    // }
     vm.updatePaginationValues()
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
@@ -291,6 +311,15 @@ export default {
       vm.updatePaginationValues()
       vm.loading = false
     },
+    onEscrowSuccess (txid) {
+      console.log('onEscrowSubmit:', txid)
+      this.transactionId = txid
+    },
+    onVerifyTxSuccess (status) {
+      console.log('onVerifyTxSuccess:', status)
+      this.state = 'order-list'
+      // this.selectedOrderStep = status
+    },
     onBack () {
       this.state = 'order-list'
     },
@@ -326,6 +355,8 @@ export default {
       console.log('selectedOrder:', data)
       this.selectedOrder = data
       this.state = 'view-order'
+      this.selectedOrderStep = this.selectedOrder.status
+      console.log('this.selectedOrderStep:', this.selectedOrderStep)
     },
     getElapsedTime (expirationDate) {
       const currentTime = new Date().getTime() // Replace with your start timestamp
@@ -384,17 +415,6 @@ export default {
       // console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
       return lockedPrice * cryptoAmount
     },
-    // filteredListings () {
-    //   const vm = this
-    //   const sorted = vm.listings.filter(function (listing) {
-    //     if (vm.statusType === 'ONGOING') {
-    //       return !vm.isCompleted(listing.status)
-    //     } else {
-    //       return vm.isCompleted(listing.status)
-    //     }
-    //   })
-    //   return sorted
-    // },
     returnOrderList () {
       this.loading = true
 

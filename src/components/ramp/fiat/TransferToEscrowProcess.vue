@@ -116,7 +116,7 @@ export default {
       sendErrors: []
     }
   },
-  emits: ['back', 'submit'],
+  emits: ['back', 'success'],
   components: {
     DragSlide
   },
@@ -142,6 +142,7 @@ export default {
     selectedArbiter () {
       this.contractAddress = ' '
       this.generateContractAddress()
+      // TODO: subscribe to specific order contract's arbiter
       // this.closeWSConnection()
       // this.setupWebsocket()
     }
@@ -165,6 +166,7 @@ export default {
     if (vm.contractAddress !== ' ') {
       vm.loading = false
     }
+    console.log('selectedOrder:', vm.order)
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -182,8 +184,26 @@ export default {
         } else {
           vm.sendErrors.push(result.error)
         }
+        // const txid = result.transactionId
+        const txid = '04091977eb623861ca9138f12c2da841337a4c5d4b0d7452ca18c01078623xxx'
+        await vm.escrowPendingOrder()
+        vm.$emit('success', txid)
       } catch (error) {
         console.error(error)
+      }
+    },
+    async escrowPendingOrder () {
+      const vm = this
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash
+      }
+      vm.loading = true
+      const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
+      try {
+        const response = await vm.$axios.post(url, { headers: headers })
+        console.log('escrowPendingOrder response:', response.data)
+      } catch (error) {
+        console.error(error.response)
       }
     },
     async fetchOrderDetail () {
