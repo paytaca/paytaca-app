@@ -45,7 +45,6 @@
     <div v-else class="q-px-lg">
       <!-- Buyer Waiting Page -->
       <StandByDisplay
-        v-if="state === STATUS_CODE.SUBMITTED"
         :order-data="order"
       />
     </div>
