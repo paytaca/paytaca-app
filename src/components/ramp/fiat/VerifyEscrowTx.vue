@@ -1,13 +1,13 @@
 <template>
     <div class="q-pb-md">
-      <div>
+      <!-- <div>
         <q-btn
           flat
           padding="md"
           icon="close"
           @click="$emit('back')"
         />
-      </div>
+      </div> -->
       <div class="text-center lg-font-size bold-text">VERIFYING TRANSFER</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
       <div class="q-mx-lg">

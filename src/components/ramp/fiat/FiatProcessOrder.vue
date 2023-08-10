@@ -16,18 +16,36 @@
 
   <!-- Order Process Pages -->
   <div v-if="isloaded">
-    <!-- Ad Owner Confirm / Decline -->
-    <RecieveOrder
-      v-if="state === 'orderConfirmDecline'"
-      :order-data="order"
-      :ad-data="ad"
-      @confirm="confirmingOrder"
-      @cancel="cancellingOrder"
-    />
-
-    <!-- Buyer Waiting Page -->
-    <div v-if="state === 'standByView'" class="q-px-lg">
+    <div v-if="order.is_ad_owner">
+      <!-- Ad Owner Confirm / Decline -->
+      <ReceiveOrder
+        v-if="selectedOrderStep === statusCodes.submitted"
+        :order-data="order"
+        :ad-data="ad"
+        @confirm="confirmingOrder"
+        @cancel="cancellingOrder"
+      />
+      <TransferToEscrowProcess
+        v-if="selectedOrderStep === statusCodes.confirmed"
+        :wallet="wallet"
+        :order="order"
+        :amount="transferAmount"
+        @back="onBack"
+        @success="onEscrowSuccess"
+      />
+      <VerifyEscrowTx
+        v-if="selectedOrderStep === statusCodes.escrowPending"
+        :wallet="wallet"
+        :order-id="order.id"
+        :tx-id="transactionId"
+        @back="onBack"
+        @success="onVerifyTxSuccess"
+      />
+    </div>
+    <div v-else class="q-px-lg">
+      <!-- Buyer Waiting Page -->
       <StandByDisplay
+        v-if="selectedOrderStep === statusCodes.submitted"
         :order-data="order"
       />
     </div>
@@ -42,11 +60,12 @@
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
-
+import { formatCurrency } from 'src/wallet/ramp'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import RecieveOrder from './RecieveOrder.vue'
+import ReceiveOrder from './ReceiveOrder.vue'
+import TransferToEscrowProcess from './TransferToEscrowProcess.vue'
+import VerifyEscrowTx from './VerifyEscrowTx.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import StandByDisplay from './StandByDisplay.vue'
 
@@ -64,22 +83,40 @@ export default {
       ad: null,
       order: null,
       contract: null,
-      wallet: null
+      // wallet: null,
+
+      transactionId: '',
+      selectedOrderStep: null,
+      statusCodes: {
+        submitted: 'SBM',
+        confirmed: 'CNF',
+        escrowPending: 'ESCRW_PN',
+        escrowed: 'ESCRW'
+      }
     }
   },
   components: {
-    RecieveOrder,
-    StandByDisplay,
     ProgressLoader,
-    MiscDialogs
+    MiscDialogs,
+    ReceiveOrder,
+    TransferToEscrowProcess,
+    VerifyEscrowTx,
+    StandByDisplay
   },
   props: {
+    wallet: {
+      type: Object,
+      default: null
+    },
     orderData: {
       type: Object,
       default: null
     }
   },
   computed: {
+    transferAmount () {
+      return Number(this.order.crypto_amount)
+    },
     getAdLimit () {
       return formatCurrency(this.ad.trade_floor, this.order.fiat_currency.symbol) + ' - ' + formatCurrency(this.ad.trade_ceiling, this.order.fiat_currency.symbol)
     },
@@ -98,18 +135,16 @@ export default {
   async mounted () {
     const vm = this
 
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    // const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    // vm.wallet = await loadP2PWalletInfo(walletInfo)
 
-    if (!vm.orderData) {
-      await vm.fetchOrderData()
-    } else {
-      vm.order = vm.orderData
-    }
-
+    vm.order = vm.orderData
+    vm.fetchOrderData()
     await vm.fetchAdData()
     this.checkStep()
-    console.log(vm.order)
+    this.selectedOrderStep = this.order.status.value
+    console.log('order:', vm.order)
+    console.log('selectedOrderStep:', this.selectedOrderStep)
     vm.isloaded = true
   },
   methods: {
@@ -130,11 +165,9 @@ export default {
           break
       }
     },
-
     // API CALLS
     async fetchOrderData () {
       const vm = this
-
       await vm.$axios.get(vm.apiURL + '/order/' + vm.orderData.id, {
         headers: {
           'wallet-hash': vm.wallet.walletHash
@@ -176,13 +209,10 @@ export default {
     },
     async confirmOrder () {
       const vm = this
-
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
-
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
-
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
@@ -192,6 +222,9 @@ export default {
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           console.log(response)
+          if (response.data.status === 'CNF') {
+            vm.selectedOrderStep = 'Confirmed'
+          }
         })
         .catch(error => {
           console.log(error)
@@ -215,6 +248,9 @@ export default {
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           console.log(response)
+          // if (response.data.status === 'CNF') {
+          //   vm.selectedOrderStep = 'Confirmed'
+          // }
         })
         .catch(error => {
           console.log(error)
@@ -269,6 +305,19 @@ export default {
         return false
       }
       return true
+    },
+    onEscrowSuccess (data) {
+      console.log('onEscrowSubmit:', data)
+      this.transactionId = data.txid
+      this.selectedOrderStep = data.status
+    },
+    onVerifyTxSuccess (status) {
+      console.log('onVerifyTxSuccess:', status)
+      this.state = 'order-list'
+      this.selectedOrderStep = status
+    },
+    onBack () {
+      this.state = 'order-list'
     }
   }
 }

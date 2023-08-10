@@ -1,13 +1,13 @@
 <template>
     <div class="q-pb-md">
-      <div>
+      <!-- <div>
         <q-btn
           flat
           padding="md"
           icon="close"
           @click="$emit('back')"
         />
-      </div>
+      </div> -->
       <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
       <div class="q-mx-lg">
@@ -112,6 +112,7 @@ export default {
       arbiterOptions: [],
       contractAddress: ' ',
       transferAmount: ' ',
+      transactionId: null,
       showDragSlide: true,
       sendErrors: []
     }
@@ -184,24 +185,33 @@ export default {
         } else {
           vm.sendErrors.push(result.error)
         }
-        // const txid = result.transactionId
-        const txid = '04091977eb623861ca9138f12c2da841337a4c5d4b0d7452ca18c01078623xxx'
-        await vm.escrowPendingOrder()
-        vm.$emit('success', txid)
+        vm.transactionId = result.transactionId
+        // await vm.escrowPendingOrder()
       } catch (error) {
         console.error(error)
       }
+      await vm.escrowPendingOrder()
     },
     async escrowPendingOrder () {
       const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(this.wallet.privateKeyWif, 'ORDER_ESCROW_PENDING', timestamp)
       const headers = {
-        'wallet-hash': vm.wallet.walletHash
+        'wallet-hash': this.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
       }
+      console.log('headers:', headers)
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
       try {
-        const response = await vm.$axios.post(url, { headers: headers })
+        const response = await vm.$axios.post(url, null, { headers: headers })
         console.log('escrowPendingOrder response:', response.data)
+        const result = {
+          txid: vm.transactionId,
+          status: response.data.status
+        }
+        vm.$emit('success', result)
       } catch (error) {
         console.error(error.response)
       }
