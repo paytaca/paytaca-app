@@ -302,6 +302,7 @@ export default {
         if (contractAddress) {
           this.contractAddress = contractAddress
           console.log('Updated contract address to :', this.contractAddress)
+          this.loading = false
         }
       }
       this.websocket.onclose = () => {

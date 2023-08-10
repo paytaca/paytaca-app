@@ -19,14 +19,14 @@
     <div v-if="order.is_ad_owner">
       <!-- Ad Owner Confirm / Decline -->
       <ReceiveOrder
-        v-if="selectedOrderStep === statusCodes.submitted"
+        v-if="state === STATUS_CODE.SUBMITTED"
         :order-data="order"
         :ad-data="ad"
         @confirm="confirmingOrder"
         @cancel="cancellingOrder"
       />
       <TransferToEscrowProcess
-        v-if="selectedOrderStep === statusCodes.confirmed"
+        v-if="state === STATUS_CODE.CONFIRMED"
         :wallet="wallet"
         :order="order"
         :amount="transferAmount"
@@ -34,7 +34,7 @@
         @success="onEscrowSuccess"
       />
       <VerifyEscrowTx
-        v-if="selectedOrderStep === statusCodes.escrowPending"
+        v-if="state === STATUS_CODE.ESCROW_PENDING"
         :wallet="wallet"
         :order-id="order.id"
         :tx-id="transactionId"
@@ -45,7 +45,7 @@
     <div v-else class="q-px-lg">
       <!-- Buyer Waiting Page -->
       <StandByDisplay
-        v-if="selectedOrderStep === statusCodes.submitted"
+        v-if="state === STATUS_CODE.SUBMITTED"
         :order-data="order"
       />
     </div>
@@ -87,11 +87,11 @@ export default {
 
       transactionId: '',
       selectedOrderStep: null,
-      statusCodes: {
-        submitted: 'SBM',
-        confirmed: 'CNF',
-        escrowPending: 'ESCRW_PN',
-        escrowed: 'ESCRW'
+      STATUS_CODE: {
+        SUBMITTED: 'SBM',
+        CONFIRMED: 'CNF',
+        ESCROW_PENDING: 'ESCRW_PN',
+        ESCROWED: 'ESCRW'
       }
     }
   },
@@ -139,20 +139,22 @@ export default {
     // vm.wallet = await loadP2PWalletInfo(walletInfo)
 
     vm.order = vm.orderData
-    vm.fetchOrderData()
+    await vm.fetchOrderData()
     await vm.fetchAdData()
     this.checkStep()
-    this.selectedOrderStep = this.order.status.value
-    console.log('order:', vm.order)
-    console.log('selectedOrderStep:', this.selectedOrderStep)
+    this.updateStep(this.order.status.value)
     vm.isloaded = true
   },
   methods: {
     // STEP CHECKER
+    updateStep (status) {
+      this.state = status
+      console.log('state:', this.state)
+    },
     checkStep () {
       const vm = this
 
-      switch (vm.order.status) {
+      switch (vm.order.status.value) {
         case 'Submitted':
           if (this.order.is_ad_owner) {
             vm.state = 'orderConfirmDecline'
@@ -223,7 +225,7 @@ export default {
         .then(response => {
           console.log(response)
           if (response.data.status === 'CNF') {
-            vm.selectedOrderStep = 'Confirmed'
+            vm.updateStep(response.data.status)
           }
         })
         .catch(error => {
@@ -248,8 +250,8 @@ export default {
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           console.log(response)
-          // if (response.data.status === 'CNF') {
-          //   vm.selectedOrderStep = 'Confirmed'
+          // if (response.data.status === 'CNCL') {
+          //   vm.updateStep(response.data.status)
           // }
         })
         .catch(error => {
@@ -309,12 +311,12 @@ export default {
     onEscrowSuccess (data) {
       console.log('onEscrowSubmit:', data)
       this.transactionId = data.txid
-      this.selectedOrderStep = data.status
+      this.updateStep(data.status)
     },
     onVerifyTxSuccess (status) {
       console.log('onVerifyTxSuccess:', status)
       this.state = 'order-list'
-      this.selectedOrderStep = status
+      this.updateStep(status)
     },
     onBack () {
       this.state = 'order-list'
