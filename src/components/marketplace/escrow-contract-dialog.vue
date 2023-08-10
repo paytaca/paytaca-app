@@ -8,53 +8,50 @@
         </div>
         <q-tab-panels v-model="tab" style="background: none;" animated>
           <q-tab-panel name="details" class="q-pa-none">
-            <div class="row items-center justify-end">
+            <div class="row items-center">
               <q-btn
-                v-if="escrowContract?.isSettled"
+                v-if="escrowContract?.isSettled || escrowContract?.isFunded"
                 flat
-                color="green"
                 no-caps
-                rounded
-                padding="xs sm"
-              >
-                {{ escrowContract?.settlementType == 'released' ? 'Payment received' : 'Refunded' }}
-                <q-icon :name="escrowContract?.settlementType == 'released' ? 'check_circle' : 'mdi-cash-refund'" class="q-ml-xs"/>
-                <q-menu :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
-                  <div class="ellipsis">
-                    Transaction:
-                    {{ escrowContract?.settlementTxid }}
-                  </div>
-                  <q-btn
-                    flat padding="none"
-                    no-caps label="View transaction"
-                    :href="escrowContract?.settlementTxLink"
-                    target="_blank"
-                    class="text-underline"
-                  />
-                </q-menu>
-              </q-btn>
-              <q-btn
-                v-if="escrowContract?.isFunded"
-                flat
                 color="green"
-                no-caps
-                rounded
-                padding="xs sm"
+                padding="xs none"
               >
-                Payment sent
-                <q-icon name="credit_score" class="q-ml-xs"/>
+                <template v-if="escrowContract?.isSettled">
+                  {{ escrowContract?.settlementType == 'released' ? 'Payment released' : 'Payment refunded' }}
+                  <q-icon :name="escrowContract?.settlementType == 'released' ? 'check_circle' : 'mdi-cash-refund'" class="q-ml-xs"/>
+                </template>
+                <template v-else-if="escrowContract?.isFunded">
+                  Payment received by escrow
+                  <q-icon name="credit_score" class="q-ml-xs"/>
+                </template>
+
                 <q-menu :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
-                  <div class="ellipsis">
-                    Transaction:
-                    {{ escrowContract?.fundingTxid }}
-                  </div>
-                  <q-btn
-                    flat padding="none"
-                    no-caps label="View transaction"
-                    :href="escrowContract?.fundingTxLink"
-                    target="_blank"
-                    class="text-underline"
+                  <template v-if="escrowContract?.settlementTxid">
+                    <div class="text-caption top">Settlement transaction:</div>
+                    <div class="ellipsis">{{ escrowContract?.settlementTxid }}</div>
+                    <q-btn
+                      flat padding="none"
+                      no-caps label="View transaction"
+                      :href="escrowContract?.settlementTxLink"
+                      target="_blank"
+                      class="text-underline"
+                    />
+                  </template>
+                  <q-separator
+                    v-if="escrowContract?.settlementTxid && escrowContract?.fundingTxid"
+                    spaced
                   />
+                  <template v-if="escrowContract?.fundingTxid">
+                    <div class="text-caption top">Payment transaction:</div>
+                    <div class="ellipsis">{{ escrowContract?.fundingTxid }}</div>
+                    <q-btn
+                      flat padding="none"
+                      no-caps label="View transaction"
+                      :href="escrowContract?.fundingTxLink"
+                      target="_blank"
+                      class="text-underline"
+                    />
+                  </template>
                 </q-menu>
               </q-btn>
             </div>

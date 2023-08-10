@@ -411,6 +411,17 @@
             <div>Creating payment</div>
           </div>
           <template v-if="bchPaymentData.url">
+            <div v-if="payment.escrowContractAddress" class="q-mt-sm">
+              <q-card
+                :class="['q-pa-sm', darkMode ? 'pt-dark-card text-white' : 'text-black']"
+                :flat="!darkMode"
+              >
+                <q-icon name="info" size="1.5em"/> Escrow payment
+              </q-card>
+              <q-menu :class="[ 'q-pa-sm', darkMode ? 'pt-dark' : 'text-black' ]">
+                Payment sent will be temporarily held in escrow while the order is being completed.
+              </q-menu>
+            </div>
             <q-btn
               :disable="loadingState.creatingPayment"
               no-caps label="Pay with wallet"
@@ -708,6 +719,7 @@ const $q = useQuasar()
 const $router = useRouter()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
 const initialized = ref(false)
 onMounted(() => refreshPage())

@@ -693,7 +693,7 @@ export class Order {
   }
 
   get total() {
-    return Number(this?.payment?.deliveryFee) + Number(this.subtotal)
+    return Number(this?.payment?.deliveryFee) + Number(this.markupSubtotal)
   }
 
   get totalPayable() {
@@ -710,9 +710,16 @@ export class Order {
     return Math.round(change * 10 ** 3) / 10 ** 3
   }
 
+  get totalUnpaid() {
+    const totalPaid = parseFloat(this.totalPaid || 0)
+    return Math.max(this.total - totalPaid, 0)
+  }
+
   get paymentStatus() {
     if (this.totalPaid >= this.total) return 'paid'
+    if (this.totalPendingPayment >= this.totalUnpaid) return 'payment_in_escrow'
     if (this.totalPaid > 0) return 'partially_paid'
+    if (this.totalPendingPayment > 0) return 'partial_payment_in_escrow'
     return 'payment_pending'
   }
 

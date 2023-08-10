@@ -32,7 +32,7 @@
             </q-chip>
           </div>
         </div>
-        <q-btn flat icon="more_vert" padding="xs" rounded>
+        <q-btn flat icon="more_vert" padding="xs" rounded class="q-r-mr-md">
           <q-menu :class="[ darkMode ? 'pt-dark' : 'text-black' ]">
             <q-item
               v-close-popup clickable
@@ -47,7 +47,12 @@
           </q-menu>
         </q-btn>
       </div>
-      <div class="q-px-sm text-caption text-grey">#{{ order.id }}</div>
+      <div class="row items-center q-px-sm">
+        <div v-if="order?.createdAt" class="text-caption text-grey q-space">
+          {{ formatTimestampToText(order?.createdAt) }}
+        </div>
+        <div class="text-caption text-grey">#{{ order.id }}</div>
+      </div>
       <q-banner v-if="order?.status == 'cancelled' && order?.cancelReason" class="text-white bg-red q-ma-sm rounded-borders">
         <div class="text-caption top">Cancel reason:</div>
         <div class="q-mt-xs">{{ order?.cancelReason }}</div>
@@ -216,7 +221,7 @@
 <script setup>
 import { backend } from 'src/marketplace/backend'
 import { Delivery, Order, Payment, Storefront } from 'src/marketplace/objects'
-import { formatDateRelative, parsePaymentStatusColor } from 'src/marketplace/utils'
+import { formatDateRelative, formatTimestampToText, parsePaymentStatusColor } from 'src/marketplace/utils'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
@@ -291,13 +296,11 @@ const orderAmounts = computed(() => {
   const data = {
     subtotal: { currency: order.value?.markupSubtotal || 0, bch: 0 },
     deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
-    total: { currency: 0, bch: 0 },
+    total: { currency: order.value?.total, bch: 0 },
     totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
     totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
     change: { currency: parseFloat(order.value.change), bch: 0}
   }
-  data.total.currency = Number(data.subtotal.currency) + Number(data.deliveryFee.currency)
-  data.total.currency = Math.round(data.total.currency * 10 ** 3) / 10 ** 3
 
   if(!isNaN(orderBchPrice.value)) {
     data.subtotal.bch = parseBch(data.subtotal.currency / orderBchPrice.value)
