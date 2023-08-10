@@ -43,7 +43,7 @@
                             <span
                               :class="{'pt-dark-label': darkMode}"
                               class="q-mb-none md-font-size">
-                              {{ listing.ad.owner.nickname }}
+                              {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded outline size="sm" color="blue-6" label="You" />
                             </span>
                             <div
                               :class="{'pt-dark-label': darkMode}"
@@ -107,11 +107,17 @@
               @success="onVerifyTxSuccess"
             />
           </div>
-          <FiatBuyProcess
+          <FiatProcessOrder
+            v-else
+            :order-data="selectedOrder"
+            @back="returnOrderList()"
+          />
+        <!-- <FiatBuyProcess
+          v-if="selectedOrder.trade_type === 'BUY'"
             v-else
             :order-data="selectedOrder"
             @back="onBack"
-          />
+          /> -->
         </div>
         <!-- <FiatStoreBuyProcess
           v-if="selectedOrder.trade_type === 'BUY'"
@@ -153,11 +159,9 @@
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
-import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
-import FiatStoreSellProcess from './FiatStoreSellProcess.vue'
 import TransferToEscrowProcess from './TransferToEscrowProcess.vue'
 import VerifyEscrowTx from './VerifyEscrowTx.vue'
-import FiatBuyProcess from './FiatBuyProcess.vue'
+import FiatProcessOrder from './FiatProcessOrder.vue'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import { ref } from 'vue'
@@ -177,7 +181,8 @@ export default {
     FiatStoreSellProcess,
     FiatBuyProcess,
     TransferToEscrowProcess,
-    VerifyEscrowTx
+    VerifyEscrowTx,
+    FiatProcessOrder
   },
   props: {
     initStatusType: {
@@ -237,6 +242,9 @@ export default {
       const vm = this
       vm.updatePaginationValues()
       return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
+    },
+    userInfo () {
+      return this.$store.getters['ramp/getUser']
     }
   },
   async mounted () {
@@ -415,13 +423,14 @@ export default {
       // console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
       return lockedPrice * cryptoAmount
     },
-    returnOrderList () {
-      this.loading = true
+    async returnOrderList () {
+      const vm = this
+      vm.state = 'order-list'
+      vm.loading = true
 
-      // this.fetchUserOrders()
-      this.state = 'order-list'
+      await vm.resetAndRefetchListings()
 
-      this.loading = false
+      vm.loading = false
     }
   }
 }

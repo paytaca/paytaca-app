@@ -131,12 +131,16 @@
       />
     </div>
     <!-- Buy Process -->
-    <div v-if="state === 'buy-process'">
-      <FiatStoreBuyProcess
+    <div v-if="state === 'order-process'">
+      <FiatProcessOrder
+        :order-data="order"
+        @back="onBack"
+      />
+      <!-- <FiatStoreBuyProcess
         :order-data="order"
         @back="onBack"
         @canceled="onOrderCanceled"
-      />
+      /> -->
     </div>
    </q-card>
 </template>
@@ -144,7 +148,8 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
-import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
+// import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
+import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 import { loadP2PWalletInfo, formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
@@ -173,7 +178,8 @@ export default {
     ProgressLoader,
     AddPaymentMethods,
     FiatAdsForm,
-    FiatStoreBuyProcess,
+    // FiatStoreBuyProcess,
+    FiatProcessOrder,
     MiscDialogs
   },
   emits: ['back', 'orderCanceled'],
@@ -266,7 +272,7 @@ export default {
       try {
         const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
         vm.order = response.data.order
-        vm.state = 'buy-process'
+        vm.state = 'order-process'
       } catch (error) {
         console.error(error.response)
       }
@@ -286,9 +292,7 @@ export default {
       this.createOrder()
     },
     recieveDialogsInfo (item) {
-      console.log('here')
       this.createOrder()
-()
     },
     submit () {
       const vm = this

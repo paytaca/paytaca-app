@@ -20,7 +20,7 @@
         </div>
       </div>
       <!-- create order btn -->
-      <div class="row q-mx-lg q-py-md">
+      <div class="row q-mx-lg q-py-md" v-if="type === 'self'">
         <q-btn
           rounded
           no-caps
