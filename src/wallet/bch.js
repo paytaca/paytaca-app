@@ -368,4 +368,22 @@ export function decodeBIP0021URI(paymentUri) {
   return response
 }
 
+export async function getBalanceByAddress (address, verbose = false) {
+  try {
+    const result = await bchjs.Electrumx.balance(address)
+
+    if (verbose) console.log(result)
+
+    // The total balance is the sum of the confirmed and unconfirmed balances.
+    const satBalance = Number(result.balance.confirmed) + Number(result.balance.unconfirmed)
+    // Convert the satoshi balance to a BCH balance
+    const bchBalance = bchjs.BitcoinCash.toBitcoinCash(satBalance)
+
+    return bchBalance
+  } catch (err) {
+    console.error('Error in getBalanceByAddress: ', err)
+    throw err
+  }
+}
+
 export default BchWallet

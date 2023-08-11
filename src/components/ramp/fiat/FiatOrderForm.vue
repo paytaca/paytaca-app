@@ -17,9 +17,9 @@
         <div class="q-mx-lg q-pt-xs text-h5 text-center bold-text lg-font-size" :class="ad.trade_type === 'SELL' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
           {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
         </div>
-        <div class="q-px-lg">
+        <div class="q-mx-md">
           <!-- Ad Info -->
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md q-px-sm  sm-font-size">
+          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md sm-font-size">
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Price Type</span>
               <span class="text-nowrap q-ml-xs">
@@ -45,19 +45,45 @@
           </div>
 
           <!-- Fiat Input -->
-          <div class="q-mt-md q-mx-lg" v-if="!isOwner">
-            <div class="xs-font-size subtext q-pb-xs q-pl-sm">Fiat Amount</div>
-            <q-input class="q-pb-xs" filled :dark="darkMode" v-model="fiatAmount" :rules="[isValidInputAmount]">
-              <template v-slot:prepend>
-                <span class="sm-font-size bold-text">{{ ad.fiat_currency.symbol }}</span>
-              </template>
+          <div class="q-mt-md q-mx-md" v-if="!isOwner">
+            <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Fiat Amount</div> -->
+            <q-input
+              class="q-pb-xs"
+              filled
+              label="Amount"
+              :dark="darkMode"
+              v-model="amount"
+              :rules="[isValidInputAmount]"
+              @blur="resetInput">
               <template v-slot:append>
-                <!-- <q-icon size="xs" name="close" @click="amount = 0"/>&nbsp; -->
-                <q-btn class="xs-font-size" padding="none" flat color="primary" label="MAX" @click="fiatAmount = ad.trade_ceiling"/>
+                <span class="md-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
               </template>
             </q-input>
-            <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ formattedCurrency(cryptoAmount) }} BCH</div>
-
+            <div class="row justify-between">
+              <div class="col text-left bold-text subtext sm-font-size q-pl-sm">
+                = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad.fiat_currency.symbol : 'BCH' }}
+              </div>
+              <div class="row justify-end q-pr-sm">
+                <q-btn
+                  class="sm-font-size"
+                  padding="none"
+                  flat
+                  color="primary"
+                  label="MAX"
+                  @click="updateInput(true)"/>
+              </div>
+            </div>
+            <div class="q-pl-sm">
+              <q-btn
+                class="sm-font-size"
+                padding="none"
+                flat
+                no-caps
+                color="primary"
+                @click="byFiat = !byFiat">
+                Set amount in {{ byFiat ? 'BCH' : ad.fiat_currency.symbol }}
+              </q-btn>
+            </div>
             <div v-if="ad.trade_type === 'BUY'">
               <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
               <div class="row justify-between no-wrap q-mx-lg sm-font-size bold-text subtext q-pt-sm">
@@ -165,7 +191,8 @@ export default {
       ad: null,
       isloaded: false,
       state: 'initial',
-      fiatAmount: 0,
+      byFiat: true,
+      amount: 0,
       order: null,
       openDialog: false,
       dialogType: '',
@@ -188,8 +215,13 @@ export default {
     paymentTimeLimit () {
       return getPaymentTimeLimit(this.ad.time_duration)
     },
-    cryptoAmount () {
-      return (this.fiatAmount / this.ad.price).toFixed(8)
+    equivalentAmount () {
+      if (this.amount === '' || isNaN(this.amount)) return 0
+      if (!this.byFiat) {
+        return parseFloat(this.amount) * parseFloat(this.ad.price)
+      } else {
+        return (parseFloat(this.amount) / parseFloat(this.ad.price)).toFixed(8)
+      }
     },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
@@ -199,19 +231,21 @@ export default {
       return this.ad.is_owned
     }
   },
+  watch: {
+    byFiat () {
+      this.updateInput()
+    }
+  },
   async mounted () {
     const vm = this
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
 
     await vm.fetchAd()
+    this.amount = parseFloat(this.ad.trade_floor)
     vm.isloaded = true
   },
   methods: {
-    orderConfirm () {
-      this.dialogType = 'confirmOrderCreate'
-      this.openDialog = true
-    },
     async fetchAd () {
       const vm = this
       const url = `${vm.apiURL}/ad/${vm.adId}`
@@ -232,6 +266,37 @@ export default {
         console.log(error.response)
       }
     },
+    async createOrder () {
+      console.log('creating order')
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const cryptoAmount = vm.getCryptoAmount()
+      console.log('cryptoAmount:', cryptoAmount)
+      const body = {
+        ad: vm.ad.id,
+        crypto_amount: cryptoAmount
+      }
+      if (vm.ad.trade_type === 'BUY') {
+        const temp = this.paymentMethods.map(p => p.id)
+        console.log(temp)
+        body.payment_methods = temp
+      }
+      // console.log('headers:', headers)
+      // console.log('body:', body)
+      try {
+        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
+        vm.order = response.data.order
+        vm.state = 'order-process'
+      } catch (error) {
+        console.error(error.response)
+      }
+    },
     formattedCurrency (value, currency = null) {
       if (currency) {
         return formatCurrency(value, currency)
@@ -249,33 +314,31 @@ export default {
       }
       return true
     },
-    async createOrder () {
-      console.log('creating order')
-      const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
+    resetInput () {
+      if (this.amount !== '' && !isNaN(this.amount)) return
+      if (this.byFiat) {
+        this.amount = parseFloat(this.ad.trade_floor)
+      } else {
+        this.amount = parseFloat(this.ad.trade_floor) / parseFloat(this.ad.price)
       }
-      let body = {
-        ad: vm.ad.id,
-        crypto_amount: vm.cryptoAmount
+    },
+    updateInput (max = false) {
+      if (max) this.amount = parseFloat(this.ad.trade_ceiling)
+      if (this.byFiat) {
+        if (!max) this.amount = parseFloat(this.amount) * parseFloat(this.ad.price)
+      } else {
+        this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
       }
-      if (vm.ad.trade_type === 'BUY') {
-        const temp = this.paymentMethods.map(p => p.id)
-        console.log(temp)
-        body.payment_methods = temp
-      }
-      // console.log('headers:', headers)
-      // console.log('body:', body)
-      try {
-        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
-        vm.order = response.data.order
-        vm.state = 'order-process'
-      } catch (error) {
-        console.error(error.response)
+    },
+    orderConfirm () {
+      this.dialogType = 'confirmOrderCreate'
+      this.openDialog = true
+    },
+    getCryptoAmount () {
+      if (!this.byFiat) {
+        return parseFloat(this.amount)
+      } else {
+        return parseFloat(this.amount) / parseFloat(this.ad.price)
       }
     },
     onBack () {

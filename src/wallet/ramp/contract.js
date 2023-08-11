@@ -218,3 +218,5 @@ export class RampContract {
     return result
   }
 }
+
+export default RampContract

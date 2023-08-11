@@ -33,7 +33,7 @@
                 style="width: 250px;">
             </q-input>
         </div>
-        <div v-if="contract.balance" class="row q-mt-sm md-font-size" style="color: grey">
+        <div v-if="contract.balance !== null" class="row q-mt-sm sm-font-size" style="color: grey">
           Contract balance: {{ contract.balance }} BCH
         </div>
         <div class="row" v-if="errorMessages.length > 0">
@@ -64,6 +64,7 @@
 <script>
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from 'src/wallet/ramp/signature'
+import { getBalanceByAddress } from 'src/wallet/bch'
 
 export default {
   data () {
@@ -121,7 +122,8 @@ export default {
       const url = vm.apiURL + '/order/' + vm.orderId
       try {
         const response = await vm.$axios.get(url, { headers: headers })
-        vm.contract.address = response.data.contract.contract_address
+        vm.contract.address = response.data.contract.address
+        vm.contract.balance = await getBalanceByAddress(vm.contract.address)
       } catch (error) {
         console.error(error.response)
       }
