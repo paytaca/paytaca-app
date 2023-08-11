@@ -150,6 +150,8 @@
       :type="dialogType"
       :data="info"
       :current-payment-methods="paymentMethods"
+      :title="title"
+      :text="text"
       v-on:back="onBack"
       v-on:submit="receiveDialogInfo"
     />
@@ -191,13 +193,18 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+
       paymentMethods: [],
       paymentTypes: [],
       selectedMethods: [], // TODO
       emptyPaymentMethods: [],
+
       openDialog: false,
       dialogType: 'addPaymentMethod',
+      title: '',
+      text: '',
       info: {},
+
       selectedMethodIndex: null,
       state: '',
       isloaded: false,
@@ -278,6 +285,8 @@ export default {
           vm.$emit('submit', vm.selectedMethods)
           break
       }
+      vm.text = ''
+      vm.title = ''
     },
     async updatePayment (data) {
       const vm = this
@@ -288,6 +297,7 @@ export default {
     // opening dialog
     orderConfirm () {
       this.dialogType = 'confirmOrderCreate'
+      this.title = 'Create Order?'
       this.openDialog = true
     },
     createMethod () {
@@ -489,6 +499,8 @@ export default {
         this.orderConfirm()
       } else {
         this.dialogType = 'confirmPaymentMethod'
+        this.title = 'Confirm Payment Methods?'
+        this.text = 'Please make sure the information provided are correct.'
         this.openDialog = true
         // this.$emit('submit')
       }

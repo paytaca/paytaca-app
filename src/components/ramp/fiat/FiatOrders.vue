@@ -62,13 +62,13 @@
                             <div class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div>
                           </div>
                           <div class="text-right">
-                            <span class="row subtext" v-if="isCompleted(listing.status) == false && listing.expiration_date != null">
+                            <span class="row subtext" v-if="isCompleted(listing.status.label) == false && listing.expiration_date != null">
                               <span v-if="isExpired(listing.expiration_date) == false" class="q-mr-xs">Expires in </span>
                               <span v-else class="q-mr-xs">Expired for</span>
                               <span>{{ formatExpiration(listing.expiration_date) }}</span>
                             </span>
                             <span v-if="listing.expiration_date && isExpired(listing.expiration_date) && statusType === 'ONGOING'" class="bold-text subtext md-font-size" style=";">Expired</span>
-                            <span v-else class="bold-text subtext md-font-size" style=";">{{ listing.status }}</span>
+                            <span v-else class="bold-text subtext md-font-size" style=";">{{ listing.status.label }}</span>
                             <!-- <span class="subtext">{{ listing.status }}</span> -->
                             <!-- <span class="status-text" v-if="listing.status === 'released'">RELEASED</span> -->
                             <!-- <span class="status-text" v-else-if="listing.status.includes('confirmation')">PENDING CONFIRMATION</span> -->
