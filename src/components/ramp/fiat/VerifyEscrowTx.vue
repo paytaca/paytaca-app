@@ -103,7 +103,7 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
-    if (vm.txId.length > 0) {
+    if (vm.txId && vm.txId.length > 0) {
       vm.transactionId = vm.txId
     }
     vm.setupWebsocket()
