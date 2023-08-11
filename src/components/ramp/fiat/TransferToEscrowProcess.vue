@@ -63,8 +63,13 @@
                 </template>
             </q-input>
         </div>
-        <div v-if="wallet && wallet.balance" class="row q-mt-sm md-font-size" style="color: grey">
-          Balance: {{ wallet.balance }} BCH
+        <div class="md-font-size" style="color: grey;">
+          <div v-if="fees" class="row q-ml-md">
+            Fee: {{ fees.total }} BCH
+          </div>
+          <div v-if="wallet && wallet.balance" class="row q-ml-md q-mt-xs">
+            Balance: {{ wallet.balance }} BCH
+          </div>
         </div>
         <div class="row" v-if="sendErrors.length > 0">
           <div class="col">
@@ -94,7 +99,6 @@
     <!-- else progress loader -->
   </template>
 <script>
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from 'src/wallet/ramp/signature'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
@@ -113,6 +117,7 @@ export default {
       contractAddress: ' ',
       transferAmount: ' ',
       transactionId: null,
+      fees: null,
       showDragSlide: true,
       sendErrors: []
     }
@@ -130,10 +135,6 @@ export default {
       type: Number,
       default: 0
     },
-    fees: {
-      type: Number,
-      default: 0
-    },
     wallet: {
       type: Object,
       default: null
@@ -143,9 +144,9 @@ export default {
     selectedArbiter () {
       this.contractAddress = ' '
       this.generateContractAddress()
-      // TODO: subscribe to specific order contract's arbiter
-      // this.closeWSConnection()
-      // this.setupWebsocket()
+    },
+    'fees.total' () {
+      this.transferAmount += this.fees.total
     }
   },
   computed: {
@@ -167,7 +168,6 @@ export default {
     if (vm.contractAddress !== ' ') {
       vm.loading = false
     }
-    console.log('selectedOrder:', vm.order)
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -177,15 +177,16 @@ export default {
       // Send crypto to smart contract
       const vm = this
       try {
-        const result = await vm.wallet.wallet.BCH.sendBch(vm.transferAmount, vm.contractAddress)
-        if (result.error.indexOf('not enough balance in sender') > -1) {
-          vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
-        } else if (result.error.indexOf('has insufficient priority') > -1) {
-          vm.sendErrors.push('Not enough balance to cover the transaction fee')
-        } else {
-          vm.sendErrors.push(result.error)
-        }
-        vm.transactionId = result.transactionId
+        console.log('transferAmount:', vm.transferAmount)
+        // const result = await vm.wallet.wallet.BCH.sendBch(vm.transferAmount, vm.contractAddress)
+        // if (result.error.indexOf('not enough balance in sender') > -1) {
+        //   vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
+        // } else if (result.error.indexOf('has insufficient priority') > -1) {
+        //   vm.sendErrors.push('Not enough balance to cover the transaction fee')
+        // } else {
+        //   vm.sendErrors.push(result.error)
+        // }
+        // vm.transactionId = result.transactionId
         // await vm.escrowPendingOrder()
       } catch (error) {
         console.error(error)
@@ -226,6 +227,7 @@ export default {
       try {
         const response = await vm.$axios.get(url, { headers: headers })
         console.log('response:', response.data)
+        vm.fees = response.data.fees
         vm.selectedArbiter = response.data.order.arbiter
       } catch (error) {
         console.error(error.response)
@@ -262,6 +264,7 @@ export default {
         const response = await vm.$axios.post(url, body, { headers: headers })
         if (response.data.data) {
           const data = response.data.data
+          console.log('>>data:', data)
           if (data.contract_address) {
             vm.contractAddress = data.contract_address
           }
@@ -287,7 +290,7 @@ export default {
       })
         .onOk(() => this.completePayment())
         .onDismiss(() => {
-          this.showDragSlide = false
+          this.showDragSlide = true
         })
     },
     setupWebsocket () {
@@ -298,6 +301,7 @@ export default {
       }
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
+        console.log('WebSocket data:', data.result)
         const contractAddress = data.result.contract_address
         if (contractAddress) {
           this.contractAddress = contractAddress
