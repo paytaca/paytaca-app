@@ -19,10 +19,10 @@
             </q-item-section>
             <q-item-section avatar top>
               <q-item-label>
-                {{ payment?.amount }} {{ payment?.currency?.symbol }}
+                {{ payment?.totalAmount }} {{ payment?.currency?.symbol }}
               </q-item-label>
               <q-item-label class="text-caption">
-                ~ {{ payment?.bchAmount }} BCH
+                {{ payment?.bchTotalAmount }} BCH
               </q-item-label>
             </q-item-section>
             <q-item-section side top style="padding-left:4px;">
