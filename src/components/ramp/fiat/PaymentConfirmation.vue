@@ -1,19 +1,20 @@
 <template>
   <div v-if="isloaded">
     <div class="q-mx-lg text-h5 text-center lg-font-size" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-      PAY BY FIAT
+      <span v-if="type === 'buyer'">PAY BY FIAT</span>
+      <span v-else>RECIEVE FIAT</span>
     </div>
 
     <!-- Fiat Input -->
     <div class="q-mt-md q-mx-lg q-px-md">
-      <div v-if="type === 'buyer'" class="sm-font-size subtext q-pb-xs q-pl-sm">Please pay the seller</div>
-      <div v-else class="sm-font-size subtext q-pb-xs q-pl-sm">You will recieve</div>
+      <div v-if="type === 'buyer'" class="md-font-size subtext q-pb-xs q-pl-sm">Please pay the seller</div>
+      <div v-else class="md-font-size subtext q-pb-xs q-pl-sm">You will recieve</div>
       <div @click="$parent.copyToClipboard($parent.fiatAmount)">
         <q-input class="q-pb-xs" disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
           <template v-slot:prepend>
             <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
           </template>
-          <template v-slot:append>
+          <template v-slot:append v-if="type === 'buyer'">
             <q-icon  class="q-pr-sm" size="sm" name='o_content_copy' color="blue-grey-6"/>
           </template>
         </q-input>
@@ -57,13 +58,21 @@
       </div>
 
       <!-- Seller -->
-      <div  class="text-center" v-if="type === 'seller'" style="overflow-y:auto;">
+      <!-- <div  class="text-center" v-if="type === 'seller'" style="overflow-y:auto;">
         <q-icon size="xs" name='o_info' color="blue-6"/> Please click "Confirm" if you recieved the fiat payment
+      </div> -->
+
+      <!-- Checkbox -->
+      <div class="q-mx-lg" v-if="type === 'seller'">
+        <q-checkbox size="sm" v-model="confirmRelease"/>
+        <span class="sm-font-size text-center">I have recieved my payment, and agrees to release the funds.</span>
       </div>
 
+
       <!-- Confirm  -->
-      <div class="row q-pt-lg q-mx-lg q-px-md">
+      <div class="row q-pt-sm q-mx-lg q-px-md">
         <q-btn
+          :disable="!confirmRelease"
           rounded
           no-caps
           label='CONFIRM PAYMENT'
@@ -84,7 +93,8 @@ export default {
       order: null,
       isloaded: false,
       countDown: '',
-      timer: null
+      timer: null,
+      confirmRelease: false
     }
   },
   props: {

@@ -62,7 +62,7 @@
                             <div class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div>
                           </div>
                           <div class="text-right">
-                            <span class="row subtext" v-if="isCompleted(listing.status) == false && listing.expiration_date != null">
+                            <span class="row subtext" v-if="isCompleted(listing.status.label) == false && listing.expiration_date != null">
                               <span v-if="isExpired(listing.expiration_date) == false" class="q-mr-xs">Expires in </span>
                               <span v-else class="q-mr-xs">Expired for</span>
                               <span>{{ formatExpiration(listing.expiration_date) }}</span>

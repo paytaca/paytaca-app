@@ -1,4 +1,21 @@
 <template>
+  <!-- Generic Dialog -->
+  <q-dialog persistent v-model="genericDialog">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">{{ title }}</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        {{ text }}
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 
   <!-- Create Payment Method -->
   <q-dialog full-width persistent v-model="createPaymentMethod">
@@ -202,24 +219,6 @@
     </q-card>
   </q-dialog>
 
-  <!-- Payment Method Confirmation -->
-  <q-dialog persistent v-model="confirmPaymentMethod">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Confirm Payment Methods?</div>
-      </q-card-section>
-
-      <q-card-section class="text-center q-pt-none">
-        Please make sure the information provided are correct.
-      </q-card-section>
-
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-
   <!-- Add Nickname -->
   <q-dialog persistent v-model="editNickname">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
@@ -372,33 +371,6 @@
     </q-card>
   </q-dialog>
 
-  <!-- Cancel Order -->
-  <q-dialog persistent v-model="confirmCancelOrder">
-    <q-card style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Cancel this order?</div>
-      </q-card-section>
-
-      <q-card-actions class="q-pt-lg text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-
-  <!-- confirm order create -->
-  <q-dialog persistent v-model="confirmOrderCreate">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Create Order?</div>
-      </q-card-section>
-
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
   <!-- Sending Appeal Confirmation Todo-->
   <!-- <q-dialog full-width persistent v-model="appeal">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
@@ -439,6 +411,14 @@ export default {
       type: Object,
       default: null
     },
+    title: {
+      type: String,
+      default: ''
+    },
+    text: {
+      type: String,
+      default: ''
+    },
     currentPaymentMethods: Array
   },
   data () {
@@ -450,7 +430,12 @@ export default {
       isNameValid: false,
       dialogType: '',
 
+      // Data
+
+
       // Dialog Model
+      genericDialog: false,
+
       createPaymentMethod: false,
       addPaymentMethod: false,
       editPaymentMethod: false,
@@ -463,9 +448,7 @@ export default {
       confirmPayment: false,
       confirmPaymentBuyer: false,
       confirmPaymentSeller: false,
-      confirmCancelOrder: false,
       maxMethodReached: false,
-      confirmOrderCreate: false,
 
       // Input Model
       nickname: '',
@@ -587,9 +570,9 @@ export default {
           this.paymentMethod.payment_type = this.data
           vm.createPaymentMethod = true
           break
-        case 'confirmPaymentMethod':
-          vm.confirmPaymentMethod = true
-          break
+        // case 'confirmPaymentMethod':
+        //   vm.confirmPaymentMethod = true
+        //   break
         case 'confirmDeletePaymentMethod':
           this.info = this.data
           vm.confirmDeletePaymentMethod = true
@@ -622,11 +605,10 @@ export default {
         case 'confirmPaymentSeller':
           vm.confirmPaymentSeller = true
           break
-        case 'confirmCancelOrder':
-          vm.confirmCancelOrder = true
-          break
+        case 'confirmPaymentMethod':
         case 'confirmOrderCreate':
-          vm.confirmOrderCreate = true
+        case 'confirmCancelOrder':
+          vm.genericDialog = true
           break
       }
     },
@@ -657,8 +639,6 @@ export default {
           vm.info = vm.data
           return 'submit'
         case 'confirmCancelOrder':
-          vm.info = vm.data
-          return 'submit'
         case 'confirmPaymentSeller':
         case 'confirmPaymentBuyer':
         case 'confirmOrderCreate':

@@ -66,6 +66,8 @@
   <div v-if="openDialog" >
     <MiscDialogs
       :type="dialogType"
+      :title="title"
+      :text="text"
       v-on:back="openDialog = false"
       v-on:submit="handleDialogResponse()"
     />
@@ -99,7 +101,9 @@ export default {
       status: null,
       contract: null,
       // wallet: null,
-      txid: null
+      txid: null,
+      title: '',
+      text: ''
     }
   },
   emits: ['back'],
@@ -138,6 +142,20 @@ export default {
     bchBalance () {
       console.log(this.$store.getters['assets/getAssets'][0].balance)
       return this.$store.getters['assets/getAssets'][0].balance
+    },
+    isExpired () {
+      const vm = this
+
+      const now = new Date().getTime()
+      const expiryDate = new Date(vm.order.expiration_date)
+
+      const exception = ['Released', 'Canceled']
+
+      if (expiryDate < now && vm.order.expiration_date && !exception.includes(vm.order.status.label)) {
+        return true
+      } else {
+        return false
+      }
     }
   },
   async mounted () {
@@ -146,8 +164,17 @@ export default {
     // const walletInfo = vm.$store.getters['global/getWallet']('bch')
     // vm.wallet = await loadP2PWalletInfo(walletInfo)
 
-    vm.order = vm.orderData
     await vm.fetchOrderData()
+
+    if (!vm.order) {
+      vm.order = vm.orderData
+    }
+    // if (!vm.orderData) {
+    //   await vm.fetchOrderData()
+    // } else {
+    //   vm.order = vm.orderData
+    // }
+
     await vm.fetchAdData()
     this.updateStatus(vm.order.status.value)
     vm.isloaded = true
@@ -217,6 +244,9 @@ export default {
           this.status = 'refund'
           break
       }
+      if (this.isExpired) {
+        vm.state = 'standby-view'
+      }
     },
     // API CALLS
     async fetchOrderData () {
@@ -254,7 +284,7 @@ export default {
       await vm.$axios.get(url, { headers: headers })
         .then(response => {
           vm.ad = response.data
-          console.log('ad', vm.ad)
+          // console.log('ad', vm.ad)
         })
         .catch(error => {
           console.error(error)
@@ -396,6 +426,9 @@ export default {
           this.checkStep()
           break
       }
+
+      vm.title = ''
+      vm.text = ''
       vm.isloaded = true
     },
 
@@ -403,6 +436,7 @@ export default {
     confirmingOrder () {
       console.log('confirming order')
       this.dialogType = 'confirmOrderCreate'
+      this.title = 'Confirm Order?'
       this.openDialog = true
     },
     cancellingOrder () {
@@ -410,6 +444,7 @@ export default {
 
       this.dialogType = 'confirmCancelOrder'
       this.openDialog = true
+      this.title = 'Cancel this order?'
     },
     handleConfirmPayment () {
       this.dialogType = this.confirmType === 'buyer' ? 'confirmPaymentBuyer' : 'confirmPaymentSeller'

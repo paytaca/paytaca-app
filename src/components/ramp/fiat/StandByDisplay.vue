@@ -1,41 +1,58 @@
 <template>
   <div v-if="isloaded">
-    <div class="q-mx-lg text-h5 text-center lg-font-size">
-      <span v-if="order.status === 'Submitted'">Order Created</span>
+    <div class="q-mx-lg text-h5 text-center lg-font-size bold-text" :class="statusColor">
+      <span v-if="$parent.isExpired">EXPIRED</span>
+      <span v-else>{{ order.status.label.toUpperCase() }}</span>
+      <!-- <span v-if="order.status.label === 'Submitted'">Order Created</span>
       <span v-else-if="type === 'completed'">History</span>
-      <span v-else>Processing Order</span>
+      <span v-else>Processing Order</span> -->
     </div>
-    <div class="q-pt-md sm-font-size">
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-        <span>Crypto Amount</span>
-        <span class="text-nowrap q-ml-xs">{{ $parent.formattedCurrency(order.crypto_amount) }} {{ order.crypto_currency.symbol }}</span>
+    <div class="q-px-lg q-pt-lg">
+      <div class="sm-font-size q-pb-xs">Fiat Amount</div>
+      <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
+        <template v-slot:prepend>
+          <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+        </template>
+      </q-input>
+
+      <div class="text-center q-py-sm">
+        <q-icon size="md" name="mdi-swap-vertical" />
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-        <span>Fiat Amount</span>
-        <span class="text-nowrap q-ml-xs">{{ $parent.formattedCurrency($parent.fiatAmount, order.fiat_currency.symbol) }} </span>
-      </div>
-      <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-        <span>Status</span>
-        <span class="text-nowrap q-ml-xs" :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status.label }}</span>
-      </div>
+
+      <div class="sm-font-size q-pb-xs">Crypto Amount</div>
+      <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="cryptoAmount">
+        <template v-slot:prepend>
+          <span class="sm-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
+        </template>
+      </q-input>
     </div>
-    <!-- Pending Confirmation -->
+
+    <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/>
+
     <div class="q-mt-md q-px-md">
-      <div class="row q-px-lg text-center xm-font-size" style="overflow-wrap: break-word;" v-if="order.status === 'Submitted'">
-        <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>
-        <span class="col">
-          Please wait for the seller to confirm your order.
-        </span>
+      <div class="row q-px-lg text-center md-font-size" style="overflow-wrap: break-word;">
+        <div v-if="order.status.label === 'Submitted'">
+          <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>
+          <span  class="col">Please wait for the seller to confirm your order.</span>
+        </div>
+        <div v-if="order.status.label === 'Confirmed'">
+          <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>
+          <span  class="col">Please wait for the seller to Escrow the funds</span>
+        </div>
+        <div v-if="order.status.label === 'Escrowed'">
+          <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>
+          <span  class="col">Please wait for the buyer to confirm their fiat payment.</span>
+        </div>
       </div>
 
       <div class="text-center" style="font-size: 35px; color: #ed5f59;" v-if="hasCountDown">
         {{ countDown }}
       </div>
-      <div class="row q-pt-md" v-if="type === 'ongoing'">
+      <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
         <q-btn
           rounded
           no-caps
-          label='Cancel'
+          label='Cancel Order'
           class="q-space text-white"
           style="background-color: #ed5f59;"
           @click="$parent.cancellingOrder()"
@@ -64,7 +81,26 @@ export default {
     hasCountDown () {
       const stat = ['Escrowed', 'Paid Pending', 'Paid', 'Release Pending']
 
-      return stat.includes(this.order.status)
+      return stat.includes(this.order.status.label) && !this.$parent.isExpired
+    },
+    hasCancel () {
+      const stat = ['Submitted', 'Confirmed', 'Escrow Pending']
+
+      return stat.includes(this.order.status.label)
+    },
+    cryptoAmount () {
+      return this.$parent.formattedCurrency(this.order.crypto_amount)
+    },
+    statusColor () {
+      const stat = this.order.status.label
+
+      if (stat === 'Released') {
+        return 'text-green-6'
+      } else if (stat === 'Canceled' || this.$parent.isExpired) {
+        return 'text-red-6'
+      } else {
+        return ''
+      }
     }
   },
   async mounted () {
@@ -80,7 +116,7 @@ export default {
   methods: {
     checkStatus () {
       const completedStatus = ['Released', 'Refunded', 'Canceled']
-      if (completedStatus.includes(this.order.status)) {
+      if (completedStatus.includes(this.order.status.label)) {
         this.type = 'completed'
       }
     },

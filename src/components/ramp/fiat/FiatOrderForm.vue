@@ -143,6 +143,7 @@
     <div v-if="openDialog">
       <MiscDialogs
         :type="dialogType"
+        :title="title"
         v-on:back="openDialog = false"
         v-on:submit="recieveDialogsInfo"
       />
@@ -188,15 +189,18 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wallet: null,
-      ad: null,
       isloaded: false,
+
+      ad: null,
       state: 'initial',
       byFiat: true,
       amount: 0,
       order: null,
       openDialog: false,
       dialogType: '',
-      paymentMethods: null
+      paymentMethods: null,
+
+      title: ''
     }
   },
   props: {
@@ -246,6 +250,11 @@ export default {
     vm.isloaded = true
   },
   methods: {
+    orderConfirm () {
+      this.dialogType = 'confirmOrderCreate'
+      this.openDialog = true
+      this.title = 'Confirm Order?'
+    },
     async fetchAd () {
       const vm = this
       const url = `${vm.apiURL}/ad/${vm.adId}`
@@ -357,6 +366,7 @@ export default {
     },
     recieveDialogsInfo (item) {
       this.createOrder()
+      this.title = ''
     },
     submit () {
       const vm = this
