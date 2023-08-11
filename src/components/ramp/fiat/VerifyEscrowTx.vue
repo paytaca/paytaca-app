@@ -77,7 +77,7 @@ export default {
         balance: null,
         address: ' '
       },
-      transactionId: '04091977eb623861ca9138f12c2da841337a4c5d4b0d7452ca18c0107862cxxx', // dummy txid
+      transactionId: '', // dummy txid
       errorMessages: [],
       disableVerifyBtn: false
     }

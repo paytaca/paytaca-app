@@ -17,48 +17,35 @@
   <!-- Order Process Pages -->
   <div v-if="isloaded">
     <!-- Ad Owner Confirm / Decline -->
-    <RecieveOrder
+    <ReceiveOrder
       v-if="state === 'order-confirm-decline'"
       :order-data="order"
       :ad-data="ad"
       @confirm="confirmingOrder"
       @cancel="cancellingOrder"
     />
+    <TransferToEscrowProcess
+      v-if="state === 'escrow-bch'"
+      :wallet="wallet"
+      :order="order"
+      :amount="transferAmount"
+      @back="onBack"
+      @success="onEscrowSuccess"
+    />
+    <VerifyEscrowTx
+      v-if="state === 'tx-confirmation'"
+      :wallet="wallet"
+      :order-id="order.id"
+      :tx-id="txid"
+      @back="onBack"
+      @success="onVerifyTxSuccess"
+    />
 
-    <!-- Waiting Page -->
-    <div v-if="state === 'standby-view'" class="q-px-lg">
-    <div v-if="order.is_ad_owner">
-      <!-- Ad Owner Confirm / Decline -->
-      <ReceiveOrder
-        v-if="state === STATUS_CODE.SUBMITTED"
-        :order-data="order"
-        :ad-data="ad"
-        @confirm="confirmingOrder"
-        @cancel="cancellingOrder"
-      />
-      <TransferToEscrowProcess
-        v-if="state === STATUS_CODE.CONFIRMED"
-        :wallet="wallet"
-        :order="order"
-        :amount="transferAmount"
-        @back="onBack"
-        @success="onEscrowSuccess"
-      />
-      <VerifyEscrowTx
-        v-if="state === STATUS_CODE.ESCROW_PENDING"
-        :wallet="wallet"
-        :order-id="order.id"
-        :tx-id="transactionId"
-        @back="onBack"
-        @success="onVerifyTxSuccess"
-      />
-    </div>
-    <div v-else class="q-px-lg">
-      <!-- Buyer Waiting Page -->
-      <StandByDisplay
-        :order-data="order"
-      />
-    </div>
+    <!-- Buyer Waiting Page -->
+    <StandByDisplay
+      v-if="state === 'standby-view'" class="q-px-lg"
+      :order-data="order"
+    />
 
     <!-- Payment Confirmation -->
     <div v-if="state === 'payment-confirmation'">
@@ -68,11 +55,6 @@
         @confirm="handleConfirmPayment"
       />
     </div>
-  </div>
-
-  <!-- Escrow BCH -->
-  <div v-if="state === 'escrow-bch'">
-    Escrow BCH Page
   </div>
 
   <!-- Completed transaction -->
@@ -114,11 +96,13 @@ export default {
 
       ad: null,
       order: null,
+      status: null,
       contract: null,
-      wallet: null,
+      // wallet: null,
       txid: null
     }
   },
+  emits: ['back'],
   components: {
     ProgressLoader,
     MiscDialogs,
@@ -156,7 +140,6 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     }
   },
-  emits: ['back'],
   async mounted () {
     const vm = this
 
@@ -166,38 +149,41 @@ export default {
     vm.order = vm.orderData
     await vm.fetchOrderData()
     await vm.fetchAdData()
-    this.checkStep()
-    this.updateStep(this.order.status.value)
+    this.updateStatus(vm.order.status.value)
     vm.isloaded = true
   },
   methods: {
     // STEP CHECKER
-    updateStep (status) {
-      this.state = status
-      console.log('state:', this.state)
+    updateStatus (status) {
+      this.status = status
+      this.checkStep()
     },
     checkStep () {
       const vm = this
       console.log('checking step')
-      switch (vm.order.status) {
-        case 'Submitted':
+      switch (vm.status) {
+        case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
             vm.state = 'order-confirm-decline'
           } else {
             vm.state = 'standby-view'
           }
           break
-        case 'Confirmed':
+        case 'CNF': // Confirmed
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
           }
           break
-        case 'Escrow Pending':
-          vm.state = 'standby-view'
+        case 'ESCRW_PN': // Escrow Pending
+          if (this.order.trade_type === 'BUY') {
+            vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
+          } else if (this.order.trade_type === 'SELL') {
+            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
+          }
           break
-        case 'Escrowed':
+        case 'ESCRW': // Escrowed
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'payment-confirmation'
           } else if (this.order.trade_type === 'SELL') {
@@ -205,7 +191,7 @@ export default {
           }
           vm.confirmType = 'buyer'
           break
-        case 'Paid Pending':
+        case 'PD_PN': // Paid Pending
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'payment-confirmation' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
@@ -213,21 +199,21 @@ export default {
           }
           vm.confirmType = 'seller'
           break
-        case 'Paid':
-        case 'Release Pending':
+        case 'PD': // Paid
+        case 'RLS_PN': // Release Pending
           vm.state = 'standby-view'
           break
-        case 'Released':
-        case 'Canceled':
+        case 'RLS': // Released
+        case 'CNCL': // Canceled
           this.state = 'standby-view'
           break
           // TODO: add pages
-        case 'Appealed for Release':
-        case 'Appealed for Refund':
+        case 'RLS_APL': // Appealed for Release
+        case 'RFN_APL': // Appealed for Refund
           this.status = 'appeal'
           break
-        case 'Refund Pending':
-        case 'Refunded':
+        case 'RFN_PN': // Refund Pending
+        case 'RFN': // Refunded
           this.status = 'refund'
           break
       }
@@ -243,6 +229,7 @@ export default {
         .then(response => {
           vm.order = response.data.order
           vm.contract = response.data.contract
+          vm.updateStatus(vm.order.status.value)
           console.log('order', vm.order)
         })
         .catch(error => {
@@ -289,8 +276,8 @@ export default {
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           console.log(response)
-          if (response.data.status === 'CNF') {
-            vm.updateStep(response.data.status)
+          if (response.data && response.data.status === 'CNF') {
+            vm.updateStatus(response.data.status)
           }
         })
         .catch(error => {
@@ -315,9 +302,9 @@ export default {
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           console.log(response)
-          // if (response.data.status === 'CNCL') {
-          //   vm.updateStep(response.data.status)
-          // }
+          if (response.data && response.data.status === 'CNCL') {
+            vm.updateStep(response.data.status)
+          }
         })
         .catch(error => {
           console.log(error)
@@ -342,6 +329,9 @@ export default {
       })
         .then(response => {
           console.log(response.data)
+          if (response.data && response.data.status === 'PD_PN') {
+            vm.updateStep(response.data.status)
+          }
         })
         .catch(error => {
           console.log(error)
@@ -372,60 +362,9 @@ export default {
         })
         .then(response => {
           console.log(response)
-        })
-        .catch(error => {
-          console.log(error)
-        })
-    },
-    async sendConfirmPayment (type) {
-      const vm = this
-      vm.isloaded = false
-
-      const url = `${this.apiURL}/order/${vm.order.id}/confirm-payment/${type}`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-      // console.log(headers)
-      await vm.$axios.post(url, {}, {
-        headers: headers
-      })
-        .then(response => {
-          console.log(response.data)
-        })
-        .catch(error => {
-          console.log(error)
-        })
-
-      await this.fetchOrderData()
-      this.checkStep()
-      vm.isloaded = true
-    },
-    async verifyRelease () {
-      const vm = this
-
-      const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-
-      await vm.$axios.post(url,
-        {
-          txid: this.txid
-        }, {
-          headers: headers
-        })
-        .then(response => {
-          console.log(response)
+          if (response.data && response.data.status === 'RLS') {
+            vm.updateStep(response.data.status)
+          }
         })
         .catch(error => {
           console.log(error)
@@ -460,7 +399,6 @@ export default {
       vm.isloaded = true
     },
 
-
     // Opening Dialog
     confirmingOrder () {
       console.log('confirming order')
@@ -477,7 +415,6 @@ export default {
       this.dialogType = this.confirmType === 'buyer' ? 'confirmPaymentBuyer' : 'confirmPaymentSeller'
       this.openDialog = true
     },
-
 
     // Others
     formattedCurrency (value, currency = null) {
@@ -499,13 +436,13 @@ export default {
     },
     onEscrowSuccess (data) {
       console.log('onEscrowSubmit:', data)
-      this.transactionId = data.txid
-      this.updateStep(data.status)
+      this.txid = data.txid
+      this.updateStatus(data.status)
     },
     onVerifyTxSuccess (status) {
       console.log('onVerifyTxSuccess:', status)
       this.state = 'order-list'
-      this.updateStep(status)
+      this.updateStatus(status)
     },
     onBack () {
       this.state = 'order-list'
@@ -518,7 +455,7 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
-    },
+    }
   }
 }
 </script>
