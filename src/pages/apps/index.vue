@@ -48,7 +48,7 @@ export default {
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/ramp',
           iconStyle: 'width:50%',
-          active: !this.$store.getters['global/isChipnet']
+          active: true // !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('WalletConnect'),
