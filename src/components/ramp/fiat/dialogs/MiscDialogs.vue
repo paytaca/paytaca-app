@@ -300,7 +300,7 @@
   </q-dialog>
 
   <!-- confirm payment -->
-  <q-dialog persistent v-model="confirmPayment">
+  <!-- <q-dialog persistent v-model="confirmPayment">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h6 text-center">Confirm Payment?</div>
@@ -321,7 +321,7 @@
         <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
       </q-card-actions>
     </q-card>
-  </q-dialog>
+  </q-dialog> -->
 
   <!-- confirm payment buyer -->
   <q-dialog persistent v-model="confirmPaymentBuyer">
@@ -332,11 +332,11 @@
 
       <q-card-section class="text-center q-pt-none">
         <div>
-          This will inform the seller that you already sent the fiat fee to their selected payment methods.
+          This will inform the seller that you already sent the fiat fee to one of their selected payment methods.
         </div>
-        <div class="q-pt-md">
+        <!-- <div class="q-pt-md">
           <q-icon size="xs" name='o_info' color="blue-grey-6"/> I confirm that I have already sent my payment.
-        </div>
+        </div> -->
 
       </q-card-section>
 
@@ -445,7 +445,7 @@ export default {
       editNickname: false,
       viewProfile: false,
       submitAppeal: false,
-      confirmPayment: false,
+      // confirmPayment: false,
       confirmPaymentBuyer: false,
       confirmPaymentSeller: false,
       maxMethodReached: false,
@@ -595,16 +595,17 @@ export default {
         case 'submitAppeal':
           vm.submitAppeal = true
           break
-        case 'confirmPayment':
+        // case 'confirmPayment':
           // console.log('confirming payment')
-          vm.confirmPayment = true
-          break
+          // vm.confirmPayment = true
+          // break
         case 'confirmPaymentBuyer':
           vm.confirmPaymentBuyer = true
           break
         case 'confirmPaymentSeller':
           vm.confirmPaymentSeller = true
           break
+        case 'confirmPayment':
         case 'confirmPaymentMethod':
         case 'confirmOrderCreate':
         case 'confirmCancelOrder':

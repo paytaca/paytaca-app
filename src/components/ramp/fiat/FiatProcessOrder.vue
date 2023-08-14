@@ -40,12 +40,12 @@
       @back="onBack"
       @success="onVerifyTxSuccess"
     />
-
-    <!-- Buyer Waiting Page -->
-    <StandByDisplay
-      v-if="state === 'standby-view'" class="q-px-lg"
-      :order-data="order"
-    />
+    <!-- Waiting Page -->
+    <div v-if="state === 'standby-view'" class="q-px-lg">
+      <StandByDisplay
+        :order-data="order"
+      />
+    </div>
 
     <!-- Payment Confirmation -->
     <div v-if="state === 'payment-confirmation'">
@@ -56,6 +56,11 @@
       />
     </div>
   </div>
+
+  <!-- Escrow BCH -->
+  <!-- <div v-if="state === 'escrow-bch'">
+    Escrow BCH Page
+  </div> -->
 
   <!-- Completed transaction -->
   <div v-if="state === 'completed'">
@@ -74,8 +79,9 @@
   </div>
 </template>
 <script>
+import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
-import { formatCurrency } from 'src/wallet/ramp'
+
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
 import TransferToEscrowProcess from './TransferToEscrowProcess.vue'
@@ -106,14 +112,13 @@ export default {
       text: ''
     }
   },
-  emits: ['back'],
   components: {
+    ReceiveOrder,
+    StandByDisplay,
     ProgressLoader,
     MiscDialogs,
-    ReceiveOrder,
     TransferToEscrowProcess,
     VerifyEscrowTx,
-    StandByDisplay,
     PaymentConfirmation
   },
   props: {
@@ -158,6 +163,7 @@ export default {
       }
     }
   },
+  emits: ['back'],
   async mounted () {
     const vm = this
 
@@ -177,6 +183,8 @@ export default {
 
     await vm.fetchAdData()
     this.updateStatus(vm.order.status.value)
+    // this.checkStep()
+    // console.log(vm.order)
     vm.isloaded = true
   },
   methods: {
@@ -204,6 +212,7 @@ export default {
           }
           break
         case 'ESCRW_PN': // Escrow Pending
+          vm.state = 'standby-view'
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
@@ -248,6 +257,7 @@ export default {
         vm.state = 'standby-view'
       }
     },
+
     // API CALLS
     async fetchOrderData () {
       const vm = this
@@ -260,7 +270,8 @@ export default {
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.updateStatus(vm.order.status.value)
-          console.log('order', vm.order)
+          // console.log('order: ', vm.order)
+          // console.log('contract: ', vm.contract)
         })
         .catch(error => {
           console.log(error)
@@ -293,10 +304,13 @@ export default {
     },
     async confirmOrder () {
       const vm = this
+
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
+
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
+
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
@@ -415,22 +429,32 @@ export default {
           await this.fetchOrderData()
           this.checkStep()
           break
-        case 'confirmPaymentSeller':
+        case 'confirmPayment':
           await this.sendConfirmPayment(this.confirmType)
-          await this.verifyRelease()
+          if (this.confirmType === 'buyer') {
+            await this.fetchOrderData()
+          } else if (this.confirmType === 'seller') {
+            await this.verifyRelease()
+          }
           this.checkStep()
           break
-        case 'confirmPaymentBuyer':
-          await this.sendConfirmPayment(this.confirmType)
-          await this.fetchOrderData()
-          this.checkStep()
-          break
+        // case 'confirmPaymentSeller':
+        //   await this.sendConfirmPayment(this.confirmType)
+        //   await this.verifyRelease()
+        //   this.checkStep()
+        //   break
+        // case 'confirmPaymentBuyer':
+        //   await this.sendConfirmPayment(this.confirmType)
+        //   await this.fetchOrderData()
+        //   this.checkStep()
+        //   break
       }
 
       vm.title = ''
       vm.text = ''
       vm.isloaded = true
     },
+
 
     // Opening Dialog
     confirmingOrder () {
@@ -447,9 +471,14 @@ export default {
       this.title = 'Cancel this order?'
     },
     handleConfirmPayment () {
-      this.dialogType = this.confirmType === 'buyer' ? 'confirmPaymentBuyer' : 'confirmPaymentSeller'
+      this.dialogType = 'confirmPayment'
+      this.title = 'Confirm Payment?'
+
+      this.text = this.confirmType === 'buyer' ? 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.' : 'This will release the crypto held by the escrow account to the buyer.'
+      // this.dialogType = this.confirmType === 'buyer' ? 'confirmPaymentBuyer' : 'confirmPaymentSeller'
       this.openDialog = true
     },
+
 
     // Others
     formattedCurrency (value, currency = null) {

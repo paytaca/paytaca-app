@@ -30,18 +30,10 @@
     <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/>
 
     <div class="q-mt-md q-px-md">
-      <div class="row q-px-lg text-center md-font-size" style="overflow-wrap: break-word;">
-        <div v-if="order.status.label === 'Submitted'">
-          <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>
-          <span  class="col">Please wait for the seller to confirm your order.</span>
-        </div>
-        <div v-if="order.status.label === 'Confirmed'">
-          <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>
-          <span  class="col">Please wait for the seller to Escrow the funds</span>
-        </div>
-        <div v-if="order.status.label === 'Escrowed'">
-          <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>
-          <span  class="col">Please wait for the buyer to confirm their fiat payment.</span>
+      <div class="row q-px-lg text-center md-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
+        <div v-if="hasLabel">
+          <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+          <span  class="col">{{ label }}</span>
         </div>
       </div>
 
@@ -79,28 +71,42 @@ export default {
   },
   computed: {
     hasCountDown () {
-      const stat = ['Escrowed', 'Paid Pending', 'Paid', 'Release Pending']
+      const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
 
-      return stat.includes(this.order.status.label) && !this.$parent.isExpired
+      return stat.includes(this.order.status.value) && !this.$parent.isExpired
     },
     hasCancel () {
-      const stat = ['Submitted', 'Confirmed', 'Escrow Pending']
+      const stat = ['SBM', 'CNF', 'ESCRW_PN']
 
-      return stat.includes(this.order.status.label)
+      return stat.includes(this.order.status.value)
     },
     cryptoAmount () {
       return this.$parent.formattedCurrency(this.order.crypto_amount)
     },
     statusColor () {
-      const stat = this.order.status.label
+      const stat = this.order.status.value
 
-      if (stat === 'Released') {
+      if (stat === 'RLS') {
         return 'text-green-6'
-      } else if (stat === 'Canceled' || this.$parent.isExpired) {
+      } else if (stat === 'CNCL' || this.$parent.isExpired) {
         return 'text-red-6'
       } else {
         return ''
       }
+    },
+    hasLabel () {
+      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN']
+      return stat.includes(this.order.status.value)
+    },
+    label () {
+      const labels = {
+        SBM: 'Please wait for the seller to confirm your order.',
+        CNF: 'Please wait for the seller to Escrow the funds.',
+        ESCRW_PN: 'Please wait for the seller to Escrow the funds.',
+        ESCRW: 'Please wait for the buyer to confirm their fiat payment.',
+        PD_PN: 'Please wait for the seller to confirm your fiat payment.'
+      }
+      return labels[this.order.status.value]
     }
   },
   async mounted () {

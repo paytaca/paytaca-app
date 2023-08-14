@@ -339,10 +339,10 @@ export default {
         this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
       }
     },
-    orderConfirm () {
-      this.dialogType = 'confirmOrderCreate'
-      this.openDialog = true
-    },
+    // orderConfirm () {
+    //   this.dialogType = 'confirmOrderCreate'
+    //   this.openDialog = true
+    // },
     getCryptoAmount () {
       if (!this.byFiat) {
         return parseFloat(this.amount)
