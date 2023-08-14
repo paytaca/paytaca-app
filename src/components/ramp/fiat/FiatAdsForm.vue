@@ -299,10 +299,14 @@ export default {
         tradeFloor: null,
         tradeCeiling: null,
         cryptoAmount: null,
-        timeDurationChoice: 1440,
+        timeDurationChoice: 5,
         paymentMethods: []
       },
       ptlSelection: [
+        {
+          label: '5 min',
+          value: 5
+        },
         {
           label: '15 min',
           value: 15
