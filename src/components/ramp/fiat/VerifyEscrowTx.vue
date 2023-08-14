@@ -48,15 +48,16 @@
         </div>
         <div class="row" v-else>
           <q-btn
-            v-if="!hideVerifyBtn"
+            v-if="!loading && !hideVerifyBtn"
             rounded
             no-caps
+            :disable="hideVerifyBtn"
             label="Verify"
             color="blue-6"
             class="col q-mx-lg q-my-md q-py-sm"
             @click="onVerify">
           </q-btn>
-          <div v-else>Verifying transaction, please wait...</div>
+          <div v-if="!loading && hideVerifyBtn" class="q-mt-md">Verifying transaction, please wait...</div>
         </div>
       </div>
     </div>
@@ -73,7 +74,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      loading: false,
+      loading: true,
       contract: {
         balance: null,
         address: ' '
@@ -103,12 +104,12 @@ export default {
   computed: {},
   async mounted () {
     const vm = this
-    vm.loading = true
     if (vm.txId && vm.txId.length > 0) {
       vm.transactionId = vm.txId
     }
     vm.setupWebsocket()
     await vm.fetchOrderDetail()
+    vm.loading = false
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -140,7 +141,6 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      vm.loading = true
       const url = vm.apiURL + '/order/' + vm.orderId + '/escrow-verify'
       const body = {
         txid: vm.transactionId
@@ -152,12 +152,11 @@ export default {
         console.error(error.response)
         const errorMsg = error.response.data.error
         vm.errorMessages.push(errorMsg)
-        this.hideVerifyBtn = false
       }
     },
     onVerify () {
       const vm = this
-      vm.disableVerifyBtn = true
+      vm.hideVerifyBtn = true
       vm.verifyTxid()
     },
     setupWebsocket () {
@@ -169,11 +168,10 @@ export default {
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket message:', data)
-        if (data.success) {
-          if (data.success === true) {
-            this.$emit('success', data.status.status)
-          }
-          this.disableVerifyBtn = false
+        if (data.success && data.success === true) {
+          this.$emit('success', data.status.status)
+        } else {
+          this.hideVerifyBtn = false
         }
       }
       this.websocket.onclose = () => {
