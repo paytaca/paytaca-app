@@ -48,14 +48,15 @@
         </div>
         <div class="row" v-else>
           <q-btn
-              rounded
-              no-caps
-              :disable="disableVerifyBtn"
-              label="Verify"
-              color="blue-6"
-              class="col q-mx-lg q-my-md q-py-sm"
-              @click="onVerify">
-            </q-btn>
+            v-if="!hideVerifyBtn"
+            rounded
+            no-caps
+            label="Verify"
+            color="blue-6"
+            class="col q-mx-lg q-my-md q-py-sm"
+            @click="onVerify">
+          </q-btn>
+          <div v-else>Verifying transaction, please wait...</div>
         </div>
       </div>
     </div>
@@ -79,7 +80,7 @@ export default {
       },
       transactionId: '', // dummy txid
       errorMessages: [],
-      disableVerifyBtn: false
+      hideVerifyBtn: false
     }
   },
   emits: ['back', 'success'],
@@ -151,7 +152,7 @@ export default {
         console.error(error.response)
         const errorMsg = error.response.data.error
         vm.errorMessages.push(errorMsg)
-        this.disableVerifyBtn = false
+        this.hideVerifyBtn = false
       }
     },
     onVerify () {

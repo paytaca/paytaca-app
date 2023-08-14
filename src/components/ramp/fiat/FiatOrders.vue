@@ -182,7 +182,6 @@ export default {
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
     await vm.fetchOrders()
-    vm.wallet.balance = (await vm.wallet.wallet.BCH.getBalance()).balance
   },
   methods: {
     async fetchOrders () {
