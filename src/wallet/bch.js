@@ -24,12 +24,19 @@ export class BchWallet {
     this.projectId = projectId
     this.walletHash = this.getWalletHash()
     this.baseUrl = getWatchtowerApiUrl(isChipnet)
+    this.purelypeerVaultSigner = {
+      index: 0,
+      derivationPath: "m/44'/0'/0'"
+    }
   }
 
-  getWalletHash () {
+  getWalletHash (derivationPath = '') {
+    let __derivationPath = derivationPath
+    if (derivationPath === '') __derivationPath = this.derivationPath
+    
     const mnemonicHash = sha256(this.mnemonic)
-    const derivationPath = sha256(this.derivationPath)
-    const walletHash = sha256(mnemonicHash + derivationPath)
+    const derivationPathHash = sha256(__derivationPath)
+    const walletHash = sha256(mnemonicHash + derivationPathHash)
     return walletHash
   }
 
@@ -68,13 +75,26 @@ export class BchWallet {
     }
   }
 
-  async getAddressSetAt(index) {
+  async getChildNode (index, derivationPath) {
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(this.derivationPath)
+    const childNode = masterHDNode.derivePath(derivationPath)
     const receivingAddressNode = childNode.derivePath('0/' + index)
     const changeAddressNode = childNode.derivePath('1/' + index)
+    return { receivingAddressNode, changeAddressNode }
+  }
+
+  async getAddressSetAt(index) {
+    const { receivingAddressNode, changeAddressNode } = await this.getChildNode(index, this.derivationPath)
+    const merchantNode = await this.getChildNode(
+      this.purelypeerVaultSigner.index,
+      this.purelypeerVaultSigner.derivationPath
+    )
+
     let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
     let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+
+    let merchantReceivingAddress = bchjs.HDNode.toCashAddress(merchantNode.receivingAddressNode)
+    let merchantChangeAddress = bchjs.HDNode.toCashAddress(merchantNode.changeAddressNode)
 
     // Generate a new PGP key
     const userID = receivingAddress.split(':')[1]
@@ -98,6 +118,8 @@ export class BchWallet {
     if (this.isChipnet) {
       receivingAddress = convertCashAddress(receivingAddress, this.isChipnet, false)
       changeAddress = convertCashAddress(changeAddress, this.isChipnet, false)
+      merchantReceivingAddress = convertCashAddress(merchantReceivingAddress, this.isChipnet, false)
+      merchantChangeAddress = convertCashAddress(merchantChangeAddress, this.isChipnet, false)
     }
 
     const pgpIdentity = {
@@ -111,13 +133,20 @@ export class BchWallet {
       receiving: receivingAddress,
       change: changeAddress,
       pgpInfo: pgpInfo,
-      pgpIdentity: pgpIdentity
+      pgpIdentity: pgpIdentity,
+      purelypeerVaultSigner: {
+        receiving: merchantReceivingAddress,
+        change: merchantChangeAddress,
+        derivationPath: this.purelypeerVaultSigner.derivationPath,
+        walletHash: this.getWalletHash(this.purelypeerVaultSigner.derivationPath)
+      }
     }
   }
 
   async getNewAddressSet (index) {
     const addresses = await this.getAddressSetAt(index)
     const addressSet = { receiving: addresses.receiving, change: addresses.change }
+    const purelypeerVaultSigner = addresses.purelypeerVaultSigner
 
     const data = {
       addresses: addressSet,
@@ -126,9 +155,24 @@ export class BchWallet {
       addressIndex: index,
       chatIdentity: addresses.pgpInfo
     }
+    const merchantData = {
+      addresses: {
+        receiving: purelypeerVaultSigner.receiving,
+        change: purelypeerVaultSigner.change,
+      },
+      projectId: this.projectId,
+      walletHash: this.walletHash,
+      addressIndex: this.purelypeerVaultSigner.index
+    }
     const result = await this.watchtower.subscribe(data)
-    if (result.success) {
-      return { addresses: addressSet, pgpIdentity: addresses.pgpIdentity }
+    const merchantResult = await this.watchtower.subscribe(merchantData)
+
+    if (result.success && merchantResult.success) {
+      return {
+        addresses: addressSet,
+        pgpIdentity: addresses.pgpIdentity,
+        purelypeerVaultSigner
+      }
     } else {
       return null
     }
@@ -193,9 +237,12 @@ export class BchWallet {
     return response
   }
 
-  async getPrivateKey (addressPath) {
+  async getPrivateKey (addressPath, derivationPath = '') {
+    let __derivationPath = derivationPath
+    if (derivationPath === '') __derivationPath = this.derivationPath 
+
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(this.derivationPath + '/' + String(addressPath))
+    const childNode = masterHDNode.derivePath(__derivationPath + '/' + String(addressPath))
     return bchjs.HDNode.toWIF(childNode)
   }
 

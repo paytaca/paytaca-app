@@ -179,7 +179,7 @@ export function deleteBranch(context, data) {
  * @param {Object} data
  * @param {String} data.walletHash
  * @param {String} data.posid
- * @param {String} data.encryptedXpubkey
+ * @param {String} data.encryptedData = xpubkey + @ + ppvsPrivKey
  * @param {String} data.decryptKey
  * @param {Number} data.nonce
  * @param {String} data.signature
@@ -189,7 +189,7 @@ export function deleteBranch(context, data) {
  */
 export function generateLinkCode(context, data) {
   if (!data?.walletHash || !Number.isSafeInteger(data?.posid) ||
-      !data?.encryptedXpubkey || !data?.decryptKey ||
+      !data?.encryptedData || !data?.decryptKey ||
       !Number.isSafeInteger(data?.nonce) || !data?.signature
   ) return Promise.reject()
 
@@ -205,7 +205,7 @@ export function generateLinkCode(context, data) {
   const _data = {
     wallet_hash: data?.walletHash,
     posid: data?.posid,
-    encrypted_xpubkey: data?.encryptedXpubkey,
+    encrypted_xpubkey: data?.encryptedData,
     signature: data?.signature,
   }
   return posBackend.post('paytacapos/devices/generate_link_device_code/', _data)

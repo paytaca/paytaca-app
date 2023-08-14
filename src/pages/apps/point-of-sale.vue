@@ -1,7 +1,7 @@
 <template>
   <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
-      title="POS Admin"
+      :title="$t('POSAdmin')"
       backnavpath="/apps"
     />
     <q-card
