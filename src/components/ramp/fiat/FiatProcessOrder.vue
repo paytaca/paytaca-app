@@ -195,7 +195,7 @@ export default {
     },
     checkStep () {
       const vm = this
-      console.log('checking step')
+      // console.log('checking step')
       switch (vm.status) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
