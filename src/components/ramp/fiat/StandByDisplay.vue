@@ -31,7 +31,7 @@
 
     <div class="q-mt-md q-px-md">
       <div class="row q-px-lg text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
-        <div v-if="hasLabel">
+        <div v-if="hasLabel" class="row">
           <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
           <span  class="col">{{ label }}</span>
         </div>
@@ -77,7 +77,7 @@ export default {
     },
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
-
+      console.log('hasCancel:', stat.includes(this.order.status.value))
       return stat.includes(this.order.status.value)
     },
     cryptoAmount () {
@@ -113,6 +113,7 @@ export default {
   },
   async mounted () {
     this.order = this.orderData
+    console.log('order:', this.order)
     await this.paymentCountdown()
     this.checkStatus()
     this.isloaded = true

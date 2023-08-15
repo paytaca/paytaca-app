@@ -166,31 +166,19 @@ export default {
   emits: ['back'],
   async mounted () {
     const vm = this
-
-    // const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    // vm.wallet = await loadP2PWalletInfo(walletInfo)
-
     await vm.fetchOrderData()
-
     if (!vm.order) {
       vm.order = vm.orderData
     }
-    // if (!vm.orderData) {
-    //   await vm.fetchOrderData()
-    // } else {
-    //   vm.order = vm.orderData
-    // }
-
     await vm.fetchAdData()
-    this.updateStatus(vm.order.status.value)
-    // this.checkStep()
-    // console.log(vm.order)
+    this.updateStatus(vm.order.status)
     vm.isloaded = true
   },
   methods: {
     // STEP CHECKER
     updateStatus (status) {
       this.status = status
+      this.order.status = this.status
       this.checkStep()
     },
     checkStep () {
