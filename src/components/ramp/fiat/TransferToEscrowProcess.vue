@@ -67,8 +67,8 @@
           <div v-if="fees" class="row q-ml-md">
             Fee: {{ fees.total }} BCH
           </div>
-          <div v-if="wallet && wallet.balance" class="row q-ml-md q-mt-xs">
-            Balance: {{ wallet.balance }} BCH
+          <div class="row q-ml-md q-mt-xs">
+            Balance: {{ balance }} BCH
           </div>
         </div>
         <div class="row" v-if="sendErrors.length > 0">
@@ -145,7 +145,7 @@ export default {
       this.contractAddress = ' '
       this.generateContractAddress()
     },
-    'fees' (value) {
+    fees (value) {
       console.log('fees.total:', value)
       if (this.fees) {
         this.transferAmount += this.fees.total
@@ -153,8 +153,11 @@ export default {
     }
   },
   computed: {
+    balance () {
+      return this.$parent.bchBalance
+    },
     balanceExceeded () {
-      if (this.transferAmount > parseFloat(this.wallet.balance)) {
+      if (this.transferAmount > parseFloat(this.balance)) {
         return true
       }
       return false
@@ -180,8 +183,8 @@ export default {
       // Send crypto to smart contract
       const vm = this
       try {
-        console.log('transferAmount:', vm.transferAmount)
-        // const result = await vm.wallet.wallet.BCH.sendBch(vm.transferAmount, vm.contractAddress)
+        // console.log('transferAmount:', vm.transferAmount)
+        // const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
         // if (result.error.indexOf('not enough balance in sender') > -1) {
         //   vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
         // } else if (result.error.indexOf('has insufficient priority') > -1) {
@@ -189,12 +192,13 @@ export default {
         // } else {
         //   vm.sendErrors.push(result.error)
         // }
+        // console.log('result:', result)
         // vm.transactionId = result.transactionId
-        // await vm.escrowPendingOrder()
+        await vm.escrowPendingOrder()
       } catch (error) {
         console.error(error)
       }
-      await vm.escrowPendingOrder()
+      // await vm.escrowPendingOrder()
     },
     async escrowPendingOrder () {
       const vm = this
@@ -210,7 +214,6 @@ export default {
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
       try {
         const response = await vm.$axios.post(url, null, { headers: headers })
-        console.log('escrowPendingOrder response:', response.data)
         const result = {
           txid: vm.transactionId,
           status: response.data.status

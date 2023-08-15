@@ -1,16 +1,18 @@
 import { loadWallet } from 'src/wallet'
 import { markRaw } from 'vue'
 
-export async function loadP2PWalletInfo (walletInfo) {
+export async function loadP2PWalletInfo (walletInfo, network = 'bch') {
   /**
    * Returns the wallet information needed for RampP2P processes
    */
-  const wallet = await markRaw(loadWallet())
-  const walletHash = wallet.BCH.getWalletHash()
+  const rawWallet = await markRaw(loadWallet())
+  let wallet = (rawWallet).BCH
+  if (network === 'chipnet') wallet = rawWallet.BCH_CHIP
 
+  const walletHash = wallet.getWalletHash()
   const { lastAddress, connectedAddressIndex } = walletInfo
-  const privateKeyWif = await wallet.BCH.getPrivateKey(connectedAddressIndex)
-  const publicKey = await wallet.BCH.getPublicKey(connectedAddressIndex)
+  const privateKeyWif = await wallet.getPrivateKey(connectedAddressIndex)
+  const publicKey = await wallet.getPublicKey(connectedAddressIndex)
 
   return {
     wallet: wallet,
