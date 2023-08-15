@@ -48,7 +48,10 @@ export function updateMerchantInfo(context, data) {
     wallet_hash: data?.walletHash,
     primary_contact_number: data?.primaryContactNumber,
   }
-  Object.assign(payload, data)
+  Object.assign(payload, {
+    ...data,
+    signer_wallet_hash: context.rootGetters['global/ppvsWalletHash']
+  })
 
   return posBackend.post(`paytacapos/merchants/`, payload)
     .then(response => {

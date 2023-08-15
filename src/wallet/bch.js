@@ -161,7 +161,7 @@ export class BchWallet {
         change: purelypeerVaultSigner.change,
       },
       projectId: this.projectId,
-      walletHash: this.walletHash,
+      walletHash: purelypeerVaultSigner.walletHash,
       addressIndex: this.purelypeerVaultSigner.index
     }
     const result = await this.watchtower.subscribe(data)
