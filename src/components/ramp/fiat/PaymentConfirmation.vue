@@ -31,10 +31,10 @@
     <div class="q-mx-lg q-px-md q-pt-md">
 
       <!-- Buyer -->
-      <div v-if="type === 'buyer'">
+      <div v-if="type === 'buyer'" class="q-pb-md">
         <div class="xm-font-size q-pb-xs q-pl-sm text-center bold-text">Payment Methods</div>
         <div class="full-width">
-          <q-scroll-area style="height:28vh;overflow-y:auto;">
+          <q-scroll-area :style="`height: ${minHeight - (minHeight*.7)}px`" style="overflow-y:auto;">
             <div
               v-for="(method, index) in order.payment_methods"
               :key="index">
@@ -63,14 +63,16 @@
       </div> -->
 
       <!-- Checkbox -->
-      <div class="q-mx-lg" v-if="type === 'seller'">
-        <q-checkbox size="sm" v-model="confirmRelease"/>
-        <span class="sm-font-size text-center">I have recieved my payment, and agrees to release the funds.</span>
-      </div>
+      <div>
+        <div class="q-mx-lg" v-if="type === 'seller'">
+          <q-checkbox size="sm" v-model="confirmRelease"/>
+          <span class="sm-font-size text-center">I have recieved my payment, and agrees to release the funds.</span>
+        </div>
 
-      <div class="q-mx-lg" v-if="type === 'buyer'">
-        <q-checkbox size="sm" v-model="confirmPayment"/>
-        <span class="sm-font-size text-center"> I confirm that I have already sent my payment.</span>
+        <div class="q-mx-lg" v-if="type === 'buyer'">
+          <q-checkbox size="sm" v-model="confirmPayment"/>
+          <span class="sm-font-size text-center"> I confirm that I have already sent my payment.</span>
+        </div>
       </div>
 
       <!-- Confirm  -->
@@ -99,7 +101,8 @@ export default {
       countDown: '',
       timer: null,
       confirmPayment: false,
-      confirmRelease: false
+      confirmRelease: false,
+      minHeight: this.$q.screen.height - 210
     }
   },
   props: {

@@ -2,7 +2,7 @@
   <q-card
    class="br-15 q-pt-sm q-mx-md q-mx-none"
    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-   style="min-height:78vh;">
+   :style="`min-height: ${minHeight}px;`">
    <!-- Form Body -->
     <div v-if="state === 'initial'">
       <div v-if="isloaded">
@@ -190,6 +190,7 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wallet: null,
       isloaded: false,
+      minHeight: this.$q.screen.height - 210,
 
       ad: null,
       state: 'initial',
