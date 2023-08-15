@@ -50,13 +50,14 @@
             <q-input
               class="q-pb-xs"
               filled
+              dense
               label="Amount"
               :dark="darkMode"
               v-model="amount"
               :rules="[isValidInputAmount]"
               @blur="resetInput">
               <template v-slot:append>
-                <span class="md-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
+                <span class="sm-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
               </template>
             </q-input>
             <div class="row justify-between">

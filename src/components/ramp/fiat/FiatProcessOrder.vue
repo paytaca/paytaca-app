@@ -198,7 +198,7 @@ export default {
       // console.log('checking step')
       // switch (vm.status) {
 
-      console.log('checking step:', vm.status)
+      // console.log('checking step:', vm.status)
       switch (vm.status.value) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
@@ -461,13 +461,13 @@ export default {
 
     // Opening Dialog
     confirmingOrder () {
-      console.log('confirming order')
+      // console.log('confirming order')
       this.dialogType = 'confirmOrderCreate'
       this.title = 'Confirm Order?'
       this.openDialog = true
     },
     cancellingOrder () {
-      console.log('cancelling order')
+      // console.log('cancelling order')
 
       this.dialogType = 'confirmCancelOrder'
       this.openDialog = true
