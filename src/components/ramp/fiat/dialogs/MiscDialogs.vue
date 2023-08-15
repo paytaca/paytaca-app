@@ -299,78 +299,6 @@
     </q-card>
   </q-dialog>
 
-  <!-- confirm payment -->
-  <!-- <q-dialog persistent v-model="confirmPayment">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Confirm Payment?</div>
-      </q-card-section>
-
-      <q-card-section class="text-center q-pt-none">
-        <div>
-          This will release the crypto held by the escrow account to the buyer.
-        </div>
-        <div class="q-pt-md">
-          I confirm that I have received payment from the buyer.
-        </div>
-
-      </q-card-section>
-
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog> -->
-
-  <!-- confirm payment buyer -->
-  <q-dialog persistent v-model="confirmPaymentBuyer">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Confirm Payment?</div>
-      </q-card-section>
-
-      <q-card-section class="text-center q-pt-none">
-        <div>
-          This will inform the seller that you already sent the fiat fee to one of their selected payment methods.
-        </div>
-        <!-- <div class="q-pt-md">
-          <q-icon size="xs" name='o_info' color="blue-grey-6"/> I confirm that I have already sent my payment.
-        </div> -->
-
-      </q-card-section>
-
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-
-  <!-- confirm payment buyer -->
-  <q-dialog persistent v-model="confirmPaymentSeller">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <q-card-section>
-        <div class="text-h6 text-center">Confirm Payment?</div>
-      </q-card-section>
-
-      <q-card-section class="text-center q-pt-none">
-        <div>
-          This will release the crypto held by the escrow account to the buyer.
-        </div>
-        <div class="q-pt-md">
-          I confirm that I have received payment from the buyer.
-        </div>
-
-      </q-card-section>
-
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-
   <!-- Sending Appeal Confirmation Todo-->
   <!-- <q-dialog full-width persistent v-model="appeal">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
@@ -432,7 +360,6 @@ export default {
 
       // Data
 
-
       // Dialog Model
       genericDialog: false,
 
@@ -445,9 +372,6 @@ export default {
       editNickname: false,
       viewProfile: false,
       submitAppeal: false,
-      // confirmPayment: false,
-      confirmPaymentBuyer: false,
-      confirmPaymentSeller: false,
       maxMethodReached: false,
 
       // Input Model
@@ -595,10 +519,6 @@ export default {
         case 'submitAppeal':
           vm.submitAppeal = true
           break
-        // case 'confirmPayment':
-          // console.log('confirming payment')
-          // vm.confirmPayment = true
-          // break
         case 'confirmPaymentBuyer':
           vm.confirmPaymentBuyer = true
           break
@@ -640,8 +560,6 @@ export default {
           vm.info = vm.data
           return 'submit'
         case 'confirmCancelOrder':
-        case 'confirmPaymentSeller':
-        case 'confirmPaymentBuyer':
         case 'confirmOrderCreate':
           return 'submit'
         default:

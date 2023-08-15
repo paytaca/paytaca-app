@@ -46,17 +46,18 @@
 
           <!-- Fiat Input -->
           <div class="q-mt-md q-mx-md" v-if="!isOwner">
-            <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Fiat Amount</div> -->
+            <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
             <q-input
               class="q-pb-xs"
               filled
+              dense
               label="Amount"
               :dark="darkMode"
               v-model="amount"
               :rules="[isValidInputAmount]"
               @blur="resetInput">
               <template v-slot:append>
-                <span class="md-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
+                <span class="sm-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
               </template>
             </q-input>
             <div class="row justify-between">
@@ -232,7 +233,7 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     },
     isOwner () {
-      console.log(this.ad.is_owned)
+      // console.log(this.ad.is_owned)
       return this.ad.is_owned
     }
   },
@@ -277,7 +278,6 @@ export default {
       }
     },
     async createOrder () {
-      console.log('creating order')
       const vm = this
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
@@ -297,8 +297,8 @@ export default {
         console.log(temp)
         body.payment_methods = temp
       }
-      // console.log('headers:', headers)
-      // console.log('body:', body)
+      console.log('headers:', headers)
+      console.log('body:', body)
       try {
         const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
         console.log('response:', response)
@@ -356,12 +356,9 @@ export default {
       this.$emit('back')
     },
     onOrderCanceled () {
-      console.log('onOrderCanceled')
       this.$emit('orderCanceled')
     },
     recievePaymentMethods (item) {
-      console.log('recieving data')
-
       this.paymentMethods = item
       console.log(this.paymentMethods)
       this.createOrder()
@@ -374,11 +371,9 @@ export default {
       const vm = this
       switch (vm.ad.trade_type) {
         case 'SELL':
-          console.log('create buy order')
           vm.orderConfirm()
           break
         case 'BUY':
-          console.log('create sell order')
           vm.state = 'add-payment-method'
           break
       }

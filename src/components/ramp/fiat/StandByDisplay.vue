@@ -3,9 +3,6 @@
     <div class="q-mx-lg text-h5 text-center lg-font-size bold-text" :class="statusColor">
       <span v-if="$parent.isExpired">EXPIRED</span>
       <span v-else>{{ order.status.label.toUpperCase() }}</span>
-      <!-- <span v-if="order.status.label === 'Submitted'">Order Created</span>
-      <span v-else-if="type === 'completed'">History</span>
-      <span v-else>Processing Order</span> -->
     </div>
     <div class="q-px-lg q-pt-lg">
       <div class="sm-font-size q-pb-xs">Fiat Amount</div>
@@ -77,7 +74,7 @@ export default {
     },
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
-      console.log('hasCancel:', stat.includes(this.order.status.value))
+      // console.log('hasCancel:', stat.includes(this.order.status.value))
       return stat.includes(this.order.status.value)
     },
     cryptoAmount () {
@@ -95,7 +92,7 @@ export default {
       }
     },
     hasLabel () {
-      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN']
+      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN']
       return stat.includes(this.order.status.value)
     },
     label () {
@@ -104,7 +101,9 @@ export default {
         CNF: 'Please wait for the seller to Escrow the funds.',
         ESCRW_PN: 'Please wait for the seller to Escrow the funds.',
         ESCRW: 'Please wait for the buyer to confirm their fiat payment.',
-        PD_PN: 'Please wait for the seller to confirm your fiat payment.'
+        PD_PN: 'Please wait for the seller to confirm your fiat payment.',
+        PD: 'Please wait for the fund release.',
+        RLS_PN: 'Please wait for the fund release.'
       }
       return labels[this.order.status.value]
     }
@@ -122,13 +121,13 @@ export default {
   },
   methods: {
     checkStatus () {
-      const completedStatus = ['Released', 'Refunded', 'Canceled']
-      if (completedStatus.includes(this.order.status.label)) {
+      const completedStatus = ['RLS', 'RFN', 'CNCL']
+      if (completedStatus.includes(this.order.status.value)) {
         this.type = 'completed'
       }
     },
     paymentCountdown () {
-      console.log('counting down')
+      // console.log('counting down')
       const vm = this
 
       const expiryDate = new Date(vm.order.expiration_date)
@@ -152,8 +151,6 @@ export default {
         if (distance < 0) {
           clearInterval(vm.timer)
           vm.countDown = 'Expired'
-          // vm.order.status = 'Expired'
-          // vm.shiftExpired = true
         }
       }, 1000)
     }
