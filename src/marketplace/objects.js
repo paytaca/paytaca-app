@@ -650,6 +650,7 @@ export class Order {
    * @param {Number} data.total_paid
    * @param {Number} data.total_pending_payment
    * @param {Number} data.total_payments
+   * @param {Number} data.total_refunded
    * @param {{ delivery_fee:Number, escrow_refund_address:String }} data.payment
    * @param {String} [data.cancel_reason]
    * @param {String | Number} data.created_at
@@ -671,6 +672,7 @@ export class Order {
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
     this.totalPayments = data?.total_payments
+    this.totalRefunded = data?.total_refunded
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
@@ -705,14 +707,21 @@ export class Order {
     return (parseFloat(this.totalPaid) || 0) + (parseFloat(this.totalPendingPayment) || 0)
   }
 
+
   get change() {
-    const change = Math.max((parseFloat(this.totalPaid) || 0) - this.total, 0)
+    const totalPaid = (parseFloat(this.totalPaid) || 0)
+    const totalRefunded = parseFloat(this.totalRefunded || 0)
+    const change = Math.max(totalPaid - totalRefunded - this.total, 0)
     return Math.round(change * 10 ** 3) / 10 ** 3
   }
 
   get totalUnpaid() {
     const totalPaid = parseFloat(this.totalPaid || 0)
     return Math.max(this.total - totalPaid, 0)
+  }
+
+  get netPaid() {
+    return this.totalPaid - (parseFloat(this.totalRefunded) || 0)
   }
 
   get paymentStatus() {

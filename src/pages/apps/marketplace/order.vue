@@ -203,6 +203,18 @@
               Amount sent by customer but not yet received
             </q-menu>
           </div>
+          <template v-if="orderAmounts.totalRefunded.currency">
+            <div class="row items-start text-grey" @click.stop>
+              <div class="q-space">Total refunded</div>
+              <div v-if="displayBch">{{ orderAmounts.totalRefunded.bch }} BCH</div>
+              <div v-else>{{ orderAmounts.totalRefunded.currency }} {{ orderCurrency }}</div>
+            </div>
+            <div class="row items-start text-body1" @click.stop>
+              <div class="q-space">Net paid</div>
+              <div v-if="displayBch">{{ orderAmounts.netPaid.bch }} BCH</div>
+              <div v-else>{{ orderAmounts.netPaid.currency }} {{ orderCurrency }}</div>
+            </div>
+          </template>
           <div
             v-if="orderAmounts.change.currency"
             class="row items-start text-h6"
@@ -299,6 +311,8 @@ const orderAmounts = computed(() => {
     total: { currency: order.value?.total, bch: 0 },
     totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
     totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
+    totalRefunded: { currency: parseFloat(order.value?.totalRefunded), bch: 0 },
+    netPaid: { currency: parseFloat(order.value?.netPaid), bch: 0 },
     change: { currency: parseFloat(order.value.change), bch: 0}
   }
 
@@ -308,6 +322,8 @@ const orderAmounts = computed(() => {
     data.total.bch = parseBch(data.total.currency / orderBchPrice.value)
     data.totalPaid.bch = parseBch(data.totalPaid.currency / orderBchPrice.value)
     data.totalPendingPayment.bch = parseBch(data.totalPendingPayment.currency / orderBchPrice.value)
+    data.totalRefunded.bch = parseBch(data.totalRefunded.currency / orderBchPrice.value)
+    data.netPaid.bch = parseBch(data.netPaid.currency / orderBchPrice.value)
     data.change.bch = parseBch(data.change.currency / orderBchPrice.value)
   } else {
     data.subtotal.bch = null
@@ -315,6 +331,8 @@ const orderAmounts = computed(() => {
     data.total.bch = null
     data.totalPaid.bch = null
     data.totalPendingPayment.bch = null
+    data.totalRefunded.bch = null
+    data.netPaid.bch = null
     data.change.bch = null
   }
 
