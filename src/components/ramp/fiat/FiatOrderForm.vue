@@ -300,6 +300,7 @@ export default {
       // console.log('body:', body)
       try {
         const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
+        console.log('response:', response)
         vm.order = response.data.order
         vm.state = 'order-process'
       } catch (error) {

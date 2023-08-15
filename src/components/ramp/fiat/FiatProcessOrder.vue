@@ -187,8 +187,8 @@ export default {
     },
     checkStep () {
       const vm = this
-      console.log('checking step')
-      switch (vm.status) {
+      console.log('checking step:', vm.status)
+      switch (vm.status.value) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
             vm.state = 'order-confirm-decline'
@@ -259,7 +259,7 @@ export default {
         .then(response => {
           vm.order = response.data.order
           vm.contract = response.data.contract
-          vm.updateStatus(vm.order.status.value)
+          vm.updateStatus(vm.order.status)
           console.log('order', vm.order)
         })
         .catch(error => {
@@ -306,7 +306,7 @@ export default {
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           console.log(response)
-          if (response.data && response.data.status === 'CNF') {
+          if (response.data && response.data.status.value === 'CNF') {
             vm.updateStatus(response.data.status)
           }
         })
@@ -332,7 +332,7 @@ export default {
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           console.log(response)
-          if (response.data && response.data.status === 'CNCL') {
+          if (response.data && response.data.status.value === 'CNCL') {
             vm.updateStep(response.data.status)
           }
         })
@@ -359,7 +359,7 @@ export default {
       })
         .then(response => {
           console.log(response.data)
-          if (response.data && response.data.status === 'PD_PN') {
+          if (response.data && response.data.status.value === 'PD_PN') {
             vm.updateStep(response.data.status)
           }
         })
@@ -392,7 +392,7 @@ export default {
         })
         .then(response => {
           console.log(response)
-          if (response.data && response.data.status === 'RLS') {
+          if (response.data && response.data.status.value === 'RLS') {
             vm.updateStep(response.data.status)
           }
         })
@@ -476,7 +476,6 @@ export default {
     },
     onVerifyTxSuccess (status) {
       console.log('onVerifyTxSuccess:', status)
-      this.state = 'order-list'
       this.updateStatus(status)
     },
     onBack () {
