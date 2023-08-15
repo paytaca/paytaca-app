@@ -274,7 +274,7 @@ function updateMerchantInfo() {
       })
     })
     .then(() => {
-      if (!$store.getters['paytacapos/merchantBranchs']?.length) {
+      if (!$store.getters['paytacapos/merchantBranches']?.length) {
         $store.dispatch('paytacapos/refetchBranches', {
           walletHash: $store.getters['paytacapos/merchantInfo']?.walletHash,
         })
