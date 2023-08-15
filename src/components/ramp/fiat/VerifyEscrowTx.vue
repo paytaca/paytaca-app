@@ -10,29 +10,30 @@
       </div> -->
       <div class="text-center lg-font-size bold-text">VERIFYING TRANSFER</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
-      <div class="q-mx-lg">
-        <div class="row q-mt-md">
-            <q-input
-                readonly
-                class="col"
-                :dark="darkMode"
-                filled
-                v-model="contract.address"
-                label="Contract Address"
-                style="width: 250px;"
-                :loading="!contract || contract.address === ' '">
-            </q-input>
-        </div>
-        <div class="row q-mt-md">
-            <q-input
-                class="col"
-                :dark="darkMode"
-                filled
-                v-model="transactionId"
-                label="Transaction ID"
-                style="width: 250px;">
-            </q-input>
-        </div>
+      <div class="q-mx-lg q-px-md q-pt-md">
+        <!-- <div class="row q-mt-md"> -->
+        <div class="sm-font-size q-pl-sm q-pb-xs">Contract Address</div>
+          <q-input
+            class="q-pb-sm"
+            readonly
+            :dark="darkMode"
+            filled
+            dense
+            v-model="contract.address"
+            :loading="!contract || contract.address === ' '">
+          </q-input>
+        <!-- </div> -->
+        <!-- <div class="row q-mt-md"> -->
+
+        <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
+          <q-input
+            :dark="darkMode"
+            filled
+            dense
+            v-model="transactionId"
+            >
+          </q-input>
+        <!-- </div> -->
         <div v-if="contract.balance !== null" class="row q-mt-sm sm-font-size" style="color: grey">
           Contract balance: {{ contract.balance }} BCH
         </div>
@@ -122,10 +123,12 @@ export default {
       }
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.orderId
+
       try {
         const response = await vm.$axios.get(url, { headers: headers })
         vm.contract.address = response.data.contract.address
         vm.contract.balance = await getBalanceByAddress(vm.contract.address)
+        console.log('contract: ', response)
       } catch (error) {
         console.error(error.response)
       }

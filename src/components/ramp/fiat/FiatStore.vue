@@ -2,7 +2,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    style="min-height:78vh;"
+    :style="`min-height: ${minHeight}px;`"
     v-if="state === 'SELECT' && !viewProfile">
     <div>
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
@@ -40,7 +40,7 @@
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
-          <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:auto;">
+          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.30)}px`" style="overflow:auto;">
             <q-infinite-scroll
               ref="infiniteScroll"
               :items="listings"
@@ -171,7 +171,8 @@ export default {
       selectedUser: null,
       fiatCurrencies: [],
       totalPages: null,
-      pageNumber: null
+      pageNumber: null,
+      minHeight: this.$q.screen.height - 210
     }
   },
   watch: {

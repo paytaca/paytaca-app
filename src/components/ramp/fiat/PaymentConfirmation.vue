@@ -10,7 +10,7 @@
       <div v-if="type === 'buyer'" class="md-font-size subtext q-pb-xs q-pl-sm">Please pay the seller</div>
       <div v-else class="md-font-size subtext q-pb-xs q-pl-sm">You will recieve</div>
       <div @click="$parent.copyToClipboard($parent.fiatAmount)">
-        <q-input class="q-pb-xs" disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
+        <q-input class="q-pb-xs" dense disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
           <template v-slot:prepend>
             <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
           </template>
@@ -31,10 +31,10 @@
     <div class="q-mx-lg q-px-md q-pt-md">
 
       <!-- Buyer -->
-      <div v-if="type === 'buyer'">
+      <div v-if="type === 'buyer'" class="q-pb-md">
         <div class="xm-font-size q-pb-xs q-pl-sm text-center bold-text">Payment Methods</div>
         <div class="full-width">
-          <q-scroll-area style="height:33vh;overflow-y:auto;">
+          <q-scroll-area :style="`height: ${minHeight - (minHeight*.7)}px`" style="overflow-y:auto;">
             <div
               v-for="(method, index) in order.payment_methods"
               :key="index">
@@ -63,16 +63,22 @@
       </div> -->
 
       <!-- Checkbox -->
-      <div class="q-mx-lg" v-if="type === 'seller'">
-        <q-checkbox size="sm" v-model="confirmRelease"/>
-        <span class="sm-font-size text-center">I have recieved my payment, and agrees to release the funds.</span>
-      </div>
+      <div>
+        <div class="q-mx-lg" v-if="type === 'seller'">
+          <q-checkbox size="sm" v-model="confirmRelease"/>
+          <span class="sm-font-size text-center">I have recieved my payment, and agrees to release the funds.</span>
+        </div>
 
+        <div class="q-mx-lg" v-if="type === 'buyer'">
+          <q-checkbox size="sm" v-model="confirmPayment"/>
+          <span class="sm-font-size text-center"> I confirm that I have already sent my payment.</span>
+        </div>
+      </div>
 
       <!-- Confirm  -->
       <div class="row q-pt-sm q-mx-lg q-px-md">
         <q-btn
-          :disable="!confirmRelease"
+          :disable="!confirmRelease || !confirmPayment"
           rounded
           no-caps
           label='CONFIRM PAYMENT'
@@ -94,7 +100,9 @@ export default {
       isloaded: false,
       countDown: '',
       timer: null,
-      confirmRelease: false
+      confirmPayment: false,
+      confirmRelease: false,
+      minHeight: this.$q.screen.height - 210
     }
   },
   props: {
@@ -107,6 +115,12 @@ export default {
 
     vm.order = vm.orderData
     await vm.paymentCountdown()
+
+    if (vm.type === 'buyer') {
+      this.confirmRelease = true
+    } else {
+      this.confirmPayment = true
+    }
 
     vm.isloaded = true
   },

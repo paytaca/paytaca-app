@@ -2,7 +2,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    style="min-height:78vh;"
+    :style="`min-height: ${minHeight}px;`"
   >
     <div v-if="state === 'initial'">
       <div>
@@ -60,7 +60,8 @@ export default {
       isloaded: false,
       user: null,
       editNickname: false,
-      state: 'initial'
+      state: 'initial',
+      minHeight: this.$q.screen.height - 210
     }
   },
   props: {

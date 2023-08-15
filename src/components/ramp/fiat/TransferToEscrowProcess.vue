@@ -10,59 +10,59 @@
       </div> -->
       <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
-      <div class="q-mx-lg">
-        <div class="row q-mt-md">
-            <q-select
-                class="col"
-                :dark="darkMode"
-                filled
-                v-model="selectedArbiter"
-                label="Arbiter"
-                :options="arbiterOptions"
-                style="width: 250px;"
-                behavior="dialog">
-                <template v-slot:option="scope">
-                    <q-item v-bind="scope.itemProps">
-                        <q-item-section>
-                            <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                            {{ scope.opt.name }}
-                            </q-item-label>
-                        </q-item-section>
-                    </q-item>
-                </template>
-                <template v-slot:selected v-if="selectedArbiter">
-                    {{ selectedArbiter.name }}
-                </template>
-            </q-select>
-        </div>
-        <div class="row q-mt-md">
-            <q-input
-                readonly
-                class="col"
-                :dark="darkMode"
-                filled
-                v-model="contractAddress"
-                label="Contract Address"
-                style="width: 250px;"
-                :loading="!contractAddress || contractAddress === ' '">
-            </q-input>
-        </div>
-        <div class="row q-mt-md">
-            <q-input
-                readonly
-                class="col"
-                :dark="darkMode"
-                filled
-                v-model="transferAmount"
-                label="Transfer Amount"
-                :error="balanceExceeded"
-                :error-message="balanceExceeded? $t('Insufficient balance') : ''"
-                style="width: 250px;">
-                <template #append>
-                    BCH
-                </template>
-            </q-input>
-        </div>
+      <div class="q-mx-lg q-px-lg q-pt-md">
+        <div class="sm-font-size q-pl-sm q-pb-xs">Arbiter</div>
+        <q-select
+          class="q-pb-sm"
+          :dark="darkMode"
+          filled
+          dense
+          v-model="selectedArbiter"
+          :options="arbiterOptions"
+          behavior="dialog">
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section>
+                  <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                    {{ scope.opt.name }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+            <template v-slot:selected v-if="selectedArbiter">
+              {{ selectedArbiter.name }}
+            </template>
+        </q-select>
+        <!-- </div> -->
+        <!-- <div class="row q-mt-md"> -->
+
+        <div class="sm-font-size q-pl-sm q-pb-xs">Contract Address</div>
+        <q-input
+          class="q-pb-sm"
+          readonly
+          :dark="darkMode"
+          filled
+          dense
+          v-model="contractAddress"
+          :loading="!contractAddress || contractAddress === ' '">
+        </q-input>
+        <!-- </div> -->
+        <!-- <div class="row q-mt-md"> -->
+
+        <div class="sm-font-size q-pl-sm q-pb-xs">Transfer Amount</div>
+        <q-input
+          readonly
+          :dark="darkMode"
+          filled
+          dense
+          v-model="transferAmount"
+          :error="balanceExceeded"
+          :error-message="balanceExceeded? $t('Balance exceeded') : ''">
+          <template #append>
+            <div class="sm-font-size">BCH</div>
+          </template>
+        </q-input>
+        <!-- </div> -->
         <div class="md-font-size q-mt-sm" style="color: grey;">
           <div v-if="fees" class="row q-ml-md">
             Fee: {{ fees.total }} BCH

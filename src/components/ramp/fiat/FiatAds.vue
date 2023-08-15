@@ -2,7 +2,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    style="min-height:78vh;">
+    :style="`min-height: ${minHeight}px;`">
     <div v-if="state !== 'selection'">
       <FiatAdsForm
         @back="onFormBack()"
@@ -40,7 +40,7 @@
           <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
         </div>
         <div v-else>
-          <q-list ref="scrollTargetRef" style="max-height:60vh; overflow:auto;">
+          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
             <q-infinite-scroll
               ref="infiniteScroll"
               :items="listings"
@@ -163,7 +163,8 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      selectedAdId: null
+      selectedAdId: null,
+      minHeight: this.$q.screen.height - 210
     }
   },
   watch: {

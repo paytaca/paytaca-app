@@ -22,194 +22,195 @@
         </div>
       </div>
       <div v-else>
-        <div class="q-px-lg">
-          <div class="q-mx-lg q-pb-sm q-pt-md bold-text">
-            Price Setting
-          </div>
-          <div class="text-center q-mx-md">
-            <q-btn-toggle
-              dense
-              v-model="adData.priceType"
-              spread
-              class="br-15"
-              :style="transactionType === 'BUY' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
-              no-caps
-              unelevated
-              :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-              :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-              :options="[
-                {label: 'Fixed', value: 'FIXED'},
-                {label: 'Floating', value: 'FLOATING'}
-              ]"
-            />
-          </div>
-          <div class="row q-pt-sm q-gutter-sm q-px-md sm-font-size">
-            <div class="col-4">
-              <div class="q-pl-sm q-pb-xs">Fiat</div>
-              <q-select
-                dense
-                rounded
-                outlined
-                :dark="darkMode"
-                v-model="selectedCurrency"
-                :options="fiatCurrencies"
-                option-label="symbol"
-                @update:model-value="updateFiatCurrency()"
-              >
-                <template v-slot:option="scope">
-                  <q-item v-bind="scope.itemProps">
-                    <q-item-section>
-                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                        {{ scope.opt.name }} ({{ scope.opt.symbol }})
-                      </q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-            </div>
-            <div class="col">
-              <!-- <q-select :dark="darkMode" rounded outlined v-model="selectedCurrency" :options="Object.keys(availableFiat)" label="Fiat Currency" /> -->
-              <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price Margin' }}</div>
-              <q-input
-                dense
-                rounded
-                outlined
-                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                :dark="darkMode"
-                bottom-slots
-                type="number"
-                :rules="numberValidation"
-                @blur="updatePriceValue(adData.priceType)"
-                v-model="priceValue">
-                <template v-slot:prepend>
-                  <q-icon name="remove" @click="decPriceValue()"/>
-                </template>
-                <template v-slot:append>
-                  <q-icon v-if="adData.priceType === 'FLOATING'" size="xs" name="percent" />
-                  <q-icon name="add" @click="incPriceValue()" />
-                </template>
-              </q-input>
-            </div>
-          </div>
-          <div class="sm-font-size">
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-              <div>
-                <span>Your Price</span><br>
-                <span class="bold-text lg-font-size">{{ formattedCurrency(priceAmount) }}</span>
-                <!-- <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.symbol }}</span> -->
-              </div>
-              <div >
-                <span>Current Market Price</span><br>
-                <span class="xm-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-
-        <!-- Crypto Amount -->
-        <div class="q-mx-lg">
-          <div class="q-mt-md q-px-md">
-            <div class="q-pb-xs q-pl-sm bold-text">Crypto Amount</div>
-              <q-input
-                dense
-                outlined
-                rounded
-                :dark="darkMode"
-                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                type="number"
-                :rules="numberValidation"
-                v-model="adData.cryptoAmount">
-                <template v-slot:prepend>
-                  <span class="bold-text xs-font-size">
-                    BCH
-                  </span>
-                </template>
-              </q-input>
-            </div>
-          <div class="q-mt-sm q-px-md">
-            <div class="q-pb-xs q-pl-sm bold-text">Trade Limit</div>
-            <div class="row">
-              <div class="col-5">
-                <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
-                <q-input
-                  dense
-                  outlined
-                  rounded=""
-                  :dark="darkMode"
-                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                  type="number"
-                  :rules="tradeLimitValidation"
-                  v-model="adData.tradeFloor"
-                >
-                  <template v-slot:append>
-                    <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
-                    <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
-                  </template>
-                </q-input>
-              </div>
-              <div class="col text-center">
-                <q-icon class="q-pt-md q-mt-lg" name="remove"/>
-              </div>
-              <div class="col-5">
-                <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
-                <q-input
-                  dense
-                  outlined
-                  rounded=""
-                  :dark="darkMode"
-                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                  type="number"
-                  :rules="tradeLimitValidation"
-                  v-model="adData.tradeCeiling"
-                >
-                  <template v-slot:append>
-                    <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
-                    <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
-                  </template>
-                </q-input>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-
-        <!-- Payment Time Limit -->
-        <div class="q-mx-lg q-pt-md">
+        <q-scroll-area :style="`height: ${minHeight - (minHeight*.3)}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
-            <div class="q-pt-sm bold-text">Payment Time Limit</div>
+            <div class="q-mx-lg q-pb-sm q-pt-sm bold-text">
+              Price Setting
+            </div>
+            <div class="text-center q-mx-md">
+              <q-btn-toggle
+                dense
+                v-model="adData.priceType"
+                spread
+                class="br-15"
+                :style="transactionType === 'BUY' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
+                no-caps
+                unelevated
+                :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                :options="[
+                  {label: 'Fixed', value: 'FIXED'},
+                  {label: 'Floating', value: 'FLOATING'}
+                ]"
+              />
+            </div>
+            <div class="row q-pt-sm q-gutter-sm q-px-md sm-font-size">
+              <div class="col-4">
+                <div class="q-pl-sm q-pb-xs">Fiat</div>
+                <q-select
+                  dense
+                  rounded
+                  outlined
+                  :dark="darkMode"
+                  v-model="selectedCurrency"
+                  :options="fiatCurrencies"
+                  option-label="symbol"
+                  @update:model-value="updateFiatCurrency()"
+                >
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section>
+                        <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                          {{ scope.opt.name }} ({{ scope.opt.symbol }})
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
+              </div>
+              <div class="col">
+                <!-- <q-select :dark="darkMode" rounded outlined v-model="selectedCurrency" :options="Object.keys(availableFiat)" label="Fiat Currency" /> -->
+                <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price Margin' }}</div>
+                <q-input
+                  dense
+                  rounded
+                  outlined
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                  :dark="darkMode"
+                  bottom-slots
+                  type="number"
+                  :rules="numberValidation"
+                  @blur="updatePriceValue(adData.priceType)"
+                  v-model="priceValue">
+                  <template v-slot:prepend>
+                    <q-icon name="remove" @click="decPriceValue()"/>
+                  </template>
+                  <template v-slot:append>
+                    <q-icon v-if="adData.priceType === 'FLOATING'" size="xs" name="percent" />
+                    <q-icon name="add" @click="incPriceValue()" />
+                  </template>
+                </q-input>
+              </div>
+            </div>
+            <div class="sm-font-size">
+              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+                <div>
+                  <span>Your Price</span><br>
+                  <span class="bold-text xm-font-size">{{ formattedCurrency(priceAmount) }}</span>
+                  <!-- <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.symbol }}</span> -->
+                </div>
+                <div >
+                  <span>Current Market Price</span><br>
+                  <span class="md-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="q-mx-md q-pt-sm">
-            <div>
-              <q-select
+
+          <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+
+          <!-- Crypto Amount -->
+          <div class="q-mx-lg">
+            <div class="q-mt-sm q-px-md">
+              <div class="q-pb-xs q-pl-sm bold-text">Crypto Amount</div>
+                <q-input
                   dense
                   outlined
                   rounded
-                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                   :dark="darkMode"
-                  v-model="paymentTimeLimit"
-                  :options="ptlSelection"
-                  @update:modelValue="updatePaymentTimeLimit()">
-                <template v-slot:option="scope">
-                  <q-item v-bind="scope.itemProps">
-                    <q-item-section>
-                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                        {{ scope.opt.label }}
-                      </q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-                  <!-- <template v-slot:append>
-                    <q-icon size="xs" name="close" @click.stop.prevent="ptl = ''"/>&nbsp;
-                  </template> -->
-                <!-- </q-select> -->
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                  type="number"
+                  :rules="numberValidation"
+                  v-model="adData.cryptoAmount">
+                  <template v-slot:prepend>
+                    <span class="bold-text xs-font-size">
+                      BCH
+                    </span>
+                  </template>
+                </q-input>
+              </div>
+            <div class="q-px-md">
+              <div class="q-pb-xs q-pl-sm bold-text">Trade Limit</div>
+              <div class="row">
+                <div class="col-5">
+                  <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
+                  <q-input
+                    dense
+                    outlined
+                    rounded=""
+                    :dark="darkMode"
+                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                    type="number"
+                    :rules="tradeLimitValidation"
+                    v-model="adData.tradeFloor"
+                  >
+                    <template v-slot:append>
+                      <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
+                      <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
+                    </template>
+                  </q-input>
+                </div>
+                <div class="col text-center">
+                  <q-icon class="q-pt-md q-mt-lg" name="remove"/>
+                </div>
+                <div class="col-5">
+                  <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
+                  <q-input
+                    dense
+                    outlined
+                    rounded=""
+                    :dark="darkMode"
+                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                    type="number"
+                    :rules="tradeLimitValidation"
+                    v-model="adData.tradeCeiling"
+                  >
+                    <template v-slot:append>
+                      <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
+                      <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
+                    </template>
+                  </q-input>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
+          <q-separator :dark="darkMode" class="q-mx-md"/>
+
+          <!-- Payment Time Limit -->
+          <div class="q-mx-lg q-pt-xs">
+            <div class="q-px-lg">
+              <div class="q-pt-sm bold-text">Payment Time Limit</div>
+            </div>
+            <div class="q-mx-md q-pt-sm">
+              <div>
+                <q-select
+                    dense
+                    outlined
+                    rounded
+                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                    :dark="darkMode"
+                    v-model="paymentTimeLimit"
+                    :options="ptlSelection"
+                    @update:modelValue="updatePaymentTimeLimit()">
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section>
+                        <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                          {{ scope.opt.label }}
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
+                    <!-- <template v-slot:append>
+                      <q-icon size="xs" name="close" @click.stop.prevent="ptl = ''"/>&nbsp;
+                    </template> -->
+                  <!-- </q-select> -->
+              </div>
+            </div>
+          </div>
+        </q-scroll-area>
         <!-- NEXT STEP -->
         <div class="q-mx-lg">
           <div class="row q-mx-sm q-py-lg">
@@ -273,6 +274,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
+      minHeight: this.$q.screen.height - 210,
       loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
