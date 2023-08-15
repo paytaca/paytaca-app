@@ -3,9 +3,6 @@
     <div class="q-mx-lg text-h5 text-center lg-font-size bold-text" :class="statusColor">
       <span v-if="$parent.isExpired">EXPIRED</span>
       <span v-else>{{ order.status.label.toUpperCase() }}</span>
-      <!-- <span v-if="order.status.label === 'Submitted'">Order Created</span>
-      <span v-else-if="type === 'completed'">History</span>
-      <span v-else>Processing Order</span> -->
     </div>
     <div class="q-px-lg q-pt-lg">
       <div class="sm-font-size q-pb-xs">Fiat Amount</div>
@@ -77,7 +74,7 @@ export default {
     },
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
-      console.log('hasCancel:', stat.includes(this.order.status.value))
+      // console.log('hasCancel:', stat.includes(this.order.status.value))
       return stat.includes(this.order.status.value)
     },
     cryptoAmount () {
@@ -154,8 +151,6 @@ export default {
         if (distance < 0) {
           clearInterval(vm.timer)
           vm.countDown = 'Expired'
-          // vm.order.status = 'Expired'
-          // vm.shiftExpired = true
         }
       }, 1000)
     }

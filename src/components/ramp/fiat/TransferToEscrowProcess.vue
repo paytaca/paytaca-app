@@ -63,7 +63,7 @@
           </template>
         </q-input>
         <!-- </div> -->
-        <div class="md-font-size q-mt-sm" style="color: grey;">
+        <div class="sm-font-size q-mt-sm" style="color: grey;">
           <div v-if="fees" class="row q-ml-md">
             Fee: {{ fees.total }} BCH
           </div>

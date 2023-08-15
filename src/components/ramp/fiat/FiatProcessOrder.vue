@@ -166,10 +166,13 @@ export default {
   emits: ['back'],
   async mounted () {
     const vm = this
+
     await vm.fetchOrderData()
+
     if (!vm.order) {
       vm.order = vm.orderData
     }
+
     await vm.fetchAdData()
     this.updateStatus(vm.order.status)
     vm.isloaded = true
@@ -178,7 +181,7 @@ export default {
     // STEP CHECKER
     updateStatus (status) {
       this.status = status
-      this.order.status = this.status
+      // this.order.status = this.status
       this.checkStep()
     },
     checkStep () {
@@ -404,6 +407,8 @@ export default {
         .catch(error => {
           console.log(error)
         })
+
+      await this.fetchOrderData()
     },
 
     // Recieve Dialogs
@@ -429,18 +434,7 @@ export default {
           }
           this.checkStep()
           break
-        // case 'confirmPaymentSeller':
-        //   await this.sendConfirmPayment(this.confirmType)
-        //   await this.verifyRelease()
-        //   this.checkStep()
-        //   break
-        // case 'confirmPaymentBuyer':
-        //   await this.sendConfirmPayment(this.confirmType)
-        //   await this.fetchOrderData()
-        //   this.checkStep()
-        //   break
       }
-
       vm.title = ''
       vm.text = ''
       vm.isloaded = true
@@ -466,7 +460,6 @@ export default {
       this.title = 'Confirm Payment?'
 
       this.text = this.confirmType === 'buyer' ? 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.' : 'This will release the crypto held by the escrow account to the buyer.'
-      // this.dialogType = this.confirmType === 'buyer' ? 'confirmPaymentBuyer' : 'confirmPaymentSeller'
       this.openDialog = true
     },
 
