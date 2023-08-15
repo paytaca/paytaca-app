@@ -26,7 +26,7 @@ export class BchWallet {
     this.baseUrl = getWatchtowerApiUrl(isChipnet)
     this.purelypeerVaultSigner = {
       index: 0,
-      derivationPath: "m/44'/0'/0'"
+      derivationPath: "m/44'/145'/1'"
     }
   }
 
