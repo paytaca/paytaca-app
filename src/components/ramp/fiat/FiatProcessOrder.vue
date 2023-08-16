@@ -57,11 +57,6 @@
     </div>
   </div>
 
-  <!-- Escrow BCH -->
-  <!-- <div v-if="state === 'escrow-bch'">
-    Escrow BCH Page
-  </div> -->
-
   <!-- Completed transaction -->
   <div v-if="state === 'completed'">
     Completed Page
@@ -70,7 +65,7 @@
   <!-- Dialogs -->
   <div v-if="openDialog" >
     <MiscDialogs
-      :type="dialogType"
+      :type="'genericDialog'"
       :title="title"
       :text="text"
       v-on:back="openDialog = false"
@@ -79,7 +74,7 @@
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -237,7 +232,7 @@ export default {
         case 'CNCL': // Canceled
           this.state = 'standby-view'
           break
-          // TODO: add pages
+          // TODO: add pages later
         case 'RLS_APL': // Appealed for Release
         case 'RFN_APL': // Appealed for Refund
           this.status = 'appeal'
@@ -255,7 +250,8 @@ export default {
     // API CALLS
     async fetchOrderData () {
       const vm = this
-      await vm.$axios.get(vm.apiURL + '/order/' + vm.orderData.id, {
+      const url = `${vm.apiURL}/order/${vm.orderData.id}`
+      await vm.$axios.get(url, {
         headers: {
           'wallet-hash': vm.wallet.walletHash
         }
@@ -420,7 +416,7 @@ export default {
           await vm.cancelOrder()
           vm.$emit('back')
           break
-        case 'confirmOrderCreate':
+        case 'confirmOrder':
           await this.confirmOrder()
           await this.fetchOrderData()
           this.checkStep()
@@ -444,7 +440,8 @@ export default {
     // Opening Dialog
     confirmingOrder () {
       // console.log('confirming order')
-      this.dialogType = 'confirmOrderCreate'
+      // this.dialogType = 'genericDialog'
+      this.dialogType = 'confirmOrder'
       this.title = 'Confirm Order?'
       this.openDialog = true
     },
@@ -452,6 +449,7 @@ export default {
       // console.log('cancelling order')
 
       this.dialogType = 'confirmCancelOrder'
+      // this.dialogType = 'genericDialog'
       this.openDialog = true
       this.title = 'Cancel this order?'
     },

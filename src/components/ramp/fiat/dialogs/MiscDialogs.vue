@@ -299,6 +299,17 @@
     </q-card>
   </q-dialog>
 
+  <!-- Filter Ads -->
+  <q-dialog v-model="filterAd" persistent>
+    <q-card class="br-15" style="width: 90%; height: 50%;">
+      <div class="q-mt-md q-pl-md">
+        <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
+      </div>
+      <div class="text-center bold-text lg-font-size">Filter Ads</div>
+
+      <q-separator :dark="darkMode" class="q-mt-md q-mx-lg"/>
+    </q-card>
+  </q-dialog>
   <!-- Sending Appeal Confirmation Todo-->
   <!-- <q-dialog full-width persistent v-model="appeal">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
@@ -373,6 +384,7 @@ export default {
       viewProfile: false,
       submitAppeal: false,
       maxMethodReached: false,
+      filterAd: false,
 
       // Input Model
       nickname: '',
@@ -525,13 +537,17 @@ export default {
         case 'confirmPaymentSeller':
           vm.confirmPaymentSeller = true
           break
+        case 'filterAd':
+          vm.filterAd = true
+          break
+        case 'genericDialog':
         case 'confirmPayment':
         case 'confirmPaymentMethod':
-        case 'confirmOrderCreate':
         case 'confirmCancelOrder':
           vm.genericDialog = true
           break
       }
+      // case 'confirmOrderCreate':
     },
     stageData () {
       const vm = this
@@ -565,6 +581,7 @@ export default {
         default:
           vm.info = vm.selectedPaymentMethods
           return 'submit'
+        // TODO: Add case for 'filterAd'
       }
     },
     submitData () {

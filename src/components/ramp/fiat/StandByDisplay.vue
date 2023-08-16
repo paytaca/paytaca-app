@@ -97,8 +97,8 @@ export default {
     },
     label () {
       const labels = {
-        SBM: 'Please wait for the seller to confirm your order.',
-        CNF: 'Please wait for the seller to Escrow the funds.',
+        SBM: 'Please wait for the Ad Owner  to confirm your order.',
+        CNF: 'Please wait for the Seller to Escrow the funds.',
         ESCRW_PN: 'Please wait for the seller to Escrow the funds.',
         ESCRW: 'Please wait for the buyer to confirm their fiat payment.',
         PD_PN: 'Please wait for the seller to confirm your fiat payment.',
@@ -110,7 +110,7 @@ export default {
   },
   async mounted () {
     this.order = this.orderData
-    console.log('order:', this.order)
+    // console.log('order:', this.order)
     await this.paymentCountdown()
     this.checkStatus()
     this.isloaded = true

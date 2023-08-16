@@ -27,7 +27,7 @@
         </div>
         <q-space />
         <div class="q-pr-md">
-          <q-icon size="sm" name='sym_o_filter_list'/>
+          <q-icon size="sm" name='sym_o_filter_list' @click="openFilter()"/>
         </div>
       </div>
       <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
@@ -121,12 +121,12 @@
     /> -->
   </div>
 
-  <!-- <div v-if="viewProfile">
+  <div v-if="openDialog">
     <MiscDialogs
-      :type="'viewProfile'"
-      v-on:back="viewProfile = false"
+      :type="dialogType"
+      v-on:back="openDialog = false"
     />
-  </div> -->
+  </div>
   <FiatProfileCard
     v-if="viewProfile"
     :userInfo="selectedUser"
@@ -139,6 +139,7 @@
 import FiatOrderForm from './FiatOrderForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -155,7 +156,8 @@ export default {
     // FiatStoreForm,
     FiatOrderForm,
     ProgressLoader,
-    FiatProfileCard
+    FiatProfileCard,
+    MiscDialogs
   },
   data () {
     return {
@@ -172,6 +174,8 @@ export default {
       fiatCurrencies: [],
       totalPages: null,
       pageNumber: null,
+      openDialog: false,
+      dialogType: '',
       minHeight: this.$q.screen.height - 210
     }
   },
@@ -344,6 +348,11 @@ export default {
       this.selectedUser = {
         name: user
       }
+    },
+    openFilter () {
+      console.log('opening filter')
+      this.openDialog = true
+      this.dialogType = 'filterAd'
     }
   }
 }

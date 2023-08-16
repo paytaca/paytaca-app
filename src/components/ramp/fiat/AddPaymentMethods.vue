@@ -196,7 +196,7 @@ export default {
 
       paymentMethods: [],
       paymentTypes: [],
-      selectedMethods: [], // TODO
+      selectedMethods: [],
       emptyPaymentMethods: [],
 
       openDialog: false,

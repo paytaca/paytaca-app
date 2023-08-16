@@ -143,7 +143,7 @@
     <!-- Dialogs -->
     <div v-if="openDialog">
       <MiscDialogs
-        :type="dialogType"
+        :type="'genericDialog'"
         :title="title"
         v-on:back="openDialog = false"
         v-on:submit="recieveDialogsInfo"
@@ -158,7 +158,7 @@
         :selectedAdId="ad.id"
       />
     </div>
-    <!-- Buy Process -->
+    <!-- Process Order -->
     <div v-if="state === 'order-process'">
       <FiatProcessOrder
         :wallet="wallet"
@@ -290,7 +290,7 @@ export default {
       console.log('cryptoAmount:', cryptoAmount)
       const body = {
         ad: vm.ad.id,
-        crypto_amount: cryptoAmount
+        crypto_amount: cryptoAmount.toFixed(8)
       }
       if (vm.ad.trade_type === 'BUY') {
         const temp = this.paymentMethods.map(p => p.id)
