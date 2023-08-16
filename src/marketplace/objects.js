@@ -528,6 +528,7 @@ export class Checkout {
    * @param {Number} [data.total_paid]
    * @param {Number} [data.total_pending_payment]
    * @param {Number} [data.total_payments]
+   * @param {Number} [data.total_refunded]
    * @param {{ currency: CurrencyInfo, price: Number, timestamp: String | Number}} data.payment.bch_price
    * @param {Number} data.payment.delivery_fee
    */
@@ -547,10 +548,16 @@ export class Checkout {
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
     this.totalPayments = data?.total_payments
+    this.totalRefunded = data?.total_refunded
   }
 
   get totalPaymentsSent() {
     return (parseFloat(this.totalPaid) || 0) + (parseFloat(this.totalPendingPayment) || 0)
+  }
+
+  get netPaymentsSent() {
+    const totalRefunded = parseFloat(this.totalRefunded) || 0
+    return this.totalPaymentsSent - totalRefunded
   }
 
   get total() {
@@ -559,12 +566,14 @@ export class Checkout {
   }
 
   get change() {
-    const change = Math.max(this.totalPaymentsSent - this.total, 0)
+    const change = Math.max(this.netPaymentsSent - this.total, 0)
     return Math.round(change * 10 ** 3) / 10 ** 3
   }
 
   get balanceToPay() {
-    return Math.max(this.total - this.totalPaymentsSent, 0)
+    const balanceToPay = this.total - this.netPaymentsSent
+    const roundedBalanceToPay = Math.round(balanceToPay * 10 ** 3) / 10 ** 3
+    return Math.max(roundedBalanceToPay, 0)
   }
 
   updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
