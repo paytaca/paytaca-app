@@ -76,13 +76,15 @@ export function resetAdsPagination (state) {
 
 // ~ orders mutations ~ //
 
-export function updateOngoingOrders (state, data) {
+export function updateOngoingOrders (state, { overwrite = false, data }) {
+  if (overwrite) state.ongoingOrders = []
   state.ongoingOrders.push(...data.orders)
   console.log('ongoingOrders:', state.ongoingOrders)
   state.ongoingOrdersTotalPages = data.total_pages
 }
 
-export function updateCompletedOrders (state, data) {
+export function updateCompletedOrders (state, { overwrite = false, data }) {
+  if (overwrite) state.completedOrders = []
   state.completedOrders.push(...data.orders)
   state.completedOrdersTotalPages = data.total_pages
 }
@@ -98,11 +100,11 @@ export function incCompletedOrdersPage (state) {
 export function resetOrdersPagination (state) {
   state.ongoingOrdersPageNumber = null
   state.ongoingOrdersTotalPages = null
-  state.ongoingOrders = []
+  // state.ongoingOrders = []
 
   state.completedOrdersPageNumber = null
   state.completedOrdersTotalPages = null
-  state.completedOrders = []
+  // state.completedOrders = []
 }
 
 // ~ orders mutations ~ //

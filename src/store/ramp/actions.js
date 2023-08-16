@@ -131,7 +131,7 @@ export async function fetchAds (context, { component = null, params = null, head
   }
 }
 
-export async function fetchOrders (context, { orderState = null, params = null, headers = null }) {
+export async function fetchOrders (context, { orderState = null, params = null, headers = null, overwrite = false }) {
   const state = context.state
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
@@ -160,11 +160,11 @@ export async function fetchOrders (context, { orderState = null, params = null, 
       const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
       switch (orderState) {
         case 'ONGOING':
-          context.commit('updateOngoingOrders', data.data)
+          context.commit('updateOngoingOrders', { overwrite: overwrite, data: data.data })
           context.commit('incOngoingOrdersPage')
           break
         case 'COMPLETED':
-          context.commit('updateCompletedOrders', data.data)
+          context.commit('updateCompletedOrders', { overwrite: overwrite, data: data.data })
           context.commit('incCompletedOrdersPage')
           break
       }
