@@ -57,6 +57,31 @@
         <div class="text-caption top">Cancel reason:</div>
         <div class="q-mt-xs">{{ order?.cancelReason }}</div>
       </q-banner>
+      <template v-if="order?.balanceToPay > 0">
+        <q-banner
+          :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
+        >
+          <div class="row items-center">
+            <div>
+              <div class="text-caption top">
+                Balance to pay
+                <span v-if="payment?.id" class="text-grey">#{{ payment?.id }}</span>
+              </div>
+              <q-space/>
+              <div class="text-subtitle1">{{ order?.balanceToPay }} {{ orderCurrency }}</div>
+            </div>
+            <q-space/>
+            <q-btn
+              rounded
+              outlined
+              no-caps label="Pay"
+              color="brandblue"
+              padding="1px md"
+              @click="() => showPaymentDialog = true"
+            />
+          </div>
+        </q-banner>
+      </template>
       <div class="row items-start items-delivery-address-panel">
         <div v-if="order?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
           <q-card
@@ -228,17 +253,71 @@
       </div>
     </div>
     <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
+    <q-dialog v-model="showPaymentDialog" position="bottom">
+      <q-card :class="[darkMode ? 'text-white pt-dark-card' : 'text-black']">
+        <q-card-section>
+          <div class="row no-wrap items-center justify-center">
+            <div class="text-h6 q-mt-sm">Payment</div>
+            <q-space/>
+            <q-btn flat padding="sm" icon="close" v-close-popup />
+          </div>
+          <div class="row items-center q-mb-xs">
+            <q-btn
+              flat padding="xs"
+              no-caps label="Payment details"
+              class="text-underline"
+              @click="() => showBchPaymentEscrowContract()"
+            />
+            <q-space/>
+            <q-btn
+              flat padding="xs"
+              icon="content_copy"
+              no-caps label="Copy link"
+              @click.stop="() => copyToClipboard(bchPaymentData?.url)"
+            />
+          </div>
+          <div class="row items-center justify-center">
+            <div class="col-qr-code">
+              <q-skeleton v-if="creatingPayment" height="250px" width="250px"/>
+              <qr-code v-else :text="bchPaymentData?.url" :size="250"/>
+            </div>
+          </div>
+          <div v-if="creatingPayment" class="q-gutter-sm column items-center q-mt-sm">
+            <q-skeleton height="1.5em" width="10em"/>
+            <q-skeleton height="1em" width="8em"/>
+            <q-skeleton height="2.5em" width="100%"/>
+          </div>
+          <div v-else class="text-center">
+            <div class="text-h6">{{ bchPaymentData?.bchAmount }} BCH</div>
+            <div v-if="bchPaymentData?.fiatAmount" class="text-subtitle1" style="line-height:0.75em;">
+              {{ bchPaymentData?.fiatAmount }} {{ bchPaymentData?.currency }}
+            </div>
+            <div class="text-subtitle2" style="word-break: break-all;">{{ bchPaymentData?.address }}</div>
+          </div>
+          <div class="text-caption q-mt-sm">
+            Balance: {{ bchWalletBalance }} BCH
+          </div>
+        </q-card-section>
+        <DragSlide v-if="!creatingPayment" disable-absolute-bottom @swiped="onSendBchPaymentSwipe"/>
+      </q-card>
+    </q-dialog>
   </q-pull-to-refresh>
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
 import { Delivery, Order, Payment, Storefront } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText, parsePaymentStatusColor } from 'src/marketplace/utils'
+import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LeafletMapDialog from 'src/components/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/order-payments-dialog.vue'
+import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dialog.vue'
+import DragSlide from 'src/components/drag-slide.vue'
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import { loadWallet, Wallet } from 'src/wallet'
+import { TransactionListener } from 'src/wallet/transaction-listener'
 
 const props = defineProps({
   orderId: [String, Number],  
@@ -246,6 +325,7 @@ const props = defineProps({
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const $q = useQuasar()
 
 onMounted(() => refreshPage())
 const initialized = ref(false)
@@ -451,6 +531,240 @@ function fetchPayments() {
     })
 }
 
+const creatingPayment = ref(true)
+const payment = computed(() => {
+  return payments.value.find(payment => {
+    return payment.status == 'pending' && payment?.totalAmount == order.value.balanceToPay
+  })
+})
+const showPaymentDialog = ref(false)
+watch(showPaymentDialog, () => {
+  if(!showPaymentDialog.value) return
+  if (payment.value?.id) return
+  createPayment()
+})
+const createPayment = debounce(async () => {
+  if (order.value.balanceToPay <= 0) return Promise.resolve('Order paid')
+  const data = {
+    order_id: order.value.id,
+    ignore_pending_payments: true,
+    escrow: {
+      buyer_address: order.value?.payment?.escrowRefundAddress || undefined,
+    },
+  }
+
+  creatingPayment.value = true
+  return backend.post(`connecta/orders/${order.value.id}/payment/`, data)
+    .then(async (response) => {
+      if (!response?.data?.id) return Promise.reject({ response })
+      const newPayment = Payment.parse(response?.data)
+      const index = payments.value.findIndex(_payment => _payment?.id == newPayment?.id)
+      if (index >= 0) payments.value[index] = newPayment
+      else payments.value.unshift(newPayment)
+      await Promise.allSettled([
+        fetchOrder(),
+        fetchPayments(),
+      ])
+      return response
+    })
+    .then(() => {
+      if (!payment.value?.id) fetchOrder()
+    })
+    .finally(() => {
+      creatingPayment.value = false
+    })
+}, 250)
+
+const bchPaymentData = computed(() => {
+  const data = {
+    escrowContract: payment.value?.escrowContract,
+    bchPrice: payment.value?.bchPrice,
+    address: payment.value?.escrowContract?.address || payment.value?.escrowContractAddress,
+    bchAmount: parseFloat(payment.value?.escrowContract?.bchAmounts?.total),
+    fiatAmount: 0,
+    currency: payment.value?.bchPrice?.currency?.symbol,
+    url: '',
+  }
+
+  if (!data.address || !data.bchAmount) return data
+
+  const fiatPrice = parseFloat(payment.value?.bchPrice?.price)
+  if (fiatPrice) data.fiatAmount = Math.round(data.bchAmount * fiatPrice * 10 ** 3) / 10 ** 3
+  data.url = `${data?.address}?amount=${data.bchAmount}`
+  return data
+})
+
+function showBchPaymentEscrowContract() {
+  $q.dialog({
+    component: EscrowContractDialog,
+    componentProps: bchPaymentData.value,
+  })
+}
+
+const txListener = ref(new TransactionListener())
+const transactionsReceived = ref([].map(() => {
+  const data = txListener.value.parseWebsocketDataReceived()
+  return Object.assign({ marketValue: { symbol: '', price: 0, amount: 0 } }, data)
+}))
+watch(showPaymentDialog, () => {
+  if (!showPaymentDialog.value) txListener.value.disconnect()
+  else txListener.value.connect()
+})
+
+watch(() => [payment.value?.escrowContractAddress], debounce(() => {
+  payment.value?.fetchEscrowContract?.().then(() => checkPaymentFundingTx())
+}, 250))
+
+watch(() => [bchPaymentData.value?.address], () => {
+  txListener.value.address = bchPaymentData.value?.address
+  txListener.value.addListener(txListenerCallback)
+  if (txListener.value.readyState != WebSocket.OPEN && showPaymentDialog.value) {
+    txListener.value.connect()
+  }
+})
+const txListenerCallback = (msg, parsedData) => {
+  const price = parseFloat(bchPaymentData.value.bchPrice?.price)
+  const marketValue = {
+    symbol: bchPaymentData.value?.currency,
+    price: price,
+    amount: (Math.floor(parsedData?.value * price) / 10 ** 8),
+  }
+  marketValue.amount = Number(marketValue.amount.toPrecision(3))
+
+  parsedData.marketValue = marketValue
+
+  console.log('Received transaction:', parsedData)
+  const index = transactionsReceived.value.findIndex(data => data?.txid == parsedData?.txid)
+  if (index >= 0) transactionsReceived.value[index] = parsedData
+  else transactionsReceived.value.push(parsedData)
+
+  const fundingTx = getFundingTxFromReceivedTxs()
+  savePaymentFundingTx(fundingTx)
+    .then(() => {
+      showPaymentDialog.value = false
+    })
+}
+
+function getFundingTxFromReceivedTxs() {
+  return transactionsReceived.value.find(tx => {
+    if (tx.address != bchPaymentData.value.address) return false
+    if (tx.tokenName != 'bch') return false
+    return parseInt(tx.value) == Math.floor(bchPaymentData.value.bchAmount * 10 ** 8)
+  })
+}
+
+function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived()) {
+  if (!txData?.txid) return Promise.reject()
+
+  const data = {
+    funding_txid: txData.txid,
+    funding_vout: txData.index,
+    funding_sats: txData.value,
+  }
+  creatingPayment.value = true
+  return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
+    .then(response => {
+      fetchOrder()
+      return response
+    })
+    .finally(() => {
+      creatingPayment.value = false
+    })
+}
+
+function onSendBchPaymentSwipe(resetSwipe=()=>{}) {
+  $q.dialog({
+    component: SecurityCheckDialog,
+  })
+    .onOk(() => {
+      sendBchPayment()
+        .finally(() => resetSwipe())
+    })
+    .onCancel(() => resetSwipe())
+}
+
+const bchWalletBalance = computed(() => {
+  const asset = $store.getters['assets/getAsset']?.('bch')?.[0]
+  return asset?.spendable
+})
+const wallet = ref([].map(() => new Wallet())[0])
+async function initWallet () {
+  wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
+}
+async function sendBchPayment() {
+  const amount = bchPaymentData.value.bchAmount
+  const address = bchPaymentData.value.address
+  const changeAddress = $store.getters['global/getChangeAddress']('bch')
+  // const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
+  if (!wallet.value) await initWallet()
+
+  const dialog = $q.dialog({
+    title: 'Sending payment',
+    mesage: `Sending ${amount} BCH to ${address}`,
+    persistent: true,
+    progress: true,
+    ok: false,
+    cancel: false,
+    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+  })
+
+  wallet.value.BCH.sendBch(amount, address, changeAddress)
+    .then(result => {
+      if (!result.success) return Promise.reject(result)
+      savePaymentFundingTx({ txid: result.txid, address: address }).then(() => {
+        showPaymentDialog.value = false
+      })
+      dialog.hide()
+    })
+    .catch(error => {
+      let errorMessage = error?.error || ''
+      if (errorMessage.indexOf('not enough balance in sender') > -1) {
+        errorMessage = 'Not enough balance to cover the send amount and transaction fee'
+      } else if (errorMessage.indexOf('has insufficient priority') > -1) {
+        errorMessage = 'Not enough balance to cover the transaction fee'
+      }
+
+      dialog.update({ title: 'Unable to send payment', message: errorMessage })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false, ok: true })
+    })
+}
+
+
+function checkPaymentFundingTx() {
+  const escrowContract = bchPaymentData.value?.escrowContract
+  if (!escrowContract?.address) return Promise.resolve()
+  if (escrowContract?.fundingTxid) return Promise.resolve()
+
+  creatingPayment.value = true
+  return backend.post(`connecta/escrow/${escrowContract?.address}/resolve_funding_transaction/`)
+    .then(response => {
+      if (response?.data?.address != escrowContract?.address) return Promise.reject({ response })
+      escrowContract.raw = response?.data
+      refreshPage()
+        .finally(() => {
+          if (!order.value.balanceToPay) showPaymentDialog.value = false
+        })
+      return response
+    })
+    .finally(() => {
+      creatingPayment.value = false
+    })
+}
+
+
+const $copyText = inject('$copyText')
+function copyToClipboard(value, message) {
+  $copyText(value)
+  $q.notify({
+    message: message || 'Copied to clipboard',
+    timeout: 800,
+    color: 'blue-9',
+    icon: 'mdi-clipboard-check'
+  })
+}
+
 async function refreshPage(done=() => {}) {
   try {
     await Promise.all([
@@ -470,6 +784,15 @@ table.items-table {
 }
 table.items-table td {
   vertical-align: top;
+}
+
+.col-qr-code {
+  display: flex;
+  justify-content: center;
+  border-radius: 16px;
+  border: 4px solid #ed5f59;
+  background: white;
+  padding: 12px;
 }
 </style>
 <style scoped lang="scss">

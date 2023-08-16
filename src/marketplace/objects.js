@@ -716,6 +716,16 @@ export class Order {
     return (parseFloat(this.totalPaid) || 0) + (parseFloat(this.totalPendingPayment) || 0)
   }
 
+  get netPaymentsSent() {
+    const totalRefunded = parseFloat(this.totalRefunded) || 0
+    return this.totalPaymentsSent - totalRefunded
+  }
+
+  get balanceToPay() {
+    const balanceToPay = this.total - this.netPaymentsSent
+    const roundedBalanceToPay = Math.round(balanceToPay * 10 ** 3) / 10 ** 3
+    return Math.max(roundedBalanceToPay, 0)
+  }
 
   get change() {
     const totalPaid = (parseFloat(this.totalPaid) || 0)
