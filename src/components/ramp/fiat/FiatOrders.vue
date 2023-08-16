@@ -92,7 +92,7 @@
       </div>
       <div v-if="state === 'view-order'">
         <FiatProcessOrder
-          :wallet="wallet"
+          :init-wallet="wallet"
           :order-data="selectedOrder"
           @back="returnOrderList()"
         />

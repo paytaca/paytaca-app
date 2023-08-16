@@ -81,6 +81,7 @@
 <script>
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
+import RampContract from 'src/wallet/ramp/contract'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
@@ -106,7 +107,7 @@ export default {
       order: null,
       status: null,
       contract: null,
-      // wallet: null,
+      wallet: null,
       txid: null,
       title: '',
       text: ''
@@ -122,7 +123,7 @@ export default {
     PaymentConfirmation
   },
   props: {
-    wallet: {
+    initWallet: {
       type: Object,
       default: null
     },
@@ -166,13 +167,16 @@ export default {
   emits: ['back'],
   async mounted () {
     const vm = this
-
+    if (vm.initWallet) {
+      vm.wallet = vm.initWallet
+    } else {
+      const walletInfo = vm.$store.getters['global/getWallet']('bch')
+      vm.wallet = await loadP2PWalletInfo(walletInfo)
+    }
     await vm.fetchOrderData()
-
     if (!vm.order) {
       vm.order = vm.orderData
     }
-
     await vm.fetchAdData()
     this.updateStatus(vm.order.status)
     vm.isloaded = true
@@ -261,11 +265,10 @@ export default {
         }
       })
         .then(response => {
+          console.log('response:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.updateStatus(vm.order.status)
-          // console.log('order: ', vm.order)
-          // console.log('contract: ', vm.contract)
         })
         .catch(error => {
           console.log(error)
@@ -379,23 +382,27 @@ export default {
       this.checkStep()
       vm.isloaded = true
     },
+    async releaseCrypto () {
+      console.log('contract:', this.contract)
+      // const contract = RampContract()
+    },
     async verifyRelease () {
       const vm = this
-
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
-
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
         timestamp: timestamp
       }
-
+      const body = {
+        txid: this.txid
+      }
+      console.log('body:', body)
       await vm.$axios.post(url,
+        body,
         {
-          txid: this.txid
-        }, {
           headers: headers
         })
         .then(response => {
@@ -405,7 +412,7 @@ export default {
           }
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       await this.fetchOrderData()
@@ -416,6 +423,9 @@ export default {
       const vm = this
       vm.isloaded = false
       switch (vm.dialogType) {
+        case 'confirmReleaseCrypto':
+          await vm.verifyRelease()
+          break
         case 'confirmCancelOrder':
           await vm.cancelOrder()
           vm.$emit('back')
@@ -426,11 +436,14 @@ export default {
           this.checkStep()
           break
         case 'confirmPayment':
-          await this.sendConfirmPayment(this.confirmType)
+          // await this.sendConfirmPayment(this.confirmType)
           if (this.confirmType === 'buyer') {
+            await this.sendConfirmPayment(this.confirmType)
             await this.fetchOrderData()
           } else if (this.confirmType === 'seller') {
-            await this.verifyRelease()
+            // await this.verifyRelease()
+            await this.sendConfirmPayment(this.confirmType)
+            await this.releaseCrypto()
           }
           this.checkStep()
           break
@@ -439,7 +452,6 @@ export default {
       vm.text = ''
       vm.isloaded = true
     },
-
 
     // Opening Dialog
     confirmingOrder () {
@@ -450,10 +462,15 @@ export default {
     },
     cancellingOrder () {
       // console.log('cancelling order')
-
       this.dialogType = 'confirmCancelOrder'
       this.openDialog = true
       this.title = 'Cancel this order?'
+    },
+    releasingCrypto () {
+      console.log('releasing crypto')
+      this.dialogType = 'confirmReleaseCrypto'
+      this.openDialog = true
+      this.title = 'Release crypto?'
     },
     handleConfirmPayment () {
       this.dialogType = 'confirmPayment'
