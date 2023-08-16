@@ -150,8 +150,10 @@ export default {
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
-        vm.loading = true
-        this.fetchOrders()
+        if (!vm.listings || vm.listings.length === 0) {
+          vm.loading = true
+          vm.fetchOrders()
+        }
       }
     }
   },
@@ -183,11 +185,13 @@ export default {
   },
   async mounted () {
     const vm = this
-    vm.loading = true
-    vm.updatePaginationValues()
+    if (!vm.listings || vm.listings.length === 0) {
+      vm.loading = true
+    }
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
-    await vm.fetchOrders()
+    await vm.resetAndRefetchListings()
+    vm.loading = false
   },
   methods: {
     async fetchOrders (overwrite = false) {
@@ -245,9 +249,9 @@ export default {
         })
     },
     async refreshData (done) {
-      console.log('refreshing data')
+      console.log('refreshing orders')
       await this.resetAndRefetchListings()
-      done(true)
+      done()
     },
     async resetAndRefetchListings () {
       const vm = this

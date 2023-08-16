@@ -53,7 +53,7 @@ export async function createUser (context, data) {
     })
 }
 
-export async function fetchAds (context, { component = null, params = null, headers = null }) {
+export async function fetchAds (context, { component = null, params = null, headers = null, overwrite = false }) {
   const state = context.state
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
@@ -102,11 +102,11 @@ export async function fetchAds (context, { component = null, params = null, head
         case 'BUY':
           switch (component) {
             case 'store':
-              context.commit('updateStoreBuyListings', data.data)
+              context.commit('updateStoreBuyListings', { overwrite: overwrite, data: data.data })
               context.commit('incStoreBuyPage')
               break
             case 'ads':
-              context.commit('updateAdsBuyListings', data.data)
+              context.commit('updateAdsBuyListings', { overwrite: overwrite, data: data.data })
               context.commit('incAdsBuyPage')
               break
           }
@@ -114,11 +114,11 @@ export async function fetchAds (context, { component = null, params = null, head
         case 'SELL':
           switch (component) {
             case 'store':
-              context.commit('updateStoreSellListings', data.data)
+              context.commit('updateStoreSellListings', { overwrite: overwrite, data: data.data })
               context.commit('incStoreSellPage')
               break
             case 'ads':
-              context.commit('updateAdsSellListings', data.data)
+              context.commit('updateAdsSellListings', { overwrite: overwrite, data: data.data })
               context.commit('incAdsSellPage')
               break
           }
