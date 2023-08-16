@@ -17,13 +17,13 @@
           </div>
         </div>
         <div v-else class="q-mt-md">
-          <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
-          </div>
-          <div v-else class="q-mb-lg q-pb-lg">
-            <q-pull-to-refresh
-              @refresh="refreshData">
+          <q-pull-to-refresh
+            @refresh="refreshData">
+            <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+              <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+              <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
+            </div>
+            <div v-else class="q-mb-lg q-pb-lg">
               <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
                 <q-infinite-scroll
                 ref="infiniteScroll"
@@ -86,8 +86,8 @@
                   </div>
                 </q-infinite-scroll>
               </q-list>
-            </q-pull-to-refresh>
-          </div>
+            </div>
+          </q-pull-to-refresh>
         </div>
       </div>
       <div v-if="state === 'view-order'">
