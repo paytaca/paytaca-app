@@ -99,6 +99,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       order: null,
       isloaded: false,
       countDown: '',
@@ -109,15 +110,19 @@ export default {
     }
   },
   props: {
-    orderData: Object,
+    wallet: {
+      type: Object,
+      default: null
+    },
+    orderId: Number,
     type: String
   },
   emits: ['confirm'],
   async mounted () {
     const vm = this
-
-    vm.order = vm.orderData
-    await vm.paymentCountdown()
+    await vm.fetchOrderDetail()
+    console.log('order:', vm.order)
+    vm.paymentCountdown()
 
     if (vm.type === 'buyer') {
       this.confirmRelease = true
@@ -132,6 +137,21 @@ export default {
     this.timer = null
   },
   methods: {
+    async fetchOrderDetail () {
+      const vm = this
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash
+      }
+      const url = vm.apiURL + '/order/' + vm.orderId
+
+      try {
+        const response = await vm.$axios.get(url, { headers: headers })
+        console.log('response: ', response)
+        vm.order = response.data.order
+      } catch (error) {
+        console.error(error.response)
+      }
+    },
     paymentCountdown () {
       const vm = this
 

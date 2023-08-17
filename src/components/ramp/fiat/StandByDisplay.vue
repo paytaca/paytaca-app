@@ -27,10 +27,10 @@
     <!-- <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/> -->
 
     <div class="q-mt-md q-px-md q-mb-lg">
-      <div class="row q-px-lg text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
+      <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
         <div v-if="hasLabel && !forRelease" class="row">
           <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-          <span class="col">{{ label }}</span>
+          <span class="col text-left q-ml-sm">{{ label }}</span>
         </div>
       </div>
 

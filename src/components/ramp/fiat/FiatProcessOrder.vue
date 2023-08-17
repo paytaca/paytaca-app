@@ -53,7 +53,8 @@
     <!-- Payment Confirmation -->
     <div v-if="state === 'payment-confirmation'">
       <PaymentConfirmation
-        :order-data="order"
+        :wallet="wallet"
+        :order-id="order.id"
         :type="confirmType"
         @confirm="handleConfirmPayment"
       />
