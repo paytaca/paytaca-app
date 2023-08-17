@@ -8,8 +8,8 @@
 
     <!-- Fiat Input -->
     <div class="q-mt-md q-mx-lg q-px-md">
-      <div v-if="type === 'buyer'" class="sm-font-size subtext q-pb-xs">Please pay the seller</div>
-      <div v-else class="sm-font-size subtext q-pb-xs">Expect fiat payment of</div>
+      <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs">Please pay the seller</div>
+      <div v-else class="sm-font-size q-pb-xs">Expect fiat payment of</div>
       <div @click="$parent.copyToClipboard($parent.fiatAmount)">
         <q-input class="q-pb-xs" dense disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
           <template v-slot:prepend>
@@ -23,7 +23,7 @@
       <!-- <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div> -->
     </div>
     <div class="q-pt-sm text-center">
-      <span class="sm-font-size subtext">within</span>
+      <span class="sm-font-size">within</span>
       <div style="font-size: 36px; color: #ed5f59;"> {{ countDown }}</div>
     </div>
 

@@ -27,11 +27,16 @@
 
         <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
           <q-input
+            readonly
             :dark="darkMode"
             filled
             dense
-            v-model="transactionId"
-            >
+            v-model="transactionId">
+            <template v-slot:append>
+              <div @click="$parent.copyToClipboard(transactionId)">
+                <q-icon  class="q-pr-sm" size="sm" name='o_content_copy' color="blue-grey-6"/>
+              </div>
+            </template>
           </q-input>
         <!-- </div> -->
         <div v-if="contract.balance !== null" class="row q-mt-sm sm-font-size" style="color: grey">
