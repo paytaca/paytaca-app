@@ -44,6 +44,7 @@
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
         :order-data="order"
+        :key="standByDisplayKey"
       />
     </div>
 
@@ -74,8 +75,9 @@
   </div>
 </template>
 <script>
-import { formatCurrency } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, makeid } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
+import RampContract from 'src/wallet/ramp/contract'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
@@ -90,6 +92,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      wsURL: process.env.RAMP_WS_URL + 'order/',
       state: '',
       isloaded: false,
       confirmType: '',
@@ -101,10 +104,11 @@ export default {
       order: null,
       status: null,
       contract: null,
-      // wallet: null,
+      wallet: null,
       txid: null,
       title: '',
-      text: ''
+      text: '',
+      standByDisplayKey: 0
     }
   },
   components: {
@@ -117,7 +121,7 @@ export default {
     PaymentConfirmation
   },
   props: {
-    wallet: {
+    initWallet: {
       type: Object,
       default: null
     },
@@ -161,30 +165,36 @@ export default {
   emits: ['back'],
   async mounted () {
     const vm = this
-
+    if (vm.initWallet) {
+      vm.wallet = vm.initWallet
+    } else {
+      const walletInfo = vm.$store.getters['global/getWallet']('bch')
+      vm.wallet = await loadP2PWalletInfo(walletInfo)
+    }
     await vm.fetchOrderData()
-
     if (!vm.order) {
       vm.order = vm.orderData
     }
-
     await vm.fetchAdData()
-    this.updateStatus(vm.order.status)
+    vm.updateStatus(vm.order.status)
     vm.isloaded = true
+    vm.setupWebsocket()
+  },
+  beforeUnmount () {
+    console.log('Left FiatProcessOrder component')
+    this.closeWSConnection()
   },
   methods: {
     // STEP CHECKER
     updateStatus (status) {
       this.status = status
-      // this.order.status = this.status
+      this.order.status = this.status
+      console.log('status:', status)
       this.checkStep()
     },
     checkStep () {
       const vm = this
-      // console.log('checking step')
-      // switch (vm.status) {
-
-      // console.log('checking step:', vm.status)
+      console.log('checking step:', vm.status)
       switch (vm.status.value) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
@@ -229,6 +239,9 @@ export default {
           vm.state = 'standby-view'
           break
         case 'RLS': // Released
+          vm.state = 'standby-view'
+          vm.standByDisplayKey++
+          break
         case 'CNCL': // Canceled
           this.state = 'standby-view'
           break
@@ -257,11 +270,10 @@ export default {
         }
       })
         .then(response => {
+          console.log('response:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.updateStatus(vm.order.status)
-          // console.log('order: ', vm.order)
-          // console.log('contract: ', vm.contract)
         })
         .catch(error => {
           console.log(error)
@@ -375,23 +387,29 @@ export default {
       this.checkStep()
       vm.isloaded = true
     },
+    async releaseCrypto () {
+      console.log('contract:', this.contract)
+      this.txid = makeid(64)
+      console.log('txid:', this.txid)
+      // const contract = RampContract()
+    },
     async verifyRelease () {
       const vm = this
-
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
-
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
         timestamp: timestamp
       }
-
+      const body = {
+        txid: this.txid
+      }
+      console.log('body:', body)
       await vm.$axios.post(url,
+        body,
         {
-          txid: this.txid
-        }, {
           headers: headers
         })
         .then(response => {
@@ -401,7 +419,7 @@ export default {
           }
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       await this.fetchOrderData()
@@ -412,6 +430,10 @@ export default {
       const vm = this
       vm.isloaded = false
       switch (vm.dialogType) {
+        case 'confirmReleaseCrypto':
+          await this.releaseCrypto()
+          await vm.verifyRelease()
+          break
         case 'confirmCancelOrder':
           await vm.cancelOrder()
           vm.$emit('back')
@@ -426,6 +448,7 @@ export default {
           if (this.confirmType === 'buyer') {
             await this.fetchOrderData()
           } else if (this.confirmType === 'seller') {
+            await this.releaseCrypto()
             await this.verifyRelease()
           }
           this.checkStep()
@@ -435,7 +458,6 @@ export default {
       vm.text = ''
       vm.isloaded = true
     },
-
 
     // Opening Dialog
     confirmingOrder () {
@@ -447,11 +469,16 @@ export default {
     },
     cancellingOrder () {
       // console.log('cancelling order')
-
       this.dialogType = 'confirmCancelOrder'
       // this.dialogType = 'genericDialog'
       this.openDialog = true
       this.title = 'Cancel this order?'
+    },
+    releasingCrypto () {
+      console.log('releasing crypto')
+      this.dialogType = 'confirmReleaseCrypto'
+      this.openDialog = true
+      this.title = 'Release crypto?'
     },
     handleConfirmPayment () {
       this.dialogType = 'confirmPayment'
@@ -499,6 +526,32 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
+    },
+
+    setupWebsocket () {
+      const wsUrl = `${this.wsURL}${this.order.id}/`
+      this.websocket = new WebSocket(wsUrl)
+      this.websocket.onopen = () => {
+        console.log('WebSocket connection established to ' + wsUrl)
+      }
+      this.websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        console.log('WebSocket data:', data)
+        if (data && data.success) {
+          const status = data.status
+          if (status) {
+            this.updateStatus(status.status)
+          }
+        }
+      }
+      this.websocket.onclose = () => {
+        console.log('WebSocket connection closed.')
+      }
+    },
+    closeWSConnection () {
+      if (this.websocket) {
+        this.websocket.close()
+      }
     }
   }
 }

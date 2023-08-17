@@ -35,86 +35,89 @@
         </div>
       </div>
       <div v-else class="q-mt-md q-mx-md">
-        <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
-        </div>
-        <div v-else>
-          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
-            <q-infinite-scroll
-              ref="infiniteScroll"
-              :items="listings"
-              @load="loadMoreData"
-              :offset="0"
-              :scroll-target="scrollTargetRef">
-              <template v-slot:loading>
-                <div class="row justify-center q-my-md" v-if="hasMoreData">
-                  <q-spinner-dots color="primary" size="40px" />
+        <q-pull-to-refresh
+          @refresh="refreshData">
+          <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
+            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
+          </div>
+          <div v-else>
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
+              <q-infinite-scroll
+                ref="infiniteScroll"
+                :items="listings"
+                @load="loadMoreData"
+                :offset="0"
+                :scroll-target="scrollTargetRef">
+                <template v-slot:loading>
+                  <div class="row justify-center q-my-md" v-if="hasMoreData">
+                    <q-spinner-dots color="primary" size="40px" />
+                  </div>
+                </template>
+                <div v-for="(listing, index) in listings" :key="index">
+                  <q-item>
+                    <q-item-section>
+                      <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                        <div class="row">
+                          <div class="col ib-text">
+                            <span
+                              :class="{'pt-dark-label': darkMode}"
+                              class="q-mb-none text-uppercase"
+                              style="font-size: 13px;">
+                              {{ listing.price_type }}
+                            </span><br>
+                            <span
+                              :class="{'pt-dark-label': darkMode}"
+                              class="col-transaction text-uppercase"
+                              style="font-size: 16px;">
+                              {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
+                            </span>
+                            <span style="font-size: 12px;">
+                              /BCH
+                            </span>
+                            <div class="row sm-font-size">
+                              <span class="q-mr-md">Quantity</span>
+                              <span>{{ formattedCurrency(listing.crypto_amount, null, false) }} BCH</span>
+                            </div>
+                            <div class="row sm-font-size">
+                              <span class="q-mr-md">Limit</span>
+                              <span> {{ formattedCurrency(listing.trade_floor, listing.fiat_currency.symbol) }} - {{ formattedCurrency(listing.trade_ceiling, listing.fiat_currency.symbol) }} </span>
+                            </div>
+                            <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
+                          </div>
+                          <div class="text-right">
+                            <q-btn
+                              outline
+                              rounded
+                              padding="sm"
+                              icon="edit"
+                              size="sm"
+                              color="grey-6"
+                              @click="onEditAd(listing.id)"
+                            />
+                            <q-btn
+                              outline
+                              rounded
+                              padding="sm"
+                              size="sm"
+                              icon="delete"
+                              color="grey-6"
+                              class="q-ml-xs"
+                              @click="onDeleteAd(listing.id)"
+                            />
+                          </div>
+                        </div>
+                        <div class="q-gutter-sm q-pt-sm">
+                          <!-- <q-badge v-for="method in listing.payment_methods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.payment_type" /> -->
+                        </div>
+                      </div>
+                    </q-item-section>
+                  </q-item>
                 </div>
-              </template>
-              <div v-for="(listing, index) in listings" :key="index">
-                <q-item>
-                  <q-item-section>
-                    <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <div class="row">
-                        <div class="col ib-text">
-                          <span
-                            :class="{'pt-dark-label': darkMode}"
-                            class="q-mb-none text-uppercase"
-                            style="font-size: 13px;">
-                            {{ listing.price_type }}
-                          </span><br>
-                          <span
-                            :class="{'pt-dark-label': darkMode}"
-                            class="col-transaction text-uppercase"
-                            style="font-size: 16px;">
-                            {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
-                          </span>
-                          <span style="font-size: 12px;">
-                            /BCH
-                          </span>
-                          <div class="row sm-font-size">
-                            <span class="q-mr-md">Quantity</span>
-                            <span>{{ formattedCurrency(listing.crypto_amount, null, false) }} BCH</span>
-                          </div>
-                          <div class="row sm-font-size">
-                            <span class="q-mr-md">Limit</span>
-                            <span> {{ formattedCurrency(listing.trade_floor, listing.fiat_currency.symbol) }} - {{ formattedCurrency(listing.trade_ceiling, listing.fiat_currency.symbol) }} </span>
-                          </div>
-                          <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
-                        </div>
-                        <div class="text-right">
-                          <q-btn
-                            outline
-                            rounded
-                            padding="sm"
-                            icon="edit"
-                            size="sm"
-                            color="grey-6"
-                            @click="onEditAd(listing.id)"
-                          />
-                          <q-btn
-                            outline
-                            rounded
-                            padding="sm"
-                            size="sm"
-                            icon="delete"
-                            color="grey-6"
-                            class="q-ml-xs"
-                            @click="onDeleteAd(listing.id)"
-                          />
-                        </div>
-                      </div>
-                      <div class="q-gutter-sm q-pt-sm">
-                        <!-- <q-badge v-for="method in listing.payment_methods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.payment_type" /> -->
-                      </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </div>
-            </q-infinite-scroll>
-          </q-list>
-        </div>
+              </q-infinite-scroll>
+            </q-list>
+          </div>
+        </q-pull-to-refresh>
       </div>
     </div>
   </q-card>
@@ -178,8 +181,10 @@ export default {
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
-        vm.loading = true
-        this.fetchAds()
+        if (!vm.listings || vm.listings.length === 0) {
+          vm.loading = true
+          this.fetchAds()
+        }
       }
     }
   },
@@ -208,14 +213,16 @@ export default {
   },
   async mounted () {
     const vm = this
-    vm.loading = true
-    vm.updatePaginationValues()
+    if (!vm.listings || vm.listings.length === 0) {
+      vm.loading = true
+    }
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
-    await vm.fetchAds()
+    await vm.resetAndRefetchListings()
+    vm.loading = false
   },
   methods: {
-    async fetchAds () {
+    async fetchAds (overwrite = false) {
       const vm = this
       const timestamp = Date.now()
       const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
@@ -225,12 +232,15 @@ export default {
         signature: signature
       }
       const params = { trade_type: vm.transactionType, owned: true }
-      try {
-        await vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, headers: headers })
-      } catch (error) {
-        console.error(error.response)
-      }
-      vm.loading = false
+      vm.$store.dispatch(
+        'ramp/fetchAds',
+        { component: 'ads', params: params, headers: headers, overwrite: overwrite })
+        .then(response => {
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
     },
     async loadMoreData (_, done) {
       const vm = this
@@ -266,13 +276,16 @@ export default {
       }
       vm.loading = false
     },
+    async refreshData (done) {
+      console.log('refreshing ads')
+      await this.resetAndRefetchListings()
+      done()
+    },
     async resetAndRefetchListings () {
       const vm = this
-      vm.loading = true
       await vm.$store.dispatch('ramp/resetAdsPagination')
-      await vm.fetchAds()
+      await vm.fetchAds(true)
       vm.updatePaginationValues()
-      vm.loading = false
     },
     updatePaginationValues () {
       const vm = this

@@ -46,8 +46,6 @@
           v-model="contractAddress"
           :loading="!contractAddress || contractAddress === ' '">
         </q-input>
-        <!-- </div> -->
-        <!-- <div class="row q-mt-md"> -->
 
         <div class="sm-font-size q-pl-sm q-pb-xs">Transfer Amount</div>
         <q-input
@@ -57,7 +55,7 @@
           dense
           v-model="transferAmount"
           :error="balanceExceeded"
-          :error-message="balanceExceeded? $t('Balance exceeded') : ''">
+          :error-message="balanceExceeded? $t('Insufficient balance') : ''">
           <template #append>
             <div class="sm-font-size">BCH</div>
           </template>
@@ -100,6 +98,7 @@
   </template>
 <script>
 import { signMessage } from 'src/wallet/ramp/signature'
+import { makeid } from 'src/wallet/ramp'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { Dialog } from 'quasar'
@@ -194,6 +193,8 @@ export default {
         // }
         // console.log('result:', result)
         // vm.transactionId = result.transactionId
+        vm.transactionId = makeid(64)
+        console.log('transactionId:', vm.transactionId)
         await vm.escrowPendingOrder()
       } catch (error) {
         console.error(error)

@@ -35,70 +35,73 @@
         <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
       </div>
       <div v-if="!loading" class="q-mt-md">
-        <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
-        </div>
-        <div v-else>
-          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.30)}px`" style="overflow:auto;">
-            <q-infinite-scroll
-              ref="infiniteScroll"
-              :items="listings"
-              @load="loadMoreData"
-              :offset="0"
-              :scroll-target="scrollTargetRef">
-              <template v-slot:loading>
-                <div class="row justify-center q-my-md" v-if="hasMoreData">
-                  <q-spinner-dots color="primary" size="40px" />
-                </div>
-              </template>
-              <div v-for="(listing, index) in listings" :key="index">
-                <q-item clickable @click="selectListing(listing)">
-                  <q-item-section>
-                    <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <div class="row">
-                        <div class="col ib-text">
-                          <span
-                            :class="{'pt-dark-label': darkMode}"
-                            class="q-mb-none md-font-size"
-                            style="font-weight: 400;"
-                            @click.stop.prevent="viewUserProfile(listing.owner)">
-                            <!-- <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }} -->
-                            {{ listing.owner }}
-                          </span><br>
-                          <div class="row sm-font-size">
-                            <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
-                            <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
-                          </div>
-                          <span
-                            :class="{'pt-dark-label': darkMode}"
-                            class="col-transaction text-uppercase lg-font-size">
-                            {{ formattedCurrency(listing.price) }}
-                          </span>
-                          <span class="sm-font-size">/BCH</span><br>
-                          <div class="row sm-font-size">
-                              <span class="q-mr-md">Quantity</span>
-                              <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
-                          </div>
-                          <div class="row sm-font-size">
-                              <span class="q-mr-md">Limit</span>
-                              <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span>
+        <q-pull-to-refresh
+          @refresh="refreshData">
+          <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
+          </div>
+          <div v-else>
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.30)}px`" style="overflow:auto;">
+              <q-infinite-scroll
+                ref="infiniteScroll"
+                :items="listings"
+                @load="loadMoreData"
+                :offset="0"
+                :scroll-target="scrollTargetRef">
+                <template v-slot:loading>
+                  <div class="row justify-center q-my-md" v-if="hasMoreData">
+                    <q-spinner-dots color="primary" size="40px" />
+                  </div>
+                </template>
+                <div v-for="(listing, index) in listings" :key="index">
+                  <q-item clickable @click="selectListing(listing)">
+                    <q-item-section>
+                      <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                        <div class="row">
+                          <div class="col ib-text">
+                            <span
+                              :class="{'pt-dark-label': darkMode}"
+                              class="q-mb-none md-font-size"
+                              style="font-weight: 400;"
+                              @click.stop.prevent="viewUserProfile(listing.owner)">
+                              <!-- <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }} -->
+                              {{ listing.owner }}
+                            </span><br>
+                            <div class="row sm-font-size">
+                              <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
+                              <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
+                            </div>
+                            <span
+                              :class="{'pt-dark-label': darkMode}"
+                              class="col-transaction text-uppercase lg-font-size">
+                              {{ formattedCurrency(listing.price) }}
+                            </span>
+                            <span class="sm-font-size">/BCH</span><br>
+                            <div class="row sm-font-size">
+                                <span class="q-mr-md">Quantity</span>
+                                <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
+                            </div>
+                            <div class="row sm-font-size">
+                                <span class="q-mr-md">Limit</span>
+                                <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span>
+                            </div>
                           </div>
                         </div>
+                        <div class="q-gutter-sm q-pt-sm">
+                          <q-badge v-for="method in listing.payment_methods" :key="method.id"
+                          rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
+                          {{ method.payment_type }}
+                          </q-badge>
+                        </div>
                       </div>
-                      <div class="q-gutter-sm q-pt-sm">
-                        <q-badge v-for="method in listing.payment_methods" :key="method.id"
-                        rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
-                        {{ method.payment_type }}
-                        </q-badge>
-                      </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </div>
-            </q-infinite-scroll>
-          </q-list>
-        </div>
+                    </q-item-section>
+                  </q-item>
+                </div>
+              </q-infinite-scroll>
+            </q-list>
+          </div>
+        </q-pull-to-refresh>
       </div>
       <div v-else>
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -165,9 +168,9 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       viewProfile: false,
       transactionType: 'SELL',
-      loading: true,
+      loading: false,
       peerProfile: null,
-      selectedCurrency: null,
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
       state: 'SELECT',
       selectedListing: {},
       selectedUser: null,
@@ -185,12 +188,16 @@ export default {
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
-        vm.loading = true
-        this.fetchStoreListings()
+        if (!vm.listings || vm.listings.length === 0) {
+          vm.loading = true
+          vm.fetchStoreListings()
+        }
       }
     },
-    selectedCurrency (value) {
-      this.resetAndRefetchListings()
+    async selectedCurrency () {
+      this.loading = true
+      await this.resetAndRefetchListings()
+      this.loading = false
     }
   },
   computed: {
@@ -223,18 +230,17 @@ export default {
   },
   async mounted () {
     const vm = this
-    vm.loading = true
-    vm.updatePaginationValues()
-    // console.log('totalPages:', vm.totalPages, ', pageNumber:', vm.pageNumber)
-    vm.selectedCurrency = vm.$store.getters['market/selectedCurrency']
-
+    console.log('listings:', vm.listings)
+    if (!vm.listings || vm.listings.length === 0) {
+      vm.loading = true
+    }
     await vm.fetchFiatCurrencies()
-    await vm.fetchStoreListings()
+    await vm.resetAndRefetchListings()
+    vm.loading = false
   },
   methods: {
     async fetchFiatCurrencies () {
       const vm = this
-
       vm.$axios.get(vm.apiURL + '/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
@@ -252,7 +258,7 @@ export default {
           }
         })
     },
-    async fetchStoreListings () {
+    async fetchStoreListings (overwrite = false) {
       const vm = this
       if (this.selectedCurrency) {
         const params = {
@@ -269,7 +275,7 @@ export default {
           timestamp: timestamp
         }
         try {
-          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers })
+          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers, overwrite: overwrite })
         } catch (error) {
           console.error(error)
         }
@@ -289,14 +295,17 @@ export default {
       }
       done()
     },
+    async refreshData (done) {
+      console.log('refreshing store')
+      await this.resetAndRefetchListings()
+      done()
+    },
     async resetAndRefetchListings () {
       // reset pagination and reload ads list
       const vm = this
-      vm.loading = true
       await vm.$store.dispatch('ramp/resetStorePagination')
-      await vm.fetchStoreListings()
+      await vm.fetchStoreListings(true)
       vm.updatePaginationValues()
-      vm.loading = false
     },
     updatePaginationValues () {
       const vm = this

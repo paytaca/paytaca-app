@@ -546,6 +546,9 @@ export default {
         case 'confirmCancelOrder':
           vm.genericDialog = true
           break
+        case 'confirmReleaseCrypto':
+          vm.genericDialog = true
+          break
       }
       // case 'confirmOrderCreate':
     },
