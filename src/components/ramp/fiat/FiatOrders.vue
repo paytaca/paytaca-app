@@ -251,7 +251,7 @@ export default {
     async refreshData (done) {
       console.log('refreshing orders')
       await this.resetAndRefetchListings()
-      done()
+      if (done) done()
     },
     async resetAndRefetchListings () {
       const vm = this
@@ -353,10 +353,10 @@ export default {
       // console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
       return lockedPrice * cryptoAmount
     },
-    async returnOrderList () {
+    returnOrderList () {
       const vm = this
       vm.state = 'order-list'
-      vm.refreshData()
+      // vm.refreshData()
       // vm.loading = true
       // await vm.resetAndRefetchListings()
       // vm.loading = false

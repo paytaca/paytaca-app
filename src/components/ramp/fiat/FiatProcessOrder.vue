@@ -44,6 +44,7 @@
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
         :order-data="order"
+        :key="standByDisplayKey"
       />
     </div>
 
@@ -79,7 +80,7 @@
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, makeid } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import RampContract from 'src/wallet/ramp/contract'
 
@@ -96,6 +97,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      wsURL: process.env.RAMP_WS_URL + 'order/',
       state: '',
       isloaded: false,
       confirmType: '',
@@ -110,7 +112,8 @@ export default {
       wallet: null,
       txid: null,
       title: '',
-      text: ''
+      text: '',
+      standByDisplayKey: 0
     }
   },
   components: {
@@ -178,22 +181,25 @@ export default {
       vm.order = vm.orderData
     }
     await vm.fetchAdData()
-    this.updateStatus(vm.order.status)
+    vm.updateStatus(vm.order.status)
     vm.isloaded = true
+    vm.setupWebsocket()
+  },
+  beforeUnmount () {
+    console.log('Left FiatProcessOrder component')
+    this.closeWSConnection()
   },
   methods: {
     // STEP CHECKER
     updateStatus (status) {
       this.status = status
-      // this.order.status = this.status
+      this.order.status = this.status
+      console.log('status:', status)
       this.checkStep()
     },
     checkStep () {
       const vm = this
-      // console.log('checking step')
-      // switch (vm.status) {
-
-      // console.log('checking step:', vm.status)
+      console.log('checking step:', vm.status)
       switch (vm.status.value) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
@@ -238,6 +244,9 @@ export default {
           vm.state = 'standby-view'
           break
         case 'RLS': // Released
+          vm.state = 'standby-view'
+          vm.standByDisplayKey++
+          break
         case 'CNCL': // Canceled
           this.state = 'standby-view'
           break
@@ -384,6 +393,8 @@ export default {
     },
     async releaseCrypto () {
       console.log('contract:', this.contract)
+      this.txid = makeid(64)
+      console.log('txid:', this.txid)
       // const contract = RampContract()
     },
     async verifyRelease () {
@@ -424,6 +435,7 @@ export default {
       vm.isloaded = false
       switch (vm.dialogType) {
         case 'confirmReleaseCrypto':
+          await this.releaseCrypto()
           await vm.verifyRelease()
           break
         case 'confirmCancelOrder':
@@ -436,14 +448,12 @@ export default {
           this.checkStep()
           break
         case 'confirmPayment':
-          // await this.sendConfirmPayment(this.confirmType)
+          await this.sendConfirmPayment(this.confirmType)
           if (this.confirmType === 'buyer') {
-            await this.sendConfirmPayment(this.confirmType)
             await this.fetchOrderData()
           } else if (this.confirmType === 'seller') {
-            // await this.verifyRelease()
-            await this.sendConfirmPayment(this.confirmType)
             await this.releaseCrypto()
+            await this.verifyRelease()
           }
           this.checkStep()
           break
@@ -518,6 +528,32 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
+    },
+
+    setupWebsocket () {
+      const wsUrl = `${this.wsURL}${this.order.id}/`
+      this.websocket = new WebSocket(wsUrl)
+      this.websocket.onopen = () => {
+        console.log('WebSocket connection established to ' + wsUrl)
+      }
+      this.websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        console.log('WebSocket data:', data)
+        if (data && data.success) {
+          const status = data.status
+          if (status) {
+            this.updateStatus(status.status)
+          }
+        }
+      }
+      this.websocket.onclose = () => {
+        console.log('WebSocket connection closed.')
+      }
+    },
+    closeWSConnection () {
+      if (this.websocket) {
+        this.websocket.close()
+      }
     }
   }
 }

@@ -121,3 +121,19 @@ export function getPaymentTimeLimit (timeValue) {
       return ''
   }
 }
+
+/**
+ * Generates a random alphanumeric string of the given length.
+ *
+ * @param {number} length - The desired length of the random string.
+ * @returns {string} A random alphanumeric string of the given length.
+ */
+export function makeid (length) {
+  let result = ''
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const charactersLength = characters.length
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength))
+  }
+  return result
+}
