@@ -137,7 +137,8 @@ export default {
     wallet: {
       type: Object,
       default: null
-    }
+    },
+    contract: Object
   },
   watch: {
     selectedArbiter () {
@@ -166,16 +167,16 @@ export default {
     const vm = this
     vm.loading = true
     vm.transferAmount = vm.amount
-    vm.setupWebsocket()
     await vm.fetchOrderDetail()
     await vm.fetchArbiters()
-    await vm.generateContractAddress()
+    if (vm.contract) {
+      vm.contractAddress = vm.contract.address
+    } else {
+      await vm.generateContractAddress()
+    }
     if (vm.contractAddress !== ' ') {
       vm.loading = false
     }
-  },
-  beforeUnmount () {
-    this.closeWSConnection()
   },
   methods: {
     async completePayment () {
@@ -299,31 +300,6 @@ export default {
         .onDismiss(() => {
           this.showDragSlide = true
         })
-    },
-    setupWebsocket () {
-      const wsUrl = this.wsURL + this.order.id + '/'
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log('WebSocket data:', data.result)
-        const contractAddress = data.result.contract_address
-        if (contractAddress) {
-          this.contractAddress = contractAddress
-          console.log('Updated contract address to :', this.contractAddress)
-          this.loading = false
-        }
-      }
-      this.websocket.onclose = () => {
-        console.log('WebSocket connection closed.')
-      }
-    },
-    closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
     }
   }
 }

@@ -26,8 +26,10 @@
     />
     <TransferToEscrowProcess
       v-if="state === 'escrow-bch'"
+      :key="transferToEscrowProcessKey"
       :wallet="wallet"
       :order="order"
+      :contract="contract"
       :amount="transferAmount"
       @back="onBack"
       @success="onEscrowSuccess"
@@ -108,12 +110,15 @@ export default {
       ad: null,
       order: null,
       status: null,
-      contract: null,
+      contract: {
+        address: null
+      },
       wallet: null,
       txid: null,
       title: '',
       text: '',
-      standByDisplayKey: 0
+      standByDisplayKey: 0,
+      transferToEscrowProcessKey: 0
     }
   },
   components: {
@@ -194,7 +199,6 @@ export default {
     updateStatus (status) {
       this.status = status
       this.order.status = this.status
-      console.log('status:', status)
       this.checkStep()
     },
     checkStep () {
@@ -277,6 +281,7 @@ export default {
           console.log('response:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
+          console.log('contract:', vm.contract)
           vm.updateStatus(vm.order.status)
         })
         .catch(error => {
@@ -540,9 +545,19 @@ export default {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         if (data && data.success) {
-          const status = data.status
-          if (status) {
-            this.updateStatus(status.status)
+          if (data.status) {
+            this.updateStatus(data.status.status)
+          }
+          if (data.contract_address) {
+            if (this.contract) {
+              this.contract.address = data.contract_address
+            } else {
+              this.contract = {
+                address: data.contract_address
+              }
+            }
+            console.log('contract:', this.contract)
+            this.transferToEscrowProcessKey++
           }
         }
       }

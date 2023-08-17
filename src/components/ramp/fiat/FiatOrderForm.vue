@@ -161,7 +161,7 @@
     <!-- Buy Process -->
     <div v-if="state === 'order-process'">
       <FiatProcessOrder
-        :wallet="wallet"
+        :init-wallet="wallet"
         :order-data="order"
         @back="onBack"
       />
