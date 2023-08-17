@@ -160,30 +160,6 @@ export default {
       const vm = this
       vm.hideVerifyBtn = true
       vm.verifyTxid()
-    },
-    setupWebsocket () {
-      const wsUrl = this.wsURL + this.orderId + '/'
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log('WebSocket message:', data)
-        if (data.success && data.success === true) {
-          this.$emit('success', data.status.status)
-        } else {
-          this.hideVerifyBtn = false
-        }
-      }
-      this.websocket.onclose = () => {
-        console.log('WebSocket connection closed.')
-      }
-    },
-    closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
     }
   }
 }

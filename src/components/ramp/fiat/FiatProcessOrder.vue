@@ -204,6 +204,7 @@ export default {
     },
     checkStep () {
       const vm = this
+      vm.openDialog = false
       console.log('checking step:', vm.status)
       switch (vm.status.value) {
         case 'SBM': // Submitted
@@ -245,6 +246,13 @@ export default {
           vm.confirmType = 'seller'
           break
         case 'PD': // Paid
+          vm.state = 'standby-view'
+          if (this.order.trade_type === 'BUY') {
+            vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
+          } else if (this.order.trade_type === 'SELL') {
+            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
+          }
+          break
         case 'RLS_PN': // Release Pending
           vm.state = 'standby-view'
           break
