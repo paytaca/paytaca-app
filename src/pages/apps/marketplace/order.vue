@@ -53,11 +53,11 @@
         </div>
         <div class="text-caption text-grey">#{{ order.id }}</div>
       </div>
-      <q-banner v-if="order?.status == 'cancelled' && order?.cancelReason" class="text-white bg-red q-ma-sm rounded-borders">
+      <q-banner v-if="order?.isCancelled && order?.cancelReason" class="text-white bg-red q-ma-sm rounded-borders">
         <div class="text-caption top">Cancel reason:</div>
         <div class="q-mt-xs">{{ order?.cancelReason }}</div>
       </q-banner>
-      <template v-if="order?.balanceToPay > 0">
+      <template v-if="order?.balanceToPay > 0 && !order?.isCancelled">
         <q-banner
           :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
         >

@@ -695,6 +695,10 @@ export class Order {
     else if (this.updatedAt) delete this.updatedAt
   }
 
+  get isCancelled() {
+    return this.status === 'cancelled'
+  }
+
   get formattedStatus() {
     return formatOrderStatus(this.status)
   }
