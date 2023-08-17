@@ -109,11 +109,9 @@ export default {
   setup () {
     const scrollTargetRef = ref(null)
     const infiniteScroll = ref(null)
-    // const pullToRefresh = ref(null)
     return {
       scrollTargetRef,
-      infiniteScroll,
-      // pullToRefresh
+      infiniteScroll
     }
   },
   components: {
