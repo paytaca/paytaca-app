@@ -115,7 +115,7 @@ export default {
       arbiterOptions: [],
       contractAddress: ' ',
       transferAmount: ' ',
-      transactionId: null,
+      txid: null,
       fees: null,
       showDragSlide: true,
       sendErrors: []
@@ -193,9 +193,9 @@ export default {
         //   vm.sendErrors.push(result.error)
         // }
         // console.log('result:', result)
-        // vm.transactionId = result.transactionId
-        vm.transactionId = makeid(64)
-        console.log('transactionId:', vm.transactionId)
+        // vm.txid = result.transactionId
+        vm.txid = makeid(64)
+        console.log('txid:', vm.txid)
         await vm.escrowPendingOrder()
       } catch (error) {
         console.error(error)
@@ -214,10 +214,12 @@ export default {
       console.log('headers:', headers)
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
+      const body = { txid: vm.txid }
       try {
-        const response = await vm.$axios.post(url, null, { headers: headers })
+        const response = await vm.$axios.post(url, body, { headers: headers })
+        console.log('response:', response)
         const result = {
-          txid: vm.transactionId,
+          txid: vm.txid,
           status: response.data.status
         }
         vm.$emit('success', result)

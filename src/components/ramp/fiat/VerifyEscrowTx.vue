@@ -58,7 +58,7 @@
             class="col q-mx-lg q-my-md q-py-sm"
             @click="onVerify">
           </q-btn>
-          <div v-if="!loading && hideVerifyBtn" class="q-mt-md">Verifying transaction, please wait...</div>
+          <div v-if="hideVerifyBtn" class="q-mt-md">Verifying transaction, please wait...</div>
         </div>
       </div>
     </div>
@@ -82,7 +82,7 @@ export default {
       },
       transactionId: '', // dummy txid
       errorMessages: [],
-      hideVerifyBtn: false
+      hideVerifyBtn: true
     }
   },
   emits: ['back', 'success'],
@@ -92,10 +92,7 @@ export default {
       type: Number,
       default: null
     },
-    txId: {
-      type: String,
-      default: ' '
-    },
+    txid: String,
     wallet: {
       type: Object,
       default: null
@@ -105,15 +102,11 @@ export default {
   computed: {},
   async mounted () {
     const vm = this
-    if (vm.txId && vm.txId.length > 0) {
-      vm.transactionId = vm.txId
+    if (vm.txid && vm.txid.length > 0) {
+      vm.transactionId = vm.txid
     }
-    vm.setupWebsocket()
     await vm.fetchOrderDetail()
     vm.loading = false
-  },
-  beforeUnmount () {
-    this.closeWSConnection()
   },
   methods: {
     async fetchOrderDetail () {
@@ -155,6 +148,7 @@ export default {
         console.error(error.response)
         const errorMsg = error.response.data.error
         vm.errorMessages.push(errorMsg)
+        vm.hideVerifyBtn = false
       }
     },
     onVerify () {

@@ -38,7 +38,7 @@
       v-if="state === 'tx-confirmation'"
       :wallet="wallet"
       :order-id="order.id"
-      :tx-id="txid"
+      :txid="txid"
       @back="onBack"
       @success="onVerifyTxSuccess"
     />
@@ -545,6 +545,9 @@ export default {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         if (data && data.success) {
+          if (data.txid) {
+            this.txid = data.txid
+          }
           if (data.status) {
             this.updateStatus(data.status.status)
           }
