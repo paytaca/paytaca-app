@@ -110,12 +110,13 @@ export default {
 
       ad: null,
       order: null,
-      status: null,
       contract: {
         address: null
       },
+      fees: null,
       wallet: null,
       txid: null,
+      status: null,
       title: '',
       text: '',
       standByDisplayKey: 0,
@@ -252,6 +253,25 @@ export default {
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
           }
+          console.log('PD:', vm.contract)
+          if (vm.state === 'tx-confirmation') {
+            const transactions = vm.contract.transactions
+            let releaseVerified = false
+            transactions.forEach((tx, index) => {
+              console.log(tx)
+              if (tx.action === 'RELEASE') {
+                releaseVerified = tx.valid
+                if (releaseVerified) {
+                  vm.txid = tx.txid
+                }
+              }
+            })
+            console.log('releaseVerified:', releaseVerified)
+            if (!releaseVerified) {
+              vm.releaseCrypto()
+              // vm.verifyRelease()
+            }
+          }
           break
         case 'RLS_PN': // Release Pending
           vm.state = 'standby-view'
@@ -287,10 +307,13 @@ export default {
         }
       })
         .then(response => {
-          console.log('response:', response.data)
+          console.log('fetchOrderData:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
+          vm.fees = response.data.fees
+          console.log('order:', vm.order)
           console.log('contract:', vm.contract)
+          console.log('fees:', vm.fees)
           vm.updateStatus(vm.order.status)
         })
         .catch(error => {
@@ -406,12 +429,32 @@ export default {
       vm.isloaded = true
     },
     async releaseCrypto () {
-      console.log('contract:', this.contract)
-      this.txid = makeid(64)
-      console.log('txid:', this.txid)
-      // const contract = RampContract()
+      console.log('release crypto')
+      const publicKeys = {
+        arbiter: this.contract.arbiter.public_key,
+        seller: this.contract.seller.public_key,
+        buyer: this.contract.buyer.public_key,
+        servicer: this.contract.servicer.public_key
+      }
+      const addresses = {
+        arbiter: this.contract.arbiter.address,
+        seller: this.contract.seller.address,
+        buyer: this.contract.buyer.address,
+        servicer: this.contract.servicer.address
+      }
+      const fees = {
+        arbitrationFee: this.fees.fees.arbitration_fee,
+        serviceFee: this.fees.fees.service_fee,
+        contractFee: this.fees.fees.hardcoded_fee
+      }
+      const timestamp = this.contract.timestamp
+      const rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
+      await rampContract.initialize()
+      // this.txid = makeid(64)
+      console.log('@@rampContract address:', rampContract.getAddress())
     },
     async verifyRelease () {
+      console.log('verifyRelease')
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
       const timestamp = Date.now()
@@ -450,7 +493,7 @@ export default {
       switch (vm.dialogType) {
         case 'confirmReleaseCrypto':
           await this.releaseCrypto()
-          await vm.verifyRelease()
+          // await vm.verifyRelease()
           break
         case 'confirmCancelOrder':
           await vm.cancelOrder()
@@ -467,7 +510,7 @@ export default {
             await this.fetchOrderData()
           } else if (this.confirmType === 'seller') {
             await this.releaseCrypto()
-            await this.verifyRelease()
+            // await this.verifyRelease()
           }
           this.checkStep()
           break

@@ -126,7 +126,7 @@ export default {
         const response = await vm.$axios.get(url, { headers: headers })
         vm.contract.address = response.data.contract.address
         vm.contract.balance = await getBalanceByAddress(vm.contract.address)
-        console.log('contract: ', response)
+        console.log('order: ', response)
       } catch (error) {
         console.error(error.response)
       }
