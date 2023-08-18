@@ -2,7 +2,7 @@
   <div v-if="isloaded" class="q-mb-sm q-pb-sm">
     <div class="q-mx-lg text-h5 text-center lg-font-size bold-text" :class="statusColor">
       <span v-if="$parent.isExpired">EXPIRED</span>
-      <span v-else>{{ order.status.label.toUpperCase() }}</span>
+      <span v-else>{{ orderStatus }}</span>
     </div>
     <div class="q-px-sm q-pt-sm">
       <div class="sm-font-size q-pb-xs">Fiat Amount</div>
@@ -27,10 +27,10 @@
     <!-- <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/> -->
 
     <div class="q-mt-md q-px-md q-mb-lg">
-      <div class="row q-px-lg text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
+      <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
         <div v-if="hasLabel && !forRelease" class="row">
           <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-          <span class="col">{{ label }}</span>
+          <span class="col text-left q-ml-sm">{{ label }}</span>
         </div>
       </div>
 
@@ -76,6 +76,9 @@ export default {
     orderData: Object
   },
   computed: {
+    orderStatus () {
+      return this.order.status.label.toUpperCase()
+    },
     forRelease () {
       console.log('order:', this.order)
       let release = false

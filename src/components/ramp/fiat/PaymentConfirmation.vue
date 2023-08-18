@@ -8,8 +8,8 @@
 
     <!-- Fiat Input -->
     <div class="q-mt-md q-mx-lg q-px-md">
-      <div v-if="type === 'buyer'" class="sm-font-size subtext q-pb-xs">Please pay the seller</div>
-      <div v-else class="sm-font-size subtext q-pb-xs">Expect fiat payment of</div>
+      <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs">Please pay the seller</div>
+      <div v-else class="sm-font-size q-pb-xs">Expect fiat payment of</div>
       <div @click="$parent.copyToClipboard($parent.fiatAmount)">
         <q-input class="q-pb-xs" dense disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
           <template v-slot:prepend>
@@ -23,7 +23,7 @@
       <!-- <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div> -->
     </div>
     <div class="q-pt-sm text-center">
-      <span class="sm-font-size subtext">within</span>
+      <span class="sm-font-size">within</span>
       <div style="font-size: 36px; color: #ed5f59;"> {{ countDown }}</div>
     </div>
 
@@ -99,6 +99,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       order: null,
       isloaded: false,
       countDown: '',
@@ -109,15 +110,19 @@ export default {
     }
   },
   props: {
-    orderData: Object,
+    wallet: {
+      type: Object,
+      default: null
+    },
+    orderId: Number,
     type: String
   },
   emits: ['confirm'],
   async mounted () {
     const vm = this
-
-    vm.order = vm.orderData
-    await vm.paymentCountdown()
+    await vm.fetchOrderDetail()
+    console.log('order:', vm.order)
+    vm.paymentCountdown()
 
     if (vm.type === 'buyer') {
       this.confirmRelease = true
@@ -132,6 +137,21 @@ export default {
     this.timer = null
   },
   methods: {
+    async fetchOrderDetail () {
+      const vm = this
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash
+      }
+      const url = vm.apiURL + '/order/' + vm.orderId
+
+      try {
+        const response = await vm.$axios.get(url, { headers: headers })
+        console.log('response: ', response)
+        vm.order = response.data.order
+      } catch (error) {
+        console.error(error.response)
+      }
+    },
     paymentCountdown () {
       const vm = this
 

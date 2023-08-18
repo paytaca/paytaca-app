@@ -26,8 +26,10 @@
     />
     <TransferToEscrowProcess
       v-if="state === 'escrow-bch'"
+      :key="transferToEscrowProcessKey"
       :wallet="wallet"
       :order="order"
+      :contract="contract"
       :amount="transferAmount"
       @back="onBack"
       @success="onEscrowSuccess"
@@ -36,7 +38,7 @@
       v-if="state === 'tx-confirmation'"
       :wallet="wallet"
       :order-id="order.id"
-      :tx-id="txid"
+      :txid="txid"
       @back="onBack"
       @success="onVerifyTxSuccess"
     />
@@ -51,7 +53,8 @@
     <!-- Payment Confirmation -->
     <div v-if="state === 'payment-confirmation'">
       <PaymentConfirmation
-        :order-data="order"
+        :wallet="wallet"
+        :order-id="order.id"
         :type="confirmType"
         @confirm="handleConfirmPayment"
       />
@@ -103,12 +106,15 @@ export default {
       ad: null,
       order: null,
       status: null,
-      contract: null,
+      contract: {
+        address: null
+      },
       wallet: null,
       txid: null,
       title: '',
       text: '',
-      standByDisplayKey: 0
+      standByDisplayKey: 0,
+      transferToEscrowProcessKey: 0
     }
   },
   components: {
@@ -189,11 +195,11 @@ export default {
     updateStatus (status) {
       this.status = status
       this.order.status = this.status
-      console.log('status:', status)
       this.checkStep()
     },
     checkStep () {
       const vm = this
+      vm.openDialog = false
       console.log('checking step:', vm.status)
       switch (vm.status.value) {
         case 'SBM': // Submitted
@@ -235,6 +241,13 @@ export default {
           vm.confirmType = 'seller'
           break
         case 'PD': // Paid
+          vm.state = 'standby-view'
+          if (this.order.trade_type === 'BUY') {
+            vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
+          } else if (this.order.trade_type === 'SELL') {
+            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
+          }
+          break
         case 'RLS_PN': // Release Pending
           vm.state = 'standby-view'
           break
@@ -273,6 +286,7 @@ export default {
           console.log('response:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
+          console.log('contract:', vm.contract)
           vm.updateStatus(vm.order.status)
         })
         .catch(error => {
@@ -538,9 +552,22 @@ export default {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         if (data && data.success) {
-          const status = data.status
-          if (status) {
-            this.updateStatus(status.status)
+          if (data.txid) {
+            this.txid = data.txid
+          }
+          if (data.status) {
+            this.updateStatus(data.status.status)
+          }
+          if (data.contract_address) {
+            if (this.contract) {
+              this.contract.address = data.contract_address
+            } else {
+              this.contract = {
+                address: data.contract_address
+              }
+            }
+            console.log('contract:', this.contract)
+            this.transferToEscrowProcessKey++
           }
         }
       }

@@ -115,7 +115,7 @@ export default {
       arbiterOptions: [],
       contractAddress: ' ',
       transferAmount: ' ',
-      transactionId: null,
+      txid: null,
       fees: null,
       showDragSlide: true,
       sendErrors: []
@@ -137,7 +137,8 @@ export default {
     wallet: {
       type: Object,
       default: null
-    }
+    },
+    contract: Object
   },
   watch: {
     selectedArbiter () {
@@ -166,16 +167,16 @@ export default {
     const vm = this
     vm.loading = true
     vm.transferAmount = vm.amount
-    vm.setupWebsocket()
     await vm.fetchOrderDetail()
     await vm.fetchArbiters()
-    await vm.generateContractAddress()
+    if (vm.contract) {
+      vm.contractAddress = vm.contract.address
+    } else {
+      await vm.generateContractAddress()
+    }
     if (vm.contractAddress !== ' ') {
       vm.loading = false
     }
-  },
-  beforeUnmount () {
-    this.closeWSConnection()
   },
   methods: {
     async completePayment () {
@@ -192,9 +193,9 @@ export default {
         //   vm.sendErrors.push(result.error)
         // }
         // console.log('result:', result)
-        // vm.transactionId = result.transactionId
-        vm.transactionId = makeid(64)
-        console.log('transactionId:', vm.transactionId)
+        // vm.txid = result.transactionId
+        vm.txid = makeid(64)
+        console.log('txid:', vm.txid)
         await vm.escrowPendingOrder()
       } catch (error) {
         console.error(error)
@@ -213,10 +214,12 @@ export default {
       console.log('headers:', headers)
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
+      const body = { txid: vm.txid }
       try {
-        const response = await vm.$axios.post(url, null, { headers: headers })
+        const response = await vm.$axios.post(url, body, { headers: headers })
+        console.log('response:', response)
         const result = {
-          txid: vm.transactionId,
+          txid: vm.txid,
           status: response.data.status
         }
         vm.$emit('success', result)
@@ -299,31 +302,6 @@ export default {
         .onDismiss(() => {
           this.showDragSlide = true
         })
-    },
-    setupWebsocket () {
-      const wsUrl = this.wsURL + this.order.id + '/'
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log('WebSocket data:', data.result)
-        const contractAddress = data.result.contract_address
-        if (contractAddress) {
-          this.contractAddress = contractAddress
-          console.log('Updated contract address to :', this.contractAddress)
-          this.loading = false
-        }
-      }
-      this.websocket.onclose = () => {
-        console.log('WebSocket connection closed.')
-      }
-    },
-    closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
     }
   }
 }
