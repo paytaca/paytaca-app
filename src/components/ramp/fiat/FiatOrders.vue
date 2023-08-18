@@ -17,79 +17,80 @@
           </div>
         </div>
         <div v-else class="q-mt-md">
-          <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
-          </div>
-          <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
-              <q-infinite-scroll
-              ref="infiniteScroll"
-              :items="listings"
-              @load="loadMoreData"
-              :offset="0"
-              :scroll-target="scrollTargetRef">
-                <template v-slot:loading>
-                  <div class="row justify-center q-my-md" v-if="hasMoreData">
-                    <q-spinner-dots color="primary" size="40px" />
+          <q-pull-to-refresh
+            @refresh="refreshData">
+            <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+              <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+              <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
+            </div>
+            <div v-else class="q-mb-lg q-pb-lg">
+              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
+                <q-infinite-scroll
+                ref="infiniteScroll"
+                :items="listings"
+                @load="loadMoreData"
+                :offset="0"
+                :scroll-target="scrollTargetRef">
+                  <template v-slot:loading>
+                    <div class="row justify-center q-my-md" v-if="hasMoreData">
+                      <q-spinner-dots color="primary" size="40px" />
+                    </div>
+                  </template>
+                  <div v-for="(listing, index) in listings" :key="index">
+                    <q-item clickable @click="selectOrder(listing)">
+                      <q-item-section>
+                        <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                          <div class="row q-mx-md">
+                            <div class="col ib-text">
+                              <span
+                                :class="{'pt-dark-label': darkMode}"
+                                class="q-mb-none md-font-size">
+                                {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded outline size="sm" color="blue-6" label="You" />
+                              </span>
+                              <div
+                                :class="{'pt-dark-label': darkMode}"
+                                class="col-transaction text-uppercase lg-font-size"
+                                style="font-size: 20px;"
+                                :style="amountColor(listing.trade_type)">
+                                {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
+                              </div>
+                              <div class="sm-font-size">
+                                <!-- &asymp; -->
+                                <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
+                                {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
+                              <div class="xs-font-size">
+                                <span class="q-pr-sm">Price</span> {{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}
+                              </div>
+                              <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div>
+                            </div>
+                            <div class="text-right">
+                              <span class="row subtext" v-if="listing.status && isCompleted(listing.status.label) == false && listing.expiration_date != null">
+                                <span v-if="isExpired(listing.expiration_date) == false" class="q-mr-xs">Expires in {{ formatExpiration(listing.expiration_date) }}</span>
+                              </span>
+                              <div
+                                v-if="listing.expiration_date && isExpired(listing.expiration_date) && statusType === 'ONGOING'"
+                                class="bold-text subtext md-font-size" style="color: red">
+                                Expired
+                              </div>
+                              <div class="bold-text subtext md-font-size" style=";">{{ listing.status ? listing.status.label : '' }}</div>
+                            </div>
+                          </div>
+                          <div class="q-gutter-sm q-pt-sm">
+                            <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'BUY'? 'blue': 'red'" :label="method" /> -->
+                          </div>
+                        </div>
+                      </q-item-section>
+                    </q-item>
                   </div>
-                </template>
-                <div v-for="(listing, index) in listings" :key="index">
-                  <q-item clickable @click="selectOrder(listing)">
-                    <q-item-section>
-                      <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                        <div class="row q-mx-md">
-                          <div class="col ib-text">
-                            <span
-                              :class="{'pt-dark-label': darkMode}"
-                              class="q-mb-none md-font-size">
-                              {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded outline size="sm" color="blue-6" label="You" />
-                            </span>
-                            <div
-                              :class="{'pt-dark-label': darkMode}"
-                              class="col-transaction text-uppercase lg-font-size"
-                              style="font-size: 20px;"
-                              :style="amountColor(listing.trade_type)">
-                              {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
-                            </div>
-                            <div class="sm-font-size">
-                              <!-- &asymp; -->
-                              <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
-                              {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                            <div class="xs-font-size">
-                              <span class="q-pr-sm">Price</span> {{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}
-                            </div>
-                            <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div>
-                          </div>
-                          <div class="text-right">
-                            <span class="row subtext" v-if="listing.status && isCompleted(listing.status.label) == false && listing.expiration_date != null">
-                              <span v-if="isExpired(listing.expiration_date) == false" class="q-mr-xs">Expires in </span>
-                              <span v-else class="q-mr-xs">Expired for</span>
-                              <span>{{ formatExpiration(listing.expiration_date) }}</span>
-                            </span>
-                            <span v-if="listing.expiration_date && isExpired(listing.expiration_date) && statusType === 'ONGOING'" class="bold-text subtext md-font-size" style=";">Expired</span>
-                            <span v-else class="bold-text subtext md-font-size" style=";">{{ listing.status ? listing.status.label : '' }}</span>
-                            <!-- <span class="subtext">{{ listing.status }}</span> -->
-                            <!-- <span class="status-text" v-if="listing.status === 'released'">RELEASED</span> -->
-                            <!-- <span class="status-text" v-else-if="listing.status.includes('confirmation')">PENDING CONFIRMATION</span> -->
-                            <!-- <span class="status-text" v-else-if="listing.status.startsWith('pending-')">{{ listing.status.replace('-', ' ').toUpperCase() }}</span> -->
-                          </div>
-                        </div>
-                        <div class="q-gutter-sm q-pt-sm">
-                          <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'BUY'? 'blue': 'red'" :label="method" /> -->
-                        </div>
-                      </div>
-                    </q-item-section>
-                  </q-item>
-                </div>
-              </q-infinite-scroll>
-            </q-list>
-          </div>
+                </q-infinite-scroll>
+              </q-list>
+            </div>
+          </q-pull-to-refresh>
         </div>
       </div>
       <div v-if="state === 'view-order'">
         <FiatProcessOrder
-          :wallet="wallet"
+          :init-wallet="wallet"
           :order-data="selectedOrder"
           @back="returnOrderList()"
         />
@@ -145,8 +146,10 @@ export default {
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
-        vm.loading = true
-        this.fetchOrders()
+        if (!vm.listings || vm.listings.length === 0) {
+          vm.loading = true
+          vm.fetchOrders()
+        }
       }
     }
   },
@@ -178,14 +181,16 @@ export default {
   },
   async mounted () {
     const vm = this
-    vm.loading = true
-    vm.updatePaginationValues()
+    if (!vm.listings || vm.listings.length === 0) {
+      vm.loading = true
+    }
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo)
-    await vm.fetchOrders()
+    await vm.resetAndRefetchListings()
+    vm.loading = false
   },
   methods: {
-    async fetchOrders () {
+    async fetchOrders (overwrite = false) {
       const vm = this
       const timestamp = Date.now()
       const signature = await signMessage(this.wallet.privateKeyWif, 'ORDER_LIST', timestamp)
@@ -196,7 +201,7 @@ export default {
       }
       const params = { state: vm.statusType }
       try {
-        await vm.$store.dispatch('ramp/fetchOrders', { orderState: vm.statusType, params: params, headers: headers })
+        await vm.$store.dispatch('ramp/fetchOrders', { orderState: vm.statusType, params: params, headers: headers, overwrite: overwrite })
       } catch (error) {
         console.error(error)
       }
@@ -239,13 +244,16 @@ export default {
           vm.loading = false
         })
     },
+    async refreshData (done) {
+      console.log('refreshing orders')
+      await this.resetAndRefetchListings()
+      if (done) done()
+    },
     async resetAndRefetchListings () {
       const vm = this
-      vm.loading = true
       await vm.$store.dispatch('ramp/resetOrdersPagination')
-      await vm.fetchOrders()
+      await vm.fetchOrders(true)
       vm.updatePaginationValues()
-      vm.loading = false
     },
     updatePaginationValues () {
       const vm = this
@@ -267,13 +275,17 @@ export default {
     onUpdated () {
       const vm = this
       vm.state = 'order-list'
+      vm.loading = true
       vm.resetAndRefetchListings()
+      vm.loading = false
     },
     onCanceled () {
       const vm = this
       vm.state = 'order-list'
       vm.statusType = 'COMPLETED'
+      vm.loading = true
       vm.resetAndRefetchListings()
+      vm.loading = false
     },
     selectOrder (data) {
       console.log('selectedOrder:', data)
@@ -337,12 +349,13 @@ export default {
       // console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
       return lockedPrice * cryptoAmount
     },
-    async returnOrderList () {
+    returnOrderList () {
       const vm = this
       vm.state = 'order-list'
-      vm.loading = true
-      await vm.resetAndRefetchListings()
-      vm.loading = false
+      // vm.refreshData()
+      // vm.loading = true
+      // await vm.resetAndRefetchListings()
+      // vm.loading = false
     }
   }
 }

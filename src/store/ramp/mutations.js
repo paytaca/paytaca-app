@@ -8,13 +8,15 @@ export function clearProfile (state) {
 
 // ~ store mutations ~ //
 
-export function updateStoreBuyListings (state, data) {
+export function updateStoreBuyListings (state, { overwrite = false, data }) {
+  if (overwrite) state.storeBuyListings = []
   state.storeBuyListings.push(...data.ads)
   state.storeBuyTotalPages = data.total_pages
   state.storeBuyItemsCount = data.count
 }
 
-export function updateStoreSellListings (state, data) {
+export function updateStoreSellListings (state, { overwrite = false, data }) {
+  if (overwrite) state.storeSellListings = []
   state.storeSellListings.push(...data.ads)
   state.storeSellTotalPages = data.total_pages
   state.storeSellItemsCount = data.count
@@ -32,24 +34,26 @@ export function resetStorePagination (state) {
   state.storeBuyPageNumber = null
   state.storeBuyTotalPages = null
   state.storeBuyItemsCount = 0
-  state.storeBuyListings = []
+  // state.storeBuyListings = []
 
   state.storeSellPageNumber = null
   state.storeSellTotalPages = null
   state.storeSellItemsCount = 0
-  state.storeSellListings = []
+  // state.storeSellListings = []
 }
 
 // ~ store mutations ~ //
 
 // ~ ads mutations ~ //
 
-export function updateAdsBuyListings (state, data) {
+export function updateAdsBuyListings (state, { overwrite = false, data }) {
+  if (overwrite) state.adsBuyListings = []
   state.adsBuyListings.push(...data.ads)
   state.adsBuyTotalPages = data.total_pages
 }
 
-export function updateAdsSellListings (state, data) {
+export function updateAdsSellListings (state, { overwrite = false, data }) {
+  if (overwrite) state.adsSellListings = []
   state.adsSellListings.push(...data.ads)
   state.adsSellTotalPages = data.total_pages
 }
@@ -65,24 +69,26 @@ export function incAdsSellPage (state) {
 export function resetAdsPagination (state) {
   state.adsBuyPageNumber = null
   state.adsBuyTotalPages = null
-  state.adsBuyListings = []
+  // state.adsBuyListings = []
 
   state.adsSellPageNumber = null
   state.adsSellTotalPages = null
-  state.adsSellListings = []
+  // state.adsSellListings = []
 }
 
 // ~ ads mutations ~ //
 
 // ~ orders mutations ~ //
 
-export function updateOngoingOrders (state, data) {
+export function updateOngoingOrders (state, { overwrite = false, data }) {
+  if (overwrite) state.ongoingOrders = []
   state.ongoingOrders.push(...data.orders)
   console.log('ongoingOrders:', state.ongoingOrders)
   state.ongoingOrdersTotalPages = data.total_pages
 }
 
-export function updateCompletedOrders (state, data) {
+export function updateCompletedOrders (state, { overwrite = false, data }) {
+  if (overwrite) state.completedOrders = []
   state.completedOrders.push(...data.orders)
   state.completedOrdersTotalPages = data.total_pages
 }
@@ -98,11 +104,11 @@ export function incCompletedOrdersPage (state) {
 export function resetOrdersPagination (state) {
   state.ongoingOrdersPageNumber = null
   state.ongoingOrdersTotalPages = null
-  state.ongoingOrders = []
+  // state.ongoingOrders = []
 
   state.completedOrdersPageNumber = null
   state.completedOrdersTotalPages = null
-  state.completedOrders = []
+  // state.completedOrders = []
 }
 
 // ~ orders mutations ~ //

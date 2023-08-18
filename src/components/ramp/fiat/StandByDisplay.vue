@@ -1,10 +1,10 @@
 <template>
-  <div v-if="isloaded">
+  <div v-if="isloaded" class="q-mb-sm q-pb-sm">
     <div class="q-mx-lg text-h5 text-center lg-font-size bold-text" :class="statusColor">
       <span v-if="$parent.isExpired">EXPIRED</span>
-      <span v-else>{{ order.status.label.toUpperCase() }}</span>
+      <span v-else>{{ orderStatus }}</span>
     </div>
-    <div class="q-px-lg q-pt-lg">
+    <div class="q-px-sm q-pt-sm">
       <div class="sm-font-size q-pb-xs">Fiat Amount</div>
       <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
         <template v-slot:prepend>
@@ -12,7 +12,7 @@
         </template>
       </q-input>
 
-      <div class="text-center q-py-sm">
+      <div class="text-center q-py-xs">
         <q-icon size="md" name="mdi-swap-vertical" />
       </div>
 
@@ -24,17 +24,17 @@
       </q-input>
     </div>
 
-    <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/>
+    <!-- <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/> -->
 
-    <div class="q-mt-md q-px-md">
-      <div class="row q-px-lg text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
-        <div v-if="hasLabel" class="row">
+    <div class="q-mt-md q-px-md q-mb-lg">
+      <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
+        <div v-if="hasLabel && !forRelease" class="row">
           <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-          <span  class="col">{{ label }}</span>
+          <span class="col text-left q-ml-sm">{{ label }}</span>
         </div>
       </div>
 
-      <div class="text-center" style="font-size: 35px; color: #ed5f59;" v-if="hasCountDown">
+      <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
         {{ countDown }}
       </div>
 
@@ -79,6 +79,15 @@
       :type="'appeal'"
       @back="openDialog = false"
     />
+      <div class="row q-pt-xs q-mb-lg q-pb-lg q-mx-md" v-if="forRelease">
+        <q-btn
+          rounded
+          label='Release Crypto'
+          class="q-space text-white"
+          color="blue-6"
+          @click="$parent.releasingCrypto()"
+        />
+      </div>
   </div>
 </template>
 <script>
@@ -103,6 +112,18 @@ export default {
     MiscDialogs
   },
   computed: {
+    orderStatus () {
+      return this.order.status.label.toUpperCase()
+    },
+    forRelease () {
+      console.log('order:', this.order)
+      let release = false
+      if (this.order.status.value === 'PD' &&
+        (this.order.trade_type === 'BUY' && this.order.is_ad_owner)) {
+        release = true
+      }
+      return release
+    },
     hasCountDown () {
       const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
 
@@ -172,7 +193,7 @@ export default {
         const now = new Date().getTime()
         const distance = expiryDate - now
 
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
         let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
         let seconds = Math.floor((distance % (1000 * 60)) / 1000)
         if (seconds.toString().length < 2) {
