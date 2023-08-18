@@ -301,17 +301,71 @@
 
   <!-- Filter Ads -->
   <q-dialog v-model="filterAd" persistent>
-    <q-card class="br-15" style="width: 90%; height: 50%;">
+    <q-card class="br-15" style="width: 90%;">
       <div class="q-mt-md q-pl-md">
         <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
       </div>
       <div class="text-center bold-text lg-font-size">Filter Ads</div>
+      <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
-      <q-separator :dark="darkMode" class="q-mt-md q-mx-lg"/>
+      <div class="q-px-lg q-mx-sm">
+        <div class="q-pt-md">
+          <div class="sm-font-size bold-text">Payment Types</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge class="q-pa-sm" @click="addFilterInfo(method, 'payment-type')"
+              v-for="method in paymentTypes" :key="method.id" rounded :outline="isOutlined(method,'payment-type')" color="blue-grey-6">
+              {{ method.name }}
+            </q-badge>
+
+            <q-badge class="q-pa-sm" @click="addFilterInfo('all', 'all-payment-type')"
+              rounded outline color="blue-grey-6">
+              {{ selectedPaymentTypes.length === paymentTypes.length ? 'Clear' : 'All' }}
+            </q-badge>
+          </div>
+        </div>
+
+        <div class="q-pt-md">
+          <div class="sm-font-size bold-text">Payment Time Limits</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge class="q-pa-sm"
+              v-for="(method, index) in ptl" @click="addFilterInfo(method)" :key="index" rounded :outline="isOutlined(method)" color="blue-grey-6">
+              {{ paymentTimeLimit(method) }}
+            </q-badge>
+            <q-badge class="q-pa-sm" @click="addFilterInfo('all')"
+              rounded outline color="blue-grey-6">
+              {{ selectedPTL.length === ptl.length ? 'Clear' : 'All' }}
+            </q-badge>
+          </div>
+        </div>
+
+        <div class="q-pt-md">
+          <div class="sm-font-size bold-text">Price Order</div>
+          <div @click="isAscending = !isAscending" class="q-pt-xs">
+            <q-badge rounded outline color="blue-grey-6">
+              <span>{{ isAscending ? 'Ascending ': 'Descending' }}</span><q-icon size="sm" :name="isAscending ? 'mdi-menu-up':'mdi-menu-down'"/>
+            </q-badge>
+          </div>
+        </div>
+
+        <div class="text-center q-pt-sm q-px-sm q-pb-lg">
+          <div class="row q-pt-md">
+            <q-btn
+              rounded
+              no-caps
+              label='Filter'
+              class="q-space text-white"
+              color="blue-6"
+              @click="submitData()"
+              v-close-popup
+            />
+          </div>
+        </div>
+      </div>
     </q-card>
   </q-dialog>
+
   <!-- Sending Appeal Confirmation Todo-->
-  <!-- <q-dialog full-width persistent v-model="appeal">
+  <q-dialog full-width persistent v-model="appeal">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h6 text-center">Submitting an Appeal</div>
@@ -330,16 +384,16 @@
       </q-card-section>
 
       <q-card-actions class="q-pt-lg text-center" align="center">
-        <q-btn flat label="Cancel" color="red" v-close-popup />
-        <q-btn flat label="I understand, proceed" color="blue-6" v-close-popup />
+        <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="I understand, proceed" @click="submitData()" color="blue-6" v-close-popup />
       </q-card-actions>
     </q-card>
-  </q-dialog> -->
+  </q-dialog>
 </template>
 
 <script>
 import { debounce } from 'quasar'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { signMessage } from '../../../../wallet/ramp/signature.js'
 
 export default {
@@ -385,6 +439,7 @@ export default {
       submitAppeal: false,
       maxMethodReached: false,
       filterAd: false,
+      appeal: false,
 
       // Input Model
       nickname: '',
@@ -394,9 +449,13 @@ export default {
         account_number: ''
 
       },
+      ptl: [5, 15, 30, 60, 300, 720, 1440],
       paymentTypes: [],
       paymentMethodOpts: [],
-      selectedPaymentMethods: []
+      selectedPaymentMethods: [],
+      selectedPaymentTypes: [],
+      selectedPTL: [],
+      isAscending: false
     }
   },
   watch: {
@@ -429,6 +488,59 @@ export default {
     vm.fetchPaymentMethod()
   },
   methods: {
+    addFilterInfo (data, type = '') {
+      let temp = null
+
+      if (data === 'all') {
+        if (type === 'all-payment-type') {
+          if (this.selectedPaymentTypes.length === this.paymentTypes.length) {
+            this.selectedPaymentTypes = []
+          } else {
+            this.selectedPaymentTypes = this.paymentTypes
+          }
+        } else {
+          if (this.selectedPTL.length === this.ptl.length) {
+            this.selectedPTL = []
+          } else{
+            this.selectedPTL = []
+
+            for (const p in this.ptl) {
+              this.selectedPTL.push(getPaymentTimeLimit(this.ptl[p]))
+            }
+          }
+        }
+      } else {
+        if (type === 'payment-type') {
+          temp = this.selectedPaymentTypes.map(p => p.name)
+          if (temp.includes(data.name)) {
+            this.selectedPaymentTypes = this.selectedPaymentTypes.filter(p => p.name !== data.name)
+          } else {
+            this.selectedPaymentTypes.push(data)
+          }
+        } else {
+          temp = this.selectedPTL.map(p => p.value)
+          if (temp.includes(data)) {
+            this.selectedPTL = this.selectedPTL.filter(p => p.value !== data)
+          } else {
+            this.selectedPTL.push(getPaymentTimeLimit(data))
+          }
+        }
+      }
+    },
+    isOutlined (data, type = '') {
+      let temp = null
+
+      if (type === 'payment-type') {
+        temp = this.selectedPaymentTypes.map(p => p.name)
+        return !temp.includes(data.name)
+      } else {
+        temp = this.selectedPTL.map(p => p.value)
+        return !temp.includes(data)
+      }
+    },
+    paymentTimeLimit (timeValue) {
+      return getPaymentTimeLimit(timeValue).label
+    },
     addNewPaymentMethod () {
       const vm = this
       vm.dialogType = 'createPaymentMethod'
@@ -540,6 +652,9 @@ export default {
         case 'filterAd':
           vm.filterAd = true
           break
+        case 'appeal':
+          vm.appeal = true
+          break
         case 'genericDialog':
         case 'confirmPayment':
         case 'confirmPaymentMethod':
@@ -575,6 +690,13 @@ export default {
         case 'confirmRemovePaymentMethod':
           vm.info = vm.data
           return 'submit'
+        case 'filterAd':
+          vm.info = {
+            paymentTypes: vm.selectedPaymentTypes,
+            paymentTimeLimit: vm.selectedPTL,
+            sortOrder: vm.isAscending ? 'Ascending' : 'Descending'
+          }
+          return 'submit'
         case 'confirmCancelOrder':
         case 'confirmOrderCreate':
           return 'submit'
@@ -588,7 +710,7 @@ export default {
       const vm = this
       const emitName = vm.stageData()
       // console.log('emitName:', emitName)
-      // console.log('vm.info:', vm.info)
+      console.log('vm.info:', vm.info)
       this.$emit(emitName, vm.info)
       // this.$emit('back', vm.info)
     },

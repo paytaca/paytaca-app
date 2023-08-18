@@ -124,7 +124,8 @@
   <div v-if="openDialog">
     <MiscDialogs
       :type="dialogType"
-      v-on:back="openDialog = false"
+      @back="openDialog = false"
+      @submit="receiveDialog"
     />
   </div>
   <FiatProfileCard
@@ -232,6 +233,11 @@ export default {
     await vm.fetchStoreListings()
   },
   methods: {
+    receiveDialog (data) {
+      console.log(data)
+
+      this.openDialog = false
+    },
     async fetchFiatCurrencies () {
       const vm = this
 
@@ -350,7 +356,6 @@ export default {
       }
     },
     openFilter () {
-      console.log('opening filter')
       this.openDialog = true
       this.dialogType = 'filterAd'
     }

@@ -37,6 +37,8 @@
       <div class="text-center" style="font-size: 35px; color: #ed5f59;" v-if="hasCountDown">
         {{ countDown }}
       </div>
+
+      <!-- Cancel Button -->
       <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
         <q-btn
           rounded
@@ -47,10 +49,40 @@
           @click="$parent.cancellingOrder()"
         />
       </div>
+
+      <!-- Appeal Button -->
+      <div v-if="$parent.isExpired">
+        <div class="row q-pt-md">
+          <q-btn
+            rounded
+            no-caps
+            label='Appeal'
+            class="q-space text-white"
+            color="blue-6"
+            @click="openDialog = true"
+          />
+        </div>
+        <div class="q-pt-md sm-font-size q-px-md">
+          <div class="bold-text">
+            Seller did not release the crypto?
+          </div>
+          <div class="subtext q-px-sm">
+            If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal.
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <div v-if="openDialog">
+    <MiscDialogs
+      :type="'appeal'"
+      @back="openDialog = false"
+    />
   </div>
 </template>
 <script>
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
   data () {
@@ -60,11 +92,15 @@ export default {
       isloaded: false,
       countDown: '',
       timer: null,
-      type: 'ongoing'
+      type: 'ongoing',
+      openDialog: false
     }
   },
   props: {
     orderData: Object
+  },
+  components: {
+    MiscDialogs
   },
   computed: {
     hasCountDown () {
@@ -157,3 +193,8 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+.subtext {
+  opacity: .5;
+}
+</style>

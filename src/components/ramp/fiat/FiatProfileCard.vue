@@ -152,5 +152,3 @@ export default {
   }
 }
 </script>
-
-<!-- REQUEST USER INFO? -->
