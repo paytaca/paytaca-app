@@ -74,6 +74,7 @@ export class Storefront {
    * @param {String} data.image_url
    * @param {{ code:String, symbol:String }} data.currency
    * @param {Object} data.location
+   * @param {Number} [data.distance]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -87,6 +88,8 @@ export class Storefront {
     }
     if (data?.location) this.location = Location.parse(data?.location)
     else if (this.location) this.location = undefined
+
+    this.distance = data?.distance
   }
 }
 
@@ -537,6 +540,7 @@ export class Checkout {
 
     this.id = data?.id
     this.orderId = data?.order_id
+    this.checkoutId = data?.checkout_id
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.cart = Cart.parse(data?.cart)
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)

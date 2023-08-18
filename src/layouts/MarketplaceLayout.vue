@@ -44,20 +44,27 @@
               </div>
             </q-btn>
           </div>
-          <div v-if="activeStorefront?.id">
-            {{ activeStorefront?.name }}
-            #{{ activeStorefront?.id }}
-          </div>
 
-          <div v-if="activeStorefrontCart?.items?.length" class="row items-center">
+          <div class="row items-center">
+            <q-btn
+              v-if="activeStorefront?.id"
+              no-caps flat
+              padding="none"
+              class="text-underline"
+              :to="{ name: 'app-marketplace-storefront', params: { storefrontId: activeStorefront?.id } }"
+            >
+              {{ activeStorefront?.name }}
+              #{{ activeStorefront?.id }}
+            </q-btn>
             <q-space/>
             <q-btn
+              v-if="activeStorefrontCart?.items?.length"
               no-caps
               flat
               label="Clear cart"
               color="red"
               padding="xs md"
-              @click="$store.dispatch('marketplace/removeCart', { cartId: activeStorefrontCart?.id })"
+              @click="$store.dispatch('marketplace/clearCart', activeStorefrontCart)"
             />
           </div>
           <div class="q-mt-sm">

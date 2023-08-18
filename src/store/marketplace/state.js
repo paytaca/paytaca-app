@@ -47,6 +47,7 @@ export default function () {
       return {
         id: 0,
         order_id: 0,
+        checkout_id: 0,
         storefront_id: 0,
         customer: {
           id: '',

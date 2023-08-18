@@ -190,3 +190,12 @@ export async function removeCart(context, opts={ cartId: 0, excludeApi: false })
 
   context.commit('removeCart', opts?.cartId)
 }
+
+/**
+ * @param {Object} context 
+ * @param {Cart} cart 
+ */
+export async function clearCart(context, cart) {
+  cart.items = []
+  return context.dispatch('saveCart', cart)
+}

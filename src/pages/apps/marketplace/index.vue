@@ -35,10 +35,13 @@
             <q-card-section class="q-py-sm">
               <div class="ellipsis-3-lines">{{ storefront.name }}</div>
               <div v-if="storefront?.location?.formattedCityAddress" class="row items-start text-caption no-wrap">
+                <div><q-icon name="location_on" style="line-height: 90%;"/></div>
                 <div>
-                  <q-icon name="location_on"/>
+                  {{ storefront?.location?.formattedCityAddress }}
+                  <span v-if="storefront?.distance" class="text-grey">
+                    (~{{ Math.round(storefront?.distance) / 1000 }} km)
+                  </span>
                 </div>
-                <div>{{ storefront?.location?.formattedCityAddress }}</div>
               </div>
             </q-card-section>
           </q-card>
