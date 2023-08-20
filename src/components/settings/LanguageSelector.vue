@@ -34,6 +34,8 @@
 </template>
 
 <script>
+import { supportedLangs } from '../../i18n'
+
 export default {
   props: {
     darkMode: {
@@ -44,13 +46,6 @@ export default {
   data () {
     return {
       // locale: this.$store.getters['global/language'],
-      langs: [
-        'English',
-        'ChineseSimplified',
-        'ChineseTraditional',
-        'German',
-        'Spanish',
-      ],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
@@ -82,21 +77,10 @@ export default {
         return this.$store.getters['global/language']
       },
       set (lang) {
-        this.$store.commit('global/setLanguage', lang)
+        this.$i18n.locale = lang.value
+        const newLocale = { value: lang.value, label: this.$t(supportedLangs[lang.value]) }
+        this.$store.commit('global/setLanguage', newLocale)
       }
-    }
-  },
-  watch: {
-    locale (n, o) {
-      this.$i18n.locale = n.value
-      this.defaultLocaleOptions = this.defaultLocaleOptions.filter((o, index) => {
-        o.label = this.$t(this.langs[index])
-        
-        if (n.value === o.value) {
-          this.$store.commit('global/setLanguage', this.locale)
-        }
-        return o
-      })
     }
   }
 }

@@ -98,7 +98,8 @@ export default {
           if (language.length === 0) {
             language = ['en-us']
           }
-          const locale = { value: language[0], label: supportedLangs[language[0]]}
+          this.$i18n.locale = language[0]
+          const locale = { value: language[0], label: this.$t(supportedLangs[language[0]])}
           vm.$store.commit('global/setLanguage', locale)
 
           let currency = vm.currencyOptions.filter(o => o.symbol === selectedCountry.currency)
