@@ -30,10 +30,10 @@
             <div class="row" v-for="val, key in asset" :key="key">
               <div v-if="key !== 'id'" class="col-12">
                 <div v-if="key !== 'logo'" class="row">
-                  <div class="col-4 text-blue-9">
+                  <div v-if="key !== 'is_nft'" class="col-4 text-blue-9">
                     {{ formatTokenDetailsKey(key) }} :
                   </div>
-                  <div class="text-right col-8 text-grad">
+                  <div v-if="key !== 'is_nft'" class="text-right col-8 text-grad">
                     {{ val }}
                   </div>
                 </div>
@@ -47,35 +47,37 @@
 
           <q-separator class="q-mt-none" />
           
-          <q-card-actions v-if="asset" align="right">
-            <template v-if="asset.is_nft">
-              <q-btn
-                rounded
-                class="text-white"
-                color="blue-9"
-                padding="0.5em 2em 0.5em 2em"
-                :label="$t('View at Collectibles')"
-                @click="$router.push('/apps/collectibles'); hide()"
-              />
-            </template>
-            <template v-else>
-              <q-btn
-                rounded
-                class="text-white"
-                color="blue-9"
-                padding="0.5em 2em 0.5em 2em"
-                :label="$t('Add')"
-                type="submit"
-                :disable="addBtnDisabled"
-              />
-              <q-btn
-                rounded
-                flat
-                :label="$t('Close')"
-                padding="0.5em 2em 0.5em 2em"
-                :class="[darkMode ? 'text-white' : 'pp-text']"
-                @click="onCancelClick"
-              />
+          <q-card-actions align="right">
+            <q-btn
+              rounded
+              flat
+              :label="$t('Close')"
+              padding="0.5em 2em 0.5em 2em"
+              :class="[darkMode ? 'text-white' : 'pp-text']"
+              @click="onCancelClick"
+            />
+            <template v-if="asset">
+              <template v-if="asset.is_nft">
+                <q-btn
+                  rounded
+                  class="text-white"
+                  color="blue-9"
+                  padding="0.5em 2em 0.5em 2em"
+                  :label="$t('View at Collectibles')"
+                  @click="$router.push('/apps/collectibles'); hide()"
+                />
+              </template>
+              <template v-else>
+                <q-btn
+                  rounded
+                  class="text-white"
+                  color="blue-9"
+                  padding="0.5em 2em 0.5em 2em"
+                  :label="$t('Add')"
+                  type="submit"
+                  :disable="addBtnDisabled"
+                />
+              </template>
             </template>
           </q-card-actions>
         </q-form>
