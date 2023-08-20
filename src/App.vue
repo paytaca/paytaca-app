@@ -287,7 +287,7 @@ export default {
 
 #app-container {
   position: relative !important;
-  background-color: #ECF3F3;
+  background-color: #1C2833;
   min-height: 100vh;
   flex-direction: column;
   display: flex;
