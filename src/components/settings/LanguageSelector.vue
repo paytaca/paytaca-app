@@ -43,7 +43,7 @@ export default {
   },
   data () {
     return {
-      locale: this.$store.getters['global/language'],
+      // locale: this.$store.getters['global/language'],
       langs: [
         'English',
         'ChineseSimplified',
@@ -74,6 +74,16 @@ export default {
       }
 
       update()
+    }
+  },
+  computed: {
+    locale: {
+      get () {
+        return this.$store.getters['global/language']
+      },
+      set (lang) {
+        this.$store.commit('global/setLanguage', lang)
+      }
     }
   },
   watch: {

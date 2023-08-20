@@ -1111,9 +1111,6 @@ export default {
     transition: .2s;
     font-weight: 500;
   }
-  .btn-custom:hover {
-    background-color: #fff;
-  }
   .btn-custom.active-transaction-btn {
     background-color: rgb(60, 100, 246) !important;
     color: #fff;
