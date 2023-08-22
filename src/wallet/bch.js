@@ -284,7 +284,7 @@ export class BchWallet {
    */
   async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
     const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
-    const sendResponse = await this._sendBch(amount, recipient, changeAddress, false)
+    const sendResponse = await this._sendBch(amount, recipient, changeAddress, undefined, undefined, false)
 
     if (!sendResponse?.success) {
       response.success = false
