@@ -305,7 +305,7 @@ export class BchWallet {
       }
     }
 
-    if (!broadcastData?.pos_device?.wallet_hash || !broadcastData?.pos_device?.posid) {
+    if (!broadcastData?.pos_device?.wallet_hash || isNaN(parseInt(broadcastData?.pos_device?.posid))) {
       response.success = false
       response.error = 'Unable to resolve POS device info'
       return response
