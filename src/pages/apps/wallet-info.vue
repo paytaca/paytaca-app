@@ -1,259 +1,241 @@
 <template>
   <div id="app-container" :class="{'pt-dark': darkMode}">
-    <div>
-      <header-nav :title="$t('WalletInfo')" backnavpath="/apps" />
-      <div :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
-        <div id="app" ref="app">
-          <div class="row">
-            <div class="col">
-              <p class="section-title">{{ $t('BchAddresses') }}</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
-                <q-item clickable v-ripple>
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('bch').derivationPath }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item>
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Scan') }}</q-item-label>
-                    <q-banner
-                      v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
-                      dense
-                      :class="[
-                        darkMode ? 'pt-dark text-white' : 'bg-grey-2',
-                        'rounded-borders q-mt-sm q-mb-md',
-                      ]"
-                    >
-                      UTXO scan completed at {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
-                      <template v-slot:action>
-                        <q-btn
-                          no-caps flat
-                          color="blue-9" :label="$t('Dismiss')"
-                          @click="$store.commit('global/removeUtxoScanTask', bchUtxoScanTaskInfo?.walletHash)"
-                        />
-                      </template>
-                    </q-banner>
-                    <q-item-label
-                      :class="[
-                        darkMode ? 'pt-dark-label' : 'pp-text',
-                        'row items-center justify-around q-mb-sm',
-                      ]"
-                      style="word-wrap: break-word;"
-                    >
-                      <q-btn-group rounded spread class="q-space">
-                        <q-btn
-                          no-caps
-                          color="blue-9"
-                          padding="xs sm"
-                          :disable="bchUtxoScanOngoing"
-                          :loading="bchUtxoScanOngoing"
-                          :label="$t('UtxoScan')"
-                          @click="scanBCHUtxos()"
-                        />
-                        <q-btn
-                          no-caps
-                          color="blue-9"
-                          padding="xs sm"
-                          :disable="scanningBchAddresses"
-                          :loading="scanningBchAddresses"
-                          :label="$t('AddressScan')"
-                          @click="scanBCHAddresses()"
-                        />
-                      </q-btn-group>
-                      <div v-if="bchUtxoScanOngoing || scanningBchAddresses" class="text-center text-grey q-my-sm">
-                        <template v-if="bchUtxoScanOngoing && scanningBchAddresses">
-                          {{ $t('ScanningForUtxosAndAddr') }}
-                        </template>
-                        <template v-else-if="bchUtxoScanOngoing">
-                          <template v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.queueInfo?.time_start">
-                            UTXO scan ongoing, started {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
-                          </template>
-                          <template>
-                            {{ $t('ScanningForUtxos') }}
-                          </template>
-                        </template>
-                        <template v-else-if="scanningBchAddresses">
-                          {{ $t('ScanningForUntrackedAddr') }}
-                        </template>
-                      </div>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-            <!-- {{ bchUtxoScanTaskInfo }}
-            {{ bchUtxoScanOngoing }} -->
-          </div>
-          <div class="row" style="margin-top: 20px;">
-            <div class="col">
-              <p class="section-title">{{ $t('SlpAddresses') }}</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
-                <q-item clickable v-ripple>
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('slp').derivationPath }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item>
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Scan') }}</q-item-label>
-                    <q-banner
-                      v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.completedAt"
-                      dense
-                      :class="[
-                        darkMode ? 'pt-dark text-white' : 'bg-grey-2',
-                        'rounded-borders q-mt-sm q-mb-md',
-                      ]"
-                    >
-                      UTXO scan completed at {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
-                      <template v-slot:action>
-                        <q-btn
-                          no-caps flat
-                          color="blue-9" :label="$t('Dismiss')"
-                          @click="$store.commit('global/removeUtxoScanTask', slpUtxoScanTaskInfo?.walletHash)"
-                        />
-                      </template>
-                    </q-banner>
-                    <q-item-label
-                      :class="[
-                        darkMode ? 'pt-dark-label' : 'pp-text',
-                        'row items-center justify-around q-mb-sm',
-                      ]"
-                      style="word-wrap: break-word;"
-                    >
-                      <q-btn-group rounded spread class="q-space">
-                        <q-btn
-                          no-caps
-                          color="blue-9"
-                          padding="xs sm"
-                          :disable="slpUtxoScanOngoing"
-                          :loading="slpUtxoScanOngoing"
-                          :label="$t('UtxoScan')"
-                          @click="scanSLPUtxos()"
-                        />
-                        <q-btn
-                          no-caps
-                          color="blue-9"
-                          padding="xs sm"
-                          :disable="scanningSlpAddresses"
-                          :loading="scanningSlpAddresses"
-                          :label="$t('AddressScan')"
-                          @click="scanSLPAddresses()"
-                        />
-                      </q-btn-group>
-                      <div v-if="slpUtxoScanOngoing || scanningSlpAddresses" class="text-center text-grey q-my-sm">
-                        <template v-if="slpUtxoScanOngoing && scanningSlpAddresses">
-                          {{ $t('ScanningForUtxosAndAddr') }}
-                        </template>
-                        <template v-else-if="slpUtxoScanOngoing">
-                          <template v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.queueInfo?.time_start">
-                            UTXO scan ongoing, started {{ formatRelativeTime(slpUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
-                          </template>
-                          <template>
-                            {{ $t('ScanningForUtxos') }}
-                          </template>
-                        </template>
-                        <template v-else-if="scanningSlpAddresses">
-                          {{ $t('ScanningForUntrackedAddr') }}
-                        </template>
-                      </div>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-            <!-- {{ slpUtxoScanTaskInfo }}
-            {{ slpUtxoScanOngoing }} -->
-          </div>
-          <div class="row" style="margin-top: 20px;">
-            <div class="col">
-              <p class="section-title">{{ $t('SmartBchAddresses') }}</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
-                <q-item clickable v-ripple>
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('sbch').derivationPath }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-ripple @click="copyToClipboard(getWallet('sbch').walletHash)">
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item v-if="sbchLnsName" clickable v-ripple @click="copyToClipboard(sbchLnsName)">
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-blue-5': darkMode }" caption>LNS Name</q-item-label>
-                    <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ sbchLnsName }}</q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-btn
-                      type="a"
-                      flat
-                      padding="none"
-                      icon="open_in_new"
-                      :href="`https://app.bch.domains/name/${sbchLnsName}/details`"
-                      target="_blank"
-                      @click.stop
-                    />
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-          </div>
-          <div class="row" style="margin-top: 20px;">
-            <div class="col">
-              <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
-              <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
-                <q-item clickable @click="executeSecurityChecking">
-                  <q-item-section class="text-black">
-                    <q-item-label :class="{'text-white': darkMode}" v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
-                    <q-item-label class="text-center" :class="{'text-white': darkMode}" v-else>{{ $t('ClickToReveal') }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-              <div v-if="showMnemonic" :class="darkMode ? 'text-red-5' : 'text-red-6'" class="q-ma-sm">
-                <span class="text-weight-medium">
-                  {{ $t('SeedPhraseCaution1') }}
-                </span>
-                <br>{{ $t('SeedPhraseCaution2') }}
-              </div>
-            </div>
-          </div>
-          <div class="row" style="margin-top: 20px;">
-            <div class="col">
-              <p class="section-title">Wallet Deletion</p>
-              <q-btn color="red" style="width: 100%;" @click="showDeleteDialog()" :disable="disableDeleteButton">
-                Delete Wallet Now
-              </q-btn>
-            </div>
-          </div>
+    <header-nav :title="$t('WalletInfo')" backnavpath="/apps" />
+    <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
+      <div class="col-12 q-px-lg q-mt-lg">
+        <p class="section-title">{{ $t('BchAddresses') }}</p>
+        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+          <q-item clickable v-ripple>
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('bch').derivationPath }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Scan') }}</q-item-label>
+              <q-banner
+                v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
+                dense
+                :class="[
+                  darkMode ? 'pt-dark text-white' : 'bg-grey-2',
+                  'rounded-borders q-mt-sm q-mb-md',
+                ]"
+              >
+                UTXO scan completed at {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
+                <template v-slot:action>
+                  <q-btn
+                    no-caps flat
+                    color="blue-9" :label="$t('Dismiss')"
+                    @click="$store.commit('global/removeUtxoScanTask', bchUtxoScanTaskInfo?.walletHash)"
+                  />
+                </template>
+              </q-banner>
+              <q-item-label
+                :class="[
+                  darkMode ? 'pt-dark-label' : 'pp-text',
+                  'row items-center justify-around q-mb-sm',
+                ]"
+                style="word-wrap: break-word;"
+              >
+                <q-btn-group rounded spread class="q-space">
+                  <q-btn
+                    no-caps
+                    color="blue-9"
+                    padding="xs sm"
+                    :disable="bchUtxoScanOngoing"
+                    :loading="bchUtxoScanOngoing"
+                    :label="$t('UtxoScan')"
+                    @click="scanBCHUtxos()"
+                  />
+                  <q-btn
+                    no-caps
+                    color="blue-9"
+                    padding="xs sm"
+                    :disable="scanningBchAddresses"
+                    :loading="scanningBchAddresses"
+                    :label="$t('AddressScan')"
+                    @click="scanBCHAddresses()"
+                  />
+                </q-btn-group>
+                <div v-if="bchUtxoScanOngoing || scanningBchAddresses" class="text-center text-grey q-my-sm">
+                  <template v-if="bchUtxoScanOngoing && scanningBchAddresses">
+                    {{ $t('ScanningForUtxosAndAddr') }}
+                  </template>
+                  <template v-else-if="bchUtxoScanOngoing">
+                    <template v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.queueInfo?.time_start">
+                      UTXO scan ongoing, started {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
+                    </template>
+                    <template>
+                      {{ $t('ScanningForUtxos') }}
+                    </template>
+                  </template>
+                  <template v-else-if="scanningBchAddresses">
+                    {{ $t('ScanningForUntrackedAddr') }}
+                  </template>
+                </div>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+      <div class="col-12 q-px-lg q-mt-md">
+        <p class="section-title">{{ $t('SlpAddresses') }}</p>
+        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+          <q-item clickable v-ripple>
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('slp').derivationPath }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Scan') }}</q-item-label>
+              <q-banner
+                v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.completedAt"
+                dense
+                :class="[
+                  darkMode ? 'pt-dark text-white' : 'bg-grey-2',
+                  'rounded-borders q-mt-sm q-mb-md',
+                ]"
+              >
+                UTXO scan completed at {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
+                <template v-slot:action>
+                  <q-btn
+                    no-caps flat
+                    color="blue-9" :label="$t('Dismiss')"
+                    @click="$store.commit('global/removeUtxoScanTask', slpUtxoScanTaskInfo?.walletHash)"
+                  />
+                </template>
+              </q-banner>
+              <q-item-label
+                :class="[
+                  darkMode ? 'pt-dark-label' : 'pp-text',
+                  'row items-center justify-around q-mb-sm',
+                ]"
+                style="word-wrap: break-word;"
+              >
+                <q-btn-group rounded spread class="q-space">
+                  <q-btn
+                    no-caps
+                    color="blue-9"
+                    padding="xs sm"
+                    :disable="slpUtxoScanOngoing"
+                    :loading="slpUtxoScanOngoing"
+                    :label="$t('UtxoScan')"
+                    @click="scanSLPUtxos()"
+                  />
+                  <q-btn
+                    no-caps
+                    color="blue-9"
+                    padding="xs sm"
+                    :disable="scanningSlpAddresses"
+                    :loading="scanningSlpAddresses"
+                    :label="$t('AddressScan')"
+                    @click="scanSLPAddresses()"
+                  />
+                </q-btn-group>
+                <div v-if="slpUtxoScanOngoing || scanningSlpAddresses" class="text-center text-grey q-my-sm">
+                  <template v-if="slpUtxoScanOngoing && scanningSlpAddresses">
+                    {{ $t('ScanningForUtxosAndAddr') }}
+                  </template>
+                  <template v-else-if="slpUtxoScanOngoing">
+                    <template v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.queueInfo?.time_start">
+                      UTXO scan ongoing, started {{ formatRelativeTime(slpUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
+                    </template>
+                    <template>
+                      {{ $t('ScanningForUtxos') }}
+                    </template>
+                  </template>
+                  <template v-else-if="scanningSlpAddresses">
+                    {{ $t('ScanningForUntrackedAddr') }}
+                  </template>
+                </div>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+      <div class="col-12 q-px-lg q-mt-md">
+        <p class="section-title">{{ $t('SmartBchAddresses') }}</p>
+        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+          <q-item clickable v-ripple>
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('sbch').derivationPath }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWallet('sbch').walletHash)">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item v-if="sbchLnsName" clickable v-ripple @click="copyToClipboard(sbchLnsName)">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>LNS Name</q-item-label>
+              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ sbchLnsName }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn
+                type="a"
+                flat
+                padding="none"
+                icon="open_in_new"
+                :href="`https://app.bch.domains/name/${sbchLnsName}/details`"
+                target="_blank"
+                @click.stop
+              />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+      <div class="col-12 q-px-lg q-mt-md">
+        <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
+        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+          <q-item clickable @click="executeSecurityChecking">
+            <q-item-section class="text-black">
+              <q-item-label :class="{'text-white': darkMode}" v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
+              <q-item-label class="text-center" :class="{'text-white': darkMode}" v-else>{{ $t('ClickToReveal') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <div v-if="showMnemonic" :class="darkMode ? 'text-red-5' : 'text-red-6'" class="q-ma-sm">
+          <span class="text-weight-medium">
+            {{ $t('SeedPhraseCaution1') }}
+          </span>
+          <br>{{ $t('SeedPhraseCaution2') }}
         </div>
+      </div>
+      <div class="col-12 q-px-lg q-mt-md q-mb-lg">
+        <p class="section-title">Wallet Deletion</p>
+        <q-btn color="red" style="width: 100%;" @click="showDeleteDialog()" :disable="disableDeleteButton">
+          Delete Wallet Now
+        </q-btn>
       </div>
     </div>
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
@@ -729,8 +711,6 @@ export default {
   },
   mounted () {
     this.loadWallet().then(() => this.updateUtxoScanTasksStatus())
-    const divHeight = screen.availHeight - 120
-    this.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
     this.updateSbchLnsName()
   },
   created () {

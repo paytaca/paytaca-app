@@ -36,6 +36,7 @@
 <script>
 
 const COUNTRIES = require('../../countries-info.json')
+import { supportedLangs } from '../../i18n'
 
 export default {
   props: {
@@ -92,6 +93,14 @@ export default {
         if (n.value === o.value) {
           const selectedCountry = vm.countries[index]
           vm.$store.commit('global/setCountry', selectedCountry)
+
+          let language = Object.keys(supportedLangs).filter(langCode => langCode === selectedCountry.language)
+          if (language.length === 0) {
+            language = ['en-us']
+          }
+          this.$i18n.locale = language[0]
+          const locale = { value: language[0], label: this.$t(supportedLangs[language[0]])}
+          vm.$store.commit('global/setLanguage', locale)
 
           let currency = vm.currencyOptions.filter(o => o.symbol === selectedCountry.currency)
 

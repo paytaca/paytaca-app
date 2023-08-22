@@ -47,7 +47,8 @@
   {
     "name": "Argentina",
     "code": "AR",
-    "currency": "ARS"
+    "currency": "ARS",
+    "language": "es"
   },
   {
     "name": "Armenia",
@@ -107,7 +108,8 @@
   {
     "name": "Belize",
     "code": "BZ",
-    "currency": "BZD"
+    "currency": "BZD",
+    "language": "es"
   },
   {
     "name": "Benin",
@@ -127,7 +129,8 @@
   {
     "name": "Bolivia",
     "code": "BO",
-    "currency": "BOB"
+    "currency": "BOB",
+    "language": "es"
   },
   {
     "name": "Bosnia and Herzegovina",
@@ -212,12 +215,14 @@
   {
     "name": "Chile",
     "code": "CL",
-    "currency": "CLP"
+    "currency": "CLP",
+    "language": "es"
   },
   {
     "name": "China",
     "code": "CN",
-    "currency": "CNY"
+    "currency": "CNY",
+    "language": "zh-cn"
   },
   {
     "name": "Christmas Island",
@@ -232,7 +237,8 @@
   {
     "name": "Colombia",
     "code": "CO",
-    "currency": "COP"
+    "currency": "COP",
+    "language": "es"
   },
   {
     "name": "Comoros",
@@ -252,7 +258,8 @@
   {
     "name": "Costa Rica",
     "code": "CR",
-    "currency": "CRC"
+    "currency": "CRC",
+    "language": "es"
   },
   {
     "name": "Croatia",
@@ -287,7 +294,8 @@
   {
     "name": "Dominica",
     "code": "DM",
-    "currency": "XCD"
+    "currency": "XCD",
+    "language": "es"
   },
   {
     "name": "Dominican Republic",
@@ -302,7 +310,8 @@
   {
     "name": "Ecuador",
     "code": "EC",
-    "currency": "ECS"
+    "currency": "ECS",
+    "language": "es"
   },
   {
     "name": "Egypt",
@@ -312,12 +321,14 @@
   {
     "name": "El Salvador",
     "code": "SV",
-    "currency": "SVC"
+    "currency": "SVC",
+    "language": "es"
   },
   {
     "name": "Equatorial Guinea",
     "code": "GQ",
-    "currency": "XAF"
+    "currency": "XAF",
+    "language": "es"
   },
   {
     "name": "Eritrea",
@@ -392,7 +403,8 @@
   {
     "name": "Germany",
     "code": "DE",
-    "currency": "EUR"
+    "currency": "EUR",
+    "language": "de"
   },
   {
     "name": "Ghana",
@@ -432,7 +444,8 @@
   {
     "name": "Guatemala",
     "code": "GT",
-    "currency": "QTQ"
+    "currency": "QTQ",
+    "language": "es"
   },
   {
     "name": "Guinea",
@@ -467,12 +480,14 @@
   {
     "name": "Honduras",
     "code": "HN",
-    "currency": "HNL"
+    "currency": "HNL",
+    "language": "es"
   },
   {
     "name": "Hong Kong",
     "code": "HK",
-    "currency": "HKD"
+    "currency": "HKD",
+    "language": "zh-tw"
   },
   {
     "name": "Hungary",
@@ -672,7 +687,8 @@
   {
     "name": "Mexico",
     "code": "MX",
-    "currency": "MXN"
+    "currency": "MXN",
+    "language": "es"
   },
   {
     "name": "Micronesia, Federated States of",
@@ -752,7 +768,8 @@
   {
     "name": "Nicaragua",
     "code": "NI",
-    "currency": "NIO"
+    "currency": "NIO",
+    "language": "es"
   },
   {
     "name": "Niger",
@@ -817,7 +834,8 @@
   {
     "name": "Panama",
     "code": "PA",
-    "currency": "PAB"
+    "currency": "PAB",
+    "language": "es"
   },
   {
     "name": "Papua New Guinea",
@@ -827,12 +845,14 @@
   {
     "name": "Paraguay",
     "code": "PY",
-    "currency": "PYG"
+    "currency": "PYG",
+    "language": "es"
   },
   {
     "name": "Peru",
     "code": "PE",
-    "currency": "PEN"
+    "currency": "PEN",
+    "language": "es"
   },
   {
     "name": "Philippines",
@@ -852,7 +872,8 @@
   {
     "name": "Puerto Rico",
     "code": "PR",
-    "currency": "USD"
+    "currency": "USD",
+    "language": "es"
   },
   {
     "name": "Qatar",
@@ -992,7 +1013,8 @@
   {
     "name": "Spain",
     "code": "ES",
-    "currency": "EUR"
+    "currency": "EUR",
+    "language": "es"
   },
   {
     "name": "Sri Lanka",
@@ -1127,7 +1149,8 @@
   {
     "name": "Uruguay",
     "code": "UY",
-    "currency": "UYU"
+    "currency": "UYU",
+    "language": "es"
   },
   {
     "name": "Uzbekistan",
@@ -1142,7 +1165,8 @@
   {
     "name": "Venezuela",
     "code": "VE",
-    "currency": "VEF"
+    "currency": "VEF",
+    "language": "es"
   },
   {
     "name": "Vietnam",

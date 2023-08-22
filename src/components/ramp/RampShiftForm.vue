@@ -4,7 +4,7 @@
     @decode="onScannerDecode"
   />
   <q-card
-    class="br-15 q-pt-sm q-mx-md"
+    class="br-15 q-pt-sm q-mx-md q-mb-lg"
     :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
     v-if="isloaded && state === 'form' && !error"
   >

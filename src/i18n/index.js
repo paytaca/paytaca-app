@@ -4,6 +4,14 @@ import zhCN from './zh-cn'
 import zhTW from './zh-tw'
 import de from './de'
 
+export const supportedLangs = {
+  'en-us': 'English',
+  'es': 'Spanish',
+  'zh-tw': 'ChineseTraditional',
+  'zh-cn': 'ChineseSimplified',
+  'de': 'German',
+}
+
 export default {
   'en-us': enUS,
   'zh-cn': zhCN,

@@ -987,7 +987,11 @@ export default {
           this.sendAmountInFiat = this.convertToFiatAmount(this.sendData.amount)
         }
       } else {
-        this.sendData.amount = this.asset.balance
+        if (this.asset.id.startsWith('ct/')) {
+          this.sendData.amount = this.asset.balance / (10 ** this.asset.decimals)
+        } else {
+          this.sendData.amount = this.asset.balance
+        }
       }
       this.sliderStatus = true
     },
