@@ -64,7 +64,7 @@
                               :class="{'pt-dark-label': darkMode}"
                               class="q-mb-none md-font-size"
                               style="font-weight: 400;"
-                              @click.stop.prevent="viewUserProfile(listing.owner)">
+                              @click.stop.prevent="viewUserProfile(listing.owner, listing)">
                               <!-- <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }} -->
                               {{ listing.owner }}
                             </span><br>
@@ -134,7 +134,7 @@
   <FiatProfileCard
     v-if="viewProfile"
     :userInfo="selectedUser"
-    :type="isOwner ? 'self' : 'peer'"
+    :type="selectedUser.is_owner ? 'self' : 'peer'"
     v-on:back="viewProfile = false"
   />
 </template>
@@ -225,7 +225,6 @@ export default {
       return (this.pageNumber < this.totalPages)
     },
     isOwner () {
-      // console.log(this.selectedOrder.is_owned)
       return this.selectedUser.name === this.$store.getters['ramp/getUser'].nickname
     }
   },
@@ -358,11 +357,13 @@ export default {
       this.$store.commit('global/editRampNickname', info.nickname)
       // this.proceed = true
     },
-    viewUserProfile (user) {
+    viewUserProfile (user, data) {
       this.viewProfile = true
       this.selectedUser = {
-        name: user
+        name: user,
+        is_owner: data.is_owned
       }
+      console.log(this.selectedUser)
     },
     openFilter () {
       this.openDialog = true

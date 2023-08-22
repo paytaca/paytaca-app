@@ -3,6 +3,7 @@
       class="br-15 q-pt-sm q-mx-md q-mx-none"
       :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
       :style="`min-height: ${ minHeight }px;`"
+      v-if="!viewProfile"
     >
       <div v-if="state === 'order-list'">
         <div>
@@ -44,7 +45,8 @@
                             <div class="col ib-text">
                               <span
                                 :class="{'pt-dark-label': darkMode}"
-                                class="q-mb-none md-font-size">
+                                class="q-mb-none md-font-size"
+                                @click.stop.prevent="viewUserProfile(listing)">
                                 {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded outline size="sm" color="blue-6" label="You" />
                               </span>
                               <div
@@ -97,10 +99,17 @@
         <!-- check which step the order are in -->
       </div>
     </q-card>
+    <FiatProfileCard
+      v-if="viewProfile"
+      :userInfo="selectedUser"
+      :type="selectedUser.is_owner ? 'self' : 'peer'"
+      v-on:back="viewProfile = false"
+    />
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
+import FiatProfileCard from './FiatProfileCard.vue'
 import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import { ref } from 'vue'
@@ -116,7 +125,8 @@ export default {
   },
   components: {
     ProgressLoader,
-    FiatProcessOrder
+    FiatProcessOrder,
+    FiatProfileCard
   },
   props: {
     initStatusType: {
@@ -131,13 +141,15 @@ export default {
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       wallet: null,
       selectedOrder: null,
+      selectedUser: null,
       statusType: this.initStatusType,
       state: 'order-list',
       transactionType: '',
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.screen.height - 210
+      minHeight: this.$q.screen.height - 210,
+      viewProfile: false
     }
   },
   watch: {
@@ -288,7 +300,7 @@ export default {
       vm.loading = false
     },
     selectOrder (data) {
-      console.log('selectedOrder:', data)
+      // console.log('selectedOrder:', data)
       this.selectedOrder = data
       this.state = 'view-order'
     },
@@ -356,6 +368,14 @@ export default {
       // vm.loading = true
       // await vm.resetAndRefetchListings()
       // vm.loading = false
+    },
+    viewUserProfile (data) {
+      this.selectedUser = {
+        id: data.ad.owner.id,
+        name: data.ad.owner.nickname,
+        is_owner: data.is_ad_owner
+      }
+      this.viewProfile = true
     }
   }
 }
