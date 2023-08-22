@@ -63,7 +63,7 @@
         <!-- </div> -->
         <div class="sm-font-size q-mt-sm" style="color: grey;">
           <div v-if="fees" class="row q-ml-md">
-            Fee: {{ fees.total }} BCH
+            Fee: {{ fees.total / 100000000 }} BCH
           </div>
           <div class="row q-ml-md q-mt-xs">
             Balance: {{ balance }} BCH
@@ -147,9 +147,8 @@ export default {
     },
     fees (value) {
       console.log('fees.total:', value)
-      if (this.fees) {
-        this.transferAmount += this.fees.total
-      }
+      const totalFees = value.total / 100000000
+      this.transferAmount += totalFees
     }
   },
   computed: {
@@ -211,7 +210,7 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      console.log('headers:', headers)
+      // console.log('headers:', headers)
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
       const body = { txid: vm.txid }
@@ -222,6 +221,7 @@ export default {
           txid: vm.txid,
           status: response.data.status
         }
+        console.log('Emitting:', result)
         vm.$emit('success', result)
       } catch (error) {
         console.error(error.response)

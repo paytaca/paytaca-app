@@ -39,8 +39,8 @@
             </template>
           </q-input>
         <!-- </div> -->
-        <div v-if="contract.balance !== null" class="row q-mt-sm sm-font-size" style="color: grey">
-          Contract balance: {{ contract.balance }} BCH
+        <div class="row q-mt-sm sm-font-size" style="color: grey">
+          Contract balance: {{ contract.balance ? contract.balance : 0 }} BCH
         </div>
         <div class="row" v-if="errorMessages.length > 0">
           <div class="col">
@@ -52,26 +52,26 @@
             </ul>
           </div>
         </div>
-        <div class="row" v-else>
+        <div class="row q-mb-md">
           <q-btn
-            v-if="!loading && !hideVerifyBtn"
+            v-if="!loading && !hideBtn"
             rounded
-            no-caps
-            :disable="hideVerifyBtn"
-            label="Verify"
+            :disable="hideBtn"
+            :label="action === 'ESCROW' ? Verify : 'Release BCH'"
             color="blue-6"
-            class="col q-mx-lg q-my-md q-py-sm"
+            class="col q-mx-lg q-mb-md q-py-sm"
             @click="onVerify">
           </q-btn>
-          <div v-if="hideVerifyBtn" class="q-mt-md">Verifying transaction, please wait...</div>
+          <div v-if="hideBtn" class="q-mt-md">
+            Verifying transaction, please wait... <span v-if="waitSeconds && !txExists">({{ waitSeconds }}s)</span>
+          </div>
         </div>
       </div>
     </div>
     <!-- else progress loader -->
   </template>
 <script>
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
-import { signMessage } from 'src/wallet/ramp/signature'
+import { signMessage } from '../../../wallet/ramp/signature.js'
 import { getBalanceByAddress } from 'src/wallet/bch'
 
 export default {
@@ -85,9 +85,12 @@ export default {
         balance: null,
         address: ' '
       },
-      transactionId: '', // dummy txid
-      errorMessages: [],
-      hideVerifyBtn: true
+      transactionId: '',
+      txExists: false,
+      timer: null,
+      waitSeconds: null,
+      hideBtn: true,
+      errorMessages: []
     }
   },
   emits: ['back', 'success'],
@@ -97,21 +100,28 @@ export default {
       type: Number,
       default: null
     },
-    txid: String,
     wallet: {
       type: Object,
       default: null
-    }
+    },
+    action: String,
+    txid: String,
+    errors: Array
   },
   watch: {},
   computed: {},
   async mounted () {
     const vm = this
+    console.log('txid:', vm.txid)
+    vm.errorMessages.push(...vm.errors)
     if (vm.txid && vm.txid.length > 0) {
       vm.transactionId = vm.txid
     }
     await vm.fetchOrderDetail()
     vm.loading = false
+  },
+  beforeUnmount () {
+    clearInterval(this.timer)
   },
   methods: {
     async fetchOrderDetail () {
@@ -126,23 +136,82 @@ export default {
         const response = await vm.$axios.get(url, { headers: headers })
         vm.contract.address = response.data.contract.address
         vm.contract.balance = await getBalanceByAddress(vm.contract.address)
-        console.log('order: ', response)
+        console.log('contract:', response.data.contract)
+        const transactions = response.data.contract.transactions
+        let valid = false
+        let verifying = true
+        console.log('transactions:', transactions)
+        if (transactions) {
+          for (let i = 0; i < transactions.length; i++) {
+            const tx = transactions[i]
+            console.log('action:', vm.action)
+            console.log('tx:', tx)
+            verifying = tx.verifying
+            if (tx.action === vm.action) {
+              vm.txExists = true
+              vm.transactionId = tx.txid
+              valid = tx.valid
+              break
+            }
+          }
+        }
+        console.log('txExists:', vm.txExists, 'valid:', valid, 'verifying:', verifying)
+        if (vm.txExists && !valid && !verifying) {
+          vm.hideBtn = false
+        }
+        if (!vm.txExists) {
+          vm.waitSeconds = 60
+          vm.timer = setInterval(function () {
+            vm.waitSeconds--
+            if (vm.waitSeconds === 0) {
+              vm.hideBtn = false
+              vm.errorMessages.push('Server took too long to respond')
+              clearInterval(vm.timer)
+            }
+          }, 1000)
+        }
       } catch (error) {
         console.error(error.response)
       }
     },
-    async verifyTxid () {
+    async verifyRelease () {
       const vm = this
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
+      console.log('Verifying Release: ', vm.transactionId)
+      const url = `${vm.apiURL}/order/${vm.orderId}/verify-release`
       const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'ORDER_ESCROW_VERIFY', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
       const headers = {
-        'wallet-hash': wallet.walletHash,
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const body = {
+        txid: this.transactionId
+      }
+      await vm.$axios.post(url, body, { headers: headers })
+        .then(response => {
+          console.log('response:', response)
+        })
+        .catch(error => {
+          console.error(error.response)
+          const errorMsg = error.response.data.error
+          vm.errorMessages.push(errorMsg)
+          vm.hideBtn = false
+        })
+
+      // await this.fetchOrderData()
+    },
+    async verifyEscrow () {
+      const vm = this
+      console.log('Verifying escrow:', vm.transactionId)
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_ESCROW_VERIFY', timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
         timestamp: timestamp,
         signature: signature
       }
-      const url = vm.apiURL + '/order/' + vm.orderId + '/escrow-verify'
+      const url = vm.apiURL + '/order/' + vm.order.id + '/escrow-verify'
       const body = {
         txid: vm.transactionId
       }
@@ -153,13 +222,21 @@ export default {
         console.error(error.response)
         const errorMsg = error.response.data.error
         vm.errorMessages.push(errorMsg)
-        vm.hideVerifyBtn = false
+        vm.hideBtn = false
       }
     },
     onVerify () {
       const vm = this
-      vm.hideVerifyBtn = true
-      vm.verifyTxid()
+      vm.hideBtn = true
+      vm.errorMessages = []
+      switch (vm.action) {
+        case 'ESCROW':
+          vm.verifyEscrow()
+          break
+        case 'RELEASE':
+          vm.verifyRelease()
+          break
+      }
     }
   }
 }

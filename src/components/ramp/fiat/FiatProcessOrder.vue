@@ -24,9 +24,10 @@
       @confirm="confirmingOrder"
       @cancel="cancellingOrder"
     />
-    <TransferToEscrowProcess
+    <EscrowTransferProcess
       v-if="state === 'escrow-bch'"
-      :key="transferToEscrowProcessKey"
+      :key="escrowTransferProcessKey"
+      :action="state"
       :wallet="wallet"
       :order="order"
       :contract="contract"
@@ -36,9 +37,12 @@
     />
     <VerifyEscrowTx
       v-if="state === 'tx-confirmation'"
+      :key="verifyEscrowTxKey"
       :wallet="wallet"
       :order-id="order.id"
+      :action="verifyAction"
       :txid="txid"
+      :errors="errorMessages"
       @back="onBack"
       @success="onVerifyTxSuccess"
     />
@@ -89,7 +93,7 @@ import RampContract from 'src/wallet/ramp/contract'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
-import TransferToEscrowProcess from './TransferToEscrowProcess.vue'
+import EscrowTransferProcess from './EscrowTransferProcess.vue'
 import VerifyEscrowTx from './VerifyEscrowTx.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import StandByDisplay from './StandByDisplay.vue'
@@ -119,8 +123,11 @@ export default {
       status: null,
       title: '',
       text: '',
+      verifyAction: null,
       standByDisplayKey: 0,
-      transferToEscrowProcessKey: 0
+      escrowTransferProcessKey: 0,
+      verifyEscrowTxKey: 0,
+      errorMessages: []
     }
   },
   components: {
@@ -128,7 +135,7 @@ export default {
     StandByDisplay,
     ProgressLoader,
     MiscDialogs,
-    TransferToEscrowProcess,
+    EscrowTransferProcess,
     VerifyEscrowTx,
     PaymentConfirmation
   },
@@ -223,6 +230,7 @@ export default {
           }
           break
         case 'ESCRW_PN': // Escrow Pending
+          vm.verifyAction = 'ESCROW'
           vm.state = 'standby-view'
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
@@ -248,29 +256,11 @@ export default {
           break
         case 'PD': // Paid
           vm.state = 'standby-view'
+          vm.verifyAction = 'RELEASE'
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
-          }
-          console.log('PD:', vm.contract)
-          if (vm.state === 'tx-confirmation') {
-            const transactions = vm.contract.transactions
-            let releaseVerified = false
-            transactions.forEach((tx, index) => {
-              console.log(tx)
-              if (tx.action === 'RELEASE') {
-                releaseVerified = tx.valid
-                if (releaseVerified) {
-                  vm.txid = tx.txid
-                }
-              }
-            })
-            console.log('releaseVerified:', releaseVerified)
-            if (!releaseVerified) {
-              vm.releaseCrypto()
-              // vm.verifyRelease()
-            }
           }
           break
         case 'RLS_PN': // Release Pending
@@ -410,26 +400,24 @@ export default {
         signature: signature,
         timestamp: timestamp
       }
-      // console.log(headers)
-      await vm.$axios.post(url, {}, {
-        headers: headers
-      })
+      await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           console.log(response.data)
-          if (response.data && response.data.status.value === 'PD_PN') {
-            vm.updateStep(response.data.status)
-          }
+          // if (response.data && response.data.status.value === 'PD_PN') {
+          vm.updateStep(response.data.status)
+          // }
         })
         .catch(error => {
           console.log(error)
         })
 
-      await this.fetchOrderData()
-      this.checkStep()
+      // await this.fetchOrderData()
+      // this.checkStep()
       vm.isloaded = true
     },
     async releaseCrypto () {
-      console.log('release crypto')
+      const vm = this
+      console.log('releaseCrypto: ', vm.contract)
       const publicKeys = {
         arbiter: this.contract.arbiter.public_key,
         seller: this.contract.seller.public_key,
@@ -450,8 +438,19 @@ export default {
       const timestamp = this.contract.timestamp
       const rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
       await rampContract.initialize()
-      // this.txid = makeid(64)
+
+      this.txid = makeid(64) // temporary txid generation
+
       console.log('@@rampContract address:', rampContract.getAddress())
+      console.log('order?: ', vm.order)
+      vm.verifyEscrowTxKey++
+      // await rampContract.release(vm.wallet.privateKeyWif, vm.order.crypto_amount)
+      //   .then(result => {
+      //     console.log('result:', result)
+      //   })
+      //   .catch(error => {
+      //     console.err(error.response)
+      //   })
     },
     async verifyRelease () {
       console.log('verifyRelease')
@@ -468,22 +467,40 @@ export default {
         txid: this.txid
       }
       console.log('body:', body)
-      await vm.$axios.post(url,
-        body,
-        {
-          headers: headers
-        })
+      await vm.$axios.post(url, body, { headers: headers })
         .then(response => {
-          console.log(response)
-          if (response.data && response.data.status.value === 'RLS') {
-            vm.updateStep(response.data.status)
-          }
+          console.log('response:', response)
+          vm.updateStep(response.data.status)
         })
         .catch(error => {
           console.error(error.response)
         })
 
-      await this.fetchOrderData()
+      // await this.fetchOrderData()
+    },
+    async verifyEscrow () {
+      const vm = this
+      console.log('Verifying escrow:', vm.txid)
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_ESCROW_VERIFY', timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        timestamp: timestamp,
+        signature: signature
+      }
+      const url = vm.apiURL + '/order/' + vm.order.id + '/escrow-verify'
+      const body = {
+        txid: vm.txid
+      }
+      try {
+        const response = await vm.$axios.post(url, body, { headers: headers })
+        console.log('verifyEscrow response:', response)
+      } catch (error) {
+        console.error(error.response)
+        const errorMsg = error.response.data.error
+        vm.errorMessages.push(errorMsg)
+        vm.verifyEscrowTxKey++
+      }
     },
 
     // Recieve Dialogs
@@ -493,7 +510,7 @@ export default {
       switch (vm.dialogType) {
         case 'confirmReleaseCrypto':
           await this.releaseCrypto()
-          // await vm.verifyRelease()
+          await vm.verifyRelease()
           break
         case 'confirmCancelOrder':
           await vm.cancelOrder()
@@ -509,10 +526,10 @@ export default {
           if (this.confirmType === 'buyer') {
             await this.fetchOrderData()
           } else if (this.confirmType === 'seller') {
-            await this.releaseCrypto()
-            // await this.verifyRelease()
+            await this.releaseCrypto() // this will generate the txid
+            await this.verifyRelease() // this needs the txid
           }
-          this.checkStep()
+          // this.checkStep()
           break
       }
       vm.title = ''
@@ -541,7 +558,7 @@ export default {
     },
     handleConfirmPayment () {
       this.dialogType = 'confirmPayment'
-      this.title = 'Confirm Payment?'
+      this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
 
       this.text = this.confirmType === 'buyer' ? 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.' : 'This will release the crypto held by the escrow account to the buyer.'
       this.openDialog = true
@@ -567,8 +584,8 @@ export default {
     },
     onEscrowSuccess (data) {
       console.log('onEscrowSubmit:', data)
-      this.txid = data.txid
-      this.updateStatus(data.status)
+      // this.txid = data.txid
+      // this.updateStatus(data.status)
     },
     onVerifyTxSuccess (status) {
       console.log('onVerifyTxSuccess:', status)
@@ -612,7 +629,7 @@ export default {
               }
             }
             console.log('contract:', this.contract)
-            this.transferToEscrowProcessKey++
+            this.escrowTransferProcessKey++
           }
         }
       }
