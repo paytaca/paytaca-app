@@ -284,11 +284,15 @@ export class BchWallet {
    */
   async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
     const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
-    const sendResponse = await this._sendBch(amount, recipient, changeAddress, false)
+    const sendResponse = await this._sendBch(amount, recipient, changeAddress, undefined, undefined, false)
 
     if (!sendResponse?.success) {
       response.success = false
       response.error = sendResponse?.error || 'Error generating transaction'
+      return response
+    }
+    if (sendResponse?.success && sendResponse?.txid && !sendResponse?.transaction) {
+      response.txid = sendResponse?.txid
       return response
     }
 
@@ -299,6 +303,12 @@ export class BchWallet {
         wallet_hash: posDevice?.walletHash,
         posid: posDevice?.posId,
       }
+    }
+
+    if (!broadcastData?.pos_device?.wallet_hash || !broadcastData?.pos_device?.posid) {
+      response.success = false
+      response.error = 'Unable to resolve POS device info'
+      return response
     }
 
     try {
@@ -312,11 +322,26 @@ export class BchWallet {
       response.otpTimestamp = broadcastResponse?.data?.otp_timestamp || -1
     } catch(error) {
       response.success = false
-      if (typeof error?.response?.data === 'string') response.error = error.response.data
-      else if(typeof error?.response?.data?.[0] === 'string') response.error = error.response.data[0]
-      else if(error?.message) response.error = error.message
-
       response.errorObj = error
+      const isValidErrorMessage = (msg) => typeof msg === 'string' && msg?.length < 250
+      const validMessageOrUndefined = (msg) => isValidErrorMessage(msg) ? msg : undefined
+
+      const data = error?.response?.data
+      response.error = validMessageOrUndefined(data?.non_field_errors?.[0]) ||
+                       validMessageOrUndefined(data?.[0]) || 
+                       validMessageOrUndefined(data)
+
+      if (!response.error && isValidErrorMessage(data?.transaction?.[0])) {
+        const txError = data?.transaction?.[0]
+        response.error = `Transaction error: ${txError}` 
+      }
+      if (!response.error && isValidErrorMessage(data?.payment_timestamp?.[0])) {
+        const paymentTimestampError = data?.payment_timestamp?.[0]
+        response.error = `Payment timestamp error: ${paymentTimestampError}` 
+      }
+
+      if(!response?.error) response.error = validMessageOrUndefined(error?.message)
+      if (!response?.error) response.error = 'Unknown error occurred on sending transaction'
     }
     return response
   }
