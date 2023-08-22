@@ -1380,13 +1380,34 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
   }
   loadingState.value.payment = true
   loadingMsg.value = 'Saving payment transaction'
+  const dialog = $q.dialog({
+    title: 'Verifying payment',
+    message: 'Payment received',
+    progress: { color: 'brandblue' },
+    persistent: true,
+    ok: false,
+    cancel: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
     .then(response => {
       if (payment.value.escrowContractAddress == response?.data?.address) payment.value.fetchEscrowContract()
       fetchCheckout()
+      dialog.hide()
       return response
     })
+    .catch(error => {
+      const data = error?.response?.data
+      let errorMessage = errorParser.firstElementOrValue(data?.non_field_errors) ||
+                        errorParser.firstElementOrValue(data?.detail)
+      dialog.update({
+        title: 'Payment verification error',
+        message: errorMessage || 'Unable to verify payment',
+      })
+      return Promise.reject(error)
+    })
     .finally(() => {
+      dialog.update({ persistent: false, ok: { color: 'brandblue' } })
       loadingState.value.payment = false
       loadingMsg.value = resolveLoadingMsg()
     })

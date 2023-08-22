@@ -594,6 +594,15 @@ export class Checkout {
       })
   }
 
+  refetch() {
+    if (!this.id) return Promise.reject()
+    return backend.get(`connecta/checkouts/${this.id}/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.raw = response?.data
+        return response 
+      })
+  }
 }
 
 export class OrderItem {
@@ -771,6 +780,16 @@ export class Order {
         if (!response?.data?.id) return Promise.reject({ response })
         this.storefront = Storefront.parse(response?.data)
         return response
+      })
+  }
+
+  refetch() {
+    if (!this.id) return Promise.reject()
+    return backend.get(`connecta/orders/${this.id}/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.raw = response?.data
+        return response 
       })
   }
 }
