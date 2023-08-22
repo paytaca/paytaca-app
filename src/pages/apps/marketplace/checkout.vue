@@ -1523,6 +1523,24 @@ async function completeCheckout() {
   loadingState.value.completing = true
   loadingMsg.value = 'Creating order'
   await updateBchPrice().catch(console.error)
+
+  if (!checkout.value?.payment?.escrowRefundAddress) {
+    await savePayment()
+      .catch(error => {
+        dialog.update({
+          title: 'Error',
+          message: 'Encountered error in saving payment details',
+          progress: false, persistent: false, ok: true,
+        }).onDismiss(() => {
+          tabs.value.active = 'payment'
+        })
+
+        loadingState.value.completing = false
+        loadingMsg.value = resolveLoadingMsg()
+        return Promise.reject(error)
+      })
+  }
+
   return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`, data)
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
