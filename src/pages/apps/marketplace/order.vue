@@ -543,13 +543,17 @@ watch(showPaymentDialog, () => {
   if (payment.value?.id) return
   createPayment()
 })
+const bchAddress = computed(() => {
+  return $store.getters['global/getWallet']('bch')?.lastAddress
+})
+
 const createPayment = debounce(async () => {
   if (order.value.balanceToPay <= 0) return Promise.resolve('Order paid')
   const data = {
     order_id: order.value.id,
     ignore_pending_payments: true,
     escrow: {
-      buyer_address: order.value?.payment?.escrowRefundAddress || undefined,
+      buyer_address: order.value?.payment?.escrowRefundAddress || bchAddress.value,
     },
   }
 
