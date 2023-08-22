@@ -1,6 +1,6 @@
 <template>
   <q-select
-    :style="{ width: $q.platform.is.mobile === true ? '50%' : '100%' }"
+    :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="locale"
     :options="localeOptions"
     :dark="darkMode"
@@ -11,10 +11,31 @@
     fill-input
     borderless
     hide-selected
-  />
+  >
+    <template v-slot:option="scope">
+      <q-item
+        v-bind="scope.itemProps"
+      >
+        <q-item-section>
+          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+            {{ scope.opt.label }}
+          </q-item-label>
+          <q-item-label
+            v-if="scope.opt.value"
+            caption
+            :class="{ 'text-black': !darkMode && !scope.selected }"
+          >
+            {{ scope.opt.value }}
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+    </template>
+  </q-select>
 </template>
 
 <script>
+import { supportedLangs } from '../../i18n'
+
 export default {
   props: {
     darkMode: {
@@ -24,14 +45,13 @@ export default {
   },
   data () {
     return {
-      locale: this.$q.localStorage.getItem('lang'),
-      langs: [
-        'English',
-        'Spanish',
-      ],
+      // locale: this.$store.getters['global/language'],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
-        { value: 'es', label: this.$t('Spanish') }
+        { value: 'zh-cn', label: this.$t('ChineseSimplified') },
+        { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+        { value: 'de', label: this.$t('German') },
+        { value: 'es', label: this.$t('Spanish') },
       ],
       localeOptions: []
     }
@@ -51,17 +71,16 @@ export default {
       update()
     }
   },
-  watch: {
-    locale (n, o) {
-      this.$i18n.locale = n.value
-      this.defaultLocaleOptions = this.defaultLocaleOptions.filter((o, index) => {
-        o.label = this.$t(this.langs[index])
-        
-        if (n.value === o.value) {
-          this.$q.localStorage.set('lang', this.langs[index])
-        }
-        return o
-      })
+  computed: {
+    locale: {
+      get () {
+        return this.$store.getters['global/language']
+      },
+      set (lang) {
+        this.$i18n.locale = lang.value
+        const newLocale = { value: lang.value, label: this.$t(supportedLangs[lang.value]) }
+        this.$store.commit('global/setLanguage', newLocale)
+      }
     }
   }
 }

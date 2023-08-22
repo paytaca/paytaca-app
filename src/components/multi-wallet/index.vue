@@ -2,46 +2,54 @@
   <q-dialog  ref="dialog" position="bottom" full-width>
     <q-card style="height: 525px;" class="br-15" :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
-        <div class="text-h5 q-space q-mt-sm" style="font-size: 18px;">Wallets</div>
+        <div class="text-h5 q-space q-mt-sm text-blue-9" style="font-size: 18px;">{{ $t('Wallets') }}</div>
         <q-btn
           flat
           padding="sm"
           icon="close"
           v-close-popup
+          color="red-9"
         />
       </div>
       <div class="row no-wrap items-center justify-center q-px-md">
         <div class="text-h5 q-space q-mt-sm"></div>
-        <div clickable class="q-pr-lg text-blue" style="margin-top: 10px;" @click="$router.push('/accounts')"><u>Create/Import Wallet</u></div>
+        <div clickable class="q-pr-md text-blue-9" style="margin-top: 10px;" @click="$router.push('/accounts')">
+          {{ $t('CreateOrImportWallet') }}
+        </div>
       </div>
       <q-card-section class="q-pt-sm" v-if="isloading">
         <q-virtual-scroll :items="vault">
           <template v-slot="{ item: wallet, index }">
-            <q-item class="q-pb-sm" clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" @click="selectedIndex = index">
-              <q-item-section style="overflow-wrap: break-word;">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                  <span class="text-h5" style="font-size: 15px;">{{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></span>
-                  <span  class="text-nowrap q-ml-xs q-mt-sm">{{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}</span>
-                </div>
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                  <span style="font-size: 12px; color: gray;">{{ arrangeAddressText(wallet) }}</span>
-                  <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">{{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}</span>
-                </div>
-                <q-menu anchor="bottom right" self="top end" >
-                  <q-list class="text-h5" :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 150px; font-size: 15px;">
-                    <q-item clickable v-close-popup>
-                      <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">Switch Wallet</q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="openRenameDialog()">Rename</q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">close</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-item-section>
-            </q-item>
+            <template v-if="wallet.deleted !== true">
+              <q-item class="q-pb-sm" clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" @click="selectedIndex = index">
+                <q-item-section style="overflow-wrap: break-word;">
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                    <span class="text-h5" style="font-size: 15px;">{{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></span>
+                    <span  class="text-nowrap q-ml-xs q-mt-sm" :class="{'text-grey': darkMode}">
+                      {{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}
+                    </span>
+                  </div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                    <span style="font-size: 12px; color: gray;">
+                      {{ arrangeAddressText(wallet) }}
+                    </span>
+                    <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">
+                      {{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                    </span>
+                  </div>
+                  <q-menu anchor="bottom right" self="top end" >
+                    <q-list class="text-h5" :class="{'pt-dark-card': darkMode}" style="min-width: 150px; font-size: 15px;">
+                      <q-item clickable v-close-popup>
+                        <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">{{ $t('SwitchWallet') }}</q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="openRenameDialog()">{{ $t('Rename') }}</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-item-section>
+              </q-item>
+            </template>
           </template>
         </q-virtual-scroll>
       </q-card-section>
@@ -83,18 +91,20 @@ export default {
       }
     },
     switchWallet (index) {
+      const vm = this
       if (index !== this.currentIndex) {
         const asset = this.$store.getters['assets/getAllAssets']
         // const ignoredAssets = this.$store.getters['assets/ignoredAssets']
 
-        this.$store.commit('assets/updateVaultSnapshot', { index: this.currentIndex, snapshot: asset })
-        this.$store.commit('assets/updatedCurrentAssets', index)
+        vm.$store.commit('assets/updateVaultSnapshot', { index: vm.currentIndex, snapshot: asset })
+        vm.$store.commit('assets/updatedCurrentAssets', index)
 
-        this.$store.dispatch('global/switchWallet', index)
-
-        location.reload()
+        vm.$store.dispatch('global/switchWallet', index).then(function () {
+          vm.$router.push('/')
+          setTimeout(() => { location.reload() }, 500)
+        })
       }
-      this.hide()
+      vm.hide()
     },
     hide () {
       this.$refs.dialog.hide()
@@ -106,7 +116,7 @@ export default {
       } else {
         address = wallet.wallet.bch.lastAddress
       }
-      return address.slice(0, 19) + '.....' + address.slice(40)
+      return address.slice(0, 16) + '.....' + address.slice(45)
     },
     isActive (index) {
       if (index === this.currentIndex) {
@@ -142,9 +152,6 @@ export default {
       let tempVault = vm.$store.getters['global/getVault']
       tempVault = JSON.stringify(tempVault)
       tempVault = JSON.parse(tempVault)
-      // console.log(tempVault)
-
-      // tempVault.unshift(tempVault.splice(vm.currentIndex, 1)[0])
       vm.vault = tempVault
     },
     getAssetData (index) {
@@ -171,7 +178,6 @@ export default {
     await this.$store.dispatch('global/saveExistingWallet')
     await this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash})
 
-    // console.log(vm.isChipnet)
     vm.processVaultName()
     vm.arrangeVaultData()
     vm.isloading = true

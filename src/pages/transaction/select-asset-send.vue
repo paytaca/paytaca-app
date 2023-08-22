@@ -3,8 +3,9 @@
     <header-nav :title="$t('Send')" backnavpath="/"></header-nav>
     <q-tabs
       dense
+      v-if="enableSmartBCH"
       active-color="brandblue"
-      :style="{ 'margin-top': $q.platform.is.ios ? '100px' : '70px'}"
+      :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
@@ -13,12 +14,12 @@
       <q-tab name="sBCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name" :disable="isChipnet"/>
     </q-tabs>
     <template v-if="assets">
-      <div class="row">
+      <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToSend') }}</p>
         </div>
         <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
-          <AssetFilter @filterTokens="filterTokens" />
+          <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -37,7 +38,7 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none" :class="$store.getters['darkmode/getStatus'] ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  {{ String(convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch')).substring(0, 16) }}
+                  {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
                   <span>
                     {{ asset.symbol }}
                   </span>
@@ -89,6 +90,9 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
     darkMode () {
       return this.$store.getters['darkMode/getStatus']
     },
@@ -128,9 +132,6 @@ export default {
   },
   methods: {
     convertTokenAmount,
-    filterTokens (tokenType) {
-      this.isCashToken = tokenType === 'ct'
-    },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
@@ -160,11 +161,6 @@ export default {
 </script>
 
 <style scoped>
-  #app-container {
-    position: relative !important;
-    background-color: #ECF3F3;
-    min-height: 100vh;
-  }
   .group-currency {
     width: 100%;
     border-radius: 7px;

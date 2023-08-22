@@ -1,16 +1,12 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
-  >
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
       title="POS Admin"
       backnavpath="/apps"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
     <q-card
-      class="br-15 q-mx-md q-mb-md"
-      :style="{ 'margin-top': $q.platform.is.ios ? '55px' : '0'}"
+      class="br-15 q-mx-md q-mt-lg q-mb-md"
+      :style="{ 'margin-top': $q.platform.is.ios ? '35px' : '0'}"
       :class="[
         darkMode ? 'text-white pt-dark-card' : 'text-black',
       ]"
@@ -58,7 +54,12 @@
                       @click="showBranchInfo(branch)"
                     >
                       <q-item-section>
-                        <q-item-label>{{ branch.name }}</q-item-label>
+                        <q-item-label>
+                          {{ branch.name }}
+                          <span v-if="branch?.isMain" class="text-caption text-grey">
+                            ({{ $t('MainBranch', {}, 'Main Branch') }})
+                          </span>
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -372,7 +373,7 @@ function openNewBranchForm() {
   })
 }
 
-const posDevices = ref([ { walletHash: '', posid: -1, name: '', linkedDevice: null, lastActive: 0 } ])
+const posDevices = ref([].map(parsePosDeviceData))
 posDevices.value = []
 const posDevicesPageData = ref({ count: 0, limit: 10, offset: 0 })
 const parsedPosDevicePagination = computed(() => {
@@ -405,6 +406,18 @@ function fetchPosDevices(opts) {
         posDevicesPageData.value.offset = response?.data?.offset || 0
         if (rpcClient.ws.readyState == WebSocket.OPEN) posDevices.value.forEach(updateLastActive)
       }
+    })
+    .then(() => {
+      if (!posDevices.value?.length) return
+      const missingBranchIds = []
+      posDevices.value.forEach(posDevice => {
+        if (!posDevice?.branchId) return
+        if (!merchantBranch(posDevice?.branchId)) missingBranchIds.push(posDevice?.branchId)
+      })
+
+      missingBranchIds
+        .filter((e,i,s) => s.indexOf(e) === i)
+        .forEach(branchId => $store.dispatch('paytacapos/refetchBranchInfo', { branchId }))
     })
     .finally(() => {
       fetchingPosDevices.value = false

@@ -5,9 +5,10 @@
         icon="close"
         rounded
         padding="xs"
+        size="25px"
         flat
         class="scanner-close-btn"
-        :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
+        :style="{'margin-top': $q.platform.is.ios ? '75px' : '20px'}"
         @click="stopScan"
       />
       <ScannerUI />
@@ -17,6 +18,7 @@
       <q-btn
         icon="close"
         rounded
+        size="25px"
         padding="xs"
         flat
         class="scanner-close-btn"
@@ -99,9 +101,7 @@ export default {
         // console.log(err)
       }
 
-      if (this.$router.currentRoute.path === '/send') {
-        this.$router.push({ path: '/' })
-      }
+      this.$router.push({ path: '/send/select-asset' })
     },
     async prepareScanner () {
       const status = await this.checkPermission()
@@ -244,15 +244,15 @@ export default {
   z-index: 9999;
   display: flex;
 }
-.scanner-container > .scanner-close-btn {
+.scanner-close-btn {
   position: absolute;
   top: 0;
   right: 0;
-  margin: 10px;
+  margin-right: 15px;
   color: #ef4f84;
   z-index: 2022;
 }
-.scanner-container > .scanner-error-dialog {
+.scanner-error-dialog {
   border-radius: 15px;
   margin-top: 20%;
   margin-bottom: auto;

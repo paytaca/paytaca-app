@@ -9,24 +9,26 @@
               <template v-slot:avatar>
                 <q-icon name="signal_wifi_off" color="primary" />
               </template>
-              You have lost connection to the internet. This app is offline.
+              {{ $t('NoInternetConnectionNotice') }}
             </q-banner>
           </v-offline>
-          <div class="row q-pt-lg q-pb-xs">
-            <q-tabs
-              active-color="brandblue"
-              class="col-12 q-px-sm q-pb-md pp-fcolor"
-              :modelValue="selectedNetwork"
-              @update:modelValue="changeNetwork"
-              :style="{'margin-top': $q.platform.is.ios ? '25px' : '-20px', 'padding-bottom': '16px'}"
-            >
-              <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-              <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
-            </q-tabs>
+          <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
+            <template v-if="enableSmartBCH">
+              <q-tabs
+                active-color="brandblue"
+                class="col-12 q-px-sm q-pb-md pp-fcolor"
+                :modelValue="selectedNetwork"
+                @update:modelValue="changeNetwork"
+                style="margin-top: -25px;"
+              >
+                <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
+                <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
+              </q-tabs>
+            </template>
           </div>
           <div class="row q-mt-sm">
             <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-              <img :src="selectedNetwork === 'sBCH' ? '/sep20-logo.png' : '/bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+              <img :src="selectedNetwork === 'sBCH' ? 'sep20-logo.png' : 'bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
               <q-card id="bch-card">
                 <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
                   <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
@@ -41,33 +43,60 @@
               </q-card>
             </div>
           </div>
-          <div class="row q-mt-sm">
+          <div
+            v-if="!showTokens"
+            class="text-center text-blue-9"
+            :class="{'text-black': !darkMode}"
+            @click.native="toggleShowTokens"
+            style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
+          >
+            {{ $t('ShowTokens') }}
+          </div>
+          <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
               <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
                 {{ $t('Tokens') }}
                 <q-btn
                   flat
                   padding="none"
+                  v-if="manageAssets"
                   size="sm"
-                  icon="app_registration"
+                  icon="close"
                   style="color: #3B7BF6;"
                   @click="toggleManageAssets"
                 />
                 <q-btn
-                  v-if="manageAssets"
                   flat
                   padding="none"
                   size="sm"
-                  icon="search"
+                  icon="settings"
                   style="color: #3B7BF6;"
-                  @click="checkMissingAssets({autoOpen: true})"
-                />
+                  @click="updateTokenMenuPosition"
+                >
+                  <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
+                    <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px;">
+                      <q-item clickable v-close-popup>
+                        <q-item-section @click="toggleManageAssets">{{ $t('ManageTokens') }}</q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section @click="checkMissingAssets({autoOpen: true})">{{ $t('ScanForTokens') }}</q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section @click="toggleShowTokens">{{ $t('HideTokens') }}</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
               </p>
             </div>
+
+            <div class="col-3 q-mt-sm" style="position: relative; margin-top: -5px;" v-show="selectedNetwork === networks.BCH.name">
+            <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
           </div>
-          <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
+          </div>
+          <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
           <!-- Cards without drag scroll on mobile -->
-          <template v-if="$q.platform.is.mobile">
+          <template v-if="showTokens && $q.platform.is.mobile">
             <asset-cards
               :assets="assets"
               :manage-assets="manageAssets"
@@ -75,6 +104,7 @@
               :balance-loaded="balanceLoaded"
               :network="selectedNetwork"
               :wallet="wallet"
+              :isCashToken="isCashToken"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -82,7 +112,7 @@
             </asset-cards>
           </template>
           <!-- Cards with drag scroll on other platforms -->
-          <template v-else>
+          <template v-if="showTokens && !$q.platform.is.mobile">
             <asset-cards
               :assets="assets"
               :manage-assets="manageAssets"
@@ -91,12 +121,14 @@
               v-dragscroll.x="true"
               :network="selectedNetwork"
               :wallet="wallet"
+              :isCashToken="isCashToken"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
             >
             </asset-cards>
           </template>
+          <div v-if="showTokens && assets.length == 0" style="height: 10px;"></div>
         </div>
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
@@ -138,7 +170,7 @@
               </div>
               <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
                 <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-                <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
+                <p :class="{ 'text-black': !darkMode, 'text-white': darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
               </div>
             </template>
             <div v-else>
@@ -183,6 +215,7 @@ import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { VOffline } from 'v-offline'
+import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 
@@ -205,7 +238,8 @@ export default {
     securityOptionDialog,
     VOffline,
     connectedDialog,
-    PriceChart
+    PriceChart,
+    AssetFilter
   },
   directives: {
     dragscroll
@@ -224,7 +258,7 @@ export default {
         id: 'bch',
         symbol: 'BCH',
         name: 'Bitcoin Cash',
-        logo: 'bitcoin-cash-bch-logo.png',
+        logo: 'bch-logo.png',
         balance: 0
       },
       transactionsFilter: 'all',
@@ -243,10 +277,15 @@ export default {
       prevPath: null,
       showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
+      showTokens: this.$store.getters['global/showTokens'],
+      isCashToken: true
     }
   },
 
   watch: {
+    showTokens (n, o) {
+      this.$store.commit('global/showTokens')
+    },
     'assets.length': {
       handler(before, after) {
         // e.g. if one network has assets but the other has none then changes network,
@@ -275,6 +314,9 @@ export default {
   computed: {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
     },
     openedNotification() {
       return this.$store.getters['notification/openedNotification']
@@ -309,8 +351,16 @@ export default {
       })
     },
     assets () {
-      if (this.selectedNetwork === 'sBCH') return this.smartchainAssets
-      return this.mainchainAssets
+      const vm = this
+      if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
+
+      return vm.mainchainAssets.filter(token => {
+        const assetId = token.id.split('/')[0]
+        return (
+          vm.isCashToken && assetId === 'ct' ||
+          !vm.isCashToken && assetId === 'slp'
+        )
+      })
     },
     selectedAssetMarketPrice () {
       if (!this.selectedAsset || !this.selectedAsset.id) return
@@ -333,10 +383,17 @@ export default {
   },
   methods: {
     openPriceChart () {
-      // console.log('opening price chart')
       this.$q.dialog({
         component: PriceChart
       })
+    },
+    async updateTokenMenuPosition () {
+      await this.$nextTick()
+      this.$refs.tokenMenu.updatePosition()
+    },
+    toggleShowTokens () {
+      this.showTokens = !this.showTokens
+      this.adjustTransactionsDivHeight()
     },
     adjustTransactionsDivHeight (opts={timeout: 500}) {
       let timeout = opts?.timeout
@@ -392,7 +449,8 @@ export default {
       }
     },
     toggleManageAssets () {
-      this.manageAssets = !this.manageAssets
+      const vm = this
+      vm.manageAssets = !vm.manageAssets
     },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
@@ -415,8 +473,10 @@ export default {
       }, 100)
     },
     hideAssetInfo () {
-      this.$refs['asset-info'].hide()
-      this.assetInfoShown = false
+      try {
+        this.assetInfoShown = false
+        this.$refs['asset-info'].hide()
+      } catch {}
     },
     toggleHideBalances () {
       this.hideBalances = !this.hideBalances
@@ -761,10 +821,21 @@ export default {
 
     async loadWallets () {
       const vm = this
-      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
 
       const wallet = new Wallet(mnemonic, vm.selectedNetwork)
       vm.wallet = markRaw(wallet)
+
+      const storedWalletHash = vm.$store.getters['global/getWallet']('bch').walletHash
+      const derivedWalletHash = getWalletByNetwork(vm.wallet, 'bch').walletHash
+
+      if (storedWalletHash !== derivedWalletHash) {
+        console.log('INCONSISTENCY DETECTED!')
+        console.log('Wallet index:', walletIndex)
+        this.$store.commit('global/updateCurrentWallet', walletIndex)
+        // location.reload()
+      }
 
       if (vm.selectedNetwork === 'BCH') {
         // Create change addresses if nothing is set yet
@@ -845,7 +916,6 @@ export default {
       this.adjustTransactionsDivHeight()
     },
     async handleOpenedNotification() {
-      console.log('Handling opened notification')
       const openedNotification = this.$store.getters['notification/openedNotification']
       const notificationTypes = this.$store.getters['notification/types']
       if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {
@@ -937,10 +1007,32 @@ export default {
     })
   },
 
-  mounted () {
+  async mounted () {
+    const vm = this
+
+    // Check if preferredSecurity and if it's set as PIN
+    const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
+    let forceRecreate = false
+    if (preferredSecurity === null) {
+      forceRecreate = true
+    } else if (preferredSecurity === 'pin') {
+      // If using PIN, check if it's 6 digits
+      try {
+        const pin =  await SecureStoragePlugin.get({ key: 'pin' })
+        if (pin.value.length < 6) {
+          forceRecreate = true
+        }
+      } catch {
+        forceRecreate = true
+      }
+    }
+    if (forceRecreate) {
+      await vm.$store.dispatch('global/updateOnboardingStep', 0)
+      vm.$router.push('/accounts?recreate=true')
+    }
+
     window.vm = this
     this.handleOpenedNotification()
-    const vm = this
 
     vm.adjustTransactionsDivHeight({ timeout: 50 })
 
@@ -971,10 +1063,11 @@ export default {
     background-color: #ECF3F3;
     right: 0;
     left: 0;
+    
   }
   .transaction-row {
     position: relative;
-    margin-top: 305px;
+    margin-top: 355px;
     z-index: 5;
   }
   .transaction-list {
@@ -1017,9 +1110,6 @@ export default {
     cursor: pointer;
     transition: .2s;
     font-weight: 500;
-  }
-  .btn-custom:hover {
-    background-color: #fff;
   }
   .btn-custom.active-transaction-btn {
     background-color: rgb(60, 100, 246) !important;

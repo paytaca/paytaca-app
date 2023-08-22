@@ -1,18 +1,12 @@
 <template>
   <div class="static-container">
-    <div
-      id="app-container"
-      style="background-color: #ECF3F3; min-height: 100vh;"
-      class="q-pt-xl"
-      :class="{ 'pt-dark': darkMode }"
-    >
+    <div id="app-container" :class="{'pt-dark': darkMode}">
       <HeaderNav
         title="Gifts"
         backnavpath="/apps"
-        style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
         class="q-px-sm"
       />
-      <div :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '30px'}">
+      <div :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
         <div class="row items-center justify-end q-mx-md q-mb-md q-px-xs q-gutter-sm">
           <q-btn 
             no-caps

@@ -11,6 +11,14 @@ function getWalletData (state, walletType) {
   return state.wallets[walletType]
 }
 
+export function language (state) {
+  return state.language
+}
+
+export function country (state) {
+  return state.country
+}
+
 export function network (state) {
   return state.network
 }
@@ -21,6 +29,14 @@ export function getConnectivityStatus (state) {
 
 export function isChipnet (state) {
   return state.isChipnet
+}
+
+export function showTokens (state) {
+  return state.showTokens
+}
+
+export function enableSmartBCH (state) {
+  return state.enableSmartBCH
 }
 
 export function getAddress (state) {

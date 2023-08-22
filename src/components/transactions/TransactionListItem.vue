@@ -14,7 +14,7 @@
             :class="{'text-grey': darkMode, 'q-mt-sm': !marketValueData?.marketValue }"
             class="q-mb-none transactions-wallet float-right ib-text text-right"
           >
-            <div>{{ +(transaction.amount) }} {{ asset?.symbol }}</div>
+            <div>{{ +(formatAmount(transaction?.amount, asset?.decimals, isBCH=asset?.id === 'bch', isSLP=asset?.id.startsWith('slp/'))) }} {{ asset?.symbol }}</div>
             <div 
               v-if="marketValueData?.marketValue"
               class="text-caption text-grey"
@@ -157,6 +157,15 @@ const badges = computed(() => {
 function formatDate (date) {
   return ago(new Date(date))
 }
+
+function formatAmount (amount, decimals, isBCH=false, isSLP=false) {
+  if (isBCH || isSLP) {
+    return amount
+  } else {
+    return amount / (10 ** decimals)
+  }
+}
+
 </script>
 <style scoped>
 .col-transaction {

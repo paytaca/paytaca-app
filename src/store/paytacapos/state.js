@@ -20,6 +20,7 @@ export default function () {
         id: 0,
         merchantWalletHash: '',
         name: '',
+        isMain: false,
         location: {
           landmark: '',
           location: '',

@@ -1,3 +1,5 @@
+import { deleteMnemonic } from './../../wallet'
+
 function getWalletData (state, details) {
   const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
   const walletType = details.type
@@ -72,8 +74,23 @@ export function updateCurrentWallet (state, index) {
   state.chipnet__wallets = chipnet
 }
 
+export function deleteWallet (state, index) {
+  // Mark wallet as deleted
+  state.vault[index].deleted = true
+  // Delete the mnemonic seed phrase for this wallet
+  deleteMnemonic(index)
+}
+
 export function toggleIsChipnet (state) {
   state.isChipnet = !state.isChipnet
+}
+
+export function showTokens (state) {
+  state.showTokens = !state.showTokens
+}
+
+export function enableSmartBCH (state) {
+  state.enableSmartBCH = !state.enableSmartBCH
 }
 
 export function updateWallet (state, details) {
@@ -87,7 +104,15 @@ export function updateWallet (state, details) {
   wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
   wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
   wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
+}
 
+export function setLanguage (state, language) {
+  state.language = language
+}
+
+export function setCountry (state, country) {
+  state.country.name = country.name
+  state.country.code = country.code
 }
 
 export function setConnectedAddress (state, details) {
@@ -184,3 +209,4 @@ export function removeUtxoScanTask(state, walletHash='') {
 export function updateConnectivityStatus (state, online) {
   state.online = online
 }
+

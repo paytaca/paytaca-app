@@ -6,6 +6,12 @@
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 
+// Handle JSON serialization of BigInt
+// Source: https://github.com/GoogleChromeLabs/jsbi/issues/30#issuecomment-1006086291
+BigInt.prototype["toJSON"] = function () {
+  return this.toString();
+};
+
 export default {
   name: 'App',
   data () {
@@ -160,6 +166,7 @@ export default {
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
     if (mnemonic) {
+      vm.$i18n.locale =  vm.$store.getters['global/language'].value
       await vm.savingInitialChipnet(mnemonic)
       // first check if vaults are empty
       this.$store.dispatch('global/saveExistingWallet')
@@ -191,7 +198,7 @@ export default {
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '375px'
-      document.body.style.minHeight = '650px'
+      document.body.style.minHeight = '700px'
       document.body.style.margin = '0 auto'
 
       vm.$q.bex.on('bex.paytaca.send', event => {
@@ -273,8 +280,26 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss">
 #q-app {
   overflow: auto;
+}
+
+#app-container {
+  position: relative !important;
+  background-color: #ECF3F3;
+  min-height: 100vh;
+  flex-direction: column;
+  display: flex;
+}
+
+body {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+  overscroll-behavior: none;
+}
+
+body::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
 }
 </style>

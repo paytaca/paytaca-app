@@ -23,7 +23,7 @@
                   {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
                 </template>
                 <template v-else>
-                  {{ transaction.amount }} {{ transaction.asset.symbol }}
+                  {{ convertTokenAmount(transaction.amount, transaction.asset.decimals, isBCH=transaction.asset.id === 'bch', isSLP=isSLP=transaction.asset.id.startsWith('slp/')) }} {{ transaction.asset.symbol }}
                 </template>
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
@@ -36,13 +36,13 @@
                 <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
                   <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
                     <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
-                      Asset value is based on prices at the time of transaction
+                      {{ $t('AssetValueNote') }}
                     </div>
                   </q-popup-proxy>
                 </q-icon>
               </q-item-label>
               <div v-if="!transaction.asset.id.startsWith('bch')">
-                <TokenTypeBadge :assetId="transaction.asset.id" />
+                <TokenTypeBadge :assetId="transaction.asset.id" abbreviate />
               </div>
             </q-item-section>
           </q-item>
@@ -186,6 +186,7 @@ import TokenTypeBadge from './TokenTypeBadge'
 import { ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
+import { convertTokenAmount } from 'src/wallet/chipnet'
 
 export default {
   name: 'transaction',
@@ -283,6 +284,7 @@ export default {
   },
   methods: {
     ellipsisText,
+    convertTokenAmount,
     concatenate (array) {
       let addresses = array.map(function (item) {
         return item[0]

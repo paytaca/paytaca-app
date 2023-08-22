@@ -134,8 +134,14 @@ function resetForm(opts={ clear: false }) {
     return
   }
   posDeviceForm.value.name = props.posDevice?.name || ''
-  posDeviceForm.value.branchId = props.posDevice?.branchId || null
+  posDeviceForm.value.branchId = props.posDevice?.branchId || defaultBranch.value?.id
 }
+
+const defaultBranch = computed(() => {
+  const mainBranch = props.branchOptions?.filter?.(branch => branch?.isMain)
+  if(mainBranch?.length === 1) return mainBranch[0]
+  return
+})
 
 function savePosDevice() {
   const data = Object.assign({

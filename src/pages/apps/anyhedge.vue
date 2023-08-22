@@ -1,23 +1,18 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:100px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
-  >
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
       title="AnyHedge"
       backnavpath="/apps"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
-
     <q-tabs
       active-color="brandblue"
-      class="col-12 q-px-sm q-pb-md pp-fcolor q-mx-md"
+      class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"
-      :style="{ 'margin-top': $q.platform.is.ios ? '10px' : '-35px'}"
+      :style="{ 'margin-top': $q.platform.is.ios ? '-10px' : '-35px'}"
     >
-      <q-tab name="hedge" :class="{'text-blue-5': darkMode}" label="Hedge"/>
-      <q-tab name="long" :class="{'text-blue-5': darkMode}" label="Long" />
+      <q-tab name="hedge" :class="{'text-blue-5': darkMode}" :label="$t('Hedge')"/>
+      <q-tab name="long" :class="{'text-blue-5': darkMode}" :label="$t('Long')" />
     </q-tabs>
 
     <q-card
@@ -30,13 +25,13 @@
       <template v-if="selectedAccountType === 'hedge'">
         <q-card-section class="text-h5">
           <div>
-          <div class="text-caption text-grey">Total hedge value</div>
+          <div class="text-caption text-grey">{{ $t('TotalHedgeValue') }}</div>
             <div class="row items-center">
               <div class="q-space">
                 <q-skeleton v-if="fetchingContracts" class="q-mr-sm"/>
                 <template v-else>
                   <div v-if="hedgeSummaries.length === 0" class="text-grey-7 text-body1">
-                    No ongoing contract
+                    {{ $t('NoOngoingContract') }}
                   </div>
                   <div v-for="(summary, index) in hedgeSummaries" :key="index">
                     <div class="row items-center q-gutter-x-xs q-ml-xs">
@@ -45,7 +40,7 @@
                         {{ summary?.oracle?.assetCurrency }}
                       </template>
                       <template v-else>
-                        Asset {{ ellipsisText(summary.oraclePubkey, {start: 5, end: 0}) }}
+                        {{ $t('Asset') }} {{ ellipsisText(summary.oraclePubkey, {start: 5, end: 0}) }}
                         <q-icon
                           :color="darkMode ? 'grey-7' : 'black'"
                           size="sm"
@@ -53,8 +48,8 @@
                         >
                           <q-popup-proxy :breakpoint="0">
                             <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption" style="word-break:break-all;">
-                              <div class="text-subtitle1">Unknown asset</div>
-                              Oracle pubkey: {{ summary.oraclePubkey }}
+                              <div class="text-subtitle1">{{ $t('UnknownAsset') }}</div>
+                              {{ $t('OraclePubkey') }}: {{ summary.oraclePubkey }}
                             </div>
                           </q-popup-proxy>
                         </q-icon>
@@ -95,7 +90,7 @@
       <template v-else-if="selectedAccountType === 'long'">
         <q-card-section class="text-h5">
           <div>
-            <div class="text-caption text-grey">Total Long Positions</div>
+            <div class="text-caption text-grey">{{ $t('TotalLongPositions') }}</div>
             <div class="row items-center">
               <div class="q-space">
                 <q-skeleton v-if="fetchingLongPositions" class="q-mr-sm"/>
@@ -170,11 +165,11 @@
       ]"
     >
       <template v-if="selectedAccountType === 'hedge'">
-        <q-expansion-item ref="offersDrawerRef" label="Hedge Offers">
+        <q-expansion-item ref="offersDrawerRef" :label="$t('HedgeOffers')">
           <template v-slot:header>
             <q-item-section>
               <div class="row items-center full-width">
-                Hedge offers
+                {{ $t('HedgeOffers') }}
                 <q-badge v-if="pendingHedgeOffersCount" color="amber" class="q-ml-xs q-px-sm q-py-xs" @click.stop>
                   {{ pendingHedgeOffersCount }}
                 </q-badge>
@@ -194,13 +189,13 @@
                   {{ formatPositionOfferStatus(status) || '' }}
                 </q-badge>
               </template>
-              <q-badge v-if="hedgeOffersFilter.expired" color="grey">Expired</q-badge>
+              <q-badge v-if="hedgeOffersFilter.expired" color="grey">{{ $t('Expired') }}</q-badge>
               <q-btn
                 v-if="hedgeOffersHasFilter"
                 flat
                 no-caps
                 padding="xs"
-                label="Clear filter"
+                :label="$t('ClearFilter')"
                 @click="clearHedgeOffersListFilters()"
               />
             </div>
@@ -234,7 +229,7 @@
           </div>
         </q-expansion-item>
         <q-separator/>
-        <q-expansion-item ref="hedgesDrawerRef" label="Hedge Positions" default-opened>
+        <q-expansion-item ref="hedgesDrawerRef" :label="$t('HedgePositions')" default-opened>
           <q-card-section v-if="fetchingContracts" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
@@ -256,11 +251,11 @@
         </q-expansion-item>
       </template>
       <template v-else-if="selectedAccountType === 'long'">
-        <q-expansion-item ref="offersDrawerRef" label="Long Offers">
+        <q-expansion-item ref="offersDrawerRef" :label="$t('LongOffers')">
           <template v-slot:header>
             <q-item-section>
               <div class="row items-center full-width">
-                Long Offers
+                {{ $t('LongOffers') }}
                 <q-badge v-if="pendingLongOffersCount" color="amber" class="q-ml-xs">
                   {{ pendingLongOffersCount }}
                 </q-badge>
@@ -280,7 +275,7 @@
                   {{ formatPositionOfferStatus(status) || '' }}
                 </q-badge>
               </template>
-              <q-badge v-if="longOffersFilter.expired" color="grey">Expired</q-badge>
+              <q-badge v-if="longOffersFilter.expired" color="grey">{{ $t('Expired') }}</q-badge>
               <q-btn
                 v-if="longOffersHasFilter"
                 flat
@@ -320,7 +315,7 @@
           </div>
         </q-expansion-item>
         <q-separator/>
-        <q-expansion-item ref="hedgesDrawerRef" label="Long Positions" default-opened>
+        <q-expansion-item ref="hedgesDrawerRef" :label="$t('LongPositions')" default-opened>
           <q-card-section v-if="fetchingLongPositions" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
@@ -404,7 +399,6 @@ const socketReconnection = ref({
 })
 const websocketMessageHandler = (message) => {
   const data = JSON.parse(message.data)
-  console.log(data)
   if (data?.resource === 'long_account') fetchLongAccounts()
   if (data?.resource === 'hedge_position_offer') {
     if (data?.action === 'settled') {

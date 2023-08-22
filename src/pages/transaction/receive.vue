@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <header-nav
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
@@ -29,7 +29,7 @@
     <template v-else>
       <div class="row">
         <div class="col qr-code-container" @click="copyToClipboard(address)">
-          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+          <div class="col col-qr-code q-pl-sm q-pr-sm">
             <div class="row text-center">
               <div class="col row justify-center q-pt-md">
                 <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
@@ -109,7 +109,8 @@ export default {
       legacy: false,
       lnsName: '',
       generatingAddress: false,
-      copying: false
+      copying: false,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   props: {
@@ -152,7 +153,6 @@ export default {
             this.lnsName = response.name
             return Promise.resolve(response)
           }
-          return Promise.reject()
         })
     },
     getFallbackAssetLogo (asset) {
@@ -454,7 +454,7 @@ export default {
     color: #636767;
   }
   .qr-code-container {
-    margin-top: 120px;
+    margin-top: 40px;
     padding-left: 28px;
     padding-right: 28px;
   }

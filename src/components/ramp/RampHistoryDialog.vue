@@ -3,7 +3,7 @@
     <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg" v-if="!showInfo">
         <div class="text-subtitle1 q-space q-mt-sm">
-          Transaction History
+          {{ $t('TransactionHistory') }}
         </div>
         <q-btn
           flat
@@ -32,7 +32,7 @@
         <q-card-section>
           <div v-if="transactions.length === 0" class="relative text-center q-pt-sm">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
+            <p :class="{ 'text-black': !darkMode, 'text-white': darkMode }">{{ $t('NoTransactionsToDisplay') }}</p>
           </div>
           <div v-else>
             <q-card-section style="max-height:50vh;overflow-y:auto;">

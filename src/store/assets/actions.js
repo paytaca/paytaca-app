@@ -1,6 +1,17 @@
-import es from 'src/i18n/es'
+import { getMnemonic, Wallet } from '../../wallet'
 import { axiosInstance } from '../../boot/axios'
-import { getWatchtowerApiUrl, getBlockChainNetwork } from 'src/wallet/chipnet'
+import axios from 'axios'
+import { setupCache } from 'axios-cache-interceptor'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import {
+  getWatchtowerApiUrl,
+  getBlockChainNetwork,
+  getWalletByNetwork
+} from 'src/wallet/chipnet'
+
+const bcmrBackend = setupCache(axios.create({
+  baseURL: 'https://bcmr.paytaca.com/api',
+}))
 
 function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^slp\/([0-9a-fA-F]+)$/)
@@ -128,15 +139,37 @@ export async function getMissingAssets (
   }
 
   let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
+  const balanceUrl = `${url}/balance/wallet/${walletHash}`
+
   if (isCashToken) {
     url += '/cashtokens/fungible/'
   } else {
     url += '/tokens/'
   }
-  console.log(url)
   const { data } = await axiosInstance.get(url, { params: filterParams })
 
   if (!Array.isArray(data.results)) return []
+
+  if (isCashToken) {
+    const finalData = []
+    const mnemonic = await getMnemonic(context.rootGetters['global/getWalletIndex'])
+    let wallet = new Wallet(mnemonic, context.rootGetters['global/network'])
+    wallet = getWalletByNetwork(wallet, 'bch')
+    
+    for (const result of data.results) {
+      const tokenId = result.id.split('/')[1]
+      const tokenDetails = await wallet.getTokenDetails(tokenId)
+      
+      // exclude tokens without metadata
+      if (tokenDetails !== null) {
+        const finalBalUrl = `${balanceUrl}/${tokenId}/`
+        const response = await axiosInstance.get(finalBalUrl)
+        tokenDetails.balance = response.data.balance
+        finalData.push(tokenDetails)
+      }
+    }
+    return finalData
+  }
   return data.results
 }
 
@@ -165,10 +198,30 @@ export async function getAssetMetadata (context, assetId) {
 
   if (tokenType !== 'ct') return
 
-  let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
-  url += `/cashtokens/fungible/${tokenId}/`
+  const url = 'tokens/' + tokenId
+  const response = await bcmrBackend.get(url)
+  const _metadata = response.data
+  let data
 
-  let { data } = await axiosInstance.get(url)
-  data.id = assetId
-  context.commit('updateAssetMetadata', data)
+  if (_metadata.error) {
+    data = null
+  } else {
+    let imageUrl
+    if (_metadata.token.uris) {
+      imageUrl = _metadata.token.uris.icon || ''
+    } else {
+      imageUrl = _metadata.uris.icon || ''
+    }
+    data = {
+      'id': 'ct/' + tokenId,
+      'name': _metadata.name,
+      'description': _metadata.description,
+      'symbol': _metadata.token.symbol,
+      'decimals': _metadata.token.decimals,
+      'logo': convertIpfsUrl(imageUrl)
+    }
+  }
+
+  if (data !== null)
+    context.commit('updateAssetMetadata', data)
 }

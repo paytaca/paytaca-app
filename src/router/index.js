@@ -32,12 +32,11 @@ export default function ({ store }) {
   })
 
   Router.beforeEach(async (to, from, next) => {
-    // console.log('hello hello')
-    // console.log(store.getters['global/getWalletIndex'])
-    const index = store.getters['global/getWalletIndex']
     if (to.path === '/') {
       try {
-        const mnemonic = await getMnemonic(index)
+        // Check if first mnemonic exists
+        const currentWalletIndex = store.getters['global/getWalletIndex']
+        const mnemonic = await getMnemonic(currentWalletIndex)
         if (mnemonic) {
           next()
         } else {

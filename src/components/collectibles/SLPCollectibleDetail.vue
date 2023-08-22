@@ -1,6 +1,6 @@
 <template>
-  <q-dialog v-model="val" full-width persistent seamless>
-    <q-card v-if="collectible" style="max-width:90vw;" :class="{'pt-dark': darkMode}">
+  <q-dialog v-model="val" persistent seamless>
+    <q-card v-if="collectible" style="width: 90vw;" :class="{'pt-dark': darkMode}">
       <q-card-section class="row no-wrap items-start" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
         <div class="text-h6" :class=" $store.getters['darkmode/getStatus'] ? 'text-grad' : 'text-black'">{{ collectible.name }}</div>
         <q-space/>

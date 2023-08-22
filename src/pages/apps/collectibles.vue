@@ -1,23 +1,21 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;"
-    :class="{'pt-dark': darkMode}"
-  >
-    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
+  <div id="app-container" :class="{'pt-dark': darkMode}">
+    <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
         <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
+            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">{{ $t('ShowReceivingAddress') }}</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">Refresh List</q-item-section>
+            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">{{ $t('RefreshList') }}</q-item-section>
           </q-item>
         </q-list>
       </q-menu>
     </q-icon>
     <q-tabs
       dense
+      v-if="enableSmartBCH"
       active-color="brandblue"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
@@ -58,7 +56,7 @@
     <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;">
       <q-tab-panel name="BCH">
         <div class="row items-center justify-end">
-          <AssetFilter style="float:none" @filterTokens="type => bchNftType = type"/>
+          <AssetFilter style="float:none" @filterTokens="filterTokens"/>
         </div>
         <keep-alive>
           <CashTokensNFTs
@@ -195,6 +193,7 @@ import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDi
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
+import { convertCashAddress } from 'src/wallet/chipnet'
 
 export default {
   name: 'app-wallet-info',
@@ -228,6 +227,9 @@ export default {
     }
   },
   computed: {
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
     isSep20 () {
       return this.selectedNetwork === 'sBCH'
     },
@@ -246,10 +248,17 @@ export default {
       if (!this.wallet) return ''
 
       if (this.isSep20) return this.$store.getters['global/getAddress']('sbch')
+      if (this.bchNftType === 'ct') {
+        const bchAddress = this.$store.getters['global/getAddress']('bch')
+        return convertCashAddress(bchAddress, false, true)
+      }
       return this.$store.getters['global/getAddress']('slp')
     }
   },
   methods: {
+    filterTokens (isCashToken) {
+      this.bchNftType = isCashToken ? 'ct' : 'slp'
+    },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },

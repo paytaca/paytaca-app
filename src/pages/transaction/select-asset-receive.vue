@@ -3,8 +3,9 @@
     <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense
+      v-if="enableSmartBCH"
       active-color="brandblue"
-      :style="{ 'margin-top': $q.platform.is.ios ? '100px' : '70px'}"
+      :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
@@ -13,12 +14,12 @@
       <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet"/>
     </q-tabs>
     <template v-if="assets">
-      <div class="row">
+      <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
           <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode}">{{ $t('SelectAssetToBeReceived') }}</p>
         </div>
         <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
-          <AssetFilter @filterTokens="filterTokens" />
+          <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -29,7 +30,7 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'">
+          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'" v-if="isCashToken">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
@@ -37,13 +38,16 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none" :class="darkMode ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, asset.symbol.toLowerCase() === 'bch')).substring(0, 16) }}</span>
+                  <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/'))).substring(0, 16) }}</span>
                   {{ asset.symbol }}
                 </p>
               </div>
             </div>
           </div>
         </div>
+        <q-banner v-if="!isCashToken" inline-actions class="text-white bg-red text-center q-mt-lg" :class="darkMode ? 'text-white' : 'text-black'" style="width: 90%; margin-left: auto; margin-right: auto;">
+          Receiving SLP tokens is temporarily disabled until further notice.
+        </q-banner>
       </div>
       <div style="height: 90px;" v-if="assets.length > 5"></div>
     </template>
@@ -88,6 +92,9 @@ export default {
   computed: {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
     },
     selectedNetwork: {
       get () {
@@ -150,9 +157,6 @@ export default {
   },
   methods: {
     convertTokenAmount,
-    filterTokens (tokenType) {
-      this.isCashToken = tokenType === 'ct'
-    },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
@@ -170,11 +174,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  #app-container {
-    position: relative !important;
-    background-color: #ECF3F3;
-    min-height: 100vh;
-  }
   .group-currency {
     width: 100%;
     border-radius: 7px;

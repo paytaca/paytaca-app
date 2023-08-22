@@ -32,7 +32,7 @@
   background: transparent;
   display: flex;
 }
-.qrcode-scanner > .scanner-close-btn {
+.qrcode-scanner {
   position: absolute;
   top: 0;
   right: 0;

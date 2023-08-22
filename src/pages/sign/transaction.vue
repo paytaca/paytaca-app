@@ -588,13 +588,6 @@ const artifactMap = {"127183cef4d91bde0bb655f7a0092835319a23cf": {
   .signed {
     height: 80px;
   }
-  #app-container {
-    // position: relative !important;
-    background-color: #ECF3F3;
-    min-height: 100vh;
-    flex-direction: column;
-    display: flex;
-  }
   .text-sm {
     font-size: 12px;
   }

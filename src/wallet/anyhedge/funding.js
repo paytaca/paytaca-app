@@ -1,10 +1,12 @@
 import axios from 'axios'
 import BCHJS from '@psf/bch-js'
+import { binToHex, decodeTransactionBCH, hexToBin } from '@bitauth/libauth'
 import { AnyHedgeManager, ContractData } from '@generalprotocols/anyhedge'
 import Watchtower from 'watchtower-cash-js'
 import { Wallet } from '../index'
 import { generalProtocolLPBackend, generalProtocolLPAuthToken, anyhedgeBackend } from './backend'
-import { getContractAccessKeys, getContractStatus } from './utils'
+import { getContractAccessKeys, getContractStatus, txHexToHash } from './utils'
+import { encodePrivateKeyWif } from '@bitauth/libauth'
 
 const bchjs = new BCHJS()
 
@@ -266,15 +268,18 @@ async function createUtxo(amount, recipient, changeAddress, wallet) {
     return response
   }
 
-  let decodedTx = await bchjs.RawTransactions.decodeRawTransaction(result.transaction);
-  if(!Array.isArray(decodedTx?.vin)) {
+  
+  console.log(result)
+  const decodedTx = decodeTransactionBCH(hexToBin(result.transaction));
+  console.log(decodedTx)
+  if(!Array.isArray(decodedTx?.inputs)) {
     response.success = false
     response.error = 'Transaction error reading transaction'
     return response
   }
 
-  response.dependencyTxids = decodedTx.vin.map(inp => inp?.txid)
-  response.txid = decodedTx.hash
+  response.dependencyTxids = decodedTx.inputs.map(inp => binToHex(inp?.outpointTransactionHash))
+  response.txid = txHexToHash(result.transaction)
 
   const broadcastResponse = await wallet.BCH.watchtower.BCH.broadcastTransaction(result.transaction)
   if (!broadcastResponse?.data?.success) {
@@ -498,7 +503,8 @@ export async function createFundingProposal(contractData, position, wallet, addr
 
   const manager = new AnyHedgeManager()
   const fundingProposal = manager.createFundingProposal(contractData, fundingUtxo.txid, fundingUtxo.vout, fundingUtxo.amount)
-  const wif = await wallet.BCH.watchtower.BCH.retrievePrivateKey(wallet.BCH.mnemonic, wallet.BCH.derivationPath, fundingUtxo.address_path)
+  let wif = await wallet.BCH.watchtower.BCH.retrievePrivateKey(wallet.BCH.mnemonic, wallet.BCH.derivationPath, fundingUtxo.address_path)
+  wif = encodePrivateKeyWif(wif, 'mainnet')
   const signedFundingProposal = await manager.signFundingProposal(wif, fundingProposal)
 
   return { fundingUtxo, signedFundingProposal }

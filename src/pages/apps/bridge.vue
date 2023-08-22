@@ -1,12 +1,8 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
-  >
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
       :title="$t('Bridge')"
       backnavpath="/apps"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
 
     <q-icon class="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
@@ -144,9 +140,9 @@ export default {
 </script>
 <style scoped>
 .context-menu {
-  position: fixed;
-  top: 16px;
-  right: 10px;
+  position: relative;
+  top: -55px;
+  right: -330px;
   z-index: 150 !important;
   color: #3b7bf6;
 }

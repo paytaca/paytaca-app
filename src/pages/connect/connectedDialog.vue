@@ -1,14 +1,14 @@
 <template>
-  <div id="connected-dialog" class="text-white">
+  <div id="connected-dialog" class="text-white" :class="{'pt-dark': darkMode}">
     <div style="display: flex; justify-content: center; margin-top: 5px;">Connected Addresses</div>
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
       <q-card ref="card" style="padding: 20px 10px 5px 0;" :class="{'pt-dark-card': darkMode}" class="pp-text br-15">
         <div style="right: 10px; top: 10px; position: absolute; z-index: 100;">
           <q-btn icon="close" flat round dense v-close-popup :color="darkMode ? 'grey' : ''" />
         </div>
-        <div class="text-h6" :class="darkMode ? 'text-white' : 'pp-text'" style="text-align: center !important;" v-text="origin"></div>
-        <div style="text-align: center !important;" v-if="connectedAddresses.length">{{ `You have ${connectedAddresses.length} addresses connected to this site.` }}</div>
-        <div style="text-align: center !important; margin: 10px" v-else>{{ `You are not connected to this site.` }}</div>
+        <div class="text-h6" :class="{'text-white': darkMode}" style="text-align: center !important;" v-text="origin"></div>
+        <div :class="{'text-white': darkMode}" style="text-align: center !important;" v-if="connectedAddresses.length">{{ `You have ${connectedAddresses.length} addresses connected to this site.` }}</div>
+        <div :class="{'text-white': darkMode}" style="text-align: center !important; margin: 10px" v-else>{{ `You are not connected to this site.` }}</div>
 
         <q-card-section v-for="(address, index) in connectedAddresses" class="amount q-pb-none" style="padding-right: 0px; padding-top: 8px;">
           <q-item class="q-px-none">
@@ -45,7 +45,8 @@ export default {
       darkMode: false,
       origin: "",
       connectedAddresses: [],
-      activeAddress: ""
+      activeAddress: "",
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   mounted () {

@@ -2,8 +2,6 @@ import { SlpWallet } from './slp'
 import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import aes256 from 'aes256'
-import { utils } from 'ethers'
-import { convertCashAddress } from './chipnet'
 
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
@@ -116,68 +114,12 @@ export async function getMnemonic (index = 0) {
   return mnemonic
 }
 
-// export class Address {
-//   constructor (address) {
-//     this.address = address
-//   }
-
-//   isSep20Address () {
-//     return utils.isAddress(this.address)
-//   }
-
-//   isLegacyAddress () {
-//     return bchjs.Address.isLegacyAddress(this.address)
-//   }
-
-//   toLegacyAddress () {
-//     return bchjs.Address.toLegacyAddress(this.address)
-//   }
-
-//   toCashAddress () {
-//     return bchjs.Address.toCashAddress(this.address)
-//   }
-
-//   isCashAddress () {
-//     return bchjs.Address.isCashAddress(this.address)
-//   }
-
-//   isMainnetCashAddress () {
-//     return bchjs.Address.isMainnetAddress(this.address)
-//   }
-
-//   isTestnetCashAddress () {
-//     return bchjs.Address.isTestnetAddress(this.address)
-//   }
-
-//   isSLPAddress () {
-//     return bchjs.SLP.Address.isSLPAddress(this.address)
-//   }
-
-//   toSLPAddress () {
-//     return bchjs.SLP.Address.toSLPAddress(this.address)
-//   }
-
-//   isMainnetSLPAddress () {
-//     return bchjs.SLP.Address.isMainnetAddress(this.address)
-//   }
-
-//   isTestnetSLPAddress () {
-//     return bchjs.SLP.Address.isTestnetAddress(this.address)
-//   }
-
-//   isValidBCHAddress (isChipnet) {
-//     const isBCHAddr = this.isCashAddress()
-//     if (isChipnet)
-//       return isBCHAddr && this.isTestnetCashAddress()
-//     return isBCHAddr && this.isMainnetCashAddress()
-//   }
-
-//   isValidSLPAddress (isChipnet) {
-//     const isSLPAddr = this.isSLPAddress()
-//     if (isChipnet)
-//       return isSLPAddr && this.isTestnetSLPAddress()
-//     return isSLPAddr && this.isMainnetSLPAddress()
-//   }
-// }
+export async function deleteMnemonic (index) {
+  let key = 'mn'
+  if (index !== 0) {
+    key = key + index
+  }
+  await SecureStoragePlugin.remove({ key })
+}
 
 export { Address } from 'watchtower-cash-js';

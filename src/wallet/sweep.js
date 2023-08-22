@@ -17,7 +17,6 @@ export class SweepPrivateKey {
     })
     if (respBch.data.success) {
       const resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
-      console.log(resp)
       return resp.data
     }
   }
