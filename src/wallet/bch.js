@@ -155,7 +155,7 @@ export class BchWallet {
       addressIndex: index,
       chatIdentity: addresses.pgpInfo
     }
-    const merchantData = {
+    const ppVaultSignerData = {
       addresses: {
         receiving: purelypeerVaultSigner.receiving,
         change: purelypeerVaultSigner.change,
@@ -165,9 +165,9 @@ export class BchWallet {
       addressIndex: this.purelypeerVaultSigner.index
     }
     const result = await this.watchtower.subscribe(data)
-    const merchantResult = await this.watchtower.subscribe(merchantData)
+    const ppVaultSignerResult = await this.watchtower.subscribe(ppVaultSignerData)
 
-    if (result.success && merchantResult.success) {
+    if (result.success && ppVaultSignerResult.success) {
       return {
         addresses: addressSet,
         pgpIdentity: addresses.pgpIdentity,
@@ -237,18 +237,37 @@ export class BchWallet {
     return response
   }
 
-  async getPrivateKey (addressPath, derivationPath = '') {
+  async getPrivateKey (addressPath, derivationPath = '', useChildNode = false, index = 0) {
     let __derivationPath = derivationPath
     if (derivationPath === '') __derivationPath = this.derivationPath 
+
+    if (useChildNode) {
+      const childNode = await this.getChildNode(index, __derivationPath)
+      return {
+        receiving: bchjs.HDNode.toWIF(childNode.receivingAddressNode).toString('hex'),
+        change: bchjs.HDNode.toWIF(childNode.changeAddressNode).toString('hex')
+      }
+    }
 
     const masterHDNode = await this._getMasterHDNode()
     const childNode = masterHDNode.derivePath(__derivationPath + '/' + String(addressPath))
     return bchjs.HDNode.toWIF(childNode)
   }
 
-  async getPublicKey(addressPath) {
+  async getPublicKey(addressPath, derivationPath = '', useChildNode = false, index = 0) {
+    let __derivationPath = derivationPath
+    if (derivationPath === '') __derivationPath = this.derivationPath
+
+    if (useChildNode) {
+      const childNode = await this.getChildNode(index, __derivationPath)
+      return {
+        receiving: bchjs.HDNode.toPublicKey(childNode.receivingAddressNode).toString('hex'),
+        change: bchjs.HDNode.toPublicKey(childNode.changeAddressNode).toString('hex')
+      }
+    }
+
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(this.derivationPath + '/' + String(addressPath))
+    const childNode = masterHDNode.derivePath(__derivationPath + '/' + String(addressPath))
     return bchjs.HDNode.toPublicKey(childNode).toString('hex')
   }
 

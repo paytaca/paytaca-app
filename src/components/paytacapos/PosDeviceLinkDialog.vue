@@ -128,9 +128,10 @@ async function generateLinkCode(opts) {
   const wallet = props.wallet.BCH
   const xpubkey = await wallet.getXPubKey()
   const ppvsAddrPath = `0/${wallet.purelypeerVaultSigner.index}`
-  const ppvsPrivKey = await wallet.getPrivateKey(ppvsAddrPath, wallet.purelypeerVaultSigner.derivationPath)
+  const ppvsDerivationPath = wallet.purelypeerVaultSigner.derivationPath
+  const ppvsPrivKey = await wallet.getPrivateKey(ppvsAddrPath, ppvsDerivationPath, true)
 
-  const toBeEncryptedData = xpubkey + '@' + ppvsPrivKey
+  const toBeEncryptedData = xpubkey + '@' + ppvsPrivKey.receiving
 
   const key = aes.generateKey()
   const encryptedData = aes.encrypt(toBeEncryptedData, key.password, key.iv)

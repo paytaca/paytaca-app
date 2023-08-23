@@ -1,4 +1,5 @@
 import { backend as posBackend } from "src/wallet/pos"
+import { loadWallet } from "src/wallet"
 
 /**
  * 
@@ -41,16 +42,28 @@ export function refetchMerchantInfo(context, data) {
  * @param {String} data.location.longitude
  * @param {String} data.location.latitude
  */
-export function updateMerchantInfo(context, data) {
+export async function updateMerchantInfo(context, data) {
   if (!data?.walletHash) return Promise.reject(new Error('wallet hash required'))
 
   const payload = {
     wallet_hash: data?.walletHash,
     primary_contact_number: data?.primaryContactNumber,
   }
+
+  let receiving_pubkey = context.state.merchantInfo?.receivingPubkey
+  let signer_pubkey = context.state.merchantInfo?.signerPubkey
+
+  const wallet = await loadWallet('BCH')
+  const receivingPubkeys = await wallet.BCH.getPublicKey("0/0", "m/44'/145'/0'", true)
+  const signerPubkeys = await wallet.BCH.getPublicKey("0/0", "m/44'/145'/1'", true)
+  receiving_pubkey = receivingPubkeys.receiving
+  signer_pubkey = signerPubkeys.receiving
+
   Object.assign(payload, {
     ...data,
-    signer_wallet_hash: context.rootGetters['global/ppvsWalletHash']
+    signer_wallet_hash: context.rootGetters['global/ppvsWalletHash'],
+    receiving_pubkey,
+    signer_pubkey,
   })
 
   return posBackend.post(`paytacapos/merchants/`, payload)
