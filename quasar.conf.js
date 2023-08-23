@@ -100,6 +100,11 @@ module.exports = function (/* ctx */) {
         //   exclude: /node_modules/
         // })
 
+        cfg.module.rules.push({
+          test: /\.cash$/, // Adjust the file extension as needed
+          use: 'raw-loader'
+        })
+
         cfg.experiments = {
           topLevelAwait: true
         }
