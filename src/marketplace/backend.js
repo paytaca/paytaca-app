@@ -5,7 +5,7 @@ import axios from 'axios'
 const bchjs = new BCHJS()
 
 export const backend = axios.create({
-  baseURL: process.env.MARKETPLACE_BASE_URL || 'http://localhost:8000/api',
+  baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api',
 })
 
 backend.interceptors.request.use(async (config) => {
