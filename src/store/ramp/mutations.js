@@ -14,13 +14,9 @@ export function saveTxid (state, data) {
   console.log('!!!!txids:', state.txids)
 }
 
-export function removeOrderTxids (state, id) {
+export function clearOrderTxids (state, id) {
   delete state.txids[id]
-  console.log('txids:', state.txids)
-}
-
-export function clearOrderTxids (state) {
-  state.txids = {}
+  console.log('::::::::txids:', state.txids)
 }
 
 // ~ store mutations ~ //

@@ -184,7 +184,6 @@ export default {
   emits: ['back'],
   async mounted () {
     const vm = this
-    // vm.$store.dispatch('ramp/clearOrderTxids')
     if (vm.initWallet) {
       vm.wallet = vm.initWallet
     } else {
@@ -273,6 +272,7 @@ export default {
         case 'RLS': // Released
           vm.state = 'standby-view'
           vm.standByDisplayKey++
+          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
           break
         case 'CNCL': // Canceled
           this.state = 'standby-view'
@@ -285,6 +285,7 @@ export default {
         case 'RFN_PN': // Refund Pending
         case 'RFN': // Refunded
           this.status = 'refund'
+          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
           break
       }
       if (this.isExpired) {

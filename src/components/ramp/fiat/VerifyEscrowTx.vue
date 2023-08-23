@@ -168,7 +168,7 @@ export default {
             vm.waitSeconds--
             if (vm.waitSeconds === 0) {
               vm.hideBtn = false
-              vm.errorMessages.push('Server took too long to respond')
+              // vm.errorMessages.push('Server took too long to respond')
               clearInterval(vm.timer)
             }
           }, 1000)

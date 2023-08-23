@@ -234,10 +234,6 @@ export function saveTxid (context, data) {
   context.commit('saveTxid', data)
 }
 
-export function removeOrderTxids (context, id) {
-  context.commit('removeOrderTxids', id)
-}
-
-export function clearOrderTxids (context) {
-  context.commit('clearOrderTxids')
+export function clearOrderTxids (context, id) {
+  context.commit('clearOrderTxids', id)
 }
