@@ -26,6 +26,7 @@
 
     <!-- <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/> -->
 
+    <!-- Countdown Timer -->
     <div class="q-mt-md q-px-md q-mb-lg">
       <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
         <div v-if="hasLabel && !forRelease" class="row">
@@ -71,6 +72,55 @@
           </div>
         </div>
       </div>
+
+      <!-- Feedback -->
+      <div class="q-pt-md" v-if="type === 'completed'">
+        <div class="text-center bold-text xm-font-size subtext">
+          <span v-if="!feedback.is_posted">Rate your Experience</span>
+          <span v-else>Your Review</span>
+        </div>
+        <div class="text-center">
+          <div class="q-py-xs">
+            <q-rating
+              :readonly="feedback.is_posted"
+              v-model="feedback.rating"
+              size="2.5em"
+              color="yellow-9"
+              icon="star"
+            />
+          </div>
+          <div class="q-pt-sm q-px-xs">
+            <q-input
+              v-model="feedback.comment"
+              :dark="darkMode"
+              :disable="feedback.is_posted"
+              placeholder="Add comment here..."
+              dense
+              outlined
+              autogrow
+              counter
+              maxlength="200"
+            />
+          </div>
+          <div class="row q-pt-xs q-px-xs q-pt-sm">
+            <q-btn
+              v-if="!feedback.is_posted"
+              rounded
+              label='Post Review'
+              class="q-space text-white"
+              color="blue-8"
+              @click="postingFeedback"
+            />
+            <q-btn
+              v-else
+              rounded
+              label='Edit Review'
+              class="q-space text-white"
+              color="blue-8"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -102,7 +152,13 @@ export default {
       countDown: '',
       timer: null,
       type: 'ongoing',
-      openDialog: false
+      openDialog: false,
+      feedback: {
+        rating: 0,
+        comment: '',
+        is_posted: false
+      },
+      minHeight: this.$q.screen.height - 210
     }
   },
   props: {
@@ -182,6 +238,9 @@ export default {
       if (completedStatus.includes(this.order.status.value)) {
         this.type = 'completed'
       }
+    },
+    postingFeedback () {
+      console.log('feedback: ', this.feedback)
     },
     paymentCountdown () {
       // console.log('counting down')

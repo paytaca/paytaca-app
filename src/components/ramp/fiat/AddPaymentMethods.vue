@@ -495,15 +495,18 @@ export default {
     },
     submitPaymentMethod () {
       if (this.type === 'General') {
-        console.log('here')
-        this.orderConfirm()
+        this.dialogType = 'confirmOrderCreate'
+        this.title = 'Create Order?'
+        // this.openDialog = true
+        // this.orderConfirm()
       } else {
         this.dialogType = 'confirmPaymentMethod'
         this.title = 'Confirm Payment Methods?'
         this.text = 'Please make sure the information provided are correct.'
-        this.openDialog = true
+        // this.openDialog = true
         // this.$emit('submit')
       }
+      this.openDialog = true
     }
   }
 }
