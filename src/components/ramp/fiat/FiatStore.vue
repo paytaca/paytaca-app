@@ -27,7 +27,7 @@
         </div>
         <q-space />
         <div class="q-pr-md">
-          <q-icon size="sm" name='sym_o_filter_list'/>
+          <q-icon size="sm" name='sym_o_filter_list' @click="openFilter()"/>
         </div>
       </div>
       <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
@@ -64,7 +64,7 @@
                               :class="{'pt-dark-label': darkMode}"
                               class="q-mb-none md-font-size"
                               style="font-weight: 400;"
-                              @click.stop.prevent="viewUserProfile(listing.owner)">
+                              @click.stop.prevent="viewUserProfile(listing.owner, listing)">
                               <!-- <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }} -->
                               {{ listing.owner }}
                             </span><br>
@@ -124,16 +124,17 @@
     /> -->
   </div>
 
-  <!-- <div v-if="viewProfile">
+  <div v-if="openDialog">
     <MiscDialogs
-      :type="'viewProfile'"
-      v-on:back="viewProfile = false"
+      :type="dialogType"
+      @back="openDialog = false"
+      @submit="receiveDialog"
     />
-  </div> -->
+  </div>
   <FiatProfileCard
     v-if="viewProfile"
     :userInfo="selectedUser"
-    :type="isOwner ? 'self' : 'peer'"
+    :type="selectedUser.is_owner ? 'self' : 'peer'"
     v-on:back="viewProfile = false"
   />
 </template>
@@ -142,6 +143,7 @@
 import FiatOrderForm from './FiatOrderForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
@@ -158,7 +160,8 @@ export default {
     // FiatStoreForm,
     FiatOrderForm,
     ProgressLoader,
-    FiatProfileCard
+    FiatProfileCard,
+    MiscDialogs
   },
   data () {
     return {
@@ -175,6 +178,8 @@ export default {
       fiatCurrencies: [],
       totalPages: null,
       pageNumber: null,
+      openDialog: false,
+      dialogType: '',
       minHeight: this.$q.screen.height - 210
     }
   },
@@ -220,7 +225,6 @@ export default {
       return (this.pageNumber < this.totalPages)
     },
     isOwner () {
-      // console.log(this.selectedOrder.is_owned)
       return this.selectedUser.name === this.$store.getters['ramp/getUser'].nickname
     }
   },
@@ -235,6 +239,11 @@ export default {
     vm.loading = false
   },
   methods: {
+    receiveDialog (data) {
+      console.log(data)
+
+      this.openDialog = false
+    },
     async fetchFiatCurrencies () {
       const vm = this
       vm.$axios.get(vm.apiURL + '/currency/fiat')
@@ -348,11 +357,17 @@ export default {
       this.$store.commit('global/editRampNickname', info.nickname)
       // this.proceed = true
     },
-    viewUserProfile (user) {
+    viewUserProfile (user, data) {
       this.viewProfile = true
       this.selectedUser = {
-        name: user
+        name: user,
+        is_owner: data.is_owned
       }
+      console.log(this.selectedUser)
+    },
+    openFilter () {
+      this.openDialog = true
+      this.dialogType = 'filterAd'
     }
   }
 }

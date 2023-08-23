@@ -37,6 +37,8 @@
       <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
         {{ countDown }}
       </div>
+
+      <!-- Cancel Button -->
       <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
         <q-btn
           rounded
@@ -47,6 +49,36 @@
           @click="$parent.cancellingOrder()"
         />
       </div>
+
+      <!-- Appeal Button -->
+      <div v-if="$parent.isExpired">
+        <div class="row q-pt-md">
+          <q-btn
+            rounded
+            no-caps
+            label='Appeal'
+            class="q-space text-white"
+            color="blue-6"
+            @click="openDialog = true"
+          />
+        </div>
+        <div class="q-pt-md sm-font-size q-px-md">
+          <div class="bold-text">
+            Seller did not release the crypto?
+          </div>
+          <div class="subtext q-px-sm">
+            If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="openDialog">
+    <MiscDialogs
+      :type="'appeal'"
+      @back="openDialog = false"
+    />
       <div class="row q-pt-xs q-mb-lg q-pb-lg q-mx-md" v-if="forRelease">
         <q-btn
           rounded
@@ -56,10 +88,10 @@
           @click="$parent.releasingCrypto()"
         />
       </div>
-    </div>
   </div>
 </template>
 <script>
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 
 export default {
   data () {
@@ -69,11 +101,15 @@ export default {
       isloaded: false,
       countDown: '',
       timer: null,
-      type: 'ongoing'
+      type: 'ongoing',
+      openDialog: false
     }
   },
   props: {
     orderData: Object
+  },
+  components: {
+    MiscDialogs
   },
   computed: {
     orderStatus () {
@@ -118,8 +154,8 @@ export default {
     },
     label () {
       const labels = {
-        SBM: 'Please wait for the seller to confirm your order.',
-        CNF: 'Please wait for the seller to Escrow the funds.',
+        SBM: 'Please wait for the Ad Owner  to confirm your order.',
+        CNF: 'Please wait for the Seller to Escrow the funds.',
         ESCRW_PN: 'Please wait for the seller to Escrow the funds.',
         ESCRW: 'Please wait for the buyer to confirm their fiat payment.',
         PD_PN: 'Please wait for the seller to confirm your fiat payment.',
@@ -131,7 +167,7 @@ export default {
   },
   async mounted () {
     this.order = this.orderData
-    console.log('order:', this.order)
+    // console.log('order:', this.order)
     await this.paymentCountdown()
     this.checkStatus()
     this.isloaded = true
@@ -178,3 +214,8 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+.subtext {
+  opacity: .5;
+}
+</style>

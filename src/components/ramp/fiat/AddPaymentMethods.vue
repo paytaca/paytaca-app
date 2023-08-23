@@ -12,7 +12,7 @@
     <div class="q-mx-sm q-mb-sm text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       PAYMENT METHODS
     </div>
-    <div class="subtext q-pt-xs q-pl-lg"><i>Add up to 5 methods</i></div>
+    <!-- <div class="subtext q-pt-xs q-pl-lg"><i>Add up to 5 methods</i></div> -->
     <div>
       <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
         <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
@@ -196,7 +196,7 @@ export default {
 
       paymentMethods: [],
       paymentTypes: [],
-      selectedMethods: [], // TODO
+      selectedMethods: [],
       emptyPaymentMethods: [],
 
       openDialog: false,

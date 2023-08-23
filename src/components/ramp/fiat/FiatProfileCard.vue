@@ -14,22 +14,85 @@
         />
       </div>
       <div class="text-center q-pt-none" v-if="isloaded">
-        <q-icon size="5em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+        <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
         <div class="bold-text lg-font-size q-pt-sm">
           {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
         </div>
       </div>
-      <!-- create order btn -->
-      <div class="row q-mx-lg q-py-md" v-if="type === 'self'">
+
+      <!-- Edit Payment Methods -->
+      <div class="row q-mx-lg q-px-md q-pt-md" v-if="type === 'self'">
         <q-btn
           rounded
           no-caps
           label="Edit Payment Methods"
-          color="grey-6"
+          color="blue-8"
           class="q-space"
           @click="state= 'edit-pm'"
+          icon="o_edit"
           >
         </q-btn>
+      </div>
+
+      <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
+        <q-btn
+          rounded
+          no-caps
+          label="See User Ads"
+          color="blue-8"
+          class="q-space"
+          icon="sym_o_sell"
+          >
+        </q-btn>
+      </div>
+
+      <!-- User Stats -->
+      <div class="text-center md-font-size subtext bold-text q-pt-md">
+          <span>100 total trades</span>&nbsp;&nbsp;
+          <span>|</span>&nbsp;&nbsp;
+          <span>50% completion</span>
+      </div>
+
+      <div class="q-px-sm q-pt-md">
+        <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
+      </div>
+
+      <!-- Comments -->
+      <div>
+        <div class="text-center q-pt-md lg-font-size">
+          <div class="bold-text">User Feedback</div>
+        </div>
+        <div class="q-mx-lg q-px-md q-pt-sm">
+          <q-scroll-area :style="`height: ${minHeight - (minHeight*.6)}px`" style="overflow-y:auto;">
+            <div class="q-pt-md" v-for="i in 5" :key="i">
+              <div class="md-font-size bold-text">
+                Edgar Allan Poe
+              </div>
+              <div class="sm-font-text">
+                <q-rating
+                  readonly
+                  v-model="rating"
+                  size="2em"
+                  color="blue-9"
+                  icon="star"
+                />
+              </div>
+              <div class="q-pt-sm q-pr-md">
+                <q-input
+                  v-model="comment"
+                  :dark="darkMode"
+                  dense
+                  disable
+                  rounded
+                  outlined
+                  autogrow
+                />
+              </div>
+
+              <q-separator :dark="darkMode" class="q-mt-md"/>
+            </div>
+          </q-scroll-area>
+        </div>
       </div>
     </div>
     <div v-if="state === 'edit-pm'">
@@ -51,6 +114,7 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
   data () {
@@ -61,7 +125,12 @@ export default {
       user: null,
       editNickname: false,
       state: 'initial',
-      minHeight: this.$q.screen.height - 210
+      minHeight: this.$q.screen.height - 210,
+      wallet: null,
+      rating: 3,
+      comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+      slide: 1,
+      autoplay: true
     }
   },
   props: {
@@ -125,32 +194,52 @@ export default {
         .catch(error => {
           console.log(error)
         })
+    },
+    // async fetchTopAds () {
+    //   const vm = this
 
-      // vm.$axios.get(vm.apiURL + '/currency/fiat')
-      //   .then(response => {
-      //     vm.fiatCurrencies = response.data
-      //     if (!vm.selectedCurrency) {
-      //       vm.selectedCurrency = vm.fiatCurrencies[0]
-      //     }
-      //   })
-      //   .catch(error => {
-      //     console.error(error)
-      //     console.error(error.response)
-
-      //     vm.fiatCurrencies = vm.availableFiat
-      //     if (!vm.selectedCurrency) {
-      //       vm.selectedCurrency = vm.fiatCurrencies[0]
-      //     }
-      //   })
-
-    }
+    //   const timestamp = Date.now()
+    //   const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+    //   const headers = {
+    //     'wallet-hash': vm.wallet.walletHash,
+    //     timestamp: timestamp,
+    //     signature: signature
+    //   }
+    //   const params = { trade_type: vm.}
+    // }
+    // async fetchAds (overwrite = false) {
+    //   const vm = this
+    //   const timestamp = Date.now()
+    //   const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
+    //   const headers = {
+    //     'wallet-hash': this.wallet.walletHash,
+    //     timestamp: timestamp,
+    //     signature: signature
+    //   }
+    //   const params = { trade_type: vm.transactionType, owned: true }
+    //   vm.$store.dispatch(
+    //     'ramp/fetchAds',
+    //     { component: 'ads', params: params, headers: headers, overwrite: overwrite })
+    //     .then(response => {
+    //       vm.loading = false
+    //     })
+    //     .catch(error => {
+    //       console.error(error.response)
+    //     })
+    // },
   },
   async mounted () {
     const vm = this
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo)
+
     await this.processUserData()
     vm.isloaded = true
   }
 }
 </script>
-
-<!-- REQUEST USER INFO? -->
+<style lang="scss" scoped>
+.subtext {
+  opacity: .5;
+}
+</style>
