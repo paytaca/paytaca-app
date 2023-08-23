@@ -249,10 +249,11 @@ export default {
         case 'PD_PN': // Paid Pending
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'payment-confirmation' : 'standby-view'
+            vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'payment-confirmation'
+            vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
           }
-          vm.confirmType = 'seller'
           break
         case 'PD': // Paid
           vm.state = 'standby-view'
@@ -380,7 +381,7 @@ export default {
         .then(response => {
           console.log(response)
           if (response.data && response.data.status.value === 'CNCL') {
-            vm.updateStep(response.data.status)
+            vm.updateStatus(response.data.status)
           }
         })
         .catch(error => {
@@ -402,9 +403,9 @@ export default {
       }
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
-          console.log(response.data)
+          console.log('sendConfirmPayment:', response.data)
           // if (response.data && response.data.status.value === 'PD_PN') {
-          vm.updateStep(response.data.status)
+          vm.updateStatus(response.data.status)
           // }
         })
         .catch(error => {
@@ -470,7 +471,7 @@ export default {
       await vm.$axios.post(url, body, { headers: headers })
         .then(response => {
           console.log('response:', response)
-          vm.updateStep(response.data.status)
+          vm.updateStatus(response.data.status)
         })
         .catch(error => {
           console.error(error.response)
@@ -525,7 +526,8 @@ export default {
           await this.sendConfirmPayment(this.confirmType)
           if (this.confirmType === 'buyer') {
             await this.fetchOrderData()
-          } else if (this.confirmType === 'seller') {
+          }
+          if (this.confirmType === 'seller') {
             await this.releaseCrypto() // this will generate the txid
             await this.verifyRelease() // this needs the txid
           }
