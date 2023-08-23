@@ -30,6 +30,8 @@ export default function () {
 
     completedOrdersPageNumber: null,
     completedOrdersTotalPages: null,
-    completedOrders: []
+    completedOrders: [],
+
+    txids: {}
   }
 }

@@ -194,6 +194,16 @@ export default {
         // console.log('result:', result)
         // vm.txid = result.transactionId
         vm.txid = makeid(64)
+        const txidData = {
+          id: this.order.id,
+          txidInfo: {
+            action: 'ESCROW',
+            txid: this.txid
+          }
+        }
+        console.log('txidData:', txidData)
+        vm.$store.dispatch('ramp/saveTxid', txidData)
+
         console.log('txid:', vm.txid)
         await vm.escrowPendingOrder()
       } catch (error) {

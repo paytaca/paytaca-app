@@ -117,6 +117,9 @@ export default {
     if (vm.txid && vm.txid.length > 0) {
       vm.transactionId = vm.txid
     }
+    if (!vm.transactionId) {
+      vm.transactionId = this.$store.getters['ramp/getOrderTxid'](vm.orderId, vm.action)
+    }
     await vm.fetchOrderDetail()
     vm.loading = false
   },

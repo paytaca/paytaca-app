@@ -229,3 +229,15 @@ export function resetOrdersPagination (context) {
 export function resetPagination (context) {
   context.commit('resetPagination')
 }
+
+export function saveTxid (context, data) {
+  context.commit('saveTxid', data)
+}
+
+export function removeOrderTxids (context, id) {
+  context.commit('removeOrderTxids', id)
+}
+
+export function clearOrderTxids (context) {
+  context.commit('clearOrderTxids')
+}

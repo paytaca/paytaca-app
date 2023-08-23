@@ -147,3 +147,14 @@ export function getOrdersPageNumber (state) {
 }
 
 // orders getters //
+
+export function getTxidHistory (state) {
+  return state.txids
+}
+
+export function getOrderTxid (state) {
+  return function (id, action) {
+    if (action) return state.txids[id][action]
+    return state.txids[id]
+  }
+}

@@ -6,6 +6,23 @@ export function clearProfile (state) {
   state.user = null
 }
 
+export function saveTxid (state, data) {
+  if (!state.txids[data.id]) {
+    state.txids[data.id] = {}
+  }
+  state.txids[data.id][data.txidInfo.action] = data.txidInfo.txid
+  console.log('!!!!txids:', state.txids)
+}
+
+export function removeOrderTxids (state, id) {
+  delete state.txids[id]
+  console.log('txids:', state.txids)
+}
+
+export function clearOrderTxids (state) {
+  state.txids = {}
+}
+
 // ~ store mutations ~ //
 
 export function updateStoreBuyListings (state, { overwrite = false, data }) {

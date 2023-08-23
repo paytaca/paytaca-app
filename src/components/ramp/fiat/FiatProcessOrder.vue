@@ -184,6 +184,7 @@ export default {
   emits: ['back'],
   async mounted () {
     const vm = this
+    // vm.$store.dispatch('ramp/clearOrderTxids')
     if (vm.initWallet) {
       vm.wallet = vm.initWallet
     } else {
@@ -198,6 +199,8 @@ export default {
     vm.updateStatus(vm.order.status)
     vm.isloaded = true
     vm.setupWebsocket()
+    const orderTxids = vm.$store.getters['ramp/getOrderTxid'](vm.order.id)
+    console.log('orderTxids:', orderTxids)
   },
   beforeUnmount () {
     console.log('Left FiatProcessOrder component')
@@ -418,6 +421,7 @@ export default {
     },
     async releaseCrypto () {
       const vm = this
+      await vm.fetchOrderData()
       console.log('releaseCrypto: ', vm.contract)
       const publicKeys = {
         arbiter: this.contract.arbiter.public_key,
@@ -441,6 +445,15 @@ export default {
       await rampContract.initialize()
 
       this.txid = makeid(64) // temporary txid generation
+      const txidData = {
+        id: this.order.id,
+        txidInfo: {
+          action: 'RELEASE',
+          txid: this.txid
+        }
+      }
+      console.log('txidData:', txidData)
+      vm.$store.dispatch('ramp/saveTxid', txidData)
 
       console.log('@@rampContract address:', rampContract.getAddress())
       console.log('order?: ', vm.order)
@@ -531,7 +544,6 @@ export default {
             await this.releaseCrypto() // this will generate the txid
             await this.verifyRelease() // this needs the txid
           }
-          // this.checkStep()
           break
       }
       vm.title = ''
