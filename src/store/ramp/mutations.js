@@ -11,12 +11,10 @@ export function saveTxid (state, data) {
     state.txids[data.id] = {}
   }
   state.txids[data.id][data.txidInfo.action] = data.txidInfo.txid
-  console.log('!!!!txids:', state.txids)
 }
 
 export function clearOrderTxids (state, id) {
   delete state.txids[id]
-  console.log('::::::::txids:', state.txids)
 }
 
 // ~ store mutations ~ //

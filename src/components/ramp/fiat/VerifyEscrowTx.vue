@@ -63,7 +63,8 @@
             @click="onVerify">
           </q-btn>
           <div v-if="hideBtn" class="q-mt-md">
-            Verifying transaction, please wait... <span v-if="waitSeconds && !txExists">({{ waitSeconds }}s)</span>
+            Verifying transaction, please wait... 
+            <!-- <span v-if="waitSeconds && !txExists">({{ waitSeconds }}s)</span> -->
           </div>
         </div>
       </div>
@@ -143,12 +144,12 @@ export default {
         const transactions = response.data.contract.transactions
         let valid = false
         let verifying = true
-        console.log('transactions:', transactions)
+        // console.log('transactions:', transactions)
         if (transactions) {
           for (let i = 0; i < transactions.length; i++) {
             const tx = transactions[i]
-            console.log('action:', vm.action)
-            console.log('tx:', tx)
+            // console.log('action:', vm.action)
+            // console.log('tx:', tx)
             verifying = tx.verifying
             if (tx.action === vm.action) {
               vm.txExists = true
@@ -158,7 +159,7 @@ export default {
             }
           }
         }
-        console.log('txExists:', vm.txExists, 'valid:', valid, 'verifying:', verifying)
+        // console.log('txExists:', vm.txExists, 'valid:', valid, 'verifying:', verifying)
         if (vm.txExists && !valid && !verifying) {
           vm.hideBtn = false
         }
@@ -214,7 +215,7 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      const url = vm.apiURL + '/order/' + vm.order.id + '/escrow-verify'
+      const url = vm.apiURL + '/order/' + vm.orderId + '/escrow-verify'
       const body = {
         txid: vm.transactionId
       }
