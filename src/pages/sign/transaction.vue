@@ -173,7 +173,6 @@ export default defineComponent({
   methods: {
     parsedOpReturn(bytecode) {
       const decoded = decodeAuthenticationInstructions(bytecode);
-      console.log(decoded)
       return (decoded.slice(1) as AuthenticationInstructionPush[]).map(val => "0x" + binToHex(val.data))
     },
 

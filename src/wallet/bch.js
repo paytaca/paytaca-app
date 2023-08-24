@@ -311,7 +311,6 @@ export class BchWallet {
   }
 
   async _sendBch (amount, recipient, changeAddress, token, tokenAmount, broadcast=true) {
-    console.log(`Sending ${amount} BCH to ${recipient}`)
     const data = {
       sender: {
         walletHash: this.walletHash,

@@ -364,7 +364,6 @@ export default {
 
       // Stop listener if another listener already exists
       vm.stopSbchListener()
-      console.log('starting listener')
       watchTransactions(
         address,
         opts,
@@ -384,7 +383,6 @@ export default {
 
     stopSbchListener () {
       if (this.sBCHListener && this.sBCHListener.stop && this.sBCHListener.stop.call) {
-        console.log('stopping listener')
         this.sBCHListener.stop()
       }
     }

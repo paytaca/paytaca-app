@@ -175,7 +175,6 @@ export default {
 
       if (this.$q.platform.is.mobile) {
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
-          console.log('Notification:', notification)
           if (notification?.title || notification?.body) {
             this.$q.notify({
               color: 'brandblue',

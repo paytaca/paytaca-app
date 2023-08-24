@@ -220,7 +220,7 @@ export default {
     },
     sendAmountMarketValue () {
       const parsedAmount = Number(this.amountBCH)
-      // console.log(parsedAmount)
+      
       if (!parsedAmount) return ''
       if (!this.selectedAssetMarketPrice) return ''
       const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)

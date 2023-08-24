@@ -80,10 +80,8 @@ export default {
         const temp2 = vm.bchPrice.toString()
 
         if (temp === temp2) {
-          // console.log('same')
           vm.updateChart = false
         } else {
-          // console.log('different')
           vm.updateChart = true
         }
 
@@ -129,7 +127,6 @@ export default {
         await this.loadData()
 
         if (this.updateChart) {
-          // console.log('updating chart')
           this.priceChart.destroy()
           this.createChart()
         }

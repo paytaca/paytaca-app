@@ -187,7 +187,6 @@ function updateLinkExpiration() {
 }
 
 function copyToClipboard(value, message) {
-  console.log(value)
   $copyText(value)
   $q.notify({
     message: message || 'Copied to clipboard',
@@ -200,6 +199,8 @@ function copyToClipboard(value, message) {
 <style scoped>
 .qr-code-container {
   position:relative;
+  margin-left: -10px;
+  margin-right: -10px;
 
   background-color: white;
 
