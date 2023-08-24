@@ -73,7 +73,7 @@ const words = [
     Name: "Name",
     or: "or",
     Personalize: "Personalize",
-    Pin: "PIN",
+    ChangePin: "Change PIN",
     POSID: "POSID",
     Ramp: "Ramp",
     Receive: "Receive",

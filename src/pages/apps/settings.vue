@@ -13,9 +13,9 @@
                       <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
                   </q-item-section>
               </q-item>
-              <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
+              <q-item :disable="!pinStatus" clickable v-ripple @click="setNewPin">
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Pin') }} {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ChangePin') }} {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
                       <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
@@ -150,7 +150,7 @@
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogCallback" />
 
   </div>
 </template>
@@ -206,13 +206,16 @@ export default {
     }
   },
   methods: {
-    popUpPinDialog () {
-      this.pinDialogAction = 'SET NEW'
+    setNewPin () {
+      this.pinDialogAction = 'VERIFY'
     },
-    removePinCaption (action = '') {
+    pinDialogCallback (action = '') {
       this.pinDialogAction = ''
       if (action !== 'cancel') {
         this.securityOptionDialogStatus = 'dismiss'
+      }
+      if (action === 'proceed') {
+        this.pinDialogAction = 'SET NEW'
       }
     },
     setPreferredSecurity (auth) {
@@ -220,6 +223,7 @@ export default {
       vm.$q.localStorage.set('preferredSecurity', auth)
       if (auth === 'pin') {
         vm.pinStatus = true
+        vm.pinDialogAction = 'SET NEW'
         SecureStoragePlugin.get({ key: 'pin' })
           .then(() => {
             vm.securityOptionDialogStatus = 'dismiss'

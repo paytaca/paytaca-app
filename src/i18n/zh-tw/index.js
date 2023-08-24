@@ -227,7 +227,7 @@ export default {
   PaymentRequestIsExpired: "付款請求已過期",
   PaytacaMotto: "你的錢。您的控制。",
   Personalize: "個性化",
-  Pin: "密碼",
+  ChangePin: "更改密碼",
   PinLocation: "引腳位置",
   PinMismatched: "引腳不匹配",
   PinSubtext1: "輸入您的別針進行。",

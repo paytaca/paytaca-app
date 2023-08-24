@@ -227,7 +227,7 @@ export default {
   PaymentRequestIsExpired: "Die Zahlungsanfrage ist abgelaufen",
   PaytacaMotto: "DEIN GELD.Ihre Kontrolle.",
   Personalize: "Personifizieren",
-  Pin: "STIFT",
+  ChangePin: "PIN ändern",
   PinLocation: "PIN -Standort",
   PinMismatched: "Pin nicht übereinstimmend",
   PinSubtext1: "Geben Sie Ihre PIN ein, um fortzufahren.",
