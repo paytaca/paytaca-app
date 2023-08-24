@@ -338,16 +338,12 @@ export default {
     },
     mainchainAssets () {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
-        if (item && item.id !== 'bch') {
-          return item
-        }
+        if (item && item.id !== 'bch') return item
       })
     },
     smartchainAssets() {
       return this.$store.getters['sep20/getAssets'].filter(function (item) {
-        if (item && item.id !== 'bch') {
-          return item
-        }
+        if (item && item.id !== 'bch') return item
       })
     },
     assets () {
@@ -355,7 +351,7 @@ export default {
       if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
 
       return vm.mainchainAssets.filter(token => {
-        const assetId = token.id.split('/')[0]
+        const assetId = token.id?.split?.('/')?.[0]
         return (
           vm.isCashToken && assetId === 'ct' ||
           !vm.isCashToken && assetId === 'slp'
