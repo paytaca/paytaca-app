@@ -147,6 +147,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       order: null,
       isloaded: false,
       countDown: '',
@@ -162,7 +163,8 @@ export default {
     }
   },
   props: {
-    orderData: Object
+    orderId: Number,
+    wallet: Object
   },
   components: {
     MiscDialogs
@@ -222,9 +224,8 @@ export default {
     }
   },
   async mounted () {
-    this.order = this.orderData
-    // console.log('order:', this.order)
-    await this.paymentCountdown()
+    await this.fetchOrderDetail()
+    this.paymentCountdown()
     this.checkStatus()
     this.isloaded = true
   },
@@ -233,6 +234,21 @@ export default {
     this.timer = null
   },
   methods: {
+    async fetchOrderDetail () {
+      const vm = this
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash
+      }
+      const url = vm.apiURL + '/order/' + vm.orderId
+
+      try {
+        const response = await vm.$axios.get(url, { headers: headers })
+        console.log('response: ', response)
+        vm.order = response.data.order
+      } catch (error) {
+        console.error(error.response)
+      }
+    },
     checkStatus () {
       const completedStatus = ['RLS', 'RFN', 'CNCL']
       if (completedStatus.includes(this.order.status.value)) {
@@ -243,9 +259,7 @@ export default {
       console.log('feedback: ', this.feedback)
     },
     paymentCountdown () {
-      // console.log('counting down')
       const vm = this
-
       const expiryDate = new Date(vm.order.expiration_date)
 
       vm.timer = setInterval(function () {

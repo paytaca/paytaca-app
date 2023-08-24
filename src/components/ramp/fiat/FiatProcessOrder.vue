@@ -49,7 +49,8 @@
     <!-- Waiting Page -->
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
-        :order-data="order"
+        :wallet="wallet"
+        :order-id="order.id"
         :key="standByDisplayKey"
       />
     </div>
