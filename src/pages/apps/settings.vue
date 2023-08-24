@@ -174,6 +174,7 @@ export default {
       pinDialogAction: '',
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
+      securityChange: null,
       pinStatus: true,
       appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -207,6 +208,7 @@ export default {
   },
   methods: {
     setNewPin () {
+      this.securityChange = 'change-pin'
       this.pinDialogAction = 'VERIFY'
     },
     pinDialogCallback (action = '') {
@@ -215,26 +217,58 @@ export default {
         this.securityOptionDialogStatus = 'dismiss'
       }
       if (action === 'proceed') {
-        this.pinDialogAction = 'SET NEW'
+        if (this.securityChange === 'change-pin') {
+          this.pinDialogAction = 'SET NEW'
+        }
+        if (this.securityChange === 'switch-to-biometric') {
+          this.$q.localStorage.set('preferredSecurity', 'biometric')
+          this.pinStatus = false
+        }
       }
+    },
+    verifyBiometric () {
+      const vm = this
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For ownership verification',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          setTimeout(() => {
+            vm.$q.localStorage.set('preferredSecurity', 'pin')
+            vm.pinStatus = true
+            vm.pinDialogAction = 'SET NEW'
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          console.log(error)
+        }
+        )
     },
     setPreferredSecurity (auth) {
       const vm = this
-      vm.$q.localStorage.set('preferredSecurity', auth)
-      if (auth === 'pin') {
-        vm.pinStatus = true
-        vm.pinDialogAction = 'SET NEW'
-        SecureStoragePlugin.get({ key: 'pin' })
-          .then(() => {
-            vm.securityOptionDialogStatus = 'dismiss'
-          })
-          .catch(_err => {
-            vm.pinDialogAction = 'SET NEW'
-          })
-      } else {
-        vm.pinStatus = false
+      const currentPref = this.$q.localStorage.getItem('preferredSecurity')
+      if (currentPref === 'pin' && auth === 'biometric') {
+        vm.securityChange = 'switch-to-biometric'
+        vm.pinDialogAction = 'VERIFY'
+      }
+      if (currentPref === 'biometric' && auth === 'pin') {
+        vm.verifyBiometric()
+      }
+      if (currentPref === auth) {
         vm.securityOptionDialogStatus = 'dismiss'
       }
+      // if (auth === 'pin') {
+      //   vm.pinStatus = true
+      //   vm.pinDialogAction = 'SET NEW'
+      // } else {
+      //   vm.pinStatus = false
+      //   vm.securityOptionDialogStatus = 'dismiss'
+      // }
     }
   },
   created () {
