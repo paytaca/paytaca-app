@@ -315,8 +315,13 @@
           </q-form>
         </q-tab-panel>
         <q-tab-panel name="payment" :dark="darkMode">
-          <q-banner v-if="formErrors?.payment?.deliveryFee" class="bg-red text-white rounded-borders q-mb-md">
-            {{ formErrors?.payment?.deliveryFee }}
+          <q-banner v-if="formErrors?.payment?.deliveryFee || formErrors?.payment?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
+            <div v-for="(errorMsg, index) in formErrors?.payment?.detail" :key="index" class="banner-error">
+              {{ errorMsg }}
+            </div>
+            <div v-if="formErrors?.payment?.deliveryFee" class="banner-error">
+              {{ formErrors?.payment?.deliveryFee }}
+            </div>
           </q-banner>
 
           <q-input
@@ -967,7 +972,7 @@ function geocode() {
 function createEmptyFormErrors() {
   return {
     detail: [],
-    payment: { deliveryFee: '', escrowRefundAddress: '' },
+    payment: { detail: [].map(String), deliveryFee: '', escrowRefundAddress: '' },
     delivery: {
       detail: [],
       firstName: '',
@@ -1277,6 +1282,7 @@ const createPayment = debounce(() => {
     checkout_id: checkout.value.id,
     ignore_pending_payments: true,
     escrow: {
+      network: 'chipnet',
       buyer_address: checkout.value?.payment?.escrowRefundAddress ? undefined : formData.value.payment?.escrowRefundAddress,
     },
     // amount: 100,
@@ -1285,12 +1291,25 @@ const createPayment = debounce(() => {
   loadingState.value.creatingPayment = true
   loadingMsg.value = 'Creating payment'
   return backend.post(`connecta/checkouts/${checkout.value.id}/payment/`, data)
+    .finally(() => resetFormErrors())
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
       payments.value.unshift(Payment.parse(response?.data))
       fetchCheckout()
       fetchPayments()
       return response
+    })
+    .catch(error => {
+      if (payment.value?.id) return
+
+      const data = error?.response?.data
+      let errorMsgs = errorParser.toArray(data?.delivery_fee_key_nft?.non_field_errors)
+      if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.escrow?.non_field_errors)
+      if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.non_field_errors)
+      if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.detail)
+      if (!errorMsgs.length) errorMsgs = errorParser.toArray(data)
+      if (!errorMsgs.length) errorMsgs = ["Unable to create payment"]
+      formErrors.value.payment.detail = errorMsgs
     })
     .finally(() => {
       loadingState.value.creatingPayment = false
@@ -1685,5 +1704,10 @@ table.items-table td {
   }
   .payment-mode-panels .q-tab-panel {
     padding: unset;
+  }
+
+  .q-banner .banner-error:not(:only-child) {
+    display: list-item;
+    margin-left: 0.75em;
   }
 </style>
