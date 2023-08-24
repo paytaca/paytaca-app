@@ -109,6 +109,7 @@ export default {
 
       ad: null,
       order: null,
+      rampContract: null,
       contract: {
         address: null
       },
@@ -193,8 +194,8 @@ export default {
     vm.updateStatus(vm.order.status)
     vm.isloaded = true
     vm.setupWebsocket()
-    const orderTxids = vm.$store.getters['ramp/getOrderTxid'](vm.order.id)
-    console.log('orderTxids:', orderTxids)
+    // const orderTxids = vm.$store.getters['ramp/getOrderTxid'](vm.order.id)
+    // console.log('orderTxids:', orderTxids)
   },
   beforeUnmount () {
     console.log('Left FiatProcessOrder component')
@@ -203,6 +204,7 @@ export default {
   methods: {
     // STEP CHECKER
     updateStatus (status) {
+      if (this.status && status && this.status.value === status.value) return
       this.status = status
       this.order.status = this.status
       this.checkStep()
@@ -224,6 +226,9 @@ export default {
             vm.state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
+          }
+          if (!this.rampContract) {
+            vm.generateContract()
           }
           break
         case 'ESCRW_PN': // Escrow Pending
@@ -259,6 +264,10 @@ export default {
             vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
+          }
+          this.txid = null
+          if (!this.rampContract) {
+            vm.generateContract()
           }
           break
         case 'RLS_PN': // Release Pending
@@ -417,31 +426,20 @@ export default {
       vm.isloaded = true
     },
     async releaseCrypto () {
-      const vm = this
-      await vm.fetchOrderData()
-      console.log('releaseCrypto: ', vm.contract)
-      const publicKeys = {
-        arbiter: this.contract.arbiter.public_key,
-        seller: this.contract.seller.public_key,
-        buyer: this.contract.buyer.public_key,
-        servicer: this.contract.servicer.public_key
+      console.log('[releasing crypto]')
+      if (!this.rampContract) {
+        await this.generateContract()
       }
-      const addresses = {
-        arbiter: this.contract.arbiter.address,
-        seller: this.contract.seller.address,
-        buyer: this.contract.buyer.address,
-        servicer: this.contract.servicer.address
-      }
-      const fees = {
-        arbitrationFee: this.fees.fees.arbitration_fee,
-        serviceFee: this.fees.fees.service_fee,
-        contractFee: this.fees.fees.hardcoded_fee
-      }
-      const timestamp = this.contract.timestamp
-      const rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
-      await rampContract.initialize()
-
-      this.txid = makeid(64) // temporary txid generation
+      await this.rampContract.release(this.wallet.privateKeyWif, this.order.crypto_amount)
+        .then(result => {
+          console.log('[rampContract.release]:', result.txInfo.txid)
+          this.txid = result.txInfo.txid
+          this.verifyEscrowTxKey++
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
+      // this.txid = makeid(64) // temporary txid generation
       const txidData = {
         id: this.order.id,
         txidInfo: {
@@ -449,19 +447,8 @@ export default {
           txid: this.txid
         }
       }
-      console.log('txidData:', txidData)
-      vm.$store.dispatch('ramp/saveTxid', txidData)
-
-      console.log('@@rampContract address:', rampContract.getAddress())
-      console.log('order?: ', vm.order)
-      vm.verifyEscrowTxKey++
-      // await rampContract.release(vm.wallet.privateKeyWif, vm.order.crypto_amount)
-      //   .then(result => {
-      //     console.log('result:', result)
-      //   })
-      //   .catch(error => {
-      //     console.err(error.response)
-      //   })
+      this.$store.dispatch('ramp/saveTxid', txidData)
+      console.log('rampContract:', this.rampContract)
     },
     async verifyRelease () {
       console.log('verifyRelease')
@@ -512,6 +499,32 @@ export default {
         vm.errorMessages.push(errorMsg)
         vm.verifyEscrowTxKey++
       }
+    },
+    async generateContract () {
+      await this.fetchOrderData()
+      console.log('generateContract: ', this.contract)
+      const publicKeys = {
+        arbiter: this.contract.arbiter.public_key,
+        seller: this.contract.seller.public_key,
+        buyer: this.contract.buyer.public_key,
+        servicer: this.contract.servicer.public_key
+      }
+      const addresses = {
+        arbiter: this.contract.arbiter.address,
+        seller: this.contract.seller.address,
+        buyer: this.contract.buyer.address,
+        servicer: this.contract.servicer.address
+      }
+      const fees = {
+        arbitrationFee: this.fees.fees.arbitration_fee,
+        serviceFee: this.fees.fees.service_fee,
+        contractFee: this.fees.fees.hardcoded_fee
+      }
+      const timestamp = this.contract.timestamp
+      this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
+      await this.rampContract.initialize()
+      // this.contract.address = this.rampContract.getAddress()
+      console.log('rampContract address:', this.rampContract.getAddress())
     },
 
     // Recieve Dialogs
