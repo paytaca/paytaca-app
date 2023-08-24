@@ -183,20 +183,23 @@ export default {
       // Send crypto to smart contract
       const vm = this
       try {
-        // console.log('transferAmount:', vm.transferAmount)
-        // const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
-        // if (result.error.indexOf('not enough balance in sender') > -1) {
-        //   vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
-        // } else if (result.error.indexOf('has insufficient priority') > -1) {
-        //   vm.sendErrors.push('Not enough balance to cover the transaction fee')
-        // } else {
-        //   vm.sendErrors.push(result.error)
-        // }
-        // console.log('result:', result)
-        // vm.txid = result.transactionId
-        vm.txid = makeid(64)
+        console.log('transferAmount:', vm.transferAmount)
+        const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
+        console.log('result:', result)
+        if (result.error) {
+          if (result.error.indexOf('not enough balance in sender') > -1) {
+            vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
+          } else if (result.error.indexOf('has insufficient priority') > -1) {
+            vm.sendErrors.push('Not enough balance to cover the transaction fee')
+          } else {
+            vm.sendErrors.push(result.error)
+          }
+        }
+
+        vm.txid = result.txid
+        // vm.txid = makeid(64)
         const txidData = {
-          id: this.order.id,
+          id: vm.order.id,
           txidInfo: {
             action: 'ESCROW',
             txid: this.txid
@@ -205,10 +208,10 @@ export default {
         console.log('txidData:', txidData)
         vm.$store.dispatch('ramp/saveTxid', txidData)
 
-        console.log('txid:', vm.txid)
+        // console.log('txid:', vm.txid)
         await vm.escrowPendingOrder()
-      } catch (error) {
-        console.error(error)
+      } catch (err) {
+        console.error(err)
       }
       // await vm.escrowPendingOrder()
     },
