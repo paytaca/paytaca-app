@@ -125,25 +125,6 @@ export default {
         }, 200)
       }
     },
-    addSep20Asset (contractAddress) {
-      const vm = this
-      this.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
-        if (response.success && response.token) {
-          const commitName = 'sep20/addNewAsset'
-          const asset = {
-            id: `sep20/${response.token.address}`,
-            symbol: response.token.symbol,
-            name: response.token.name,
-            decimals: response.token.decimals,
-            logo: '',
-            balance: 0
-          }
-          vm.$store.commit(commitName, asset)
-          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
-          vm.$store.dispatch('sep20/updateTokenIcon', { assetId: asset.id })
-        }
-      })
-    },
     addNewAsset () {
       const vm = this
       vm.$q.dialog({
@@ -156,9 +137,7 @@ export default {
         },
         component: AddNewAsset
       }).onOk((asset) => {
-        if (vm.isSep20) return vm.addSep20Asset(asset.tokenId)
-        vm.selectAsset(null, asset.data)
-      }).onCancel(() => {
+        if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
     },
     removeAsset (asset) {

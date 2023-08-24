@@ -109,7 +109,7 @@ export default {
       if (this.selectedNetwork === 'sBCH') {
         _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
         _assets = _assets.map((item) => {
-          if (item.id === 'bch') {
+          if (item?.id === 'bch') {
             item.name = 'Smart Bitcoin Cash'
             item.symbol = 'sBCH'
             item.logo = 'sep20-logo.png'
@@ -129,8 +129,8 @@ export default {
       const vm = this
       _assets = this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
-          const isBch = item.id === 'bch'
-          const tokenType = item.id.split('/')[0]
+          const isBch = item?.id === 'bch'
+          const tokenType = item.id?.split?.('/')?.[0]
 
           if (vm.isCashToken) 
             return tokenType === 'ct' || isBch

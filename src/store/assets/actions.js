@@ -193,6 +193,7 @@ export async function saveExistingAsset (context, details) {
 }
 
 export async function getAssetMetadata (context, assetId) {
+  if (!assetId) return
   const tokenType = assetId.split('/')[0]
   const tokenId = assetId.split('/')[1]
 

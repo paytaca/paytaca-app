@@ -124,19 +124,18 @@ export default {
   watch: {
     tokenId (n, o) {
       this.asset = null
-      this.loading = true
-
-      if (n.trim().length !== 64) {
-        this.addBtnDisabled = true
-        this.loading = false
-        return
-      }
+      console.log('this.isTokenIdValid', this.isTokenIdValid)
+      if (!this.isTokenIdValid) return
       this.setAssetDetails()
     }
   },
   computed: {
     isSep20 () {
       return this.network === 'sBCH'
+    },
+    isTokenIdValid() {
+      if (this.isSep20) return this.tokenId?.length == 42 && this.tokenId?.startsWith?.('0x')
+      return this.tokenId?.trim?.()?.length == 64
     },
     addTokenTitle () {
       if (this.isSep20)
@@ -161,23 +160,46 @@ export default {
     formatTokenDetailsKey (key) {
       return key.charAt(0).toUpperCase() + key.slice(1)
     },
-    setAssetDetails () {
+    setAssetDetailsSep20() {
       const vm = this
-
-      if (vm.isCashToken) {
-        vm.$refs.questForm.validate().then(success => {
-          getWalletByNetwork(vm.wallet, 'bch').getTokenDetails(vm.tokenId).then(details => {
-            if (details !== null) {
-              vm.addBtnDisabled = false
-              vm.asset = details
-            }
-            vm.loading = false
-          })
+      vm.loading = true
+      console.log('fetching sep20')
+      return getWalletByNetwork(vm.wallet, 'sbch').getSep20ContractDetails(vm.tokenId).then(response => {
+        if (response.success && response.token) {
+          vm.asset = {
+            id: `sep20/${response.token.address}`,
+            symbol: response.token.symbol,
+            name: response.token.name,
+            decimals: response.token.decimals,
+            logo: '',
+            balance: 0
+          }
+          vm.addBtnDisabled = false
+        }
+      }).finally(() => {
+        vm.loading = false
+      })
+    },
+    setAssetDetailsCashtoken() {
+      const vm = this
+      vm.loading = true
+      console.log('fetching ct')
+      return vm.$refs.questForm.validate().then(success => {
+        getWalletByNetwork(vm.wallet, 'bch').getTokenDetails(vm.tokenId).then(details => {
+          if (details !== null) {
+            vm.addBtnDisabled = false
+            vm.asset = details
+          }
         })
-        return
-      }
-
-      getWalletByNetwork(vm.wallet, 'slp').getSlpTokenDetails(vm.tokenId).then(details => {
+      }).finally(() => {
+        vm.loading = false
+      })
+    },
+    setAssetDetailsSLP() {
+      const vm = this
+      vm.loading = true
+      console.log('fetching slp')
+      return getWalletByNetwork(vm.wallet, 'slp').getSlpTokenDetails(vm.tokenId).then(details => {
         const token = {
           logo: details.image_url,
           id: details.id,
@@ -190,15 +212,38 @@ export default {
           vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
           vm.$store.dispatch('assets/updateTokenIcon', { assetId: token.id })
           vm.asset = token
-          vm.loading = false
         }
-      }).catch(err => vm.loading = false)
+      }).finally(() => {
+        vm.loading = false
+      })
+    },
+    setAssetDetails () {
+      const vm = this
+      if (vm.isSep20) return this.setAssetDetailsSep20()
+      if (vm.isCashToken) return this.setAssetDetailsCashtoken()
+      return this.setAssetDetailsSLP()
     },
     addAsset () {
-      this.$store.commit('assets/addNewAsset', {
-        ...this.asset,
-        balance: 0
-      })
+      if (!this.asset?.id) return console.error('No asset id found. Skipping adding new asset')
+      if (this.asset?.is_nft) return console.error('Asset is nft. Skipping adding new asset')
+
+      if (this.isSep20) {
+        this.$store.commit('sep20/addNewAsset', this.asset)
+        this.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
+        this.$store.dispatch('sep20/updateTokenIcon', { assetId: this.asset.id })
+        return
+      }
+
+      this.$store.commit(
+        'assets/addNewAsset',
+        Object.assign({
+          id: '',
+          name: '',
+          logo: '',
+          symbol: '',
+          decimals: 0,
+        }, this.asset, { balance: 0 })
+      )
     },
     onOKClick () {
       this.addAsset()
