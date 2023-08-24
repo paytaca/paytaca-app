@@ -9,6 +9,7 @@
         />
       </div> -->
       <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
+      <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">( Order #{{ order.id }} )</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
       <div class="q-mx-lg q-px-lg q-pt-md">
         <div class="sm-font-size q-pl-sm q-pb-xs">Arbiter</div>

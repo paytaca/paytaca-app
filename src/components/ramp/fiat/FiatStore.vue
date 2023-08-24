@@ -180,7 +180,9 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.screen.height - 210
+      minHeight: this.$q.screen.height - 210,
+      adFilter: {}
+      // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
     }
   },
   watch: {

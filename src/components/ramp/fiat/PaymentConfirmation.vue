@@ -1,11 +1,12 @@
 <template>
   <div v-if="isloaded">
     <!-- <q-scroll-area style="height: 40vmax; overflow-y:auto;"> -->
-    <div class="q-mx-lg text-h5 text-center lg-font-size" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+    <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
       <span v-if="type === 'buyer'">PAY BY FIAT</span>
       <span v-else>RECEIVE FIAT</span>
     </div>
-
+    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">( Order #{{ order.id }} )</div>
+    <q-separator :dark="darkMode" class="q-mx-lg"/>
     <!-- Fiat Input -->
     <div class="q-mt-md q-mx-lg q-px-md">
       <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs">Please pay the seller</div>
@@ -34,7 +35,7 @@
       <div v-if="type === 'buyer'" class="q-pb-xs">
         <div class="xm-font-size q-pb-xs q-pl-sm text-left bold-text">Payment Methods</div>
         <div class="full-width">
-          <!-- <q-scroll-area :style="`height: ${minHeight - (minHeight*.7)}px`" style="overflow-y:auto;"> -->
+          <q-scroll-area :style="`height: ${minHeight - (minHeight*.7)}px`" style="overflow-y:auto;">
             <div
               v-for="(method, index) in order.payment_methods"
               :key="index">
@@ -54,7 +55,7 @@
                 </q-card>
               </div>
             </div>
-          <!-- </q-scroll-area> -->
+          </q-scroll-area>
         </div>
       </div>
 
