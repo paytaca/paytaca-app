@@ -1137,6 +1137,11 @@
     "currency": "AED"
   },
   {
+    "name": "United Kingdom",
+    "code": "GB",
+    "currency": "GBP"
+  },
+  {
     "name": "United States",
     "code": "US",
     "currency": "USD"
