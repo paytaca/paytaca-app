@@ -311,9 +311,6 @@ export default {
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.fees = response.data.fees
-          console.log('order:', vm.order)
-          console.log('contract:', vm.contract)
-          console.log('fees:', vm.fees)
           vm.updateStatus(vm.order.status)
         })
         .catch(error => {

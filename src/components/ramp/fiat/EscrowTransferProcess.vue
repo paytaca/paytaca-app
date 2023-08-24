@@ -19,6 +19,7 @@
           dense
           v-model="selectedArbiter"
           :options="arbiterOptions"
+          :disable="!contractAddress"
           behavior="dialog">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
@@ -44,7 +45,7 @@
           filled
           dense
           v-model="contractAddress"
-          :loading="!contractAddress || contractAddress === ' '">
+          :loading="!contractAddress">
         </q-input>
 
         <div class="sm-font-size q-pl-sm q-pb-xs">Transfer Amount</div>
@@ -69,7 +70,7 @@
             Balance: {{ balance }} BCH
           </div>
         </div>
-        <div class="row" v-if="sendErrors.length > 0">
+        <div class="row q-mb-md" v-if="sendErrors.length > 0">
           <div class="col">
             <ul style="margin-left: -40px; list-style: none;">
               <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
@@ -82,7 +83,7 @@
       </div>
 
       <DragSlide
-        v-if="!loading && showDragSlide && contractAddress !== ' '"
+        v-if="!loading && showDragSlide && contractAddress"
         :style="{
           position: 'fixed',
           bottom: 0,
@@ -113,7 +114,7 @@ export default {
       loading: false,
       selectedArbiter: null,
       arbiterOptions: [],
-      contractAddress: ' ',
+      contractAddress: null,
       transferAmount: ' ',
       txid: null,
       fees: null,
@@ -141,8 +142,9 @@ export default {
     contract: Object
   },
   watch: {
-    selectedArbiter () {
-      this.contractAddress = ' '
+    selectedArbiter (_, oldValue) {
+      if (oldValue === null) return
+      this.contractAddress = null
       this.generateContractAddress()
     },
     fees (value) {
@@ -168,12 +170,13 @@ export default {
     vm.transferAmount = vm.amount
     await vm.fetchOrderDetail()
     await vm.fetchArbiters()
+    console.log('!!!contract:', vm.contract)
     if (vm.contract) {
       vm.contractAddress = vm.contract.address
     } else {
       await vm.generateContractAddress()
     }
-    if (vm.contractAddress !== ' ') {
+    if (vm.contractAddress) {
       vm.loading = false
     }
   },
@@ -185,7 +188,22 @@ export default {
         console.log('transferAmount:', vm.transferAmount)
         const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
         console.log('result:', result)
-        if (result.error) {
+        if (result.success) {
+          vm.txid = result.txid
+          // vm.txid = makeid(64)
+          const txidData = {
+            id: vm.order.id,
+            txidInfo: {
+              action: 'ESCROW',
+              txid: this.txid
+            }
+          }
+          console.log('txidData:', txidData)
+          vm.$store.dispatch('ramp/saveTxid', txidData)
+          // console.log('txid:', vm.txid)
+          await vm.escrowPendingOrder()
+        } else {
+          vm.sendErrors = []
           if (result.error.indexOf('not enough balance in sender') > -1) {
             vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
           } else if (result.error.indexOf('has insufficient priority') > -1) {
@@ -193,22 +211,8 @@ export default {
           } else {
             vm.sendErrors.push(result.error)
           }
+          vm.showDragSlide = true
         }
-
-        vm.txid = result.txid
-        // vm.txid = makeid(64)
-        const txidData = {
-          id: vm.order.id,
-          txidInfo: {
-            action: 'ESCROW',
-            txid: this.txid
-          }
-        }
-        console.log('txidData:', txidData)
-        vm.$store.dispatch('ramp/saveTxid', txidData)
-
-        // console.log('txid:', vm.txid)
-        await vm.escrowPendingOrder()
       } catch (err) {
         console.error(err)
       }
@@ -270,6 +274,7 @@ export default {
       }
     },
     async generateContractAddress () {
+      console.log('generateContractAddress')
       const vm = this
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'CONTRACT_CREATE', timestamp)
