@@ -20,7 +20,12 @@
             filled
             dense
             v-model="contract.address"
-            :loading="!contract || contract.address === ' '">
+            :loading="!contract">
+            <template v-slot:append v-if="contract.address">
+              <div @click="$parent.copyToClipboard(contract.address)">
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+              </div>
+            </template>
           </q-input>
         <!-- </div> -->
         <!-- <div class="row q-mt-md"> -->
@@ -31,10 +36,11 @@
             :dark="darkMode"
             filled
             dense
+            :loading="!transactionId"
             v-model="transactionId">
-            <template v-slot:append>
+            <template v-slot:append v-if="transactionId">
               <div @click="$parent.copyToClipboard(transactionId)">
-                <q-icon  class="q-pr-sm" size="sm" name='o_content_copy' color="blue-grey-6"/>
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
               </div>
             </template>
           </q-input>
@@ -63,7 +69,8 @@
             @click="onVerify">
           </q-btn>
           <div v-if="hideBtn" class="q-mt-md">
-            Verifying transaction, please wait... 
+            <span v-if="state === 'verifying'">Verifying transaction, please wait...</span>
+            <span v-if="state === 'sending'">Sending bch, please wait...</span>
             <!-- <span v-if="waitSeconds && !txExists">({{ waitSeconds }}s)</span> -->
           </div>
         </div>
@@ -91,7 +98,8 @@ export default {
       timer: null,
       waitSeconds: null,
       hideBtn: true,
-      errorMessages: []
+      errorMessages: [],
+      state: ''
     }
   },
   emits: ['back', 'success'],
@@ -109,11 +117,18 @@ export default {
     txid: String,
     errors: Array
   },
-  watch: {},
+  watch: {
+    transactionId () {
+      if (!this.transactionId) {
+        this.state = 'sending'
+      } else {
+        this.state = 'verifying'
+      }
+    }
+  },
   computed: {},
   async mounted () {
     const vm = this
-    console.log('txid:', vm.txid)
     vm.errorMessages.push(...vm.errors)
     if (vm.txid && vm.txid.length > 0) {
       vm.transactionId = vm.txid
@@ -180,6 +195,7 @@ export default {
     },
     async verifyRelease () {
       const vm = this
+      vm.state = 'verifying'
       console.log('Verifying Release: ', vm.transactionId)
       const url = `${vm.apiURL}/order/${vm.orderId}/verify-release`
       const timestamp = Date.now()
@@ -207,6 +223,7 @@ export default {
     },
     async verifyEscrow () {
       const vm = this
+      vm.state = 'verifying'
       console.log('Verifying escrow:', vm.transactionId)
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_ESCROW_VERIFY', timestamp)
