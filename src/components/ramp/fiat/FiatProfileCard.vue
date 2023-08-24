@@ -29,7 +29,7 @@
           color="blue-8"
           class="q-space"
           @click="state= 'edit-pm'"
-          icon="o_edit"
+          icon="o_payments"
           >
         </q-btn>
       </div>
@@ -53,17 +53,17 @@
           <span>50% completion</span>
       </div>
 
-      <div class="q-px-sm q-pt-md">
+      <div class="q-px-sm q-pt-sm">
         <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
       </div>
 
       <!-- Comments -->
       <div>
-        <div class="text-center q-pt-md lg-font-size">
-          <div class="bold-text">User Feedback</div>
+        <div class="text-center q-pt-md xm-font-size">
+          <div class="bold-text">Reviews</div>
         </div>
-        <div class="q-mx-lg q-px-md q-pt-sm">
-          <q-scroll-area :style="`height: ${minHeight - (minHeight*.6)}px`" style="overflow-y:auto;">
+        <div class="q-mx-lg q-px-md">
+          <q-scroll-area :style="`height: ${minHeight - (minHeight*.55)}px`" style="overflow-y:auto;">
             <div class="q-pt-md" v-for="i in 5" :key="i">
               <div class="md-font-size bold-text">
                 Edgar Allan Poe
@@ -73,22 +73,20 @@
                   readonly
                   v-model="rating"
                   size="2em"
-                  color="blue-9"
+                  color="yellow-9"
                   icon="star"
                 />
               </div>
-              <div class="q-pt-sm q-pr-md">
+              <div class="q-pt-sm q-px-xs">
                 <q-input
                   v-model="comment"
                   :dark="darkMode"
                   dense
                   disable
-                  rounded
                   outlined
                   autogrow
                 />
               </div>
-
               <q-separator :dark="darkMode" class="q-mt-md"/>
             </div>
           </q-scroll-area>
@@ -128,9 +126,7 @@ export default {
       minHeight: this.$q.screen.height - 210,
       wallet: null,
       rating: 3,
-      comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-      slide: 1,
-      autoplay: true
+      comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'
     }
   },
   props: {

@@ -659,6 +659,7 @@ export default {
         case 'confirmPayment':
         case 'confirmPaymentMethod':
         case 'confirmCancelOrder':
+        case 'confirmOrderCreate':
           vm.genericDialog = true
           break
         case 'confirmReleaseCrypto':

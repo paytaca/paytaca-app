@@ -14,7 +14,7 @@
     </div>
     <div v-if="state === 'selection'">
       <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
-        <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list'/>
+        <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' @click="openFilter()"/>
         <q-btn
           rounded
           no-caps
@@ -128,8 +128,15 @@
     v-on:back="onDialogBack"
     v-on:selected-option="receiveDialogOption"
   />
+  <MiscDialogs
+    v-if="openMiscDialog"
+    :type="dialogName"
+    @back="openMiscDialog = false"
+    @submit="receiveFilter"
+  />
 </template>
 <script>
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
@@ -149,7 +156,8 @@ export default {
   components: {
     FiatAdsForm,
     ProgressLoader,
-    FiatAdsDialogs
+    FiatAdsDialogs,
+    MiscDialogs
   },
   data () {
     return {
@@ -157,6 +165,7 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       wallet: null,
+      openMiscDialog: false,
       openDialog: false,
       dialogName: '',
       selectedIndex: null,
@@ -291,6 +300,14 @@ export default {
       const vm = this
       vm.totalPages = vm.$store.getters['ramp/getAdsTotalPages'](this.transactionType)
       vm.pageNumber = vm.$store.getters['ramp/getAdsPageNumber'](this.transactionType)
+    },
+    openFilter () {
+      this.dialogName = 'filterAd'
+      this.openMiscDialog = true
+    },
+    receiveFilter (data) {
+      console.log('data: ', data)
+      this.openMiscDialog = false
     },
     onSubmit () {
       const vm = this
