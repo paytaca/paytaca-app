@@ -6,6 +6,7 @@ export async function fetchUser (context, walletHash) {
   const headers = {
     'wallet-hash': walletHash
   }
+  console.log('walletHash:', walletHash)
   try {
     let { data: user } = await axiosInstance.get(apiURL, { headers: headers })
     if (user.length === 0) {
@@ -22,6 +23,7 @@ export async function fetchUser (context, walletHash) {
 }
 
 export async function createUser (context, data) {
+  console.log('data:', data)
   const nickname = data.nickname
   const wallet = data.wallet
   const timestamp = Date.now()

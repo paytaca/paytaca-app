@@ -1,6 +1,6 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md"
+    class="br-15 q-pt-sm q-mx-md q-mb-lg q-pb-lg"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     :style="`min-height: ${minHeight}px;`"
   >
@@ -123,7 +123,7 @@ export default {
       user: null,
       editNickname: false,
       state: 'initial',
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height,
       wallet: null,
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'

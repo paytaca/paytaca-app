@@ -1,6 +1,6 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none"
+    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg q-pb-lg"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     :style="`min-height: ${minHeight}px;`">
     <div v-if="state !== 'selection'">
@@ -12,7 +12,7 @@
         :selectedAdId="selectedAdId"
       />
     </div>
-    <div v-if="state === 'selection'">
+    <div v-if="state === 'selection'"  class="q-mb-lg q-pb-lg">
       <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
         <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' @click="openFilter()"/>
         <q-btn
@@ -176,7 +176,7 @@ export default {
       totalPages: null,
       pageNumber: null,
       selectedAdId: null,
-      minHeight: this.$q.screen.height - 210
+      minHeight: this.$q.screen.height
     }
   },
   watch: {

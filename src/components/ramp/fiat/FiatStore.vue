@@ -1,10 +1,10 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none"
+    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg q-pb-lg"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     :style="`min-height: ${minHeight}px;`"
     v-if="state === 'SELECT' && !viewProfile">
-    <div>
+    <div class="q-mb-lg q-pb-lg">
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
         <div>
           <div v-if="selectedCurrency" class="q-ml-md text-h5 md-font-size">
@@ -180,7 +180,7 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height,
       adFilter: {}
       // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
     }

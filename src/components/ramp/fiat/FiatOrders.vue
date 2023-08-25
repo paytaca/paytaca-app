@@ -1,6 +1,6 @@
 <template>
     <q-card
-      class="br-15 q-pt-sm q-mx-md q-mx-none"
+      class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg q-pb-lg"
       :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
       :style="`min-height: ${ minHeight }px;`"
       v-if="!viewProfile"
@@ -148,7 +148,7 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height,
       viewProfile: false
     }
   },

@@ -22,7 +22,8 @@
       <ProgressLoader/>
     </div>
     <div v-else>
-        <div v-if="proceed">
+      <div v-if="proceed">
+        <div class="q-mt-md">
           <FiatStore
             v-if="menu === 'store'"
             @order-canceled="onOrderCanceled"
@@ -36,19 +37,20 @@
             v-if="menu === 'profile'"
             v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
           />
-          <footerMenu
-            v-on:clicked="switchMenu"
-            ref="footer"
-          />
         </div>
-        <div v-else>
-          <MiscDialogs
-            :type="'editNickname'"
-            v-on:submit="createRampUser"
-            v-on:back="processDialog()"
-          />
-        </div>
+        <footerMenu
+          v-on:clicked="switchMenu"
+          ref="footer"
+        />
       </div>
+      <div v-else>
+        <MiscDialogs
+          :type="'editNickname'"
+          v-on:submit="createRampUser"
+          v-on:back="processDialog()"
+        />
+      </div>
+    </div>
   </div>
 </template>
 <script>
