@@ -4,6 +4,7 @@
       <span v-if="$parent.isExpired">EXPIRED</span>
       <span v-else>{{ orderStatus }}</span>
     </div>
+    <div class="text-center subtext xs-font-size bold-text">( Order #{{ order.id }} )</div>
     <div class="q-px-sm q-pt-sm">
       <div class="sm-font-size q-pb-xs">Fiat Amount</div>
       <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
@@ -74,7 +75,7 @@
       </div>
 
       <!-- Feedback -->
-      <div class="q-pt-md" v-if="type === 'completed'">
+      <div class="q-pt-md" v-if="order.status.value === 'RLS'">
         <div class="text-center bold-text xm-font-size subtext">
           <span v-if="!feedback.is_posted">Rate your Experience</span>
           <span v-else>Your Review</span>
@@ -207,7 +208,7 @@ export default {
       }
     },
     hasLabel () {
-      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN']
+      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'CNCL']
       return stat.includes(this.order.status.value)
     },
     label () {
@@ -218,7 +219,8 @@ export default {
         ESCRW: 'Please wait for the buyer to confirm their fiat payment.',
         PD_PN: 'Please wait for the seller to confirm your fiat payment.',
         PD: 'Please wait for the fund release.',
-        RLS_PN: 'Please wait for the fund release.'
+        RLS_PN: 'Please wait for the fund release.',
+        CNCL: `Order #${this.order.id} Canceled`
       }
       return labels[this.order.status.value]
     }
