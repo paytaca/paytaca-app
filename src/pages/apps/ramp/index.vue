@@ -1,12 +1,8 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:100px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
-  >
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
       :title="`${selectedCurrency.toLocaleUpperCase()} Ramp`"
       backnavpath="/apps"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
 
     <div v-if="!appSelection">

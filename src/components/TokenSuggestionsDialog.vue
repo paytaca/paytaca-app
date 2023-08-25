@@ -27,11 +27,15 @@
         class="q-mx-md"
         :text-color="darkMode ? 'blue-5' : 'blue-9'"
         style="margin-top:-1.5rem;"
-        :to="{ path: '/apps/settings/ignored-tokens' }"
+        :to="{
+          path: '/apps/settings/ignored-tokens',
+          query: { backNavPath: '/' }
+        }"
       />
       <q-card-section class="q-pt-none q-px-sm">
         <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
           <q-tabs
+            v-if="enableSmartBCH"
             active-color="brandblue"
             class="col-12 q-px-sm q-pb-md pp-fcolor"
             v-model="selectedNetwork"
@@ -68,6 +72,7 @@
                     <TokenTypeBadge
                       :assetId="token.id"
                       class="q-ml-xs"
+                      abbreviate
                     />
                   </q-item-label>
                 </q-item-section>
@@ -116,7 +121,7 @@
           v-if="parsedTokens.length > 0 && !loading"
           no-caps
           rounded
-          :label="`Add all ${parsedTokens.length}`"
+          :label="`${$t('AddAll')} ${parsedTokens.length}`"
           text-color="white"
           :color="darkMode ? 'blue-9': 'brandblue'"
           @click="addAllTokens()"
@@ -163,6 +168,9 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
     parsedTokens () {
       if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
       if (this.selectedNetwork === 'sBCH') return this.parsedSmartchainTokens
@@ -178,7 +186,7 @@ export default {
             id: token.id || '',
             name: token.name || '',
             symbol: token.symbol || '',
-            logo: token.image_url || '',
+            logo: token.image_url || token.logo || '',
             balance: token.balance || 0,
             decimals: token.decimals || 0,
             isSep20: false

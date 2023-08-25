@@ -11,7 +11,6 @@ export function updateCoinsList (context, { force = true }) {
       { params: { include_platform: true } }
     )
     .then(response => {
-      console.log(response)
       if (Array.isArray(response.data)) {
         context.commit('updateCoinsList', response.data)
         return response
@@ -44,8 +43,8 @@ export function getAllAssetList (context) {
   // TODO: Fetching of price needs to be improved. Coingecko does not not have price quoute for 
   // most BCH and sBCH tokens currently. For SPICE, the price quote is wrong.
   // The filters below is meant to only have BCH as result. This is temporary.
-  const mainchainAssets = context.rootGetters['assets/getAssets'].filter(asset => asset.id.indexOf('/') === -1)
-  const smartchainAssets = context.rootGetters['sep20/getAssets'].filter(asset => asset.id.indexOf('/') === -1)
+  const mainchainAssets = context.rootGetters['assets/getAssets'].filter(asset => asset?.id?.indexOf?.('/') === -1)
+  const smartchainAssets = context.rootGetters['sep20/getAssets'].filter(asset => asset?.id?.indexOf?.('/') === -1)
 
   const mainchain = mainchainAssets.map(asset => {
     if (asset?.id == 'bch') return {

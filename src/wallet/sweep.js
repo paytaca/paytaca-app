@@ -1,7 +1,7 @@
 const BCHJS = require('@psf/bch-js')
 const bchjs = new BCHJS()
 const axios = require('axios')
-const Watchtower = require('watchtower-cash-js')
+import Watchtower from 'watchtower-cash-js'
 
 export class SweepPrivateKey {
   constructor (wif) {
@@ -17,7 +17,6 @@ export class SweepPrivateKey {
     })
     if (respBch.data.success) {
       const resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
-      console.log(resp)
       return resp.data
     }
   }

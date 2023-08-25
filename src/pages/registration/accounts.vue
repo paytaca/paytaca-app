@@ -6,7 +6,7 @@
         <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
+    <div class="row pt-wallet q-mt-sm justify-center" :class="{'pt-dark': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
       <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
           <div class="row">
@@ -21,23 +21,35 @@
             </div>
           </div>
         </div>
+        <div class="col-12 q-mt-md">
+          <q-btn
+            flat
+            padding="md"
+            :label="$t('Back')"
+            icon="arrow_back"
+            class="full-width"
+            color="blue-9"
+            @click="!$router.push('/')"
+            v-if="!$store.getters['global/isVaultEmpty']"
+          />
+        </div>
       </div>
       <div class="row" v-else style="margin-top: 60px;">
         <div class="col" v-if="serverOnline === false">
-          <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+          <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': darkMode}">
             {{ $t('NoInternetConnectionNotice') }} &#128533;
           </div>
         </div>
       </div>
     </div>
-    <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
+    <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
       <ProgressLoader/>
     </div>
-    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': $store.getters['darkmode/getStatus']}" v-if="importSeedPhrase && mnemonic.length === 0">
+    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">
         <p
           style="text-align: center; font-size: 16px; color: #000;"
-          :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}"
+          :class="{'pt-dark-label': darkMode}"
         >
           {{ $t('RestoreWalletDescription') }}
         </p>
@@ -47,53 +59,103 @@
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
-      <div class="pt-get-started q-mt-sm q-pa-lg" :class="{ 'pt-dark': $store.getters['darkmode/getStatus'] }">
-        <template v-if="steps === totalSteps">
-          <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': $store.getters['darkmode/getStatus'] }">{{ $t('MnemonicBackupPhrase') }}</h5>
-          <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-            {{ $t('MnemonicBackupPhraseDescription1') }}
+      <div class="pt-get-started q-mt-sm q-pa-lg" :class="{ 'pt-dark': darkMode }">
+        <div class="row justify-center" v-if="openSettings">
+          <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5>
+          <p class="dim-text" style="margin-top: 10px;">
+            {{ $t('OnBoardSettingDescription') }}
           </p>
-          <p v-else class="dim-text" style="margin-top: 10px;">
-            {{ $t('MnemonicBackupPhraseDescription2') }}
-          </p>
-        </template>
-        <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
 
-        <div class="row" id="mnemonic">
+          <q-list bordered separator style="border-radius: 14px;" :class="{'pt-dark-card': darkMode}">
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CountrySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <LanguageSelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CurrencySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+
+          <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width bg-blue-9 text-white" @click="choosePreferedSecurity"/>
+        </div>
+        
+        <div v-else>
           <template v-if="steps === totalSteps">
-            <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-              <ul>
-                <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
-                  <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
-                </li>
-              </ul>
-            </div>
-            <div v-else>
-              <div>
-                <q-btn
-                  flat
-                  no-caps
-                  padding="xs sm"
-                  icon="arrow_back"
-                  color="black"
-                  class="text-blue"
-                  :label="$t('MnemonicBackupPhrase')"
-                  @click="showMnemonicTest = false"
+            <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('MnemonicBackupPhrase') }}</h5>
+            <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+              {{ $t('MnemonicBackupPhraseDescription1') }}
+            </p>
+            <p v-else class="dim-text" style="margin-top: 10px;">
+              {{ $t('MnemonicBackupPhraseDescription2') }}
+            </p>
+          </template>
+          <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
+
+          <div class="row" id="mnemonic">
+            <template v-if="steps === totalSteps">
+              <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
+                <ul>
+                  <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
+                    <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
+                  </li>
+                </ul>
+              </div>
+              <div v-else>
+                <div>
+                  <q-btn
+                    flat
+                    no-caps
+                    padding="xs sm"
+                    icon="arrow_back"
+                    color="black"
+                    class="text-blue"
+                    :label="$t('MnemonicBackupPhrase')"
+                    @click="showMnemonicTest = false"
+                  />
+                </div>
+                <MnemonicTest
+                  :mnemonic="mnemonic"
+                  @matched="mnemonicVerified = true"
+                  class="q-mb-md"
                 />
               </div>
-              <MnemonicTest :mnemonic="mnemonic" class="q-mb-md" @matched="mnemonicVerified = true" />
-            </div>
-          </template>
-        </div>
-        <div class="row" v-if="steps === totalSteps">
-          <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="choosePreferedSecurity" :label="$t('Continue')" rounded />
-          <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+            </template>
+          </div>
+          <div class="row" v-if="steps === totalSteps">
+            <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="openSettings = true" :label="$t('Continue')" rounded />
+            <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+          </div>
         </div>
       </div>
     </div>
 
-    <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
-    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
+    <securityOptionDialog
+      :security-option-dialog-status="securityOptionDialogStatus"
+      v-on:preferredSecurity="setPreferredSecurity"
+    />
+    <pinDialog
+      v-model:pin-dialog-action="pinDialogAction"
+      v-on:nextAction="executeActionTaken"
+    />
 
   </div>
 </template>
@@ -108,12 +170,38 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
+import LanguageSelector from '../../components/settings/LanguageSelector'
+import CountrySelector from '../../components/settings/CountrySelector'
+import CurrencySelector from '../../components/settings/CurrencySelector'
+
+function countWords(str) {
+  if (str) {
+    return str.trim().split(/\s+/).length
+  } else {
+    return 0
+  }
+}
 
 export default {
   name: 'registration-accounts',
-  components: { ProgressLoader, pinDialog, securityOptionDialog, MnemonicTest },
+  props: {
+    recreate: {
+      type: Boolean,
+      default: false
+    }
+  },
+  components: {
+    ProgressLoader,
+    pinDialog,
+    securityOptionDialog,
+    MnemonicTest,
+    LanguageSelector,
+    CountrySelector,
+    CurrencySelector,
+  },
   data () {
     return {
+      openSettings: false,
       serverOnline: null,
       importSeedPhrase: false,
       seedPhraseBackup: null,
@@ -124,7 +212,9 @@ export default {
       showMnemonicTest: false,
       pinDialogAction: '',
       pin: '',
-      securityOptionDialogStatus: 'dismiss'
+      securityOptionDialogStatus: 'dismiss',
+      walletIndex: 0,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   watch: {
@@ -139,7 +229,11 @@ export default {
   },
   methods: {
     validateSeedPhrase () {
-      return utils.isValidMnemonic(this.seedPhraseBackup)
+      if (countWords(this.seedPhraseBackup) === 12) {
+        return utils.isValidMnemonic(this.seedPhraseBackup)
+      } else {
+        return false
+      }
     },
     cleanUpSeedPhrase (seedPhrase) {
       return seedPhrase.toLowerCase().trim()
@@ -148,10 +242,34 @@ export default {
         .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuations
         .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
     },
+    saveToVault () {
+      // saving to wallet vault
+      let wallet = this.$store.getters['global/getAllWalletTypes']
+      wallet = JSON.stringify(wallet)
+      wallet = JSON.parse(wallet)
+
+      let chipnet = this.$store.getters['global/getAllChipnetTypes']
+      chipnet = JSON.stringify(chipnet)
+      chipnet = JSON.parse(chipnet)
+
+      const info = {
+        wallet: wallet,
+        chipnet: chipnet
+      }
+
+      this.$store.commit('global/updateVault', info)
+      this.$store.commit('global/updateWalletIndex', this.walletIndex)
+
+      let asset = this.$store.getters['assets/getAllAssets']
+      asset = JSON.stringify(asset)
+      asset = JSON.parse(asset)
+
+      this.$store.commit('assets/updateVault', { index: this.walletIndex, asset: asset })
+    },
     continueToDashboard () {
       const vm = this
-
-      this.$store.dispatch('global/updateOnboardingStep', 1).then(function () {
+      this.$store.dispatch('global/updateOnboardingStep', this.steps).then(function () {
+        vm.saveToVault()
         vm.$router.push('/')
       })
     },
@@ -165,22 +283,26 @@ export default {
       const vm = this
 
       // Create mnemonic seed, encrypt, and store
-      if (vm.importSeedPhrase) {
-        vm.mnemonicVerified = true
-        vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup))
-      } else {
-        vm.mnemonic = await generateMnemonic()
+      if (!vm.mnemonic) {
+        if (vm.importSeedPhrase) {
+          vm.mnemonicVerified = true
+          vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
+        } else {
+          vm.mnemonic = await generateMnemonic(vm.walletIndex)
+        }
       }
       vm.steps += 1
 
-      const wallet = new Wallet(this.mnemonic)
+      const wallet = new Wallet(vm.mnemonic)
       const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
       const slpWallets = [wallet.SLP, wallet.SLP_TEST]
 
       for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
-        bchWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+        await bchWallet.getNewAddressSet(0).then(function (response) {
+          const addresses = response?.addresses || null
+          const pgpIdentity = response?.pgpIdentity || null
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'bch',
@@ -303,6 +425,7 @@ export default {
       }
     },
     executeActionTaken (action) {
+      console.log('ACTION:', action)
       const vm = this
       if (action === 'proceed') {
         vm.continueToDashboard()
@@ -312,15 +435,41 @@ export default {
     }
   },
   async mounted () {
-    this.mnemonic = await getMnemonic() || ''
-    if (this.mnemonic.split(" ").length === 12) {
-      this.steps = 9
+
+    if (this.recreate) {
+      this.mnemonic = await getMnemonic(0) || ''
+      if (this.mnemonic.split(" ").length === 12) {
+        this.steps = 0
+      }
+      this.$store.state.global.vault = []
+    }
+
+    // get walletIndex
+    this.walletIndex = this.$store.getters['global/getVault'].length
+
+    if (this.$store.getters['global/isVaultEmpty']) {
+      this.walletIndex = 0
+    }
+
+    const vm = this
+    vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(response => {
+      if (response.status !== 200) return Promise.reject()
+      vm.serverOnline = true
+    }).catch(function () {
+      vm.serverOnline = false
+    })
+
+    if (!this.$store.getters['global/isVaultEmpty']) {
+      return
     }
 
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
     const supportedLangs = [
-      { value: 'en-us', label: 'English' },
-      { value: 'es', label: 'Spanish' }
+      { value: 'en-us', label: this.$t('English') },
+      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
+      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+      { value: 'de', label: this.$t('German') },
+      { value: 'es', label: this.$t('Spanish') },
     ]
     let finalLang = ''
 
@@ -329,6 +478,15 @@ export default {
     try {
       deviceLang = await Device.getLanguageCode()
       deviceLang = deviceLang.value.toLowerCase()
+
+      /**
+      *  https://capacitorjs.com/docs/apis/device#getlanguagecoderesult
+      *  Since Device.getLanguageCode() returns a two-char language code,
+      *  we set chinese default to "zh-cn" (Chinese - Simplified)
+      */
+      if (deviceLang === 'zh') {
+        deviceLang = 'zh-cn'
+      }
     } catch (error) {
       deviceLang = supportedLangs[0]
       console.error(error)
@@ -347,16 +505,7 @@ export default {
     }
 
     this.$i18n.locale = finalLang.value
-    this.$q.localStorage.set('lang', finalLang)
-
-    const vm = this
-
-    vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(function (response) {
-      if (response.status !== 200) return Promise.reject()
-      vm.serverOnline = true
-    }).catch(function () {
-      vm.serverOnline = false
-    })
+    this.$store.commit('global/setLanguage', this.$t(finalLang.label))
   }
 }
 </script>

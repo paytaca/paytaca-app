@@ -84,7 +84,7 @@ export default {
     }
   },
   async mounted () {
-    const wallet = await loadWallet()
+    const wallet = await loadWallet('BCH', this.$store.getters['global/getWalletIndex'])
     const walletHash = wallet.BCH.getWalletHash()
     const url = `https://watchtower.cash/api/chat/conversations/${walletHash}`
     const vm = this

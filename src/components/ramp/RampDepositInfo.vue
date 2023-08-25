@@ -133,7 +133,6 @@ export default {
       })
     },
     getNetwork (info) {
-      // console.log(info)
       const network = info.shift_info.deposit.network.toLowerCase()
       const coin = info.shift_info.deposit.coin.toLowerCase()
       //check ethereum
@@ -177,7 +176,7 @@ export default {
       const vm = this
       vm.processing = true
       vm.sendFailed = false
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
       const wallet = new Wallet(mnemonic)
 
       const amount = parseFloat(vm.shiftInfo.shift_info.deposit.amount)

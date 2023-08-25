@@ -122,7 +122,7 @@
             <q-item-label header class="q-pa-xs pp-text">
               {{ $t('Recipients') }}
             </q-item-label>
-            <template v-for="(output, index) in paymentRequest.paymentDetails.outputs" :key="index"> 
+            <template v-for="(output, index) in paymentRequest.paymentDetails.outputs" :key="index">
               <q-item>
                 <q-item-section>
                   <q-item-label class="pp-text" caption>{{ $t('Address') }}</q-item-label>
@@ -496,7 +496,7 @@ export default {
     },
 
     loadWallet () {
-      getMnemonic().then((mnemonic) => {
+      getMnemonic(this.$store.getters['global/getWalletIndex']).then((mnemonic) => {
         const wallet = new Wallet(mnemonic, 'BCH')
         wallet.sBCH.getOrInitWallet()
           .then(() => {

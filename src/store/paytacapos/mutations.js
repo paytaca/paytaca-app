@@ -39,6 +39,7 @@ export function updateMerchantInfo(state, data) {
  * @param {Object} data 
  * @param {Number} data.id
  * @param {String} data.name
+ * @param {Boolean} data.is_main
  * @param {Object} data.merchant
  * @param {String} data.merchant.wallet_hash
  * @param {Object} [data.location]
@@ -57,6 +58,7 @@ export function updateMerchantInfo(state, data) {
   const _branchInfo = {
     id: data?.id,
     merchantWalletHash: data?.merchant?.wallet_hash,
+    isMain: data?.is_main,
     name: data?.name,
     location: {
       landmark: data?.location?.landmark,
@@ -73,6 +75,10 @@ export function updateMerchantInfo(state, data) {
   const index = state.branches.findIndex(branchInfo => branchInfo?.id === _branchInfo?.id)
   if (index >=0) state.branches[index] = _branchInfo
   else state.branches.push(_branchInfo)
+
+  if (_branchInfo?.isMain) state.branches.forEach(branch => {
+    if (_branchInfo?.id != branch?.id) branch.isMain = false
+  })
 }
 
 /**

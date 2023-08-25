@@ -15,36 +15,70 @@
               :label="inputPlaceholder"
               type="text"
               lazy-rules
-              v-model="asset"
+              v-model="tokenId"
               :dark="darkMode"
               :rules="[
                 val => Boolean(val) || $t('Required'),
               ]"
-            >
-              <template v-slot:append v-if="!isSep20">
-                <q-btn-toggle
-                  v-model="tokenSelected"
-                  rounded
-                  class="q-my-lg"
-                  unelevated
-                  toggle-color="grad"
-                  toggle-text-color="white"
-                  :color="darkMode ? 'grey' : 'white'"
-                  :text-color="darkMode ? 'grey-4' : 'grey'"
-                  :options="[
-                    { label: 'SLP', value: 'slp' },
-                    { label: 'CT', value: 'ct' }
-                  ]"
-                />
-              </template>
-            </q-input>
+            />
           </q-card-section>
 
-          <q-separator class="q-mt-none" />
+          <div v-if="loading" class="flex justify-center">
+            <ProgressLoader/>
+          </div>
+          <div class="col-12 q-mx-md q-mb-md overflow-hidden" v-if="asset !== null">
+            <div class="row" v-for="val, key in asset" :key="key">
+              <div v-if="key !== 'id'" class="col-12">
+                <div v-if="key !== 'logo'" class="row">
+                  <div v-if="key !== 'is_nft'" class="col-4 text-blue-9">
+                    {{ formatTokenDetailsKey(key) }} :
+                  </div>
+                  <div v-if="key !== 'is_nft'" class="text-right col-8 text-grad">
+                    {{ val }}
+                  </div>
+                </div>
 
+                <div v-else class="flex justify-center q-mb-sm">
+                  <img :src="val" height="50" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <q-separator class="q-mt-none" />
+          
           <q-card-actions align="right">
-              <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
-              <q-btn rounded padding="0.5em 2em 0.5em 2em" :class="[darkMode ? 'text-white' : 'pp-text']" flat :label="$t('Close')" @click="onCancelClick" />
+            <q-btn
+              rounded
+              flat
+              :label="$t('Close')"
+              padding="0.5em 2em 0.5em 2em"
+              :class="[darkMode ? 'text-white' : 'pp-text']"
+              @click="onCancelClick"
+            />
+            <template v-if="asset">
+              <template v-if="asset.is_nft">
+                <q-btn
+                  rounded
+                  class="text-white"
+                  color="blue-9"
+                  padding="0.5em 2em 0.5em 2em"
+                  :label="$t('View at Collectibles')"
+                  @click="$router.push('/apps/collectibles'); hide()"
+                />
+              </template>
+              <template v-else>
+                <q-btn
+                  rounded
+                  class="text-white"
+                  color="blue-9"
+                  padding="0.5em 2em 0.5em 2em"
+                  :label="$t('Add')"
+                  type="submit"
+                  :disable="addBtnDisabled"
+                />
+              </template>
+            </template>
           </q-card-actions>
         </q-form>
     </q-card>
@@ -52,7 +86,13 @@
 </template>
 
 <script>
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import ProgressLoader from '../../../components/ProgressLoader.vue'
+
 export default {
+  components: {
+    ProgressLoader,
+  },
   emits: [
     // REQUIRED
     'ok', 'hide'
@@ -62,39 +102,53 @@ export default {
       type: String,
       default: 'BCH'
     },
+    isCashToken: {
+      type: Boolean,
+      required: true
+    },
+    wallet: {
+      type: Object,
+      required: true
+    },
     darkMode: Boolean
   },
 
   data () {
     return {
-      tokenSelected: 'ct',
+      tokenId: '',
+      addBtnDisabled: true,
       asset: null,
-      isCashToken: true
+      loading: false,
     }
   },
   watch: {
-    tokenSelected (n, o) {
-      this.isCashToken = n === 'ct'
+    tokenId (n, o) {
+      this.asset = null
+      console.log('this.isTokenIdValid', this.isTokenIdValid)
+      if (!this.isTokenIdValid) return
+      this.setAssetDetails()
     }
   },
   computed: {
     isSep20 () {
       return this.network === 'sBCH'
     },
+    isTokenIdValid() {
+      if (this.isSep20) return this.tokenId?.length == 42 && this.tokenId?.startsWith?.('0x')
+      return this.tokenId?.trim?.()?.length == 64
+    },
     addTokenTitle () {
       if (this.isSep20)
         return this.$t('Add_SEP20_Token')
       if (this.isCashToken)
-        // TODO: translate
-        return 'Add CashToken'
+        return this.$t('AddFungibleCashToken')
       return this.$t('Add_Type1_Token')
     },
     inputPlaceholder () {
       if (this.isSep20)
         this.$t('Enter_SEP20_ContractAddress')
       if (this.isCashToken)
-        // TODO: translate
-        return 'Enter CashToken category ID'
+        return this.$t('EnterCashTokenCategoryID')
       return this.$t('Enter_SLP_TokenId')
     }
   },
@@ -103,14 +157,102 @@ export default {
     show () {
       this.$refs.dialog.show()
     },
-    onOKClick () {
-      this.$refs.questForm.validate().then(success => {
-        this.$emit('ok', {
-          isCashToken: this.isCashToken,
-          tokenId: this.asset,
-        })
-        this.hide()
+    formatTokenDetailsKey (key) {
+      return key.charAt(0).toUpperCase() + key.slice(1)
+    },
+    setAssetDetailsSep20() {
+      const vm = this
+      vm.loading = true
+      console.log('fetching sep20')
+      return getWalletByNetwork(vm.wallet, 'sbch').getSep20ContractDetails(vm.tokenId).then(response => {
+        if (response.success && response.token) {
+          vm.asset = {
+            id: `sep20/${response.token.address}`,
+            symbol: response.token.symbol,
+            name: response.token.name,
+            decimals: response.token.decimals,
+            logo: '',
+            balance: 0
+          }
+          vm.addBtnDisabled = false
+        }
+      }).finally(() => {
+        vm.loading = false
       })
+    },
+    setAssetDetailsCashtoken() {
+      const vm = this
+      vm.loading = true
+      console.log('fetching ct')
+      return vm.$refs.questForm.validate().then(success => {
+        getWalletByNetwork(vm.wallet, 'bch').getTokenDetails(vm.tokenId).then(details => {
+          if (details !== null) {
+            vm.addBtnDisabled = false
+            vm.asset = details
+          }
+        })
+      }).finally(() => {
+        vm.loading = false
+      })
+    },
+    setAssetDetailsSLP() {
+      const vm = this
+      vm.loading = true
+      console.log('fetching slp')
+      return getWalletByNetwork(vm.wallet, 'slp').getSlpTokenDetails(vm.tokenId).then(details => {
+        const token = {
+          logo: details.image_url,
+          id: details.id,
+          symbol: details.symbol,
+          name: details.name,
+          balance: 0
+        }
+        if (details.symbol.length > 0 && details.token_type === 1) {
+          vm.$store.commit('assets/addNewAsset', token)
+          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
+          vm.$store.dispatch('assets/updateTokenIcon', { assetId: token.id })
+          vm.asset = token
+        }
+      }).finally(() => {
+        vm.loading = false
+      })
+    },
+    setAssetDetails () {
+      const vm = this
+      if (vm.isSep20) return this.setAssetDetailsSep20()
+      if (vm.isCashToken) return this.setAssetDetailsCashtoken()
+      return this.setAssetDetailsSLP()
+    },
+    addAsset () {
+      if (!this.asset?.id) return console.error('No asset id found. Skipping adding new asset')
+      if (this.asset?.is_nft) return console.error('Asset is nft. Skipping adding new asset')
+
+      if (this.isSep20) {
+        this.$store.commit('sep20/addNewAsset', this.asset)
+        this.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
+        this.$store.dispatch('sep20/updateTokenIcon', { assetId: this.asset.id })
+        return
+      }
+
+      this.$store.commit(
+        'assets/addNewAsset',
+        Object.assign({
+          id: '',
+          name: '',
+          logo: '',
+          symbol: '',
+          decimals: 0,
+        }, this.asset, { balance: 0 })
+      )
+    },
+    onOKClick () {
+      this.addAsset()
+      this.$emit('ok', {
+        isCashToken: this.isCashToken,
+        tokenId: this.tokenId,
+        data: this.asset
+      })
+      this.hide()
     },
     onCancelClick () {
       this.hide()

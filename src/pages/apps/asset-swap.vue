@@ -1,17 +1,13 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:100px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
-  >
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
       :title="$t('AssetSwap')"
       backnavpath="/apps"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
 
     <q-tabs
       active-color="brandblue"
-      class="col-12 q-px-sm q-pb-md pp-fcolor q-mx-md"
+      class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedNetwork"
       style="padding-bottom: 16px;"
       :style="{ 'margin-top': $q.platform.is.ios ? '10px' : '-35px'}"

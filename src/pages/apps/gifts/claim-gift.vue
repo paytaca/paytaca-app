@@ -4,9 +4,9 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="{'pt-dark': darkMode}">
       <div>
-        <header-nav :title="action + ' Gift'" backnavpath="/apps/gifts" style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"></header-nav>
+        <header-nav :title="action + ' Gift'" backnavpath="/apps/gifts" />
         <div :style="{ 'padding-top': $q.platform.is.ios ? '85px' : '60px'}">
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="processing" style="text-align: center; padding-top: 25px;">
@@ -163,7 +163,7 @@ export default {
       vm.action = vm.actionProp
     }
 
-    getMnemonic().then(function (mnemonic) {
+    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       vm.wallet = markRaw(new Wallet(mnemonic))
       if (vm.action === 'Recover') {
         vm.claimGift(vm.giftCodeHash)

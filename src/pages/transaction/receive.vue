@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark' : ''">
+  <div id="app-container" :class="{'pt-dark': darkMode}">
     <header-nav
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
@@ -29,7 +29,7 @@
     <template v-else>
       <div class="row">
         <div class="col qr-code-container" @click="copyToClipboard(address)">
-          <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+          <div class="col col-qr-code q-pl-sm q-pr-sm">
             <div class="row text-center">
               <div class="col row justify-center q-pt-md">
                 <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
@@ -90,13 +90,6 @@ import {
   convertTokenAmount,
 } from 'src/wallet/chipnet'
 
-NativeAudio.preload({
-    assetId: 'send-success',
-    assetPath: 'send-success.wav',
-    audioChannelNum: 1,
-    isUrl: false
-})
-
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
 
@@ -116,7 +109,8 @@ export default {
       legacy: false,
       lnsName: '',
       generatingAddress: false,
-      copying: false
+      copying: false,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   props: {
@@ -159,7 +153,6 @@ export default {
             this.lnsName = response.name
             return Promise.resolve(response)
           }
-          return Promise.reject()
         })
     },
     getFallbackAssetLogo (asset) {
@@ -179,7 +172,7 @@ export default {
       vm.stopSbchListener()
       delete this?.$options?.sockets
 
-      getMnemonic().then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
           getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(function (result) {
@@ -218,7 +211,7 @@ export default {
     async copyPrivateKey () {
       try {
         this.copying = true
-        const mnemonic = await getMnemonic()
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
         const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
@@ -338,8 +331,8 @@ export default {
         if (assetType === 'slp' || tokenType === 'ct') {
           if (data.token_id.split('/')[1] === tokenId) {
             vm.notifyOnReceive(
-              data.amount,
-              vm.asset.symbol,
+              BigInt(data.amount) / (BigInt(10) ** BigInt(data.token_decimals)),
+              data.token_symbol.toUpperCase(),
               vm.asset.logo || vm.getFallbackAssetLogo(vm.asset),
               tokenType === 'ct' ? vm.asset.decimals : 0,
               tokenType === 'ct'
@@ -347,8 +340,8 @@ export default {
           }
         } else {
           vm.notifyOnReceive(
-            data.amount,
-            vm.asset.symbol,
+            data.value / (10 ** data.token_decimals),
+            data.token_symbol.toUpperCase(),
             vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
           )
         }
@@ -422,6 +415,13 @@ export default {
       vm.setupListener()
     }
     this.updateLnsName()
+
+    NativeAudio.preload({
+      assetId: 'send-success',
+      assetPath: 'send-success.wav',
+      audioChannelNum: 1,
+      isUrl: false
+    })
   },
 
   created () {
@@ -454,7 +454,7 @@ export default {
     color: #636767;
   }
   .qr-code-container {
-    margin-top: 120px;
+    margin-top: 40px;
     padding-left: 28px;
     padding-right: 28px;
   }

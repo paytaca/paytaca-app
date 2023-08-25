@@ -163,7 +163,7 @@ export default {
     this.connectedAddressIndex = connectedAddressIndex;
 
     // Load wallets
-    const mnemonic = await getMnemonic()
+    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
     const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
     const wallet = new Wallet(mnemonic, network)
     this.wallet = markRaw(wallet)
@@ -182,13 +182,6 @@ export default {
   }
   .signed {
     height: 80px;
-  }
-  #app-container {
-    // position: relative !important;
-    background-color: #ECF3F3;
-    min-height: 100vh;
-    flex-direction: column;
-    display: flex;
   }
   .text-sm {
     font-size: 12px;

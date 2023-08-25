@@ -60,7 +60,7 @@ export default {
       },
       state: '',
       baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
-      error_msg: this.$t('NoInternetConnectionNotice')
+      error_msg: this.$t('BackendDown')
     }
   },
   emits: ['close', 'confirmed', 'retry'],
@@ -98,7 +98,7 @@ export default {
       const vm = this
       vm.isloaded = false
       const ip = await this.getIPAddr()
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
       const wallet = new Wallet(mnemonic)
 
       const walletHash = wallet.BCH.getWalletHash()

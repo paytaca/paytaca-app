@@ -4,14 +4,13 @@
       v-model="scanner.show"
       @decode="onScannerDecode"
     />
-    <div id="app-container" style="background-color: #ECF3F3; min-height: 100vh;" class="flex flex-center" :class="{ 'pt-dark': darkMode }">
+    <div id="app-container" :class="{'pt-dark': darkMode}">
       <HeaderNav
         :title="$t('WalletConnect')"
         backnavpath="/apps"
-        style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
       />
 
-      <div class="q-mx-md">
+      <div class="q-mx-md q-mt-lg" style="margin-top: 50px;">
         <div v-if="!connector">
           <q-input
             :label="$t('InputWalletConnectUri')"
@@ -527,7 +526,7 @@ export default {
 
     loadWallet () {
       const vm = this
-      return getMnemonic()
+      return getMnemonic(vm.$store.getters['global/getWalletIndex'])
         .then(function (mnemonic) {
           vm.wallet = markRaw(new Wallet(mnemonic, 'sBCH'))
         })

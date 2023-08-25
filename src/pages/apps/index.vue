@@ -4,7 +4,7 @@
       <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
         <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">{{ $t('Applications') }}</p>
         <div class="row q-px-xs">
-          <div v-for="(app, index) in apps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center">
+          <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div class="pt-app bg-grad" :class="buttonClassByState(app.active)" @click="openApp(app)">
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
@@ -29,50 +29,58 @@ export default {
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
           iconStyle: 'width:50%',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
         },
         {
           name: this.$t('Bridge'),
           iconName: 'mdi-bridge',
           path: '/apps/bridge',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: true
         },
         {
           name: this.$t('AssetSwap'),
           iconName: 'mdi-swap-horizontal-bold',
           path: '/apps/asset-swap',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: true
         },
         {
-          name: 'Ramp',
+          name: this.$t('Ramp'),
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/ramp',
           iconStyle: 'width:50%',
-          active: true // !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
         },
         {
           name: this.$t('WalletConnect'),
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: true
         },
         {
           name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
         },
         {
           name: this.$t('Sweep'),
           iconName: 'mdi-broom',
           path: '/apps/sweep',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
         },
         {
-          name: 'Gifts',
+          name: this.$t('Gifts'),
           iconName: 'mdi-gift',
           path: '/apps/gifts/',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
         },
         // {
         //   name: 'Chat',
@@ -81,25 +89,37 @@ export default {
         //   active: true
         // },
         {
-          name: 'POS Admin',
+          name: this.$t('POSAdmin'),
           iconName: 'point_of_sale',
           path: '/apps/point-of-sale',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
         },
         {
           name: this.$t('WalletInfo'),
           iconName: 'info',
           path: '/apps/wallet-info',
-          active: true
+          active: true,
+          smartBCHOnly: false
         },
         {
           name: this.$t('Settings'),
           iconName: 'settings',
           path: '/apps/settings',
-          active: true
+          active: true,
+          smartBCHOnly: false
         }
       ],
+      filteredApps: [],
       appHeight: null
+    }
+  },
+  computed: {
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
+    showTokens () {
+      return this.$store.getters['global/showTokens']
     }
   },
   methods: {
@@ -113,6 +133,14 @@ export default {
     }
   },
   created() {
+    this.filteredApps = this.apps
+    if (!this.enableSmartBCH) {
+      this.filteredApps = this.apps.filter((app) => {
+        if (!app.smartBCHOnly) {
+          return true
+        }
+      })
+    }
     try {
       if (this.$router.resolve({name: 'apps-sandbox'})) {
         this.apps.unshift({
@@ -151,6 +179,9 @@ export default {
     font-size: 22px;
     margin-left: 14px;
     font-weight: 400;
+  }
+  .bex-app {
+    width: 107px;
   }
 
   /* New */

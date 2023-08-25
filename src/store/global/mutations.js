@@ -1,3 +1,5 @@
+import { deleteMnemonic } from './../../wallet'
+
 function getWalletData (state, details) {
   const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
   const walletType = details.type
@@ -24,8 +26,71 @@ export function setNetwork (state, network) {
   }
 }
 
+export function updateVault (state, details) {
+  const len = state.vault.push(details)
+
+  state.vault[len - 1].name = ''
+}
+
+export function clearVault (state) {
+  state.vault = []
+}
+
+export function updateWalletIndex (state, index) {
+  state.walletIndex = index
+}
+
+export function updateWalletName (state, details) {
+  state.vault[details.index].name = details.name
+}
+
+export function updateWalletSnapshot (state, details) {
+  let wallet = details.walletSnapshot
+  wallet = JSON.stringify(wallet)
+  wallet = JSON.parse(wallet)
+
+  let chipnet = details.chipnetSnapshot
+  chipnet = JSON.stringify(chipnet)
+  chipnet = JSON.parse(chipnet)
+
+  state.vault[details.index].wallet = wallet
+  state.vault[details.index].chipnet = chipnet
+  state.vault[details.index].name = details.name
+}
+
+export function updateCurrentWallet (state, index) {
+  const vault = state.vault[index]
+
+  let wallet = vault.wallet
+  wallet = JSON.stringify(wallet)
+  wallet = JSON.parse(wallet)
+
+  state.wallets = wallet
+
+  let chipnet = vault.chipnet
+  chipnet = JSON.stringify(chipnet)
+  chipnet = JSON.parse(chipnet)
+
+  state.chipnet__wallets = chipnet
+}
+
+export function deleteWallet (state, index) {
+  // Mark wallet as deleted
+  state.vault[index].deleted = true
+  // Delete the mnemonic seed phrase for this wallet
+  deleteMnemonic(index)
+}
+
 export function toggleIsChipnet (state) {
   state.isChipnet = !state.isChipnet
+}
+
+export function showTokens (state) {
+  state.showTokens = !state.showTokens
+}
+
+export function enableSmartBCH (state) {
+  state.enableSmartBCH = !state.enableSmartBCH
 }
 
 export function updateWallet (state, details) {
@@ -39,7 +104,15 @@ export function updateWallet (state, details) {
   wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
   wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
   wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
+}
 
+export function setLanguage (state, language) {
+  state.language = language
+}
+
+export function setCountry (state, country) {
+  state.country.name = country.name
+  state.country.code = country.code
 }
 
 export function setConnectedAddress (state, details) {
@@ -137,11 +210,3 @@ export function updateConnectivityStatus (state, online) {
   state.online = online
 }
 
-// export function resetNickName (state) { // for testing purposes only, remove later
-//   console.log('resseting name')
-//   state.p2pRampUserName = ''
-// }
-
-// export function editRampNickname (state, nickname) {
-//   state.p2pRampUserName = nickname
-// }

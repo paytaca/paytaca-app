@@ -1,23 +1,21 @@
 <template>
-  <div
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;"
-    :class="{'pt-dark': darkMode}"
-  >
-    <header-nav title="Collectibles" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
+  <div id="app-container" :class="{'pt-dark': darkMode}">
+    <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
         <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">Show Receiving Address</q-item-section>
+            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">{{ $t('ShowReceivingAddress') }}</q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">Refresh List</q-item-section>
+            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">{{ $t('RefreshList') }}</q-item-section>
           </q-item>
         </q-list>
       </q-menu>
     </q-icon>
     <q-tabs
       dense
+      v-if="enableSmartBCH"
       active-color="brandblue"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
@@ -57,11 +55,22 @@
     </div>
     <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;">
       <q-tab-panel name="BCH">
-        <SLPCollectibles
-          ref="slpCollectibles"
-          :wallet="wallet"
-          style="margin:auto;"
-        />
+        <div class="row items-center justify-end">
+          <AssetFilter style="float:none" @filterTokens="filterTokens"/>
+        </div>
+        <keep-alive>
+          <CashTokensNFTs
+            v-if="bchNftType === 'ct'"
+            ref="cashtokenNFTs"
+            :wallet="wallet"
+          />
+          <SLPCollectibles
+            v-else
+            ref="slpCollectibles"
+            :wallet="wallet"
+            style="margin:auto;"
+          />
+        </keep-alive>
       </q-tab-panel>
       <q-tab-panel name="sBCH">
         <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" />
@@ -182,16 +191,28 @@ import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetForm
 import ERC721Collectibles from 'src/components/collectibles/ERC721Collectibles.vue'
 import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDialog.vue'
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
+import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
+import AssetFilter from 'src/components/AssetFilter.vue'
+import { convertCashAddress } from 'src/wallet/chipnet'
 
 export default {
   name: 'app-wallet-info',
-  components: { HeaderNav, AddERC721AssetFormDialog, ERC721Collectibles, ERC721AssetDetailDialog, SLPCollectibles },
+  components: {
+    HeaderNav,
+    AddERC721AssetFormDialog,
+    ERC721Collectibles,
+    ERC721AssetDetailDialog,
+    SLPCollectibles,
+    CashTokensNFTs,
+    AssetFilter,
+  },
   data () {
     return {
       collectibleDetail: {
         show: false,
         collectible: null
       },
+      bchNftType: 'ct', // slp | ct
       enableManageAssets: false,
       showAddERC721Form: false,
       selectERC721AssetExpanded: false,
@@ -206,6 +227,9 @@ export default {
     }
   },
   computed: {
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
     isSep20 () {
       return this.selectedNetwork === 'sBCH'
     },
@@ -224,10 +248,17 @@ export default {
       if (!this.wallet) return ''
 
       if (this.isSep20) return this.$store.getters['global/getAddress']('sbch')
+      if (this.bchNftType === 'ct') {
+        const bchAddress = this.$store.getters['global/getAddress']('bch')
+        return convertCashAddress(bchAddress, false, true)
+      }
       return this.$store.getters['global/getAddress']('slp')
     }
   },
   methods: {
+    filterTokens (isCashToken) {
+      this.bchNftType = isCashToken ? 'ct' : 'slp'
+    },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },
@@ -267,6 +298,10 @@ export default {
         this.$refs.slpCollectibles.fetchCollectibles()
       }
 
+      if (this?.$refs?.cashtokenNFTs?.refresh?.call) {
+        this.$refs.cashtokenNFTs.refresh()
+      }
+
       if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {
         this.$refs.erc721Collectibles.fetchCollectibles()
       } else if (Array.isArray(this?.$refs?.erc721Collectibles)) {
@@ -286,7 +321,7 @@ export default {
     },
     loadWallet () {
       const vm = this
-      getMnemonic().then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.selectedNetwork)
         vm.wallet = markRaw(wallet)
       })

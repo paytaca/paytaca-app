@@ -15,7 +15,6 @@ export function ignoredTokenIds (state) {
   if (network === 'chipnet') {
     _ignoredAssets = state.chipnet__ignoredAssets
   }
-
   if (!Array.isArray(_ignoredAssets)) return []
   return _ignoredAssets
     .map(asset => asset && asset.id)
@@ -47,4 +46,25 @@ export function getAsset (state) {
       }
     })
   }
+}
+
+export function getVault (state) {
+  return state.vault
+}
+
+export function isVaultEmpty (state) {
+  const vault = state.vault
+  if (vault.length === 0) {
+    return true
+  } else {
+    return false
+  }
+}
+
+export function getAllAssets (state) {
+  const info = {
+    asset: state.assets,
+    chipnet_assets: state.chipnet__assets
+  }
+  return info
 }

@@ -1,6 +1,6 @@
 {
   "name": "paytaca",
-  "version": "0.15.1",
+  "version": "0.16.7",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "productName": "Paytaca",
   "author": "joemar@paytaca.com",
@@ -29,6 +29,7 @@
     "@walletconnect/client": "^1.7.7",
     "aes256": "^1.1.0",
     "axios": "^0.21.4",
+    "axios-cache-interceptor": "^0.10.2",
     "bip39": "^3.0.4",
     "buffer": "^6.0.3",
     "capacitor-native-biometric": "^3.0.3",
@@ -56,12 +57,14 @@
     "shamirs-secret-sharing": "^1.0.1",
     "slp-mdm": "0.0.7",
     "tls": "^0.0.1",
+    "translate-google": "^1.5.0",
     "v-offline": "^3.3.0",
     "vue": "^3.2.37",
     "vue-clipboard2": "^0.3.1",
     "vue-confetti": "^2.3.0",
     "vue-dragscroll": "^3.0.1",
     "vue-i18n": "^9.2.2",
+    "vue-json-pretty": "^2.2.4",
     "vue-native-websocket-vue3": "^3.1.6",
     "vue-qrcode-component": "^2.1.1",
     "vue-qrcode-reader": "^3.1.0-vue3-compatibility.7",
@@ -70,7 +73,7 @@
     "vuex": "^4.0.2",
     "vuex-persist": "^3.1.3",
     "vuex-persistedstate": "^4.0.0-beta.2",
-    "watchtower-cash-js": "^0.1.36"
+    "watchtower-cash-js": "^0.1.41"
   },
   "overrides": {
     "@generalprotocols/anyhedge@1.0.0-next.3670337504": {

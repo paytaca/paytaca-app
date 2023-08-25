@@ -71,11 +71,12 @@ export function addIgnoredAsset (state, asset) {
   }
 
   if (!asset || !asset.id) return
-  if (!Array.isArray(state.ignoredAssets[net])) state.ignoredAssets[net] = []
+  if (!Array.isArray(_ignoredAssets)) _ignoredAssets = []
 
-  const index = state.ignoredAssets[net].map(assetInfo => assetInfo && assetInfo.id).indexOf(asset.id)
-  if (index >= 0) state.ignoredAssets[net][index] = asset
-  else state.ignoredAssets[net].push(asset)
+  const index = _ignoredAssets.map(assetInfo => assetInfo.id).indexOf(asset.id)
+  if (index >= 0) _ignoredAssets[index] = asset
+  else _ignoredAssets.push(asset)
+  console.log('X', _ignoredAssets)
 }
 
 /**
@@ -97,6 +98,13 @@ export function removeIgnoredAsset (state, assetId) {
       return asset.id !== assetId
     })
     .filter(Boolean)
+
+  if (network === 'chipnet') {
+    state.chipnet__ignoredAssets = _ignoredAssets
+  }
+  if (network === 'mainnet') {
+    state.ignoredAssets = _ignoredAssets
+  }
 }
 
 /**
@@ -120,6 +128,48 @@ export function updateAssetImageUrl (state, data) {
   }
 }
 
+export function updateVault (state, details) {
+  state.vault[details.index] = details.asset
+}
+
+export function updateVaultSnapshot (state, details) {
+  // console.log('saving asset snapshot')
+  let snapshot = details.snapshot
+  snapshot = JSON.stringify(snapshot)
+  snapshot = JSON.parse(snapshot)
+
+  state.vault[details.index] = snapshot
+}
+
+export function clearVault (state) {
+  // console.log('clearing vault')
+  state.vault = []
+}
+
+export function updatedCurrentAssets (state, index) {
+  let vault = state.vault[index]
+  vault = JSON.stringify(vault)
+  vault = JSON.parse(vault)
+
+  state.assets = vault.asset
+  state.chipnet__assets = vault.chipnet_assets
+}
+
+// export function updateCurrentWallet (state, index) {
+//   const vault = state.vault[index]
+
+//   let wallet = vault.wallet
+//   wallet = JSON.stringify(wallet)
+//   wallet = JSON.parse(wallet)
+
+//   state.wallets = wallet
+
+//   let chipnet = vault.chipnet
+//   chipnet = JSON.stringify(chipnet)
+//   chipnet = JSON.parse(chipnet)
+
+//   state.chipnet__wallets = chipnet
+// }
 
 export function updateAssetMetadata (state, data) {
   const network = getBlockChainNetwork()
@@ -132,11 +182,13 @@ export function updateAssetMetadata (state, data) {
   if (!Array.isArray(assets)) return
 
   assets.forEach(a => {
-    if (a.id === data.id) {
-      a.name = data.name,
-      a.symbol = data.symbol,
-      a.decimals = data.decimals,
-      a.logo = data.image_url || ''
+    if (a && data) {
+      if (a.id === data.id) {
+        a.name = data.name,
+        a.symbol = data.symbol,
+        a.decimals = data.decimals,
+        a.logo = data.logo || ''
+      }
     }
   })
 }

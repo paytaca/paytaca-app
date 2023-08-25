@@ -632,7 +632,7 @@ export default {
       const vm = this
       const network = transferType === 'c2s' ? 'BCH' : 'sBCH'
       // Load wallets
-      return getMnemonic().then(function (mnemonic) {
+      return getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, network)
         vm.wallet = markRaw(wallet)
       })

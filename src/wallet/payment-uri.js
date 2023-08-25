@@ -255,6 +255,7 @@ export class JPPSourceTypes {
   static DEFAULT = 'default'
   static BITCOIN_COM = 'bitcoin.com'
   static BITPAY = 'bitpay'
+  static ANYPAY = 'anypay'
   static WATCHTOWER = 'watchtower'
 
   /**
@@ -267,6 +268,7 @@ export class JPPSourceTypes {
       if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
       if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
       if (link.host.indexOf('watchtower.cash') >= 0) return this.WATCHTOWER
+      if (link.host.indexOf('anypay') >= 0) return this.ANYPAY
       return this.DEFAULT
     } catch(error) {
       console.error(error)
@@ -328,6 +330,13 @@ export class JSONPaymentProtocol {
     }
     if (Array.isArray(this._data?.outputs)) parsedData.outputs = this._data?.outputs
     parsedData.outputs = parsedData.outputs.filter(output => output?.address && output?.amount)
+      .map(output => {
+        try {
+          // some services(like anypay) do not include the 'bitcoincash:' prefix
+          output.address = bchjs.Address.toCashAddress(output.address)
+        } catch {}
+        return output
+      })
 
     return parsedData
   }
@@ -387,11 +396,7 @@ export class JSONPaymentProtocol {
       txBuilder.addInput(utxo.tx_hash, utxo.tx_pos)
       totalInput = totalInput.plus(utxo.value)
       const addressPath = utxo?.address_path || utxo.wallet_index
-      const utxoPkWif = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.retrievePrivateKey(
-        getWalletByNetwork(wallet, 'bch').mnemonic,
-        getWalletByNetwork(wallet, 'bch').derivationPath,
-        addressPath,
-      )
+      const utxoPkWif = await getWalletByNetwork(wallet, 'bch').getPrivateKey(addressPath)
 
       inputs.push({
         utxo: utxo,
@@ -463,7 +468,7 @@ export class JSONPaymentProtocol {
 
   async verifyPayment() {
     // Bitcoin.com payment request doesnt seem to have verify payment
-    if (this.source === JPPSourceTypes.BITCOIN_COM) {
+    if (this.source === JPPSourceTypes.BITCOIN_COM || this.source === JPPSourceTypes.ANYPAY) {
       this.preparedTx.verified = true
       return
     }
@@ -538,7 +543,7 @@ export class JSONPaymentProtocol {
       responseType: 'json',
     }
  
-    if (this.source === JPPSourceTypes.BITCOIN_COM) {
+    if (this.source === JPPSourceTypes.BITCOIN_COM || this.source === JPPSourceTypes.ANYPAY) {
       requestOpts.proxy = true
       requestOpts.headers ={
         'Content-Type': 'application/json',
@@ -548,10 +553,11 @@ export class JSONPaymentProtocol {
       requestOpts.data = {
         payment_url: this.parsed.paymentUrl,
         raw_tx_hex: transactions[0],
+        source: this.source,
       }
-    } else if (this.source === JPPSourceTypes.BITPAY) {
+    } else if (this.source === JPPSourceTypes.BITPAY || this.source === JPPSourceTypes.ANYPAY) {
       requestOpts.headers['Content-Type'] = 'application/payment'
-      requestOpts.headers['X-Paypro-Version'] = 2
+      if (this.source === JPPSourceTypes.BITPAY) requestOpts.headers['X-Paypro-Version'] = 2
       requestOpts.data = {
         chain: this.parsed.chain,
         currency: this.parsed.currency,
@@ -568,6 +574,7 @@ export class JSONPaymentProtocol {
         raw_tx_hex: transactions[0],
       }
     }
+
     try {
       const watchtower = new Watchtower()
       const response = await watchtower.BCH._api.post(
@@ -694,6 +701,8 @@ export class JSONPaymentProtocol {
       headers['X-Paypro-Version'] = 2
     } else if (jppSource === JPPSourceTypes.WATCHTOWER) {
       headers.Accept = 'application/json'
+    } else if (jppSource == JPPSourceTypes.ANYPAY) {
+      headers['X-Currency'] = 'BCH'
     }
 
     let parsedData
@@ -713,6 +722,10 @@ export class JSONPaymentProtocol {
       parsedData = response.data
       parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
       parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
+      if (jppSource == JPPSourceTypes.ANYPAY) {
+        parsedData.paymentUrl = String(link)
+        parsedData.chain = 'BCH'
+      }
       if (proxy && parsedData) {
         if (!parsedData.paymentId) {
           const splitPath = paymentUrl.pathname.split('/')	

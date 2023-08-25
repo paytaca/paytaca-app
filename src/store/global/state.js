@@ -1,7 +1,14 @@
 export default function () {
   return {
     network: 'BCH', // BCH || sBCH
+    language: 'English',
+    country: {
+      name: 'United States',
+      code: 'US'
+    },
     isChipnet: false,
+    showTokens: true,
+    enableSmartBCH: false,
     wallets: {
       bch: {
         walletHash: '',
@@ -77,7 +84,8 @@ export default function () {
       email: '',
       mobileNumber: ''
     },
-    online: null//,
-    // p2pRampUserName: ''
+    online: null,
+    walletIndex: 0,
+    vault: []
   }
 }

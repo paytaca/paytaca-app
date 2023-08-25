@@ -1,130 +1,156 @@
 <template>
-  <div class="pt-settings" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="{'pt-dark': darkMode}">
       <header-nav :title="$t('Settings')" backnavpath="/apps" />
-      <div class="row" :style="{ 'padding-top': $q.platform.is.ios ? '90px' : '60px'}">
-          <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Security') }}</p>
-              <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
-                <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
-                    <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SecurityAuthenticationSetup') }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section avatar>
-                        <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
-                    </q-item-section>
-                </q-item>
-                <q-item :disable="!pinStatus" clickable v-ripple @click="popUpPinDialog">
-                    <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Pin') }} {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section avatar>
-                        <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
-                    </q-item-section>
-                </q-item>
-              </q-list>
-          </div>
-
-          <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Wallet') }}</p>
-              <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
-                <q-item>
-                    <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section side>
-                      <q-select
-                        dense
-                        :style="{ width: $q.platform.is.mobile === true ? '75%' : '100%' }"
-                        use-input
-                        fill-input
-                        hide-selected
-                        borderless
-                        :dark="darkMode"
-                        :option-label="opt => String(opt && opt.name)"
-                        v-model="selectedCurrency"
-                        :options="filteredCurrencyOptions"
-                        @filter="filterCurrencyOptionSelection"
-                      >
-                        <template v-slot:option="scope">
-                          <q-item
-                            v-bind="scope.itemProps"
-                          >
-                            <q-item-section>
-                              <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
-                                {{ String(scope.opt.symbol).toUpperCase() }}
-                              </q-item-label>
-                              <q-item-label
-                                v-if="scope.opt.name"
-                                caption
-                                :class="{ 'text-black': !darkMode && !scope.selected }"
-                              >
-                                {{ scope.opt.name }}
-                              </q-item-label>
-                            </q-item-section>
-                          </q-item>
-                        </template>
-                      </q-select>
-                    </q-item-section>
-                </q-item>
-                <q-item>
+      <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
+        <div class="col-12 q-px-lg q-mt-md">
+            <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Security') }}</p>
+            <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+              <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                   <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('IgnoredTokens') }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SecurityAuthenticationSetup') }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                      <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+                  </q-item-section>
+              </q-item>
+              <q-item :disable="!pinStatus" clickable v-ripple @click="setNewPin">
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ChangePin') }} {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                      <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
+                  </q-item-section>
+              </q-item>
+            </q-list>
+        </div>
+
+        <div class="col-12 q-px-lg q-mt-md">
+            <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Wallet') }}</p>
+            <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+              <q-item>
+                  <q-item-section>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
-                    <q-btn
-                      flat
-                      :label="$t('Manage')"
-                      no-caps
-                      :to="{ path: '/apps/settings/ignored-tokens' }"
+                    <CurrencySelector :darkMode="darkMode" />
+                  </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ShowTokens') }}</q-item-label>
+                </q-item-section>
+                <q-item-section avatar>
+                    <q-toggle
+                      v-model="showTokens"
+                      color="blue-9"
+                      keep-color
                     />
                   </q-item-section>
-                </q-item>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ManageIgnoredTokens') }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn
+                    flat
+                    :label="$t('Manage')"
+                    no-caps
+                    :to="{
+                      path: '/apps/settings/ignored-tokens',
+                      query: { backNavPath: '/apps/settings' }
+                    }"
+                  />
+                </q-item-section>
+              </q-item>
 
-                <q-item clickable v-ripple @click="isChipnet = !isChipnet">
-                    <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Chipnet') }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section avatar>
-                      <q-toggle
-                        v-model="isChipnet"
-                        color="blue-9"
-                        keep-color
-                      />
-                    </q-item-section>
-                </q-item>
-              </q-list>
-          </div>
-
-          <div class="col-12 q-px-lg q-mt-md">
-              <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Personalize') }}</p>
-              <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
-                <q-item>
+              <q-item clickable v-ripple @click="isChipnet = !isChipnet">
                   <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('UseChipnetNetwork') }}</q-item-label>
                   </q-item-section>
-                  <q-item-section side>
-                    <LanguageSelector :darkMode="darkMode" />
+                  <q-item-section avatar>
+                    <q-toggle
+                      v-model="isChipnet"
+                      color="blue-9"
+                      keep-color
+                    />
                   </q-item-section>
-                </q-item>
+              </q-item>
+              <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('EnableSmartBCH') }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-toggle
+                      v-model="enableSmartBCH"
+                      color="blue-9"
+                      keep-color
+                    />
+                  </q-item-section>
+              </q-item>
+            </q-list>
+        </div>
 
-                <q-item clickable v-ripple @click="darkMode = !darkMode">
-                    <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('DarkMode') }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section avatar>
-                      <q-toggle
-                        v-model="darkMode"
-                        color="blue-9"
-                        keep-color
-                      />
-                    </q-item-section>
-                </q-item>
-              </q-list>
+        <div class="col-12 q-px-lg q-mt-md">
+          <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Personalize') }}</p>
+          <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CountrySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <LanguageSelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple @click="darkMode = !darkMode">
+                <q-item-section>
+                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('DarkMode') }}</q-item-label>
+                </q-item-section>
+                <q-item-section avatar>
+                  <q-toggle
+                    v-model="darkMode"
+                    color="blue-9"
+                    keep-color
+                  />
+                </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+        <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
+          <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('AppInfo') }}</p>
+            <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+              <q-item>
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
+                  <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">v{{ appVersion }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
+                  <q-item-label>
+                    <a :href="repoUrl" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
+                      {{ repoUrl }}
+                    </a>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
           </div>
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="removePinCaption" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogCallback" />
 
   </div>
 </template>
@@ -135,7 +161,10 @@ import securityOptionDialog from '../../components/authOption'
 import HeaderNav from '../../components/header-nav'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
+import CountrySelector from '../../components/settings/CountrySelector'
+import CurrencySelector from '../../components/settings/CurrencySelector'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -145,10 +174,14 @@ export default {
       pinDialogAction: '',
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
+      securityChange: null,
       pinStatus: true,
-      filteredCurrencyOptions: [],
+      appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      isChipnet: this.$store.getters['global/isChipnet']
+      isChipnet: this.$store.getters['global/isChipnet'],
+      showTokens: this.$store.getters['global/showTokens'],
+      enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+      repoUrl: 'https://github.com/paytaca/paytaca-app'
     }
   },
   components: {
@@ -156,72 +189,86 @@ export default {
     pinDialog,
     securityOptionDialog,
     LanguageSelector,
+    CountrySelector,
+    CurrencySelector,
   },
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
     },
+    showTokens (n, o) {
+      this.$store.commit('global/showTokens')
+    },
+    enableSmartBCH (n, o) {
+      this.$store.commit('global/enableSmartBCH')
+    },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
-    },
-    selectedCurrency () {
-      this.$store.dispatch('market/updateAssetPrices', {})
-    }
-  },
-  computed: {
-    currencyOptions () {
-      return this.$store.getters['market/currencyOptions']
-    },
-    selectedCurrency: {
-      get () {
-        return this.$store.getters['market/selectedCurrency']
-      },
-      set (value) {
-        this.$store.commit('market/updateSelectedCurrency', value)
-        this.$store.dispatch('global/saveWalletPreferences')
-      }
     }
   },
   methods: {
-    filterCurrencyOptionSelection (val, update) {
-      if (!val) {
-        this.filteredCurrencyOptions = this.currencyOptions
-      } else {
-        const needle = String(val).toLowerCase()
-        this.filteredCurrencyOptions = this.currencyOptions
-          .filter(currency =>
-            String(currency && currency.name).toLowerCase().indexOf(needle) >= 0 ||
-            String(currency && currency.symbol).toLowerCase().indexOf(needle) >= 0
-          )
-      }
-
-      update()
+    setNewPin () {
+      this.securityChange = 'change-pin'
+      this.pinDialogAction = 'VERIFY'
     },
-    popUpPinDialog () {
-      this.pinDialogAction = 'SET NEW'
-    },
-    removePinCaption (action = '') {
+    pinDialogCallback (action = '') {
       this.pinDialogAction = ''
       if (action !== 'cancel') {
         this.securityOptionDialogStatus = 'dismiss'
       }
+      if (action === 'proceed') {
+        if (this.securityChange === 'change-pin') {
+          this.pinDialogAction = 'SET NEW'
+        }
+        if (this.securityChange === 'switch-to-biometric') {
+          this.$q.localStorage.set('preferredSecurity', 'biometric')
+          this.pinStatus = false
+        }
+      }
+    },
+    verifyBiometric () {
+      const vm = this
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For ownership verification',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          setTimeout(() => {
+            vm.$q.localStorage.set('preferredSecurity', 'pin')
+            vm.pinStatus = true
+            vm.pinDialogAction = 'SET NEW'
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          console.log(error)
+        }
+        )
     },
     setPreferredSecurity (auth) {
       const vm = this
-      vm.$q.localStorage.set('preferredSecurity', auth)
-      if (auth === 'pin') {
-        vm.pinStatus = true
-        SecureStoragePlugin.get({ key: 'pin' })
-          .then(() => {
-            vm.securityOptionDialogStatus = 'dismiss'
-          })
-          .catch(_err => {
-            vm.pinDialogAction = 'SET NEW'
-          })
-      } else {
-        vm.pinStatus = false
+      const currentPref = this.$q.localStorage.getItem('preferredSecurity')
+      if (currentPref === 'pin' && auth === 'biometric') {
+        vm.securityChange = 'switch-to-biometric'
+        vm.pinDialogAction = 'VERIFY'
+      }
+      if (currentPref === 'biometric' && auth === 'pin') {
+        vm.verifyBiometric()
+      }
+      if (currentPref === auth) {
         vm.securityOptionDialogStatus = 'dismiss'
       }
+      // if (auth === 'pin') {
+      //   vm.pinStatus = true
+      //   vm.pinDialogAction = 'SET NEW'
+      // } else {
+      //   vm.pinStatus = false
+      //   vm.securityOptionDialogStatus = 'dismiss'
+      // }
     }
   },
   created () {

@@ -22,9 +22,9 @@ export function updateTransactions (context, data) {
 }
 
 /**
- * 
- * @param {Object} context 
- * @param {Object} data 
+ *
+ * @param {Object} context
+ * @param {Object} data
  * @param {String} data.walletHash
  * @param {Number} data.age
  */
@@ -67,9 +67,9 @@ export async function refetchWalletPreferences(context) {
 }
 
 /**
- * 
+ *
  * @param {Object} context
- * @param {Object} data 
+ * @param {Object} data
  * @param {String} data.selected_currency
  */
 export async function updateWalletPreferences(context, data) {
@@ -92,4 +92,69 @@ export async function saveWalletPreferences(context) {
   if (response?.data?.wallet_hash) context.dispatch('updateWalletPreferences', response?.data)
 
   return response?.data
+}
+
+export async function saveExistingWallet (context) {
+  const vault = context.getters.getVault
+  
+  // check if vault keys are valid
+  if (vault.length > 0) {
+    if (vault[0]) {
+      if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+        context.commit('clearVault')
+      }
+    }
+  }
+
+  if (context.getters.isVaultEmpty) {
+    const walletHash = context.getters['getWallet']('bch')?.walletHash
+    if (walletHash) {
+      let wallet = context.getters.getAllWalletTypes
+      wallet = JSON.stringify(wallet)
+      wallet = JSON.parse(wallet)
+
+      let chipnet = context.getters.getAllChipnetTypes
+      chipnet = JSON.stringify(chipnet)
+      chipnet = JSON.parse(chipnet)
+      const info = {
+        wallet: wallet,
+        chipnet: chipnet
+      }
+      context.commit('updateVault', info)
+    }
+  }
+}
+
+export async function switchWallet (context, index) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+
+      const wallet = context.getters.getAllWalletTypes
+      const chipnet = context.getters.getAllChipnetTypes
+    
+      const currentIndex = context.getters.getWalletIndex
+      const walletName = context.getters.getVault[currentIndex].name
+    
+      const info = {
+        index: currentIndex,
+        walletSnapshot: wallet,
+        chipnetSnapshot: chipnet,
+        name: walletName
+      }
+      context.commit('updateWalletSnapshot', info)
+      context.commit('updateWalletIndex', index)
+      context.commit('updateCurrentWallet', index)
+
+      resolve()
+    }, 1000)
+  })
+}
+
+export async function deleteWallet (context, index) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      context.commit('deleteWallet', index)
+      resolve()
+    }, 1000)
+  })
 }

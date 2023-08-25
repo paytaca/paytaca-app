@@ -1,14 +1,9 @@
 <template>
   <div class="static-container">
-    <div
-      dense
-      style="background-color: #ECF3F3; min-height: 100vh;"
-      :class="{ 'pt-dark': darkMode }"
-      >
+    <div id="app-container" :class="{'pt-dark': darkMode}">
       <HeaderNav
         title="Gifts"
         backnavpath="/apps/gifts"
-        style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
         class="q-px-sm"
       />
       <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '145px' : '80px'}">
@@ -334,7 +329,7 @@ export default {
       this.generateGift()
     },
     async fetchCampaigns() {
-      const mnemonic = await getMnemonic()
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       this.wallet = new Wallet(mnemonic)
       let walletHash = this.$store.getters['global/getWallet']?.('bch')?.walletHash
       if (!walletHash) {
