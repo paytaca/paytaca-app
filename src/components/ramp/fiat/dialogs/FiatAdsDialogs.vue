@@ -64,7 +64,6 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('opening dialog')
     vm.state = vm.type
 
     vm.checkDialogType()

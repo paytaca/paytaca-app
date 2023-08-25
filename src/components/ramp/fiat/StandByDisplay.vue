@@ -159,12 +159,13 @@ export default {
         comment: '',
         is_posted: false
       },
-      minHeight: this.$q.screen.height - 210
+      minHeight: this.$q.screen.height - 195
     }
   },
   props: {
     orderData: Object
   },
+  emits: ['sendFeedback'],
   components: {
     MiscDialogs
   },
@@ -188,7 +189,6 @@ export default {
     },
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
-      // console.log('hasCancel:', stat.includes(this.order.status.value))
       return stat.includes(this.order.status.value)
     },
     cryptoAmount () {
@@ -206,7 +206,7 @@ export default {
       }
     },
     hasLabel () {
-      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'CNCL']
+      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN']
       return stat.includes(this.order.status.value)
     },
     label () {
@@ -218,7 +218,6 @@ export default {
         PD_PN: 'Please wait for the seller to confirm your fiat payment.',
         PD: 'Please wait for the fund release.',
         RLS_PN: 'Please wait for the fund release.',
-        CNCL: `Order #${this.order.id} Canceled`
       }
       return labels[this.order.status.value]
     }
@@ -241,8 +240,9 @@ export default {
         this.type = 'completed'
       }
     },
-    postingFeedback () {
-      console.log('feedback: ', this.feedback)
+    async postingFeedback () {
+      // console.log('feedback: ', this.feedback)
+      await this.$emit('sendFeedback', this.feedback)
     },
     paymentCountdown () {
       // console.log('counting down')
@@ -278,5 +278,9 @@ export default {
 <style lang="scss" scoped>
 .subtext {
   opacity: .5;
+}
+.button-color {
+  background: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  color: white
 }
 </style>

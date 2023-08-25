@@ -1,22 +1,4 @@
 <template>
-  <!-- <div v-if="proceed">
-    <FiatStore v-if="menu === 'store'"/>
-    <FiatOrders v-if="menu === 'orders'"/>
-    <FiatAds v-if="menu === 'ads'"/>
-    <FiatProfileCard
-      v-if="menu === 'profile'"
-      v-on:back="menu = 'store'"
-    />
-    <footerMenu
-      v-on:clicked="switchMenu"
-    />
-  </div>
-  <div v-else>
-    <MiscDialogs
-      :type="'editNickname'"
-      v-on:submit="updateNickname"
-      v-on:back="proceed ? '' : $router.go(-1)"
-    /> -->
   <div>
     <div v-if="isLoading" class="row justify-center q-ma-lg q-pa-lg">
       <ProgressLoader/>

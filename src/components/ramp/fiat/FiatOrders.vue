@@ -47,7 +47,7 @@
                                 :class="{'pt-dark-label': darkMode}"
                                 class="q-mb-none md-font-size"
                                 @click.stop.prevent="viewUserProfile(listing)">
-                                {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded outline size="sm" color="blue-6" label="You" />
+                                {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
                               </span>
                               <div
                                 :class="{'pt-dark-label': darkMode}"
@@ -148,7 +148,7 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height - 195,
       viewProfile: false
     }
   },

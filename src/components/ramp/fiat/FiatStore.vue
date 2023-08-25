@@ -66,7 +66,8 @@
                               style="font-weight: 400;"
                               @click.stop.prevent="viewUserProfile(listing.owner, listing)">
                               <!-- <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }} -->
-                              {{ listing.owner }}
+
+                              {{ listing.owner }} &nbsp; <q-badge v-if="listing.is_owned" rounded size="sm" color="blue-6" label="You" />
                             </span><br>
                             <div class="row sm-font-size">
                               <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
@@ -180,7 +181,7 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height - 195,
       adFilter: {}
       // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
     }

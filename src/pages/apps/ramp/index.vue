@@ -9,7 +9,7 @@
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
 
-    <div v-if="!appSelection">
+    <div v-if="!appSelection" class="q-pt-xs">
       <!-- CRYPTO tab Content -->
       <div v-if="selectedCurrency === 'crypto'">
         <!-- Progress Loader -->
@@ -18,6 +18,7 @@
             <ProgressLoader/>
           </div>
         </div>
+        <!-- Shift form -->
         <div v-if="isloaded">
           <RampShiftForm v-if="isAllowed"/>
           <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">

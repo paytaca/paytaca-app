@@ -4,7 +4,7 @@
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     :style="`min-height: ${minHeight}px;`"
   >
-    <div v-if="state === 'initial'">
+    <div v-if="state === 'initial' && isloaded">
       <div>
         <q-btn
           flat
@@ -13,7 +13,7 @@
           @click="$emit('back')"
         />
       </div>
-      <div class="text-center q-pt-none" v-if="isloaded">
+      <div class="text-center q-pt-none">
         <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
         <div class="bold-text lg-font-size q-pt-sm">
           {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
@@ -93,6 +93,11 @@
         </div>
       </div>
     </div>
+    <div v-if="!isloaded">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader/>
+      </div>
+    </div>
     <div v-if="state === 'edit-pm'">
       <AddPaymentMethods
         :type="'Profile'"
@@ -111,6 +116,7 @@
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
@@ -123,7 +129,7 @@ export default {
       user: null,
       editNickname: false,
       state: 'initial',
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height - 195,
       wallet: null,
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'
@@ -142,7 +148,8 @@ export default {
   emits: ['back'],
   components: {
     MiscDialogs,
-    AddPaymentMethods
+    AddPaymentMethods,
+    ProgressLoader
   },
   // computed: {
   //   user () {
@@ -153,24 +160,20 @@ export default {
   // }
   methods: {
     processUserData () {
-      // console.log(this.$store.getters['ramp/getUser'].nickname)
       if (this.type === 'self') {
         // get this user's info
         this.user = {
           name: this.$store.getters['ramp/getUser'].nickname
         }
-        console.log(this.user)
       } else {
         this.user = this.userInfo
       }
     },
     async updateUserName (info) {
-      console.log(info)
       const vm = this
 
       const walletInfo = this.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo)
-      console.log(wallet)
       // this.$store.commit('global/editRampNickname', info.nickname)
       vm.$axios.put(vm.apiURL + '/peer', {
         nickname: info.nickname
@@ -183,7 +186,7 @@ export default {
         }
       })
         .then(response => {
-          console.log(response.data)
+          // console.log(response.data)
           vm.$store.commit('ramp/updateUser', response.data)
           this.processUserData()
         })

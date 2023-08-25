@@ -51,6 +51,7 @@
       <StandByDisplay
         :order-data="order"
         :key="standByDisplayKey"
+        @send-feedback="sendFeedback"
       />
     </div>
 
@@ -526,6 +527,36 @@ export default {
       // this.contract.address = this.rampContract.getAddress()
       console.log('rampContract address:', this.rampContract.getAddress())
     },
+    async sendFeedback (feedback) {
+      const vm = this
+      vm.isloaded = false
+      const url = `${vm.apiURL}/feedback/peer`
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const body = {
+        to_peer: vm.order.ad.owner.id,
+        order: vm.order.id,
+        rating: feedback.rating,
+        comment: feedback.comment
+
+      }
+      console.log(body)
+      await vm.$axios.post(url, body, { headers: headers })
+        .then(response => {
+          console.log(response)
+        })
+        .catch(error => {
+          console.log(error)
+        })
+
+      vm.isloaded = true
+    },
+
 
     // Recieve Dialogs
     async handleDialogResponse () {

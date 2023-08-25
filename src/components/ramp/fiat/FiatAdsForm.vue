@@ -274,7 +274,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height - 195,
       loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,

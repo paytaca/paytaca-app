@@ -176,7 +176,7 @@ export default {
       totalPages: null,
       pageNumber: null,
       selectedAdId: null,
-      minHeight: this.$q.screen.height - 210
+      minHeight: this.$q.screen.height - 195
     }
   },
   watch: {

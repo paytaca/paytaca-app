@@ -3,7 +3,7 @@
     <q-card
       class="br-15 q-pt-sm q-mx-md q-mx-none"
       :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-      style="min-width: 75%;"
+      :style="$q.platform.is.mobile ? 'min-width: 100%' : 'min-width: 30%'"
     >
       <q-btn
         flat
@@ -14,14 +14,14 @@
       <div class="text-center bold-text xm-font-size">
         Select Ramp App
       </div>
-      <div class="row no-wrap justify-around items-baseline bold-text md-font-size q-pt-lg q-mb-lg">
+      <div class="row no-wrap justify-around items-baseline md-font-size q-pt-lg q-mb-lg">
         <div class="col column items-center">
-          <q-btn @click="selectApp('fiat')" class="q-mb-sm" dense outline rounded size="2.5em" icon="o_attach_money" :color="darkMode ? 'blue-1' : 'blue-6'"/>
-          <span>FIAT</span>
+          <q-btn @click="selectApp('fiat')" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2.5em" icon="attach_money"/>
+          <span>Fiat</span>
         </div>
         <div class="col column items-center">
-          <q-btn @click="selectApp('crypto')" class="q-mb-sm" dense outline rounded size="2.5em" icon="o_currency_bitcoin" :color="darkMode ? 'blue-1' : 'blue-6'"/>
-          <span>CRYPTO</span>
+          <q-btn @click="selectApp('crypto')" class="q-mb-sm q-pa-md button-color" dense flat rounded size="2.5em" icon="currency_bitcoin"/>
+          <span>Crypto</span>
         </div>
       </div>
     </q-card>
@@ -39,9 +39,14 @@ export default {
   emits: ['back', 'submit'],
   methods: {
     selectApp (app) {
-      console.log(app)
       this.$emit('submit', app)
     }
   }
 }
 </script>
+<style lang="scss" scoped>
+.button-color {
+  background: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  color: white
+}
+</style>
