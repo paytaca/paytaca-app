@@ -4,95 +4,96 @@
     :class="{'pt-dark': darkMode}"
   >
     <HeaderNav
-      title="Ramp"
+      :title="`${selectedCurrency.toLocaleUpperCase()} Ramp`"
       backnavpath="/apps"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
 
-    <q-tabs
-      active-color="brandblue"
-      class="col-12 q-px-sm q-pb-md pp-fcolor q-mx-md"
-      style="padding-bottom: 16px;"
-      v-model="selectedCurrency"
-      :style="{ 'margin-top': $q.platform.is.ios ? '10px' : '-35px'}"
-    >
-      <q-tab
-        name="fiat"
-        :class="{'text-blue-5': darkMode}"
-        label="fiat"
-        @click="selectedCurrency = 'fiat'"
-      />
-        <!-- <q-popup-proxy>
-          <q-banner :class="darkMode ? 'pt-dark text-white' : 'text-black'" class="q-pa-md br-15 text-center">
-            Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!
-          </q-banner>
-        </q-popup-proxy> -->
-      <!-- </q-tab> -->
-      <q-tab
-        name="crypto"
-        :class="{'text-blue-5': darkMode}"
-        label="crypto"
-        @click="selectedCurrency = 'crypto'"
-      />
-    </q-tabs>
-
-    <!-- CRYPTO Tab -->
-    <div v-if="selectedCurrency === 'crypto'">
-      <RampShiftForm v-if="isAllowed"/>
-      <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
-        <div>
-          Sorry. This feature is blocked in your country &#128533;
+    <div v-if="!appSelection">
+      <!-- CRYPTO tab Content -->
+      <div v-if="selectedCurrency === 'crypto'">
+        <!-- Progress Loader -->
+        <div v-if="!isloaded">
+          <div class="row justify-center q-py-lg" style="margin-top: 50px">
+            <ProgressLoader/>
+          </div>
+        </div>
+        <div v-if="isloaded">
+          <RampShiftForm v-if="isAllowed"/>
+          <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
+            <div>
+              Sorry. This feature is blocked in your country &#128533;
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Add FIAT tab content here -->
-    <div v-if="selectedCurrency === 'fiat'">
-      <FiatRampIndex/>
+      <!-- FIAT tab content here -->
+      <div v-if="selectedCurrency === 'fiat'">
+        <FiatRampIndex/>
+      </div>
     </div>
-
   </div>
+
+  <!-- App Select Dialog -->
+  <appSelectionDialog
+    v-if="appSelection"
+    @back="$router.go(-1)"
+    @submit="selectApp"
+  />
 </template>
 <script>
 // import { ref } from 'vue'
 import HeaderNav from '../../../components/header-nav'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import appSelectionDialog from 'src/components/ramp/appSelectionDialog.vue'
 import RampShiftForm from '../../../components/ramp/RampShiftForm'
 import FiatRampIndex from '../../../components/ramp/fiat/Index.vue'
 
 export default {
   components: {
     HeaderNav,
+    ProgressLoader,
     RampShiftForm,
-    FiatRampIndex
+    FiatRampIndex,
+    appSelectionDialog
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: 'fiat', // crypto
-      isAllowed: true,
+      selectedCurrency: '',
       error: false,
-      pageName: 'ramp-fiat-store'
+      pageName: 'ramp-fiat-store',
+      appSelection: true,
+      isAllowed: true,
+      isloaded: false
     }
   },
-  watch: {
-    selectedCurrency (val) {
+  methods: {
+    selectApp (app) {
       const vm = this
-      vm.pageName = 'ramp-' + val
-      if (val === 'fiat') {
+      console.log(app)
+
+      vm.selectedCurrency = app
+      vm.pageName = 'ramp-' + app
+      if (app === 'fiat') {
         vm.pageName += '-store'
       }
       console.log('pageName:', vm.pageName)
       this.$router.push({ name: vm.pageName })
+
+      vm.appSelection = false
     }
   },
   async mounted () {
     const vm = this
     // check permission first
+
     const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
     if (!permission.data.createShift) {
       vm.isAllowed = false
     }
-    this.$router.push({ name: vm.pageName })
+    vm.isloaded = true
   }
 }
 </script>
