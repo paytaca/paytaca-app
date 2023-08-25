@@ -389,7 +389,7 @@ export default {
 
       const url = `${vm.apiURL}/payment-method`
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
 
       await vm.$axios.get(url, {
         headers: {
@@ -415,7 +415,7 @@ export default {
       vm.isloaded = false
 
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'PAYMENT_METHOD_DELETE', timestamp)
 
       await vm.$axios.delete(vm.apiURL + '/payment-method/' + index, {
         headers: {

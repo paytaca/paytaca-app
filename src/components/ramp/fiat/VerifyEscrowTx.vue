@@ -199,7 +199,7 @@ export default {
       console.log('Verifying Release: ', vm.transactionId)
       const url = `${vm.apiURL}/order/${vm.orderId}/verify-release`
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_RELEASE', timestamp)
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,

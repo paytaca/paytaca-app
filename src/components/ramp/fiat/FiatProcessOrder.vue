@@ -347,7 +347,7 @@ export default {
       const vm = this
 
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CONFIRM', timestamp)
 
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
@@ -373,7 +373,7 @@ export default {
       const vm = this
 
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CANCEL', timestamp)
 
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/cancel`
@@ -401,7 +401,11 @@ export default {
 
       const url = `${this.apiURL}/order/${vm.order.id}/confirm-payment/${type}`
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
+      let action = 'ORDER_BUYER_CONF_PAYMENT'
+      if (type === 'seller') {
+        action = 'ORDER_SELLER_CONF_PAYMENT'
+      }
+      const signature = await signMessage(vm.wallet.privateKeyWif, action, timestamp) // update later
 
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
@@ -453,7 +457,7 @@ export default {
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_RELEASE', timestamp) // update later
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,

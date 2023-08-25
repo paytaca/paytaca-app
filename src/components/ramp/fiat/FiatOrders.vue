@@ -215,7 +215,7 @@ export default {
       try {
         await vm.$store.dispatch('ramp/fetchOrders', { orderState: vm.statusType, params: params, headers: headers, overwrite: overwrite })
       } catch (error) {
-        console.error(error)
+        console.error(error.response)
       }
       vm.loading = false
     },
@@ -252,7 +252,7 @@ export default {
           vm.loading = false
         })
         .catch(error => {
-          console.error(error)
+          console.error(error.response)
           vm.loading = false
         })
     },

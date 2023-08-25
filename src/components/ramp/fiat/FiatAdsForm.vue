@@ -487,7 +487,7 @@ export default {
     async getPaymentMethods () {
       const vm = this
       const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      const signature = await signMessage(this.wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
       const headers = {
         'wallet-hash': this.wallet.walletHash,
         timestamp: timestamp,

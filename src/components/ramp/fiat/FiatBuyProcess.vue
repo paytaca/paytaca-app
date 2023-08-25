@@ -118,14 +118,14 @@ export default {
     async fetchOrderData () {
       const vm = this
 
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
+      // const timestamp = Date.now()
+      // const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
 
       await vm.$axios.get(vm.apiURL + '/order/' + vm.orderData.id, {
         headers: {
-          'wallet-hash': vm.wallet.walletHash,
-          timestamp: timestamp,
-          signature: signature
+          'wallet-hash': vm.wallet.walletHash
+          // timestamp: timestamp,
+          // signature: signature
         }
       })
         .then(response => {
