@@ -1470,6 +1470,14 @@ const wallet = ref([].map(() => new Wallet())[0])
 async function initWallet () {
   wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
 }
+function getChangeAddress(opts={chipnet: false}) {
+  const walletTypes = opts?.chipnet
+    ? $store.getters['global/getAllChipnetTypes']
+    : $store.getters['global/getAllWalletTypes']
+
+  const bchWalletData = walletTypes?.bch
+  return bchWalletData?.lastChangeAddress
+}
 
 function onSendBchPaymentSwipe(resetSwipe=()=>{}) {
   $q.dialog({
@@ -1486,8 +1494,8 @@ function onSendBchPaymentSwipe(resetSwipe=()=>{}) {
 async function sendBchPayment() {
   const amount = bchPaymentData.value.bchAmount
   const address = bchPaymentData.value.address
-  const changeAddress = $store.getters['global/getChangeAddress']('bch')
-  // const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
+  const chipnet = address.indexOf('bchtest:') >= 0
+  const changeAddress = getChangeAddress({ chipnet })
   if (!wallet.value) await initWallet()
 
   const dialog = $q.dialog({
@@ -1500,7 +1508,8 @@ async function sendBchPayment() {
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
 
-  wallet.value.BCH.sendBch(amount, address, changeAddress)
+  const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
+  bchWallet.sendBch(amount, address, changeAddress)
     .then(result => {
       if (!result.success) return Promise.reject(result)
 
