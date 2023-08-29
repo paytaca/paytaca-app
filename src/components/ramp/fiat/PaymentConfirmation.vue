@@ -107,7 +107,7 @@ export default {
       timer: null,
       confirmPayment: false,
       confirmRelease: false,
-      minHeight: this.$q.screen.height - 210
+      minHeight: this.$q.screen.height - 195
     }
   },
   props: {

@@ -25,7 +25,7 @@
               <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
             </div>
             <div v-else class="q-mb-lg q-pb-lg">
-              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
+              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.25)}px`" style="overflow:auto;">
                 <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"
@@ -47,7 +47,7 @@
                                 :class="{'pt-dark-label': darkMode}"
                                 class="q-mb-none md-font-size"
                                 @click.stop.prevent="viewUserProfile(listing)">
-                                {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded outline size="sm" color="blue-6" label="You" />
+                                {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
                               </span>
                               <div
                                 :class="{'pt-dark-label': darkMode}"
@@ -149,7 +149,7 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.screen.height,
+      minHeight: this.$q.screen.height - 195,
       viewProfile: false
     }
   },

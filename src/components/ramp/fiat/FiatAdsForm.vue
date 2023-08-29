@@ -275,7 +275,7 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
       walletIndex: this.$store.getters['global/getWalletIndex'],
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height - 195,
       loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,

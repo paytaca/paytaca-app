@@ -254,7 +254,6 @@ export default {
   },
   methods: {
     onBack (data) {
-      // console.log('onBack:', data)
       if (data !== undefined) {
         this.paymentMethods = data
       }
@@ -262,8 +261,7 @@ export default {
     },
     receiveDialogInfo (data) {
       const vm = this
-      // console.log('receiveDialogInfo:', data)
-      // console.log('dialogType:', vm.dialogType)
+
       switch (vm.dialogType) {
         case 'addMethodFromAd':
         case 'editPaymentMethod':
@@ -343,7 +341,7 @@ export default {
       } else {
         this.selectedMethods.push(data)
       }
-      console.log(this.selectedMethods)
+      // console.log(this.selectedMethods)
     },
     selectButtonColor (type) {
       const temp = this.selectedMethods.map(p => p.payment_type.name)

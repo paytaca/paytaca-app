@@ -192,7 +192,7 @@ export default {
       walletIndex: this.$store.getters['global/getWalletIndex'],
       wallet: null,
       isloaded: false,
-      minHeight: this.$q.screen.height - 210,
+      minHeight: this.$q.screen.height - 195,
 
       ad: null,
       state: 'initial',
@@ -234,7 +234,6 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     },
     isOwner () {
-      // console.log(this.ad.is_owned)
       return this.ad.is_owned
     }
   },
@@ -288,18 +287,18 @@ export default {
         timestamp: timestamp
       }
       const cryptoAmount = vm.getCryptoAmount()
-      console.log('cryptoAmount:', cryptoAmount)
+      // console.log('cryptoAmount:', cryptoAmount)
       const body = {
         ad: vm.ad.id,
         crypto_amount: cryptoAmount.toFixed(8)
       }
       if (vm.ad.trade_type === 'BUY') {
         const temp = this.paymentMethods.map(p => p.id)
-        console.log(temp)
+        // console.log(temp)
         body.payment_methods = temp
       }
-      console.log('headers:', headers)
-      console.log('body:', body)
+      // console.log('headers:', headers)
+      // console.log('body:', body)
       try {
         const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
         console.log('response:', response)
@@ -361,7 +360,7 @@ export default {
     },
     recievePaymentMethods (item) {
       this.paymentMethods = item
-      console.log(this.paymentMethods)
+      // console.log(this.paymentMethods)
       this.createOrder()
     },
     recieveDialogsInfo (item) {

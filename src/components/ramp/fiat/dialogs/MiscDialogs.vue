@@ -715,7 +715,7 @@ export default {
       const vm = this
       const emitName = vm.stageData()
       // console.log('emitName:', emitName)
-      console.log('vm.info:', vm.info)
+      // console.log('vm.info:', vm.info)
       this.$emit(emitName, vm.info)
       // this.$emit('back', vm.info)
     },
