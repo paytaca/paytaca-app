@@ -50,6 +50,7 @@
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
         :order-data="order"
+        :feedback-data="feedback"
         :key="standByDisplayKey"
         @send-feedback="sendFeedback"
       />
@@ -110,6 +111,7 @@ export default {
 
       ad: null,
       order: null,
+      feedback: null,
       rampContract: null,
       contract: {
         address: null
@@ -193,6 +195,10 @@ export default {
     }
     await vm.fetchAdData()
     vm.updateStatus(vm.order.status)
+
+    if (vm.order.status.value === 'RLS') {
+      await vm.getOrderFeedback()
+    }
     vm.isloaded = true
     vm.setupWebsocket()
     // const orderTxids = vm.$store.getters['ramp/getOrderTxid'](vm.order.id)
@@ -527,20 +533,20 @@ export default {
       // this.contract.address = this.rampContract.getAddress()
       console.log('rampContract address:', this.rampContract.getAddress())
     },
+    // Peer Feedback
     async sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
-      const url = `${vm.apiURL}/feedback/peer`
+      const url = `${vm.apiURL}/order/feedback/peer`
       const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp) // update later
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'FEEDBACK_PEER_CREATE', timestamp)
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
         timestamp: timestamp
       }
       const body = {
-        to_peer: vm.order.ad.owner.id,
-        order: vm.order.id,
+        order_id: vm.order.id,
         rating: feedback.rating,
         comment: feedback.comment
 
@@ -549,6 +555,12 @@ export default {
       await vm.$axios.post(url, body, { headers: headers })
         .then(response => {
           console.log(response)
+          const data = response.data
+          vm.feedback = {
+            rating: data.rating,
+            comment: data.comment,
+            is_posted: true
+          }
         })
         .catch(error => {
           console.log(error)
@@ -556,7 +568,38 @@ export default {
 
       vm.isloaded = true
     },
+    async getOrderFeedback () {
+      const vm = this
+      console.log('Get Feedback')
 
+      const url = `${vm.apiURL}/order/feedback/peer`
+
+      await vm.$axios.get(url, {
+        params: {
+          from_peer: vm.$store.getters['ramp/getUser'].id,
+          order_id: vm.order.id
+        }
+      })
+        .then(response => {
+          if (response.data) {
+            const data = response.data[0]
+            vm.feedback = {
+              rating: data.rating,
+              comment: data.comment,
+              is_posted: true
+            }
+          }
+        })
+        .catch(error => {
+          console.log(error)
+        })
+
+      // vm.feedback = {
+      //   rating: 4,
+      //   comment: 'Helllo Wolrd',
+      //   is_posted: true
+      // }
+    },
 
     // Recieve Dialogs
     async handleDialogResponse () {

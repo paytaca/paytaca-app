@@ -76,10 +76,11 @@
 
       <!-- Feedback -->
       <div class="q-pt-md" v-if="order.status.value === 'RLS'">
-        <div class="text-center bold-text xm-font-size subtext">
+        <div class="text-center bold-text md-font-size subtext">
           <span v-if="!feedback.is_posted">Rate your Experience</span>
           <span v-else>Your Review</span>
         </div>
+        <div class="lg-font-size bold-text text-center">{{ nickname }}</div>
         <div class="text-center">
           <div class="q-py-xs">
             <q-rating
@@ -94,32 +95,34 @@
             <q-input
               v-model="feedback.comment"
               :dark="darkMode"
-              :disable="feedback.is_posted"
+              :readonly="feedback.is_posted"
               placeholder="Add comment here..."
               dense
               outlined
               autogrow
-              counter
+              :counter="!feedback.is_posted"
               maxlength="200"
             />
           </div>
-          <div class="row q-pt-xs q-px-xs q-pt-sm">
+          <div class="row q-pt-xs q-px-xs q-py-sm">
             <q-btn
               v-if="!feedback.is_posted"
+              :disable="!feedback.comment || !feedback.rating"
               rounded
               label='Post Review'
               class="q-space text-white"
               color="blue-8"
               @click="postingFeedback"
             />
-            <q-btn
+            <!-- <q-btn
               v-else
               rounded
               label='Edit Review'
               class="q-space text-white"
               color="blue-8"
-            />
+            /> -->
           </div>
+          <div class="text-center text-blue-5 md-font-size">View all Reviews</div>
         </div>
       </div>
     </div>
@@ -148,6 +151,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      nickname: this.$store.getters['ramp/getUser'].nickname,
       order: null,
       isloaded: false,
       countDown: '',
@@ -163,7 +167,8 @@ export default {
     }
   },
   props: {
-    orderData: Object
+    orderData: Object,
+    feedbackData: Object
   },
   emits: ['sendFeedback'],
   components: {
@@ -224,7 +229,9 @@ export default {
   },
   async mounted () {
     this.order = this.orderData
-    // console.log('order:', this.order)
+    if (this.feedbackData) {
+      this.feedback = this.feedbackData
+    }
     await this.paymentCountdown()
     this.checkStatus()
     this.isloaded = true
