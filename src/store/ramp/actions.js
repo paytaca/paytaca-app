@@ -6,7 +6,6 @@ export async function fetchUser (context, walletHash) {
   const headers = {
     'wallet-hash': walletHash
   }
-  console.log('walletHash:', walletHash)
   try {
     let { data: user } = await axiosInstance.get(apiURL, { headers: headers })
     if (user.length === 0) {

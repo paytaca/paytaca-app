@@ -119,6 +119,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      walletIndex: this.$store.getters['global/getWalletIndex'],
       isloaded: false,
       user: null,
       editNickname: false,
@@ -169,7 +170,7 @@ export default {
       const vm = this
 
       const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
+      const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
       console.log(wallet)
       // this.$store.commit('global/editRampNickname', info.nickname)
       vm.$axios.put(vm.apiURL + '/peer', {
@@ -227,7 +228,7 @@ export default {
   async mounted () {
     const vm = this
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
 
     await this.processUserData()
     vm.isloaded = true

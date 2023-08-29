@@ -274,6 +274,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
+      walletIndex: this.$store.getters['global/getWalletIndex'],
       minHeight: this.$q.screen.height - 210,
       loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
@@ -391,7 +392,7 @@ export default {
       let signature = null
       if (vm.wallet === null) {
         const walletInfo = this.$store.getters['global/getWallet']('bch')
-        vm.wallet = await loadP2PWalletInfo(walletInfo)
+        vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
         timestamp = Date.now()
         signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
       }
@@ -424,7 +425,7 @@ export default {
       const vm = this
       if (vm.wallet === null) {
         const walletInfo = this.$store.getters['global/getWallet']('bch')
-        vm.wallet = await loadP2PWalletInfo(walletInfo)
+        vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
       }
       let url = vm.apiURL + '/ad/'
       const timestamp = Date.now()

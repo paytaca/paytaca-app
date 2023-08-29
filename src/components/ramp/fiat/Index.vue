@@ -69,6 +69,8 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
+      network: 'BCH',
       menu: 'store',
       isLoading: true,
       wallet: null,
@@ -88,7 +90,7 @@ export default {
     ProgressLoader
   },
   async mounted () {
-    this.wallet = await markRaw(loadWallet())
+    this.wallet = await markRaw(loadWallet(this.network, this.walletIndex))
     const walletHash = this.wallet.BCH.getWalletHash()
     await this.$store.dispatch('ramp/resetPagination')
     this.user = await this.$store.dispatch('ramp/fetchUser', walletHash)
@@ -117,7 +119,7 @@ export default {
     async createRampUser (value) {
       this.createUser = true
       const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo)
+      const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
       await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: wallet })
       this.proceed = true
     },

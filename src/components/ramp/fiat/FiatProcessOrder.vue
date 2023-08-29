@@ -101,6 +101,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
+      walletIndex: this.$store.getters['global/getWalletIndex'],
       state: '',
       isloaded: false,
       confirmType: '',
@@ -185,7 +186,7 @@ export default {
       vm.wallet = vm.initWallet
     } else {
       const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      vm.wallet = await loadP2PWalletInfo(walletInfo)
+      vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
     }
     await vm.fetchOrderData()
     if (!vm.order) {

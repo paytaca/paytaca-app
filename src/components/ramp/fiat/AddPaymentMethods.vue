@@ -193,6 +193,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      walletIndex: this.$store.getters['global/getWalletIndex'],
 
       paymentMethods: [],
       paymentTypes: [],
@@ -221,7 +222,7 @@ export default {
     const vm = this
     // get payment type list
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo)
+    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
 
     switch (vm.type) {
       case 'General':
