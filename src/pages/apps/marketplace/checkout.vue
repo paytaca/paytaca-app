@@ -724,7 +724,6 @@ const $q = useQuasar()
 const $router = useRouter()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
 const initialized = ref(false)
 onMounted(() => refreshPage())
@@ -782,10 +781,11 @@ function resetTabs() {
   tabs.value.opts[0].disable = false
   tabs.value.active = tabs.value.opts[0].name
   nextTab()
-  setTimeout(() => {
+
+  setTimeout(async () => {
     if (validCoordinates.value) {
+      await findRider({ replaceExisting: false, displayDialog: true })
       nextTab()
-      findRider({ replaceExisting: false })
     }
     if (!checkout.value.balanceToPay) setTimeout(() => nextTab(), 10)
   }, 10)
@@ -1068,28 +1068,55 @@ function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
     .finally(() => loadingState.value.price = false)
 }
 
-async function findRider(opts={ replaceExisting: false }) {
+async function findRider(opts={ replaceExisting: false, displayDialog: false }) {
   if (!opts?.replaceExisting && formData.value?.delivery?.rider?.id) return
   loadingState.value.rider = true
   loadingMsg.value = 'Finding a rider'
 
-  const riders = await findRiders().catch(() => [])
-  loadingState.value.rider = false
-  loadingMsg.value = resolveLoadingMsg()
+  try {
+    let dialog
+    if (opts?.displayDialog) {
+      dialog = $q.dialog({
+        title: 'Searching rider',
+        message: 'Finding a nearby rider for delivery',
+        progress: true,
+        persistent: true,
+        ok: false,
+        cancel: false,
+        class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      })
+    }
 
-  formData.value.delivery.rider = riders[0]
-  if (!riders?.length) {
-    $q.dialog({
-      title: 'No riders nearby found',
-      message: 'We might have trouble delivering your order. Do you wish to proceed?',
-      persistent: true,
-      cancel: { flat: true, noCaps: true, label: 'Cancel', color: 'grey' },
-      ok: { flat: true, noCaps: true, label: 'Proceed', color: 'brandblue' },
-      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
-    }).onCancel(() => {
-      $router.replace({ params: { cartId: undefined } })
-      $router.go(-1)
+    const riders = await findRiders().catch(() => [])
+    loadingState.value.rider = false
+    loadingMsg.value = resolveLoadingMsg()
+    formData.value.delivery.rider = riders[0]
+    if (riders?.length) {
+      dialog?.hide?.()
+      return
+    }
+
+    const dialogUpdate = dialog ? dialog.update : $q.dialog
+    return new Promise((resolve, reject) => {
+      dialogUpdate({
+        title: 'No riders nearby found',
+        message: 'We might have trouble delivering your order. Do you wish to proceed?',
+        persistent: true,
+        progress: false,
+        cancel: { flat: true, noCaps: true, label: 'Cancel', color: 'grey' },
+        ok: { flat: true, noCaps: true, label: 'Proceed', color: 'brandblue' },
+        class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      }).onCancel(() => {
+        $router.replace({ params: { cartId: undefined } })
+        $router.go(-1)
+        reject()
+      }).onOk(() => {
+        resolve()
+      })
     })
+  } catch(error) {
+    dialog?.hide?.()
+    return Promise.reject(error)
   }
 }
 
@@ -1258,6 +1285,7 @@ watch(() => [tabs.value.active], async () => {
   if (checkout.value.totalPayable < 0) return
   await fetchPaymentPromise.value
   await updateDeliveryFeePromise.value
+  await createPaymentPromise.value?.catch?.(console.error)
   if (!payment.value) return createPayment()
 })
 
@@ -1276,6 +1304,7 @@ function fetchPayments() {
   return fetchPaymentPromise
 }
 
+const createPaymentPromise = ref()
 const createPayment = debounce(() => {
   if (checkout.value.balanceToPay <= 0) return Promise.resolve('Checkout paid')
   const data = {
@@ -1290,7 +1319,8 @@ const createPayment = debounce(() => {
 
   loadingState.value.creatingPayment = true
   loadingMsg.value = 'Creating payment'
-  return backend.post(`connecta/checkouts/${checkout.value.id}/payment/`, data)
+  createPaymentPromise.value = backend.post(`connecta/checkouts/${checkout.value.id}/payment/`, data)
+  return createPaymentPromise.value
     .finally(() => resetFormErrors())
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
