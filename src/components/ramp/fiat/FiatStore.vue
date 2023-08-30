@@ -1,8 +1,8 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg q-pb-lg"
+    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`min-height: ${minHeight}px;`"
+    :style="`height: ${minHeight}px;`"
     v-if="state === 'SELECT' && !viewProfile">
     <div class="q-mb-lg q-pb-lg">
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
@@ -42,7 +42,7 @@
             <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
           </div>
           <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.30)}px`" style="overflow:auto;">
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.3)}px`" style="overflow:auto;">
               <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"
@@ -182,7 +182,7 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.screen.height - 195,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       adFilter: {}
       // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
     }

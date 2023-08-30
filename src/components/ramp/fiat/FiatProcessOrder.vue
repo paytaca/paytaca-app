@@ -596,12 +596,6 @@ export default {
         .catch(error => {
           console.log(error)
         })
-
-      // vm.feedback = {
-      //   rating: 4,
-      //   comment: 'Helllo Wolrd',
-      //   is_posted: true
-      // }
     },
 
     // Recieve Dialogs
