@@ -234,7 +234,7 @@ export default {
   },
   async mounted () {
     const vm = this
-    console.log('listings:', vm.listings)
+    // console.log('listings:', vm.listings)
     if (!vm.listings || vm.listings.length === 0) {
       vm.loading = true
     }
@@ -244,8 +244,7 @@ export default {
   },
   methods: {
     receiveDialog (data) {
-      console.log(data)
-
+      // console.log(data)
       this.openDialog = false
     },
     async fetchFiatCurrencies () {
@@ -305,7 +304,7 @@ export default {
       done()
     },
     async refreshData (done) {
-      console.log('refreshing store')
+      // console.log('refreshing store')
       await this.resetAndRefetchListings()
       done()
     },
@@ -342,7 +341,7 @@ export default {
       }
     },
     onOrderCanceled () {
-      console.log('onOrderCanceled')
+      // console.log('onOrderCanceled')
       this.$emit('orderCanceled')
     },
     selectCurrency (index) {
@@ -367,7 +366,7 @@ export default {
         name: user,
         is_owner: data.is_owned
       }
-      console.log(this.selectedUser)
+      // console.log(this.selectedUser)
     },
     openFilter () {
       this.openDialog = true

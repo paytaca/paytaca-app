@@ -122,7 +122,7 @@ export default {
   async mounted () {
     const vm = this
     await vm.fetchOrderDetail()
-    console.log('order:', vm.order)
+    // console.log('order:', vm.order)
     vm.paymentCountdown()
 
     if (vm.type === 'buyer') {
@@ -147,7 +147,7 @@ export default {
 
       try {
         const response = await vm.$axios.get(url, { headers: headers })
-        console.log('response: ', response)
+        // console.log('response: ', response)
         vm.order = response.data.order
       } catch (error) {
         console.error(error.response)

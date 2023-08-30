@@ -181,7 +181,7 @@ export default {
       return this.order.status.label.toUpperCase()
     },
     forRelease () {
-      console.log('order:', this.order)
+      // console.log('order:', this.order)
       let release = false
       if (this.order.status.value === 'PD' &&
         (this.order.trade_type === 'BUY' && this.order.is_ad_owner)) {
@@ -252,7 +252,7 @@ export default {
 
       try {
         const response = await vm.$axios.get(url, { headers: headers })
-        console.log('response: ', response)
+        // console.log('response: ', response)
         vm.order = response.data.order
       } catch (error) {
         console.error(error.response)

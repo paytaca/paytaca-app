@@ -100,7 +100,7 @@
   </template>
 <script>
 import { signMessage } from 'src/wallet/ramp/signature'
-import { makeid } from 'src/wallet/ramp'
+// import { makeid } from 'src/wallet/ramp'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { Dialog } from 'quasar'
@@ -149,7 +149,7 @@ export default {
       this.generateContractAddress()
     },
     fees (value) {
-      console.log('fees.total:', value)
+      // console.log('fees.total:', value)
       const totalFees = value.total / 100000000
       this.transferAmount += totalFees
     }
@@ -171,7 +171,7 @@ export default {
     vm.transferAmount = vm.amount
     await vm.fetchOrderDetail()
     await vm.fetchArbiters()
-    console.log('!!!contract:', vm.contract)
+    // console.log('!!!contract:', vm.contract)
     if (vm.contract) {
       vm.contractAddress = vm.contract.address
     } else {
@@ -186,7 +186,7 @@ export default {
       // Send crypto to smart contract
       const vm = this
       try {
-        console.log('transferAmount:', vm.transferAmount)
+        // console.log('transferAmount:', vm.transferAmount)
         const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
         console.log('result:', result)
         if (result.success) {
@@ -199,7 +199,7 @@ export default {
               txid: this.txid
             }
           }
-          console.log('txidData:', txidData)
+          // console.log('txidData:', txidData)
           vm.$store.dispatch('ramp/saveTxid', txidData)
           // console.log('txid:', vm.txid)
           await vm.escrowPendingOrder()
@@ -234,12 +234,12 @@ export default {
       const body = { txid: vm.txid }
       try {
         const response = await vm.$axios.post(url, body, { headers: headers })
-        console.log('response:', response)
+        // console.log('response:', response)
         const result = {
           txid: vm.txid,
           status: response.data.status
         }
-        console.log('Emitting:', result)
+        // console.log('Emitting:', result)
         vm.$emit('success', result)
       } catch (error) {
         console.error(error.response)
@@ -254,7 +254,7 @@ export default {
       const url = vm.apiURL + '/order/' + vm.order.id
       try {
         const response = await vm.$axios.get(url, { headers: headers })
-        console.log('response:', response.data)
+        // console.log('response:', response.data)
         vm.fees = response.data.fees
         vm.selectedArbiter = response.data.order.arbiter
       } catch (error) {
@@ -275,7 +275,7 @@ export default {
       }
     },
     async generateContractAddress () {
-      console.log('generateContractAddress')
+      // console.log('generateContractAddress')
       const vm = this
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'CONTRACT_CREATE', timestamp)
@@ -293,7 +293,7 @@ export default {
         const response = await vm.$axios.post(url, body, { headers: headers })
         if (response.data.data) {
           const data = response.data.data
-          console.log('>>data:', data)
+          // console.log('>>data:', data)
           if (data.contract_address) {
             vm.contractAddress = data.contract_address
           }

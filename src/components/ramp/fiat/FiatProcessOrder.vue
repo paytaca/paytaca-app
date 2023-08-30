@@ -164,7 +164,7 @@ export default {
       return (this.fiatAmount / this.order.locked_price).toFixed(8)
     },
     bchBalance () {
-      console.log(this.$store.getters['assets/getAssets'][0].balance)
+      // console.log(this.$store.getters['assets/getAssets'][0].balance)
       return this.$store.getters['assets/getAssets'][0].balance
     },
     isExpired () {
@@ -207,7 +207,6 @@ export default {
     // console.log('orderTxids:', orderTxids)
   },
   beforeUnmount () {
-    console.log('Left FiatProcessOrder component')
     this.closeWSConnection()
   },
   methods: {
@@ -221,7 +220,7 @@ export default {
     checkStep () {
       const vm = this
       vm.openDialog = false
-      console.log('checking step:', vm.status)
+      console.log('Checking step:', vm.status)
       switch (vm.status.value) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
@@ -316,7 +315,7 @@ export default {
         }
       })
         .then(response => {
-          console.log('fetchOrderData:', response.data)
+          // console.log('fetchOrderData:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.fees = response.data.fees
@@ -368,7 +367,7 @@ export default {
 
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
-          console.log(response)
+          // console.log(response)
           if (response.data && response.data.status.value === 'CNF') {
             vm.updateStatus(response.data.status)
           }
@@ -394,7 +393,7 @@ export default {
 
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
-          console.log(response)
+          // console.log(response)
           if (response.data && response.data.status.value === 'CNCL') {
             vm.updateStatus(response.data.status)
           }
@@ -422,7 +421,7 @@ export default {
       }
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
-          console.log('sendConfirmPayment:', response.data)
+          // console.log('sendConfirmPayment:', response.data)
           // if (response.data && response.data.status.value === 'PD_PN') {
           vm.updateStatus(response.data.status)
           // }
@@ -436,13 +435,13 @@ export default {
       vm.isloaded = true
     },
     async releaseCrypto () {
-      console.log('[releasing crypto]')
+      // console.log('[releasing crypto]')
       if (!this.rampContract) {
         await this.generateContract()
       }
       await this.rampContract.release(this.wallet.privateKeyWif, this.order.crypto_amount)
         .then(result => {
-          console.log('[rampContract.release]:', result.txInfo.txid)
+          // console.log('[rampContract.release]:', result.txInfo.txid)
           this.txid = result.txInfo.txid
           this.verifyEscrowTxKey++
         })
@@ -458,10 +457,10 @@ export default {
         }
       }
       this.$store.dispatch('ramp/saveTxid', txidData)
-      console.log('rampContract:', this.rampContract)
+      // console.log('rampContract:', this.rampContract)
     },
     async verifyRelease () {
-      console.log('verifyRelease')
+      // console.log('verifyRelease')
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
       const timestamp = Date.now()
@@ -474,10 +473,10 @@ export default {
       const body = {
         txid: this.txid
       }
-      console.log('body:', body)
+      // console.log('body:', body)
       await vm.$axios.post(url, body, { headers: headers })
         .then(response => {
-          console.log('response:', response)
+          // console.log('response:', response)
           vm.updateStatus(response.data.status)
         })
         .catch(error => {
@@ -502,7 +501,7 @@ export default {
       }
       try {
         const response = await vm.$axios.post(url, body, { headers: headers })
-        console.log('verifyEscrow response:', response)
+        // console.log('verifyEscrow response:', response)
       } catch (error) {
         console.error(error.response)
         const errorMsg = error.response.data.error
@@ -512,7 +511,8 @@ export default {
     },
     async generateContract () {
       await this.fetchOrderData()
-      console.log('generateContract: ', this.contract)
+      // console.log('generateContract: ', this.contract)
+      if (!this.contract) return
       const publicKeys = {
         arbiter: this.contract.arbiter.public_key,
         seller: this.contract.seller.public_key,
@@ -534,7 +534,7 @@ export default {
       this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
       await this.rampContract.initialize()
       // this.contract.address = this.rampContract.getAddress()
-      console.log('rampContract address:', this.rampContract.getAddress())
+      // console.log('rampContract address:', this.rampContract.getAddress())
     },
     // Peer Feedback
     async sendFeedback (feedback) {
@@ -554,10 +554,10 @@ export default {
         comment: feedback.comment
 
       }
-      console.log(body)
+      // console.log(body)
       await vm.$axios.post(url, body, { headers: headers })
         .then(response => {
-          console.log(response)
+          // console.log(response)
           const data = response.data
           vm.feedback = {
             rating: data.rating,
@@ -654,7 +654,7 @@ export default {
       this.title = 'Cancel this order?'
     },
     releasingCrypto () {
-      console.log('releasing crypto')
+      // console.log('releasing crypto')
       this.dialogType = 'confirmReleaseCrypto'
       this.openDialog = true
       this.title = 'Release crypto?'
@@ -686,12 +686,12 @@ export default {
       return true
     },
     onEscrowSuccess (data) {
-      console.log('onEscrowSubmit:', data)
+      // console.log('onEscrowSubmit:', data)
       // this.txid = data.txid
       // this.updateStatus(data.status)
     },
     onVerifyTxSuccess (status) {
-      console.log('onVerifyTxSuccess:', status)
+      // console.log('onVerifyTxSuccess:', status)
       this.updateStatus(status)
     },
     onBack () {
@@ -731,7 +731,7 @@ export default {
                 address: data.contract_address
               }
             }
-            console.log('contract:', this.contract)
+            // console.log('contract:', this.contract)
             this.escrowTransferProcessKey++
           }
         }
