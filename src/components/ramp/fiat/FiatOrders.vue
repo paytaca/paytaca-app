@@ -198,27 +198,37 @@ export default {
       vm.loading = true
     }
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-    await vm.resetAndRefetchListings()
+    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
+      vm.wallet = wallet
+      vm.resetAndRefetchListings()
+    })
     vm.loading = false
   },
   methods: {
     async fetchOrders (overwrite = false) {
       const vm = this
       const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'ORDER_LIST', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
-      const params = { state: vm.statusType }
-      try {
-        await vm.$store.dispatch('ramp/fetchOrders', { orderState: vm.statusType, params: params, headers: headers, overwrite: overwrite })
-      } catch (error) {
-        console.error(error.response)
-      }
-      vm.loading = false
+      signMessage(this.wallet.privateKeyWif, 'ORDER_LIST', timestamp).then(signature => {
+        const headers = {
+          'wallet-hash': this.wallet.walletHash,
+          timestamp: timestamp,
+          signature: signature
+        }
+        const params = { state: vm.statusType }
+        vm.$store.dispatch('ramp/fetchOrders',
+          {
+            orderState: vm.statusType,
+            params: params,
+            headers: headers,
+            overwrite: overwrite
+          })
+          .then(response => {
+            vm.loading = false
+          })
+          .catch(error => {
+            console.error(error.response)
+          })
+      })
     },
     async loadMoreData (_, done) {
       const vm = this
@@ -228,45 +238,23 @@ export default {
       }
       vm.updatePaginationValues()
       if (vm.pageNumber < vm.totalPages) {
-        await vm.fetchOrders()
+        vm.fetchOrders().then(done()).catch(done())
       }
-      done()
-    },
-    async fetchUserOrders () {
-      const vm = this
-
-      // const walletInfo = this.$store.getters['global/getWallet']('bch')
-      // const wallet = await loadP2PWalletInfo(walletInfo)
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_LIST', timestamp)
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
-      vm.loading = true
-
-      vm.$axios.get(vm.apiURL + '/order', { headers: headers })
-        .then(response => {
-          vm.listings = response.data
-          vm.loading = false
-        })
-        .catch(error => {
-          console.error(error.response)
-          vm.loading = false
-        })
     },
     async refreshData (done) {
-      console.log('refreshing orders')
-      await this.resetAndRefetchListings()
+      // console.log('refreshing orders')
+      this.resetAndRefetchListings()
       if (done) done()
     },
     async resetAndRefetchListings () {
       const vm = this
-      await vm.$store.dispatch('ramp/resetOrdersPagination')
-      await vm.fetchOrders(true)
-      vm.updatePaginationValues()
+      // console.time('non-blocking-await')
+      vm.$store.dispatch('ramp/resetOrdersPagination')
+        .then(
+          vm.fetchOrders(true)
+            .then(vm.updatePaginationValues())
+        )
+      // console.timeEnd('non-blocking-await')
     },
     updatePaginationValues () {
       const vm = this
