@@ -160,6 +160,7 @@ export default {
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
         if (!vm.listings || vm.listings.length === 0) {
+          console.log('statusType')
           vm.loading = true
           vm.fetchOrders()
         }
@@ -232,7 +233,7 @@ export default {
     },
     async loadMoreData (_, done) {
       const vm = this
-      if (!vm.hasMoreData) {
+      if (!vm.hasMoreData || !vm.wallet) {
         done(true)
         return
       }
@@ -247,6 +248,7 @@ export default {
       if (done) done()
     },
     async resetAndRefetchListings () {
+      console.log('resetAndRefetchListings')
       const vm = this
       // console.time('non-blocking-await')
       vm.$store.dispatch('ramp/resetOrdersPagination')
