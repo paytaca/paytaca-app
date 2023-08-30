@@ -107,7 +107,7 @@ export default {
       timer: null,
       confirmPayment: false,
       confirmRelease: false,
-      minHeight: this.$q.screen.height - 195
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
   props: {

@@ -1,8 +1,8 @@
 <template>
     <q-card
-      class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg q-pb-lg"
+      class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg"
       :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-      :style="`min-height: ${ minHeight }px;`"
+      :style="`height: ${ minHeight }px;`"
       v-if="!viewProfile"
     >
       <div v-if="state === 'order-list'">
@@ -25,7 +25,7 @@
               <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
             </div>
             <div v-else class="q-mb-lg q-pb-lg">
-              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.25)}px`" style="overflow:auto;">
+              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
                 <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"
@@ -149,7 +149,7 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.screen.height - 195,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       viewProfile: false
     }
   },

@@ -2,7 +2,7 @@
   <q-card
    class="br-15 q-pt-sm q-mx-md q-mx-none"
    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-   :style="`min-height: ${minHeight}px;`">
+   :style="`height: ${minHeight}px;`">
    <!-- Form Body -->
     <div v-if="state === 'initial'">
       <div v-if="isloaded">
@@ -121,6 +121,8 @@
             </q-btn>
           </div>
         </div>
+
+        <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
       </div>
 
       <!-- Progress Loader -->
@@ -147,6 +149,12 @@
         :title="title"
         v-on:back="openDialog = false"
         v-on:submit="recieveDialogsInfo"
+      />
+    </div>
+    <div v-if="openReviews">
+      <FeedbackDialog
+        :openReviews="openReviews"
+        @back="openReviews = false"
       />
     </div>
     <!-- Edit Ad -->
@@ -177,6 +185,7 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
+import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 // import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
@@ -192,7 +201,7 @@ export default {
       walletIndex: this.$store.getters['global/getWalletIndex'],
       wallet: null,
       isloaded: false,
-      minHeight: this.$q.screen.height - 195,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
 
       ad: null,
       state: 'initial',
@@ -200,6 +209,7 @@ export default {
       amount: 0,
       order: null,
       openDialog: false,
+      openReviews: false,
       dialogType: '',
       paymentMethods: null,
 
@@ -213,6 +223,7 @@ export default {
     ProgressLoader,
     AddPaymentMethods,
     FiatAdsForm,
+    FeedbackDialog,
     // FiatStoreBuyProcess,
     FiatProcessOrder,
     MiscDialogs

@@ -122,12 +122,13 @@
               color="blue-8"
             /> -->
           </div>
-          <div class="text-center text-blue-5 md-font-size">View all Reviews</div>
+          <div class="text-center text-blue-6 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Dialogs -->
   <div v-if="openDialog">
     <MiscDialogs
       :type="'appeal'"
@@ -143,9 +144,19 @@
         />
       </div>
   </div>
+
+  <!-- Feedback Dialog -->
+  <div v-if="openReviews">
+    <FeedbackDialog
+      :openReviews="openReviews"
+      :orderID="order.id"
+      @back="openReviews = false"
+    />
+  </div>
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 
 export default {
   data () {
@@ -159,12 +170,13 @@ export default {
       timer: null,
       type: 'ongoing',
       openDialog: false,
+      openReviews: false,
       feedback: {
         rating: 0,
         comment: '',
         is_posted: false
       },
-      minHeight: this.$q.screen.height - 195
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
   props: {
@@ -174,7 +186,8 @@ export default {
   },
   emits: ['sendFeedback'],
   components: {
-    MiscDialogs
+    MiscDialogs,
+    FeedbackDialog
   },
   computed: {
     orderStatus () {
@@ -234,6 +247,7 @@ export default {
       this.feedback = this.feedbackData
     }
     await this.fetchOrderDetail()
+
     this.paymentCountdown()
     this.checkStatus()
     this.isloaded = true
@@ -254,6 +268,7 @@ export default {
         const response = await vm.$axios.get(url, { headers: headers })
         // console.log('response: ', response)
         vm.order = response.data.order
+        console.log('orderHere: ', vm.order)
       } catch (error) {
         console.error(error.response)
       }
@@ -270,29 +285,32 @@ export default {
     },
     paymentCountdown () {
       const vm = this
-      const expiryDate = new Date(vm.order.expiration_date)
 
-      vm.timer = setInterval(function () {
-        const now = new Date().getTime()
-        const distance = expiryDate - now
+      if (vm.order.expiration_date) {
+        const expiryDate = new Date(vm.order.expiration_date)
 
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-        let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-        let seconds = Math.floor((distance % (1000 * 60)) / 1000)
-        if (seconds.toString().length < 2) {
-          seconds = '0' + seconds
-        }
-        if (minutes.toString().length < 2) {
-          minutes = '0' + minutes
-        }
+        vm.timer = setInterval(function () {
+          const now = new Date().getTime()
+          const distance = expiryDate - now
 
-        vm.countDown = `${hours}:${minutes}:${seconds}`
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+          let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+          let seconds = Math.floor((distance % (1000 * 60)) / 1000)
+          if (seconds.toString().length < 2) {
+            seconds = '0' + seconds
+          }
+          if (minutes.toString().length < 2) {
+            minutes = '0' + minutes
+          }
 
-        if (distance < 0) {
-          clearInterval(vm.timer)
-          vm.countDown = 'Expired'
-        }
-      }, 1000)
+          vm.countDown = `${hours}:${minutes}:${seconds}`
+
+          if (distance < 0) {
+            clearInterval(vm.timer)
+            vm.countDown = 'Expired'
+          }
+        }, 1000)
+      }
     }
   }
 }
