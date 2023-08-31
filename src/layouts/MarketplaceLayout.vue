@@ -141,6 +141,7 @@
 </template>
 <script>
 import { backend, getSignerData } from 'src/marketplace/backend'
+import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Cart } from 'src/marketplace/objects'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
@@ -156,6 +157,7 @@ export default {
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+    onUnmounted(() => marketplaceRpc.disconnect())
     const loadingApp = ref(false)
     onMounted(async () => {
       try {
