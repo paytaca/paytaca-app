@@ -74,6 +74,7 @@
             <q-btn
               rounded
               outlined
+              :loading="creatingPayment"
               no-caps label="Pay"
               color="brandblue"
               padding="1px md"
@@ -82,6 +83,30 @@
           </div>
         </q-banner>
       </template>
+      <q-banner
+        v-if="order?.status == 'delivered'" rounded
+        :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
+      >
+        <div class="row items-center q-gutter-y-sm">
+          <div>
+            <div>
+              Order delivered!
+              <q-spinner v-if="completingOrder"/>
+            </div>
+            <div class="text-caption text-grey">Review your order and mark completed if there are no problems</div>
+          </div>
+          <q-space/>
+          <q-btn
+            rounded
+            no-caps
+            :loading="completingOrder"
+            label="Order Complete"
+            color="brandblue"
+            padding="1px sm"
+            @click="() => completeOrder()"
+          />
+        </div>
+      </q-banner>
       <div class="row items-start items-delivery-address-panel">
         <div v-if="order?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
           <q-card
@@ -301,12 +326,30 @@
         <DragSlide v-if="!creatingPayment" disable-absolute-bottom @swiped="onSendBchPaymentSwipe"/>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="showOrderCompletedPrompt">
+      <q-card :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'rounded-borders']">
+        <q-btn flat icon="close" padding="sm" class="float-right" style="z-index:100;" v-close-popup/>
+        <q-card-section class="text-center">
+          <div class="text-h5">Order Complete</div>
+          <q-icon name="check_circle" color="green" size="5rem"/>
+          <div>Order has been completed, thank you for using our service!</div>
+          <q-btn
+            no-caps label="Go to marketplace"
+            color="brandblue"
+            padding="2px md"
+            class="q-mt-md"
+            v-close-popup
+            :to="{ name: 'app-marketplace' }"
+          />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-pull-to-refresh>
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
 import { Delivery, Order, Payment, Storefront } from 'src/marketplace/objects'
-import { formatDateRelative, formatTimestampToText, parsePaymentStatusColor } from 'src/marketplace/utils'
+import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor } from 'src/marketplace/utils'
 import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue'
@@ -786,6 +829,46 @@ function checkPaymentFundingTx() {
     })
     .finally(() => {
       creatingPayment.value = false
+    })
+}
+
+window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
+const completingOrder = ref(false)
+const showOrderCompletedPrompt = ref(false)
+function completeOrder() {
+  if (order.value.status != 'delivered') return
+  const data = { status: 'completed' }
+
+  const dialog = $q.dialog({
+    title: 'Completing order',
+    progress: true,
+    persistent: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+
+  completingOrder.value = true
+  return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
+    .then(response => {
+      order.value.raw = response?.data
+      showOrderCompletedPrompt.value = true
+      dialog.hide()
+    })
+    .catch(error => {
+      const data = error?.response?.data
+      let errorMessage = errorParser.firstElementOrValue(data?.detail) ||
+                         errorParser.firstElementOrValue(data?.non_field_errors) ||
+                         errorParser.firstElementOrValue(data?.status)
+
+      if (typeof data === 'string' && data.length < 200) errorMessage = data
+      dialog.update({
+        title: 'Unable to complete order',
+        message: errorMessage || 'An unknown error occurred',
+      })
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false })
+      completingOrder.value = false
     })
 }
 
