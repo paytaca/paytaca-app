@@ -40,10 +40,18 @@
         </LMarker>
         <slot name="controls" v-bind="{ centerMap, autoCenter }">
           <LControl>
-            <div class="bg-white text-black q-pa-xs">
-              <q-checkbox dense v-model="autoCenter">
+            <div class="text-black q-pa-xs">
+              <q-btn
+                round
+                icon="adjust"
+                color="white"
+                text-color="black"
+                padding="xs"
+                @click="() => centerMap()"
+              />
+              <!-- <q-checkbox dense v-model="autoCenter">
                 <span class="text-weight-medium">Center view</span>
-              </q-checkbox>
+              </q-checkbox> -->
             </div>
           </LControl>
         </slot>
@@ -78,6 +86,7 @@ export default defineComponent({
     modelValue: Boolean,
     locations: Array,
     headerText: String,
+    autoCenter: Boolean,
   },
   setup(props, { emit: $emit }) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -118,7 +127,8 @@ export default defineComponent({
       if(autoCenter.value) centerMap()
     }, { deep: true })
 
-    const autoCenter = ref(true)
+    const autoCenter = ref(props.autoCenter)
+    watch(() => [props.autoCenter], () => autoCenter.value = props.autoCenter)
     watch(autoCenter, () => autoCenter.value ? centerMap() : null)
     function centerMap() {
       const latitudes = parsedLocations.value.map(location => location?.latLng?.lat)
