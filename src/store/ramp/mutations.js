@@ -45,12 +45,12 @@ export function resetStorePagination (state) {
   state.storeBuyPageNumber = null
   state.storeBuyTotalPages = null
   state.storeBuyItemsCount = 0
-  // state.storeBuyListings = []
+  state.storeBuyListings = []
 
   state.storeSellPageNumber = null
   state.storeSellTotalPages = null
   state.storeSellItemsCount = 0
-  // state.storeSellListings = []
+  state.storeSellListings = []
 }
 
 // ~ store mutations ~ //
@@ -80,11 +80,11 @@ export function incAdsSellPage (state) {
 export function resetAdsPagination (state) {
   state.adsBuyPageNumber = null
   state.adsBuyTotalPages = null
-  // state.adsBuyListings = []
+  state.adsBuyListings = []
 
   state.adsSellPageNumber = null
   state.adsSellTotalPages = null
-  // state.adsSellListings = []
+  state.adsSellListings = []
 }
 
 // ~ ads mutations ~ //
@@ -115,11 +115,11 @@ export function incCompletedOrdersPage (state) {
 export function resetOrdersPagination (state) {
   state.ongoingOrdersPageNumber = null
   state.ongoingOrdersTotalPages = null
-  // state.ongoingOrders = []
+  state.ongoingOrders = []
 
   state.completedOrdersPageNumber = null
   state.completedOrdersTotalPages = null
-  // state.completedOrders = []
+  state.completedOrders = []
 }
 
 // ~ orders mutations ~ //
