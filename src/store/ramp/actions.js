@@ -231,6 +231,10 @@ export function resetPagination (context) {
   context.commit('resetPagination')
 }
 
+export function resetData (context) {
+  context.commit('resetData')
+}
+
 export function saveTxid (context, data) {
   context.commit('saveTxid', data)
 }

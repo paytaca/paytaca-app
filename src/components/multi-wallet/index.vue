@@ -98,6 +98,8 @@ export default {
 
         vm.$store.commit('assets/updateVaultSnapshot', { index: vm.currentIndex, snapshot: asset })
         vm.$store.commit('assets/updatedCurrentAssets', index)
+        vm.$store.dispatch('ramp/resetData')
+        vm.$store.dispatch('ramp/resetPagination')
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {
           vm.$router.push('/')

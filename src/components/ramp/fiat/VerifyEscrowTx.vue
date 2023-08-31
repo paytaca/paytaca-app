@@ -63,15 +63,16 @@
             v-if="!loading && !hideBtn"
             rounded
             :disable="hideBtn"
-            :label="action === 'ESCROW' ? Verify : 'Release BCH'"
+            label="Verify"
             color="blue-6"
-            class="col q-mx-lg q-mb-md q-py-sm"
+            class="col q-mx-lg q-mb-md q-py-sm q-my-md"
             @click="onVerify">
           </q-btn>
           <div v-if="hideBtn" class="q-mt-md">
-            <span v-if="state === 'verifying'">Verifying transaction, please wait...</span>
+            <span v-if="state === 'verifying'">
+              Verifying transaction, please wait... <span v-if="waitSeconds">({{ waitSeconds }}s)</span>
+            </span>
             <span v-if="state === 'sending'">Sending bch, please wait...</span>
-            <!-- <span v-if="waitSeconds && !txExists">({{ waitSeconds }}s)</span> -->
           </div>
         </div>
       </div>
@@ -155,7 +156,7 @@ export default {
         const response = await vm.$axios.get(url, { headers: headers })
         vm.contract.address = response.data.contract.address
         vm.contract.balance = await getBalanceByAddress(vm.contract.address)
-        console.log('contract:', response.data.contract)
+        // console.log('contract:', response.data.contract)
         const transactions = response.data.contract.transactions
         let valid = false
         let verifying = true
@@ -178,17 +179,17 @@ export default {
         if (vm.txExists && !valid && !verifying) {
           vm.hideBtn = false
         }
-        if (!vm.txExists) {
-          vm.waitSeconds = 60
-          vm.timer = setInterval(function () {
-            vm.waitSeconds--
-            if (vm.waitSeconds === 0) {
-              vm.hideBtn = false
-              // vm.errorMessages.push('Server took too long to respond')
-              clearInterval(vm.timer)
-            }
-          }, 1000)
-        }
+        // if (!vm.txExists) {
+        vm.waitSeconds = 60
+        vm.timer = setInterval(function () {
+          vm.waitSeconds--
+          if (vm.waitSeconds === 0) {
+            vm.hideBtn = false
+            // vm.errorMessages.push('Server took too long to respond')
+            clearInterval(vm.timer)
+          }
+        }, 1000)
+        // }
       } catch (error) {
         console.error(error.response)
       }
@@ -210,7 +211,7 @@ export default {
       }
       await vm.$axios.post(url, body, { headers: headers })
         .then(response => {
-          console.log('response:', response)
+          // console.log('response:', response)
         })
         .catch(error => {
           console.error(error.response)
@@ -232,13 +233,13 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      const url = vm.apiURL + '/order/' + vm.orderId + '/escrow-verify'
+      const url = vm.apiURL + '/order/' + vm.orderId + '/verify-escrow'
       const body = {
         txid: vm.transactionId
       }
       try {
         const response = await vm.$axios.post(url, body, { headers: headers })
-        console.log('response:', response)
+        // console.log('response:', response)
       } catch (error) {
         console.error(error.response)
         const errorMsg = error.response.data.error
@@ -258,6 +259,7 @@ export default {
           vm.verifyRelease()
           break
       }
+      vm.fetchOrderDetail()
     }
   }
 }

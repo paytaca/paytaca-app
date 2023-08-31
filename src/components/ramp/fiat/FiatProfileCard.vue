@@ -2,7 +2,7 @@
   <q-card
     class="br-15 q-pt-sm q-mx-md q-mb-lg q-pb-lg"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`min-height: ${minHeight}px;`"
+    :style="`height: ${minHeight}px;`"
   >
     <div v-if="state === 'initial' && isloaded">
       <div>
@@ -63,7 +63,7 @@
           <div class="bold-text">Reviews</div>
         </div>
         <div class="q-mx-lg q-px-md">
-          <q-scroll-area :style="`height: ${minHeight - (minHeight*.55)}px`" style="overflow-y:auto;">
+          <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;">
             <div class="q-pt-md" v-for="i in 5" :key="i">
               <div class="md-font-size bold-text">
                 Edgar Allan Poe
@@ -130,7 +130,7 @@ export default {
       user: null,
       editNickname: false,
       state: 'initial',
-      minHeight: this.$q.screen.height - 195,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       wallet: null,
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'
