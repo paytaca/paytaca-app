@@ -202,11 +202,11 @@ export default {
       vm.wallet = wallet
       vm.resetAndRefetchListings()
     })
-    vm.loading = false
   },
   methods: {
     async fetchOrders (overwrite = false) {
       const vm = this
+      if (!vm.wallet) return
       const timestamp = Date.now()
       signMessage(this.wallet.privateKeyWif, 'ORDER_LIST', timestamp).then(signature => {
         const headers = {
@@ -252,7 +252,10 @@ export default {
       vm.$store.dispatch('ramp/resetOrdersPagination')
         .then(
           vm.fetchOrders(true)
-            .then(vm.updatePaginationValues())
+            .then(function () {
+              vm.updatePaginationValues()
+              vm.loading = false
+            })
         )
       // console.timeEnd('non-blocking-await')
     },

@@ -72,14 +72,15 @@ export default {
     ProgressLoader
   },
   async mounted () {
-    this.wallet = await markRaw(loadWallet(this.network, this.walletIndex))
+    const vm = this
+    vm.wallet = await markRaw(loadWallet(this.network, this.walletIndex))
     const walletHash = this.wallet.BCH.getWalletHash()
-    await this.$store.dispatch('ramp/resetPagination')
-    this.user = await this.$store.dispatch('ramp/fetchUser', walletHash)
-    if (this.user) {
-      this.proceed = true
-    }
-    this.isLoading = false
+    vm.$store.dispatch('ramp/fetchUser', walletHash)
+      .then(user => {
+        vm.user = user
+        if (vm.user) vm.proceed = true
+        vm.isLoading = false
+      })
   },
   watch: {
     menu (val) {
