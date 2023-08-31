@@ -348,11 +348,12 @@
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
+import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, Payment, Storefront } from 'src/marketplace/objects'
 import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor } from 'src/marketplace/utils'
 import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, inject, onActivated, onDeactivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LeafletMapDialog from 'src/components/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/order-payments-dialog.vue'
@@ -872,6 +873,29 @@ function completeOrder() {
     })
 }
 
+const orderUpdateEventName = 'order_updates'
+const onNotificationHandler = notification  => {
+  if (notification?.event != orderUpdateEventName) return
+  if (notification?.data?.id != props.orderId) return
+  fetchOrder()
+}
+
+onActivated(() => subscribeUpdatesToRpc())
+onDeactivated(() => unsubscribeUpdatesToRpc())
+async function subscribeUpdatesToRpc() {
+  if (!marketplaceRpc.isConnected()) await marketplaceRpc.connect()
+  marketplaceRpc.client.call('subscribe', [orderUpdateEventName, { id: parseInt(props.orderId) }])
+
+  if (!marketplaceRpc.client.onNotification.includes(onNotificationHandler)) {
+    marketplaceRpc.client.onNotification.push(onNotificationHandler)
+  }
+}
+
+async function unsubscribeUpdatesToRpc() {
+  marketplaceRpc.client.call('unsubscribe', [orderUpdateEventName])
+  marketplaceRpc.client.onNotification = $rpc.client.onNotification
+    .filter(handler => handler !== onNotificationHandler)
+}
 
 const $copyText = inject('$copyText')
 function copyToClipboard(value, message) {
