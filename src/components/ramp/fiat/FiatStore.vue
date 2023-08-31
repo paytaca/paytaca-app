@@ -193,10 +193,8 @@ export default {
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
-        if (!vm.listings || vm.listings.length === 0) {
-          vm.loading = true
-          vm.fetchStoreListings()
-        }
+        vm.loading = true
+        vm.resetAndRefetchListings()
       }
     },
     async selectedCurrency () {
