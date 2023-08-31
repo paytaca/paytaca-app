@@ -42,7 +42,7 @@
             <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
           </div>
           <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.3)}px`" style="overflow:auto;">
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 180}px`" style="overflow:auto;">
               <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"

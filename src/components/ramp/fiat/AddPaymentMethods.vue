@@ -19,7 +19,7 @@
         <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">No Payment Method Added</p>
       </div>
       <div v-else>
-        <q-card-section style="max-height:38vh;overflow-y:auto;">
+        <q-card-section :style="`max-height: ${minHeight - 230}px`" style="overflow-y:auto;">
           <q-virtual-scroll :items="paymentMethods">
             <template v-slot="{ item: method, index }">
               <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -118,7 +118,7 @@
         />
       </div>
     </div>
-    <div class="row q-pt-lg q-mx-sm" v-if="type !== 'Profile'">
+    <div class="row q-pt-xs q-mx-sm" v-if="type !== 'Profile'">
       <q-btn
         :disable="disableSubmit"
         rounded
@@ -194,7 +194,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       walletIndex: this.$store.getters['global/getWalletIndex'],
-
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       paymentMethods: [],
       paymentTypes: [],
       selectedMethods: [],
