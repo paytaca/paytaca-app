@@ -124,15 +124,9 @@ import { backend } from 'src/marketplace/backend'
 import { Order, Storefront } from 'src/marketplace/objects'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { useRoute } from 'vue-router'
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
-
-const $route = useRoute()
-watch(() => [$route.name], () => {
-  if ($route.name === 'app-marketplace') fetchOrders()
-})
 
 
 const $q = useQuasar()
@@ -149,6 +143,10 @@ function resetPage() {
 }
 
 onMounted(() => refreshPage())
+onActivated(() => {
+  if (!initialized.value) return
+  fetchOrders()
+})
 
 const fetchingStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
