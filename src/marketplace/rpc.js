@@ -55,13 +55,18 @@ class MarketplaceRPCWrapper {
     return url
   }
 
-  async connect(opts={ forceReconnect: false }) {
+  async _connect(opts={ forceReconnect: false }) {
     if (!opts?.forceReconnect && this.isConnected()) return
 
     await this.disconnect()
 
-    const url = this.getUrl()
+    const url = await this.getUrl()
     return await this.client.connect(url)
+  }
+
+  async connect(opts={ forceReconnect: false }) {
+    if (!this._connectPromise) this._connectPromise = this._connect(opts)
+    return await this._connectPromise.finally(() => this._connectPromise = null)
   }
 
   async disconnect() {
