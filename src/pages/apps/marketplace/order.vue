@@ -880,6 +880,9 @@ const onNotificationHandler = notification  => {
   fetchOrder()
 }
 
+watch(() => [props.orderId], () => {
+  unsubscribeUpdatesToRpc().finally(() => subscribeUpdatesToRpc())
+})
 onActivated(() => subscribeUpdatesToRpc())
 onDeactivated(() => unsubscribeUpdatesToRpc())
 async function subscribeUpdatesToRpc() {
@@ -893,7 +896,7 @@ async function subscribeUpdatesToRpc() {
 
 async function unsubscribeUpdatesToRpc() {
   marketplaceRpc.client.call('unsubscribe', [orderUpdateEventName])
-  marketplaceRpc.client.onNotification = $rpc.client.onNotification
+  marketplaceRpc.client.onNotification = marketplaceRpc.client.onNotification
     .filter(handler => handler !== onNotificationHandler)
 }
 

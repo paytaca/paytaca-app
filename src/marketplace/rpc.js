@@ -2,7 +2,7 @@ import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { backend } from './backend';
 
 
-// Ideally this will be a monolithic class
+// Ideally this will be a singleton class
 class MarketplaceRPCWrapper {
   /**
    * @param {Object} opts 
