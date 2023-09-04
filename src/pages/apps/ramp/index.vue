@@ -1,13 +1,13 @@
 <template>
   <div id="app-container" :class="{'pt-dark': darkMode}">
     <HeaderNav
-      :title="`${selectedCurrency.toLocaleUpperCase()} Ramp`"
+      :title="`${selectedApp.toLocaleUpperCase()} Ramp`"
       backnavpath="/apps"
     />
 
     <div v-if="!appSelection" class="q-pt-xs">
-      <!-- CRYPTO tab Content -->
-      <div v-if="selectedCurrency === 'crypto'">
+      <!-- CRYPTO Tab Content -->
+      <div v-if="selectedApp === 'crypto'">
         <!-- Progress Loader -->
         <div v-if="!isloaded">
           <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -25,9 +25,14 @@
         </div>
       </div>
 
-      <!-- FIAT tab content here -->
-      <div v-if="selectedCurrency === 'fiat'">
+      <!-- FIAT Tab Content-->
+      <div v-if="selectedApp === 'fiat'">
         <FiatRampIndex/>
+      </div>
+
+      <!-- APPEAL Tab Content -->
+      <div v-if="selectedApp === 'appeal'">
+        <AppealIndex/>
       </div>
     </div>
   </div>
@@ -46,6 +51,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import appSelectionDialog from 'src/components/ramp/appSelectionDialog.vue'
 import RampShiftForm from '../../../components/ramp/RampShiftForm'
 import FiatRampIndex from '../../../components/ramp/fiat/Index.vue'
+import AppealIndex from '../../../components/ramp/appeal/index.vue'
 
 export default {
   components: {
@@ -53,12 +59,13 @@ export default {
     ProgressLoader,
     RampShiftForm,
     FiatRampIndex,
+    AppealIndex,
     appSelectionDialog
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: '',
+      selectedApp: '',
       error: false,
       pageName: 'ramp-fiat-store',
       appSelection: true,
@@ -71,7 +78,7 @@ export default {
       const vm = this
       console.log(app)
 
-      vm.selectedCurrency = app
+      vm.selectedApp = app
       vm.pageName = 'ramp-' + app
       if (app === 'fiat') {
         vm.pageName += '-store'

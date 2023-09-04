@@ -15,13 +15,11 @@
         Select Ramp App
       </div>
       <div class="row no-wrap justify-around items-baseline md-font-size q-pt-lg q-mb-lg">
-        <div class="col column items-center">
-          <q-btn @click="selectApp('fiat')" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2.5em" icon="attach_money"/>
-          <span>Fiat</span>
-        </div>
-        <div class="col column items-center">
-          <q-btn @click="selectApp('crypto')" class="q-mb-sm q-pa-md button-color" dense flat rounded size="2.5em" icon="currency_bitcoin"/>
-          <span>Crypto</span>
+        <div v-for="(app, index) in apps" :key="index">
+          <div class="col column items-center">
+            <q-btn @click="selectApp(app.name)" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" :icon="app.icon"/>
+            <span class="text-capitalize">{{ app.name }}</span>
+          </div>
         </div>
       </div>
     </q-card>
@@ -33,7 +31,21 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      openDialog: true
+      openDialog: true,
+      apps: [
+        {
+          name: 'fiat',
+          icon: 'attach_money'
+        },
+        {
+          name: 'crypto',
+          icon: 'currency_bitcoin'
+        },
+        {
+          name: 'appeal',
+          icon: 'gavel'
+        }
+      ]
     }
   },
   emits: ['back', 'submit'],

@@ -241,8 +241,6 @@ export default {
     await vm.fetchFiatCurrencies()
     await vm.resetAndRefetchListings()
     vm.loading = false
-
-    console.log(vm.minHeight)
   },
   methods: {
     receiveDialog (data) {
