@@ -79,7 +79,7 @@
             >
               <q-item-section>
                 <q-item-label>
-                  #{{ order?.id }}
+                  Order#{{ order?.id }}
                 </q-item-label>
                 <q-item-label>
                   {{ order?.storefront?.name }}

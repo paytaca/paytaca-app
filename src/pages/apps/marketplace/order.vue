@@ -17,7 +17,9 @@
     <div v-else class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div class="row items-start no-wrap q-px-sm">
         <div class="q-space row items-start">
-          <div class="text-h5 q-space">Order</div>
+          <div class="text-h5 q-space">
+            Order <template v-if="order?.id">#{{ order.id }}</template>
+          </div>
           <div style="margin-left:-4px;">
             <q-chip
               :color="parsePaymentStatusColor(order?.paymentStatus)"
@@ -51,7 +53,6 @@
         <div v-if="order?.createdAt" class="text-caption text-grey q-space">
           {{ formatTimestampToText(order?.createdAt) }}
         </div>
-        <div class="text-caption text-grey">#{{ order.id }}</div>
       </div>
       <q-banner v-if="order?.isCancelled && order?.cancelReason" class="text-white bg-red q-ma-sm rounded-borders">
         <div class="text-caption top">Cancel reason:</div>
@@ -89,18 +90,22 @@
       >
         <div class="row items-center q-gutter-y-sm">
           <div>
-            <div>
+            <div class="text-subtitle1">
               Order delivered!
               <q-spinner v-if="completingOrder"/>
             </div>
             <div class="text-caption text-grey">Review your order and mark completed if there are no problems</div>
+            <div v-if="autoCompleteTimeRemaining && autoCompleteTimeRemainingText" class="">
+              <q-separator :dark="darkMode" class="q-mb-xs"/>
+              Order will be marked completed in {{ autoCompleteTimeRemainingText }} seconds
+            </div>
           </div>
           <q-space/>
           <q-btn
             rounded
             no-caps
             :loading="completingOrder"
-            label="Order Complete"
+            label="Mark as Complete"
             color="brandblue"
             padding="1px sm"
             @click="() => completeOrder()"
@@ -834,6 +839,49 @@ function checkPaymentFundingTx() {
 }
 
 window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
+watch(() => [order.value.autoCompleteAtTimestamp, order.value.status], () => runAutoCompleteCountdown())
+onActivated(() => runAutoCompleteCountdown())
+onDeactivated(() => stopAutoCompleteCountdown())
+onUnmounted(() => stopAutoCompleteCountdown())
+const autoCompleteCountdownInterval = ref(null)
+const autoCompleteTimeRemaining = ref(0)
+watch(autoCompleteTimeRemaining, () => {
+  if (autoCompleteTimeRemaining.value == -60) refreshPage()
+})
+const autoCompleteTimeRemainingText = computed(() => {
+  const negative = autoCompleteTimeRemaining.value < 0
+  const seconds = Math.abs(Math.round(autoCompleteTimeRemaining.value / 1000))
+  if (Number.isNaN(seconds)) return ''
+
+  // const days = Math.floor(seconds / (3600 * 24));
+  const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  // const milliseconds = Math.floor((seconds - Math.floor(seconds)) * 1000);
+
+  const pad = (value) => (value < 10 ? `0${value}` : `${value}`);
+
+  return `${negative ? '-' : ''}${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
+})
+function shouldRunAutoCompleteCountdown() {
+  if (order.value.status != 'delivered') return false
+  return Date.now() < order.value.autoCompleteAtTimestamp
+}
+
+function runAutoCompleteCountdown() {
+  stopAutoCompleteCountdown()
+  if (!shouldRunAutoCompleteCountdown()) return
+  autoCompleteCountdownInterval.value = setInterval(() => {
+    autoCompleteTimeRemaining.value = order.value.autoCompleteAtTimestamp - Date.now()
+  }, 1000)
+}
+function stopAutoCompleteCountdown() {
+  clearInterval(autoCompleteCountdownInterval.value)
+  autoCompleteCountdownInterval.value = null
+  autoCompleteTimeRemaining.value = 0
+}
+
+
 const completingOrder = ref(false)
 const showOrderCompletedPrompt = ref(false)
 function completeOrder() {

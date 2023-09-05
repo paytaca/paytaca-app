@@ -677,6 +677,7 @@ export class Order {
    * @param {String} [data.cancel_reason]
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
+   * @param {String | Number} [data.auto_complete_at]
   */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -706,6 +707,9 @@ export class Order {
 
     if (data?.updated_at) this.updatedAt = new Date(data?.updated_at)
     else if (this.updatedAt) delete this.updatedAt
+
+    if (data?.auto_complete_at) this.autoCompleteAt = new Date(data?.auto_complete_at)
+    else if (this.autoCompleteAt) delete this.autoCompleteAt
   }
 
   get isCancelled() {
@@ -770,6 +774,11 @@ export class Order {
 
   get formattedPaymentStatus() {
     return formatOrderStatus(this.paymentStatus)
+  }
+
+  get autoCompleteAtTimestamp() {
+    if (!this.autoCompleteAt) return
+    return this.autoCompleteAt * 1
   }
 
   async fetchStorefront() {
