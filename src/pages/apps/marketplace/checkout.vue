@@ -1121,35 +1121,24 @@ async function findRider(opts={ replaceExisting: false, displayDialog: false }) 
 }
 
 function findRiders() {
-  const searchParams = { limit: 3, offset: 0, active: true }
   const data = {
-    longitude: checkoutStorefront.value?.location?.longitude,
-    latitude: checkoutStorefront.value?.location?.latitude,
-    unit: "m",
-    radius: 5000,
-    sort: "asc",
+    pickup_location: {
+      longitude: checkoutStorefront.value?.location?.longitude,
+      latitude: checkoutStorefront.value?.location?.latitude,
+    },
+    radius: 7500,
+    max_active_deliveries: 2,
   }
 
-  const listParams = Object.assign({
-    availability: getISOWithTimezone(new Date()),
-    distance: btoa(JSON.stringify({
-      lat: checkoutStorefront.value?.location?.latitude,
-      lon: checkoutStorefront.value?.location?.longitude,
-      radius: 5000,
-    }))
-  }, searchParams) 
-  return Promise.all([
-    backend.post('connecta-express/riders/search/', data, { params: searchParams }),
-    backend.get('connecta-express/riders/', { params: listParams }),
-  ]).then(responses => {
-    const toArray = (val) => Array.isArray(val) ? val : []
-    const riders = responses
-      .map(response => toArray(response?.data?.results))
-      .reduce((list, results) => list.concat(results), [])
-      .map(Rider.parse)
-      .filter((e, i, s) => s.findIndex(e1 => e1?.id === e?.id) === i)
-    return riders
-  })
+  return backend.post('connecta-express/riders/find/', data)
+    .then(response => {
+      if (!Array.isArray(response?.data)) return Promise.reject({ response })
+      return response?.data?.map(Rider.parse)
+    })
+    .catch(error => {
+      console.error(error)
+      return []
+    })
 }
 
 const updateDeliveryFeePromise = ref()
@@ -1311,7 +1300,7 @@ const createPayment = debounce(() => {
     checkout_id: checkout.value.id,
     ignore_pending_payments: true,
     escrow: {
-      network: 'chipnet',
+      // network: 'chipnet',
       buyer_address: checkout.value?.payment?.escrowRefundAddress ? undefined : formData.value.payment?.escrowRefundAddress,
     },
     // amount: 100,
