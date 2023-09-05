@@ -1,8 +1,9 @@
 <template>
   <q-card class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`height: ${ minHeight }px;`">
-    <div class="q-pt-md" v-if="state === 'appeal-list'">
+    :style="`height: ${ minHeight }px;`"
+    v-if="state === 'appeal-list'">
+    <div class="q-pt-md">
       <div class="q-pt-md">
         <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
           <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'PENDING' }" @click="statusType='PENDING'">Pending</button>
@@ -33,22 +34,18 @@
         </q-item>
       </div>
     </div>
-
-    <div v-if="state === 'appeal-form'">
-      <ReleaseForm
-        :appealInfo="selectedAppeal"
-        @back="state = 'appeal-list'"
-      />
-    </div>
   </q-card>
 
-  <!-- Release Form -->
-  <div>
-
+  <!-- Appeal Process -->
+  <div v-if="state === 'appeal-process'">
+    <AppealProcess
+      :selectedAppeal="selectedAppeal"
+      @back="state = 'appeal-list'"
+    />
   </div>
 </template>
 <script>
-import ReleaseForm from './ReleaseForm.vue';
+import AppealProcess from './AppealProcess.vue'
 
 export default {
   data () {
@@ -78,13 +75,13 @@ export default {
     }
   },
   components: {
-    ReleaseForm
+    AppealProcess
   },
   methods: {
     selectAppeal (index) {
       this.selectedAppeal = this.appeals[index]
 
-      this.state = 'appeal-form'
+      this.state = 'appeal-process'
     }
   }
 }
