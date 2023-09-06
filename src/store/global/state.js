@@ -23,8 +23,7 @@ export default function () {
         purelypeerVaultSigner: {
           receiving: '',
           change: '',
-          derivationPath: 'm/44\'/145\'/1\'',
-          walletHash: ''
+          derivationPath: 'm/44\'/145\'/1\''
         } 
       },
       slp: {
@@ -62,8 +61,7 @@ export default function () {
         purelypeerVaultSigner: {
           receiving: '',
           change: '',
-          derivationPath: 'm/44\'/145\'/1\'',
-          walletHash: ''
+          derivationPath: 'm/44\'/145\'/1\''
         }
       },
       slp: {

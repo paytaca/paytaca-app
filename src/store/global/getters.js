@@ -39,11 +39,6 @@ export function enableSmartBCH (state) {
   return state.enableSmartBCH
 }
 
-export function ppvsWalletHash (state) {
-  const wallet = getWalletData(state, 'bch')
-  return wallet.purelypeerVaultSigner.walletHash
-}
-
 export function getAddress (state) {
   return function (walletType) {
     const wallet = getWalletData(state, walletType)

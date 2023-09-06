@@ -61,7 +61,6 @@ export async function updateMerchantInfo(context, data) {
 
   Object.assign(payload, {
     ...data,
-    signer_wallet_hash: context.rootGetters['global/ppvsWalletHash'],
     receiving_pubkey,
     signer_pubkey,
   })

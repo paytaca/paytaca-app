@@ -137,8 +137,7 @@ export class BchWallet {
       purelypeerVaultSigner: {
         receiving: merchantReceivingAddress,
         change: merchantChangeAddress,
-        derivationPath: this.purelypeerVaultSigner.derivationPath,
-        walletHash: this.getWalletHash(this.purelypeerVaultSigner.derivationPath)
+        derivationPath: this.purelypeerVaultSigner.derivationPath
       }
     }
   }
@@ -161,7 +160,7 @@ export class BchWallet {
         change: purelypeerVaultSigner.change,
       },
       projectId: this.projectId,
-      walletHash: purelypeerVaultSigner.walletHash,
+      walletHash: this.getWalletHash(this.purelypeerVaultSigner.derivationPath),
       addressIndex: this.purelypeerVaultSigner.index
     }
     const result = await this.watchtower.subscribe(data)
