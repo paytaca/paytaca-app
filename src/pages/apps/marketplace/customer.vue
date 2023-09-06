@@ -62,9 +62,20 @@
         />
 
         <div class="row items-center q-mb-sm">
-          <div class="text-subtitle1">Address</div>
+          <div class="text-subtitle1">Default Address</div>
           <q-space/>
           <GeolocateBtn @geolocate="position => onGeolocate(position)"/>
+        </div>
+        <div v-if="customer?.id" class="row q-mb-xs">
+          <q-space/>
+          <q-btn
+            flat
+            no-caps label="Manager other addresses"
+            padding="sm md"
+            class="text-underline q-r-mr-lg"
+            color="brandblue"
+            @click="() => showCustomerLocationsDialog = true"
+          />
         </div>
         <q-input
           outlined
@@ -178,7 +189,6 @@
               }"
             />
           </div>
-
         </q-field>
 
         <div class="q-mt-sm">
@@ -192,6 +202,7 @@
         </div>
       </q-form>
     </div>
+    <CustomerLocationsDialog v-model="showCustomerLocationsDialog"/>
   </q-pull-to-refresh>
 </template>
 <script setup>
@@ -204,6 +215,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wrapper.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
+import CustomerLocationsDialog from 'src/components/marketplace/CustomerLocationsDialog.vue'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -403,6 +415,8 @@ function reverseGeocode(opts = { lat: null, lng: null, syncToForm: false}) {
       return data
     })
 }
+
+const showCustomerLocationsDialog = ref(false)
 
 async function refreshPage(done=()=>{}) {
   try {

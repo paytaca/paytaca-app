@@ -1,5 +1,6 @@
 import ago from 's-ago'
 import { capitalize } from 'vue'
+import { backend } from './backend'
 
 /**
  * @typedef {'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'on_delivery' | 'delivered' | 'completed' | 'cancelled'} OrderStatus
@@ -109,4 +110,34 @@ export const errorParser = {
     if (data?.detail) return data?.detail
     return data
   },
+}
+
+export function reverseGeocode(opts = { lat: null, lng: null, syncToForm: false}) {
+  const params = {
+    lat: opts?.lat,
+    lon: opts?.lng,
+    format: 'json',
+  }
+
+  return backend.get(`https://nominatim.openstreetmap.org/reverse`, { params })
+    .then(response => {
+      const result = response?.data?.address
+      const address1 = [
+        result?.amenity || result?.shop || '',
+        result?.village || result?.neighbourhood || result?.suburb || '',
+      ].filter(Boolean).join(', ')
+
+      const data = {
+        address1: address1,
+        address2: '',
+        street: result?.road,
+        city: result?.city,
+        state: result?.state || result?.province || '', // most results have returned none so far
+        country: result?.country || '',
+        latitude: parseFloat(params.lat),
+        longitude: parseFloat(params.lon),
+      }
+      if (opts?.syncToForm) Object.assign(formData.value.defaultLocation, data)
+      return data
+    })
 }

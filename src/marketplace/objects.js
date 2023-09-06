@@ -17,6 +17,7 @@ export class Location {
   /**
    * @param {Object} data 
    * @param {Number} data.id
+   * @param {String} data.name
    * @param {String} data.address1
    * @param {String} data.address2
    * @param {String} data.street
@@ -29,6 +30,7 @@ export class Location {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.name = data?.name
     this.address1 = data?.address1
     this.address2 = data?.address2
     this.street = data?.street

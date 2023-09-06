@@ -163,6 +163,7 @@ export default {
       try {
         loadingApp.value = true
         await $store.dispatch('marketplace/refetchCustomerData')
+        $store.dispatch('marketplace/refetchCustomerLocations')
         const signerData = await getSignerData()
         const walletHash = signerData?.value?.split(':')[0]
         const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash

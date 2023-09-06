@@ -118,6 +118,36 @@ export async function refetchCustomerData(context) {
     })
 }
 
+export async function refetchCustomerLocations(context) {
+  const customer = context.getters['customer']
+  return backend.get(`connecta/customers/${customer?.id}/locations/`)
+    .then(response => {
+      if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+      context.commit('clearCustomerLocations')
+      response?.data?.results?.forEach(locationData => {
+        context.commit('addCustomerLocation', locationData)
+      })
+      return response
+    })
+}
+
+/**
+ * @param {Object} context 
+ * @param {Number} locationId 
+ */
+export async function deleteCustomerLocation(context, locationId) {
+  const customer = context.getters['customer']
+  return backend.delete(`connecta/customers/${customer?.id}/locations/${locationId}/`)
+    .catch(error => {
+      if (error?.response?.data?.detail?.includes?.('Not found')) return Promise.resolve()
+      return Promise.reject(error)
+    })
+    .then(response => {
+      context.commit('removeCustomerLocation', locationId)
+      return response
+    })
+}
+
 export async function refreshActiveStorefrontCarts(context) {
   const storefront = context.getters['activeStorefront']
   if (!storefront?.id) return Promise.reject('No active storefront')

@@ -11,6 +11,7 @@ export default function () {
       last_name: '',
       default_location: {
         id: 0,
+        name: '',
         address1: '', address2: '',
         street: '', city: '', state: '',
         country: '', zip_code: '',
@@ -22,6 +23,15 @@ export default function () {
         verifying_pubkey_index: 0,
       },
     },
+    customerLocations: [].map(() => {
+      return {
+        id: 0,
+        address1: '', address2: '',
+        street: '', city: '', state: '',
+        country: '', zip_code: '',
+        longitude: '', latitude: '',
+      }
+    }),
 
     activeStorefrontId: 0,
     activeCartId: null,

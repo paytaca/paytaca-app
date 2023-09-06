@@ -1,4 +1,4 @@
-import { Customer, Cart, Storefront } from 'src/marketplace/objects'
+import { Customer, Cart, Storefront, Location } from 'src/marketplace/objects'
 
 export function shopListOpts(state) {
   return state.shopListOpts
@@ -29,6 +29,11 @@ export function customerCoordinates(state, getters) {
 
 export function customer(state) {
   return Customer.parse(state?.customerData)
+}
+
+export function customerLocations(state) {
+  if (!Array.isArray(state?.customerLocations)) return []
+  return state.customerLocations.map(Location.parse)
 }
 
 export function storefronts(state) {

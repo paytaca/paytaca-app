@@ -45,6 +45,38 @@ export function setCustomerData(state, data) {
   state.customerData = data
 }
 
+/**
+ * 
+ * @param {Object} state 
+ * @param {Object} data
+ * @param {Number} data.id
+ * @param {String} data.address1
+ * @param {String} data.address2
+ * @param {String} data.street
+ * @param {String} data.city
+ * @param {String} data.state
+ * @param {String} data.zip_code
+ * @param {String} data.country
+ * @param {String} data.longitude
+ * @param {String} data.latitude
+ */
+export function addCustomerLocation(state, data) {
+  if (!Array.isArray(state?.customerLocations)) state.customerLocations = []
+
+  const index = state.customerLocations.findIndex(location => location?.id == data?.id)
+  if (index >= 0) state.customerLocations[index] = data
+  else state.customerLocations.push(data)
+}
+
+export function removeCustomerLocation(state, locationId) {
+  if (!Array.isArray(state?.customerLocations)) return
+  state.customerLocations = state.customerLocations.filter(location => location?.id != locationId)
+}
+
+export function clearCustomerLocations(state) {
+  state.customerLocations = []
+}
+
 export function setActiveStorefrontId(state, storefrontId) {
   state.activeStorefrontId = storefrontId
 }
