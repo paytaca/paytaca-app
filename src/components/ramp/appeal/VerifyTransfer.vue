@@ -11,11 +11,11 @@
     </div>
     <div class="text-center lg-font-size bold-text text-uppercase q-py-sm">Verifying Transfer</div>
 
-    <q-separator class="q-my-sm q-mx-lg"/>
+    <q-separator class="q-my-sm q-mx-lg" :dark="darkMode"/>
 
     <div class="q-py-md q-mx-lg q-px-sm">
       <div class="sm-font-size q-pb-xs">Contract</div>
-      <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="contract">
+      <q-input class="q-pb-xs q-pb-lg" disable dense filled :dark="darkMode" v-model="contract">
       </q-input>
 
       <div class="sm-font-size q-pb-xs">TXID</div>
@@ -26,9 +26,9 @@
           </template>
         </q-input>
       </div>
-      <span class="text-grey-7 xs-font-size">&nbsp;Contract Balance: 0 BCH</span>
+      <span class="xs-font-size" :class="darkMode ? '' : 'text-grey-7'">&nbsp;Contract Balance: 0 BCH</span>
     </div>
-    <div class="text-center q-pb-lg text-grey-7">Verifying transfer, please wait...</div>
+    <div class="text-center q-pb-lg" :class="darkMode ? '' : 'text-grey-7'">Verifying transfer, please wait...</div>
   </q-card>
 </template>
 <script>

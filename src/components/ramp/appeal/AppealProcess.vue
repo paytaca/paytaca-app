@@ -12,9 +12,17 @@
         @back="$emit('back')"
       />
     </div>
+
+    <div v-if="state === 'completed-appeal'">
+      <CompletedAppeal
+        :appealInfo="appeal"
+        @back="$emit('back')"
+      />
+    </div>
   </div>
 </template>
 <script>
+import CompletedAppeal from './CompletedAppeal.vue'
 import ReleaseForm from './ReleaseForm.vue'
 import VerifyTransfer from './VerifyTransfer.vue'
 
@@ -32,7 +40,8 @@ export default {
   emits: ['back'],
   components: {
     ReleaseForm,
-    VerifyTransfer
+    VerifyTransfer,
+    CompletedAppeal
   },
   async mounted () {
     this.appeal = this.selectedAppeal

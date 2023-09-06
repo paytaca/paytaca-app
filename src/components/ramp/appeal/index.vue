@@ -10,7 +10,8 @@
           <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}" @click="statusType='RESOLVED'">Resolved</button>
         </div>
       </div>
-      <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
+      <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md q-pt-sm">
+        <!-- add scroller -->
         <q-item clickable @click="selectAppeal(index)">
           <q-item-section>
             <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -19,9 +20,9 @@
                   <q-badge rounded size="sm" :color="appeal.type === 'refund' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type" />
                   <div class="md-font-size bold-text">Order #{{ appeal.order }}</div>
                   <div>
-                    <q-badge rounded size="sm" outline color="blue-grey-6" :label="appeal.reason" />
+                    <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="appeal.reason" />
                   </div>
-                  <div class="sm-font-size subtext">
+                  <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
                     8m ago by {{ appeal.peer}}
                   </div>
                 </div>

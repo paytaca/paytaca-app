@@ -14,21 +14,21 @@
       </div>
       <div class="text-center">
         <div class="bold-text lg-font-size" >RELEASE APPEAL</div>
-        <div class="sm-font-size text-grey-6">(Order #{{ appeal.order }})</div>
+        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order }})</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 210}px`" style="overflow-y:auto;">
         <div class="q-mx-lg">
-          <q-card class="br-15 q-mt-md" bordered flat>
+          <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
             <q-card-section>
               <div class="bold-text md-font-size">Status: {{ appeal.status }}</div>
               <span class="sm-font-size">Awaiting confirmation of payment and release of crypto</span>
             </q-card-section>
 
-            <q-separator />
+            <q-separator :dark="darkMode" />
 
             <q-card-section>
               <div class="bold-text md-font-size">Reason:</div>
-              <q-badge rounded size="sm" outline color="blue-grey-6" :label="appeal.reason" />
+              <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="appeal.reason" />
             </q-card-section>
           </q-card>
 
@@ -48,26 +48,41 @@
             </q-input>
           </div>
 
+          <!-- update later -->
           <div class="sm-font-size q-pt-md q-px-lg">
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Market Price</span>
-              <span class="text-nowrap q-ml-xs">
-                $100,000
-              </span>
+            <!-- FLOATING -->
+            <div v-if="true">
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Market Price</span>
+                <span class="text-nowrap q-ml-xs">
+                  $100,000
+                </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Floating Price</span>
+                <span class="text-nowrap q-ml-xs">
+                  105.5%
+                </span>
+              </div>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Floating Price</span>
-              <span class="text-nowrap q-ml-xs">
-                105.5%
-              </span>
+            <!-- FIXED -->
+            <div v-else>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Fixed Price</span>
+                <span class="text-nowrap q-ml-xs">
+                  $100,000
+                </span>
+              </div>
             </div>
+
+
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Crypto Amount</span>
               <span class="text-nowrap q-ml-xs">
                 1 BCH
               </span>
             </div>
-            <q-separator class="q-my-sm"/>
+            <q-separator class="q-my-sm" :dark="darkMode"/>
 
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Fiat Price</span>
@@ -79,21 +94,61 @@
             <div class="text-blue text-center q-pt-xs" @click="state = 'snapshot'"><u>View Ad Snapshot</u></div>
           </div>
 
-          <q-separator class="q-my-sm q-mt-md"/>
+          <q-separator class="q-my-sm q-mt-md" :dark="darkMode"/>
 
           <div class="q-pt-sm">
-            <q-card class="br-15 q-mt-md q-py-sm" bordered flat>
-              <div class="row text-center">
-                <div class="col">Status</div>
-                <div class="col">Transactions</div>
+            <q-card class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+              <q-tabs
+                v-model="tab"
+                dense
+                class=""
+                active-color="primary"
+                indicator-color="primary"
+                align="justify"
+                narrow-indicator
+              >
+                <q-tab name="status" label="Status" />
+                <q-tab name="transaction" label="Transactions" />
+              </q-tabs>
+
+              <q-separator  class="q-mb-sm" :dark="darkMode"/>
+
+              <div v-if="tab === 'status'">
+                <div v-for="(snapshot, index) in snapshots.status" :key="index" class="sm-font-size q-pb-sm" :class="darkMode ? '' : 'subtext'">
+                  <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
+                  <div class="row justify-between no-wrap q-mx-lg">
+                    <span>{{ snapshot.status }}</span>
+                    <span class="text-nowrap q-ml-xs">
+                      {{ snapshot.date }}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div v-for="(snapshot, index) in snapshots" :key="index" class="sm-font-size subtext">
-                <q-separator class="q-my-sm"/>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ snapshot.status }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ snapshot.transaction }}
-                  </span>
+
+              <div v-if="tab === 'transaction'">
+                <div class="row bold-text sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
+                  <div class="col-3 text-center">Type</div>
+                  <div class="col-4 text-center">Status</div>
+                  <div class="col-5 text-center">Timestamp</div>
+                </div>
+
+                <q-separator class="q-my-sm" :dark="darkMode"/>
+
+                <div>
+                  <div v-for="(snapshot, index) in snapshots.transaction" :key=index>
+                    <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
+                    <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
+                      <div class="col-3 text-center">{{ snapshot.type }}</div>
+                      <div class="col-4 text-center">{{ snapshot.status}}</div>
+                      <div class="col-5 xs-font-size">{{ snapshot.timestamp}}</div>
+                    </div>
+                    <div v-if="snapshot.hasOwnProperty('txid')" class="q-pt-xs">
+                      <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
+                        <div class="col-4 text-center">Transaction ID</div>
+                        <div class="col text-blue-6"><u>{{ snapshot.txid}}</u></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </q-card>
@@ -101,11 +156,11 @@
 
           <!-- Simplified this -->
           <div>
-            <q-card class="br-15 q-mt-md q-py-sm" bordered flat>
-              <div class="text-center q-py-xs">
+            <q-card class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+              <div class="text-center q-py-xs bold-text text-uppercase">
                 Select Options
               </div>
-              <q-separator class="q-my-sm"/>
+              <q-separator class="q-my-sm" :dark="darkMode"/>
               <div>
                 <div class="row justify-between no-wrap q-mx-lg q-pt-sm">
                   <span class="sm-font-size">Release</span>
@@ -123,7 +178,7 @@
                   </span>
                 </div>
 
-                <q-separator class="q-my-sm q-mt-md"/>
+                <q-separator class="q-my-sm q-mt-md" :dark="darkMode"/>
 
                 <div class="row justify-between no-wrap q-mx-lg q-py-sm">
                   <span class="sm-font-size">Refund</span>
@@ -177,6 +232,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      tab: 'status',
       appeal: null,
       isloaded: false,
       state: 'form',
@@ -185,28 +241,43 @@ export default {
         seller: 105500
       },
       selectedType: null,
-      snapshots: [
-        {
-          status: 'Paid Pending',
-          transaction: 'Aug 31, 2023 3:17pm'
-        },
-        {
-          status: 'Escrowed',
-          transaction: 'Aug 31, 2023 3:16pm'
-        },
-        {
-          status: 'Escrow Pending',
-          transaction: 'Aug 31, 2023 3:15pm'
-        },
-        {
-          status: 'Confirmed',
-          transaction: 'Aug 31, 2023 3:13pm'
-        },
-        {
-          status: 'Submitted',
-          transaction: 'Aug 31, 2023 3:12pm'
-        }
-      ],
+      snapshots: {
+        status: [
+          {
+            status: 'Paid Pending',
+            date: 'Aug 31, 2023 3:17pm'
+          },
+          {
+            status: 'Escrowed',
+            date: 'Aug 31, 2023 3:16pm'
+          },
+          {
+            status: 'Escrow Pending',
+            date: 'Aug 31, 2023 3:15pm'
+          },
+          {
+            status: 'Confirmed',
+            date: 'Aug 31, 2023 3:13pm'
+          },
+          {
+            status: 'Submitted',
+            date: 'Aug 31, 2023 3:12pm'
+          }
+        ],
+        transaction: [
+          {
+            type: 'Release',
+            status: 'Validating',
+            timestamp: '2023-06-26T08:58:37.529593Z'
+          },
+          {
+            type: 'Escrow',
+            status: 'Validating',
+            timestamp: '2023-06-26T08:58:37.529593Z',
+            txid: 'jsdjskdjakdlajdkucisfsdjksajdkajdl'
+          }
+        ]
+      },
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
     }
   },
