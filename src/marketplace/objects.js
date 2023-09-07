@@ -789,7 +789,8 @@ export class Order {
   }
 
   get total() {
-    return Number(this?.payment?.deliveryFee) + Number(this.markupSubtotal)
+    const total = Number(this?.payment?.deliveryFee) + Number(this.markupSubtotal)
+    return Math.round(total * 10 ** 3) / 10 ** 3
   }
 
   get totalPayable() {
@@ -825,7 +826,8 @@ export class Order {
   }
 
   get netPaid() {
-    return this.totalPaid - (parseFloat(this.totalRefunded) || 0)
+    const netPaid = this.totalPaid - (parseFloat(this.totalRefunded) || 0)
+    return Math.round(netPaid * 10 ** 3) / 10 ** 3
   }
 
   get paymentStatus() {
