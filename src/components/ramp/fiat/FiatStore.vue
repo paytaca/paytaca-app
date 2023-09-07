@@ -182,7 +182,8 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       adFilter: {}
       // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
     }
