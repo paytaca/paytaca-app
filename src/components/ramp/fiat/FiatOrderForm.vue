@@ -154,6 +154,7 @@
     <div v-if="openReviews">
       <FeedbackDialog
         :openReviews="openReviews"
+        :adID="ad.id"
         @back="openReviews = false"
       />
     </div>

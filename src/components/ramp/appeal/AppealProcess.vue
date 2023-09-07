@@ -29,7 +29,7 @@ import VerifyTransfer from './VerifyTransfer.vue'
 export default {
   data () {
     return {
-      state: 'release-form',
+      state: 'completed-appeal',
       appeal: null,
       isloaded: false
     }
