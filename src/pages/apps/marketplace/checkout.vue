@@ -193,7 +193,29 @@
             <div class="row items-center q-mb-sm">
               <div class="text-subtitle1">Address</div>
               <q-space/>
-              <GeolocateBtn @geolocate="position => onGeolocate(position)"/>
+              <div class="q-r-mx-lg">
+                <GeolocateBtn @geolocate="position => onGeolocate(position)"/>
+              </div>
+            </div>
+            <div v-if="customerLocations?.length > 0" class="row items-center q-mb-sm">
+              <q-space/>
+              <q-btn
+                flat
+                no-caps label="Saved addresses"
+                padding="2px sm"
+                class="q-r-mx-md text-underline"
+                @click="() => customerLocationsDialog.show = !customerLocationsDialog.show"
+              />
+              <CustomerLocationsDialog v-model="customerLocationsDialog.show">
+                <template v-slot:actions="context">
+                  <q-btn
+                    flat
+                    label="Select"
+                    v-close-popup
+                    @click="setAsDeliveryLocation(context.location)"
+                  />
+                </template>
+              </CustomerLocationsDialog>
             </div>
             <q-input
               outlined
@@ -697,7 +719,7 @@
 </template>
 <script setup>
 import { backend } from 'src/marketplace/backend'
-import { Checkout, Rider, Payment } from 'src/marketplace/objects'
+import { Checkout, Rider, Payment, Location } from 'src/marketplace/objects'
 import { TransactionListener } from 'src/wallet/transaction-listener'
 import { errorParser, formatTimestampToText, getISOWithTimezone } from 'src/marketplace/utils'
 import { Wallet, loadWallet } from 'src/wallet'
@@ -712,6 +734,7 @@ import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wr
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import PaymentsListDialog from 'src/components/marketplace/PaymentsListDialog.vue'
 import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dialog.vue'
+import CustomerLocationsDialog from 'src/components/marketplace/CustomerLocationsDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 
@@ -1067,6 +1090,26 @@ function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
     .then(() => resetFormData())
     .finally(() => loadingState.value.price = false)
 }
+
+const customerLocationsDialog = ref({ show: false })
+const customerLocations = computed(() => $store.getters['marketplace/customerLocations'])
+function setAsDeliveryLocation(location=Location.parse()) {
+  if (!location?.formatted && !location?.validCoordinates) return Promise.reject('Invalid address')
+
+  formData.value.delivery.address = {
+    address1: location?.address1,
+    address2: location?.address2,
+    street: location?.street,
+    city: location?.city,
+    state: location?.state,
+    country: location?.country,
+    longitude: parseFloat(location?.longitude),
+    latitude: parseFloat(location?.latitude),
+  }
+
+  return submitDeliveryAddress()
+}
+
 
 async function findRider(opts={ replaceExisting: false, displayDialog: false }) {
   if (!opts?.replaceExisting && formData.value?.delivery?.rider?.id) return

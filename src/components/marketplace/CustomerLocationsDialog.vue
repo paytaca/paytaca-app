@@ -47,11 +47,13 @@
             </q-item-label>
           </q-item-section>
           <q-item-section side top style="padding-left:4px;">
-            <div class="row items-center no-wrap q-gutter-x-sm">
-              <q-btn flat icon="edit" padding="sm" @click="() => editLocation(location)"/>
-              <q-separator vertical />
-              <q-btn flat icon="delete" padding="sm" color="red" @click="() => deleteLocationConfirm(location?.id)"/>
-            </div>
+            <slot name="actions" v-bind="{ editLocation, deleteLocationConfirm, location }">
+              <div class="row items-center no-wrap q-gutter-x-sm">
+                <q-btn flat icon="edit" padding="sm" @click="() => editLocation(location)"/>
+                <q-separator vertical />
+                <q-btn flat icon="delete" padding="sm" color="red" @click="() => deleteLocationConfirm(location?.id)"/>
+              </div>
+            </slot>
           </q-item-section>
         </q-item>
       </q-list>
