@@ -21,45 +21,40 @@
           No saved locations
         </div>
       </q-card-section>
-      <q-item v-for="location in customerLocations" :key="location?.id">
-        <q-item-section>
-          <q-item-label>
-            <template v-if="location?.name">
-              {{ location?.name }} <span class="text-grey">#{{ location?.id }}</span>
-            </template>
-            <template v-else>Location #{{ location?.id }}</template>
-          </q-item-label>
-          <q-item-label class="text-caption-bottom ellipsis-2-lines">
-            {{ location?.formatted }}
-          </q-item-label>
-        </q-item-section>
-        <q-item-section side top style="padding-left:4px;">
-          <q-icon name="more_vert" class="q-my-sm q-ml-sm"/>
-          <q-menu :class="[ 'text-left', darkMode ? 'pt-dark' : 'text-black' ]">
-            <q-list separator>
-              <q-item
-                clickable v-ripple
-                v-close-popup
-                @click="() => editLocation(location)"
+      <q-list class="q-mb-md" separator>
+        <q-item v-for="location in customerLocations" :key="location?.id">
+          <q-item-section>
+            <q-item-label class="text-subtitle1">
+              <template v-if="location?.name">
+                {{ location?.name }} <span class="text-grey">#{{ location?.id }}</span>
+              </template>
+              <template v-else>Address #{{ location?.id }}</template>
+            </q-item-label>
+            <q-item-label class="text-caption ellipsis-2-lines">
+              {{ location?.formatted }}
+            </q-item-label>
+            <q-item-label v-if="location?.validCoordinates" class="text-body2 text-underline">
+              <q-btn
+                flat
+                no-caps
+                padding="none sm"
+                class="q-r-mx-lg"
+                @click="() => showLocationInDialog(location)"
               >
-                <q-item-section>
-                  <q-item-label>Edit</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-separator/>
-              <q-item
-                clickable v-ripple
-                v-close-popup
-                @click="() => deleteLocationConfirm(location?.id)"
-              >
-                <q-item-section>
-                  <q-item-label>Delete</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-item-section>
-      </q-item>
+                <q-icon name="location_on"/>
+                <span class="text-underline">View in map</span>
+              </q-btn>
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side top style="padding-left:4px;">
+            <div class="row items-center no-wrap q-gutter-x-sm">
+              <q-btn flat icon="edit" padding="sm" @click="() => editLocation(location)"/>
+              <q-separator vertical />
+              <q-btn flat icon="delete" padding="sm" color="red" @click="() => deleteLocationConfirm(location?.id)"/>
+            </div>
+          </q-item-section>
+        </q-item>
+      </q-list>
     </q-card>
   </q-dialog>
 </template>
@@ -69,6 +64,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, ref, watch } from 'vue'
 import CustomerLocationFormDialog from 'src/components/marketplace/CustomerLocationFormDialog.vue'
+import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
 export default defineComponent({
   name: 'CustomerLocationsDialog',
@@ -100,6 +96,7 @@ export default defineComponent({
         componentProps: {
           location: location,
           hideOnSave: true,
+          openPinOnShow: !location?.id,
         }
       })
     }
@@ -127,6 +124,20 @@ export default defineComponent({
         .finally(() => dialog.hide())
     }
 
+    function showLocationInDialog(location=Location.parse()) {
+      $q.dialog({
+        component: PinLocationDialog,
+        componentProps: {
+          initLocation: {
+            latitude: parseFloat(location?.latitude),
+            longitude: parseFloat(location?.longitude)
+          },
+          static: true,
+          headerText: location?.name || undefined,
+        }
+      })
+    }
+
     return {
       darkMode,
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
@@ -135,6 +146,8 @@ export default defineComponent({
       customerLocations,
       editLocation,
       deleteLocationConfirm,
+
+      showLocationInDialog,
     }
   },
 })

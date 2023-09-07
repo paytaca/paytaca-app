@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
+  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" @show="() => openPinOnShow ? selectCoordinates() : null">
     <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
       <q-card-section>
         <div class="row items-center q-pb-sm">
@@ -9,19 +9,21 @@
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-form ref="form" @submit="() => saveLocation()">
-          <div class="text-subtitle">Name</div>
+          <div class="text-subtitle1">Name</div>
           <q-input
             outlined
             dense
             :disable="loading"
             :dark="darkMode"
             v-model="formData.name"
+            hide-bottom-space
             :error="Boolean(formErrors?.name)"
             :error-message="formErrors?.name"
           />
 
           <q-separator :dark="darkMode" spaced/>
 
+          <div class="text-subtitle1">Address</div>
           <q-input
             outlined
             dense
@@ -178,6 +180,7 @@ export default defineComponent({
     modelValue: Boolean,
     location: Location,
     hideOnSave: Boolean,
+    openPinOnShow: Boolean,
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar()
