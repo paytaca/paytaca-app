@@ -25,7 +25,7 @@
               <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
             </div>
             <div v-else class="q-mb-lg q-pb-lg">
-              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.2)}px`" style="overflow:auto;">
+              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
                 <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"

@@ -1,97 +1,95 @@
 <template>
   <div v-if="isloaded">
-    <!-- <q-scroll-area style="height: 40vmax; overflow-y:auto;"> -->
     <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
       <span v-if="type === 'buyer'">PAY BY FIAT</span>
       <span v-else>RECEIVE FIAT</span>
     </div>
     <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">( Order #{{ order.id }} )</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
-    <!-- Fiat Input -->
-    <div class="q-mt-md q-mx-lg q-px-md">
-      <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs">Please pay the seller</div>
-      <div v-else class="sm-font-size q-pb-xs">Expect fiat payment of</div>
-      <div @click="$parent.copyToClipboard($parent.fiatAmount)">
-        <q-input class="q-pb-xs" dense disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
-          <template v-slot:prepend>
-            <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
-          </template>
-          <template v-slot:append v-if="type === 'buyer'">
-            <q-icon  class="q-pr-sm" size="sm" name='o_content_copy' color="blue-grey-6"/>
-          </template>
-        </q-input>
-      </div>
-      <!-- <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div> -->
-    </div>
-    <div class="q-pt-sm text-center">
-      <span class="sm-font-size">within</span>
-      <div style="font-size: 36px; color: #ed5f59;"> {{ countDown }}</div>
-    </div>
-
-    <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
-
-    <div class="q-mx-md q-px-md q-pt-sm">
-      <!-- Buyer -->
-      <div v-if="type === 'buyer'" class="q-pb-xs">
-        <div class="xm-font-size q-pb-xs q-pl-sm text-left bold-text">Payment Methods</div>
-        <div class="full-width">
-          <q-scroll-area :style="`height: ${minHeight - (minHeight*.7)}px`" style="overflow-y:auto;">
-            <div
-              v-for="(method, index) in order.payment_methods"
-              :key="index">
-              <div class="q-px-sm">
-                <q-card flat bordered>
-                  <q-expansion-item
-                    class="bg-grey-2"
-                    :label="method.payment_type"
-                    expand-separator>
-                    <q-card>
-                      <q-card-section class="text-left">
-                        <div>{{ method.account_name }}</div>
-                        <div>{{ method.account_number }}</div>
-                      </q-card-section>
-                    </q-card>
-                  </q-expansion-item>
-                </q-card>
-              </div>
-            </div>
-          </q-scroll-area>
+    <q-scroll-area :style="`height: ${minHeight - 250}px`" style="overflow-y:auto;">
+        <!-- Fiat Input -->
+      <div class="q-mt-md q-mx-lg q-px-md">
+        <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs">Please pay the seller</div>
+        <div v-else class="sm-font-size q-pb-xs">Expect fiat payment of</div>
+        <div @click="$parent.copyToClipboard($parent.fiatAmount)">
+          <q-input class="q-pb-xs" dense disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
+            <template v-slot:prepend>
+              <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+            </template>
+            <template v-slot:append v-if="type === 'buyer'">
+              <q-icon  class="q-pr-sm" size="sm" name='o_content_copy' color="blue-grey-6"/>
+            </template>
+          </q-input>
         </div>
+        <!-- <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div> -->
+      </div>
+      <div class="q-pt-sm text-center">
+        <span class="sm-font-size">within</span>
+        <div style="font-size: 36px; color: #ed5f59;"> {{ countDown }}</div>
       </div>
 
-      <!-- Seller -->
-      <!-- <div  class="text-center" v-if="type === 'seller'" style="overflow-y:auto;">
-        <q-icon size="xs" name='o_info' color="blue-6"/> Please click "Confirm" if you recieved the fiat payment
-      </div> -->
+      <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
 
-    </div>
-    <!-- </q-scroll-area> -->
+      <div class="q-mx-md q-px-md q-pt-sm">
+        <!-- Buyer -->
+        <div v-if="type === 'buyer'" class="q-pb-xs">
+          <div class="xm-font-size q-pb-xs q-pl-sm text-left bold-text">Payment Methods</div>
+          <div class="full-width">
+              <div
+                v-for="(method, index) in order.payment_methods"
+                :key="index">
+                <div class="q-px-sm">
+                  <q-card flat bordered>
+                    <q-expansion-item
+                      class="bg-grey-2"
+                      :label="method.payment_type"
+                      expand-separator>
+                      <q-card>
+                        <q-card-section class="text-left">
+                          <div>{{ method.account_name }}</div>
+                          <div>{{ method.account_number }}</div>
+                        </q-card-section>
+                      </q-card>
+                    </q-expansion-item>
+                  </q-card>
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <!-- Seller -->
+        <!-- <div  class="text-center" v-if="type === 'seller'" style="overflow-y:auto;">
+          <q-icon size="xs" name='o_info' color="blue-6"/> Please click "Confirm" if you recieved the fiat payment
+        </div> -->
+
+      </div>
+    </q-scroll-area>
     <!-- Checkbox -->
     <div class="q-mb-lg q-pb-lg">
-      <div class="q-mx-lg q-px-md">
-        <div v-if="type === 'seller'">
-          <q-checkbox size="sm" v-model="confirmRelease"/>
-          <span class="xs-font-size text-center">I confirm that I have received payment.</span>
+        <div class="q-mx-lg q-px-md">
+          <div v-if="type === 'seller'">
+            <q-checkbox size="sm" v-model="confirmRelease"/>
+            <span class="xs-font-size text-center">I confirm that I have received payment.</span>
+          </div>
+
+          <div v-if="type === 'buyer'">
+            <q-checkbox size="sm" v-model="confirmPayment"/>
+            <span class="xs-font-size text-center"> I confirm that I already sent my payment</span>
+          </div>
         </div>
 
-        <div v-if="type === 'buyer'">
-          <q-checkbox size="sm" v-model="confirmPayment"/>
-          <span class="xs-font-size text-center"> I confirm that I already sent my payment</span>
+        <!-- Confirm  -->
+        <div class="row q-pt-sm q-mx-lg q-px-md">
+          <q-btn
+            :disable="!confirmRelease || !confirmPayment"
+            rounded
+            :label="type === 'seller' ? 'Release Crypto' : 'Confirm Payment'"
+            class="q-space text-white"
+            color="blue-6"
+            @click="$emit('confirm')"
+          />
         </div>
       </div>
-
-      <!-- Confirm  -->
-      <div class="row q-pt-sm q-mx-lg q-px-md">
-        <q-btn
-          :disable="!confirmRelease || !confirmPayment"
-          rounded
-          :label="type === 'seller' ? 'Release Crypto' : 'Confirm Payment'"
-          class="q-space text-white"
-          color="blue-6"
-          @click="$emit('confirm')"
-        />
-      </div>
-    </div>
   </div>
 </template>
 <script>

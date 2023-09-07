@@ -132,6 +132,11 @@ const routes = [
             path: 'crypto/',
             name: 'ramp-crypto',
             component: () => import('src/components/ramp/RampShiftForm.vue')
+          },
+          {
+            path: 'appeal/',
+            name: 'ramp-appeal',
+            component: () => import('src/components/ramp/appeal/index.vue')
           }
         ]
       }

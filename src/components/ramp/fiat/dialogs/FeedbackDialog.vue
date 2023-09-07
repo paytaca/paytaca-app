@@ -12,21 +12,6 @@
       </div>
 
       <q-pull-to-refresh @refresh="refreshReviews">
-        <!-- <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - (minHeight*.30)}px`" style="overflow:auto;">
-          <q-infinite-scroll
-            ref="infiniteScroll"
-            :items="listings"
-            @load="loadMoreData"
-            :offset="0"
-            :scroll-target="scrollTargetRef">
-            <template v-slot:loading>
-              <div class="row justify-center q-my-md" v-if="hasMoreData">
-                <q-spinner-dots color="primary" size="40px" />
-              </div>
-            </template>
-          </q-infinite-scroll>
-        </q-list> -->
-
         <q-scroll-area :style="`height: ${maxHeight - (maxHeight*.2)}px`" style="overflow:auto;">
           <div class="q-pt-md q-mx-lg q-pb-lg q-px-md" v-for="i in 10" :key="i">
             <div class="bold-text">User Name</div>
@@ -57,32 +42,7 @@
   </q-dialog>
 </template>
 <script>
-import { ref } from 'vue'
-
 export default {
-  setup () {
-    const scrollTargetRef = ref(null)
-    const itemsRef = ref([ {}, {}, {}, {}, {}, {}, {} ])
-    const itemsId = ref([ {}, {}, {}, {}, {}, {}, {} ])
-    return {
-      scrollTargetRef,
-
-      onLoadRef (index, done) {
-        setTimeout(() => {
-          itemsRef.value.push({}, {}, {}, {}, {}, {}, {})
-          done()
-        }, 2000)
-      },
-
-      onLoadId (index, done) {
-        setTimeout(() => {
-          itemsId.value.push({}, {}, {}, {}, {}, {}, {})
-          done()
-        }, 2000)
-      }
-
-    }
-  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -94,7 +54,7 @@ export default {
         is_posted: false
       },
       reviewList: null,
-      maxHeight: this.$q.screen.height *.75
+      maxHeight: this.$q.screen.height*.75
     }
   },
   props: {
@@ -112,7 +72,6 @@ export default {
     },
     async fetchReviews () {
       const vm = this
-      console.log('Get Feedback')
 
       const url = `${vm.apiURL}/order/feedback/peer`
 

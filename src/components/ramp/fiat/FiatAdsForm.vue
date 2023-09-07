@@ -21,8 +21,8 @@
           <ProgressLoader/>
         </div>
       </div>
-      <div v-else>
-        <q-scroll-area :style="`height: ${minHeight - (minHeight*.3)}px`" style="overflow-y:auto;">
+      <div class="q-pt-sm" v-else>
+        <q-scroll-area :style="`height: ${minHeight - 180}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm bold-text">
               Price Setting
