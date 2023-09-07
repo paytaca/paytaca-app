@@ -9,7 +9,12 @@
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div class="text-h5 q-px-sm">{{ product?.name }}</div>
+      <div class="row items-center">
+        <div class="q-space text-h5 q-px-sm">{{ product?.name }}</div>
+        <q-chip v-if="available == false" color="grey" text-color="white" class="q-ma-none">
+          Unavailable
+        </q-chip>
+      </div>
       <q-btn
         v-if="collection?.id == collectionId" class="text-subtitle1 q-mx-sm"
         no-caps flat padding="none"
@@ -59,6 +64,7 @@
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
+              :disable="!available"
               label="Quantity"
               dense outlined
               :dark="darkMode"
@@ -69,6 +75,7 @@
             />
             <q-btn
               v-else
+              :disable="!available"
               no-caps label="Add to cart"
               color="brandblue"
               class="full-width q-mt-md"
@@ -109,6 +116,8 @@ watch(() => [props.productId], () => {
   refreshPage()
 })
 watch(() => [props.variantId], () => selectVariantFromProps())
+
+const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
 
 const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
 const cartItem = computed(() => {
@@ -165,6 +174,14 @@ function fetchProduct() {
       fetchingProduct.value = false
     })
 }
+
+const available = computed(() => {
+  const value = product.value.availableAtStorefront(activeStorefront.value?.id)
+  if (typeof value == 'boolean') return value
+  return true
+})
+watch(() => [activeStorefront.value?.id], () => product.value.fetchStorefrontProduct(activeStorefront.value?.id))
+
 
 const currency = computed(() => {
   return $store.getters['marketplace/getStorefrontCurrency']?.(product.value?.storefrontId)

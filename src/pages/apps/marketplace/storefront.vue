@@ -115,7 +115,17 @@
             <q-card :class="[darkMode ? 'pt-dark-card': 'text-black']">
               <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1"/>
               <q-card-section>
-                <div class="text-body1 ellipsis">{{ product?.name }}</div>
+                <div class="row items-center">
+                  <div class="q-space text-body1 ellipsis">{{ product?.name }}</div>
+                  <q-chip
+                    v-if="product?.availableAtStorefront(product?.storefrontId) == false"
+                    dense
+                    color="grey" text-color="white"
+                    class="q-ma-none"
+                  >
+                    Unavailable
+                  </q-chip>
+                </div>
                 <div>
                   {{ product.minMarkupPrice }}
                   <template v-if="product?.minMarkupPrice != product?.maxMarkupPrice">

@@ -96,6 +96,34 @@ export class Storefront {
 }
 
 
+export class StorefrontProduct {
+  static parse(data) {
+    return new StorefrontProduct(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.storefront_id
+   * @param {Number} data.product_id
+   * @param {Boolean} data.available
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.storefrontId = data?.storefront_id
+    this.productId = data?.product_id
+    this.available = data?.available
+  }
+}
+
+
 export class Collection {
   static parse(data) {
     return new Collection(data)
@@ -221,6 +249,7 @@ export class Product {
    * @param {Number} [data.storefront_id]
    * @param {String} [data.created_at]
    * @param {Object[]} [data.variants]
+   * @param {Object[]} [data.storefront_products]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -242,6 +271,8 @@ export class Product {
     if(data?.created_at) this.createdAt = new Date(data?.created_at)
 
     this.updateVariants(data?.variants)
+
+    this.storefrontProducts = data?.storefront_products?.map?.(StorefrontProduct.parse)
   }
 
   get hasVariants() {
@@ -271,6 +302,37 @@ export class Product {
         return existingVariant
       })
     }
+  }
+   
+  availableAtStorefront(storefrontId) {
+    if (!Array.isArray(this.storefrontProducts)) return
+    const data = this.storefrontProducts.find(storefrontProduct => storefrontProduct?.storefrontId == storefrontId)
+    return data?.available
+  }
+
+  availableAtStorefrontText(storefrontId) {
+    const available = this.availableAtStorefront(storefrontId)
+    if (typeof available !== 'boolean') return 
+    return available ? 'Avaialble' : 'Unavailable'
+  }
+
+  addStorefrontProductData(data) {
+    const storefrontProduct = StorefrontProduct.parse(data)
+    if (!storefrontProduct?.storefrontId) return
+    if (!Array.isArray(this.storefrontProducts)) this.storefrontProducts = []
+    const index = this.storefrontProducts?.findIndex(_sp => _sp?.storefrontId == storefrontProduct?.storefrontId)
+    if (index >= 0) this.storefrontProducts[index] = storefrontProduct
+    else this.storefrontProducts.push(storefrontProduct)
+  }
+
+  async fetchStorefrontProduct(storefrontId=0) {
+    if (!storefrontId) return Promise.resolve()
+    const handle = `${storefrontId}-${this.id}`
+    return backend.get(`connecta/storefront-prodocuts/${handle}/`)
+      .then(response => {
+        this.addStorefrontProductData(response?.data)
+        return response
+      })
   }
 }
 
