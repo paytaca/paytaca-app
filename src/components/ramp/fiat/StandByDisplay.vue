@@ -1,8 +1,8 @@
 <template>
   <div v-if="isloaded" class="q-mb-sm q-pb-sm">
-    <div class="q-mx-lg text-h5 text-center lg-font-size bold-text" :class="statusColor">
-      <span v-if="$parent.isExpired">EXPIRED</span>
-      <span v-else>{{ orderStatus }}</span>
+    <div class="q-mx-lg text-center bold-text">
+      <div class="lg-font-size">{{ appeal.type.label.toUpperCase() }} {{ orderStatus }}</div>
+      <div v-if="order.status.value !== 'APL' && $parent.isExpired" :class="statusColor">EXPIRED</div>
     </div>
     <div class="text-center subtext xs-font-size bold-text">( Order #{{ order.id }} )</div>
     <div class="q-px-sm q-pt-sm">
@@ -24,56 +24,84 @@
         </template>
       </q-input>
     </div>
+    <div v-if="order.status.value !== 'APL'">
+      <!-- <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/> -->
 
-    <!-- <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/> -->
-
-    <!-- Countdown Timer -->
-    <div class="q-mt-md q-px-md q-mb-lg">
-      <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
-        <div v-if="hasLabel && !forRelease" class="row">
-          <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-          <span class="col text-left q-ml-sm">{{ label }}</span>
+      <!-- Countdown Timer -->
+      <div class="q-mt-md q-px-md q-mb-lg">
+        <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
+          <div v-if="hasLabel && !forRelease" class="row">
+            <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+            <span class="col text-left q-ml-sm">{{ label }}</span>
+          </div>
         </div>
-      </div>
 
-      <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
-        {{ countDown }}
-      </div>
+        <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
+          {{ countDown }}
+        </div>
 
-      <!-- Cancel Button -->
-      <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
-        <q-btn
-          rounded
-          no-caps
-          label='Cancel Order'
-          class="q-space text-white"
-          style="background-color: #ed5f59;"
-          @click="$parent.cancellingOrder()"
-        />
-      </div>
-
-      <!-- Appeal Button -->
-      <div v-if="$parent.isExpired">
-        <div class="row q-pt-md">
+        <!-- Cancel Button -->
+        <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
           <q-btn
             rounded
             no-caps
-            label='Appeal'
+            label='Cancel Order'
             class="q-space text-white"
-            color="blue-6"
-            @click="openDialog = true"
+            style="background-color: #ed5f59;"
+            @click="$parent.cancellingOrder()"
           />
         </div>
-        <div class="q-pt-md sm-font-size q-px-md">
-          <div class="bold-text">
-            Seller did not release the crypto?
+
+        <!-- Appeal Button -->
+        <div v-if="$parent.isExpired">
+          <div class="row q-pt-md">
+            <q-btn
+              rounded
+              no-caps
+              label='Appeal'
+              class="q-space text-white"
+              color="blue-6"
+              @click="openDialog = true"
+            />
           </div>
-          <div class="subtext q-px-sm">
-            If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal.
+          <div class="q-pt-md sm-font-size q-px-md">
+            <div class="bold-text">
+              Seller did not release the crypto?
+            </div>
+            <div class="subtext q-px-sm">
+              If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal.
+            </div>
           </div>
         </div>
       </div>
-
+    </div>
+    <div v-else>
+      <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+        <q-card-section>
+          <div class="bold-text md-font-size">Appeal reasons</div>
+          <div v-if="appeal">
+            <q-badge
+              v-for="reason in appeal.reasons"
+              :key="reason"
+              rounded
+              size="sm"
+              outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+              :label="reason" />
+          </div>
+        </q-card-section>
+      </q-card>
+      <div class="row q-pt-md q-mx-lg">
+        <q-btn
+          rounded
+          no-caps
+          label='Chat'
+          class="q-space text-white"
+          color="blue-6"
+          @click="openDialog = true"
+        />
+      </div>
+    </div>
+    <div>
       <!-- Feedback -->
       <div class="q-pt-md" v-if="order.status.value === 'RLS'">
         <div class="text-center bold-text md-font-size subtext">
@@ -133,6 +161,7 @@
     <MiscDialogs
       :type="'appeal'"
       @back="openDialog = false"
+      @submit="onSubmitAppeal"
     />
       <div class="row q-pt-xs q-mb-lg q-pb-lg q-mx-md" v-if="forRelease">
         <q-btn
@@ -165,6 +194,7 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       nickname: this.$store.getters['ramp/getUser'].nickname,
       order: null,
+      appeal: null,
       isloaded: false,
       countDown: '',
       timer: null,
@@ -184,7 +214,7 @@ export default {
     wallet: Object,
     feedbackData: Object
   },
-  emits: ['sendFeedback'],
+  emits: ['sendFeedback', 'submitAppeal'],
   components: {
     MiscDialogs,
     FeedbackDialog
@@ -237,7 +267,7 @@ export default {
         ESCRW: 'Please wait for the buyer to confirm their fiat payment.',
         PD_PN: 'Please wait for the seller to confirm your fiat payment.',
         PD: 'Please wait for the fund release.',
-        RLS_PN: 'Please wait for the fund release.',
+        RLS_PN: 'Please wait for the fund release.'
       }
       return labels[this.order.status.value]
     }
@@ -268,7 +298,9 @@ export default {
         const response = await vm.$axios.get(url, { headers: headers })
         // console.log('response: ', response)
         vm.order = response.data.order
-        console.log('orderHere: ', vm.order)
+        vm.appeal = response.data.appeal
+        console.log('order: ', vm.order)
+        console.log('appeal: ', vm.appeal)
       } catch (error) {
         console.error(error.response)
       }
@@ -279,9 +311,12 @@ export default {
         this.type = 'completed'
       }
     },
-    async postingFeedback () {
+    postingFeedback () {
       // console.log('feedback: ', this.feedback)
-      await this.$emit('sendFeedback', this.feedback)
+      this.$emit('sendFeedback', this.feedback)
+    },
+    async onSubmitAppeal (data) {
+      this.$emit('submitAppeal', data)
     },
     paymentCountdown () {
       const vm = this

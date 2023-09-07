@@ -54,6 +54,7 @@
         :feedback-data="feedback"
         :key="standByDisplayKey"
         @send-feedback="sendFeedback"
+        @submit-appeal="submitAppeal"
       />
     </div>
 
@@ -85,7 +86,7 @@
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency, makeid } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import RampContract from 'src/wallet/ramp/contract'
 
@@ -278,26 +279,19 @@ export default {
             vm.generateContract()
           }
           break
-        case 'RLS_PN': // Release Pending
-          vm.state = 'standby-view'
+        case 'RFN': // Refunded
+          this.status = 'refund'
+          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
           break
         case 'RLS': // Released
           vm.state = 'standby-view'
           vm.standByDisplayKey++
           vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
           break
-        case 'CNCL': // Canceled
+        default:
+          // includes status = CNCL, APL, RFN_PN, RLS_PN
           this.state = 'standby-view'
-          break
-          // TODO: add pages later
-        case 'RLS_APL': // Appealed for Release
-        case 'RFN_APL': // Appealed for Refund
-          this.status = 'appeal'
-          break
-        case 'RFN_PN': // Refund Pending
-        case 'RFN': // Refunded
-          this.status = 'refund'
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
+          vm.standByDisplayKey++
           break
       }
       if (this.isExpired) {
@@ -536,7 +530,27 @@ export default {
       // this.contract.address = this.rampContract.getAddress()
       // console.log('rampContract address:', this.rampContract.getAddress())
     },
-    // Peer Feedback
+
+    async submitAppeal (data) {
+      console.log('onSubmitAppeal:', data)
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'APPEAL_REQUEST', timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
+      vm.$axios.post(url, data, { headers: headers })
+        .then(response => {
+          console.log('response: ', response)
+          this.updateStatus(response.data.status)
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
+    },
     async sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
