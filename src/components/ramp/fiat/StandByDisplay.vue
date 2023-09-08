@@ -1,7 +1,9 @@
 <template>
   <div v-if="isloaded" class="q-mb-sm q-pb-sm">
     <div class="q-mx-lg text-center bold-text">
-      <div class="lg-font-size">{{ appeal.type.label.toUpperCase() }} {{ orderStatus }}</div>
+      <div class="lg-font-size">
+        <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
+      </div>
       <div v-if="order.status.value !== 'APL' && $parent.isExpired" :class="statusColor">EXPIRED</div>
     </div>
     <div class="text-center subtext xs-font-size bold-text">( Order #{{ order.id }} )</div>
@@ -90,16 +92,16 @@
           </div>
         </q-card-section>
       </q-card>
-      <div class="row q-pt-md q-mx-lg">
+      <!-- <div class="row q-pt-md q-mx-lg">
         <q-btn
           rounded
           no-caps
           label='Chat'
           class="q-space text-white"
           color="blue-6"
-          @click="openDialog = true"
+          @click="onChat"
         />
-      </div>
+      </div> -->
     </div>
     <div>
       <!-- Feedback -->
@@ -206,7 +208,8 @@ export default {
         comment: '',
         is_posted: false
       },
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
   props: {
@@ -317,6 +320,9 @@ export default {
     },
     async onSubmitAppeal (data) {
       this.$emit('submitAppeal', data)
+    },
+    onChat () {
+      console.log('chat clicked')
     },
     paymentCountdown () {
       const vm = this
