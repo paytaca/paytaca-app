@@ -142,6 +142,7 @@
 <script>
 import { backend, getSignerData } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
+import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { Cart } from 'src/marketplace/objects'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
@@ -163,6 +164,10 @@ export default {
       try {
         loadingApp.value = true
         await $store.dispatch('marketplace/refetchCustomerData')
+          .then(() => {
+            const customerId = $store.getters['marketplace/customer']?.id
+            marketplacePushNotificationsManager.subscribe(customerId)
+          })
         $store.dispatch('marketplace/refetchCustomerLocations')
         const signerData = await getSignerData()
         const walletHash = signerData?.value?.split(':')[0]

@@ -73,7 +73,9 @@ class PushNotificationsEventEmitter {
       .forEach(callback => {
         try {
           callback(data)
-        } catch(error) {}
+        } catch(error) {
+          console.error(error)
+        }
       })
   }
 }
@@ -193,11 +195,20 @@ class PushNotificationsManager {
   }
 }
 
+export const pushNotificationsManager = new PushNotificationsManager()
+
 export default boot(({ app, store }) => {
 
   if (Platform.is.mobile) {
     const manager = reactive(
-      markRaw(new PushNotificationsManager())
+      markRaw(pushNotificationsManager)
+    )
+
+    manager.events.addEventListener(
+      'pushNotificationReceived',
+      (notification) => {
+        console.log('Notification:', notification)
+      }
     )
   
     // Vuex notification module will act as the event bus for events when user opens app using
