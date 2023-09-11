@@ -1,3 +1,12 @@
+export function updateArbiter (state, arbiter) {
+  state.arbiter = arbiter
+}
+
+export function clearArbiter (state) {
+  state.arbiter = null
+  console.log('arbiter:', state.arbiter)
+}
+
 export function updateUser (state, user) {
   state.user = user
 }

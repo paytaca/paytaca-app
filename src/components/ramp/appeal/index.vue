@@ -47,12 +47,16 @@
 </template>
 <script>
 import AppealProcess from './AppealProcess.vue'
+import { signMessage } from '../../../wallet/ramp/signature.js'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      wallet: null,
       statusType: 'PENDING',
       state: 'appeal-list',
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
@@ -78,12 +82,48 @@ export default {
   components: {
     AppealProcess
   },
+  mounted () {
+    this.fetchAppeals()
+  },
   methods: {
     selectAppeal (index) {
       this.selectedAppeal = this.appeals[index]
 
       this.state = 'appeal-process'
+    },
+    async fetchAppeals () {
+      console.log('fetchAppeals')
+      const vm = this
+      const url = vm.apiURL + '/appeals'
+      if (vm.wallet === null) {
+        const walletInfo = this.$store.getters['global/getWallet']('bch')
+        vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      }
+      const timestamp = Date.now()
+      signMessage(vm.wallet.privateKeyWif, 'APPEAL_LIST', timestamp)
+        .then(signature => {
+          const headers = {
+            'wallet-hash': vm.wallet.walletHash,
+            timestamp: timestamp,
+            signature: signature
+          }
+          const params = {
+            offset: 0,
+            limit: 20,
+            state: 'ONGOING'
+          }
+          console.log('headers:', headers)
+          console.log('params:', params)
+          vm.$axios.get(url, { headers: headers, params: params })
+            .then(response => {
+              console.log('response:', response)
+            })
+            .catch(error => {
+              console.error(error.response)
+            })
+        })
     }
+
   }
 }
 </script>

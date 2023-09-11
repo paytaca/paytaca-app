@@ -100,7 +100,7 @@
   </template>
 <script>
 import { signMessage } from 'src/wallet/ramp/signature'
-// import { makeid } from 'src/wallet/ramp'
+import { makeid } from 'src/wallet/ramp'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { Dialog } from 'quasar'
@@ -191,7 +191,6 @@ export default {
         console.log('result:', result)
         if (result.success) {
           vm.txid = result.txid
-          // vm.txid = makeid(64)
           const txidData = {
             id: vm.order.id,
             txidInfo: {
@@ -204,6 +203,7 @@ export default {
           // console.log('txid:', vm.txid)
           await vm.escrowPendingOrder()
         } else {
+          // /**
           vm.sendErrors = []
           if (result.error.indexOf('not enough balance in sender') > -1) {
             vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
@@ -213,6 +213,20 @@ export default {
             vm.sendErrors.push(result.error)
           }
           vm.showDragSlide = true
+          //  */
+
+          /**
+          vm.txid = makeid(64)
+          const txidData = {
+            id: vm.order.id,
+            txidInfo: {
+              action: 'ESCROW',
+              txid: this.txid
+            }
+          }
+          vm.$store.dispatch('ramp/saveTxid', txidData)
+          await vm.escrowPendingOrder()
+          **/
         }
       } catch (err) {
         console.error(err)

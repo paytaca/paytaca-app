@@ -1,3 +1,6 @@
+export function getArbiter (state) {
+  return state.arbiter
+}
 export function getUser (state) {
   return state.user
 }

@@ -66,14 +66,14 @@
               @click="openDialog = true"
             />
           </div>
-          <div class="q-pt-md sm-font-size q-px-md">
+          <!-- <div class="q-pt-md sm-font-size q-px-md">
             <div class="bold-text">
               Seller did not release the crypto?
             </div>
             <div class="subtext q-px-sm">
               If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal.
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>

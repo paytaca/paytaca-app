@@ -16,7 +16,7 @@
       </div>
       <div class="row no-wrap justify-around items-baseline md-font-size q-pt-lg q-mb-lg">
         <div v-for="(app, index) in apps" :key="index">
-          <div class="col column items-center">
+          <div v-if="app.name !== 'appeal' || (app.name === 'appeal' && this.arbiter)" class="col column items-center">
             <q-btn @click="selectApp(app.name)" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" :icon="app.icon"/>
             <span class="text-capitalize">{{ app.name }}</span>
           </div>
@@ -26,11 +26,13 @@
   </q-dialog>
 </template>
 <script>
-
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
+      arbiter: this.$store.getters['ramp/getArbiter'],
       openDialog: true,
       apps: [
         {
@@ -49,6 +51,14 @@ export default {
     }
   },
   emits: ['back', 'submit'],
+  async mounted () {
+    console.log('apps:', this.apps)
+    if (!this.arbiter) {
+      const walletInfo = this.$store.getters['global/getWallet']('bch')
+      const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
+      this.$store.dispatch('ramp/fetchArbiterUser', wallet)
+    }
+  },
   methods: {
     selectApp (app) {
       this.$emit('submit', app)
