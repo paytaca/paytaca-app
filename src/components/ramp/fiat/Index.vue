@@ -96,7 +96,7 @@ export default {
     },
     processDialog () {
       if (!this.proceed && !this.createUser) {
-        this.$router.go(-1)
+        this.$router.go(-2)
       }
     },
     async createRampUser (value) {
