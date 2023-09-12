@@ -1,6 +1,7 @@
 import { reactive, markRaw } from 'vue'
 import { boot } from 'quasar/wrappers'
 import { PushNotifications } from '@capacitor/push-notifications';
+import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
@@ -86,6 +87,7 @@ class PushNotificationsManager {
     this.events = PushNotificationsEventEmitter.getInstance()
     this.registrationToken = ''
     this.deviceId = ''
+    this.appInfo = null
     this.registrationTokenError= 'no error'
     this.permissionStatus = null
 
@@ -96,6 +98,14 @@ class PushNotificationsManager {
     this.fetchDeviceId()
 
     this.subscriptionInfo = {}
+  }
+
+  fetchAppInfo() {
+    return App.getInfo()
+      .then(response => {
+        this.appInfo = response
+        return response
+      })
   }
 
   checkPermissions() {
