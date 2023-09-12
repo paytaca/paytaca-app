@@ -16,7 +16,7 @@
       </div>
       <div class="row no-wrap justify-around items-baseline md-font-size q-pt-lg q-mb-lg">
         <div v-for="(app, index) in apps" :key="index">
-          <div v-if="app.name !== 'appeal' || (app.name === 'appeal' && this.arbiter)" class="col column items-center">
+          <div class="col column items-center">
             <q-btn @click="selectApp(app.name)" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" :icon="app.icon"/>
             <span class="text-capitalize">{{ app.name }}</span>
           </div>
@@ -42,21 +42,27 @@ export default {
         {
           name: 'crypto',
           icon: 'currency_bitcoin'
-        },
-        {
-          name: 'appeal',
-          icon: 'gavel'
         }
       ]
     }
   },
   emits: ['back', 'submit'],
   async mounted () {
-    console.log('apps:', this.apps)
-    if (!this.arbiter) {
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
+    const vm = this
+    if (!vm.arbiter) {
+      const walletInfo = vm.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
-      this.$store.dispatch('ramp/fetchArbiterUser', wallet)
+      await vm.$store.dispatch('ramp/fetchArbiter', wallet)
+        .then(function () {
+          vm.arbiter = vm.$store.getters['ramp/getArbiter']
+        })
+    }
+    console.log('arbiter:', vm.arbiter)
+    if (vm.arbiter) {
+      vm.apps.push({
+        name: 'appeal',
+        icon: 'gavel'
+      })
     }
   },
   methods: {

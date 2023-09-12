@@ -1,27 +1,23 @@
 import { axiosInstance } from '../../boot/axios'
 import { signMessage } from 'src/wallet/ramp/signature'
 
-export async function fetchArbiterUser (context, wallet) {
+export async function fetchArbiter (context, wallet) {
   const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/arbiter'
   const timestamp = Date.now()
-  signMessage(wallet.privateKeyWif, 'ARBITER_GET', timestamp)
-    .then(result => {
-      const signature = result
-      const headers = {
-        'wallet-hash': wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature,
-        'public-key': wallet.publicKey
-      }
-      axiosInstance.get(url, { headers: headers })
-        .then(response => {
-          context.commit('updateArbiter', response.data.arbiter)
-        })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response)
-        })
-    })
+  const signature = await signMessage(wallet.privateKeyWif, 'ARBITER_GET', timestamp)
+  const headers = {
+    'wallet-hash': wallet.walletHash,
+    timestamp: timestamp,
+    signature: signature
+  }
+  try {
+    const response = await axiosInstance.get(url, { headers: headers })
+    context.commit('updateArbiter', response.data.arbiter)
+    return response.data.arbiter
+  } catch (error) {
+    console.error(error)
+    console.error(error.response)
+  }
 }
 
 export async function fetchUser (context, walletHash) {
@@ -264,4 +260,8 @@ export function saveTxid (context, data) {
 
 export function clearOrderTxids (context, id) {
   context.commit('clearOrderTxids', id)
+}
+
+export function clearArbiter (context) {
+  context.commit('clearArbiter')
 }
