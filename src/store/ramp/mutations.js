@@ -108,7 +108,6 @@ export function resetAdsData (state) {
 export function updateOngoingOrders (state, { overwrite = false, data }) {
   if (overwrite) state.ongoingOrders = []
   state.ongoingOrders.push(...data.orders)
-  // console.log('ongoingOrders:', state.ongoingOrders)
   state.ongoingOrdersTotalPages = data.total_pages
 }
 
@@ -141,15 +140,52 @@ export function resetOrdersData (state) {
 
 // ~ orders mutations ~ //
 
+// ~ appeals mutations ~ //
+export function updatePendingAppeals (state, { overwrite = false, data }) {
+  if (overwrite) state.pendingAppeals = []
+  state.pendingAppeals.push(...data.appeals)
+  state.pendingAppealsTotalPages = data.total_pages
+}
+
+export function updateResolvedAppeals (state, { overwrite = false, data }) {
+  if (overwrite) state.resolvedAppeals = []
+  state.resolvedAppeals.push(...data.appeals)
+  state.resolvedAppealsTotalPages = data.total_pages
+}
+
+export function incPendingAppealsPage (state) {
+  state.pendingAppealsPageNumber++
+}
+
+export function incResolvedAppealsPage (state) {
+  state.resolvedAppealsPageNumber++
+}
+
+export function resetAppealsPagination (state) {
+  state.pendingAppealsPageNumber = null
+  state.pendingAppealsTotalPages = null
+
+  state.resolvedAppealsPageNumber = null
+  state.resolvedAppealsTotalPages = null
+}
+
+export function resetAppealsData (state) {
+  state.pendingAppeals = []
+  state.resolvedAppeals = []
+}
+// ~ appeals mutations ~ //
+
 export function resetPagination (state) {
   state.itemsPerPage = 20
   resetStorePagination(state)
   resetAdsPagination(state)
   resetOrdersPagination(state)
+  resetAppealsPagination(state)
 }
 
 export function resetData (state) {
   resetStoreData(state)
   resetAdsData(state)
   resetOrdersData(state)
+  resetAppealsData(state)
 }

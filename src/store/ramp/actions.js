@@ -195,6 +195,52 @@ export async function fetchOrders (context, { orderState = null, params = null, 
   }
 }
 
+export async function fetchAppeals (context, { appealState = null, params = null, headers = null, overwrite = false }) {
+  const state = context.state
+  // Setup pagination parameters based on component & transaction type
+  let pageNumber = null
+  let totalPages = null
+  switch (appealState) {
+    case 'PENDING':
+      pageNumber = state.pendingAppealsPageNumber
+      totalPages = state.pendingAppealsTotalPages
+      break
+    case 'RESOLVED':
+      pageNumber = state.resolvedAppealsPageNumber
+      totalPages = state.resolvedAppealsTotalPages
+      break
+    default:
+      return
+  }
+
+  if (pageNumber < totalPages || (!pageNumber && !totalPages)) {
+    // Increment page by 1 if not fetching data for the first time
+    if (pageNumber !== null) pageNumber++
+
+    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/appeal'
+    console.log('apiUrl:', apiURL)
+    params.page = pageNumber
+    params.limit = state.itemsPerPage
+    try {
+      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
+      console.log('data:', data)
+      switch (appealState) {
+        case 'PENDING':
+          context.commit('updatePendingAppeals', { overwrite: overwrite, data: data.data })
+          context.commit('incPendingAppealsPage')
+          break
+        case 'RESOLVED':
+          context.commit('updateResolvedAppeals', { overwrite: overwrite, data: data.data })
+          context.commit('incResolvedAppealsPage')
+          break
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+      throw error
+    }
+  }
+}
+
 export async function fetchOwnedAds (context, params, headers) {
   const state = context.state
 
@@ -244,6 +290,10 @@ export function resetAdsPagination (context) {
 
 export function resetOrdersPagination (context) {
   context.commit('resetOrdersPagination')
+}
+
+export function resetAppealsPagination (context) {
+  context.commit('resetAppealsPagination')
 }
 
 export function resetPagination (context) {

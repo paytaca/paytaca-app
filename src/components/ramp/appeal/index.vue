@@ -10,29 +10,35 @@
           <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}" @click="statusType='RESOLVED'">Resolved</button>
         </div>
       </div>
-      <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md q-pt-sm">
-        <!-- add scroller -->
-        <q-item clickable @click="selectAppeal(index)">
-          <q-item-section>
-            <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              <div class="row q-mx-md">
-                <div class="col ib-text">
-                  <q-badge rounded size="sm" :color="appeal.type === 'refund' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type" />
-                  <div class="md-font-size bold-text">Order #{{ appeal.order }}</div>
-                  <div>
-                    <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="appeal.reason" />
+      <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
+        <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+        <p :class="{ 'text-black': !darkMode }">Nothing to display</p>
+      </div>
+      <div v-else>
+        <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md q-pt-sm">
+          <!-- add scroller -->
+          <q-item clickable @click="selectAppeal(index)">
+            <q-item-section>
+              <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                <div class="row q-mx-md">
+                  <div class="col ib-text">
+                    <q-badge rounded size="sm" :color="appeal.type === 'refund' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type" />
+                    <div class="md-font-size bold-text">Order #{{ appeal.order }}</div>
+                    <div>
+                      <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="appeal.reason" />
+                    </div>
+                    <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
+                      8m ago by {{ appeal.peer}}
+                    </div>
                   </div>
-                  <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
-                    8m ago by {{ appeal.peer}}
+                  <div class="text-right subtext sm-font-size bold-text text-uppercase">
+                    {{ appeal.status }}
                   </div>
-                </div>
-                <div class="text-right subtext sm-font-size bold-text text-uppercase">
-                  {{ appeal.status }}
                 </div>
               </div>
-            </div>
-          </q-item-section>
-        </q-item>
+            </q-item-section>
+          </q-item>
+        </div>
       </div>
     </div>
   </q-card>
@@ -59,71 +65,143 @@ export default {
       wallet: null,
       statusType: 'PENDING',
       state: 'appeal-list',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
-      appeals: [
-        {
-          order: 12,
-          peer: 'Edcel',
-          status: 'Paid Pending',
-          type: 'release',
-          reason: 'Unresponsive Seller'
-        },
-        {
-          order: 2363,
-          peer: 'Edcel',
-          status: 'Escrowed',
-          type: 'refund',
-          reason: 'Unresponsive Buyer'
-        }
-      ],
-      selectedAppeal: null
+      selectedAppeal: null,
+      loading: false,
+      totalPages: null,
+      pageNumber: null,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
     }
   },
   components: {
     AppealProcess
   },
+  watch: {
+    statusType () {
+      const vm = this
+      vm.resetAndScrollToTop()
+      vm.updatePaginationValues()
+      if (vm.pageNumber === null || vm.totalPages === null) {
+        if (!vm.listings || vm.listings.length === 0) {
+          vm.loading = true
+          vm.fetchAppeals()
+        }
+      }
+    }
+  },
+  computed: {
+    appeals () {
+      const vm = this
+      switch (vm.statusType) {
+        case 'PENDING':
+          return vm.pendingAppeals
+        case 'RESOLVED':
+          return vm.resolvedAppeals
+      }
+      return []
+    },
+    pendingAppeals () {
+      console.log('pendingAppeals:', this.$store.getters['ramp/pendingAppeals'])
+      return this.$store.getters['ramp/pendingAppeals']
+    },
+    resolvedAppeals () {
+      return this.$store.getters['ramp/resolvedAppeals']
+    },
+    hasMoreData () {
+      const vm = this
+      vm.updatePaginationValues()
+      return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
+    }
+  },
   mounted () {
-    this.fetchAppeals()
+    const vm = this
+    if (!vm.listings || vm.listings.length === 0) {
+      vm.loading = true
+    }
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
+      vm.wallet = wallet
+      vm.resetAndRefetchListings()
+    })
   },
   methods: {
+    async fetchAppeals (overwrite = false) {
+      const vm = this
+      if (!vm.wallet) return
+      const timestamp = Date.now()
+      signMessage(this.wallet.privateKeyWif, 'APPEAL_LIST', timestamp).then(signature => {
+        const headers = {
+          'wallet-hash': this.wallet.walletHash,
+          timestamp: timestamp,
+          signature: signature
+        }
+        const params = { state: vm.statusType }
+        vm.$store.dispatch('ramp/fetchAppeals',
+          {
+            appealState: vm.statusType,
+            params: params,
+            headers: headers,
+            overwrite: overwrite
+          })
+          .then(response => {
+            vm.loading = false
+          })
+          .catch(error => {
+            console.error(error.response)
+          })
+      })
+    },
+    async loadMoreData (_, done) {
+      const vm = this
+      if (!vm.hasMoreData || !vm.wallet) {
+        done(true)
+        return
+      }
+      vm.updatePaginationValues()
+      if (vm.pageNumber < vm.totalPages) {
+        vm.fetchAppeals().then(done()).catch(done())
+      }
+    },
+    async refreshData (done) {
+      // console.log('refreshing orders')
+      this.resetAndRefetchListings()
+      if (done) done()
+    },
+    async resetAndRefetchListings () {
+      console.log('resetAndRefetchListings')
+      const vm = this
+      // console.time('non-blocking-await')
+      vm.$store.dispatch('ramp/resetAppealsPagination')
+        .then(
+          vm.fetchAppeals(true)
+            .then(function () {
+              vm.updatePaginationValues()
+              vm.loading = false
+            })
+        )
+      // console.timeEnd('non-blocking-await')
+    },
+    updatePaginationValues () {
+      const vm = this
+      vm.totalPages = vm.$store.getters['ramp/getAppealsTotalPages'](vm.statusType)
+      vm.pageNumber = vm.$store.getters['ramp/getAppealsPageNumber'](vm.statusType)
+    },
+    resetAndScrollToTop () {
+      if (this.$refs.infiniteScroll) {
+        this.$refs.infiniteScroll.reset()
+      }
+      this.scrollToTop()
+    },
+    scrollToTop () {
+      if (this.$refs.scrollTargetRef) {
+        const scrollElement = this.$refs.scrollTargetRef.$el
+        scrollElement.scrollTop = 0
+      }
+    },
     selectAppeal (index) {
       this.selectedAppeal = this.appeals[index]
 
       this.state = 'appeal-process'
-    },
-    async fetchAppeals () {
-      console.log('fetchAppeals')
-      const vm = this
-      const url = vm.apiURL + '/appeals'
-      if (vm.wallet === null) {
-        const walletInfo = this.$store.getters['global/getWallet']('bch')
-        vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      }
-      const timestamp = Date.now()
-      signMessage(vm.wallet.privateKeyWif, 'APPEAL_LIST', timestamp)
-        .then(signature => {
-          const headers = {
-            'wallet-hash': vm.wallet.walletHash,
-            timestamp: timestamp,
-            signature: signature
-          }
-          const params = {
-            offset: 0,
-            limit: 20,
-            state: 'ONGOING'
-          }
-          console.log('headers:', headers)
-          console.log('params:', params)
-          vm.$axios.get(url, { headers: headers, params: params })
-            .then(response => {
-              console.log('response:', response)
-            })
-            .catch(error => {
-              console.error(error.response)
-            })
-        })
     }
-
   }
 }
 </script>

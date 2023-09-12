@@ -161,7 +161,6 @@ export default {
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
         if (!vm.listings || vm.listings.length === 0) {
-          console.log('statusType')
           vm.loading = true
           vm.fetchOrders()
         }

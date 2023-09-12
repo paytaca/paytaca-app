@@ -33,6 +33,15 @@ export default function () {
     completedOrdersTotalPages: null,
     completedOrders: [],
 
+    // appeals pagination
+    pendingAppealsPageNumber: null,
+    pendingAppealsTotalPages: null,
+    pendingAppeals: [],
+
+    resolvedAppealsPageNumber: null,
+    resolvedAppealsTotalPages: null,
+    resolvedAppeals: [],
+
     txids: {}
 
   }

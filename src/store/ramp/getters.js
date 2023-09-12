@@ -151,6 +151,42 @@ export function getOrdersPageNumber (state) {
 
 // orders getters //
 
+// appeals getters //
+export function getPendingAppeals (state) {
+  return state.pendingAppeals
+}
+
+export function getResolvedAppeals(state) {
+  return state.resolvedAppeals
+}
+
+export function getAppealsTotalPages (state) {
+  return function (appealState) {
+    switch (appealState) {
+      case 'PENDING':
+        return state.pendingAppealsTotalPages
+      case 'RESOLVED':
+        return state.resolvedAppealsTotalPages
+      default:
+        return null
+    }
+  }
+}
+
+export function getAppealsPageNumber (state) {
+  return function (appealState) {
+    switch (appealState) {
+      case 'PENDING':
+        return state.pendingAppealsPageNumber
+      case 'RESOLVED':
+        return state.resolvedAppealsPageNumber
+      default:
+        return null
+    }
+  }
+}
+// appeals getters //
+
 export function getTxidHistory (state) {
   return state.txids
 }
