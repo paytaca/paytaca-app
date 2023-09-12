@@ -152,15 +152,15 @@ export function getOrdersPageNumber (state) {
 // orders getters //
 
 // appeals getters //
-export function getPendingAppeals (state) {
+export function pendingAppeals (state) {
   return state.pendingAppeals
 }
 
-export function getResolvedAppeals(state) {
+export function resolvedAppeals (state) {
   return state.resolvedAppeals
 }
 
-export function getAppealsTotalPages (state) {
+export function appealsTotalPages (state) {
   return function (appealState) {
     switch (appealState) {
       case 'PENDING':
@@ -173,7 +173,7 @@ export function getAppealsTotalPages (state) {
   }
 }
 
-export function getAppealsPageNumber (state) {
+export function appealsPageNumber (state) {
   return function (appealState) {
     switch (appealState) {
       case 'PENDING':

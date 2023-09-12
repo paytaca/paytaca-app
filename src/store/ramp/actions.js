@@ -41,7 +41,6 @@ export async function fetchUser (context, walletHash) {
 }
 
 export async function createUser (context, data) {
-  console.log('data:', data)
   const nickname = data.nickname
   const wallet = data.wallet
   const timestamp = Date.now()
@@ -218,12 +217,10 @@ export async function fetchAppeals (context, { appealState = null, params = null
     if (pageNumber !== null) pageNumber++
 
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/appeal'
-    console.log('apiUrl:', apiURL)
     params.page = pageNumber
     params.limit = state.itemsPerPage
     try {
       const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
-      console.log('data:', data)
       switch (appealState) {
         case 'PENDING':
           context.commit('updatePendingAppeals', { overwrite: overwrite, data: data.data })
@@ -234,6 +231,7 @@ export async function fetchAppeals (context, { appealState = null, params = null
           context.commit('incResolvedAppealsPage')
           break
       }
+      return data
     } catch (error) {
       console.error('Error fetching user data:', error)
       throw error

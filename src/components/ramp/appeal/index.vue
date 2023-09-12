@@ -10,35 +10,54 @@
           <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}" @click="statusType='RESOLVED'">Resolved</button>
         </div>
       </div>
-      <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="loading">
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader/>
+        </div>
+      </div>
+      <div v-else-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
         <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
         <p :class="{ 'text-black': !darkMode }">Nothing to display</p>
       </div>
       <div v-else>
-        <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md q-pt-sm">
-          <!-- add scroller -->
-          <q-item clickable @click="selectAppeal(index)">
-            <q-item-section>
-              <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                <div class="row q-mx-md">
-                  <div class="col ib-text">
-                    <q-badge rounded size="sm" :color="appeal.type === 'refund' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type" />
-                    <div class="md-font-size bold-text">Order #{{ appeal.order }}</div>
-                    <div>
-                      <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="appeal.reason" />
-                    </div>
-                    <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
-                      8m ago by {{ appeal.peer}}
-                    </div>
-                  </div>
-                  <div class="text-right subtext sm-font-size bold-text text-uppercase">
-                    {{ appeal.status }}
-                  </div>
-                </div>
+        <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
+          <q-infinite-scroll
+          ref="infiniteScroll"
+          :items="appeals"
+          @load="loadMoreData"
+          :offset="0"
+          :scroll-target="scrollTargetRef">
+            <template v-slot:loading>
+              <div class="row justify-center q-my-md" v-if="hasMoreData">
+                <q-spinner-dots color="primary" size="40px" />
               </div>
-            </q-item-section>
-          </q-item>
-        </div>
+            </template>
+            <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md q-pt-sm">
+              <!-- add scroller -->
+              <q-item clickable @click="selectAppeal(index)">
+                <q-item-section>
+                  <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                    <div class="row q-mx-md">
+                      <div class="col ib-text">
+                        <q-badge rounded size="sm" :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
+                        <div class="md-font-size bold-text">Order #{{ appeal.order }}</div>
+                        <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
+                          {{ formattedDate(appeal.created_at) }} by {{ appeal.owner.nickname}}
+                        </div>
+                        <div v-for="(reason, index) in appeal.reasons" :key="index">
+                          <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
+                        </div>
+                      </div>
+                      <!-- <div class="text-right subtext sm-font-size bold-text text-uppercase">
+                        {{ appeal.status }}
+                      </div> -->
+                    </div>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </div>
+          </q-infinite-scroll>
+        </q-list>
       </div>
     </div>
   </q-card>
@@ -52,11 +71,21 @@
   </div>
 </template>
 <script>
+import ProgressLoader from '../../ProgressLoader.vue'
 import AppealProcess from './AppealProcess.vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatDate } from 'src/wallet/ramp'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+    const infiniteScroll = ref(null)
+    return {
+      scrollTargetRef,
+      infiniteScroll
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -73,7 +102,8 @@ export default {
     }
   },
   components: {
-    AppealProcess
+    AppealProcess,
+    ProgressLoader
   },
   watch: {
     statusType () {
@@ -81,7 +111,7 @@ export default {
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
-        if (!vm.listings || vm.listings.length === 0) {
+        if (!vm.appeals || vm.appeals.length === 0) {
           vm.loading = true
           vm.fetchAppeals()
         }
@@ -100,7 +130,6 @@ export default {
       return []
     },
     pendingAppeals () {
-      console.log('pendingAppeals:', this.$store.getters['ramp/pendingAppeals'])
       return this.$store.getters['ramp/pendingAppeals']
     },
     resolvedAppeals () {
@@ -114,7 +143,7 @@ export default {
   },
   mounted () {
     const vm = this
-    if (!vm.listings || vm.listings.length === 0) {
+    if (!vm.appeals || vm.appeals.length === 0) {
       vm.loading = true
     }
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
@@ -142,9 +171,9 @@ export default {
             headers: headers,
             overwrite: overwrite
           })
-          .then(response => {
+          .then(
             vm.loading = false
-          })
+          )
           .catch(error => {
             console.error(error.response)
           })
@@ -162,12 +191,10 @@ export default {
       }
     },
     async refreshData (done) {
-      // console.log('refreshing orders')
       this.resetAndRefetchListings()
       if (done) done()
     },
     async resetAndRefetchListings () {
-      console.log('resetAndRefetchListings')
       const vm = this
       // console.time('non-blocking-await')
       vm.$store.dispatch('ramp/resetAppealsPagination')
@@ -182,8 +209,8 @@ export default {
     },
     updatePaginationValues () {
       const vm = this
-      vm.totalPages = vm.$store.getters['ramp/getAppealsTotalPages'](vm.statusType)
-      vm.pageNumber = vm.$store.getters['ramp/getAppealsPageNumber'](vm.statusType)
+      vm.totalPages = vm.$store.getters['ramp/appealsTotalPages'](vm.statusType)
+      vm.pageNumber = vm.$store.getters['ramp/appealsPageNumber'](vm.statusType)
     },
     resetAndScrollToTop () {
       if (this.$refs.infiniteScroll) {
@@ -196,6 +223,10 @@ export default {
         const scrollElement = this.$refs.scrollTargetRef.$el
         scrollElement.scrollTop = 0
       }
+    },
+    formattedDate (value) {
+      const relative = true
+      return formatDate(value, relative)
     },
     selectAppeal (index) {
       this.selectedAppeal = this.appeals[index]

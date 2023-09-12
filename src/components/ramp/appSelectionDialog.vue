@@ -57,7 +57,6 @@ export default {
           vm.arbiter = vm.$store.getters['ramp/getArbiter']
         })
     }
-    console.log('arbiter:', vm.arbiter)
     if (vm.arbiter) {
       vm.apps.push({
         name: 'appeal',

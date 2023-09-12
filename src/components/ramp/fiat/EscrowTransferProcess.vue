@@ -277,7 +277,7 @@ export default {
     },
     async fetchArbiters () {
       const vm = this
-      const url = vm.apiURL + '/arbiter'
+      const url = vm.apiURL + '/arbiter/list'
       try {
         const response = await vm.$axios.get(url)
         vm.arbiterOptions = response.data
