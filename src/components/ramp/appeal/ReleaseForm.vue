@@ -14,21 +14,23 @@
       </div>
       <div class="text-center">
         <div class="bold-text lg-font-size" >RELEASE APPEAL</div>
-        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order }})</div>
+        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
       </div>
-      <q-scroll-area :style="`height: ${minHeight - 210}px`" style="overflow-y:auto;">
+      <q-scroll-area :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
         <div class="q-mx-lg">
           <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
             <q-card-section>
-              <div class="bold-text md-font-size">Status: {{ appeal.status }}</div>
-              <span class="sm-font-size">Awaiting confirmation of payment and release of crypto</span>
+              <div class="md-font-size">
+              <span>Status: </span><span class="bold-text">{{ appeal.order.status.label }}</span>
+              </div>
+              <!-- <span class="sm-font-size">Awaiting confirmation of payment and release of crypto</span> -->
             </q-card-section>
 
             <q-separator :dark="darkMode" />
 
             <q-card-section>
-              <div class="bold-text md-font-size">Reason:</div>
-              <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="appeal.reason" />
+              <div class="bold-text md-font-size">Reason(s):</div>
+              <q-badge v-for="(reason, index) in appeal.reasons" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
             </q-card-section>
           </q-card>
 
@@ -155,7 +157,7 @@
           </div>
 
           <!-- Simplified this -->
-          <div>
+          <div class="q-pb-md">
             <q-card class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
               <div class="text-center q-py-xs bold-text text-uppercase">
                 Select Options
@@ -278,7 +280,8 @@ export default {
           }
         ]
       },
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
     }
   },
   props: {
@@ -307,7 +310,7 @@ export default {
   },
   async mounted () {
     this.appeal = this.appealInfo
-    console.log(this.appeal)
+    console.log('appeal:', this.appeal)
 
     this.isloaded = true
   }

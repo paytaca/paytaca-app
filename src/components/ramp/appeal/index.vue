@@ -40,7 +40,7 @@
                     <div class="row q-mx-md">
                       <div class="col ib-text">
                         <q-badge rounded size="sm" :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
-                        <div class="md-font-size bold-text">Order #{{ appeal.order }}</div>
+                        <div class="md-font-size bold-text">Order #{{ appeal.order.id }}</div>
                         <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
                           {{ formattedDate(appeal.created_at) }} by {{ appeal.owner.nickname}}
                         </div>
@@ -48,9 +48,9 @@
                           <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
                         </div>
                       </div>
-                      <!-- <div class="text-right subtext sm-font-size bold-text text-uppercase">
-                        {{ appeal.status }}
-                      </div> -->
+                      <div class="text-right subtext sm-font-size bold-text text-uppercase">
+                        {{ appeal.order.status.label }}
+                      </div>
                     </div>
                   </div>
                 </q-item-section>
