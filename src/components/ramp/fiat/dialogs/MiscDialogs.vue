@@ -31,7 +31,7 @@
           </span>
           <div class="text-center q-pt-sm">
             <q-select
-              :disable="dialogType === 'addMethodFromAd' || dialogType === 'editPaymentMethod'"
+              :disable="dialogType === 'addMethodFromAd' || dialogType === 'editPaymentMethod' || paymentTypes.length === 0"
               dense
               filled
               :dark="darkMode"
@@ -144,7 +144,9 @@
       </q-card-section>
       <q-card-section>
         <div v-if="!loading" class="row q-gutter-sm justify-center">
+            <!-- Hide this button  -->
             <q-btn
+              v-if="paymentTypes.length !== 0"
               outline
               rounded
               label='Add new'
@@ -544,6 +546,7 @@ export default {
     },
     addNewPaymentMethod () {
       const vm = this
+      this.filterPaymentTypes('ads')
       vm.dialogType = 'createPaymentMethod'
       vm.createPaymentMethod = true
     },
@@ -609,6 +612,7 @@ export default {
           vm.createPaymentMethod = true
           break
         case 'addPaymentMethod':
+          this.filterPaymentTypes('ads')
           vm.addPaymentMethod = true
           break
         case 'editPaymentMethod':
@@ -727,8 +731,13 @@ export default {
         this.isNameValid = true
       }
     }, 500),
-    filterPaymentTypes () {
-      const currentMethods = this.data.map(p => p.name)
+    filterPaymentTypes (type = '') {
+      let currentMethods = null
+      if (type === 'ads') {
+        currentMethods = this.data.map(p => p.payment_type.name)
+      } else {
+        currentMethods = this.data.map(p => p.name)
+      }
       const match = this.paymentTypes.filter(function (method) {
         return !currentMethods.includes(method.name)
       })

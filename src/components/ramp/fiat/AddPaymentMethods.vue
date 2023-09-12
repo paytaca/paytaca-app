@@ -105,9 +105,8 @@
       </div>
     </div>
     <div>
-      <div class="row q-pt-lg q-mx-sm" v-if="paymentMethods.length < 6">
+      <div class="row q-pt-lg q-mx-sm" v-if="type === 'Ads'">
         <q-btn
-          v-if="type === 'Ads'"
           outline
           rounded
           no-caps
@@ -311,7 +310,8 @@ export default {
       this.dialogType = 'addMethodFromAd'
       this.openDialog = true
     },
-    addMethod () {
+    async addMethod () {
+      await this.fetchPaymentMethod()
       this.dialogType = 'addPaymentMethod'
       this.openDialog = true
     },
@@ -398,10 +398,14 @@ export default {
         }
       })
         .then(response => {
-          this.paymentMethods = response.data
+          if (this.type === 'Ads') {
+            this.info = response.data
+          } else {
+            this.paymentMethods = response.data
 
-          if (vm.adPaymentMethod) {
-            this.paymentMethods = vm.filterPaymentMethod()
+            if (vm.adPaymentMethod) {
+              this.paymentMethods = vm.filterPaymentMethod()
+            }
           }
         })
         .catch(error => {

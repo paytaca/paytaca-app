@@ -62,7 +62,7 @@
         <div v-if="reviewList.length !== 0"  class="text-center q-py-lg xm-font-size bold-text">
           Reviews
         </div>
-        <div v-else class="text-center q-pt-lg text-italized bold-text xm-font-size">
+        <div v-else class="text-center q-pt-md text-italized bold-text xm-font-size">
           No Reviews Yet
         </div>
         <div class="q-mx-lg q-px-md">
@@ -179,7 +179,9 @@ export default {
 
       const walletInfo = this.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      console.log(wallet)
+
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'PEER_UPDATE', timestamp)
       // this.$store.commit('global/editRampNickname', info.nickname)
       vm.$axios.put(vm.apiURL + '/peer', {
         nickname: info.nickname
@@ -187,8 +189,8 @@ export default {
       {
         headers: {
           'wallet-hash': wallet.walletHash,
-          signature: null,
-          timestamp: Date.now()
+          signature: signature,
+          timestamp: timestamp
         }
       })
         .then(response => {
@@ -199,6 +201,8 @@ export default {
         .catch(error => {
           console.log(error)
         })
+
+      this.editNickname = false
     },
     async fetchTopAds () {
       const vm = this
