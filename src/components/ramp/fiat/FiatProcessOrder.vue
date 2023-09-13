@@ -429,13 +429,11 @@ export default {
       vm.isloaded = true
     },
     async releaseCrypto () {
-      // console.log('[releasing crypto]')
       if (!this.rampContract) {
         await this.generateContract()
       }
       await this.rampContract.release(this.wallet.privateKeyWif, this.order.crypto_amount)
         .then(result => {
-          // console.log('[rampContract.release]:', result.txInfo.txid)
           this.txid = result.txInfo.txid
           this.verifyEscrowTxKey++
         })
@@ -505,7 +503,6 @@ export default {
     },
     async generateContract () {
       await this.fetchOrderData()
-      // console.log('generateContract: ', this.contract)
       if (!this.contract) return
       const publicKeys = {
         arbiter: this.contract.arbiter.public_key,
@@ -527,6 +524,7 @@ export default {
       const timestamp = this.contract.timestamp
       this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
       await this.rampContract.initialize()
+      console.log('contract balance:', this.rampContract.getBalance())
       // this.contract.address = this.rampContract.getAddress()
       // console.log('rampContract address:', this.rampContract.getAddress())
     },
