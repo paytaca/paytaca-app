@@ -13,7 +13,7 @@
         <q-icon class="q-pl-lg" size="sm" name='o_question_answer'/>
       </div>
       <div class="text-center">
-        <div class="bold-text lg-font-size" >RELEASE APPEAL</div>
+        <div class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
         <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
@@ -21,7 +21,7 @@
           <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
             <q-card-section>
               <div class="md-font-size">
-              <span>Status: </span><span class="bold-text">{{ appeal.order.status.label }}</span>
+              <span>Last status: </span><span class="bold-text">{{ appeal.order.status.label }}</span>
               </div>
               <!-- <span class="sm-font-size">Awaiting confirmation of payment and release of crypto</span> -->
             </q-card-section>

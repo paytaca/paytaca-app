@@ -508,7 +508,7 @@ export default {
       ],
       selectedAppealType: null,
       reasonOpts: [
-        'Unresponsive counterparty',
+        'Unresponsive seller/buyer',
         'Payment failed',
         'I changed my mind'
       ],
