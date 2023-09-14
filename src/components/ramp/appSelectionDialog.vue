@@ -49,6 +49,7 @@ export default {
   emits: ['back', 'submit'],
   async mounted () {
     const vm = this
+    console.log('arbiter:', vm.arbiter)
     if (!vm.arbiter) {
       const walletInfo = vm.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)

@@ -4,6 +4,7 @@ export function updateArbiter (state, arbiter) {
 
 export function clearArbiter (state) {
   state.arbiter = null
+  console.log('arbiter cleared:', state.arbiter)
 }
 
 export function updateUser (state, user) {

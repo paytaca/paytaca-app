@@ -13,15 +13,15 @@
         <q-icon class="q-pl-lg" size="sm" name='o_question_answer'/>
       </div>
       <div class="text-center">
-        <div class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
-        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
+        <div class="bold-text lg-font-size" >{{ appealData.appeal.type.label.toUpperCase() }} APPEAL</div>
+        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appealData.appeal.order.id }})</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
         <div class="q-mx-lg">
           <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
             <q-card-section>
               <div class="md-font-size">
-              <span>Last status: </span><span class="bold-text">{{ appeal.order.status.label }}</span>
+              <span>Last status: </span><span class="bold-text">{{ appealData.appeal.order.status.label }}</span>
               </div>
               <!-- <span class="sm-font-size">Awaiting confirmation of payment and release of crypto</span> -->
             </q-card-section>
@@ -30,20 +30,20 @@
 
             <q-card-section>
               <div class="bold-text md-font-size">Reason(s):</div>
-              <q-badge v-for="(reason, index) in appeal.reasons" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
+              <q-badge v-for="(reason, index) in appealData.appeal.reasons" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
             </q-card-section>
           </q-card>
 
           <div class="q-pt-md q-px-sm">
             <div class="sm-font-size q-pb-xs text-italic">Buyer Receives</div>
-            <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="amount.buyer">
+            <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="buyerReceivesAmount">
               <template v-slot:append>
                 <span class="sm-font-size bold-text">BCH</span>
               </template>
             </q-input>
 
             <div class="sm-font-size q-pb-xs text-italic">Seller Receives</div>
-            <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="amount.seller">
+            <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="sellerReceivesAmount">
               <template v-slot:append>
                 <span class="sm-font-size bold-text">USD</span>
               </template>
@@ -228,14 +228,18 @@
 <script>
 import DragSlide from 'src/components/drag-slide.vue'
 import AdSnapshot from './AdSnapshot.vue'
+import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
+import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      wallet: null,
       tab: 'status',
-      appeal: null,
+      appealData: null,
       isloaded: false,
       state: 'form',
       amount: {
@@ -292,7 +296,49 @@ export default {
     DragSlide,
     AdSnapshot
   },
+  computed: {
+    buyerReceivesAmount () {
+      return Number(this.appealData.order.crypto_amount)
+    },
+    sellerReceivesAmount () {
+      return Number(this.appealData.order.crypto_amount) * Number(this.appealData.order.locked_price)
+    }
+  },
+  async mounted () {
+    const vm = this
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
+      vm.wallet = wallet
+      this.fetchAppealDetail()
+    })
+  },
   methods: {
+    fetchAppealDetail () {
+      const vm = this
+      const timestamp = Date.now()
+      console.log('wallet:', vm.wallet)
+      if (!vm.wallet) return
+      signMessage(vm.wallet.privateKeyWif, 'APPEAL_GET', timestamp).then(signature => {
+        const headers = {
+          'wallet-hash': vm.wallet.walletHash,
+          timestamp: timestamp,
+          signature: signature
+        }
+        console.log('wallet:', vm.wallet.walletHash)
+        const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
+        console.log('url:', url)
+        vm.$axios.get(url, { headers })
+          .then(response => {
+            console.log('response:', response)
+            vm.appealData = response.data
+            this.isloaded = true
+          })
+          .catch(error => {
+            console.error(error.response)
+            this.isloaded = true
+          })
+      })
+    },
     confirmRelease () {
       console.log('confirming')
     },
@@ -307,12 +353,6 @@ export default {
       const temp = this.selectedMethods.map(p => p.payment_type.name)
       return temp.includes(type) ? 'blue-6' : 'grey-6'
     }
-  },
-  async mounted () {
-    this.appeal = this.appealInfo
-    console.log('appeal:', this.appeal)
-
-    this.isloaded = true
   }
 }
 </script>
