@@ -13,24 +13,15 @@
         <q-icon class="q-pl-lg" size="sm" name='o_question_answer'/>
       </div>
       <div class="text-center">
-        <div class="bold-text lg-font-size" >{{ appealData.appeal.type.label.toUpperCase() }} APPEAL</div>
-        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appealData.appeal.order.id }})</div>
+        <div class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
+        <div class="sm-font-size q-mb-md" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
         <div class="q-mx-lg">
           <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
             <q-card-section>
-              <div class="md-font-size">
-              <span>Last status: </span><span class="bold-text">{{ appealData.appeal.order.status.label }}</span>
-              </div>
-              <!-- <span class="sm-font-size">Awaiting confirmation of payment and release of crypto</span> -->
-            </q-card-section>
-
-            <q-separator :dark="darkMode" />
-
-            <q-card-section>
-              <div class="bold-text md-font-size">Reason(s):</div>
-              <q-badge v-for="(reason, index) in appealData.appeal.reasons" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
+              <div class="bold-text md-font-size">Reasons:</div>
+              <q-badge v-for="(reason, index) in appeal.reasons" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
             </q-card-section>
           </q-card>
 
@@ -50,53 +41,49 @@
             </q-input>
           </div>
 
-          <!-- update later -->
           <div class="sm-font-size q-pt-md q-px-lg">
             <!-- FLOATING -->
-            <div v-if="true">
-              <div class="row justify-between no-wrap q-mx-lg">
+            <div v-if="order.trade_type === 'FLOATING'">
+              <div class="row justify-between no-wrap q-mx-xs">
                 <span>Market Price</span>
                 <span class="text-nowrap q-ml-xs">
-                  $100,000
+                  {{ formattedCurrency(ad_snapshot.market_price, ad_snapshot.fiat_currency.symbol) }}
                 </span>
               </div>
-              <div class="row justify-between no-wrap q-mx-lg">
+              <div class="row justify-between no-wrap q-mx-xs">
                 <span>Floating Price</span>
                 <span class="text-nowrap q-ml-xs">
-                  105.5%
+                  {{ formattedCurrency(ad_snapshot.floating_price) }}
                 </span>
               </div>
             </div>
             <!-- FIXED -->
             <div v-else>
-              <div class="row justify-between no-wrap q-mx-lg">
+              <div class="row justify-between no-wrap q-mx-xs">
                 <span>Fixed Price</span>
                 <span class="text-nowrap q-ml-xs">
-                  $100,000
+                  {{ formattedCurrency(ad_snapshot.fixed_price, ad_snapshot.fiat_currency.symbol) }}
                 </span>
               </div>
             </div>
 
-
-            <div class="row justify-between no-wrap q-mx-lg">
+            <div class="row justify-between no-wrap q-mx-xs">
               <span>Crypto Amount</span>
               <span class="text-nowrap q-ml-xs">
-                1 BCH
+                {{ formattedCurrency(ad_snapshot.crypto_amount) }} BCH
               </span>
             </div>
             <q-separator class="q-my-sm" :dark="darkMode"/>
 
-            <div class="row justify-between no-wrap q-mx-lg">
+            <div class="row justify-between no-wrap q-mx-xs">
               <span>Fiat Price</span>
               <span class="text-nowrap q-ml-xs">
-                $105,500
+                {{ formattedCurrency(ad_snapshot.price, ad_snapshot.fiat_currency.symbol) }}
               </span>
             </div>
 
-            <div class="text-blue text-center q-pt-xs" @click="state = 'snapshot'"><u>View Ad Snapshot</u></div>
+            <div class="text-blue text-left q-pt-xs q-mx-xs" @click="state = 'snapshot'"><u>View Ad Snapshot</u></div>
           </div>
-
-          <q-separator class="q-my-sm q-mt-md" :dark="darkMode"/>
 
           <div class="q-pt-sm">
             <q-card class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
@@ -116,12 +103,12 @@
               <q-separator  class="q-mb-sm" :dark="darkMode"/>
 
               <div v-if="tab === 'status'">
-                <div v-for="(snapshot, index) in snapshots.status" :key="index" class="sm-font-size q-pb-sm" :class="darkMode ? '' : 'subtext'">
+                <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm" :class="darkMode ? '' : 'subtext'">
                   <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
                   <div class="row justify-between no-wrap q-mx-lg">
-                    <span>{{ snapshot.status }}</span>
-                    <span class="text-nowrap q-ml-xs">
-                      {{ snapshot.date }}
+                    <span class="col">{{ formattedOrderStatus(status.status) }}</span>
+                    <span class="col text-nowrap q-ml-xs">
+                      {{ formattedDate(status.created_at) }}
                     </span>
                   </div>
                 </div>
@@ -129,26 +116,20 @@
 
               <div v-if="tab === 'transaction'">
                 <div class="row bold-text sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
-                  <div class="col-3 text-center">Type</div>
-                  <div class="col-4 text-center">Status</div>
-                  <div class="col-5 text-center">Timestamp</div>
+                  <div class="col text-center">Action</div>
+                  <div class="col text-center">Txid</div>
+                  <div class="col text-center">Status</div>
+                  <div class="col text-center">Date</div>
                 </div>
-
                 <q-separator class="q-my-sm" :dark="darkMode"/>
-
                 <div>
-                  <div v-for="(snapshot, index) in snapshots.transaction" :key=index>
+                  <div v-for="(transaction, index) in transactionHistory" :key=index>
                     <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
                     <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
-                      <div class="col-3 text-center">{{ snapshot.type }}</div>
-                      <div class="col-4 text-center">{{ snapshot.status}}</div>
-                      <div class="col-5 xs-font-size">{{ snapshot.timestamp}}</div>
-                    </div>
-                    <div v-if="snapshot.hasOwnProperty('txid')" class="q-pt-xs">
-                      <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
-                        <div class="col-4 text-center">Transaction ID</div>
-                        <div class="col text-blue-6"><u>{{ snapshot.txid}}</u></div>
-                      </div>
+                      <div class="col text-center">{{ transaction.action }}</div>
+                      <div class="col text-blue text-center" @click="viewTxid(transaction.txid)"><u>{{ formattedTxid(transaction.txid) }}</u></div>
+                      <div class="col text-center">{{ transaction.valid ? 'Validated' : 'Not Validated'}}</div>
+                      <div class="col xs-font-size">{{ formattedDate(transaction.created_at, true)}}</div>
                     </div>
                   </div>
                 </div>
@@ -157,8 +138,8 @@
           </div>
 
           <!-- Simplified this -->
-          <div class="q-pb-md">
-            <q-card class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+          <div class="q-pb-md q-mb-lg">
+            <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
               <div class="text-center q-py-xs bold-text text-uppercase">
                 Select Options
               </div>
@@ -170,7 +151,7 @@
                     <q-btn
                       :outline="selectedType !== 'release'"
                       rounded
-                      padding="sm"
+                      padding="xs"
                       size="sm"
                       icon="done"
                       :color="selectedType === 'release' ? 'blue-6' : 'grey-6'"
@@ -188,7 +169,7 @@
                     <q-btn
                       :outline="selectedType !== 'refund'"
                       rounded
-                      padding="sm"
+                      padding="xs"
                       size="sm"
                       icon="done"
                       :color="selectedType === 'refund' ? 'blue-6' : 'grey-6'"
@@ -208,6 +189,7 @@
   <!-- Ad Snapshot -->
   <AdSnapshot
     v-if="state === 'snapshot'"
+    :snapshot="ad_snapshot"
     @back="state = 'form'"
   />
 
@@ -228,7 +210,7 @@
 <script>
 import DragSlide from 'src/components/drag-slide.vue'
 import AdSnapshot from './AdSnapshot.vue'
-import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, formatDate, formatOrderStatus } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
@@ -239,7 +221,11 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wallet: null,
       tab: 'status',
-      appealData: null,
+      appeal: null,
+      order: null,
+      ad_snapshot: null,
+      statusHistory: [],
+      transactionHistory: [],
       isloaded: false,
       state: 'form',
       amount: {
@@ -284,8 +270,8 @@ export default {
           }
         ]
       },
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
+      // minHeight: this.$q.screen.height - this.$q.screen.height * 0.25
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
     }
   },
   props: {
@@ -298,10 +284,10 @@ export default {
   },
   computed: {
     buyerReceivesAmount () {
-      return Number(this.appealData.order.crypto_amount)
+      return Number(this.order.crypto_amount)
     },
     sellerReceivesAmount () {
-      return Number(this.appealData.order.crypto_amount) * Number(this.appealData.order.locked_price)
+      return Number(this.order.crypto_amount) * Number(this.order.locked_price)
     }
   },
   async mounted () {
@@ -316,7 +302,6 @@ export default {
     fetchAppealDetail () {
       const vm = this
       const timestamp = Date.now()
-      console.log('wallet:', vm.wallet)
       if (!vm.wallet) return
       signMessage(vm.wallet.privateKeyWif, 'APPEAL_GET', timestamp).then(signature => {
         const headers = {
@@ -324,13 +309,18 @@ export default {
           timestamp: timestamp,
           signature: signature
         }
-        console.log('wallet:', vm.wallet.walletHash)
+        // console.log('wallet:', vm.wallet.walletHash)
         const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
-        console.log('url:', url)
+        // console.log('url:', url)
         vm.$axios.get(url, { headers })
           .then(response => {
             console.log('response:', response)
-            vm.appealData = response.data
+            // vm.appealData = response.data
+            vm.appeal = response.data.appeal
+            vm.order = response.data.order
+            vm.ad_snapshot = response.data.ad_snapshot
+            vm.statusHistory = response.data.statuses
+            vm.transactionHistory = response.data.transactions
             this.isloaded = true
           })
           .catch(error => {
@@ -352,6 +342,39 @@ export default {
     selectButtonColor (type) {
       const temp = this.selectedMethods.map(p => p.payment_type.name)
       return temp.includes(type) ? 'blue-6' : 'grey-6'
+    },
+    formattedCurrency (value, currency = null) {
+      if (currency) {
+        return formatCurrency(value, currency)
+      } else {
+        return formatCurrency(value)
+      }
+    },
+    formattedDate (value, numeric = false) {
+      if (numeric) {
+        const options = {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          second: 'numeric'
+        }
+        return formatDate(value, false, options)
+      }
+      return formatDate(value, false)
+    },
+    formattedOrderStatus (value) {
+      return formatOrderStatus(value)
+    },
+    formattedTxid (txid) {
+      if (txid && txid.length > 6) {
+        return `${txid.substring(0, 3)}...${txid.slice(-3)}`
+      }
+      return ''
+    },
+    viewTxid (txid) {
+      console.log('txid:', txid)
     }
   }
 }

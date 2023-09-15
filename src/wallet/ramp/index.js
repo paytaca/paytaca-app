@@ -25,6 +25,33 @@ export async function loadP2PWalletInfo (walletInfo, index) {
   }
 }
 
+export function formatOrderStatus (value) {
+  switch (value) {
+    case 'SBM':
+      return 'Submitted'
+    case 'CNF':
+      return 'Confirmed'
+    case 'ESCRW_PN':
+      return 'Escrow Pending'
+    case 'ESCRW':
+      return 'Escrowed'
+    case 'PD_PN':
+      return 'Paid Pending'
+    case 'PD':
+      return 'Paid'
+    case 'RLS':
+      return 'Released'
+    case 'RFN':
+      return 'Refunded'
+    case 'CNCL':
+      return 'Cancelled'
+    case 'APL':
+      return 'Appealed'
+    default:
+      return ''
+  }
+}
+
 export function formatCurrency (value, currency) {
   let formattedNumber = null
   const parsedValue = parseFloat(value)
@@ -48,17 +75,19 @@ export function formatCurrency (value, currency) {
   return formattedNumber
 }
 
-export function formatDate (date, relative = false) {
-  const datetime = new Date(date)
-  let dateString = null
-  const options = {
+export function formatDate (
+  date,
+  relative = false,
+  options = {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: 'numeric',
     minute: 'numeric',
     second: 'numeric'
-  }
+  }) {
+  const datetime = new Date(date)
+  let dateString = null
   if (relative) {
     dateString = formatRelativeDate(datetime)
   } else {

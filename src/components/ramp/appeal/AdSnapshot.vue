@@ -10,7 +10,7 @@
         />
       </div>
       <div class="text-center bold-text lg-font-size text-uppercase">Ad Snapshot</div>
-      <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Ad #10)</div>
+      <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Ad #{{ snapshot.ad }})</div>
 
       <q-separator class="q-my-sm" :dark="darkMode"/>
 
@@ -18,31 +18,31 @@
         <div class="row justify-between no-wrap q-mx-lg">
           <span>Price Type</span>
           <span class="text-nowrap q-ml-xs">
-            Floating
+            {{ snapshot.price_type }}
           </span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg">
-          <span>(Floating) Price</span>
+          <span>({{ snapshot.price_type === 'FIXED' ? 'Fixed' : 'Floating' }}) Price</span>
           <span class="text-nowrap q-ml-xs">
-            105.5%
+            {{ snapshot.price_type === 'FIXED' ? formattedCurrency(snapshot.fixed_price, snapshot.fiat_currency.symbol) : snapshot.floating_price }}
           </span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg">
           <span>Market Price</span>
           <span class="text-nowrap q-ml-xs">
-            100,000
+            {{ formattedCurrency(snapshot.market_price, snapshot.fiat_currency.symbol) }}
           </span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg">
           <span>Trade Limit</span>
           <span class="text-nowrap q-ml-xs">
-            $100 - $1,500
+            {{ formattedCurrency(snapshot.trade_floor, snapshot.fiat_currency.symbol) }} - {{ formattedCurrency(snapshot.trade_ceiling, snapshot.fiat_currency.symbol) }}
           </span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg">
           <span>Time Limit</span>
           <span class="text-nowrap q-ml-xs">
-            15 min
+            {{ formattedTimeLimit(snapshot.time_duration_choice).label }}
           </span>
         </div>
       </div>
@@ -50,7 +50,7 @@
       <div class="q-mx-lg q-pb-sm">
         <div class="md-font-size bold-text q-px-md">Payment Methods</div>
         <div class="q-gutter-sm q-pt-sm q-px-md">
-          <q-badge v-for="method in paymentMethods" rounded outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-7'" :label="method" />
+          <q-badge v-for="(method, index) in snapshot.payment_methods" :key="index" rounded outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-7'" :label="method.payment_type" />
         </div>
       </div>
 
@@ -72,6 +72,7 @@
     </q-card>
 </template>
 <script>
+import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -80,6 +81,24 @@ export default {
       paymentMethods: ['Paypal', 'Gcash', 'BPI']
     }
   },
-  emits: ['back']
+  props: {
+    snapshot: Object
+  },
+  emits: ['back'],
+  mounted () {
+    console.log('snapshot:', this.snapshot)
+  },
+  methods: {
+    formattedCurrency (value, currency = null) {
+      if (currency) {
+        return formatCurrency(value, currency)
+      } else {
+        return formatCurrency(value)
+      }
+    },
+    formattedTimeLimit (value) {
+      return getPaymentTimeLimit(value)
+    }
+  }
 }
 </script>
