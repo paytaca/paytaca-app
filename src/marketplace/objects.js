@@ -75,6 +75,8 @@ export class Storefront {
    * @param {String} data.name
    * @param {String} data.image_url
    * @param {{ code:String, symbol:String }} data.currency
+   * @param {String} data.open_status
+   * @param {[String, String]} [data.next_open_hours]
    * @param {Object} data.location
    * @param {Number} [data.distance]
    */
@@ -88,10 +90,60 @@ export class Storefront {
       code: data?.currency?.code,
       symbol: data?.currency?.symbol,
     }
+    this.openStatus = data?.open_status
+    if (data?.next_open_hours?.[0] && data?.next_open_hours?.[1]) {
+      this.nextOpenHours = [
+        new Date(data?.next_open_hours?.[0]),
+        new Date(data?.next_open_hours?.[1]),
+      ]
+    } else {
+      this.nextOpenHours = undefined
+    }
     if (data?.location) this.location = Location.parse(data?.location)
     else if (this.location) this.location = undefined
 
     this.distance = data?.distance
+  }
+
+  get isOpen() {
+    if (this.openStatus == 'open') return true
+    if (this.openStatus == 'closed') return false
+    if (this.nextOpenHours?.[0] && this.nextOpenHours?.[1]) {
+      const openTimestamp = this.nextOpenHours?.[0] * 1
+      const closeTimestamp = this.nextOpenHours?.[1] * 1
+      const currentTimestamp = Date.now()
+      return openTimestamp <= currentTimestamp &&
+             closeTimestamp > currentTimestamp
+    }
+    return false
+  }
+  
+  get nextOpenTimestamp() {
+    return this.nextOpenHours?.[0]
+  }
+
+  get openingTimeText() {
+    const date = this.nextOpenTimestamp;
+    if (!date) return ''
+
+    const currentDate = new Date();
+    if (currentDate >= date) return ''
+
+    const tomorrow = new Date(currentDate);
+    tomorrow.setDate(currentDate.getDate() + 1);
+  
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = daysOfWeek[date.getDay()];
+  
+    const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+  
+    if (date.toDateString() === currentDate.toDateString()) {
+      return `Opens at ${date.toLocaleTimeString('en-US', options)}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Open tomorrow at ${date.toLocaleTimeString('en-US', options)}`;
+    } else {
+      return `Opens on ${dayOfWeek} at ${date.toLocaleTimeString('en-US', options)}`;
+    }
   }
 }
 

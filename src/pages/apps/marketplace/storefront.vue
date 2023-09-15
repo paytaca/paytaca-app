@@ -10,8 +10,12 @@
     />
 
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div class="text-h5 q-px-xs">
-        {{ storefront?.name }}
+      <div class="row items-center q-px-xs q-mb-md">
+        <div class="text-h5 q-mr-xs">{{ storefront?.name }}</div>
+        <q-chip v-if="!storefront?.isOpen" class="q-ma-none text-weight-medium">Closed</q-chip>
+        <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="col-12">
+          {{ storefront?.openingTimeText }}
+        </div>
       </div>
       <div class="row items-center justify-center">
         <q-spinner v-if="!initialized && fetchingStorefront" size="4em" color="brandblue"/>

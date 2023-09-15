@@ -31,6 +31,12 @@
             :class="[darkMode ? 'pt-dark-card': 'text-black']"
             @click="$router.push({ name: 'app-marketplace-storefront', params: { storefrontId: storefront?.id }})"
           >
+            <div v-if="!storefront?.isOpen" class="q-pa-xs">
+              Closed
+              <div v-if="storefront?.openingTimeText" class="text-caption bottom">
+                {{ storefront?.openingTimeText }}
+              </div>
+            </div>
             <q-img :src="storefront?.imageUrl || noImage" ratio="1.75"/>
             <q-card-section class="q-py-sm">
               <div class="ellipsis-3-lines">{{ storefront.name }}</div>
