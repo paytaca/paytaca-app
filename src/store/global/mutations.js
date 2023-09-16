@@ -115,6 +115,8 @@ export function setCountry (state, country) {
   state.country.code = country.code
   if (country.code === 'HK') {
     state.theme = 'payhero'
+  } else {
+    state.theme = 'default'
   }
 }
 

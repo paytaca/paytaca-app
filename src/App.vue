@@ -21,9 +21,13 @@ export default {
     const theme = computed(() => store?.state?.global?.theme)
 
     watchEffect(() => {
-      if (theme.value !== 'default') {
-        import(`assets/themes/${theme.value}/main.css`)
-      }
+      const classes = document.body.classList
+      classes.forEach(function (cl) {
+        if (cl.startsWith('theme-')) {
+          document.body.classList.remove(cl)
+        }
+      })
+      document.body.classList.add(`theme-${theme.value}`)
     })
   },
   data () {

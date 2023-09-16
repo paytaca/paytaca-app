@@ -11,6 +11,10 @@ function getWalletData (state, walletType) {
   return state.wallets[walletType]
 }
 
+export function theme (state) {
+  return state.theme
+}
+
 export function language (state) {
   return state.language
 }

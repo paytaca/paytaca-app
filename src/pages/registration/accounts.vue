@@ -1,5 +1,5 @@
 <template>
-  <div id="registration-container">
+  <div :class="theme" id="registration-container">
     <div class="row q-pb-sm">
       <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
         <img src="~/assets/paytaca_logo.png" height="60">
@@ -96,6 +96,13 @@
           </q-list>
 
           <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width bg-blue-9 text-white" @click="choosePreferedSecurity"/>
+          
+          <transition appear enter-active-class="animated fadeIn">
+            <div v-if="theme === 'payhero'" class="q-mt-lg q-pt-sm text-center">
+              <p style="font-size: 16px;">in partnership with</p>
+              <img src="~/assets/themes/payhero/payhero_logo.png" width="130">
+            </div>
+          </transition>
         </div>
         
         <div v-else>
@@ -225,6 +232,11 @@ export default {
     },
     seedPhraseBackup (val) {
       this.seedPhraseBackup = this.cleanUpSeedPhrase(val)
+    }
+  },
+  computed: {
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
