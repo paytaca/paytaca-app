@@ -5,6 +5,8 @@
 <script>
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { useStore } from "vuex"
+import { computed, watchEffect } from "@vue/runtime-core"
 
 // Handle JSON serialization of BigInt
 // Source: https://github.com/GoogleChromeLabs/jsbi/issues/30#issuecomment-1006086291
@@ -14,6 +16,16 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
+  setup () {
+    const store = useStore()
+    const theme = computed(() => store?.state?.global?.theme)
+
+    watchEffect(() => {
+      if (theme.value !== 'default') {
+        import(`assets/themes/${theme.value}/main.css`)
+      }
+    })
+  },
   data () {
     return {
       subscribedPushNotifications: false,
