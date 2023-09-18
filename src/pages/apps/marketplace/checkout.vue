@@ -50,6 +50,9 @@
           {{ checkoutStorefront?.location?.formatted }}
         </div>
       </div>
+      <q-banner v-if="!checkout?.id && fetchCheckoutError" class="bg-red text-white rounded-borders">
+        {{ fetchCheckoutError }}
+      </q-banner>
       <q-tabs v-model="tabs.active">
         <q-tab v-for="(tab, index) in tabs.opts" :key="index" v-bind="tab"/>
       </q-tabs>
@@ -99,7 +102,7 @@
               </q-input>
             </div>
           </div>
-          <div class="q-px-xs q-mt-md row items-center text-subtitle1">
+          <div v-if="checkout?.cart?.markupSubtotal" class="q-px-xs q-mt-md row items-center text-subtitle1">
             <div class="q-space">Subtotal</div>
             <div>{{ checkout?.cart?.markupSubtotal }} {{ checkoutCurrency }}</div>
           </div>
@@ -1028,6 +1031,7 @@ onUnmounted(() => unsubscribeCacheCartMutation?.())
 
 const fetchingCheckout = ref(false)
 const checkout = ref(Checkout.parse())
+const fetchCheckoutError = ref('')
 const checkoutCurrency = computed(() => checkout.value?.currency?.symbol)
 const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice?.price || undefined)
 const displayBch = ref(true)
@@ -1071,10 +1075,20 @@ function fetchCheckout() {
 
   if (!request) return Promise.reject()
   fetchingCheckout.value = true
-  return request.then(response => {
+  return request.finally(() => {
+    fetchCheckoutError.value = ''
+  }).then(response => {
     checkout.value = Checkout.parse(response?.data)
     if (!initialized.value) resetTabs()
     return response
+  }).catch(error => {
+    if (initialized.value) return Promise.reject(error)
+    const data = error?.response?.data
+    fetchCheckoutError.value = data?.detail
+    if (!fetchCheckoutError.value && typeof error?.message === 'string' && error?.message?.length < 200) {
+      fetchCheckoutError.value = error?.message
+    } 
+    return Promise.reject(error)
   }).finally(() => {
     fetchingCheckout.value = false
   })
