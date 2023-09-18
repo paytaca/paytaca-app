@@ -794,6 +794,8 @@ export class Order {
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
    * @param {String | Number} [data.auto_complete_at]
+   * @param {String | Number} [data.preparation_deadline]
+   * @param {String | Number} [data.delivery_deadline]
   */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -826,10 +828,26 @@ export class Order {
 
     if (data?.auto_complete_at) this.autoCompleteAt = new Date(data?.auto_complete_at)
     else if (this.autoCompleteAt) delete this.autoCompleteAt
+
+    if (data?.preparation_deadline) this.preparationDeadline = new Date(data?.preparation_deadline)
+    else delete this.preparationDeadline
+
+    if (data?.delivery_deadline) this.deliveryDeadline = new Date(data?.delivery_deadline)
+    else delete this.deliveryDeadline
   }
 
   get isCancelled() {
     return this.status === 'cancelled'
+  }
+  
+  get inProgress() {
+    return [
+      // 'pending',
+      'confirmed',
+      'preparing',
+      'ready_for_pickup',
+      'on_delivery',
+    ].includes(this.status)
   }
 
   get formattedStatus() {

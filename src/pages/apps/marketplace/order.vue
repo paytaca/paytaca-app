@@ -54,6 +54,20 @@
           {{ formatTimestampToText(order?.createdAt) }}
         </div>
       </div>
+      <template v-if="order?.inProgress">
+        <q-banner
+          v-if="['ready_for_pickup', 'on_delivery'].includes(order?.status) && orderDeadlines.delivery.text"
+          :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
+        >
+          {{ orderDeadlines.delivery.text }}
+        </q-banner>
+        <q-banner
+          v-else-if="orderDeadlines.preparation.text"
+          :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
+        >
+          {{ orderDeadlines.preparation.text }}
+        </q-banner>
+      </template>
       <q-banner v-if="order?.isCancelled && order?.cancelReason" class="text-white bg-red q-ma-sm rounded-borders">
         <div class="text-caption top">Cancel reason:</div>
         <div class="q-mt-xs">{{ order?.cancelReason }}</div>
@@ -467,6 +481,39 @@ const orderAmounts = computed(() => {
 
   return data
 })
+
+/**
+ * @param {Date} timestamp
+ */
+function parseDeadlineTimestamp(timestamp) {
+  const response = { actual: 0, min: 0, max: 0, text: '' }
+  if (!timestamp) return response
+  const delta = timestamp - Date.now()
+  const minutes = delta / (60 * 1000)
+  response.actual = minutes
+  response.min = Math.floor(minutes / 5) * 5
+  response.max = Math.ceil(minutes / 5) * 5
+  response.text = `${response.min}-${response.max} minutes`
+  if (response.min >= 60) response.text = `${Math.ceil(response.min/60)} hour${response.min>60 ? 's' : ''}`
+  else if (response.actual <= 5) response.text = `less than 5 minutes`
+  else if (response.min == response.max) response.text = `${response.max} minutes`
+  return response
+}
+const orderDeadlines = computed(() => {
+  const data = {
+    preparation: parseDeadlineTimestamp(order.value.preparationDeadline),
+    delivery: parseDeadlineTimestamp(order.value.deliveryDeadline),
+  }
+  if (data.preparation.text) {
+    data.preparation.text = `Your order will be ready for pickup in ${data.preparation.text}`
+  }
+  if (data.delivery.text) {
+    data.delivery.text = `Your order will be delivered in ${data.delivery.text}`
+  }
+
+  return data
+})
+
 const displayBch = ref(false)
 function toggleAmountsDisplay() {
   if (isNaN(orderBchPrice.value)) {
