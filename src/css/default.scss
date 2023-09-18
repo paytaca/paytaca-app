@@ -16,20 +16,21 @@ body.theme-default {
 		font-family: $font-family_1;
 		font-weight: 300 !important;
 	}
-	body.body--light {
-		background-color: $background-color_1;
-		-webkit-transition: .1s;
-		-moz-transition: .1s;
-		-o-transition: .1s;
-		transition: .1s;
-	}
-	body.body--dark {
-		background-color: $background-color_1 !important;
-		-webkit-transition: .1s;
-		-moz-transition: .1s;
-		-o-transition: .1s;
-		transition: .1s;
-	}
+
+	// body.body--light {
+	// 	background-color: $background-color_1;
+	// 	-webkit-transition: .1s;
+	// 	-moz-transition: .1s;
+	// 	-o-transition: .1s;
+	// 	transition: .1s;
+	// }
+	// body.body--dark {
+	// 	background-color: $background-color_1 !important;
+	// 	-webkit-transition: .1s;
+	// 	-moz-transition: .1s;
+	// 	-o-transition: .1s;
+	// 	transition: .1s;
+	// }
 
 	p {
 		-webkit-touch-callout: none;
