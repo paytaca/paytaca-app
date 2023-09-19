@@ -380,7 +380,7 @@ export class Product {
   async fetchStorefrontProduct(storefrontId=0) {
     if (!storefrontId) return Promise.resolve()
     const handle = `${storefrontId}-${this.id}`
-    return backend.get(`connecta/storefront-prodocuts/${handle}/`)
+    return backend.get(`connecta/storefront-products/${handle}/`)
       .then(response => {
         this.addStorefrontProductData(response?.data)
         return response
