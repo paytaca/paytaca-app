@@ -312,6 +312,14 @@
 
       <div class="q-px-lg q-mx-sm">
         <div class="q-pt-md">
+          <div class="sm-font-size bold-text">Price Setting</div>
+          <div @click="isFixed = !isFixed" class="q-gutter-sm q-pt-sm">
+            <q-badge rounded outline color="blue-grey-6">
+              <span>{{ isFixed ? 'Fixed': 'Floating' }}</span><q-icon size="sm" :name="isFixed ? 'mdi-menu-up':'mdi-menu-down'"/>
+            </q-badge>
+          </div>
+        </div>
+        <div class="q-pt-md">
           <div class="sm-font-size bold-text">Payment Types</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge class="q-pa-sm" @click="addFilterInfo(method, 'payment-type')"
@@ -458,7 +466,8 @@ export default {
       selectedPaymentMethods: [],
       selectedPaymentTypes: [],
       selectedPTL: [],
-      isAscending: false
+      isAscending: false,
+      isFixed: true
     }
   },
   watch: {

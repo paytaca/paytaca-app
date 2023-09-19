@@ -42,6 +42,7 @@
           color="blue-8"
           class="q-space"
           icon="sym_o_sell"
+          @click="fetchUserAds()"
           >
         </q-btn>
       </div>
@@ -173,6 +174,7 @@ export default {
       } else {
         this.user = this.userInfo
       }
+      console.log('user', this.user)
     },
     async updateUserName (info) {
       const vm = this
@@ -204,7 +206,7 @@ export default {
 
       this.editNickname = false
     },
-    async fetchTopAds () {
+    async fetchTopReview () {
       const vm = this
 
       const url = `${vm.apiURL}/order/feedback/peer`
@@ -225,17 +227,61 @@ export default {
           console.log(error)
         })
 
-        // top 5 reviews
+      // top 5 reviews
+    },
+    async fetchUserAds () {
+      const vm = this
+      vm.loading = true
+      console.log('filtering ads')
+      const walletInfo = vm.$store.getters['global/getWallet']('bch')
+      const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      const timestamp = Date.now()
+      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
 
+      const headers = {
+        'wallet-hash': wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+
+      let ownerID = 1
+      if (this.user.hasOwnProperty('id')) {
+        ownerID = this.user.id
+      }
+
+      const params = {
+        currency: 'PHP',
+        limit: 20,
+        owner_id: ownerID
+      }
+      const url = `${vm.apiURL}/ad`
+      await this.$axios.get(url, {
+        headers: headers,
+        params: params
+      })
+        .then(response => {
+          console.log(response.data)
+        })
+        .catch(error => {
+          console.log(error)
+        })
+      vm.loading = false
     }
   },
   async mounted () {
     const vm = this
     const walletInfo = vm.$store.getters['global/getWallet']('bch')
     vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+    console.log(vm.wallet)
 
     await this.processUserData()
-    await this.fetchTopAds()
+    await this.fetchTopReview()
+
+    // console.log(this.type)
+    // if (this.type !== 'self') {
+    //   await this.fetchUserAds()
+    // }
+    // await this.filterAds()
     vm.isloaded = true
   }
 }
