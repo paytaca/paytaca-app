@@ -3,44 +3,46 @@
     <div>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-          <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
-          <v-offline @detected-condition="onConnectivityChange">
-            <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
-              <template v-slot:avatar>
-                <q-icon name="signal_wifi_off" color="primary" />
+          <div>
+            <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
+            <v-offline @detected-condition="onConnectivityChange">
+              <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
+                <template v-slot:avatar>
+                  <q-icon name="signal_wifi_off" color="primary" />
+                </template>
+                {{ $t('NoInternetConnectionNotice') }}
+              </q-banner>
+            </v-offline>
+            <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
+              <template v-if="enableSmartBCH">
+                <q-tabs
+                  active-color="brandblue"
+                  class="col-12 q-px-sm q-pb-md pp-fcolor"
+                  :modelValue="selectedNetwork"
+                  @update:modelValue="changeNetwork"
+                  style="margin-top: -25px;"
+                >
+                  <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
+                  <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
+                </q-tabs>
               </template>
-              {{ $t('NoInternetConnectionNotice') }}
-            </q-banner>
-          </v-offline>
-          <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
-            <template v-if="enableSmartBCH">
-              <q-tabs
-                active-color="brandblue"
-                class="col-12 q-px-sm q-pb-md pp-fcolor"
-                :modelValue="selectedNetwork"
-                @update:modelValue="changeNetwork"
-                style="margin-top: -25px;"
-              >
-                <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-                <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
-              </q-tabs>
-            </template>
-          </div>
-          <div class="row q-mt-sm">
-            <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-              <img :src="selectedNetwork === 'sBCH' ? 'sep20-logo.png' : 'bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
-              <q-card id="bch-card">
-                <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
-                  <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
-                  <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
-                    <q-skeleton style="font-size: 22px;" type="rect"/>
-                  </div>
-                  <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                    <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} {{ selectedNetwork }}</p>
-                    <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
-                  </div>
-                </q-card-section>
-              </q-card>
+            </div>
+            <div class="row q-mt-sm">
+              <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
+                <img :src="selectedNetwork === 'sBCH' ? 'sep20-logo.png' : 'bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+                <q-card id="bch-card">
+                  <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
+                    <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
+                    <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
+                      <q-skeleton style="font-size: 22px;" type="rect"/>
+                    </div>
+                    <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
+                      <p style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme}">{{ String(bchAsset.balance).substring(0, 10) }} {{ selectedNetwork }}</p>
+                      <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </div>
             </div>
           </div>
           <div
@@ -54,7 +56,7 @@
           </div>
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
-              <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
+              <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode, 'text-section': isDefaultTheme}">
                 {{ $t('Tokens') }}
                 <q-btn
                   flat
@@ -135,7 +137,7 @@
         <transaction ref="transaction" :wallet="wallet"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
           <div class="row no-wrap justify-between">
-            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
+            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode, 'text-section': isDefaultTheme}">
               {{ selectedAsset.symbol }} {{ $t('Transactions') }}
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
@@ -150,9 +152,39 @@
             </div>
           </div>
           <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
-            <button class="btn-custom q-mt-none btn-all" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'all' }" @click="setTransactionsFilter('all')">{{ $t('All') }}</button>
-            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'sent'}" @click="setTransactionsFilter('sent')">{{ $t('Sent') }}</button>
-            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'received'}" @click="setTransactionsFilter('received')">{{ $t('Received') }}</button>
+            <button
+              class="btn-custom q-mt-none btn-all"
+              :class="{
+                'pt-dark-label': darkMode,
+                'active-transaction-btn': transactionsFilter == 'all',
+                'text-grad border': isDefaultTheme && transactionsFilter == 'all'
+              }"
+              @click="setTransactionsFilter('all')"
+            >
+              {{ $t('All') }}
+            </button>
+            <button
+              class="btn-custom q-mt-none btn-sent"
+              :class="{
+                'pt-dark-label': darkMode,
+                'active-transaction-btn': transactionsFilter == 'sent',
+                'text-grad border': isDefaultTheme && transactionsFilter == 'sent'
+              }"
+              @click="setTransactionsFilter('sent')"
+            >
+              {{ $t('Sent') }}
+            </button>
+            <button
+              class="btn-custom q-mt-none btn-received"
+              :class="{
+                'pt-dark-label': darkMode,
+                'active-transaction-btn': transactionsFilter == 'received',
+                'text-grad border': isDefaultTheme && transactionsFilter == 'received'
+              }"
+              @click="setTransactionsFilter('received')"
+            >
+              {{ $t('Received') }}
+            </button>
           </div>
           <div class="transaction-list">
             <template v-if="transactionsLoaded">
@@ -375,6 +407,9 @@ export default {
           .filter(Boolean)
           .filter(Number.isSafeInteger)
       )
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
@@ -1119,7 +1154,8 @@ export default {
     padding-left: 2px;
     padding-right: 2px;
   }
-  #bch-card {
+  /* transfer to default.scss and add counterpart to payhero.scss  */
+  #bch-card { 
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);

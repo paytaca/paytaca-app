@@ -16,7 +16,9 @@
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode}">{{ $t('SelectAssetToBeReceived') }}</p>
+          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode, 'label-text' : isDefaultTheme}">
+            {{ $t('SelectAssetToBeReceived') }}
+          </p>
         </div>
         <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
@@ -34,10 +36,18 @@
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
-                <p class="q-ma-none text-token text-weight-regular" :class="darkMode ? 'text-pink-5' : 'text-dark'" style="font-size: 18px;">
+                <p
+                  class="q-ma-none text-token text-weight-regular"
+                  :class="darkMode ? isDefaultTheme ? 'text-grad' : 'text-pink-5' : 'text-dark'"
+                  style="font-size: 18px;"
+                >
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none" :class="darkMode ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
+                <p
+                  class="q-ma-none"
+                  :class="darkMode ? isDefaultTheme ? 'pt-dark-label amount-text' : 'text-grey' : 'text-grad'"
+                  style="font-size: 18px;"
+                >
                   <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/'))).substring(0, 16) }}</span>
                   {{ asset.symbol }}
                 </p>
@@ -153,6 +163,9 @@ export default {
       }
       _assets.push(unlistedAsset)
       return _assets
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {

@@ -1,123 +1,227 @@
+@import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
+
 body.theme-payhero {
-	$color_1: #EAEEFF;
-	$color_2: rgb(60, 100, 246);
-	$color_3: #ECF3F3;
-	$color_4: #fff;
-	$color_5: #000;
-	$font-family_1: 'Rubik', sans-serif;
-	$background-color_1: #012121;
-	$background-color_2: #F9F8FF;
-	$background-color_3: #ECF3F3;
+  $color_1: #eaeeff;
+  $color_2: rgb(60, 100, 246);
+  $color_3: #ecf3f3;
+  $color_4: #fff;
+  $color_5: #000;
+  $color_6: #ffbf00; // brand color yellow 1
+  $color_7: #9b8447; // brand color yellow 2
+  $color_8: #e0e2e5;
+  $color_9: #ececec;
+  $color_10: #111c2c; // wallet card
+  $color_11: #949494; // wallter address
+  $close_button: red;
 
-	@import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
+  $font-family_1: "Rubik", sans-serif;
 
-	body {
-		font-family: $font-family_1;
-		font-weight: 300 !important;
-	}
-	body.body--light {
-		background-color: $background-color_1;
-		-webkit-transition: .1s;
-		-moz-transition: .1s;
-		-o-transition: .1s;
-		transition: .1s;
-	}
-	body.body--dark {
-		background-color: $background-color_1 !important;
-		-webkit-transition: .1s;
-		-moz-transition: .1s;
-		-o-transition: .1s;
-		transition: .1s;
-	}
+  $background-color_1: #012121;
+  $background-color_2: #f9f8ff;
+  $background-color_3: #ecf3f3;
 
-	p {
-		-webkit-touch-callout: none;
-		-webkit-user-select: none;
-		-khtml-user-select: none;
-		-moz-user-select: none;
-		-ms-user-select: none;
-		user-select: none;
-	}
-	a {
-		-webkit-touch-callout: none;
-		-webkit-user-select: none;
-		-khtml-user-select: none;
-		-moz-user-select: none;
-		-ms-user-select: none;
-		user-select: none;
-	}
-	.bg-grad {
-		background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-	}
-	.text-grad {
-		background: -webkit-linear-gradient(-70deg, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-		background-clip: text;
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		-webkit-box-decoration-break: clone;
-	}
-	#registration-container {
-		min-height: 100vh;
-		background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-		position: relative !important;
-	}
-	.pt-brand {
-		text-align: center;
-		padding: 20px 0px 0px 0px;
-	}
-	.pt-brandname {
-		color: $color_1;
-		font-size: 28px;
-	}
-	.pt-get-started {
-		width: 100%;
-		min-height: calc(100vh - 152px);
-		border-top-left-radius: 22px;
-		border-top-right-radius: 22px;
-		background-color: $background-color_2;
-		padding-top: 28px;
-	}
-	.br-15 {
-		border-radius: 15px !important;
-	}
-	.br-40 {
-		border-radius: 40px !important;
-	}
-	.text-brandblue {
-		color: $color_2 !important;
-	}
-	.bg-brandblue {
-		background: rgb(60, 100, 246) !important;
-	}
-	.text-brandlight {
-		color: $color_3 !important;
-	}
-	.bg-brandlight {
-		background-color: $background-color_3 !important;
-	}
-    #registration-container {
-        //background-image: url(../assets/themes/payhero/payhero_logo_bg.png) !important;
-        background: linear-gradient(160.59deg, #2374FB 5.06%, #FFD400 46.68%) !important;
+  body {
+    font-family: $font-family_1;
+    font-weight: 300 !important;
+  }
+  body.body--light {
+    background-color: $background-color_1;
+    -webkit-transition: 0.1s;
+    -moz-transition: 0.1s;
+    -o-transition: 0.1s;
+    transition: 0.1s;
+  }
+  body.body--dark {
+    background-color: $background-color_1 !important;
+    -webkit-transition: 0.1s;
+    -moz-transition: 0.1s;
+    -o-transition: 0.1s;
+    transition: 0.1s;
+  }
+
+  p {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  a {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  .bg-grad {
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #a866db,
+      #da53b2,
+      #ef4f84,
+      #ed5f59
+    );
+  }
+  .text-grad {
+    background: -webkit-linear-gradient(270deg, $color_6 0%, #fff 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+
+    &.border {
+      background-color: transparent !important;
+      position: relative;
+
+      &:before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 17px;
+        border: 1px solid transparent;
+        background: linear-gradient(180deg, $color_6 0%, #fff 100%) border-box;
+        -webkit-mask: linear-gradient(#fff 0 0) padding-box,
+          linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+      }
     }
-	.pt-dark {
-        background: linear-gradient(165.26deg, rgba(69, 110, 177, 0.95) -18.47%, rgba(0, 0, 0, 0.95) 65.31%) !important;
-	}
-	.pt-dark-card {
-		background: #1C2833 !important;
-	}
-	.pt-dark-card-2 {
-		background: #212F3D !important;
-	}
-	.pt-dark-label {
-		color: $color_4 !important;
-	}
-	.pt-dark-box-shadow {
-		box-shadow: 2px 2px 2px 2px #212F3D !important;
-	}
-	.bex.q-body--prevent-scroll {
-		position: unset !important;
-	}
-	.pp-fcolor {
-		color: $color_5 !important;
-	}
+  }
+  #registration-container {
+    min-height: 100vh;
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #a866db,
+      #da53b2,
+      #ef4f84,
+      #ed5f59
+    );
+    position: relative !important;
+  }
+  .pt-brand {
+    text-align: center;
+    padding: 20px 0px 0px 0px;
+  }
+  .pt-brandname {
+    color: $color_1;
+    font-size: 28px;
+  }
+  .pt-get-started {
+    width: 100%;
+    min-height: calc(100vh - 152px);
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    background-color: $background-color_2;
+  }
+  .br-15 {
+    border-radius: 15px !important;
+  }
+  .br-40 {
+    border-radius: 40px !important;
+  }
+  .text-brandblue {
+    color: $color_2 !important;
+  }
+  .bg-brandblue {
+    background: rgb(60, 100, 246) !important;
+  }
+  .text-brandlight {
+    color: $color_3 !important;
+  }
+  .bg-brandlight {
+    background-color: $background-color_3 !important;
+  }
+  #registration-container {
+    //background-image: url(../assets/themes/payhero/payhero_logo_bg.png) !important;
+    background: linear-gradient(
+      160.59deg,
+      #2374fb 5.06%,
+      #ffd400 46.68%
+    ) !important;
+  }
+  .pt-dark {
+    // background: linear-gradient(180deg, #4872b8 0%, #000 100%) !important;
+    // background: rgba(0, 0, 0, 0.5) !important;
+
+    &.registration {
+      background: linear-gradient(
+        165.26deg,
+        rgba(69, 110, 177, 0.95) -18.47%,
+        rgba(0, 0, 0, 0.95) 65.31%
+      ) !important;
+    }
+  }
+
+  .logo-splash-bg {
+    background-image: url(../assets/themes/payhero/payhero_logo_bg.png) !important;
+    background-size: cover !important;
+  }
+
+  .pt-dark-card {
+    background: #1c2833 !important;
+
+    &.registration-card {
+      background: $color_7 !important;
+      border: 2px solid #13212c !important;
+
+      .divider {
+        border-bottom: 2px solid #13212c;
+      }
+    }
+
+    &.wallet-card {
+      background: rgba(17, 28, 44, 0.95) !important;
+    }
+  }
+  .pt-dark-card-2 {
+    background: #212f3d !important;
+    // background: transparent;
+  }
+  .pt-dark-label {
+    color: $color_8 !important;
+
+    &.label-text {
+      color: $color_9 !important;
+      font-size: 14px;
+      font-weight: 300;
+    }
+
+    &.amount-text {
+      font-size: 16px !important;
+      font-weight: 300;
+    }
+  }
+  .pt-dark-box-shadow {
+    box-shadow: 2px 2px 2px 2px #212f3d !important;
+  }
+  .bex.q-body--prevent-scroll {
+    position: unset !important;
+  }
+  .pp-fcolor {
+    color: $color_5 !important;
+  }
+
+  .text-section {
+    color: $color_6 !important;
+    font-weight: 300;
+  }
+
+  .close-button {
+    color: $close_button !important;
+  }
+
+  .wallet-address {
+    color: $color_11 !important;
+    font-weight: 300;
+  }
+
+  .wallet-bottom-border {
+    border-bottom: 1px solid $color_11 !important;
+  }
 }
