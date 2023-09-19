@@ -109,6 +109,7 @@ export default defineComponent({
 
       return props.locations.map(location => {
         const iconOpts = Object.assign({ prefix: 'mdi', glyph: 'location_on' }, location?.icon)
+        const icon = iconOpts?.iconUrl ? leaflet.icon(iconOpts) : leaflet.icon.glyph(iconOpts)
         return {
           index: location?.index,
           latLng: {
@@ -116,7 +117,7 @@ export default defineComponent({
             lat: parseFloat(location?.lat),
           },
           options: {
-            icon: leaflet.icon.glyph(iconOpts),
+            icon: icon,
             label: location?.label,
           },
           popup: location?.popup,

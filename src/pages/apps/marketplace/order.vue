@@ -382,6 +382,10 @@ import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { loadWallet, Wallet } from 'src/wallet'
 import { TransactionListener } from 'src/wallet/transaction-listener'
 
+import customerLocationPin from 'src/assets/customer_map_marker.png'
+import riderLocationPin from 'src/assets/rider_map_marker.png'
+import merchantLocationPin from 'src/assets/merchant_map_marker.png'
+
 const props = defineProps({
   orderId: [String, Number],  
 })
@@ -573,7 +577,12 @@ const mapLocations = computed(() => {
       popup: ['Pickup location', storefront.value?.location?.formatted].filter(Boolean).join(': '),
       lat: storefront.value?.location?.latitude,
       lon: storefront.value?.location?.longitude,
-      icon: { prefix: '', glyph: 'Store' },
+      icon: {
+        iconUrl: merchantLocationPin,
+        iconSize: [30, 45],
+        iconAnchor: [15, 45],
+        popupAnchor:  [0, -45],
+      },
     })
   }
 
@@ -586,7 +595,12 @@ const mapLocations = computed(() => {
       lat: deliveryLoc?.latitude,
       lon: deliveryLoc?.longitude,
       popup: ['Delivery address', deliveryLoc?.formatted].filter(Boolean).join(': '),
-      icon: { prefix: '', glyph: 'Delivery' },
+      icon: {
+        iconUrl: customerLocationPin,
+        iconSize: [30, 45],
+        iconAnchor: [15, 45],
+        popupAnchor:  [0, -45],
+      },
     })
   }
 
@@ -601,7 +615,12 @@ const mapLocations = computed(() => {
       popup: [`Rider`, riderName].filter(Boolean).join(': ') + timestampText,
       lat: riderLoc[0],
       lon: riderLoc[1],
-      icon: { prefix: '', glyph: 'Rider' },
+      icon: {
+        iconUrl: riderLocationPin,
+        iconSize: [30, 45],
+        iconAnchor: [15, 45],
+        popupAnchor:  [0, -45],
+      },
     })
   }
 
