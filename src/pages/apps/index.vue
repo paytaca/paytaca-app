@@ -2,7 +2,12 @@
   <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
     <div id="apps" ref="apps" class="text-center">
       <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
-        <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">{{ $t('Applications') }}</p>
+        <p
+          class="section-title"
+          :class="{'text-blue-5': $store.getters['darkmode/getStatus'], 'text-grad': isDefaultTheme}"
+        >
+          {{ $t('Applications') }}
+        </p>
         <div class="row q-px-xs">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div
@@ -143,8 +148,19 @@ export default {
       }
     }
   },
-  created() {
+  created () {
     this.filteredApps = this.apps
+    const currentTheme = this.$store.getters['global/theme']
+    const themedIconPath = this.isDefaultTheme ? `/icons/theme/${currentTheme}/` : ''
+    this.filteredApps.forEach(app => {
+      if (this.isDefaultTheme) {
+        const iconFileName = app.path.split('/')[2]
+        const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
+        // static; needs readjustment
+        app.iconName = iconFileName !== 'ramp' ? themedIconLoc : app.iconName
+      }
+    })
+
     if (!this.enableSmartBCH) {
       this.filteredApps = this.apps.filter((app) => {
         if (!app.smartBCHOnly) {
@@ -209,7 +225,7 @@ export default {
   .app-icon {
     vertical-align: middle;
     align-content: center;
-    width: 100%;
+    // width: 100%;
   }
   .pt-black {
     color: #212F3C !important;
