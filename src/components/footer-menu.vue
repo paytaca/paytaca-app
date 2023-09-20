@@ -9,7 +9,7 @@
         <router-link :to="{ path: '/' }">
           <q-icon class="default-text-color mb-2" size="30px">
             <svg>
-              <use xlink:href="app-home.svg#icon"></use>
+              <use xlink:href="/icons/theme/payhero/app-home.svg#icon"></use>
             </svg>
           </q-icon>
         </router-link>

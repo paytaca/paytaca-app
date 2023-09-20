@@ -82,6 +82,18 @@ body.theme-default {
     );
     position: relative !important;
   }
+  #bch-card {
+    margin: 0px 20px 10px 20px;
+    border-radius: 15px;
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #5f94f8,
+      #df68bb,
+      #ef4f84,
+      #ed5f59
+    );
+  }
   .pt-brand {
     text-align: center;
     padding: 20px 0px 0px 0px;
@@ -135,5 +147,43 @@ body.theme-default {
   }
   .pp-fcolor {
     color: $color_5 !important;
+  }
+
+  .method-cards {
+    height: 78px;
+    min-width: 150px;
+    border-radius: 16px;
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #5f94f8,
+      #df68bb,
+      #ef4f84,
+      #ed5f59
+    );
+    box-shadow: 2px 2px 2px 2px #f2f2fc;
+  }
+  .method-cards-dark {
+    background-image: linear-gradient(
+      to right bottom,
+      #204589,
+      #35538b,
+      #813c6d,
+      #9c3356,
+      #a5403d
+    );
+    /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
+    /* background: #717D7E; */
+  }
+
+  .selected {
+    box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;
+  }
+
+  .pt-app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
   }
 }

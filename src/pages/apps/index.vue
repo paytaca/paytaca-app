@@ -5,7 +5,15 @@
         <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">{{ $t('Applications') }}</p>
         <div class="row q-px-xs">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
-            <div class="pt-app bg-grad" :class="buttonClassByState(app.active)" @click="openApp(app)">
+            <div
+              class="pt-app bg-grad"
+              :class="[
+                buttonClassByState(app.active),
+                {'settings' : app.name === this.$t('Settings')},
+                {'apps-border' : isDefaultTheme && app.name !== this.$t('Settings')}
+              ]"
+              @click="openApp(app)"
+            >
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
             <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
@@ -120,6 +128,9 @@ export default {
     },
     showTokens () {
       return this.$store.getters['global/showTokens']
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
@@ -185,12 +196,6 @@ export default {
   }
 
   /* New */
-  .pt-app {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 10px;
-  }
   .pt-light-app {
      background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }

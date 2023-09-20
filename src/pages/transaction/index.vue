@@ -3,7 +3,7 @@
     <div>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-          <div>
+          <div :class="{'pt-header home-header' : isDefaultTheme}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
             <v-offline @detected-condition="onConnectivityChange">
               <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
@@ -142,6 +142,16 @@
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
               <q-btn
+                v-if="isDefaultTheme"
+                unelevated
+                @click="openPriceChart"
+              >
+                <q-avatar class="price-chart-button" size="26px">
+                  <img src="~/assets/themes/payhero/price-chart.png">
+                </q-avatar>
+              </q-btn>
+              <q-btn
+                v-else
                 round
                 color="blue-9"
                 padding="xs"
@@ -1153,11 +1163,5 @@ export default {
     padding: 4px;
     padding-left: 2px;
     padding-right: 2px;
-  }
-  /* transfer to default.scss and add counterpart to payhero.scss  */
-  #bch-card { 
-    margin: 0px 20px 10px 20px;
-    border-radius: 15px;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }
 </style>
