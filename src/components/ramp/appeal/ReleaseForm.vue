@@ -157,12 +157,12 @@
                     <span class="sm-font-size">Release</span>
                     <span class="text-nowrap q-ml-xs">
                       <q-btn
-                        :outline="selectedType !== 'release'"
+                        :outline="selectedAction !== 'release'"
                         rounded
                         padding="xs"
                         size="sm"
                         icon="done"
-                        :color="selectedType === 'release' ? 'blue-6' : 'grey-6'"
+                        :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
                         class="q-ml-xs"
                         @click="selectReleaseType('release')"
                       />
@@ -175,12 +175,12 @@
                     <span class="sm-font-size">Refund</span>
                     <span class="text-nowrap q-ml-xs">
                       <q-btn
-                        :outline="selectedType !== 'refund'"
+                        :outline="selectedAction !== 'refund'"
                         rounded
                         padding="xs"
                         size="sm"
                         icon="done"
-                        :color="selectedType === 'refund' ? 'blue-6' : 'grey-6'"
+                        :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
                         class="q-ml-xs"
                         @click="selectReleaseType('refund')"
                       />
@@ -211,9 +211,9 @@
       right: 0,
       zIndex: 1500,
     }"
-    @swiped="confirmRelease"
+    @swiped="confirmAction"
     text="Swipe To Confirm"
-    v-if="selectedType && state === 'form'"
+    v-if="selectedAction && state === 'form'"
   />
 </template>
 <script>
@@ -234,6 +234,8 @@ export default {
       appeal: null,
       order: null,
       ad_snapshot: null,
+      contract: null,
+      fees: null,
       statusHistory: [],
       transactionHistory: [],
       loading: true,
@@ -242,44 +244,7 @@ export default {
         buyer: 1,
         seller: 105500
       },
-      selectedType: null,
-      snapshots: {
-        status: [
-          {
-            status: 'Paid Pending',
-            date: 'Aug 31, 2023 3:17pm'
-          },
-          {
-            status: 'Escrowed',
-            date: 'Aug 31, 2023 3:16pm'
-          },
-          {
-            status: 'Escrow Pending',
-            date: 'Aug 31, 2023 3:15pm'
-          },
-          {
-            status: 'Confirmed',
-            date: 'Aug 31, 2023 3:13pm'
-          },
-          {
-            status: 'Submitted',
-            date: 'Aug 31, 2023 3:12pm'
-          }
-        ],
-        transaction: [
-          {
-            type: 'Release',
-            status: 'Validating',
-            timestamp: '2023-06-26T08:58:37.529593Z'
-          },
-          {
-            type: 'Escrow',
-            status: 'Validating',
-            timestamp: '2023-06-26T08:58:37.529593Z',
-            txid: 'jsdjskdjakdlajdkucisfsdjksajdkajdl'
-          }
-        ]
-      },
+      selectedAction: null,
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.22
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
     }
@@ -287,7 +252,7 @@ export default {
   props: {
     appealInfo: Object
   },
-  emits: ['back'],
+  emits: ['back', 'submit'],
   components: {
     DragSlide,
     AdSnapshot,
@@ -320,18 +285,17 @@ export default {
           timestamp: timestamp,
           signature: signature
         }
-        // console.log('wallet:', vm.wallet.walletHash)
         const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
-        // console.log('url:', url)
         vm.$axios.get(url, { headers })
           .then(response => {
             console.log('response:', response)
-            // vm.appealData = response.data
             vm.appeal = response.data.appeal
             vm.order = response.data.order
             vm.ad_snapshot = response.data.ad_snapshot
             vm.statusHistory = response.data.statuses
             vm.transactionHistory = response.data.transactions
+            vm.contract = response.data.contract
+            vm.fees = response.data.fees
             this.loading = false
             if (done) done()
           })
@@ -342,14 +306,15 @@ export default {
           })
       })
     },
-    confirmRelease () {
-      console.log('confirming')
+    async confirmAction () {
+      console.log('confirming', this.selectedAction)
+      this.$emit('submit', this.selectedAction)
     },
     selectReleaseType (type) {
-      if (this.selectedType === type) {
-        this.selectedType = null
+      if (this.selectedAction === type) {
+        this.selectedAction = null
       } else {
-        this.selectedType = type
+        this.selectedAction = type
       }
     },
     refreshData (done) {

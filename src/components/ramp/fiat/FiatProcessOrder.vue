@@ -346,19 +346,15 @@ export default {
     },
     async confirmOrder () {
       const vm = this
-
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CONFIRM', timestamp)
-
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
-
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
         timestamp: timestamp
       }
-
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           // console.log(response)

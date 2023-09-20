@@ -69,6 +69,7 @@
   <div v-if="state === 'appeal-process'">
     <AppealProcess
       :selectedAppeal="selectedAppeal"
+      :init-wallet="wallet"
       @back="state = 'appeal-list'"
     />
   </div>

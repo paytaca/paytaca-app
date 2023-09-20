@@ -42,28 +42,32 @@ export default {
         {
           name: 'crypto',
           icon: 'currency_bitcoin'
+        },
+        {
+          name: 'appeal',
+          icon: 'gavel'
         }
       ]
     }
   },
   emits: ['back', 'submit'],
   async mounted () {
-    const vm = this
-    console.log('arbiter:', vm.arbiter)
-    if (!vm.arbiter) {
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
-      await vm.$store.dispatch('ramp/fetchArbiter', wallet)
-        .then(function () {
-          vm.arbiter = vm.$store.getters['ramp/getArbiter']
-        })
-    }
-    if (vm.arbiter) {
-      vm.apps.push({
-        name: 'appeal',
-        icon: 'gavel'
-      })
-    }
+    // const vm = this
+    // console.log('arbiter:', vm.arbiter)
+    // if (!vm.arbiter) {
+    //   const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    //   const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
+    //   await vm.$store.dispatch('ramp/fetchArbiter', wallet)
+    //     .then(function () {
+    //       vm.arbiter = vm.$store.getters['ramp/getArbiter']
+    //     })
+    // }
+    // if (vm.arbiter) {
+    //   vm.apps.push({
+    //     name: 'appeal',
+    //     icon: 'gavel'
+    //   })
+    // }
   },
   methods: {
     selectApp (app) {
