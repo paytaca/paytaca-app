@@ -34,7 +34,10 @@
         >
           <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'" v-if="isCashToken">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
-              <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
+              <div>
+                <!-- <img v-if="isDefaultTheme && asset.logo == 'new-token.png'" src="~/assets/themes/payhero/add-asset.png" /> -->
+                <img :src="asset.logo || getFallbackAssetLogo(asset)" width="50">
+              </div>
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
@@ -116,6 +119,9 @@ export default {
     },
     assets () {
       let _assets
+      const themedIconPath = this.isDefaultTheme ? `/icons/theme/${this.$store.getters['global/theme']}/` : ''
+      const themedNewTokenIcon = `${themedIconPath}new-token.png`
+
       if (this.selectedNetwork === 'sBCH') {
         _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
         _assets = _assets.map((item) => {
@@ -130,7 +136,7 @@ export default {
           id: 'sep20/unlisted',
           name: this.$t('NewUnlisted'),
           symbol: 'SEP20 token',
-          logo: 'new-token.png'
+          logo: themedNewTokenIcon
         }
         _assets.push(unlistedAsset)
         return _assets
@@ -151,14 +157,14 @@ export default {
         id: 'slp/unlisted',
         name: this.$t('NewUnlisted'),
         symbol: 'SLP token',
-        logo: 'new-token.png'
+        logo: themedNewTokenIcon
       }
       if (vm.isCashToken) {
         unlistedAsset = {
           id: 'ct/unlisted',
           name: this.$t('NewUnlisted'),
           symbol: 'CashToken',
-          logo: 'new-token.png'
+          logo: themedNewTokenIcon
         } 
       }
       _assets.push(unlistedAsset)

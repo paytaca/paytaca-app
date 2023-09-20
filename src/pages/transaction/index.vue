@@ -145,11 +145,8 @@
                 v-if="isDefaultTheme"
                 unelevated
                 @click="openPriceChart"
-              >
-                <q-avatar class="price-chart-button" size="26px">
-                  <img src="~/assets/themes/payhero/price-chart.png">
-                </q-avatar>
-              </q-btn>
+                icon="img:/icons/theme/payhero/price-chart.png"
+              />
               <q-btn
                 v-else
                 round
