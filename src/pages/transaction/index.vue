@@ -64,14 +64,14 @@
                   v-if="manageAssets"
                   size="sm"
                   icon="close"
-                  style="color: #3B7BF6;"
+                  :style="assetsCloseButtonColor"
                   @click="toggleManageAssets"
                 />
                 <q-btn
                   flat
                   padding="none"
                   size="sm"
-                  icon="settings"
+                  :icon="settingsButtonIcon"
                   style="color: #3B7BF6;"
                   @click="updateTokenMenuPosition"
                 >
@@ -93,8 +93,8 @@
             </div>
 
             <div class="col-3 q-mt-sm" style="position: relative; margin-top: -5px;" v-show="selectedNetwork === networks.BCH.name">
-            <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
-          </div>
+              <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
+            </div>
           </div>
           <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
           <!-- Cards without drag scroll on mobile -->
@@ -317,7 +317,19 @@ export default {
       showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       showTokens: this.$store.getters['global/showTokens'],
-      isCashToken: true
+      isCashToken: true,
+      settingsButtonIcon: 'settings',
+      assetsCloseButtonColor: 'color: #3B7BF6;'
+    }
+  },
+
+  created () {
+    if (this.isDefaultTheme) {
+      this.settingsButtonIcon = 'img:/icons/theme/payhero/settings.png'
+      this.assetsCloseButtonColor = 'color: #ffbf00;'
+    } else {
+      this.settingsButtonIcon = 'settings'
+      this.assetsCloseButtonColor = 'color: #3B7BF6;'
     }
   },
 
@@ -347,7 +359,7 @@ export default {
         if (!this.openedNotification?.id) return
         this.handleOpenedNotification()
       }
-    }
+    },
   },
 
   computed: {
@@ -417,7 +429,7 @@ export default {
     },
     isDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
-    }
+    },
   },
   methods: {
     openPriceChart () {

@@ -7,56 +7,76 @@
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ path: '/' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-home.png" size="30px" />
+          <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-home.svg#icon"></use>
             </svg>
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push('/')">{{ $t('Home') }}</span>
+        <span @click="$router.push('/')" :class="{'footer-label': isDefaultTheme}">{{ $t('Home') }}</span>
       </button>
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-send.png" size="30px" />
+          <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-send.svg#icon"></use>
             </svg>
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
+        <span
+          @click="$router.push({ name: 'transaction-send-select-asset' })"
+          :class="{'footer-label': isDefaultTheme}"
+        >
+          {{ $t('Send') }}
+        </span>
       </button>
       <button class="footer-icon-btn" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'transaction-receive-select-asset' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-receive.png" size="30px" />
+          <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-receive.svg#icon"></use>
             </svg>
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</span>
+        <span
+          @click="$router.push({ name: 'transaction-receive-select-asset' })"
+          :class="{'footer-label': isDefaultTheme}"
+        >
+          {{ $t('Receive') }}
+        </span>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}">
         <router-link :to="{ name: 'apps-dashboard' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-apps.png" size="30px" />
+          <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="apps.svg#icon"></use>
             </svg>
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
+        <span
+          @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines"
+          :class="{'footer-label': isDefaultTheme}"
+        >
+          {{ $t('Apps') }}
+        </span>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
-        <q-icon class="default-text-color mb-2" size="30px">
+        <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-wallet.png" size="30px" />
+        <q-icon v-else class="default-text-color mb-2" size="30px">
           <svg>
             <use xlink:href="wallet.svg#icon"></use>
-          </svg>    
+          </svg>
         </q-icon>
         <br>
-        <span>{{ $t('Wallets') }}</span>
+        <span :class="{'footer-label': isDefaultTheme}">{{ $t('Wallets') }}</span>
       </button>
       <!-- <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>
@@ -75,6 +95,11 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus']
+    }
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
@@ -100,9 +125,6 @@ export default {
     padding-top: 5px;
     width: 100%;
     bottom: 0;
-    background-color: #fff;
-    border-top-right-radius: 20px;
-    border-top-left-radius: 20px;
     box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
     z-index: 6;
 

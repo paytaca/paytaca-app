@@ -94,6 +94,10 @@ body.theme-default {
       #ed5f59
     );
   }
+  #apps {
+    padding: 20px 20px 80px 20px;
+    color: #3b7bf6;
+  }
   .pt-brand {
     text-align: center;
     padding: 20px 0px 0px 0px;
@@ -185,5 +189,11 @@ body.theme-default {
     justify-content: center;
     align-items: center;
     border-radius: 10px;
+  }
+
+  .fixed-footer {
+    background-color: #fff;
+    border-top-right-radius: 20px;
+    border-top-left-radius: 20px;
   }
 }

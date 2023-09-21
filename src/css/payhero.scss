@@ -14,6 +14,8 @@ body.theme-payhero {
   $color_11: #949494; // wallter address
   $close_button: red;
   $group_currency: #1a2a43;
+  $footer-bar: #1f1f1f;
+  $footer-label: #cecece;
   $black_opaque_50: rgba(0, 0, 0, 0.5);
 
   $font-family_1: "Rubik", sans-serif;
@@ -78,6 +80,10 @@ body.theme-payhero {
     box-shadow: none !important;
   }
 
+  #apps {
+    padding: 0px 0px 80px 0px;
+  }
+
   .bg-grad {
     background: $black_opaque_50;
 
@@ -139,7 +145,7 @@ body.theme-payhero {
       content: "";
       position: absolute;
       inset: 0;
-      border-radius: 50px;
+      border-radius: 999px;
       border: 2px solid transparent;
       background: linear-gradient(180deg, $color_6 0%, #fff 100%) border-box;
       -webkit-mask: linear-gradient(#fff 0 0) padding-box,
@@ -238,13 +244,18 @@ body.theme-payhero {
     &.home-header {
       padding-top: 0;
     }
+
+    &.apps-header {
+      padding-bottom: 1px;
+      margin-bottom: 20px;
+    }
   }
 
   .pt-app {
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 50px;
+    border-radius: 999px;
   }
 
   .pt-dark-box-shadow {
@@ -296,5 +307,14 @@ body.theme-payhero {
 
   .btn-transaction {
     background: transparent !important;
+  }
+
+  .fixed-footer {
+    background-color: $footer-bar !important;
+  }
+
+  .footer-label {
+    color: $footer-label;
+    font-weight: 300;
   }
 }
