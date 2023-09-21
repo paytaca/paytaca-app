@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="{'pt-dark': darkMode}">
-    <header-nav :title="$t('WalletInfo')" backnavpath="/apps" />
+    <header-nav :title="$t('WalletInfo')" backnavpath="/apps" class="apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <div class="col-12 q-px-lg q-mt-lg">
         <p class="section-title">{{ $t('BchAddresses') }}</p>

@@ -16,6 +16,7 @@ body.theme-payhero {
   $group_currency: #1a2a43;
   $footer-bar: #1f1f1f;
   $footer-label: #cecece;
+  $inactive-network: #7e7e7e;
   $black_opaque_50: rgba(0, 0, 0, 0.5);
 
   $font-family_1: "Rubik", sans-serif;
@@ -91,6 +92,7 @@ body.theme-payhero {
       background: transparent;
     }
   }
+
   .text-grad {
     background: -webkit-linear-gradient(270deg, $color_6 0%, #fff 100%);
     background-clip: text;
@@ -287,7 +289,8 @@ body.theme-payhero {
     box-shadow: none !important;
   }
 
-  .text-section {
+  .text-section,
+  .section-title {
     color: $color_6 !important;
     font-weight: 300;
   }
@@ -316,5 +319,44 @@ body.theme-payhero {
   .footer-label {
     color: $footer-label;
     font-weight: 300;
+  }
+
+  .price-chart {
+    background: #212f3d !important;
+  }
+
+  .add-asset-card {
+    background: rgba(17, 28, 44, 0.95) !important;
+  }
+
+  .collectibles-panel {
+    background: transparent !important;
+  }
+
+  .apps-header {
+    margin-bottom: 10px;
+
+    &.gift-app-header {
+      padding: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .network-selection-tab {
+    margin-top: 10px;
+    border-radius: 17px;
+
+    &.q-tab--active {
+      background-color: $black_opaque_50 !important;
+      color: $color_6 !important;
+    }
+
+    &.q-tab--inactive {
+      color: $inactive-network !important;
+    }
+  }
+
+  .transaction-container {
+    background-color: $group_currency !important;
   }
 }

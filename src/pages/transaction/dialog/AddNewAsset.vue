@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': darkMode}">
+    <q-card class="q-dialog-plugin br-15 q-pb-sm add-asset-card" :class="{'pt-dark-card-2': darkMode}">
         <q-card-section class="pt-label text-weight-medium" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
           <span>{{ addTokenTitle }}</span>
         </q-card-section>

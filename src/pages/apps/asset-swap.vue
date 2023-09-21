@@ -3,10 +3,12 @@
     <HeaderNav
       :title="$t('AssetSwap')"
       backnavpath="/apps"
+      class="apps-header"
     />
 
     <q-tabs
-      active-color="brandblue"
+      :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedNetwork"
       style="padding-bottom: 16px;"
@@ -14,6 +16,7 @@
     >
       <q-tab
         name="BCH"
+        class="network-selection-tab"
         :class="{'text-blue-5': darkMode}"
         disable
         label="BCH"
@@ -26,6 +29,7 @@
       </q-tab>
       <q-tab
         name="sBCH"
+        class="network-selection-tab"
         :class="{'text-blue-5': darkMode}"
         label="SmartBCH"
       />
@@ -58,6 +62,11 @@ export default {
     return {
       selectedNetwork: 'sBCH',
       darkMode: this.$store.getters['darkmode/getStatus']
+    }
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   }
 }

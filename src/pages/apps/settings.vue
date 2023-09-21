@@ -1,9 +1,9 @@
 <template>
   <div id="app-container" :class="{'pt-dark': darkMode}">
-      <header-nav :title="$t('Settings')" backnavpath="/apps" />
+      <header-nav :title="$t('Settings')" backnavpath="/apps" class="apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Security') }}</p>
+            <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Security') }}</p>
             <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                   <q-item-section>
@@ -25,7 +25,7 @@
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Wallet') }}</p>
+            <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Wallet') }}</p>
             <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
               <q-item>
                   <q-item-section>
@@ -92,7 +92,7 @@
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
-          <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Personalize') }}</p>
+          <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Personalize') }}</p>
           <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
             <q-item>
               <q-item-section>
@@ -127,7 +127,7 @@
           </q-list>
         </div>
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
-          <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('AppInfo') }}</p>
+          <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('AppInfo') }}</p>
             <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
               <q-item>
                 <q-item-section>

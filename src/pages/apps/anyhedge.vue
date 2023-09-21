@@ -3,16 +3,28 @@
     <HeaderNav
       title="AnyHedge"
       backnavpath="/apps"
+      class="apps-header"
     />
     <q-tabs
-      active-color="brandblue"
+      :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"
       :style="{ 'margin-top': $q.platform.is.ios ? '-10px' : '-35px'}"
     >
-      <q-tab name="hedge" :class="{'text-blue-5': darkMode}" :label="$t('Hedge')"/>
-      <q-tab name="long" :class="{'text-blue-5': darkMode}" :label="$t('Long')" />
+      <q-tab
+        name="hedge"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="$t('Hedge')"
+      />
+      <q-tab
+        name="long"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="$t('Long')" 
+      />
     </q-tabs>
 
     <q-card
@@ -1093,5 +1105,8 @@ async function displayContractFromNotification(data={address: '', position: '' }
     })
   }
   return contract
+}
+function isDefaultTheme () {
+  return this.$store.getters['global/theme'] !== 'default'
 }
 </script>

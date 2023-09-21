@@ -4,7 +4,7 @@
       <HeaderNav
         title="Gifts"
         backnavpath="/apps"
-        class="q-px-sm"
+        class="q-px-sm apps-header gift-app-header"
       />
       <div :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
         <div class="row items-center justify-end q-mx-md q-mb-md q-px-xs q-gutter-sm">

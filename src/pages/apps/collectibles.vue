@@ -16,14 +16,25 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      active-color="brandblue"
+      :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme && 'transparent'"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
-      <q-tab :class="{'text-blue-5': darkMode}" name="BCH" label="BCH"/>
-      <q-tab :class="{'text-blue-5': darkMode}" name="sBCH" label="SmartBCH"/>
+      <q-tab
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        name="BCH"
+        label="BCH"
+      />
+      <q-tab
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        name="sBCH"
+        label="SmartBCH"
+      />
     </q-tabs>
     <div v-if="showAddress" class="flex flex-center" style="padding-top: 30px;">
       <div class="q-pa-md br-15 col-qr-code">
@@ -53,7 +64,7 @@
     <div style="text-align: center;" :class="darkMode ? 'text-white' : 'text-black'" v-if="showAddress" @click="showAddress = !showAddress">
       <q-btn icon="close" flat round dense />
     </div>
-    <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;">
+    <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
       <q-tab-panel name="BCH">
         <div class="row items-center justify-end">
           <AssetFilter style="float:none" @filterTokens="filterTokens"/>
@@ -163,7 +174,7 @@
           </q-expansion-item>
           <q-separator spaced inset/>
         </template>
-        <q-tab-panels v-model="selectedERC721AssetIndex" keep-alive style="background:inherit;">
+        <q-tab-panels v-model="selectedERC721AssetIndex" keep-alive style="background:inherit;" class="collectibles-panel">
           <q-tab-panel
             v-for="(asset, index) in erc721Assets"
             :key="index"
@@ -253,6 +264,9 @@ export default {
         return convertCashAddress(bchAddress, false, true)
       }
       return this.$store.getters['global/getAddress']('slp')
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {

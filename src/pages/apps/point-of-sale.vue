@@ -3,6 +3,7 @@
     <HeaderNav
       title="POS Admin"
       backnavpath="/apps"
+      class="apps-header"
     />
     <q-card
       class="br-15 q-mx-md q-mt-lg q-mb-md"

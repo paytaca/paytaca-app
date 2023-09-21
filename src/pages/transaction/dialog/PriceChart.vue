@@ -23,7 +23,7 @@
             <q-icon size="sm" :name="ishigher ? 'mdi-menu-up':'mdi-menu-down'"/><b>{{ percentage }} %</b>
           </span>
         </div>
-        <q-card class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 light-bg"  :class="[ darkmode ? 'pt-dark-card-2' : '']">
+        <q-card class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 light-bg price-chart"  :class="[ darkmode ? 'pt-dark-card-2' : '']">
           <div style="width: 100%; height: 200px; margin-left: 3%; margin-right: 3%; margin-top: 15px; margin-bottom: 15px;" >
             <canvas ref="chart"></canvas>
           </div>
