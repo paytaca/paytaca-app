@@ -6,6 +6,7 @@
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
+import { useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 
 // Handle JSON serialization of BigInt
@@ -18,9 +19,12 @@ export default {
   name: 'App',
   setup () {
     const store = useStore()
+    const $q = useQuasar()
     const theme = computed(() => store?.state?.global?.theme)
+    const darkMode = computed(() => store?.state?.darkmode?.darkmode)
 
     watchEffect(() => {
+      // Set the theme
       const classes = document.body.classList
       classes.forEach(function (cl) {
         if (cl.startsWith('theme-')) {
@@ -28,6 +32,9 @@ export default {
         }
       })
       document.body.classList.add(`theme-${theme.value}`)
+      
+      // Set quasar dark mode true/false
+      $q.dark.set(darkMode.value)
     })
   },
   data () {

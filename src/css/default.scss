@@ -15,20 +15,6 @@ body.theme-default {
     font-family: $font-family_1;
     font-weight: 300 !important;
   }
-  body.body--light {
-    background-color: $background-color_1;
-    -webkit-transition: 0.1s;
-    -moz-transition: 0.1s;
-    -o-transition: 0.1s;
-    transition: 0.1s;
-  }
-  body.body--dark {
-    background-color: $background-color_1 !important;
-    -webkit-transition: 0.1s;
-    -moz-transition: 0.1s;
-    -o-transition: 0.1s;
-    transition: 0.1s;
-  }
 
   p {
     -webkit-touch-callout: none;
