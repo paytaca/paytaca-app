@@ -81,7 +81,7 @@
   </template>
 <script>
 import { signMessage } from '../../../wallet/ramp/signature.js'
-import { getBalanceByAddress } from 'src/wallet/bch'
+// import { getBalanceByAddress } from 'src/wallet/bch'
 
 export default {
   data () {
@@ -114,6 +114,7 @@ export default {
       type: Object,
       default: null
     },
+    rampContract: Object,
     action: String,
     txid: String,
     errors: Array
@@ -138,6 +139,7 @@ export default {
       vm.transactionId = this.$store.getters['ramp/getOrderTxid'](vm.orderId, vm.action)
     }
     await vm.fetchOrderDetail()
+    console.log('rampContract:', this.rampContract)
     vm.loading = false
   },
   beforeUnmount () {
@@ -155,7 +157,11 @@ export default {
       try {
         const response = await vm.$axios.get(url, { headers: headers })
         vm.contract.address = response.data.contract.address
-        vm.contract.balance = await getBalanceByAddress(vm.contract.address)
+        // vm.contract.balance = await getBalanceByAddress(vm.contract.address)
+        if (this.rampContract) {
+          vm.contract.balance = await this.rampContract.getBalance()
+          console.log('balance:', vm.contract.balance)
+        }
         // console.log('contract:', response.data.contract)
         const transactions = response.data.contract.transactions
         let valid = false
@@ -180,7 +186,7 @@ export default {
           vm.hideBtn = false
         }
         // if (!vm.txExists) {
-        vm.waitSeconds = 60
+        vm.waitSeconds = 5
         vm.timer = setInterval(function () {
           vm.waitSeconds--
           if (vm.waitSeconds === 0) {

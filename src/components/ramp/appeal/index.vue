@@ -50,9 +50,6 @@
                             <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
                           </div>
                         </div>
-                        <div class="text-right subtext sm-font-size bold-text text-uppercase">
-                          {{ appeal.order.status.label }}
-                        </div>
                       </div>
                     </div>
                   </q-item-section>

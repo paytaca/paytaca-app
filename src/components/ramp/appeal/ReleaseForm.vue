@@ -308,7 +308,7 @@ export default {
     },
     async confirmAction () {
       console.log('confirming', this.selectedAction)
-      this.$emit('submit', this.selectedAction)
+      this.$emit('submit', this.selectedAction, this.order.crypto_amount)
     },
     selectReleaseType (type) {
       if (this.selectedAction === type) {

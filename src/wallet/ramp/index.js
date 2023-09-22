@@ -47,6 +47,10 @@ export function formatOrderStatus (value) {
       return 'Cancelled'
     case 'APL':
       return 'Appealed'
+    case 'RLS_PN':
+      return 'Release Pending'
+    case 'RFN_PN':
+      return 'Refund Pending'
     default:
       return ''
   }

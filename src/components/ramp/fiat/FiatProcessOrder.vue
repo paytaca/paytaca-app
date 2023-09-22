@@ -43,6 +43,7 @@
       :action="verifyAction"
       :txid="txid"
       :errors="errorMessages"
+      :ramp-contract="rampContract"
       @back="onBack"
       @success="onVerifyTxSuccess"
     />
@@ -102,9 +103,11 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      isChipnet: this.$store.getters['global/isChipnet'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      websocket: null,
       state: '',
       isloaded: false,
       confirmType: '',
@@ -247,6 +250,9 @@ export default {
             vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
+          }
+          if (!this.rampContract) {
+            vm.generateContract()
           }
           break
         case 'ESCRW': // Escrowed
@@ -518,9 +524,10 @@ export default {
         contractFee: this.fees.fees.hardcoded_fee
       }
       const timestamp = this.contract.timestamp
-      this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
+      this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
       await this.rampContract.initialize()
-      console.log('contract balance:', this.rampContract.getBalance())
+      console.log('contract address:', await this.rampContract.getAddress())
+      console.log('contract balance:', await this.rampContract.getBalance())
       // this.contract.address = this.rampContract.getAddress()
       // console.log('rampContract address:', this.rampContract.getAddress())
     },
@@ -718,23 +725,31 @@ export default {
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
-        if (data && data.success) {
-          if (data.txid) {
-            this.txid = data.txid
-          }
-          if (data.status) {
-            this.updateStatus(data.status.status)
-          }
-          if (data.contract_address) {
-            if (this.contract) {
-              this.contract.address = data.contract_address
-            } else {
-              this.contract = {
-                address: data.contract_address
-              }
+        if (data) {
+          if (data.success) {
+            if (data.txid) {
+              this.txid = data.txid
             }
-            // console.log('contract:', this.contract)
-            this.escrowTransferProcessKey++
+            if (data.status) {
+              this.updateStatus(data.status.status)
+            }
+            if (data.contract_address) {
+              if (this.contract) {
+                this.contract.address = data.contract_address
+              } else {
+                this.contract = {
+                  address: data.contract_address
+                }
+              }
+              // console.log('contract:', this.contract)
+              this.escrowTransferProcessKey++
+            }
+          } else if (data.error) {
+            this.errorMessages.push(data.error)
+            this.verifyEscrowTxKey++
+          } else if (data.errors) {
+            this.errorMessages.push(...data.errors)
+            this.verifyEscrowTxKey++
           }
         }
       }
