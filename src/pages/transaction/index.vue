@@ -68,7 +68,10 @@
           </div>
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
-              <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode, 'text-section': isDefaultTheme}">
+              <p
+                class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm"
+                :class="{'pt-dark-label': darkMode, 'text-section home-label': isDefaultTheme}"
+              >
                 {{ $t('Tokens') }}
                 <q-btn
                   flat
@@ -149,7 +152,7 @@
         <transaction ref="transaction" :wallet="wallet"></transaction>
         <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
           <div class="row no-wrap justify-between">
-            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode, 'text-section': isDefaultTheme}">
+            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode, 'text-section home-label': isDefaultTheme}">
               {{ selectedAsset.symbol }} {{ $t('Transactions') }}
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
@@ -441,7 +444,7 @@ export default {
     },
     isDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
-    },
+    }
   },
   methods: {
     openPriceChart () {

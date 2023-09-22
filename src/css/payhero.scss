@@ -10,8 +10,8 @@ body.theme-payhero {
   $color_7: #9b8447; // brand color yellow 2
   $color_8: #e0e2e5;
   $color_9: #ececec;
-  $color_10: #111c2c; // wallet card
-  $color_11: #949494; // wallter address
+  $wallet_card: #111c2c;
+  $wallet_address: #949494;
   $close_button: red;
   $group_currency: #1a2a43;
   $footer-bar: #1f1f1f;
@@ -85,12 +85,12 @@ body.theme-payhero {
     padding: 0px 0px 80px 0px;
   }
 
+  #context-menu {
+    color: $color_6 !important;
+  }
+
   .bg-grad {
     background: $black_opaque_50;
-
-    &.settings {
-      background: transparent;
-    }
   }
 
   .text-grad {
@@ -202,6 +202,14 @@ body.theme-payhero {
         rgba(0, 0, 0, 0.95) 65.31%
       ) !important;
     }
+
+    &.modal {
+      background: $wallet_card !important;
+    }
+
+    &.info-banner {
+      background: #273746 !important;
+    }
   }
 
   .pt-dark-card {
@@ -290,9 +298,15 @@ body.theme-payhero {
   }
 
   .text-section,
-  .section-title {
+  .section-title,
+  .view-ignored-label,
+  .pin-icon,
+  .dismiss-text {
     color: $color_6 !important;
-    font-weight: 300;
+
+    &.home-label {
+      font-weight: 300;
+    }
   }
 
   .close-button {
@@ -300,12 +314,12 @@ body.theme-payhero {
   }
 
   .wallet-address {
-    color: $color_11 !important;
+    color: $wallet_address !important;
     font-weight: 300;
   }
 
   .wallet-bottom-border {
-    border-bottom: 1px solid $color_11 !important;
+    border-bottom: 1px solid $wallet_address !important;
   }
 
   .btn-transaction {
@@ -358,5 +372,37 @@ body.theme-payhero {
 
   .transaction-container {
     background-color: $group_currency !important;
+  }
+
+  .bg-payhero {
+    background: $color_6;
+  }
+
+  .q-toggle--dark {
+    > .q-toggle__inner--truthy,
+    > .q-toggle__inner--falsy {
+      color: $color_6 !important;
+    }
+  }
+
+  .pt-internet-required {
+    color: $color_8 !important;
+  }
+
+  .button-themed {
+    background: $color_7 !important;
+
+    &.button-themed-text {
+      background: transparent !important;
+      color: $color_7 !important;
+    }
+  }
+
+  .q-item.q-item--active {
+    color: $color_6 !important;
+  }
+
+  .q-field__control {
+    color: $color_6 !important;
   }
 }

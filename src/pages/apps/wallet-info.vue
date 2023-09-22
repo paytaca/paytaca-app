@@ -30,7 +30,7 @@
                 v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
                 dense
                 :class="[
-                  darkMode ? 'pt-dark text-white' : 'bg-grey-2',
+                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2',
                   'rounded-borders q-mt-sm q-mb-md',
                 ]"
               >
@@ -38,7 +38,9 @@
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
-                    color="blue-9" :label="$t('Dismiss')"
+                    color="blue-9"
+                    class="dismiss-text"
+                    :label="$t('Dismiss')"
                     @click="$store.commit('global/removeUtxoScanTask', bchUtxoScanTaskInfo?.walletHash)"
                   />
                 </template>
@@ -55,6 +57,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
+                    class="button-themed"
                     :disable="bchUtxoScanOngoing"
                     :loading="bchUtxoScanOngoing"
                     :label="$t('UtxoScan')"
@@ -64,6 +67,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
+                    class="button-themed"
                     :disable="scanningBchAddresses"
                     :loading="scanningBchAddresses"
                     :label="$t('AddressScan')"
@@ -119,7 +123,7 @@
                 v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.completedAt"
                 dense
                 :class="[
-                  darkMode ? 'pt-dark text-white' : 'bg-grey-2',
+                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2',
                   'rounded-borders q-mt-sm q-mb-md',
                 ]"
               >
@@ -127,7 +131,9 @@
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
-                    color="blue-9" :label="$t('Dismiss')"
+                    color="blue-9"
+                    class="dismiss-text"
+                    :label="$t('Dismiss')"
                     @click="$store.commit('global/removeUtxoScanTask', slpUtxoScanTaskInfo?.walletHash)"
                   />
                 </template>
@@ -144,6 +150,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
+                    class="button-themed"
                     :disable="slpUtxoScanOngoing"
                     :loading="slpUtxoScanOngoing"
                     :label="$t('UtxoScan')"
@@ -153,6 +160,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
+                    class="button-themed"
                     :disable="scanningSlpAddresses"
                     :loading="scanningSlpAddresses"
                     :label="$t('AddressScan')"

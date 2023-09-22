@@ -18,7 +18,7 @@
                       <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ChangePin') }} {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
-                      <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
+                      <q-icon name="mdi-pin" class="q-pr-sm pin-icon" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
                   </q-item-section>
               </q-item>
             </q-list>

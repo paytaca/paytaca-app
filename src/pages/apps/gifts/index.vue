@@ -8,23 +8,32 @@
       />
       <div :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
         <div class="row items-center justify-end q-mx-md q-mb-md q-px-xs q-gutter-sm">
-          <q-btn 
+          <q-btn
             no-caps
             color="primary"
             label="Create Gift"
+            class="button-themed"
             :to="{ name: 'create-gift'}"
           />
-          <q-btn 
+          <q-btn
             no-caps
             color="primary"
             label="Claim Gift"
+            class="button-themed"
             :to="{ name: 'claim-gift'}"
           />
         </div>
         <div class="q-pa-md" :class="{'text-black': !darkMode}" style="margin-top: -10px;">
           <div class="q-px-xs row items-start">
             <div class="q-table__title q-space">Gifts you created</div>
-            <q-btn-dropdown color="primary" no-caps :label="capitalize(filterOpts.recordType.active)" dense class="q-pl-sm" :dark="darkMode" content-style="color: black;">
+            <q-btn-dropdown
+              color="primary"
+              no-caps :label="capitalize(filterOpts.recordType.active)"
+              dense
+              class="q-pl-sm button-themed"
+              :dark="darkMode"
+              content-style="color: black;"
+            >
               <q-list dense>
                 <q-item
                   v-for="recordType in filterOpts.recordType.options"

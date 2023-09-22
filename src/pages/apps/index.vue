@@ -10,14 +10,13 @@
             {{ $t('Applications') }}
           </p>
         </div>
-        <div class="row q-px-xs">
+        <div class="row" :class="isDefaultTheme ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div
               class="pt-app bg-grad"
               :class="[
                 buttonClassByState(app.active),
-                {'settings' : app.name === this.$t('Settings')},
-                {'apps-border' : isDefaultTheme && app.name !== this.$t('Settings')}
+                {'apps-border' : isDefaultTheme}
               ]"
               @click="openApp(app)"
             >

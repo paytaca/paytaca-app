@@ -12,7 +12,7 @@
           color="blue-9"
           padding="xs"
           icon="refresh"
-          class="q-ml-md"
+          class="q-ml-md button-themed"
           @click="function(){
             updateNetworkData()
             updateTokenListBalances()
@@ -23,7 +23,7 @@
           color="blue-9"
           padding="xs"
           icon="settings"
-          class="q-ml-md"
+          class="q-ml-md button-themed"
           @click="showSettingsDialogForm = true"
         />
       </div>
@@ -125,7 +125,15 @@
         </q-item-section>
       </q-item>
       <div class="q-px-sm row items-center justify-end q-mt-md">
-        <q-btn icon="launch" color="blue-9" flat padding="xs" size="sm" @click="showSettingsDialogForm = true"/>
+        <q-btn
+          icon="launch"
+          color="blue-9"
+          flat
+          padding="xs"
+          size="sm"
+          class="button-themed button-themed-text"
+          @click="showSettingsDialogForm = true"
+        />
       </div>
       <q-item class="q-mt-sm">
         <q-item-section side>
@@ -151,7 +159,7 @@
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else-if="computedFormData.parsedDistribution.steps > 0">
               {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" :color="darkMode ? 'blue-5' : 'blue-9'" />
+              <q-icon name="launch" :color="darkMode ? 'blue-5' : 'blue-9'" class="button-themed button-themed-text" />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedFormData.parsedDistribution.steps"
@@ -185,7 +193,7 @@
           :loading="networkData.approvingToken"
           :label="$t('Approve') + ' ' + formData.sourceToken.symbol"
           color="brandblue"
-          class="q-space"
+          class="q-space button-themed"
           rounded
           @click="confirmApproveToken()"
         />
@@ -196,7 +204,7 @@
           no-caps
           :label="$t('EnterAmount')"
           color="brandblue"
-          class="q-space"
+          class="q-space button-themed"
         />
         <q-btn
           v-else
@@ -205,7 +213,7 @@
           rounded
           :label="insufficientBalance ? $t('InsufficientBalance') : $t('Swap')"
           color="brandblue"
-          class="q-space"
+          class="q-space button-themed"
           @click="moveSwapDetailsToStaging()"
         />
       </div>
@@ -260,7 +268,7 @@
           <q-item-label @click="showRouteDialog = computedStagedSwapDetails.parsedDistribution.steps > 0" style="cursor:pointer;">
             <template v-if="computedStagedSwapDetails.parsedDistribution.steps > 0">
               {{ `${computedStagedSwapDetails.parsedDistribution.steps} step${computedStagedSwapDetails.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" color="blue-9" />
+              <q-icon name="launch" color="blue-9" class="button-themed button-themed-text" />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedStagedSwapDetails.parsedDistribution.steps"

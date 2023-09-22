@@ -24,7 +24,7 @@
         padding="none"
         size="sm"
         icon="mdi-eye"
-        class="q-mx-md"
+        class="q-mx-md view-ignored-label"
         :text-color="darkMode ? 'blue-5' : 'blue-9'"
         style="margin-top:-1.5rem;"
         :to="{
@@ -100,7 +100,7 @@
           </q-list>
         </template>
         <div v-else-if="loading" class="column items-center justify-center">
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
           <div :class="darkMode ? 'text-white' : 'text-grey'">
             {{ $t('SearchingForOtherAssets') }}
           </div>
@@ -211,6 +211,12 @@ export default {
           }
         })
         .filter(Boolean)
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

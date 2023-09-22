@@ -1,6 +1,10 @@
 <template>
   <q-dialog ref="dialog" full-width>
-    <q-card :class="darkmode ? 'text-white pt-dark  ' : 'text-black'" class="br-15" style="padding-bottom: 10px; background-color: #ECF3F3">
+    <q-card
+      :class="darkmode ? 'text-white pt-dark modal' : 'text-black'"
+      class="br-15"
+      style="padding-bottom: 10px; background-color: #ECF3F3"
+    >
       <div class="row no-wrap items-center justify-center">
         <div v-if="isloaded && !networkError" style="">
           <img src="../../../assets/bch-logo.png" style="height: 40px; position: absolute; top: 12px; left: 25px; z-index: 1;"/>
