@@ -25,13 +25,6 @@ export default {
     return {
       apps: [
         {
-          name: this.$t('Map'),
-          iconName: 'mdi-map',
-          path: '/apps/map/',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
@@ -95,6 +88,13 @@ export default {
         //   path: '/apps/chat/',
         //   active: true
         // },
+        {
+          name: this.$t('Map'),
+          iconName: 'mdi-map',
+          path: '/apps/map/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
         {
           name: this.$t('POSAdmin'),
           iconName: 'point_of_sale',
