@@ -222,7 +222,8 @@ export default {
   .app-icon {
     vertical-align: middle;
     align-content: center;
-    // width: 100%;
+    width: 50%;
+    height: 50%;
   }
   .pt-black {
     color: #212F3C !important;
