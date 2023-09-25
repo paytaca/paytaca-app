@@ -4,8 +4,16 @@
 		"classpath": "com.getcapacitor.community.barcodescanner.BarcodeScanner"
 	},
 	{
+		"pkg": "@capacitor-community/native-audio",
+		"classpath": "com.getcapacitor.community.audio.NativeAudio"
+	},
+	{
 		"pkg": "@capacitor/app",
 		"classpath": "com.capacitorjs.plugins.app.AppPlugin"
+	},
+	{
+		"pkg": "@capacitor/browser",
+		"classpath": "com.capacitorjs.plugins.browser.BrowserPlugin"
 	},
 	{
 		"pkg": "@capacitor/device",
@@ -18,9 +26,5 @@
 	{
 		"pkg": "capacitor-native-biometric",
 		"classpath": "com.epicshaggy.biometric.NativeBiometric"
-	},
-	{
-		"pkg": "@capacitor-community/native-audio",
-		"classpath": "com.getcapacitor.community.audio.NativeAudio"
 	}
 ]
