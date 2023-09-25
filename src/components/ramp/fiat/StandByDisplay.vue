@@ -162,7 +162,6 @@
   <div v-if="openDialog">
     <MiscDialogs
       :type="'appeal'"
-      @submit="receiveAppeal"
       @back="openDialog = false"
       @submit="onSubmitAppeal"
     />
@@ -291,10 +290,10 @@ export default {
     this.timer = null
   },
   methods: {
-    receiveAppeal () {
-      console.log('creating appeal')
-      this.openDialog = false
-    },
+    // receiveAppeal () {
+    //   console.log('creating appeal')
+    //   this.openDialog = false
+    // },
     async fetchOrderDetail () {
       const vm = this
       const headers = {
@@ -324,6 +323,7 @@ export default {
       this.$emit('sendFeedback', this.feedback)
     },
     async onSubmitAppeal (data) {
+      this.openDialog = false
       this.$emit('submitAppeal', data)
     },
     onChat () {
