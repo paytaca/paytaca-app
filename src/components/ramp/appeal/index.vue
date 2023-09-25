@@ -4,7 +4,7 @@
     :style="`height: ${ minHeight }px;`"
     v-if="state === 'appeal-list'">
     <div class="q-pt-md">
-      <div class="q-pt-md">
+      <div class="q-pb-sm">
         <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
           <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'PENDING' }" @click="statusType='PENDING'">Pending</button>
           <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}" @click="statusType='RESOLVED'">Resolved</button>
@@ -12,17 +12,19 @@
       </div>
       <q-pull-to-refresh
         @refresh="refreshData">
-        <div v-if="loading">
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader/>
+        <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
+          <div v-if="loading" class="row justify-center">
+            <q-spinner-dots
+              class="custom-spinner"
+              color="primary"
+              size="3em"
+            />
           </div>
-        </div>
-        <div v-else-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">Nothing to display</p>
-        </div>
-        <div v-else>
-          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
+          <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
+            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">Nothing to display</p>
+          </div>
+          <div v-else>
             <q-infinite-scroll
             ref="infiniteScroll"
             :items="appeals"
@@ -34,21 +36,20 @@
                   <q-spinner-dots color="primary" size="40px" />
                 </div>
               </template>
-              <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md q-pt-sm">
+              <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
                 <!-- add scroller -->
+                <q-separator class="q-mx-lg" :dark="darkMode"/>
                 <q-item clickable @click="selectAppeal(index)">
-                  <q-item-section>
-                    <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <div class="row q-mx-md">
-                        <div class="col ib-text">
-                          <q-badge rounded size="sm" :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
-                          <div class="md-font-size bold-text">Order #{{ appeal.order.id }}</div>
-                          <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
-                            {{ formattedDate(appeal.created_at) }} by {{ appeal.owner.nickname}}
-                          </div>
-                          <div v-for="(reason, index) in appeal.reasons" :key="index">
-                            <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
-                          </div>
+                  <q-item-section class="q-py-sm">
+                    <div class="row q-mx-md">
+                      <div class="col ib-text">
+                        <q-badge rounded size="sm" :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
+                        <div class="md-font-size bold-text">Order #{{ appeal.order.id }}</div>
+                        <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
+                          {{ formattedDate(appeal.created_at) }} by {{ appeal.owner.nickname}}
+                        </div>
+                        <div v-for="(reason, index) in appeal.reasons" :key="index">
+                          <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
                         </div>
                       </div>
                     </div>
@@ -56,8 +57,8 @@
                 </q-item>
               </div>
             </q-infinite-scroll>
-          </q-list>
-        </div>
+          </div>
+        </q-list>
       </q-pull-to-refresh>
     </div>
   </q-card>
@@ -72,7 +73,6 @@
   </div>
 </template>
 <script>
-import ProgressLoader from '../../ProgressLoader.vue'
 import AppealProcess from './AppealProcess.vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import { loadP2PWalletInfo, formatDate } from 'src/wallet/ramp'
@@ -103,8 +103,7 @@ export default {
     }
   },
   components: {
-    AppealProcess,
-    ProgressLoader
+    AppealProcess
   },
   watch: {
     statusType () {
@@ -155,8 +154,9 @@ export default {
   },
   methods: {
     async fetchAppeals (overwrite = false) {
-      console.log('fetching appeals')
+      // console.log('fetching appeals')
       const vm = this
+      vm.loading = true
       if (!vm.wallet) return
       const timestamp = Date.now()
       signMessage(this.wallet.privateKeyWif, 'APPEAL_LIST', timestamp).then(signature => {
@@ -173,9 +173,9 @@ export default {
             headers: headers,
             overwrite: overwrite
           })
-          .then(
+          .then(() => {
             vm.loading = false
-          )
+          })
           .catch(error => {
             console.error(error.response)
           })
@@ -193,7 +193,9 @@ export default {
       }
     },
     async refreshData (done) {
+      this.loading = true
       await this.resetAndRefetchListings()
+      // this.loading = false
       if (done) done()
     },
     async resetAndRefetchListings () {
@@ -204,7 +206,6 @@ export default {
           vm.fetchAppeals(true)
             .then(function () {
               vm.updatePaginationValues()
-              vm.loading = false
             })
         )
       // console.timeEnd('non-blocking-await')
@@ -270,5 +271,9 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+.custom-spinner {
+  margin-top: 1px !important;
+  margin-bottom: 1px !important;
 }
 </style>
