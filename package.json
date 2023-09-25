@@ -1,6 +1,6 @@
 {
   "name": "paytaca",
-  "version": "0.16.7",
+  "version": "0.16.8",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "productName": "Paytaca",
   "author": "joemar@paytaca.com",
@@ -14,6 +14,7 @@
     "@capacitor-community/barcode-scanner": "^2.1.1",
     "@capacitor-community/native-audio": "^3.0.4",
     "@capacitor/app": "^1.1.0",
+    "@capacitor/browser": "^1.0.7",
     "@capacitor/camera": "^1.0.3",
     "@capacitor/cli": "^3.0.0",
     "@capacitor/core": "^3.6.0",

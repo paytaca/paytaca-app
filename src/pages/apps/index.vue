@@ -89,6 +89,13 @@ export default {
         //   active: true
         // },
         {
+          name: this.$t('Map'),
+          iconName: 'mdi-map',
+          path: '/apps/map/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('POSAdmin'),
           iconName: 'point_of_sale',
           path: '/apps/point-of-sale',
