@@ -54,7 +54,12 @@
                   @update:model-value="resolveLnsName"
                 >
                   <template v-slot:append>
-                    <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
+                    <q-icon
+                      name="arrow_forward_ios"
+                      style="color: #3b7bf6;"
+                      class="pin-icon"
+                      @click="!lns.loading ? checkAddress(manualAddress) : null"
+                    />
                   </template>
                   <q-menu v-model="lns.show" fit :no-parent-event="!isValidLNSName(manualAddress) && (!lns.name || lns.name !== manualAddress) && !lns.loading" no-focus>
                     <q-item v-if="lns.loading">
@@ -86,7 +91,7 @@
                 {{ $t('or') }}
               </div>
               <div class="col-12 q-mt-lg text-center">
-                <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
+                <q-btn round size="lg" class="btn-scan button-themed text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
               </div>
             </div>
             <div class="q-pa-md text-center text-weight-medium">

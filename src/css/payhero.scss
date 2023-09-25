@@ -10,10 +10,12 @@ body.theme-payhero {
   $color_7: #9b8447; // brand color yellow 2
   $color_8: #e0e2e5;
   $color_9: #ececec;
+
   $wallet_card: #111c2c;
   $wallet_address: #949494;
   $close_button: red;
-  $group_currency: #1a2a43;
+  $card_dark: #1a2a43;
+  $card_light: #475d82;
   $footer-bar: #1f1f1f;
   $footer-label: #cecece;
   $inactive-network: #7e7e7e;
@@ -24,6 +26,7 @@ body.theme-payhero {
   $background-color_1: #012121;
   $background-color_2: #f9f8ff;
   $background-color_3: #ecf3f3;
+  $background-blue: #4872b8;
 
   body {
     font-family: $font-family_1;
@@ -87,6 +90,20 @@ body.theme-payhero {
 
   #context-menu {
     color: $color_6 !important;
+  }
+
+  #app-container {
+    &.light {
+      background: linear-gradient(180deg, #fff 0%, $color_6 100%) !important;
+    }
+
+    &.dark {
+      background: linear-gradient(
+        180deg,
+        $background-blue 0%,
+        #000 100%
+      ) !important;
+    }
   }
 
   .bg-grad {
@@ -193,7 +210,11 @@ body.theme-payhero {
   }
 
   .pt-dark {
-    background: linear-gradient(180deg, #4872b8 0%, #000 100%) !important;
+    background: linear-gradient(
+      180deg,
+      $background-blue 0%,
+      #000 100%
+    ) !important;
 
     &.registration {
       background: linear-gradient(
@@ -243,10 +264,11 @@ body.theme-payhero {
       font-size: 14px;
       font-weight: 300;
     }
+  }
 
-    &.amount-text {
-      font-size: 16px !important;
-      font-weight: 300;
+  .pt-label {
+    &.dark {
+      color: $color_8 !important;
     }
   }
 
@@ -283,8 +305,24 @@ body.theme-payhero {
   }
 
   .group-currency {
-    background: $group_currency !important;
     border-radius: 6px;
+
+    &.dark {
+      background: $card_dark !important;
+    }
+
+    &.light {
+      background: $card_light !important;
+    }
+
+    .amount-text {
+      font-size: 16px !important;
+      font-weight: 300;
+
+      &.dark {
+        color: $color_8 !important;
+      }
+    }
   }
 
   .fixed-container {
@@ -375,7 +413,7 @@ body.theme-payhero {
   }
 
   .transaction-container {
-    background-color: $group_currency !important;
+    background-color: $card_dark !important;
   }
 
   .bg-payhero,

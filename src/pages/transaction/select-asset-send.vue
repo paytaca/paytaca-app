@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="darkMode ? 'dark' : 'light'">
     <header-nav :title="$t('Send')" backnavpath="/"></header-nav>
     <q-tabs
       dense
@@ -28,7 +28,7 @@
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode, 'label-text' : isDefaultTheme}">
+          <p class="slp_tokens q-mb-sm pt-label" :class="darkMode ? 'dark' : 'light'">
             {{ $t('SelectAssetToSend') }}
           </p>
         </div>
@@ -44,7 +44,7 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'">
+          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'dark' : 'bg-white light'">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50" /></div>
               <div class="col q-pl-sm q-pr-sm">
@@ -55,11 +55,7 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p
-                  class="q-ma-none"
-                  :class="darkMode ? isDefaultTheme ? 'pt-dark-label amount-text' : 'text-grey' : 'text-grad'"
-                  style="font-size: 18px;"
-                >
+                <p class="q-ma-none amount-text" :class="darkMode ? 'dark' : 'text-grad'">
                   {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
                   <span>
                     {{ asset.symbol }}
@@ -192,6 +188,9 @@ export default {
     border-radius: 7px;
     margin-top: 5px;
     margin-bottom: 5px;
+  }
+  .amount-text {
+    font-size: 18px;
   }
   .pp-fcolor {
     color: #000 !important;
