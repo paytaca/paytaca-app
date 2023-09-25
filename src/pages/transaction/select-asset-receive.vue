@@ -5,13 +5,25 @@
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
+      :indicator-color="isDefaultTheme && 'transparent'"
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
-      <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet"/>
+      <q-tab
+        name="BCH"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="networks.BCH.name"
+      />
+      <q-tab
+        name="sBCH"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="networks.sBCH.name"
+        :disable="isChipnet"
+      />
     </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">

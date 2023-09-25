@@ -1,6 +1,6 @@
 <template>
 	<q-dialog ref="dialog" @hide="onDialogHide" full-width>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space q-mt-sm">{{ title }}</div>
         <q-btn
@@ -10,7 +10,7 @@
           v-close-popup
         />
       </div>
-      <q-tab-panels v-model="panel" animated :class="darkMode ? 'pt-dark' : 'text-black'">
+      <q-tab-panels v-model="panel" animated :class="darkMode ? 'pt-dark info-banner' : 'text-black'">
         <q-tab-panel name="list" class="q-pa-none">
           <q-card-section>
             <div class="row items-center justify-end q-mb-sm">
@@ -19,7 +19,7 @@
                 flat
                 icon-right="mdi-arrow-right"
                 :label="$t('SelectCustomToken')"
-                color="blue-9"
+                color="blue-9 button-themed button-themed-text"
                 padding="none xs"
                 @click="panel='custom'"
               />
@@ -74,7 +74,7 @@
                 no-caps
                 icon="mdi-arrow-left"
                 :label="$t('SelectFromList')"
-                color="blue-9"
+                color="blue-9 button-themed button-themed-text"
                 padding="none xs"
                 flat
                 @click="panel='list'"
@@ -92,7 +92,7 @@
           </q-card-section>
           <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
             <div v-if="customToken.fetchingInfo" class="row items-center justify-center">
-              <ProgressLoader/>
+              <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
             </div>
 
             <q-item
@@ -205,6 +205,12 @@ export default {
           if (!token) return
           return this.customToken.address.toLowerCase() === token.address.toLowerCase()
         })
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

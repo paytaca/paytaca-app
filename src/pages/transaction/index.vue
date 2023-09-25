@@ -59,7 +59,7 @@
           </div>
           <div
             v-if="!showTokens"
-            class="text-center text-blue-9"
+            class="text-center text-blue-9 text-section"
             :class="{'text-black': !darkMode}"
             @click.native="toggleShowTokens"
             style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"

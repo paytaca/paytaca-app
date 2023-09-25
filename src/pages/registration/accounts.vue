@@ -43,7 +43,7 @@
       </div>
     </div>
     <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">

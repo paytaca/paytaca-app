@@ -86,7 +86,7 @@
                 <div class="q-pt-sm" v-if="has_next" style="width: 100%; text-align: center; color: #3b7bf6;">
                   <p v-if="!loadingNextPage" @click="loadingNextPage = true; getTransactions();">{{ $t('ShowMore') }}</p>
                   <div class="row justify-center q-pt-sm" v-if="loadingNextPage">
-                    <ProgressLoader/>
+                    <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
                   </div>
                 </div>
               </div>
@@ -96,7 +96,7 @@
         </q-card-section>
       </div>
       <div class="row justify-center q-py-lg" style="margin-top: 50px" v-if="!isloaded">
-        <ProgressLoader/>
+        <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
       </div>
     </q-card>
   </q-dialog>
@@ -125,6 +125,14 @@ export default {
       showInfo: false,
       baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
       bchAddress: this.$store.getters['global/getAddress']('bch')
+    }
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

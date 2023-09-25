@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="fetchingNfts" class="row items-center justify-center">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme() ? theme() : 'pink'"/>
     </div>
     <div class="row items-start q-pa-md">
       <q-card
@@ -110,5 +110,13 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
 
 function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
   return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
+}
+
+function isDefaultTheme () {
+  return this.$store.getters['global/theme'] !== 'default'
+}
+
+function theme () {
+  return this.$store.getters['global/theme']
 }
 </script>

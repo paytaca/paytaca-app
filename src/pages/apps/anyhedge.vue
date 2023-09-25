@@ -23,7 +23,7 @@
         name="long"
         class="network-selection-tab"
         :class="{'text-blue-5': darkMode}"
-        :label="$t('Long')" 
+        :label="$t('Long')"
       />
     </q-tabs>
 
@@ -82,6 +82,7 @@
                 icon="add"
                 padding="xs"
                 round
+                class="button-themed"
                 :color="darkMode ? 'grad' : 'brandblue'"
                 @click="showCreateHedgeForm = !showCreateHedgeForm"
               />
@@ -118,6 +119,7 @@
                 icon="add"
                 padding="xs"
                 round
+                class="button-themed"
                 :color="darkMode ? 'grad' : 'brandblue'"
                 @click="showCreateLongForm = !showCreateLongForm"
               />

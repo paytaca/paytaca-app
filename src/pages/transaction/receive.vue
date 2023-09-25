@@ -24,7 +24,7 @@
       </q-menu>
     </q-icon>
     <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
     </div>
     <template v-else>
       <div class="row">
@@ -140,6 +140,12 @@ export default {
       } else {
         return address
       }
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

@@ -14,7 +14,7 @@
         </div>
       </div>
       <div class="row justify-center q-pb-lg" v-if="!isloaded">
-        <ProgressLoader/>
+        <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
       </div>
       <div class="text-center col pt-internet-required" v-if="networkError && isloaded">
         {{ $t('NoInternetConnectionNotice') }} &#128533;
@@ -253,6 +253,12 @@ export default {
       } else {
         return '#f2f5f5'
       }
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   async mounted () {

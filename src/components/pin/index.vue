@@ -15,7 +15,7 @@
                       <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
                   </div>
                   <div class="col-12 text-center">
-                      <ProgressLoader/>
+                      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
                   </div>
               </div>
           </q-card-section>
@@ -38,7 +38,7 @@
                   <div class="row justify-center">
                       <div class="col-2 pt-pin-key" v-for="(keys, index) in pinKeys" :key="index">
                         <p class="q-py-md text-h5 text-center q-my-none pt-text-key">
-                            <span v-if="keys.key !== ''" class="material-icons" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">
+                            <span v-if="keys.key !== ''" class="material-icons pin-icon" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">
                               radio_button_checked
                             </span>
                             <span v-else class="material-icons">
@@ -153,6 +153,14 @@ export default {
           vm.dialog = false
         }
       }
+    }
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

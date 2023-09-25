@@ -311,7 +311,7 @@
       </div>
       <q-separator />
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
-        <ProgressLoader/>
+        <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
       </div>
       <div class="row justify-center" style="margin-top: 20px; color: gray;">
         <span>{{ $t('PoweredBy') }} SmartSwap.fi</span>
@@ -331,13 +331,19 @@
     <q-dialog v-model="showSettingsDialogForm" persistent>
       <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;" class="br-15">
         <div class="row no-wrap items-center justify-center q-pl-md">
-          <div class="text-subtitle1 text-weight-medium q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">{{ $t('Settings') }}</div>
+          <div
+            class="text-subtitle1 text-weight-medium q-space q-pt-sm section-title"
+            :class="darkMode ? 'text-blue-5' : ''"
+          >
+            {{ $t('Settings') }}
+          </div>
           <q-btn
               flat
               color="blue-9"
               icon="refresh"
               round
               padding="sm"
+              class="button-themed button-themed-text"
               @click="function(){
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
@@ -349,6 +355,7 @@
             color="grey"
             padding="sm"
             icon="close"
+            class="close-button"
             v-close-popup
           />
         </div>
@@ -357,7 +364,7 @@
             {{ $t('SlippageTolerance') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
                   {{ $t('SlippageToleranceDescription') }}
                 </div>
               </q-popup-proxy>
@@ -367,9 +374,9 @@
             <q-btn-toggle
               v-model="formData.slippageTolerance"
               rounded
-              toggle-color="grad"
+              :toggle-color="isDefaultTheme ? 'toggle-active' : 'grad'"
               :toggle-text-color="darkMode ? 'dark' : 'white'"
-              :color="darkMode ? 'blue-9' : 'grey-3'"
+              :color="isDefaultTheme ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
               :text-color="darkMode ? 'pt-dark-label' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
@@ -389,7 +396,7 @@
             {{ $t('TransactionDeadline') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
                   {{ $t('SwapTransactionDeadlineDescription') }}
                 </div>
               </q-popup-proxy>
@@ -400,6 +407,7 @@
             <q-slider
               :min="5"
               :max="30"
+              color="slider"
               v-model="formData.transactionDeadline"
             />
           </div>
@@ -580,6 +588,12 @@ export default {
         formattedMinReturn: formattedMinReturn,
         parsedDistribution: parseDistribution(this.stagedSwapDetails.distribution)
       }
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

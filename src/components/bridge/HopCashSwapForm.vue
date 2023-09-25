@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="{'pt-dark bridge-swap-form': darkMode}">
       <div
         v-if="Array.isArray(errors) && errors.length"
         class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
@@ -34,7 +34,7 @@
           padding="sm"
           icon="arrow_forward"
           :disable="lockInputs"
-          :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
+          :class="[darkMode ? 'text-blue-5 pin-icon' : 'text-blue-9']"
           @click="transferType = transferType === 'c2s' ? 's2c': 'c2s'"
         />
 
@@ -173,7 +173,7 @@
                 dense
                 outlined
                 readonly
-                :input-class="darkMode ? 'text-blue-5' : 'text-blue-9'"
+                :input-class="darkMode ? 'text-blue-5 text-section' : 'text-blue-9'"
                 :dark="darkMode"
                 :modelValue="defaultRecipientAddress"
                 class="q-space q-my-sm"
@@ -200,7 +200,7 @@
                 padding="xs md"
                 :label="$t('ScanQrCode')"
                 rounded
-                class="q-mb-sm"
+                class="q-mb-sm button-themed"
                 color="blue-9"
                 :disable="lockInputs"
                 @click="showQrScanner = true"
@@ -241,9 +241,7 @@
             </div>
             <div class="row justify-center q-mt-sm" style="color: gray;">{{ $t('PoweredBy') }} hop.cash</div>
             <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
-              <ProgressLoader
-                v-if="loading"
-              />
+              <ProgressLoader v-if="loading" :color="isDefaultTheme ? theme : 'pink'"/>
               <q-btn
                 v-else
                 no-caps
@@ -251,7 +249,7 @@
                 :disable="maxBridgeBalance === 0 || lockInputs || !amount"
                 :label="$t('Swap')"
                 color="brandblue"
-                class="full-width"
+                class="full-width button-themed"
                 type="submit"
               />
             </div>
@@ -422,6 +420,9 @@ export default {
         return this.$store.getters['global/getAddress']('sbch')
       }
       return this.$store.getters['global/getAddress']('bch')
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {

@@ -204,7 +204,7 @@
               </div>
               <div class="row" v-if="sendData.sending">
                 <div class="col-12 text-center">
-                  <ProgressLoader/>
+                  <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
                 </div>
               </div>
             </form>
@@ -586,6 +586,12 @@ export default {
       if (this.sendData.responseOTP) return this.sendData.responseOTP
 
       return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 

@@ -24,7 +24,7 @@
               <q-btn
                 no-caps
                 rounded
-                color="blue-9"
+                color="blue-9 button-themed"
                 :label="$t('Connect')"
                 @click="handShakeFormSubmit()"
                 :disable="handshakeOnProgress"
@@ -40,13 +40,14 @@
               icon="mdi-qrcode"
               color="grad"
               size="lg"
+              class="button-themed"
               @click="scanner.show = true"
               :disable="handshakeOnProgress"
             />
           </div>
           <template v-if="handshakeOnProgress">
             <div class="row items-center justify-center">
-              <ProgressLoader/>
+              <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
             </div>
             <div v-if="pendingConnector" class="row items-center justify-center">
               <q-btn
@@ -239,7 +240,7 @@ export default {
       },
       set (value) {
         this.walletConnect.connector = value
-      }
+      },
     },
     parsedPeerMeta () {
       const meta = {
@@ -262,6 +263,12 @@ export default {
     },
     callRequests () {
       return this.$store.getters['walletconnect/callRequests']
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 

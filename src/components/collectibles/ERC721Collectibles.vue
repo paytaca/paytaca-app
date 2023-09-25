@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
     </div>
     <template v-if="collectibles.length > 0">
       <div class="q-pa-md row items-start">
@@ -96,6 +96,12 @@ export default {
         currentPage: Math.ceil(this.pagination.offset / this.pagination.limit) + 1,
         pageSize: this.pagination.limit
       }
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 

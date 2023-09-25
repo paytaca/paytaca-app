@@ -24,7 +24,7 @@
           </q-card-section>
 
           <div v-if="loading" class="flex justify-center">
-            <ProgressLoader/>
+            <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
           </div>
           <div class="col-12 q-mx-md q-mb-md overflow-hidden" v-if="asset !== null">
             <div class="row" v-for="val, key in asset" :key="key">
@@ -150,6 +150,12 @@ export default {
       if (this.isCashToken)
         return this.$t('EnterCashTokenCategoryID')
       return this.$t('Enter_SLP_TokenId')
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 

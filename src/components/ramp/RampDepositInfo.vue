@@ -62,7 +62,7 @@
           Sending <b>{{ shiftInfo.shift_info.deposit.amount }}</b> BCH to <b>{{ shiftInfo.shift_info.settle.address }}</b>
         </div>
         <div class="row justify-center q-py-lg">
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
         </div>
       </div>
       <div v-if="!sendFailed && !processing">
@@ -121,6 +121,14 @@ export default {
   emits: ['retry', 'done'],
   components: {
     ProgressLoader
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    }
   },
   methods: {
     copyToClipboard (value) {

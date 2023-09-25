@@ -5,9 +5,9 @@
       backnavpath="/apps"
     />
 
-    <q-icon class="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
-        <q-list :class="{'pt-dark': darkMode}" style="min-width: 100px">
+        <q-list :class="{'pt-dark info-banner': darkMode}" style="min-width: 100px">
           <q-item
             :disable="waiting"
             clickable
@@ -139,7 +139,7 @@ export default {
 }
 </script>
 <style scoped>
-.context-menu {
+#context-menu {
   position: relative;
   top: -55px;
   right: -330px;

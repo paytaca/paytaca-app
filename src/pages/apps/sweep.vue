@@ -25,10 +25,17 @@
                 <div style="margin-top: 20px; margin-bottom: 20px; font-size: 15px; color: grey;" class="text-uppercase">
                   {{ $t('or') }}
                 </div>
-                <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+                <q-btn round size="lg" class="btn-scan button-themed text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
               <div style="margin-top: 20px; ">
-                <q-btn color="primary" v-if="tokens.length === 0 && wif" @click.prevent="getTokens">{{ $t('Scan') }}</q-btn>
+                <q-btn
+                  class="button-themed"
+                  color="primary"
+                  v-if="tokens.length === 0 && wif"
+                  @click.prevent="getTokens"
+                >
+                  {{ $t('Scan') }}
+                </q-btn>
                 <p v-if="wif && error" style="color: red;">
                   {{ error }}
                 </p>

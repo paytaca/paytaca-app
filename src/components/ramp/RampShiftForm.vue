@@ -14,7 +14,7 @@
         color="blue-9"
         padding="xs"
         icon="mdi-history"
-        class="q-ml-md"
+        class="q-ml-md button-themed"
         @click="openHistory"
       />
     </div>
@@ -153,13 +153,13 @@
         no-caps
         :label="$t('Submit')"
         color="brandblue"
-        class="q-space"
+        class="q-space button-themed"
         @click="checkData()"
       />
     </div>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded && !error">
-    <ProgressLoader/>
+    <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
@@ -600,6 +600,12 @@ export default {
         return true
       }
       return false
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   async mounted () {

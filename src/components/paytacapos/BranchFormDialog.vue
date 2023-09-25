@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading">
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="width:min(350px, 90vw)">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="width:min(350px, 90vw)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm">
           <template v-if="newBranch">
@@ -149,7 +149,7 @@
             <q-btn
               no-caps
               :disable="loading"
-              color="brandblue"
+              color="brandblue button-themed"
               :label="branchInfo?.id ? $t('Update', {}, 'Update') : $t('Set', {}, 'Set')"
               class="col"
               type="submit"

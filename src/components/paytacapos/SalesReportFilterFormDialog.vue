@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="width:max(300px, 90vw);">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="width:max(300px, 90vw);">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-subtitle1 q-space q-mt-sm"> {{ $t('FilterSalesReport', {}, 'Filter sales report') }}</div>
       </div>
@@ -72,7 +72,7 @@
           />
           <div class="row items-center q-gutter-x-sm q-mt-md">
             <q-btn no-caps label="Cancel" color="grey" outline class="q-space" v-close-popup/>
-            <q-btn no-caps label="Filter" color="brandblue" class="q-space" type="submit"/>
+            <q-btn no-caps label="Filter" color="brandblue button-themed" class="q-space" type="submit"/>
           </div>
         </q-form>
       </q-card-section>
