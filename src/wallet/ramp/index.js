@@ -102,6 +102,15 @@ export function formatDate (
   return dateString
 }
 
+export function formatAddress (address, startLength = 35, endLength = 5) {
+  // const startLength = 35
+  // const endLength = 5
+  if (address.length <= startLength + endLength) {
+    return address
+  }
+  return address.slice(0, startLength) + '...' + address.slice(-endLength)
+}
+
 export function formatRelativeDate (date) {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())

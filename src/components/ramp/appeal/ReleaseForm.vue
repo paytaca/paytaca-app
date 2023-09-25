@@ -144,7 +144,25 @@
                 </div>
               </q-card>
             </div>
-
+            <div>
+              <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+                <div class="text-center q-py-xs bold-text text-uppercase">
+                  Contract Information
+                </div>
+                <q-separator class="q-my-sm" :dark="darkMode"/>
+                <div class="q-mx-lg">
+                  <div class="sm-font-size q-pb-xs text-italic">Address</div>
+                  <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="contractAddress">
+                  </q-input>
+                  <div class="sm-font-size q-pb-xs text-italic">Balance</div>
+                  <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="contractBalance">
+                    <template v-slot:append>
+                      <span class="sm-font-size bold-text">BCH</span>
+                    </template>
+                  </q-input>
+                </div>
+              </q-card>
+            </div>
             <!-- Simplified this -->
             <div class="q-pb-md q-mb-lg">
               <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
@@ -220,7 +238,7 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import AdSnapshot from './AdSnapshot.vue'
-import { loadP2PWalletInfo, formatCurrency, formatDate, formatOrderStatus } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
@@ -235,6 +253,7 @@ export default {
       order: null,
       ad_snapshot: null,
       contract: null,
+      contractBalance: null,
       fees: null,
       statusHistory: [],
       transactionHistory: [],
@@ -250,7 +269,8 @@ export default {
     }
   },
   props: {
-    appealInfo: Object
+    appealInfo: Object,
+    rampContract: Object
   },
   emits: ['back', 'submit'],
   components: {
@@ -264,6 +284,12 @@ export default {
     },
     sellerReceivesAmount () {
       return Number(this.order.crypto_amount) * Number(this.order.locked_price)
+    },
+    contractAddress () {
+      console.log('this.contract.address:', this.contract.address)
+      const formattedAddr = this.formattedAddress(this.contract.address)
+      console.log('formattedAddr:', formattedAddr)
+      return formattedAddr
     }
   },
   async mounted () {
@@ -273,6 +299,7 @@ export default {
       vm.wallet = wallet
       this.fetchAppealDetail()
     })
+    this.contractBalance = await this.rampContract.getBalance()
   },
   methods: {
     fetchAppealDetail (done) {
@@ -330,6 +357,9 @@ export default {
       } else {
         return formatCurrency(value)
       }
+    },
+    formattedAddress (address) {
+      return formatAddress(address, 22, 5)
     },
     formattedDate (value, numeric = false) {
       if (numeric) {

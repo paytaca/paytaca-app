@@ -3,6 +3,7 @@
     <div v-if="state === 'release-form'">
       <ReleaseForm
         :appealInfo="appeal"
+        :ramp-contract="rampContract"
         @back="$emit('back')"
         @submit="onSubmit"
       />
