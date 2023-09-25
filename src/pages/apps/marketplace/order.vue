@@ -180,8 +180,19 @@
                 <div v-if="delivery?.rider?.id" class="q-mt-xs">
                   <div class="text-subtitle2">Rider</div>
                   <div class="row items-start q-gutter-x-xs">
-                    <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
-                    <div>{{ delivery?.rider?.phoneNumber }}</div>
+                    <div style="line-height:1.25;">
+                      <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
+                      <div>{{ delivery?.rider?.phoneNumber }}</div>
+                    </div>
+                    <q-space/>
+                    <q-btn
+                      v-if="delivery?.rider?.phoneNumber"
+                      flat
+                      icon="phone"
+                      padding="sm"
+                      class="float-right"
+                      :href="`tel:${delivery?.rider?.phoneNumber}`"
+                    />
                   </div>
                 </div>
                 <div v-else class="text-grey">No rider yet</div>
