@@ -66,6 +66,7 @@
   </q-card>
 </template>
 <script>
+import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
   data () {
@@ -82,8 +83,8 @@ export default {
       timer: null,
       waitSeconds: null,
       hideBtn: true,
-      errorMessages: [],
-      state: ''
+      state: '',
+      errorMessages: []
     }
   },
   emits: ['back'],
@@ -98,11 +99,14 @@ export default {
     },
     rampContract: Object,
     action: String,
+    initState: String,
     txid: String,
     errors: Array
   },
   async mounted () {
     const vm = this
+    vm.state = vm.initState
+    console.log('state:', vm.state)
     vm.errorMessages.push(...vm.errors)
     if (vm.txid && vm.txid.length > 0) {
       vm.transactionId = vm.txid
@@ -110,46 +114,43 @@ export default {
     if (!vm.transactionId) {
       vm.transactionId = this.$store.getters['ramp/getOrderTxid'](vm.orderId, vm.action)
     }
-    await vm.fetchOrderDetail()
+    await vm.fetchContractDetail()
     vm.loading = false
   },
   methods: {
-    async fetchOrderDetail () {
+    async fetchContractDetail () {
       const vm = this
       const headers = {
         'wallet-hash': vm.wallet.walletHash
       }
       vm.loading = true
-      const url = vm.apiURL + '/order/' + vm.orderId
+      const url = `${vm.apiURL}/order/${vm.orderId}/contract`
 
       try {
         const response = await vm.$axios.get(url, { headers: headers })
+        console.log('response:', response)
         vm.contract.address = response.data.contract.address
-        // vm.contract.balance = await getBalanceByAddress(vm.contract.address)
+
         if (this.rampContract) {
           vm.contract.balance = await this.rampContract.getBalance()
-          console.log('balance:', vm.contract.balance)
         }
-        // console.log('contract:', response.data.contract)
-        const transactions = response.data.contract.transactions
+        const transactions = response.data.transactions
         let valid = false
         let verifying = true
-        // console.log('transactions:', transactions)
+
         if (transactions) {
           for (let i = 0; i < transactions.length; i++) {
-            const tx = transactions[i]
-            // console.log('action:', vm.action)
-            // console.log('tx:', tx)
+            const tx = transactions[i].txn
             verifying = tx.verifying
             if (tx.action === vm.action) {
               vm.txExists = true
               vm.transactionId = tx.txid
+              verifying = tx.verifying
               valid = tx.valid
               break
             }
           }
         }
-        // console.log('txExists:', vm.txExists, 'valid:', valid, 'verifying:', verifying)
         if (vm.txExists && !valid && !verifying) {
           vm.hideBtn = false
         }
@@ -168,49 +169,48 @@ export default {
         console.error(error.response)
       }
     },
-    // async verifyRelease () {
-    //   const vm = this
-    //   vm.state = 'verifying'
-    //   console.log('Verifying Release: ', vm.transactionId)
-    //   const url = `${vm.apiURL}/order/${vm.orderId}/verify-release`
-    //   const timestamp = Date.now()
-    //   const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_RELEASE', timestamp)
-    //   const headers = {
-    //     'wallet-hash': vm.wallet.walletHash,
-    //     signature: signature,
-    //     timestamp: timestamp
-    //   }
-    //   const body = {
-    //     txid: this.transactionId
-    //   }
-    //   await vm.$axios.post(url, body, { headers: headers })
-    //     .then(response => {
-    //       // console.log('response:', response)
-    //     })
-    //     .catch(error => {
-    //       console.error(error.response)
-    //       const errorMsg = error.response.data.error
-    //       vm.errorMessages.push(errorMsg)
-    //       vm.hideBtn = false
-    //     })
-    //   // await this.fetchOrderData()
-    // },
+    async verifyTxn () {
+      const vm = this
+      vm.state = 'verifying'
+      console.log('Verifying: ', vm.transactionId)
+      let url = `${vm.apiURL}/order/${vm.orderId}/`
+      let msg = ''
+      if (vm.action === 'RELEASE') {
+        url = `${url}verify-release`
+        msg = 'ORDER_RELEASE'
+      } else {
+        url = `${url}verify-refund`
+        msg = 'ORDER_REFUND'
+      }
+      console.log('url:', url)
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, msg, timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const body = {
+        txid: this.transactionId
+      }
+      await vm.$axios.post(url, body, { headers: headers })
+        .then(response => {
+          console.log('response:', response)
+        })
+        .catch(error => {
+          console.error(error.response)
+          const errorMsg = error.response.data.error
+          vm.errorMessages.push(errorMsg)
+          vm.hideBtn = false
+        })
+    },
     onVerify () {
       const vm = this
       vm.hideBtn = true
       vm.errorMessages = []
-      // switch (vm.action) {
-      //   case 'ESCROW':
-      //     vm.verifyEscrow()
-      //     break
-      //   case 'RELEASE':
-      //     vm.verifyRelease()
-      //     break
-      // }
-      vm.fetchOrderDetail()
+      vm.verifyTxn()
     },
     copyToClipboard (value) {
-      console.log('copying')
       this.$copyText(value)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),

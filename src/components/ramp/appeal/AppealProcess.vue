@@ -10,11 +10,13 @@
 
     <div v-if="state === 'verify-transfer'">
       <VerifyTransfer
+        :key="verifyTransferKey"
         :order-id="appeal.order.id"
         :wallet="wallet"
         :action="selectedAction"
         :ramp-contract="rampContract"
-        txid=""
+        :init-state="actionState"
+        :txid="txid"
         :errors="errorMessages"
         @back="$emit('back')"
       />
@@ -47,13 +49,16 @@ export default {
       websocket: null,
       wallet: null,
       state: 'release-form',
+      actionState: 'verifying',
       appeal: null,
       contract: null,
       fees: null,
       status: null,
       isloaded: false,
       selectedAction: null,
-      errorMessages: []
+      errorMessages: [],
+      verifyTransferKey: 0,
+      txid: null
     }
   },
   props: {
@@ -108,12 +113,25 @@ export default {
       console.log('Checking step:', vm.status)
       if (!vm.status) return
       switch (vm.status.value) {
-        case 'APL': // Appealed
+        case 'APL':
           vm.state = 'release-form'
           break
+        case 'RFN_PN':
+          vm.state = 'verify-transfer'
+          break
+        case 'RLS_PN':
+          vm.state = 'verify-transfer'
+          break
+        case 'RLS':
+          vm.state = 'completed-appeal'
+          vm.$store.dispatch('ramp/clearOrderTxids', vm.appeal.order.id)
+          break
+        case 'RFN':
+          vm.state = 'completed-appeal'
+          vm.$store.dispatch('ramp/clearOrderTxids', vm.appeal.order.id)
+          break
         default:
-          // includes status = RFN_PN, RLS_PN
-          this.state = 'verify-transfer'
+          vm.state = 'release-form'
           break
       }
     },
@@ -157,13 +175,72 @@ export default {
           console.error(error.response)
         })
     },
+    saveTxid (result) {
+      if (result.success) {
+        this.txid = result.txInfo.txid
+        const txidData = {
+          id: this.appeal.order.id,
+          txidInfo: {
+            action: 'REFUND',
+            txid: this.txid
+          }
+        }
+        this.$store.dispatch('ramp/saveTxid', txidData)
+      }
+    },
     async releaseBch (contract, amount) {
+      this.state = 'verify-transfer'
+      this.actionState = 'sending'
+      this.verifyTransferKey++
       const result = await contract.release(this.wallet.privateKeyWif, amount)
-      console.log('result:', result)
+      this.saveTxid(result)
+      this.actionState = 'verifying'
+      this.verifyTransferKey++
+      this.verifyTxn('RELEASE')
     },
     async refundBch (contract, amount) {
-      const result = contract.refund(this.wallet.privateKeyWif, amount)
-      console.log('result:', result)
+      this.state = 'verify-transfer'
+      this.actionState = 'sending'
+      this.verifyTransferKey++
+      const result = await contract.refund(this.wallet.privateKeyWif, amount)
+      this.saveTxid(result)
+      this.actionState = 'verifying'
+      this.verifyTransferKey++
+      this.verifyTxn('REFUND')
+    },
+    async verifyTxn (action) {
+      const vm = this
+      vm.state = 'verifying'
+      console.log('Verifying: ', vm.txid)
+      let url = `${vm.apiURL}/order/${vm.appeal.order.id}/`
+      let msg = ''
+      if (action === 'RELEASE') {
+        url = `${url}verify-release`
+        msg = 'ORDER_RELEASE'
+      } else {
+        url = `${url}verify-refund`
+        msg = 'ORDER_REFUND'
+      }
+      console.log('url:', url)
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, msg, timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const body = {
+        txid: this.txid
+      }
+      await vm.$axios.post(url, body, { headers: headers })
+        .then(response => {
+          console.log('response:', response)
+        })
+        .catch(error => {
+          console.error(error.response)
+          const errorMsg = error.response.data.error
+          vm.errorMessages.push(errorMsg)
+        })
     },
     async fetchOrderDetail (id) {
       const vm = this
@@ -182,9 +259,6 @@ export default {
       }
     },
     async generateContract () {
-      console.log('GENERATING CONTRACT')
-      console.log('contract:', this.contract)
-      console.log('fees:', this.fees)
       if (!this.contract || !this.fees) return
       const publicKeys = {
         arbiter: this.contract.arbiter.public_key,
@@ -237,10 +311,10 @@ export default {
             // }
           } else if (data.error) {
             this.errorMessages.push(data.error)
-            // this.verifyEscrowTxKey++
+            this.verifyTransferKey++
           } else if (data.errors) {
             this.errorMessages.push(...data.errors)
-            // this.verifyEscrowTxKey++
+            this.verifyTransferKey++
           }
         }
       }

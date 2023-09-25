@@ -15,7 +15,7 @@
           Released
           <!-- Refunded -->
         </div>
-        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order }})</div>
+        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
       </div>
 
       <q-separator class="q-my-sm q-mx-lg" :dark="darkMode"/>
@@ -60,9 +60,8 @@ export default {
   emits: ['back'],
   async mounted () {
     this.appeal = this.appealInfo
-
+    console.log('completed appeal:', this.appeal)
     this.isloaded = true
   }
 }
 </script>
-
