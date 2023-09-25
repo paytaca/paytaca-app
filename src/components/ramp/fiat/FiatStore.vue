@@ -182,7 +182,8 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       adFilter: {}
       // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
     }
@@ -193,10 +194,8 @@ export default {
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
-        if (!vm.listings || vm.listings.length === 0) {
-          vm.loading = true
-          vm.fetchStoreListings()
-        }
+        vm.loading = true
+        vm.resetAndRefetchListings()
       }
     },
     async selectedCurrency () {

@@ -387,7 +387,46 @@
 
       <q-card-actions class="q-pt-lg text-center" align="center">
         <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="I understand, proceed" @click="submitData()" color="blue-6" v-close-popup />
+        <q-btn flat label="I understand, proceed" @click="onProceedAppeal()" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog full-width persistent v-model="appealForm">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Appeal Form</div>
+      </q-card-section>
+      <q-card-section class="q-pt-none">
+        <div class="q-mx-md">
+          <div class="sm-font-size bold-text">Type</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              rounded :outline="!(selectedAppealType && appealType.value === selectedAppealType.value)" color="blue-grey-6"
+              @click="selectedAppealType = appealType"
+              v-for="appealType in appealTypeOpts" :key="appealType.value" >
+              {{ appealType.label }}
+            </q-badge>
+          </div>
+          <div class="sm-font-size bold-text q-mt-sm">Reasons</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              rounded
+              color="blue-grey-6"
+              :outline="!(selectedReasons.includes(reason))"
+              @click="updateAppealReasons(reason)"
+              v-for="reason in reasonOpts" :key="reason" >
+              {{ reason }}
+            </q-badge>
+          </div>
+        </div>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-lg text-center" align="center">
+        <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Submit" :disable="!selectedAppealType || selectedReasons.length === 0" @click="submitData()" color="blue-6" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -443,6 +482,7 @@ export default {
       maxMethodReached: false,
       filterAd: false,
       appeal: false,
+      appealForm: false,
 
       // Input Model
       nickname: '',
@@ -458,6 +498,23 @@ export default {
       selectedPaymentMethods: [],
       selectedPaymentTypes: [],
       selectedPTL: [],
+      appealTypeOpts: [
+        {
+          label: 'Release',
+          value: 'RLS'
+        },
+        {
+          label: 'Refund',
+          value: 'RFN'
+        }
+      ],
+      selectedAppealType: null,
+      reasonOpts: [
+        'Unresponsive seller/buyer',
+        'Payment failed',
+        'I changed my mind'
+      ],
+      selectedReasons: [],
       isAscending: false
     }
   },
@@ -504,7 +561,7 @@ export default {
         } else {
           if (this.selectedPTL.length === this.ptl.length) {
             this.selectedPTL = []
-          } else{
+          } else {
             this.selectedPTL = []
 
             for (const p in this.ptl) {
@@ -709,6 +766,12 @@ export default {
         case 'confirmCancelOrder':
         case 'confirmOrderCreate':
           return 'submit'
+        case 'appeal':
+          vm.info = {
+            type: vm.selectedAppealType.value,
+            reasons: vm.selectedReasons
+          }
+          return 'submit'
         default:
           vm.info = vm.selectedPaymentMethods
           return 'submit'
@@ -754,6 +817,21 @@ export default {
           console.error(error)
           console.error(error.response)
         })
+    },
+    onProceedAppeal () {
+      this.appeal = false
+      this.appealForm = true
+    },
+    updateAppealReasons (reason) {
+      if (this.selectedReasons.includes(reason)) {
+        const index = this.selectedReasons.indexOf(reason)
+        if (index > -1) {
+          this.selectedReasons.splice(index, 1)
+        }
+      } else {
+        this.selectedReasons.push(reason)
+      }
+      console.log('selectedReasons:', this.selectedReasons)
     }
   }
 }

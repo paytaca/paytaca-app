@@ -1,6 +1,7 @@
 export default function () {
   return {
     user: null,
+    arbiter: null,
     itemsPerPage: 20,
 
     // store pagination
@@ -32,6 +33,16 @@ export default function () {
     completedOrdersTotalPages: null,
     completedOrders: [],
 
+    // appeals pagination
+    pendingAppealsPageNumber: null,
+    pendingAppealsTotalPages: null,
+    pendingAppeals: [],
+
+    resolvedAppealsPageNumber: null,
+    resolvedAppealsTotalPages: null,
+    resolvedAppeals: [],
+
     txids: {}
+
   }
 }

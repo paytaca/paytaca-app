@@ -26,11 +26,13 @@
   </q-dialog>
 </template>
 <script>
-
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
+      arbiter: this.$store.getters['ramp/getArbiter'],
       openDialog: true,
       apps: [
         {
@@ -49,6 +51,24 @@ export default {
     }
   },
   emits: ['back', 'submit'],
+  async mounted () {
+    // const vm = this
+    // console.log('arbiter:', vm.arbiter)
+    // if (!vm.arbiter) {
+    //   const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    //   const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
+    //   await vm.$store.dispatch('ramp/fetchArbiter', wallet)
+    //     .then(function () {
+    //       vm.arbiter = vm.$store.getters['ramp/getArbiter']
+    //     })
+    // }
+    // if (vm.arbiter) {
+    //   vm.apps.push({
+    //     name: 'appeal',
+    //     icon: 'gavel'
+    //   })
+    // }
+  },
   methods: {
     selectApp (app) {
       this.$emit('submit', app)

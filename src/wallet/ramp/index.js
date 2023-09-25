@@ -1,13 +1,15 @@
 import { loadWallet } from 'src/wallet'
 import { markRaw } from 'vue'
+import { Store } from '../../store'
 
-export async function loadP2PWalletInfo (walletInfo, index, network = 'bch') {
+export async function loadP2PWalletInfo (walletInfo, index) {
   /**
    * Returns the wallet information needed for RampP2P processes
    */
-  const rawWallet = await markRaw(loadWallet(network.toUpperCase, index))
+  const isChipnet = Store.getters['global/isChipnet']
+  const rawWallet = await markRaw(loadWallet('BCH', index))
   let wallet = (rawWallet).BCH
-  if (network === 'chipnet') wallet = rawWallet.BCH_CHIP
+  if (isChipnet) wallet = rawWallet.BCH_CHIP
 
   const walletHash = wallet.getWalletHash()
   const { lastAddress, connectedAddressIndex } = walletInfo
@@ -20,6 +22,37 @@ export async function loadP2PWalletInfo (walletInfo, index, network = 'bch') {
     privateKeyWif: privateKeyWif,
     publicKey: publicKey,
     address: lastAddress
+  }
+}
+
+export function formatOrderStatus (value) {
+  switch (value) {
+    case 'SBM':
+      return 'Submitted'
+    case 'CNF':
+      return 'Confirmed'
+    case 'ESCRW_PN':
+      return 'Escrow Pending'
+    case 'ESCRW':
+      return 'Escrowed'
+    case 'PD_PN':
+      return 'Paid Pending'
+    case 'PD':
+      return 'Paid'
+    case 'RLS':
+      return 'Released'
+    case 'RFN':
+      return 'Refunded'
+    case 'CNCL':
+      return 'Cancelled'
+    case 'APL':
+      return 'Appealed'
+    case 'RLS_PN':
+      return 'Release Pending'
+    case 'RFN_PN':
+      return 'Refund Pending'
+    default:
+      return ''
   }
 }
 
@@ -46,17 +79,19 @@ export function formatCurrency (value, currency) {
   return formattedNumber
 }
 
-export function formatDate (date, relative = false) {
-  const datetime = new Date(date)
-  let dateString = null
-  const options = {
+export function formatDate (
+  date,
+  relative = false,
+  options = {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: 'numeric',
     minute: 'numeric',
     second: 'numeric'
-  }
+  }) {
+  const datetime = new Date(date)
+  let dateString = null
   if (relative) {
     dateString = formatRelativeDate(datetime)
   } else {
@@ -69,34 +104,32 @@ export function formatDate (date, relative = false) {
 
 export function formatRelativeDate (date) {
   const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   let dateString = ''
 
-  if (date >= today) {
-    dateString = 'Today'
-  } else if (date >= yesterday) {
-    dateString = 'Yesterday'
-  } else {
-    const elapsedMs = now - date
-    const elapsedSeconds = Math.round(elapsedMs / 1000)
-    const elapsedMinutes = Math.round(elapsedSeconds / 60)
-    const elapsedHours = Math.round(elapsedMinutes / 60)
-    const elapsedDays = Math.round(elapsedHours / 24)
+  const elapsedMs = now - date
+  const elapsedSeconds = Math.round(elapsedMs / 1000)
+  const elapsedMinutes = Math.round(elapsedSeconds / 60)
+  const elapsedHours = Math.round(elapsedMinutes / 60)
+  const elapsedDays = Math.round(elapsedHours / 24)
 
-    if (elapsedDays < 7) {
-      dateString = `${elapsedDays} days ago`
-    } else if (elapsedDays < 30) {
-      const elapsedWeeks = Math.round(elapsedDays / 7)
-      dateString = `${elapsedWeeks} weeks ago`
-    } else if (elapsedDays < 365) {
-      const elapsedMonths = Math.round(elapsedDays / 30)
-      dateString = `${elapsedMonths} months ago`
-    } else {
-      const elapsedYears = Math.round(elapsedDays / 365)
-      dateString = `${elapsedYears} years ago`
-    }
+  if (elapsedMinutes < 60) {
+    dateString = `${elapsedMinutes} minutes ago`
+  } else if (elapsedHours < 24) {
+    dateString = `${elapsedHours} hours ago`
+  } else if (elapsedDays < 7) {
+    dateString = `${elapsedDays} days ago`
+  } else if (elapsedDays < 30) {
+    const elapsedWeeks = Math.round(elapsedDays / 7)
+    dateString = `${elapsedWeeks} weeks ago`
+  } else if (elapsedDays < 365) {
+    const elapsedMonths = Math.round(elapsedDays / 30)
+    dateString = `${elapsedMonths} months ago`
+  } else {
+    const elapsedYears = Math.round(elapsedDays / 365)
+    dateString = `${elapsedYears} years ago`
   }
   return dateString.toLocaleLowerCase()
 }

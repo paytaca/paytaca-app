@@ -14,11 +14,13 @@
       <div class="q-mx-lg q-px-lg q-pt-md">
         <div class="sm-font-size q-pl-sm q-pb-xs">Arbiter</div>
         <q-select
+          v-if="selectedArbiter"
           class="q-pb-sm"
           :dark="darkMode"
           filled
           dense
           v-model="selectedArbiter"
+          :label="selectedArbiter.address"
           :options="arbiterOptions"
           :disable="!contractAddress"
           behavior="dialog">
@@ -28,11 +30,16 @@
                   <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
                     {{ scope.opt.name }}
                   </q-item-label>
+                  <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                    {{ formattedAddress(scope.opt.address) }}
+                  </q-item-label>
                 </q-item-section>
               </q-item>
             </template>
             <template v-slot:selected v-if="selectedArbiter">
-              {{ selectedArbiter.name }}
+              <span :style="darkMode ? 'color: white;' : 'color: black;'">
+                {{ selectedArbiter.name }}
+              </span>
             </template>
         </q-select>
         <!-- </div> -->
@@ -100,7 +107,6 @@
   </template>
 <script>
 import { signMessage } from 'src/wallet/ramp/signature'
-// import { makeid } from 'src/wallet/ramp'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { Dialog } from 'quasar'
@@ -149,7 +155,6 @@ export default {
       this.generateContractAddress()
     },
     fees (value) {
-      // console.log('fees.total:', value)
       const totalFees = value.total / 100000000
       this.transferAmount += totalFees
     }
@@ -171,7 +176,6 @@ export default {
     vm.transferAmount = vm.amount
     await vm.fetchOrderDetail()
     await vm.fetchArbiters()
-    // console.log('!!!contract:', vm.contract)
     if (vm.contract) {
       vm.contractAddress = vm.contract.address
     } else {
@@ -191,7 +195,6 @@ export default {
         console.log('result:', result)
         if (result.success) {
           vm.txid = result.txid
-          // vm.txid = makeid(64)
           const txidData = {
             id: vm.order.id,
             txidInfo: {
@@ -204,6 +207,7 @@ export default {
           // console.log('txid:', vm.txid)
           await vm.escrowPendingOrder()
         } else {
+          // /**
           vm.sendErrors = []
           if (result.error.indexOf('not enough balance in sender') > -1) {
             vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
@@ -213,6 +217,20 @@ export default {
             vm.sendErrors.push(result.error)
           }
           vm.showDragSlide = true
+          //  */
+
+          /**
+          vm.txid = makeid(64)
+          const txidData = {
+            id: vm.order.id,
+            txidInfo: {
+              action: 'ESCROW',
+              txid: this.txid
+            }
+          }
+          vm.$store.dispatch('ramp/saveTxid', txidData)
+          await vm.escrowPendingOrder()
+          **/
         }
       } catch (err) {
         console.error(err)
@@ -256,7 +274,6 @@ export default {
         const response = await vm.$axios.get(url, { headers: headers })
         // console.log('response:', response.data)
         vm.fees = response.data.fees
-        vm.selectedArbiter = response.data.order.arbiter
       } catch (error) {
         console.error(error.response)
       }
@@ -266,10 +283,20 @@ export default {
       const url = vm.apiURL + '/arbiter'
       try {
         const response = await vm.$axios.get(url)
+        console.log('response:', response)
         vm.arbiterOptions = response.data
-        if (!vm.selectedArbiter && vm.arbiterOptions.length > 0) {
-          vm.selectedArbiter = vm.arbiterOptions[0]
+        vm.selectedArbiter = vm.order.arbiter
+        if (vm.arbiterOptions.length > 0) {
+          if (!vm.selectedArbiter) {
+            vm.selectedArbiter = vm.arbiterOptions[0]
+          } else {
+            vm.selectedArbiter = vm.arbiterOptions.find(function(obj) {
+              return obj.id === vm.selectedArbiter.id
+            })
+          }
         }
+        console.log('>arbiterOptions:', vm.arbiterOptions)
+        console.log('>selectedArbiter:', vm.selectedArbiter)
       } catch (error) {
         console.error(error.response)
       }
@@ -321,6 +348,14 @@ export default {
         .onDismiss(() => {
           this.showDragSlide = true
         })
+    },
+    formattedAddress (address) {
+      const startLength = 35
+      const endLength = 5
+      if (address.length <= startLength + endLength) {
+        return address
+      }
+      return address.slice(0, startLength) + '...' + address.slice(-endLength)
     }
   }
 }

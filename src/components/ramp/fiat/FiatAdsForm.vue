@@ -429,19 +429,21 @@ export default {
       }
       let url = vm.apiURL + '/ad/'
       const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
       const headers = {
         'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
+        timestamp: timestamp
       }
       const body = vm.transformPostData()
       try {
         let response = null
         if (vm.adsState === 'create') {
+          const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
+          headers.signature = signature
           response = await vm.$axios.post(url, body, { headers: headers })
         } else if (vm.adsState === 'edit') {
           url = url + vm.selectedAdId
+          const signature = await signMessage(this.wallet.privateKeyWif, 'AD_UPDATE', timestamp)
+          headers.signature = signature
           response = await vm.$axios.put(url, body, { headers: headers })
         }
         console.log('response:', response)

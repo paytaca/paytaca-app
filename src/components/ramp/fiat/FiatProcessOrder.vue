@@ -43,6 +43,7 @@
       :action="verifyAction"
       :txid="txid"
       :errors="errorMessages"
+      :ramp-contract="rampContract"
       @back="onBack"
       @success="onVerifyTxSuccess"
     />
@@ -54,6 +55,7 @@
         :feedback-data="feedback"
         :key="standByDisplayKey"
         @send-feedback="sendFeedback"
+        @submit-appeal="submitAppeal"
       />
     </div>
 
@@ -85,7 +87,7 @@
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency, makeid } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import RampContract from 'src/wallet/ramp/contract'
 
@@ -101,9 +103,11 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      isChipnet: this.$store.getters['global/isChipnet'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      websocket: null,
       state: '',
       isloaded: false,
       confirmType: '',
@@ -247,6 +251,9 @@ export default {
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
           }
+          if (!this.rampContract) {
+            vm.generateContract()
+          }
           break
         case 'ESCRW': // Escrowed
           if (this.order.trade_type === 'BUY') {
@@ -278,26 +285,19 @@ export default {
             vm.generateContract()
           }
           break
-        case 'RLS_PN': // Release Pending
-          vm.state = 'standby-view'
+        case 'RFN': // Refunded
+          this.status = 'refund'
+          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
           break
         case 'RLS': // Released
           vm.state = 'standby-view'
           vm.standByDisplayKey++
           vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
           break
-        case 'CNCL': // Canceled
+        default:
+          // includes status = CNCL, APL, RFN_PN, RLS_PN
           this.state = 'standby-view'
-          break
-          // TODO: add pages later
-        case 'RLS_APL': // Appealed for Release
-        case 'RFN_APL': // Appealed for Refund
-          this.status = 'appeal'
-          break
-        case 'RFN_PN': // Refund Pending
-        case 'RFN': // Refunded
-          this.status = 'refund'
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
+          vm.standByDisplayKey++
           break
       }
       if (this.isExpired) {
@@ -352,19 +352,15 @@ export default {
     },
     async confirmOrder () {
       const vm = this
-
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CONFIRM', timestamp)
-
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
-
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
         timestamp: timestamp
       }
-
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
           // console.log(response)
@@ -435,13 +431,11 @@ export default {
       vm.isloaded = true
     },
     async releaseCrypto () {
-      // console.log('[releasing crypto]')
       if (!this.rampContract) {
         await this.generateContract()
       }
       await this.rampContract.release(this.wallet.privateKeyWif, this.order.crypto_amount)
         .then(result => {
-          // console.log('[rampContract.release]:', result.txInfo.txid)
           this.txid = result.txInfo.txid
           this.verifyEscrowTxKey++
         })
@@ -511,7 +505,6 @@ export default {
     },
     async generateContract () {
       await this.fetchOrderData()
-      // console.log('generateContract: ', this.contract)
       if (!this.contract) return
       const publicKeys = {
         arbiter: this.contract.arbiter.public_key,
@@ -531,12 +524,34 @@ export default {
         contractFee: this.fees.fees.hardcoded_fee
       }
       const timestamp = this.contract.timestamp
-      this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
+      this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
       await this.rampContract.initialize()
+      console.log('contract address:', await this.rampContract.getAddress())
+      console.log('contract balance:', await this.rampContract.getBalance())
       // this.contract.address = this.rampContract.getAddress()
       // console.log('rampContract address:', this.rampContract.getAddress())
     },
-    // Peer Feedback
+
+    async submitAppeal (data) {
+      console.log('onSubmitAppeal:', data)
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'APPEAL_REQUEST', timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
+      vm.$axios.post(url, data, { headers: headers })
+        .then(response => {
+          console.log('response: ', response)
+          this.updateStatus(response.data.status)
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
+    },
     async sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
@@ -710,23 +725,31 @@ export default {
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
-        if (data && data.success) {
-          if (data.txid) {
-            this.txid = data.txid
-          }
-          if (data.status) {
-            this.updateStatus(data.status.status)
-          }
-          if (data.contract_address) {
-            if (this.contract) {
-              this.contract.address = data.contract_address
-            } else {
-              this.contract = {
-                address: data.contract_address
-              }
+        if (data) {
+          if (data.success) {
+            if (data.txid) {
+              this.txid = data.txid
             }
-            // console.log('contract:', this.contract)
-            this.escrowTransferProcessKey++
+            if (data.status) {
+              this.updateStatus(data.status.status)
+            }
+            if (data.contract_address) {
+              if (this.contract) {
+                this.contract.address = data.contract_address
+              } else {
+                this.contract = {
+                  address: data.contract_address
+                }
+              }
+              // console.log('contract:', this.contract)
+              this.escrowTransferProcessKey++
+            }
+          } else if (data.error) {
+            this.errorMessages.push(data.error)
+            this.verifyEscrowTxKey++
+          } else if (data.errors) {
+            this.errorMessages.push(...data.errors)
+            this.verifyEscrowTxKey++
           }
         }
       }
