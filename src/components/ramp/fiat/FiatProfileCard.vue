@@ -59,19 +59,22 @@
 
       <!-- Comments -->
       <div>
-        <div class="text-center q-pt-md xm-font-size">
-          <div class="bold-text">Reviews</div>
+        <div v-if="reviewList.length !== 0"  class="text-center q-py-lg xm-font-size bold-text">
+          Reviews
+        </div>
+        <div v-else class="text-center q-pt-md text-italized bold-text xm-font-size">
+          No Reviews Yet
         </div>
         <div class="q-mx-lg q-px-md">
           <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;">
-            <div class="q-pt-md" v-for="i in 5" :key="i">
+            <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
               <div class="md-font-size bold-text">
-                Edgar Allan Poe
+                {{  review.from_peer.nickname }}
               </div>
               <div class="sm-font-text">
                 <q-rating
                   readonly
-                  v-model="rating"
+                  v-model="review.rating"
                   size="2em"
                   color="yellow-9"
                   icon="star"
@@ -79,7 +82,7 @@
               </div>
               <div class="q-pt-sm q-px-xs">
                 <q-input
-                  v-model="comment"
+                  v-model="review.comment"
                   :dark="darkMode"
                   dense
                   disable
@@ -126,14 +129,15 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       walletIndex: this.$store.getters['global/getWalletIndex'],
+      wallet: null,
       isloaded: false,
       user: null,
       editNickname: false,
       state: 'initial',
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-      wallet: null,
       rating: 3,
-      comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'
+      comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+      reviewList: null
     }
   },
   props: {
@@ -175,7 +179,9 @@ export default {
 
       const walletInfo = this.$store.getters['global/getWallet']('bch')
       const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      console.log(wallet)
+
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'PEER_UPDATE', timestamp)
       // this.$store.commit('global/editRampNickname', info.nickname)
       vm.$axios.put(vm.apiURL + '/peer', {
         nickname: info.nickname
@@ -183,8 +189,8 @@ export default {
       {
         headers: {
           'wallet-hash': wallet.walletHash,
-          signature: null,
-          timestamp: Date.now()
+          signature: signature,
+          timestamp: timestamp
         }
       })
         .then(response => {
@@ -195,39 +201,33 @@ export default {
         .catch(error => {
           console.log(error)
         })
-    },
-    // async fetchTopAds () {
-    //   const vm = this
 
-    //   const timestamp = Date.now()
-    //   const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
-    //   const headers = {
-    //     'wallet-hash': vm.wallet.walletHash,
-    //     timestamp: timestamp,
-    //     signature: signature
-    //   }
-    //   const params = { trade_type: vm.}
-    // }
-    // async fetchAds (overwrite = false) {
-    //   const vm = this
-    //   const timestamp = Date.now()
-    //   const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
-    //   const headers = {
-    //     'wallet-hash': this.wallet.walletHash,
-    //     timestamp: timestamp,
-    //     signature: signature
-    //   }
-    //   const params = { trade_type: vm.transactionType, owned: true }
-    //   vm.$store.dispatch(
-    //     'ramp/fetchAds',
-    //     { component: 'ads', params: params, headers: headers, overwrite: overwrite })
-    //     .then(response => {
-    //       vm.loading = false
-    //     })
-    //     .catch(error => {
-    //       console.error(error.response)
-    //     })
-    // },
+      this.editNickname = false
+    },
+    async fetchTopAds () {
+      const vm = this
+
+      const url = `${vm.apiURL}/order/feedback/peer`
+
+      await vm.$axios.get(url, {
+        params: {
+          to_peer: this.$store.getters['ramp/getUser'].id
+        }
+      })
+        .then(response => {
+          if (response.data) {
+            // const data = response.data
+            vm.reviewList = response.data
+            console.log('reviews: ', vm.reviewList)
+          }
+        })
+        .catch(error => {
+          console.log(error)
+        })
+
+        // top 5 reviews
+
+    }
   },
   async mounted () {
     const vm = this
@@ -235,6 +235,7 @@ export default {
     vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
 
     await this.processUserData()
+    await this.fetchTopAds()
     vm.isloaded = true
   }
 }

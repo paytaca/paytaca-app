@@ -162,6 +162,7 @@
   <div v-if="openDialog">
     <MiscDialogs
       :type="'appeal'"
+      @submit="receiveAppeal"
       @back="openDialog = false"
       @submit="onSubmitAppeal"
     />
@@ -180,7 +181,7 @@
   <div v-if="openReviews">
     <FeedbackDialog
       :openReviews="openReviews"
-      :orderID="order.id"
+      :adID="order.ad.id"
       @back="openReviews = false"
     />
   </div>
@@ -290,6 +291,10 @@ export default {
     this.timer = null
   },
   methods: {
+    receiveAppeal () {
+      console.log('creating appeal')
+      this.openDialog = false
+    },
     async fetchOrderDetail () {
       const vm = this
       const headers = {
