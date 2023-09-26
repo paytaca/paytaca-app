@@ -72,9 +72,15 @@
       </div>
 
       <div class="q-mb-md">
+        <div v-if="fetchingOrders" class="text-center q-px-md">
+          <q-spinner v-if="!orders?.length" size="1.5rem" color="brandblue" class="q-mb-sm"/>
+          <q-linear-progress v-else query reverse color="brandblue"/>
+        </div>
+        <div v-else class="q-mb-xs"></div>
+
         <div v-if="!orders?.length && initialized" class="text-grey text-center q-mb-md">No active orders</div>
         <div v-else class="q-py-sm">
-          <q-list separator >
+          <q-list separator>
             <q-item
               v-for="order in orders" :key="order?.id"
               v-ripple
