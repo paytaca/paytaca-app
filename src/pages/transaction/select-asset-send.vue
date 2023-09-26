@@ -171,7 +171,7 @@ export default {
         query
       })
     },
-    getDarkModeClass(darkModeClass = 'dark', lightModeClass = 'light') {
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
       return this.darkMode ? darkModeClass : lightModeClass
     }
   },

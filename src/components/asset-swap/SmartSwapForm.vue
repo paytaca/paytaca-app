@@ -332,7 +332,7 @@
       <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;" class="br-15">
         <div class="row no-wrap items-center justify-center q-pl-md">
           <div
-            class="text-subtitle1 text-weight-medium q-space q-pt-sm section-title"
+            class="text-subtitle1 text-weight-medium q-space q-pt-sm text-section"
             :class="darkMode ? 'text-blue-5' : ''"
           >
             {{ $t('Settings') }}

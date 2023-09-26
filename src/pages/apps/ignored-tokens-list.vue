@@ -1,10 +1,9 @@
 <template>
-  <div class="pt-settings" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass('pt-dark dark', 'light')" class="pt-settings">
     <header-nav :title="$t('IgnoredTokens')" :backnavpath="backNavPath" />
     <div
       style="padding-top:100px;height:100vh;"
       :class="[
-        darkMode ? '' : 'bg-brandlight',
         darkMode ? 'text-white' : 'text-black',
         'q-px-md',
       ]"
@@ -179,6 +178,9 @@ export default {
           if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
           else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
         })
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   beforeRouteLeave (to, from, next) {

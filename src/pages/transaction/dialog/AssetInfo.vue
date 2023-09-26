@@ -25,11 +25,16 @@
             target="_blank"
           >
             {{ asset.id.split('/')[1].slice(0, 7) }}...
-            <q-icon name="exit_to_app" :color="$store.getters['darkmode/getStatus'] ? 'blue-5' : 'blue-9'" size="sm" />
+            <q-icon
+              name="exit_to_app"
+              class="button button-text-primary dark"
+              :color="$store.getters['darkmode/getStatus'] ? 'blue-5' : 'blue-9'"
+              size="sm"
+            />
           </a>
         </div>
         <div style="margin-top: 20px; margin-bottom: 10px; text-align: center;">
-          <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded :label="$t('Send')" no-caps>
+          <q-btn @click="send" class="q-mr-sm button" color="blue-9" rounded :label="$t('Send')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
               <svg>
@@ -37,7 +42,7 @@
               </svg>
             </q-icon>
           </q-btn>
-          <q-btn @click="receive" rounded color="blue-9" :label="$t('Receive')" no-caps>
+          <q-btn @click="receive" rounded class="button" color="blue-9" :label="$t('Receive')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
               <svg>

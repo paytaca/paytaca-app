@@ -205,7 +205,7 @@
                     v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
                     @click.prevent="setMaximumSendAmount"
                     style="float: right; text-decoration: none; color: #3b7bf6;"
-                    class="button button-text-secondary"
+                    class="button button-text-primary"
                     :class="getDarkModeClass()"
                   >
                     {{ $t('MAX') }}
@@ -217,7 +217,7 @@
                   <a
                     style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
                     href="#"
-                    class="button button-text-secondary"
+                    class="button button-text-primary"
                     :class="getDarkModeClass()"
                     @click.prevent="() => {sendData.amount = 0; setAmountInFiat = true}"
                   >
@@ -1285,7 +1285,7 @@ export default {
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
     },
-    getDarkModeClass(darkModeClass = 'dark', lightModeClass = 'light') {
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
       return this.darkMode ? darkModeClass : lightModeClass
     }
   },

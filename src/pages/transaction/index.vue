@@ -1,8 +1,13 @@
 <template>
-  <div class="scroll-y" style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
+  <div
+    id="app-container"
+    class="scroll-y"
+    style="background-color: #ECF3F3;"
+    :class="getDarkModeClass('dark', 'light')"
+  >
     <div>
       <q-pull-to-refresh @refresh="refresh">
-        <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+        <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <div :class="{'pt-header home-header' : isDefaultTheme}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
             <v-offline @detected-condition="onConnectivityChange">
@@ -16,8 +21,7 @@
             <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
               <template v-if="enableSmartBCH">
                 <q-tabs
-                  :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-                  class="col-12 q-px-sm q-pb-md pp-fcolor"
+                  class="col-12 q-px-sm q-pb-md"
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
@@ -26,13 +30,13 @@
                   <q-tab
                     name="BCH"
                     class="network-selection-tab"
-                    :class="{'text-blue-5': darkMode}"
+                    :class="getDarkModeClass()"
                     :label="networks.BCH.name"
                   />
                   <q-tab
                     name="sBCH"
                     class="network-selection-tab"
-                    :class="{'text-blue-5': darkMode}"
+                    :class="getDarkModeClass()"
                     :label="networks.sBCH.name"
                     :disable="isChipnet"
                   />
@@ -59,8 +63,8 @@
           </div>
           <div
             v-if="!showTokens"
-            class="text-center text-blue-9 text-section"
-            :class="{'text-black': !darkMode}"
+            class="text-center text-blue-9 button button-text-primary show-tokens-label"
+            :class="getDarkModeClass('dark', 'light text-black')"
             @click.native="toggleShowTokens"
             style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
           >
@@ -69,8 +73,8 @@
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
               <p
-                class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm"
-                :class="{'pt-dark-label': darkMode, 'text-section home-label': isDefaultTheme}"
+                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary payment-methods"
+                :class="getDarkModeClass()"
               >
                 {{ $t('Tokens') }}
                 <q-btn
@@ -79,15 +83,18 @@
                   v-if="manageAssets"
                   size="sm"
                   icon="close"
+                  class="settings-button"
                   :style="assetsCloseButtonColor"
+                  :class="getDarkModeClass()"
                   @click="toggleManageAssets"
                 />
                 <q-btn
                   flat
                   padding="none"
                   size="sm"
+                  class="settings-button"
                   :icon="settingsButtonIcon"
-                  style="color: #3B7BF6;"
+                  :class="getDarkModeClass()"
                   @click="updateTokenMenuPosition"
                 >
                   <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
@@ -150,14 +157,17 @@
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
         <transaction ref="transaction" :wallet="wallet"></transaction>
-        <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
+        <div class="col transaction-container" :class="getDarkModeClass()">
           <div class="row no-wrap justify-between">
-            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode, 'text-section home-label': isDefaultTheme}">
+            <p
+              class="q-ma-lg section-title transaction-wallet"
+              :class="getDarkModeClass()"
+            >
               {{ selectedAsset.symbol }} {{ $t('Transactions') }}
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
               <q-btn
-                v-if="isDefaultTheme"
+                v-if="isDefaultTheme && darkMode"
                 unelevated
                 @click="openPriceChart"
                 icon="img:/icons/theme/payhero/price-chart.png"
@@ -169,6 +179,7 @@
                 padding="xs"
                 icon="mdi-chart-line-variant"
                 class="q-ml-md"
+                :class="getDarkModeClass('', 'price-chart-icon light')"
                 @click="openPriceChart"
               />
             </div>
@@ -176,33 +187,21 @@
           <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
             <button
               class="btn-custom q-mt-none btn-all"
-              :class="{
-                'pt-dark-label': darkMode,
-                'active-transaction-btn': transactionsFilter == 'all',
-                'text-grad border': isDefaultTheme && transactionsFilter == 'all'
-              }"
+              :class="[getDarkModeClass(), {'active-transaction-btn border': transactionsFilter == 'all'}]"
               @click="setTransactionsFilter('all')"
             >
               {{ $t('All') }}
             </button>
             <button
               class="btn-custom q-mt-none btn-sent"
-              :class="{
-                'pt-dark-label': darkMode,
-                'active-transaction-btn': transactionsFilter == 'sent',
-                'text-grad border': isDefaultTheme && transactionsFilter == 'sent'
-              }"
+              :class="[getDarkModeClass(), {'active-transaction-btn border': transactionsFilter == 'sent'}]"
               @click="setTransactionsFilter('sent')"
             >
               {{ $t('Sent') }}
             </button>
             <button
               class="btn-custom q-mt-none btn-received"
-              :class="{
-                'pt-dark-label': darkMode,
-                'active-transaction-btn': transactionsFilter == 'received',
-                'text-grad border': isDefaultTheme && transactionsFilter == 'received'
-              }"
+              :class="[getDarkModeClass(), {'active-transaction-btn border': transactionsFilter == 'received'}]"
               @click="setTransactionsFilter('received')"
             >
               {{ $t('Received') }}
@@ -339,7 +338,7 @@ export default {
   },
 
   created () {
-    if (this.isDefaultTheme) {
+    if (this.isDefaultTheme && this.darkMode) {
       this.settingsButtonIcon = 'img:/icons/theme/payhero/settings.png'
       this.assetsCloseButtonColor = 'color: #ffbf00;'
     } else {
@@ -1064,6 +1063,9 @@ export default {
           })
       }
     },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
+    }
   },
 
   beforeRouteEnter (to, from, next) {
@@ -1125,7 +1127,6 @@ export default {
   .fixed-container {
     position: fixed;
     top: 0 !important;
-    background-color: #ECF3F3;
     right: 0;
     left: 0;
     
@@ -1147,19 +1148,16 @@ export default {
     }
   }
   .payment-methods {
-    color: #000;
     font-size: 20px;
   }
   .transaction-container {
     min-height: 80vh;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
-    background-color: #F9F8FF;
     margin-top: 24px;
   }
   .transaction-wallet {
     font-size: 20px;
-    color: #444646;
   }
   .btn-all {
     margin-left: 0px;
@@ -1169,16 +1167,11 @@ export default {
     width: 32%;
     border-radius: 20px;
     border: none;
-    color: #4C4F4F;
     background-color: transparent;
     outline:0;
     cursor: pointer;
     transition: .2s;
     font-weight: 500;
-  }
-  .btn-custom.active-transaction-btn {
-    background-color: rgb(60, 100, 246) !important;
-    color: #fff;
   }
   .btn-transaction {
     font-size: 16px;

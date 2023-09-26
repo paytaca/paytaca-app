@@ -1,9 +1,10 @@
 body.theme-default {
   $color_1: #eaeeff;
-  $color_2: rgb(60, 100, 246);
+  $brand_blue: rgb(60, 100, 246);
   $color_3: #ecf3f3;
   $color_4: #fff;
   $color_5: #000;
+  $color_6: #42a5f5;
 
   $card_dark: #1c2833;
 
@@ -93,6 +94,10 @@ body.theme-default {
     &.dark {
       background: #273746 !important;
     }
+
+    &.light {
+      background-color: #ecf3f3 !important;
+    }
   }
 
   .pt-brand {
@@ -117,10 +122,10 @@ body.theme-default {
     border-radius: 40px !important;
   }
   .text-brandblue {
-    color: $color_2 !important;
+    color: $brand_blue !important;
   }
   .bg-brandblue {
-    background: rgb(60, 100, 246) !important;
+    background: $brand_blue !important;
   }
   .text-brandlight {
     color: $color_3 !important;
@@ -237,6 +242,98 @@ body.theme-default {
       &.dark {
         color: #9e9e9e;
       }
+    }
+  }
+
+  .network-selection-tab {
+    color: $color_6 !important;
+
+    &.q-tab--active {
+      &.dark {
+        color: rgba(66, 165, 245, 1) !important;
+      }
+
+      &.light {
+        color: $brand_blue !important;
+      }
+    }
+
+    &.q-tab--inactive {
+      &.dark {
+        color: $color_6 !important;
+      }
+
+      &.light {
+        color: $color_5 !important;
+      }
+    }
+  }
+
+  .button {
+    &.button-text-primary {
+      &.dark {
+        color: $color_4 !important;
+      }
+
+      &.light {
+        color: #000 !important;
+      }
+    }
+  }
+
+  .settings-button {
+    color: #3b7bf6;
+  }
+
+  .transaction-container {
+    &.dark {
+      background-color: #212f3d;
+    }
+
+    &.light {
+      background-color: #f9f8ff;
+    }
+  }
+
+  .btn-custom.dark,
+  .section-title.dark {
+    color: $color_4 !important;
+  }
+
+  .btn-custom {
+    &.light {
+      color: #4c4f4f !important;
+    }
+
+    &.active-transaction-btn {
+      background-color: rgb(60, 100, 246) !important;
+      color: #fff !important;
+    }
+  }
+
+  .section-title.light {
+    color: #444646;
+  }
+
+  .transactions-wallet {
+    &.type,
+    &.amount,
+    &.date {
+      &.light {
+        color: #4c4f4f;
+      }
+    }
+
+    &.type,
+    &.date {
+      &.dark {
+        color: $color_4;
+      }
+    }
+
+    &.amount.dark,
+    &.market-value {
+      color: #9e9e9e;
     }
   }
 }
