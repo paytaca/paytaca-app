@@ -436,6 +436,11 @@ export default {
       if (!this.rampContract) {
         await this.generateContract()
       }
+      const feContractAddr = await this.rampContract.getAddress()
+      const beContractAddr = this.contract.address
+      if (feContractAddr !== beContractAddr) {
+        this.errorMessages.push('contract addresses mismatched')
+      }
       await this.rampContract.release(this.wallet.privateKeyWif, this.order.crypto_amount)
         .then(result => {
           this.txid = result.txInfo.txid
@@ -452,11 +457,10 @@ export default {
           console.log('rampContract:', this.rampContract)
         })
         .catch(error => {
-          console.error(error.response)
+          console.error('release error:', error.response)
         })
     },
     async verifyRelease () {
-      // console.log('verifyRelease')
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
       const timestamp = Date.now()
@@ -704,8 +708,10 @@ export default {
     onBack () {
       this.state = 'order-list'
     },
-    onEscrowSuccess () {
-
+    onEscrowSuccess (data) {
+      console.log('onEscrowSuccess:', data)
+      this.txid = data.txid
+      this.updateStatus(data.status.status)
     },
     copyToClipboard (value) {
       this.$copyText(value)

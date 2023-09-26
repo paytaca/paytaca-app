@@ -3,7 +3,6 @@ import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript
 import { compileString } from 'cashc'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
-import fs from 'fs'
 
 const bchjs = new BCHJS()
 
@@ -42,7 +41,7 @@ export class RampContract {
     const sellerPkh = this.getPubKeyHash(this.publicKeys.seller)
     const servicerPkh = this.getPubKeyHash(this.publicKeys.servicer)
 
-    this.hash = await this.sha256Hash(this.timestamp)
+    this.hash = await this.sha256Hash(arbiterPkh, buyerPkh, sellerPkh, servicerPkh, this.timestamp)
 
     const contractParams = [
       arbiterPkh,
@@ -88,10 +87,9 @@ export class RampContract {
    * @param {number} timestamp - The timestamp to be included in the hash.
    * @returns {Promise<string>} A promise that resolves with the generated hash as a string.
    */
-  async sha256Hash (timestamp) {
-    // const fileData = await this.readFile(this.contractPath)
-    const bufFileData = Buffer.from(escrowSrcCode, 'utf-8')
-    return CryptoJS.SHA256(bufFileData + timestamp).toString()
+  async sha256Hash (arbiterPkh, buyerPkh, sellerPkh, servicerPkh, timestamp) {
+    const message = arbiterPkh + buyerPkh + sellerPkh + servicerPkh + timestamp
+    return CryptoJS.SHA256(message).toString()
   }
 
   /**
