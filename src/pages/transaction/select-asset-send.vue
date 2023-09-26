@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="darkMode ? 'dark' : 'light'">
+  <div id="app-container" :class="getDarkModeClass()">
     <header-nav :title="$t('Send')" backnavpath="/"></header-nav>
     <q-tabs
       dense
@@ -28,7 +28,7 @@
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm pt-label" :class="darkMode ? 'dark' : 'light'">
+          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass()">
             {{ $t('SelectAssetToSend') }}
           </p>
         </div>
@@ -44,18 +44,17 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'dark' : 'bg-white light'">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass('dark', 'bg-white light')">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50" /></div>
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
-                  :class="darkMode ? isDefaultTheme ? 'text-grad' : 'text-pink-5' : 'text-dark'"
-                  style="font-size: 18px;"
+                  :class="darkMode ? isDefaultTheme ? 'text-grad' : 'dark' : 'light'"
                 >
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none amount-text" :class="darkMode ? 'dark' : 'text-grad'">
+                <p class="q-ma-none amount-text" :class="getDarkModeClass('dark', 'text-grad')">
                   {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
                   <span>
                     {{ asset.symbol }}
@@ -171,6 +170,9 @@ export default {
         name: 'transaction-send',
         query
       })
+    },
+    getDarkModeClass(darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   mounted () {
@@ -189,7 +191,7 @@ export default {
     margin-top: 5px;
     margin-bottom: 5px;
   }
-  .amount-text {
+  .text-token {
     font-size: 18px;
   }
   .pp-fcolor {

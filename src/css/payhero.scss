@@ -6,11 +6,11 @@ body.theme-payhero {
   $color_3: #ecf3f3;
   $color_4: #fff;
   $color_5: #000;
-  $color_6: #ffbf00; // brand color yellow 1
-  $color_7: #9b8447; // brand color yellow 2
-  $color_8: #e0e2e5;
   $color_9: #ececec;
 
+  $brand_yellow: #ffbf00;
+  $button_yellow: #9b8447;
+  $label-white: #e0e2e5;
   $wallet_card: #111c2c;
   $wallet_address: #949494;
   $close_button: red;
@@ -89,14 +89,10 @@ body.theme-payhero {
   }
 
   #context-menu {
-    color: $color_6 !important;
+    color: $brand_yellow !important;
   }
 
   #app-container {
-    &.light {
-      background: linear-gradient(180deg, #fff 0%, $color_6 100%) !important;
-    }
-
     &.dark {
       background: linear-gradient(
         180deg,
@@ -104,14 +100,44 @@ body.theme-payhero {
         #000 100%
       ) !important;
     }
+
+    &.light {
+      background: linear-gradient(
+        180deg,
+        #fff 0%,
+        $brand_yellow 100%
+      ) !important;
+    }
   }
 
   .bg-grad {
     background: $black_opaque_50;
+
+    &.swipe {
+      &.dark {
+        background: linear-gradient(
+          360deg,
+          $background-blue 0%,
+          #000 100%
+        ) !important;
+      }
+
+      &.light {
+        background: linear-gradient(
+          360deg,
+          #fff 0%,
+          $brand_yellow 100%
+        ) !important;
+
+        .text-grey-4 {
+          color: $footer-bar !important;
+        }
+      }
+    }
   }
 
   .text-grad {
-    background: -webkit-linear-gradient(270deg, $color_6 0%, #fff 100%);
+    background: -webkit-linear-gradient(270deg, $brand_yellow 0%, #fff 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -128,7 +154,8 @@ body.theme-payhero {
         inset: 0;
         border-radius: 17px;
         border: 1px solid transparent;
-        background: linear-gradient(180deg, $color_6 0%, #fff 100%) border-box;
+        background: linear-gradient(180deg, $brand_yellow 0%, #fff 100%)
+          border-box;
         -webkit-mask: linear-gradient(#fff 0 0) padding-box,
           linear-gradient(#fff 0 0);
         mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
@@ -148,7 +175,8 @@ body.theme-payhero {
       inset: 0;
       border-radius: 16px;
       border: 1px solid transparent;
-      background: linear-gradient(180deg, $color_6 0%, #fff 100%) border-box;
+      background: linear-gradient(180deg, $brand_yellow 0%, #fff 100%)
+        border-box;
       -webkit-mask: linear-gradient(#fff 0 0) padding-box,
         linear-gradient(#fff 0 0);
       mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
@@ -166,7 +194,8 @@ body.theme-payhero {
       inset: 0;
       border-radius: 999px;
       border: 2px solid transparent;
-      background: linear-gradient(180deg, $color_6 0%, #fff 100%) border-box;
+      background: linear-gradient(180deg, $brand_yellow 0%, #fff 100%)
+        border-box;
       -webkit-mask: linear-gradient(#fff 0 0) padding-box,
         linear-gradient(#fff 0 0);
       mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
@@ -241,7 +270,7 @@ body.theme-payhero {
     background: #1c2833 !important;
 
     &.registration-card {
-      background: $color_7 !important;
+      background: $button_yellow !important;
       border: 2px solid #13212c !important;
 
       .divider {
@@ -257,7 +286,7 @@ body.theme-payhero {
     background: transparent !important;
   }
   .pt-dark-label {
-    color: $color_8 !important;
+    color: $label-white !important;
 
     &.label-text {
       color: $color_9 !important;
@@ -268,7 +297,7 @@ body.theme-payhero {
 
   .pt-label {
     &.dark {
-      color: $color_8 !important;
+      color: $label-white !important;
     }
   }
 
@@ -304,27 +333,6 @@ body.theme-payhero {
     color: $color_5 !important;
   }
 
-  .group-currency {
-    border-radius: 6px;
-
-    &.dark {
-      background: $card_dark !important;
-    }
-
-    &.light {
-      background: $card_light !important;
-    }
-
-    .amount-text {
-      font-size: 16px !important;
-      font-weight: 300;
-
-      &.dark {
-        color: $color_8 !important;
-      }
-    }
-  }
-
   .fixed-container {
     background: transparent !important;
   }
@@ -344,7 +352,7 @@ body.theme-payhero {
   .view-ignored-label,
   .pin-icon,
   .dismiss-text {
-    color: $color_6 !important;
+    color: $brand_yellow !important;
 
     &.home-label {
       font-weight: 300;
@@ -404,7 +412,7 @@ body.theme-payhero {
 
     &.q-tab--active {
       background-color: $black_opaque_50 !important;
-      color: $color_6 !important;
+      color: $brand_yellow !important;
     }
 
     &.q-tab--inactive {
@@ -418,52 +426,115 @@ body.theme-payhero {
 
   .bg-payhero,
   .bg-toggle {
-    background: $color_6 !important;
+    background: $brand_yellow !important;
   }
 
   .bg-button-toggle {
-    background: $color_7 !important;
+    background: $button_yellow !important;
   }
 
   .q-toggle--dark {
     > .q-toggle__inner--truthy,
     > .q-toggle__inner--falsy {
-      color: $color_6 !important;
+      color: $brand_yellow !important;
     }
   }
 
   .pt-internet-required {
-    color: $color_8 !important;
+    color: $label-white !important;
   }
 
   .button-themed,
   .bg-toggle-active {
-    background: $color_7 !important;
+    background: $button_yellow !important;
 
     &.button-themed-text {
       background: transparent !important;
-      color: $color_7 !important;
+      color: $button_yellow !important;
     }
 
     &.button-themed-text-gold {
       background: transparent !important;
-      color: $color_6 !important;
+      color: $brand_yellow !important;
+    }
+  }
+
+  .button,
+  .bg-toggle-active {
+    background: $button_yellow !important;
+
+    &.button-text {
+      background: transparent !important;
+      color: $button_yellow !important;
+    }
+
+    &.button-text-secondary {
+      background: transparent !important;
+
+      &.dark {
+        color: $brand_yellow !important;
+      }
+
+      &.light {
+        color: $background-blue !important;
+      }
+    }
+
+    &.button-icon {
+      &.dark {
+        background: transparent !important;
+        color: $brand_yellow !important;
+      }
+
+      &.light {
+        background: transparent !important;
+        color: $footer-bar !important;
+      }
     }
   }
 
   .q-item.q-item--active,
-  .q-field__control,
+  .q-field--dark .q-field__control,
   .q-checkbox__inner--truthy,
   .q-checkbox__inner--indet,
   .text-slider {
-    color: $color_6 !important;
+    color: $brand_yellow !important;
 
     &.text-negative {
       color: var(--q-negative) !important;
     }
   }
 
+  .q-field .q-field__control {
+    color: $footer-bar;
+  }
+
   .q-menu--dark {
     box-shadow: none;
+  }
+
+  .group-currency {
+    border-radius: 6px;
+
+    &.dark {
+      background: $card_dark !important;
+    }
+
+    &.light {
+      background: $card_light !important;
+    }
+
+    .text-token.light {
+      color: $label-white;
+    }
+
+    .amount-text {
+      font-size: 16px;
+
+      &.dark {
+        color: $label-white;
+        font-weight: 300;
+      }
+    }
   }
 }
