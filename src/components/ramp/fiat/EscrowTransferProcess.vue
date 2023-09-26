@@ -178,6 +178,7 @@ export default {
     await vm.fetchArbiters()
     if (vm.contract) {
       vm.contractAddress = vm.contract.address
+      console.log('contractAddress:', vm.contractAddress)
     } else {
       await vm.generateContractAddress()
     }
@@ -283,7 +284,7 @@ export default {
       const url = vm.apiURL + '/arbiter'
       try {
         const response = await vm.$axios.get(url)
-        console.log('response:', response)
+        // console.log('response:', response)
         vm.arbiterOptions = response.data
         vm.selectedArbiter = vm.order.arbiter
         if (vm.arbiterOptions.length > 0) {

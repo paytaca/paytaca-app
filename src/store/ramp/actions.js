@@ -1,8 +1,14 @@
 import { axiosInstance } from '../../boot/axios'
 import { signMessage } from 'src/wallet/ramp/signature'
+import { Store } from '..'
+import { loadP2PWalletInfo } from 'src/wallet/ramp'
 
-export async function fetchArbiter (context, wallet) {
-  const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/arbiter'
+export async function fetchArbiter (context) {
+  const walletInfo = Store.getters['global/getWallet']('bch')
+  const index = Store.getters['global/getWalletIndex']
+  const wallet = await loadP2PWalletInfo(walletInfo, index)
+
+  const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/arbiter/detail'
   const timestamp = Date.now()
   const signature = await signMessage(wallet.privateKeyWif, 'ARBITER_GET', timestamp)
   const headers = {
@@ -10,8 +16,12 @@ export async function fetchArbiter (context, wallet) {
     timestamp: timestamp,
     signature: signature
   }
+  const params = {
+    public_key: wallet.publicKey
+  }
   try {
-    const response = await axiosInstance.get(url, { headers: headers })
+    const response = await axiosInstance.get(url, { headers: headers, params: params })
+    console.log('response:', response)
     context.commit('updateArbiter', response.data.arbiter)
     return response.data.arbiter
   } catch (error) {

@@ -234,13 +234,13 @@ export default {
           }
           break
         case 'CNF': // Confirmed
+          if (!this.rampContract) {
+            vm.generateContract()
+          }
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
-          }
-          if (!this.rampContract) {
-            vm.generateContract()
           }
           break
         case 'ESCRW_PN': // Escrow Pending
@@ -319,6 +319,7 @@ export default {
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.fees = response.data.fees
+          console.log('contract:', vm.contract)
           vm.updateStatus(vm.order.status)
         })
         .catch(error => {
@@ -431,6 +432,7 @@ export default {
       vm.isloaded = true
     },
     async releaseCrypto () {
+      this.txid = null
       if (!this.rampContract) {
         await this.generateContract()
       }
@@ -438,20 +440,20 @@ export default {
         .then(result => {
           this.txid = result.txInfo.txid
           this.verifyEscrowTxKey++
+
+          const txidData = {
+            id: this.order.id,
+            txidInfo: {
+              action: 'RELEASE',
+              txid: this.txid
+            }
+          }
+          this.$store.dispatch('ramp/saveTxid', txidData)
+          console.log('rampContract:', this.rampContract)
         })
         .catch(error => {
           console.error(error.response)
         })
-      // this.txid = makeid(64) // temporary txid generation
-      const txidData = {
-        id: this.order.id,
-        txidInfo: {
-          action: 'RELEASE',
-          txid: this.txid
-        }
-      }
-      this.$store.dispatch('ramp/saveTxid', txidData)
-      // console.log('rampContract:', this.rampContract)
     },
     async verifyRelease () {
       // console.log('verifyRelease')
@@ -495,7 +497,7 @@ export default {
       }
       try {
         const response = await vm.$axios.post(url, body, { headers: headers })
-        // console.log('verifyEscrow response:', response)
+        console.log('verifyEscrow response:', response)
       } catch (error) {
         console.error(error.response)
         const errorMsg = error.response.data.error
@@ -524,10 +526,12 @@ export default {
         contractFee: this.fees.fees.hardcoded_fee
       }
       const timestamp = this.contract.timestamp
+      // const rampContract_ = new RampContract(publicKeys, fees, addresses, timestamp, !this.isChipnet)
       this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
       await this.rampContract.initialize()
-      console.log('contract address:', await this.rampContract.getAddress())
-      console.log('contract balance:', await this.rampContract.getBalance())
+      // console.log('address_:', await rampContract_.getAddress())
+      console.log('address:', await this.rampContract.getAddress())
+      // console.log('contract balance:', await this.rampContract.getBalance())
       // this.contract.address = this.rampContract.getAddress()
       // console.log('rampContract address:', this.rampContract.getAddress())
     },
@@ -694,17 +698,14 @@ export default {
       }
       return true
     },
-    onEscrowSuccess (data) {
-      // console.log('onEscrowSubmit:', data)
-      // this.txid = data.txid
-      // this.updateStatus(data.status)
-    },
     onVerifyTxSuccess (status) {
-      // console.log('onVerifyTxSuccess:', status)
       this.updateStatus(status)
     },
     onBack () {
       this.state = 'order-list'
+    },
+    onEscrowSuccess () {
+
     },
     copyToClipboard (value) {
       this.$copyText(value)

@@ -186,7 +186,7 @@ export default {
           vm.hideBtn = false
         }
         // if (!vm.txExists) {
-        vm.waitSeconds = 5
+        vm.waitSeconds = 60
         vm.timer = setInterval(function () {
           vm.waitSeconds--
           if (vm.waitSeconds === 0) {
