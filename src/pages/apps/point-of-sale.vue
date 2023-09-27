@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
     <HeaderNav
       title="POS Admin"
       backnavpath="/apps"
@@ -929,6 +929,9 @@ function connectRpcClient(opts) {
     })
 }
 
+function getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+  return this.darkMode ? darkModeClass : lightModeClass
+}
 </script>
 <style scoped>
 .device-tooltip > div::before {

@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
     <HeaderNav
       :title="$t('Bridge')"
       backnavpath="/apps"
@@ -121,6 +121,9 @@ export default {
         amount: '',
         expectedAmount: ''
       }
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   beforeRouteLeave (to, from, next) {

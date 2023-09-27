@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass()">
       <div>
         <header-nav :title="$t('Sweep')" backnavpath="/apps" />
         <div style="margin-top: 60px;" :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}">
@@ -254,6 +254,9 @@ export default {
     onScannerDecode (content) {
       this.showQrScanner = false
       this.wif = content
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   mounted () {

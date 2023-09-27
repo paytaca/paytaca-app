@@ -35,7 +35,7 @@
         :disable="!openLiquidityPoolOptsForm.selected"
         :label="$t('Select')"
         color="brandblue"
-        class="full-width button-themed"
+        class="full-width button"
         @click="() => {
           createHedgeForm.autoMatchPoolTarget = openLiquidityPoolOptsForm.selected
           openLiquidityPoolOptsForm.show = false
@@ -128,7 +128,7 @@
         round
         color="brandblue"
         icon="refresh"
-        class="q-mx-xs button-themed"
+        class="q-mx-xs button"
         padding="xs"
         @click="clearCreateHedgeForm({ clearErrors: true })"
       />
@@ -141,7 +141,7 @@
         name="help"
       >
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
             Hedge amount is calculated from long amount below & low liquidation percentage below
           </div>
         </q-popup-proxy>
@@ -324,7 +324,7 @@
         :disable="loading"
         :label="$t('Calculate')"
         type="submit"
-        color="brandblue button-themed"
+        color="brandblue button"
         class="full-width"
       />
       <q-btn

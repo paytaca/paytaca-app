@@ -141,6 +141,12 @@ body.theme-default {
     background: $card_dark !important;
   }
 
+  .pt-card {
+    &.dark {
+      background: $card_dark !important;
+    }
+  }
+
   .wallet-card {
     &.dark {
       background: $card_dark;
@@ -366,5 +372,10 @@ body.theme-default {
     &.market-value {
       color: #9e9e9e;
     }
+  }
+
+  .q-field .q-field__control,
+  .q-field .q-field__native {
+    color: black;
   }
 }

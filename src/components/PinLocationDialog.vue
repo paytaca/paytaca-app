@@ -28,7 +28,7 @@
           no-caps
           label="OK"
           color="brandblue"
-          class="col"
+          class="col button"
           @click="onDialogOK(coordinates)"
         />
       </q-card-actions>

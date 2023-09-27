@@ -1,11 +1,11 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
-    <div id="apps" ref="apps" class="text-center">
+  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
+    <div id="apps" ref="apps" class="text-center" :class="getDarkModeClass()">
       <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
         <div :class="{'pt-header apps-header': isDefaultTheme}">
           <p
             class="section-title"
-            :class="{'text-blue-5': $store.getters['darkmode/getStatus'], 'text-grad': isDefaultTheme}"
+            :class="{'text-blue-5': darkMode, 'text-grad': isDefaultTheme}"
           >
             {{ $t('Applications') }}
           </p>
@@ -22,7 +22,7 @@
             >
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
-            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
+            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass()">{{ app.name }}</p>
           </div>
         </div>
       </div>
@@ -125,7 +125,8 @@ export default {
         }
       ],
       filteredApps: [],
-      appHeight: null
+      appHeight: null,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
@@ -147,6 +148,9 @@ export default {
       if (app.active) {
         this.$router.push(app.path)
       }
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   created () {

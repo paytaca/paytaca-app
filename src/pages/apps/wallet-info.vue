@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
     <header-nav :title="$t('WalletInfo')" backnavpath="/apps" class="apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <div class="col-12 q-px-lg q-mt-lg">
@@ -30,7 +30,7 @@
                 v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
                 dense
                 :class="[
-                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2',
+                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2 text-dark',
                   'rounded-borders q-mt-sm q-mb-md',
                 ]"
               >
@@ -123,7 +123,7 @@
                 v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.completedAt"
                 dense
                 :class="[
-                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2',
+                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2 text-dark',
                   'rounded-borders q-mt-sm q-mb-md',
                 ]"
               >
@@ -712,6 +712,9 @@ export default {
           vm.switchWallet(undeletedWallets[0])
         }
       })
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   beforeUnmount() {

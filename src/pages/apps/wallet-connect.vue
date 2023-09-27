@@ -4,7 +4,7 @@
       v-model="scanner.show"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass()">
       <HeaderNav
         :title="$t('WalletConnect')"
         backnavpath="/apps"
@@ -537,6 +537,9 @@ export default {
         .then(function (mnemonic) {
           vm.wallet = markRaw(new Wallet(mnemonic, 'sBCH'))
         })
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
 

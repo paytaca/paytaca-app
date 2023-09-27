@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="{'pt-dark bridge-swap-form': darkMode}">
+    <div id="app-container" class="bridge-swap-form" :class="getDarkModeClass()">
       <div
         v-if="Array.isArray(errors) && errors.length"
         class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
@@ -200,7 +200,7 @@
                 padding="xs md"
                 :label="$t('ScanQrCode')"
                 rounded
-                class="q-mb-sm button-themed"
+                class="q-mb-sm button"
                 color="blue-9"
                 :disable="lockInputs"
                 @click="showQrScanner = true"
@@ -249,7 +249,7 @@
                 :disable="maxBridgeBalance === 0 || lockInputs || !amount"
                 :label="$t('Swap')"
                 color="brandblue"
-                class="full-width button-themed"
+                class="full-width button"
                 type="submit"
               />
             </div>
@@ -637,6 +637,10 @@ export default {
         const wallet = new Wallet(mnemonic, network)
         vm.wallet = markRaw(wallet)
       })
+    },
+
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
 

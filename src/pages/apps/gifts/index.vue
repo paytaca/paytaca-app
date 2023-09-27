@@ -1,6 +1,6 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass()">
       <HeaderNav
         title="Gifts"
         backnavpath="/apps"
@@ -333,6 +333,9 @@ export default {
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   mounted () {

@@ -32,10 +32,30 @@
         </q-inner-loading>
       </q-img>
 
-      <q-tabs v-model="tab">
-        <q-tab :class="{'text-blue-5': darkMode}" name="details" :label="$t('Details')"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="transaction" :label="$t('Transaction')"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="extension" :label="$t('Extensions')" :disable="!nft?.metadata?.type_metadata?.extensions"/>
+      <q-tabs
+        v-model="tab"
+        :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+        :indicator-color="isDefaultTheme && 'transparent'"
+      >
+        <q-tab
+          name="details"
+          class="network-selection-tab"
+          :class="{'text-blue-5': darkMode}"
+          :label="$t('Details')"
+        />
+        <q-tab
+          name="transaction"
+          class="network-selection-tab"
+          :class="{'text-blue-5': darkMode}"
+          :label="$t('Transaction')"
+        />
+        <q-tab
+          name="extension"
+          class="network-selection-tab"
+          :class="{'text-blue-5': darkMode}"
+          :label="$t('Extensions')"
+          :disable="!nft?.metadata?.type_metadata?.extensions"
+        />
       </q-tabs>
       <q-tab-panels
         animated
@@ -129,6 +149,7 @@
             :label="$t('Send')"
             icon="send"
             color="brandblue"
+            class="button"
             :to="{
               name: 'transaction-send',
               query: {
@@ -224,6 +245,10 @@ function copyToClipboard(value, message) {
     color: 'blue-9',
     icon: 'mdi-clipboard-check'
   })
+}
+
+function isDefaultTheme () {
+  return this.$store.getters['global/theme'] !== 'default'
 }
 </script>
 

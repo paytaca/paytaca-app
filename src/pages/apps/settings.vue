@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
       <header-nav :title="$t('Settings')" backnavpath="/apps" class="apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
@@ -269,6 +269,9 @@ export default {
       //   vm.pinStatus = false
       //   vm.securityOptionDialogStatus = 'dismiss'
       // }
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   created () {

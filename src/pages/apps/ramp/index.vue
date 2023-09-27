@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
     <HeaderNav
       :title="$t('Ramp')"
       backnavpath="/apps"
@@ -70,6 +70,11 @@ export default {
   computed: {
     isDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
+    }
+  },
+  methods: {
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   async mounted () {

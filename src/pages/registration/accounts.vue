@@ -6,7 +6,7 @@
         <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm justify-center" :class="{'pt-dark': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
+    <div class="row pt-wallet q-mt-sm justify-center" :class="{'pt-dark info-banner': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
       <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
           <div class="row">

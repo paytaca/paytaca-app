@@ -27,6 +27,7 @@ body.theme-payhero {
   $background-color_2: #f9f8ff;
   $background-color_3: #ecf3f3;
   $background-blue: #4872b8;
+  $info-banner: #273746;
 
   body {
     font-family: $font-family_1;
@@ -92,7 +93,8 @@ body.theme-payhero {
     color: $brand_yellow !important;
   }
 
-  #app-container {
+  #app-container,
+  #apps {
     &.dark {
       background: linear-gradient(
         180deg,
@@ -107,6 +109,10 @@ body.theme-payhero {
         #fff 0%,
         $brand_yellow 100%
       ) !important;
+    }
+
+    &.bridge-swap-form {
+      background: transparent !important;
     }
   }
 
@@ -239,11 +245,7 @@ body.theme-payhero {
     }
 
     &.info-banner {
-      background: #273746 !important;
-    }
-
-    &.bridge-swap-form {
-      background: transparent !important;
+      background: $info-banner !important;
     }
   }
 
@@ -257,6 +259,12 @@ body.theme-payhero {
       .divider {
         border-bottom: 2px solid #13212c;
       }
+    }
+  }
+
+  .pt-card {
+    &.dark {
+      background: #1c2833 !important;
     }
   }
 
@@ -436,7 +444,7 @@ body.theme-payhero {
     background: $button_yellow !important;
   }
 
-  .q-toggle--dark {
+  .q-toggle {
     > .q-toggle__inner--truthy,
     > .q-toggle__inner--falsy {
       color: $brand_yellow !important;
@@ -527,7 +535,8 @@ body.theme-payhero {
     }
   }
 
-  .q-field .q-field__control {
+  .q-field .q-field__control,
+  .q-field .q-field__native {
     color: $footer-bar;
   }
 

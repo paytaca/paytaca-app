@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
@@ -94,7 +94,8 @@
             size="sm"
             icon="add"
             style="color: #3B7BF6;"
-            class="q-mx-sm"
+            class="q-mx-sm button button-icon"
+            :class="getDarkModeClass()"
             @click="showAddERC721Form = true"
           />
           <q-btn
@@ -104,7 +105,8 @@
             size="sm"
             icon="app_registration"
             style="color: #3B7BF6;"
-            class="q-mx-sm"
+            class="q-mx-sm button button-icon"
+            :class="getDarkModeClass()"
             @click="toggleManageAssets"
           />
         </div>
@@ -126,6 +128,8 @@
                     padding="sm"
                     icon="info"
                     style="color: #3B7BF6;"
+                    class="button button-icon"
+                    :class="getDarkModeClass()"
                     @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
                   />
                   <div class="text-subtitle1" :class="darkMode ? 'pt-dark-label' : 'text-black'">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
@@ -154,6 +158,8 @@
                   padding="sm"
                   icon="delete"
                   style="color: #3B7BF6;"
+                  class="button button-icon"
+                  :class="getDarkModeClass()"
                   @click.stop="confirmRemoveERC721Asset(asset)"
                 />
               </q-item-section>
@@ -167,6 +173,8 @@
                   padding="sm"
                   icon="info"
                   style="color: #3B7BF6;"
+                  class="button button-icon"
+                  :class="getDarkModeClass()"
                   @click.stop="showERC721Asset(asset)"
                 />
               </q-item-section>
@@ -339,6 +347,9 @@ export default {
         const wallet = new Wallet(mnemonic, vm.selectedNetwork)
         vm.wallet = markRaw(wallet)
       })
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   mounted () {

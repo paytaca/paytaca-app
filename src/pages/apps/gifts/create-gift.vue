@@ -1,10 +1,10 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass()">
       <HeaderNav
         title="Gifts"
         backnavpath="/apps/gifts"
-        class="q-px-sm"
+        class="q-px-sm apps-header gift-app-header"
       />
       <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '145px' : '80px'}">
         <div class="text-center" v-if="processing">
@@ -120,7 +120,7 @@
               color="blue-9"
               type="submit"
               label="Generate"
-              class="flex flex-center"
+              class="flex flex-center button"
               :disable="(createNewCampaign && !campaignName) || disableGenerateButton()"
               @click="processRequest()"
             >
@@ -350,6 +350,9 @@ export default {
           value: 'create-new'
         })
       })
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   mounted () {
