@@ -1,16 +1,8 @@
 <template>
   <q-dialog  ref="dialog" position="bottom" full-width>
-    <q-card
-      style="height: 525px;"
-      class="br-15"
-      :class="[darkMode ? isDefaultTheme ? 'pt-dark-card wallet-card' : 'text-white pt-dark-card' : 'text-black']"
-    >
+    <q-card class="br-15 wallet-card" :class="getDarkModeClass()">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
-        <div
-          class="text-h5 q-space q-mt-sm text-blue-9"
-          :class="{'text-grad' : isDefaultTheme}"
-          style="font-size: 18px;"
-        >
+        <div class="text-h5 q-space q-mt-sm title">
           {{ $t('Wallets') }}
         </div>
         <q-btn
@@ -40,29 +32,24 @@
             <template v-if="wallet.deleted !== true">
               <q-item
                 clickable
-                class="q-pb-sm"
-                :class="{'wallet-bottom-border' : isDefaultTheme}"
-                :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'"
+                class="q-pb-sm bottom-border"
+                :class="getDarkModeClass()"
                 @click="selectedIndex = index"
               >
                 <q-item-section style="overflow-wrap: break-word;">
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+                  <div :class="getDarkModeClass('pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
                     <span class="text-h5" :class="{'text-grad' : isDefaultTheme}" style="font-size: 15px;">
                       {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
                     </span>
-                    <span  class="text-nowrap q-ml-xs q-mt-sm" :class="{'text-grey': darkMode, 'pt-dark-label': isDefaultTheme}">
+                    <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass()">
                       {{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}
                     </span>
                   </div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                    <span style="font-size: 12px; color: gray;" :class="{'wallet-address' : isDefaultTheme}">
+                  <div :class="getDarkModeClass('pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
+                    <span class="address" :class="getDarkModeClass()">
                       {{ arrangeAddressText(wallet) }}
                     </span>
-                    <span
-                      style="font-size: 12px; color: gray;"
-                      class="text-nowrap q-ml-xs"
-                      :class="{'pt-dark-label' : isDefaultTheme}"
-                    >
+                    <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass()">
                       {{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
                     </span>
                   </div>
@@ -189,6 +176,9 @@ export default {
       } else {
         return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   computed: {
@@ -217,6 +207,19 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.wallet-card {
+  height: 525px;
+  .title {
+    font-size: 18px;
+  }
+  .bottom-border {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+  }
+  .address, .market-currency {
+    font-size: 12px;
+  }
+}
 .inactive-color {
   color: #ed5e59;
   -webkit-text-fill-color: #ed5e59;

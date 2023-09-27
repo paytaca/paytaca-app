@@ -7,6 +7,7 @@ body.theme-default {
   $color_6: #42a5f5;
 
   $card_dark: #1c2833;
+  $text_blue_9: #1565c0;
 
   $background-color_1: #012121;
   $background-color_2: #f9f8ff;
@@ -139,6 +140,32 @@ body.theme-default {
   .pt-dark-card {
     background: $card_dark !important;
   }
+
+  .wallet-card {
+    &.dark {
+      background: $card_dark;
+    }
+
+    .title {
+      color: $text_blue_9;
+    }
+
+    .bottom-border {
+      &.dark {
+        border-bottom-color: grey;
+      }
+
+      &.light {
+        border-bottom-color: #dae0e7;
+      }
+    }
+
+    .address,
+    .market-currency {
+      color: gray;
+    }
+  }
+
   .pt-dark-card-2 {
     background: #212f3d !important;
   }
@@ -148,7 +175,11 @@ body.theme-default {
 
   .pt-label {
     &.dark {
-      color: $color_4 !important;
+      color: $color_4;
+    }
+
+    &.light {
+      color: #444655;
     }
   }
 

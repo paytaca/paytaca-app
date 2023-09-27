@@ -12,22 +12,22 @@
       @update:modelValue="changeNetwork"
     >
       <q-tab
-      name="BCH"
-      class="network-selection-tab"
-      :class="{'text-blue-5': darkMode}"
-      :label="networks.BCH.name"
+        name="BCH"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="networks.BCH.name"
       />
       <q-tab
-      name="sBCH"
-      class="network-selection-tab"
-      :class="{'text-blue-5': darkMode}"
-      :label="networks.sBCH.name"
-      :disable="isChipnet"
+        name="sBCH"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="networks.sBCH.name"
+        :disable="isChipnet"
       />
     </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
-        <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
+        <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
           <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass()">
             {{ $t('SelectAssetToSend') }}
           </p>
@@ -196,5 +196,9 @@ export default {
   }
   .pp-fcolor {
     color: #000 !important;
+  }
+  .pt-label {
+    font-size: 16px;
+    font-weight: 300;
   }
 </style>

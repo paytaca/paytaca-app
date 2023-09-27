@@ -136,7 +136,8 @@ body.theme-payhero {
     }
   }
 
-  .text-grad {
+  .text-grad,
+  .wallet-card .title {
     background: -webkit-linear-gradient(270deg, $brand_yellow 0%, #fff 100%);
     background-clip: text;
     -webkit-background-clip: text;
@@ -257,11 +258,39 @@ body.theme-payhero {
         border-bottom: 2px solid #13212c;
       }
     }
+  }
 
-    &.wallet-card {
-      background: rgba(17, 28, 44, 0.95) !important;
+  .wallet-card {
+    &.dark {
+      background: rgba(17, 28, 44, 0.95);
+    }
+
+    &.light {
+      background: rgba(155, 132, 71, 0.95);
+    }
+
+    .bottom-border {
+      border-bottom-color: $wallet_address;
+    }
+
+    .asset-balance.light,
+    .market-currency.light {
+      color: $label-white !important;
+    }
+
+    .address {
+      font-weight: 300;
+
+      &.dark {
+        color: $wallet_address;
+      }
+
+      &.light {
+        color: $footer-bar;
+      }
     }
   }
+
   .pt-dark-card-2 {
     background: transparent !important;
   }
@@ -277,7 +306,11 @@ body.theme-payhero {
 
   .pt-label {
     &.dark {
-      color: $label-white !important;
+      color: $label-white;
+    }
+
+    &.light {
+      color: #444655;
     }
   }
 
@@ -336,15 +369,6 @@ body.theme-payhero {
 
   .close-button {
     color: $close_button !important;
-  }
-
-  .wallet-address {
-    color: $wallet_address !important;
-    font-weight: 300;
-  }
-
-  .wallet-bottom-border {
-    border-bottom: 1px solid $wallet_address !important;
   }
 
   .btn-transaction {

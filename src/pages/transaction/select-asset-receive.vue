@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
     <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense
@@ -27,8 +27,8 @@
     </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
-        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode, 'label-text' : isDefaultTheme}">
+        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
+          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass()">
             {{ $t('SelectAssetToBeReceived') }}
           </p>
         </div>
@@ -44,25 +44,17 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'" v-if="isCashToken">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass('dark', 'bg-white light')" v-if="isCashToken">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
-              <div>
-                <!-- <img v-if="isDefaultTheme && asset.logo == 'new-token.png'" src="~/assets/themes/payhero/add-asset.png" /> -->
-                <img :src="asset.logo || getFallbackAssetLogo(asset)" width="50">
-              </div>
+              <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
-                  :class="darkMode ? isDefaultTheme ? 'text-grad' : 'text-pink-5' : 'text-dark'"
-                  style="font-size: 18px;"
+                  :class="darkMode ? isDefaultTheme ? 'text-grad' : 'dark' : 'light'"
                 >
                   {{ asset.name }}
                 </p>
-                <p
-                  class="q-ma-none"
-                  :class="darkMode ? isDefaultTheme ? 'pt-dark-label amount-text' : 'text-grey' : 'text-grad'"
-                  style="font-size: 18px;"
-                >
+                <p class="q-ma-none amount-text" :class="getDarkModeClass('dark', 'text-grad')">
                   <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/'))).substring(0, 16) }}</span>
                   {{ asset.symbol }}
                 </p>
@@ -194,6 +186,9 @@ export default {
     },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
+    },
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   mounted () {
@@ -211,7 +206,14 @@ export default {
     margin-top: 5px;
     margin-bottom: 5px;
   }
+  .text-token {
+    font-size: 18px;
+  }
   .pp-fcolor {
     color: #000 !important;
+  }
+  .pt-label {
+    font-size: 16px;
+    font-weight: 300;
   }
 </style>
