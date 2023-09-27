@@ -154,6 +154,7 @@
         :label="$t('Amount')"
         suffix="BCH"
         :disable="loading"
+        :readonly="amountInputState"
         inputmode="decimal"
         v-model="createHedgeForm.amount"
         reactive-rules
@@ -163,6 +164,8 @@
           val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${createHedgeFormConstraints.minimumAmount} BCH`,
           val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
         ]"
+        @focus="readonlyState(true)"
+        @blur="readonlyState(false)"
         class="q-space"
       >
         <template v-slot:hint>
@@ -352,6 +355,8 @@ import HedgePositionOfferSelectionDialog from './HedgePositionOfferSelectionDial
 import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
+import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+
 
 function alertError(...args) {
   console.error('form error', args)
@@ -361,6 +366,31 @@ function alertError(...args) {
 const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+// custom keyboard
+const showCustomKeyboard = ref(false)
+const amountInputState = ref(false)
+const customKeyboardState = ref('dismiss')
+
+function showKeyboard(state) {
+  this.showCustomKeyboard = state
+  console.log(this.showCustomKeyboard)
+}
+
+function readonlyState (state) {
+  this.amountInputState = state
+  if (this.amountInputState) {
+    this.customKeyboardState = 'show'
+  }
+  console.log(this.amountInputState)
+  this.showCustomKeyboard = true
+  this.customKeyboardState = state ? 'show' : 'dismiss'
+}
+
+function setAmount (key, type) {}
+
+function makeKeyAction (action, type) {}
+
 
 const $emit = defineEmits(['created', 'cancel'])
 
@@ -459,7 +489,7 @@ const createHedgeFormMetadata = computed(() => {
     data.nominalAmount = Math.round(priceValue * createHedgeForm.value.amount) / decimalsMultiplier
     data.lowLiquidationPrice = Math.round(assetPrice * createHedgeForm.value.lowLiquidationMultiplierPctg) / 100
     data.highLiquidationPrice = Math.round(assetPrice * createHedgeForm.value.highLiquidationMultiplierPctg) / 100
-    
+
     const totalBch = data.nominalAmount / data.lowLiquidationPrice
     const longBch = totalBch - createHedgeForm.value.amount
     const longNominalUnits = Math.round(longBch * priceValue) / decimalsMultiplier
@@ -634,7 +664,7 @@ async function createHedgePosition() {
 
   // hold data in case the source value changes while the whole process ingoing
   const position = props.position
-   
+
   // grouping data
   const intent = {
     amount: createHedgeFormMetadata.value.intentAmountBCH,
@@ -698,7 +728,7 @@ async function createHedgePosition() {
     positionTaker: position,
     contractCreationParams: {
       address: '',
-      version: '',  
+      version: '',
     },
     liquidityFee: 0,
     fees: [{ satoshis: 0, address: '', name: '', description: '' }],
@@ -813,8 +843,8 @@ async function createHedgePosition() {
       const findMatchData = {
         wallet_hash: misc.walletHash,
         position: position,
-        satoshis: position === 'hedge' ? 
-          Math.round(intent.amount * 10 ** 8) : 
+        satoshis: position === 'hedge' ?
+          Math.round(intent.amount * 10 ** 8) :
           Math.round(intent.longAmountBCH * 10 ** 8),
         duration_seconds: intent.duration,
         low_liquidation_multiplier: intent.lowPriceMult,
@@ -1182,7 +1212,7 @@ async function createHedgePosition() {
     if (position === 'long') loadingMsg.value = 'Finalizing long position'
   }
 
-  anyhedgeBackend.post(path, data)  
+  anyhedgeBackend.post(path, data)
     .then(response => {
       // console.log(response)
       if(response?.data?.id || response?.data?.hedge_position?.id) {
