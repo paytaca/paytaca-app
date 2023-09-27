@@ -59,7 +59,8 @@
             <q-btn
               flat
               :disable="loading"
-              color="brandblue button-themed button-themed-text-gold"
+              class="button button-text-primary"
+              :class="getDarkModeClass()"
               :label="$t('Cancel', {}, 'Cancel')"
               @click="onDialogCancel"
             />
@@ -67,7 +68,8 @@
               flat
               type="submit"
               :disable="loading"
-              color="brandblue button-themed button-themed-text-gold"
+              class="button button-text-primary"
+              :class="getDarkModeClass()"
               :label="newDevice ? $t('Create', {}, 'Create') : $t('Update', {}, 'Update')"
             />
           </div>
@@ -158,5 +160,9 @@ function savePosDevice() {
     })
 
   onDialogOK(apiRequest)
+}
+
+function getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+  return this.darkMode ? darkModeClass : lightModeClass
 }
 </script>

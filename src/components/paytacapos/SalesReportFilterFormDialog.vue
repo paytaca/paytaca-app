@@ -72,7 +72,7 @@
           />
           <div class="row items-center q-gutter-x-sm q-mt-md">
             <q-btn no-caps label="Cancel" color="grey" outline class="q-space" v-close-popup/>
-            <q-btn no-caps label="Filter" color="brandblue button-themed" class="q-space" type="submit"/>
+            <q-btn no-caps label="Filter" class="q-space button" type="submit"/>
           </div>
         </q-form>
       </q-card-section>

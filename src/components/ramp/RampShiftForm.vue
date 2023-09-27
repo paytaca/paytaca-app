@@ -11,10 +11,9 @@
     <div class="row items-center justify-end q-mt-md q-mr-lg">
       <q-btn
         round
-        color="blue-9"
         padding="xs"
         icon="mdi-history"
-        class="q-ml-md button-themed"
+        class="q-ml-md button"
         @click="openHistory"
       />
     </div>
@@ -152,8 +151,7 @@
         rounded
         no-caps
         :label="$t('Submit')"
-        color="brandblue"
-        class="q-space button-themed"
+        class="q-space button"
         @click="checkData()"
       />
     </div>

@@ -57,7 +57,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
-                    class="button-themed"
+                    class="button"
                     :disable="bchUtxoScanOngoing"
                     :loading="bchUtxoScanOngoing"
                     :label="$t('UtxoScan')"
@@ -67,7 +67,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
-                    class="button-themed"
+                    class="button"
                     :disable="scanningBchAddresses"
                     :loading="scanningBchAddresses"
                     :label="$t('AddressScan')"
@@ -150,7 +150,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
-                    class="button-themed"
+                    class="button"
                     :disable="slpUtxoScanOngoing"
                     :loading="slpUtxoScanOngoing"
                     :label="$t('UtxoScan')"
@@ -160,7 +160,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
-                    class="button-themed"
+                    class="button"
                     :disable="scanningSlpAddresses"
                     :loading="scanningSlpAddresses"
                     :label="$t('AddressScan')"

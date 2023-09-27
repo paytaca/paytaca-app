@@ -149,9 +149,8 @@
             <q-btn
               no-caps
               :disable="loading"
-              color="brandblue button-themed"
+              class="button col"
               :label="branchInfo?.id ? $t('Update', {}, 'Update') : $t('Set', {}, 'Set')"
-              class="col"
               type="submit"
             />
           </div>

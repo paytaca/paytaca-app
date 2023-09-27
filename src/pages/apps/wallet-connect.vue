@@ -24,7 +24,7 @@
               <q-btn
                 no-caps
                 rounded
-                color="blue-9 button-themed"
+                class="button"
                 :label="$t('Connect')"
                 @click="handShakeFormSubmit()"
                 :disable="handshakeOnProgress"
@@ -40,7 +40,7 @@
               icon="mdi-qrcode"
               color="grad"
               size="lg"
-              class="button-themed"
+              class="button"
               @click="scanner.show = true"
               :disable="handshakeOnProgress"
             />

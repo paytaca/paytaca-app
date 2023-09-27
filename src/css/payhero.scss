@@ -455,25 +455,10 @@ body.theme-payhero {
     color: $label-white !important;
   }
 
-  // replaced with below
-  .button-themed,
-  .bg-toggle-active {
-    background: $button_yellow !important;
-
-    &.button-themed-text {
-      background: transparent !important;
-      color: $button_yellow !important;
-    }
-
-    &.button-themed-text-gold {
-      background: transparent !important;
-      color: $brand_yellow !important;
-    }
-  }
-
   .button,
   .bg-toggle-active {
     background: $button_yellow !important;
+    color: white !important;
 
     &.button-text-primary {
       background: transparent !important;
@@ -489,14 +474,7 @@ body.theme-payhero {
 
     &.button-text-secondary {
       background: transparent !important;
-
-      &.dark {
-        color: $button_yellow !important;
-      }
-
-      &.light {
-        color: $background-blue !important;
-      }
+      color: $button_yellow !important;
     }
 
     &.button-icon {
@@ -535,8 +513,7 @@ body.theme-payhero {
     }
   }
 
-  .q-field .q-field__control,
-  .q-field .q-field__native {
+  .q-field .q-field__control {
     color: $footer-bar;
   }
 

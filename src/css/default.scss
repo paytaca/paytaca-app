@@ -38,7 +38,8 @@ body.theme-default {
     -ms-user-select: none;
     user-select: none;
   }
-  .bg-grad {
+  .bg-grad,
+  .bg-grad.button {
     background-image: linear-gradient(
       to right bottom,
       #3b7bf6,
@@ -46,7 +47,7 @@ body.theme-default {
       #da53b2,
       #ef4f84,
       #ed5f59
-    );
+    ) !important;
   }
   .text-grad {
     background: -webkit-linear-gradient(
@@ -307,14 +308,17 @@ body.theme-default {
   }
 
   .button {
-    &.button-text-primary {
-      &.dark {
-        color: $color_4 !important;
-      }
+    background: $brand_blue !important;
+    color: white !important;
 
-      &.light {
-        color: #000 !important;
-      }
+    &.button-text-primary {
+      background: transparent !important;
+      color: $brand_blue !important;
+    }
+
+    &.button-text-secondary {
+      background: transparent !important;
+      color: $color_4 !important;
     }
   }
 
@@ -372,10 +376,5 @@ body.theme-default {
     &.market-value {
       color: #9e9e9e;
     }
-  }
-
-  .q-field .q-field__control,
-  .q-field .q-field__native {
-    color: black;
   }
 }

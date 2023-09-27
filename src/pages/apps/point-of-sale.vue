@@ -119,14 +119,14 @@
             padding="xs"
             round
             :color="darkMode ? 'grad' : 'brandblue'"
-            class="q-mr-sm button-themed"
+            class="q-mr-sm button"
             @click="displaySalesReportDialog()"
           />
           <q-btn
             icon="add"
             padding="xs"
             round
-            class="button-themed"
+            class="button"
             :color="darkMode ? 'grad' : 'brandblue'"
             @click="addNewPosDevice()"
           />

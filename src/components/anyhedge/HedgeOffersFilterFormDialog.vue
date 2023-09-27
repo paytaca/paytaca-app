@@ -46,7 +46,7 @@
               no-caps
               color="brandblue"
               label="Filter"
-              class="full-width button-themed"
+              class="full-width button"
               type="submit"
             />
           </div>

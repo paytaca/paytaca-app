@@ -19,7 +19,7 @@
                 flat
                 icon-right="mdi-arrow-right"
                 :label="$t('SelectCustomToken')"
-                color="blue-9 button-themed button-themed-text"
+                class="button button-text-secondary"
                 padding="none xs"
                 @click="panel='custom'"
               />
@@ -74,7 +74,7 @@
                 no-caps
                 icon="mdi-arrow-left"
                 :label="$t('SelectFromList')"
-                color="blue-9 button-themed button-themed-text"
+                class="button button-text-secondary"
                 padding="none xs"
                 flat
                 @click="panel='list'"

@@ -12,14 +12,14 @@
             no-caps
             color="primary"
             label="Create Gift"
-            class="button-themed"
+            class="button"
             :to="{ name: 'create-gift'}"
           />
           <q-btn
             no-caps
             color="primary"
             label="Claim Gift"
-            class="button-themed"
+            class="button"
             :to="{ name: 'claim-gift'}"
           />
         </div>
@@ -30,7 +30,7 @@
               color="primary"
               no-caps :label="capitalize(filterOpts.recordType.active)"
               dense
-              class="q-pl-sm button-themed"
+              class="q-pl-sm button"
               :dark="darkMode"
               content-style="color: black;"
             >

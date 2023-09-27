@@ -138,9 +138,8 @@
       <q-btn
         no-caps
         :disable="loading"
-        color="brandblue button-themed"
         :label="merchantInfo?.id ? $t('Update', {}, 'Update') : $t('Set', {}, 'Set')"
-        class="col"
+        class="col button"
         type="submit"
       />
     </div>
