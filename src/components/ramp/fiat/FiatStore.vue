@@ -81,7 +81,7 @@
                             <span class="sm-font-size">/BCH</span><br>
                             <div class="row sm-font-size">
                                 <span class="q-mr-md">Quantity</span>
-                                <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
+                                <span>{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
                             </div>
                             <div class="row sm-font-size">
                                 <span class="q-mr-md">Limit</span>

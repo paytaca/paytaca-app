@@ -364,7 +364,6 @@ export default {
       }
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
-          // console.log(response)
           if (response.data && response.data.status.value === 'CNF') {
             vm.updateStatus(response.data.status)
           }

@@ -121,7 +121,7 @@
                   :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                   type="number"
                   :rules="numberValidation"
-                  v-model="adData.cryptoAmount">
+                  v-model="adData.tradeAmount">
                   <template v-slot:prepend>
                     <span class="bold-text xs-font-size">
                       BCH
@@ -301,7 +301,7 @@ export default {
         floatingPrice: 100,
         tradeFloor: null,
         tradeCeiling: null,
-        cryptoAmount: null,
+        tradeAmount: null,
         timeDurationChoice: 5,
         paymentMethods: []
       },
@@ -412,7 +412,7 @@ export default {
         vm.adData.fiatCurrency = data.fiat_currency
         vm.adData.tradeFloor = data.trade_floor
         vm.adData.tradeCeiling = data.trade_ceiling
-        vm.adData.cryptoAmount = data.crypto_amount
+        vm.adData.tradeAmount = data.trade_amount
         vm.adData.paymentMethods = data.payment_methods
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
         vm.selectedCurrency = data.fiat_currency
@@ -534,7 +534,7 @@ export default {
         floating_price: parseFloat(data.floatingPrice),
         trade_floor: parseFloat(data.tradeFloor),
         trade_ceiling: parseFloat(data.tradeCeiling),
-        crypto_amount: parseFloat(data.cryptoAmount),
+        trade_amount: parseFloat(data.tradeAmount),
         time_duration_choice: data.timeDurationChoice,
         payment_methods: idList
       }
@@ -619,7 +619,7 @@ export default {
     },
     checkPostData () {
       const vm = this
-      if (!vm.isAmountValid(vm.priceAmount) || !vm.isAmountValid(vm.adData.cryptoAmount) || !vm.isAmountValid(vm.adData.tradeCeiling) || !vm.isAmountValid(vm.adData.tradeFloor)) {
+      if (!vm.isAmountValid(vm.priceAmount) || !vm.isAmountValid(vm.adData.tradeAmount) || !vm.isAmountValid(vm.adData.tradeCeiling) || !vm.isAmountValid(vm.adData.tradeFloor)) {
         return true
       } else {
         return false
