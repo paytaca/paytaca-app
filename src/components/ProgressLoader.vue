@@ -20,9 +20,6 @@ export default {
 </script>
 
 <style scoped>
-.bg-pink {
-  background: #ef4f84;
-}
 .lds-ellipsis {
   display: inline-block;
   position: relative;

@@ -1,7 +1,7 @@
 <template>
   <div :class="[darkMode ? 'pt-dark-label' : 'text-grey-8']">
     <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
     </div>
     <template v-if="collectibles.length > 0">
       <div class="q-mx-md q-px-sm row items-center">
@@ -125,6 +125,12 @@ export default {
         })
         return { token: group, collectibles }
       })
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 

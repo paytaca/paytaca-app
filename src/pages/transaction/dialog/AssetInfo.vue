@@ -1,12 +1,12 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
     <q-card
-      class="q-dialog-plugin br-15"
+      class="q-dialog-plugin br-15 pt-card"
       style="padding: 5px 0;"
-      :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}"
+      :class="getDarkModeClass()"
     >
       <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
-        <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
+        <q-btn icon="close" flat round dense v-close-popup :color="darkMode ? 'grey' : 'black'" class="close-button"/>
       </div>
 
       <q-card-section v-if="asset">
@@ -25,11 +25,16 @@
             target="_blank"
           >
             {{ asset.id.split('/')[1].slice(0, 7) }}...
-            <q-icon name="exit_to_app" :color="$store.getters['darkmode/getStatus'] ? 'blue-5' : 'blue-9'" size="sm" />
+            <q-icon
+              name="exit_to_app"
+              class="button button-text-primary dark"
+              :color="darkMode ? 'blue-5' : 'blue-9'"
+              size="sm"
+            />
           </a>
         </div>
         <div style="margin-top: 20px; margin-bottom: 10px; text-align: center;">
-          <q-btn @click="send" class="q-mr-sm" color="blue-9" rounded :label="$t('Send')" no-caps>
+          <q-btn @click="send" class="q-mr-sm button" color="blue-9" rounded :label="$t('Send')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
               <svg>
@@ -37,7 +42,7 @@
               </svg>
             </q-icon>
           </q-btn>
-          <q-btn @click="receive" rounded color="blue-9" :label="$t('Receive')" no-caps>
+          <q-btn @click="receive" rounded class="button" color="blue-9" :label="$t('Receive')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
               <svg>
@@ -129,6 +134,9 @@ export default {
           assetId: this.asset.id
         }
       })
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

@@ -76,7 +76,7 @@
             <div v-if="transferType === 'c2s'">Waiting for SmartBCH Transaction</div>
             <div v-else-if="transferType === 's2c'">Waiting for BCH Transaction</div>
           </template>
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
         </div>
         <div v-else-if="parsedOutgoingTx.hash">
           <div>
@@ -171,6 +171,12 @@ export default {
       }
 
       return data
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

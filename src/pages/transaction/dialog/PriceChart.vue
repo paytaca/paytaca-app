@@ -1,6 +1,10 @@
 <template>
   <q-dialog ref="dialog" full-width>
-    <q-card :class="darkmode ? 'text-white pt-dark  ' : 'text-black'" class="br-15" style="padding-bottom: 10px; background-color: #ECF3F3">
+    <q-card
+      :class="darkmode ? 'text-white pt-dark modal' : 'text-black'"
+      class="br-15"
+      style="padding-bottom: 10px; background-color: #ECF3F3"
+    >
       <div class="row no-wrap items-center justify-center">
         <div v-if="isloaded && !networkError" style="">
           <img src="../../../assets/bch-logo.png" style="height: 40px; position: absolute; top: 12px; left: 25px; z-index: 1;"/>
@@ -10,7 +14,7 @@
         </div>
       </div>
       <div class="row justify-center q-pb-lg" v-if="!isloaded">
-        <ProgressLoader/>
+        <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
       </div>
       <div class="text-center col pt-internet-required" v-if="networkError && isloaded">
         {{ $t('NoInternetConnectionNotice') }} &#128533;
@@ -23,7 +27,7 @@
             <q-icon size="sm" :name="ishigher ? 'mdi-menu-up':'mdi-menu-down'"/><b>{{ percentage }} %</b>
           </span>
         </div>
-        <q-card class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 light-bg"  :class="[ darkmode ? 'pt-dark-card-2' : '']">
+        <q-card class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 light-bg price-chart"  :class="[ darkmode ? 'pt-dark-card-2' : 'light']">
           <div style="width: 100%; height: 200px; margin-left: 3%; margin-right: 3%; margin-top: 15px; margin-bottom: 15px;" >
             <canvas ref="chart"></canvas>
           </div>
@@ -249,6 +253,12 @@ export default {
       } else {
         return '#f2f5f5'
       }
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   async mounted () {

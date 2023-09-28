@@ -1,10 +1,10 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
-      <header-nav :title="$t('Settings')" backnavpath="/apps" />
+  <div id="app-container" :class="getDarkModeClass()">
+      <header-nav :title="$t('Settings')" backnavpath="/apps" class="apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Security') }}</p>
-            <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+            <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Security') }}</p>
+            <q-list bordered separator class="pt-card" :class="getDarkModeClass()">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SecurityAuthenticationSetup') }}</q-item-label>
@@ -18,15 +18,15 @@
                       <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ChangePin') }} {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
-                      <q-icon name="mdi-pin" class="q-pr-sm" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
+                      <q-icon name="mdi-pin" class="q-pr-sm pin-icon" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
                   </q-item-section>
               </q-item>
             </q-list>
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Wallet') }}</p>
-            <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+            <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Wallet') }}</p>
+            <q-list bordered separator class="pt-card" :class="getDarkModeClass()">
               <q-item>
                   <q-item-section>
                     <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
@@ -92,8 +92,8 @@
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
-          <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('Personalize') }}</p>
-          <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+          <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Personalize') }}</p>
+          <q-list bordered separator class="pt-card" :class="getDarkModeClass()">
             <q-item>
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
@@ -127,8 +127,8 @@
           </q-list>
         </div>
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
-          <p class="q-px-sm q-my-sm dim-text text-h6">{{ $t('AppInfo') }}</p>
-            <q-list bordered separator style="border-radius: 14px; background: #fff" :class="{'pt-dark-card': darkMode}">
+          <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('AppInfo') }}</p>
+            <q-list bordered separator class="pt-card" :class="getDarkModeClass()">
               <q-item>
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
@@ -269,6 +269,9 @@ export default {
       //   vm.pinStatus = false
       //   vm.securityOptionDialogStatus = 'dismiss'
       // }
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   created () {
@@ -317,5 +320,8 @@ export default {
 }
 .pt-setting-avatar-dark {
     color: #A6ACAF;
+}
+.pt-card {
+  border-radius: 14px;
 }
 </style>

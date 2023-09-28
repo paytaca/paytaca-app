@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass()">
       <div>
         <header-nav :title="$t('Sweep')" backnavpath="/apps" />
         <div style="margin-top: 60px;" :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}">
@@ -25,10 +25,17 @@
                 <div style="margin-top: 20px; margin-bottom: 20px; font-size: 15px; color: grey;" class="text-uppercase">
                   {{ $t('or') }}
                 </div>
-                <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+                <q-btn round size="lg" class="btn-scan button text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
               <div style="margin-top: 20px; ">
-                <q-btn color="primary" v-if="tokens.length === 0 && wif" @click.prevent="getTokens">{{ $t('Scan') }}</q-btn>
+                <q-btn
+                  class="button"
+                  color="primary"
+                  v-if="tokens.length === 0 && wif"
+                  @click.prevent="getTokens"
+                >
+                  {{ $t('Scan') }}
+                </q-btn>
                 <p v-if="wif && error" style="color: red;">
                   {{ error }}
                 </p>
@@ -247,6 +254,9 @@ export default {
     onScannerDecode (content) {
       this.showQrScanner = false
       this.wif = content
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

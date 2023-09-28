@@ -1,52 +1,70 @@
 <template>
-  <div class="scroll-y" style="background-color: #ECF3F3;" :class="{'pt-dark': darkMode}">
+  <div
+    id="app-container"
+    class="scroll-y"
+    style="background-color: #ECF3F3;"
+    :class="getDarkModeClass()"
+  >
     <div>
       <q-pull-to-refresh @refresh="refresh">
-        <div ref="fixedSection" class="fixed-container" :class="{'pt-dark': darkMode}" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-          <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
-          <v-offline @detected-condition="onConnectivityChange">
-            <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
-              <template v-slot:avatar>
-                <q-icon name="signal_wifi_off" color="primary" />
+        <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+          <div :class="{'pt-header home-header' : isDefaultTheme}">
+            <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
+            <v-offline @detected-condition="onConnectivityChange">
+              <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
+                <template v-slot:avatar>
+                  <q-icon name="signal_wifi_off" color="primary" />
+                </template>
+                {{ $t('NoInternetConnectionNotice') }}
+              </q-banner>
+            </v-offline>
+            <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
+              <template v-if="enableSmartBCH">
+                <q-tabs
+                  class="col-12 q-px-sm q-pb-md"
+                  :modelValue="selectedNetwork"
+                  @update:modelValue="changeNetwork"
+                  style="margin-top: -25px;"
+                  :indicator-color="isDefaultTheme && 'transparent'"
+                >
+                  <q-tab
+                    name="BCH"
+                    class="network-selection-tab"
+                    :class="getDarkModeClass()"
+                    :label="networks.BCH.name"
+                  />
+                  <q-tab
+                    name="sBCH"
+                    class="network-selection-tab"
+                    :class="getDarkModeClass()"
+                    :label="networks.sBCH.name"
+                    :disable="isChipnet"
+                  />
+                </q-tabs>
               </template>
-              {{ $t('NoInternetConnectionNotice') }}
-            </q-banner>
-          </v-offline>
-          <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
-            <template v-if="enableSmartBCH">
-              <q-tabs
-                active-color="brandblue"
-                class="col-12 q-px-sm q-pb-md pp-fcolor"
-                :modelValue="selectedNetwork"
-                @update:modelValue="changeNetwork"
-                style="margin-top: -25px;"
-              >
-                <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-                <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet" />
-              </q-tabs>
-            </template>
-          </div>
-          <div class="row q-mt-sm">
-            <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-              <img :src="selectedNetwork === 'sBCH' ? 'sep20-logo.png' : 'bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
-              <q-card id="bch-card">
-                <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
-                  <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
-                  <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
-                    <q-skeleton style="font-size: 22px;" type="rect"/>
-                  </div>
-                  <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                    <p style="font-size: 24px;">{{ String(bchAsset.balance).substring(0, 10) }} {{ selectedNetwork }}</p>
-                    <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
-                  </div>
-                </q-card-section>
-              </q-card>
+            </div>
+            <div class="row q-mt-sm">
+              <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
+                <img :src="selectedNetwork === 'sBCH' ? 'sep20-logo.png' : 'bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+                <q-card id="bch-card">
+                  <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
+                    <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
+                    <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
+                      <q-skeleton style="font-size: 22px;" type="rect"/>
+                    </div>
+                    <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
+                      <p style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme}">{{ String(bchAsset.balance).substring(0, 10) }} {{ selectedNetwork }}</p>
+                      <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </div>
             </div>
           </div>
           <div
             v-if="!showTokens"
-            class="text-center text-blue-9"
-            :class="{'text-black': !darkMode}"
+            class="text-center button button-text-primary show-tokens-label"
+            :class="getDarkModeClass('', 'text-black')"
             @click.native="toggleShowTokens"
             style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
           >
@@ -54,7 +72,10 @@
           </div>
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
-              <p class="q-ml-lg q-mb-sm payment-methods q-gutter-x-sm" :class="{'pt-dark-label': darkMode}">
+              <p
+                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary payment-methods"
+                :class="getDarkModeClass()"
+              >
                 {{ $t('Tokens') }}
                 <q-btn
                   flat
@@ -62,19 +83,22 @@
                   v-if="manageAssets"
                   size="sm"
                   icon="close"
-                  style="color: #3B7BF6;"
+                  class="settings-button"
+                  :style="assetsCloseButtonColor"
+                  :class="getDarkModeClass()"
                   @click="toggleManageAssets"
                 />
                 <q-btn
                   flat
                   padding="none"
                   size="sm"
-                  icon="settings"
-                  style="color: #3B7BF6;"
+                  class="settings-button"
+                  :icon="settingsButtonIcon"
+                  :class="getDarkModeClass()"
                   @click="updateTokenMenuPosition"
                 >
                   <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
-                    <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px;">
+                    <q-list class="pt-card" :class="getDarkModeClass()" style="min-width: 100px;">
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleManageAssets">{{ $t('ManageTokens') }}</q-item-section>
                       </q-item>
@@ -91,8 +115,8 @@
             </div>
 
             <div class="col-3 q-mt-sm" style="position: relative; margin-top: -5px;" v-show="selectedNetwork === networks.BCH.name">
-            <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
-          </div>
+              <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
+            </div>
           </div>
           <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
           <!-- Cards without drag scroll on mobile -->
@@ -133,26 +157,55 @@
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
         <transaction ref="transaction" :wallet="wallet"></transaction>
-        <div class="col transaction-container" :class="{'pt-dark-card-2': darkMode}">
+        <div class="col transaction-container" :class="getDarkModeClass()">
           <div class="row no-wrap justify-between">
-            <p class="q-ma-lg transaction-wallet" :class="{'pt-dark-label': darkMode}">
+            <p
+              class="q-ma-lg section-title transaction-wallet"
+              :class="getDarkModeClass()"
+            >
               {{ selectedAsset.symbol }} {{ $t('Transactions') }}
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
               <q-btn
+                v-if="isDefaultTheme && darkMode"
+                unelevated
+                @click="openPriceChart"
+                icon="img:/icons/theme/payhero/price-chart.png"
+              />
+              <q-btn
+                v-else
                 round
                 color="blue-9"
                 padding="xs"
                 icon="mdi-chart-line-variant"
                 class="q-ml-md"
+                :class="getDarkModeClass('', 'price-chart-icon')"
                 @click="openPriceChart"
               />
             </div>
           </div>
           <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
-            <button class="btn-custom q-mt-none btn-all" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'all' }" @click="setTransactionsFilter('all')">{{ $t('All') }}</button>
-            <button class="btn-custom q-mt-none btn-sent" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'sent'}" @click="setTransactionsFilter('sent')">{{ $t('Sent') }}</button>
-            <button class="btn-custom q-mt-none btn-received" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': transactionsFilter == 'received'}" @click="setTransactionsFilter('received')">{{ $t('Received') }}</button>
+            <button
+              class="btn-custom q-mt-none btn-all"
+              :class="[getDarkModeClass(), {'active-transaction-btn border': transactionsFilter == 'all'}]"
+              @click="setTransactionsFilter('all')"
+            >
+              {{ $t('All') }}
+            </button>
+            <button
+              class="btn-custom q-mt-none btn-sent"
+              :class="[getDarkModeClass(), {'active-transaction-btn border': transactionsFilter == 'sent'}]"
+              @click="setTransactionsFilter('sent')"
+            >
+              {{ $t('Sent') }}
+            </button>
+            <button
+              class="btn-custom q-mt-none btn-received"
+              :class="[getDarkModeClass(), {'active-transaction-btn border': transactionsFilter == 'received'}]"
+              @click="setTransactionsFilter('received')"
+            >
+              {{ $t('Received') }}
+            </button>
           </div>
           <div class="transaction-list">
             <template v-if="transactionsLoaded">
@@ -278,7 +331,19 @@ export default {
       showTokenSuggestionsDialog: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       showTokens: this.$store.getters['global/showTokens'],
-      isCashToken: true
+      isCashToken: true,
+      settingsButtonIcon: 'settings',
+      assetsCloseButtonColor: 'color: #3B7BF6;'
+    }
+  },
+
+  created () {
+    if (this.isDefaultTheme && this.darkMode) {
+      this.settingsButtonIcon = 'img:/icons/theme/payhero/settings.png'
+      this.assetsCloseButtonColor = 'color: #ffbf00;'
+    } else {
+      this.settingsButtonIcon = 'settings'
+      this.assetsCloseButtonColor = 'color: #3B7BF6;'
     }
   },
 
@@ -308,7 +373,7 @@ export default {
         if (!this.openedNotification?.id) return
         this.handleOpenedNotification()
       }
-    }
+    },
   },
 
   computed: {
@@ -375,6 +440,9 @@ export default {
           .filter(Boolean)
           .filter(Number.isSafeInteger)
       )
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
@@ -995,6 +1063,9 @@ export default {
           })
       }
     },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    }
   },
 
   beforeRouteEnter (to, from, next) {
@@ -1056,7 +1127,6 @@ export default {
   .fixed-container {
     position: fixed;
     top: 0 !important;
-    background-color: #ECF3F3;
     right: 0;
     left: 0;
     
@@ -1078,19 +1148,16 @@ export default {
     }
   }
   .payment-methods {
-    color: #000;
     font-size: 20px;
   }
   .transaction-container {
     min-height: 80vh;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
-    background-color: #F9F8FF;
     margin-top: 24px;
   }
   .transaction-wallet {
     font-size: 20px;
-    color: #444646;
   }
   .btn-all {
     margin-left: 0px;
@@ -1100,16 +1167,11 @@ export default {
     width: 32%;
     border-radius: 20px;
     border: none;
-    color: #4C4F4F;
     background-color: transparent;
     outline:0;
     cursor: pointer;
     transition: .2s;
     font-weight: 500;
-  }
-  .btn-custom.active-transaction-btn {
-    background-color: rgb(60, 100, 246) !important;
-    color: #fff;
   }
   .btn-transaction {
     font-size: 16px;
@@ -1118,10 +1180,5 @@ export default {
     padding: 4px;
     padding-left: 2px;
     padding-right: 2px;
-  }
-  #bch-card {
-    margin: 0px 20px 10px 20px;
-    border-radius: 15px;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }
 </style>

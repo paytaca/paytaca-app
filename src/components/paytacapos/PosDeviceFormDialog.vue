@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" full-width>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="newDevice">
@@ -59,7 +59,8 @@
             <q-btn
               flat
               :disable="loading"
-              color="brandblue"
+              class="button button-text-primary"
+              :class="getDarkModeClass()"
               :label="$t('Cancel', {}, 'Cancel')"
               @click="onDialogCancel"
             />
@@ -67,7 +68,8 @@
               flat
               type="submit"
               :disable="loading"
-              color="brandblue"
+              class="button button-text-primary"
+              :class="getDarkModeClass()"
               :label="newDevice ? $t('Create', {}, 'Create') : $t('Update', {}, 'Update')"
             />
           </div>
@@ -158,5 +160,9 @@ function savePosDevice() {
     })
 
   onDialogOK(apiRequest)
+}
+
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

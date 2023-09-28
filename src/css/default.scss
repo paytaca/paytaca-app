@@ -1,121 +1,415 @@
 body.theme-default {
+  $color_1: #eaeeff;
+  $brand_blue: rgb(60, 100, 246);
+  $color_3: #ecf3f3;
+  $color_4: #fff;
+  $color_5: #000;
+  $color_6: #42a5f5;
 
-	$color_1: #EAEEFF;
-	$color_2: rgb(60, 100, 246);
-	$color_3: #ECF3F3;
-	$color_4: #fff;
-	$color_5: #000;
-	$font-family_1: 'Rubik', sans-serif;
-	$background-color_1: #012121;
-	$background-color_2: #F9F8FF;
-	$background-color_3: #ECF3F3;
+  $text_blue_9: #1565c0;
 
-	@import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
+  $background-color_1: #012121;
+  $background-color_2: #f9f8ff;
+  $background-color_3: #ecf3f3;
+  $bg_card_dark: #1c2833;
 
-	body {
-		font-family: $font-family_1;
-		font-weight: 300 !important;
-	}
+  $font-family_1: "Rubik", sans-serif;
 
-	// body.body--light {
-	// 	background-color: $background-color_1;
-	// 	-webkit-transition: .1s;
-	// 	-moz-transition: .1s;
-	// 	-o-transition: .1s;
-	// 	transition: .1s;
-	// }
-	// body.body--dark {
-	// 	background-color: $background-color_1 !important;
-	// 	-webkit-transition: .1s;
-	// 	-moz-transition: .1s;
-	// 	-o-transition: .1s;
-	// 	transition: .1s;
-	// }
+  @import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
 
-	p {
-		-webkit-touch-callout: none;
-		-webkit-user-select: none;
-		-khtml-user-select: none;
-		-moz-user-select: none;
-		-ms-user-select: none;
-		user-select: none;
-	}
-	a {
-		-webkit-touch-callout: none;
-		-webkit-user-select: none;
-		-khtml-user-select: none;
-		-moz-user-select: none;
-		-ms-user-select: none;
-		user-select: none;
-	}
-	.bg-grad {
-		background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-	}
-	.text-grad {
-		background: -webkit-linear-gradient(-70deg, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-		background-clip: text;
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		-webkit-box-decoration-break: clone;
-	}
-	#registration-container {
-		min-height: 100vh;
-		background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-		position: relative !important;
-	}
-	.pt-brand {
-		text-align: center;
-		padding: 20px 0px 0px 0px;
-	}
-	.pt-brandname {
-		color: $color_1;
-		font-size: 28px;
-	}
-	.pt-get-started {
-		width: 100%;
-		min-height: calc(100vh - 152px);
-		border-top-left-radius: 22px;
-		border-top-right-radius: 22px;
-		background-color: $background-color_2;
-		padding-top: 28px;
-	}
-	.br-15 {
-		border-radius: 15px !important;
-	}
-	.br-40 {
-		border-radius: 40px !important;
-	}
-	.text-brandblue {
-		color: $color_2 !important;
-	}
-	.bg-brandblue {
-		background: rgb(60, 100, 246) !important;
-	}
-	.text-brandlight {
-		color: $color_3 !important;
-	}
-	.bg-brandlight {
-		background-color: $background-color_3 !important;
-	}
-	.pt-dark {
-		background: #273746 !important;
-	}
-	.pt-dark-card {
-		background: #1C2833 !important;
-	}
-	.pt-dark-card-2 {
-		background: #212F3D !important;
-	}
-	.pt-dark-label {
-		color: $color_4 !important;
-	}
-	.pt-dark-box-shadow {
-		box-shadow: 2px 2px 2px 2px #212F3D !important;
-	}
-	.bex.q-body--prevent-scroll {
-		position: unset !important;
-	}
-	.pp-fcolor {
-		color: $color_5 !important;
-	}
+  body {
+    font-family: $font-family_1;
+    font-weight: 300 !important;
+  }
+
+  p {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  a {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  .bg-grad,
+  .bg-grad.button {
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #a866db,
+      #da53b2,
+      #ef4f84,
+      #ed5f59
+    ) !important;
+  }
+  .text-grad {
+    background: -webkit-linear-gradient(
+      -70deg,
+      #3b7bf6,
+      #a866db,
+      #da53b2,
+      #ef4f84,
+      #ed5f59
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-box-decoration-break: clone;
+  }
+  #registration-container {
+    min-height: 100vh;
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #a866db,
+      #da53b2,
+      #ef4f84,
+      #ed5f59
+    );
+    position: relative !important;
+
+    .q-field--dark {
+      .q-field__control {
+        color: $brand_blue !important;
+      }
+
+      .q-field__native {
+        color: black !important;
+      }
+    }
+  }
+  #bch-card {
+    margin: 0px 20px 10px 20px;
+    border-radius: 15px;
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #5f94f8,
+      #df68bb,
+      #ef4f84,
+      #ed5f59
+    );
+  }
+  #apps {
+    padding: 20px 20px 80px 20px;
+    color: #3b7bf6;
+  }
+
+  #app-container {
+    &.dark {
+      background: #273746 !important;
+    }
+
+    &.light {
+      background-color: #ecf3f3 !important;
+    }
+  }
+
+  .pt-brand {
+    text-align: center;
+    padding: 20px 0px 0px 0px;
+  }
+  .pt-brandname {
+    color: $color_1;
+    font-size: 28px;
+  }
+  .pt-get-started {
+    width: 100%;
+    min-height: calc(100vh - 152px);
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    background-color: $background-color_2;
+  }
+  .br-15 {
+    border-radius: 15px !important;
+  }
+  .br-40 {
+    border-radius: 40px !important;
+  }
+  .text-brandblue {
+    color: $brand_blue !important;
+  }
+  .bg-brandblue {
+    background: $brand_blue !important;
+  }
+  .text-brandlight {
+    color: $color_3 !important;
+  }
+  .bg-brandlight {
+    background-color: $background-color_3 !important;
+  }
+  .pt-dark {
+    background: #273746 !important;
+  }
+  .pt-dark-card {
+    background: $bg_card_dark !important;
+  }
+
+  .pt-card {
+    &.dark {
+      background: $bg_card_dark !important;
+    }
+
+    &.light {
+      background-color: white !important;
+    }
+  }
+
+  .wallet-card {
+    &.dark {
+      background: $bg_card_dark;
+    }
+
+    .title {
+      color: $text_blue_9;
+    }
+
+    .bottom-border {
+      &.dark {
+        border-bottom-color: grey;
+      }
+
+      &.light {
+        border-bottom-color: #dae0e7;
+      }
+    }
+
+    .address,
+    .market-currency {
+      color: gray;
+    }
+  }
+
+  .pt-dark-card-2 {
+    background: #212f3d !important;
+  }
+  .pt-dark-label {
+    color: $color_4 !important;
+  }
+
+  .pt-label {
+    &.dark {
+      color: $color_4;
+    }
+
+    &.light {
+      color: #444655;
+    }
+  }
+
+  .pt-dark-box-shadow {
+    box-shadow: 2px 2px 2px 2px #212f3d !important;
+  }
+  .bex.q-body--prevent-scroll {
+    position: unset !important;
+  }
+  .pp-fcolor {
+    color: $color_5 !important;
+  }
+
+  .method-cards {
+    height: 78px;
+    min-width: 150px;
+    border-radius: 16px;
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #5f94f8,
+      #df68bb,
+      #ef4f84,
+      #ed5f59
+    );
+    box-shadow: 2px 2px 2px 2px #f2f2fc;
+  }
+  .method-cards-dark {
+    background-image: linear-gradient(
+      to right bottom,
+      #204589,
+      #35538b,
+      #813c6d,
+      #9c3356,
+      #a5403d
+    );
+    /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
+    /* background: #717D7E; */
+  }
+
+  .selected {
+    box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;
+  }
+
+  .pt-app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+  }
+
+  .fixed-footer {
+    border-top-right-radius: 20px;
+    border-top-left-radius: 20px;
+
+    &.dark {
+      background-color: $bg_card_dark;
+    }
+
+    &.light {
+      background-color: white;
+    }
+
+    .footer-icon-btn {
+      &.dark {
+        color: white;
+      }
+    }
+  }
+
+  .bg-pink {
+    background: #ef4f84;
+  }
+
+  .btn-scan {
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #a866db,
+      #da53b2,
+      #ef4f84,
+      #ed5f59
+    );
+  }
+
+  .group-currency {
+    &.dark {
+      background: $bg_card_dark !important;
+    }
+
+    .text-token {
+      &.dark {
+        color: #ec407a;
+      }
+
+      &.light {
+        color: var(--q-dark);
+      }
+    }
+
+    .amount-text {
+      font-size: 18px;
+
+      &.dark {
+        color: #9e9e9e;
+      }
+    }
+  }
+
+  .network-selection-tab {
+    color: $color_6 !important;
+
+    &.q-tab--active {
+      &.dark {
+        color: rgba(66, 165, 245, 1) !important;
+      }
+
+      &.light {
+        color: $brand_blue !important;
+      }
+    }
+
+    &.q-tab--inactive {
+      &.dark {
+        color: $color_6 !important;
+      }
+
+      &.light {
+        color: $color_5 !important;
+      }
+    }
+  }
+
+  .button {
+    background: $brand_blue !important;
+    color: white !important;
+
+    &.button-text-primary {
+      background: transparent !important;
+      color: $brand_blue !important;
+    }
+
+    &.button-text-secondary {
+      background: transparent !important;
+      color: $color_4 !important;
+    }
+  }
+
+  .settings-button {
+    color: #3b7bf6;
+  }
+
+  .transaction-container {
+    &.dark {
+      background-color: #212f3d;
+    }
+
+    &.light {
+      background-color: #f9f8ff;
+    }
+  }
+
+  .btn-custom.dark,
+  .section-title.dark {
+    color: $color_4 !important;
+  }
+
+  .btn-custom {
+    &.light {
+      color: #4c4f4f !important;
+    }
+
+    &.active-transaction-btn {
+      background-color: rgb(60, 100, 246) !important;
+      color: #fff !important;
+    }
+  }
+
+  .section-title.light {
+    color: #444646;
+  }
+
+  .transactions-wallet {
+    &.type,
+    &.amount,
+    &.date {
+      &.light {
+        color: #4c4f4f;
+      }
+    }
+
+    &.type,
+    &.date {
+      &.dark {
+        color: $color_4;
+      }
+    }
+
+    &.amount.dark,
+    &.market-value {
+      color: #9e9e9e;
+    }
+  }
+
+  .bg-button-toggle {
+    background: $brand_blue !important;
+  }
+
+  .q-btn.q-btn--rounded.bg-amber {
+    background-color: $brand_blue !important;
+  }
 }

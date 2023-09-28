@@ -1,29 +1,30 @@
 <template>
-  <div class="pt-settings" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass('pt-dark', 'light')" class="pt-settings">
     <header-nav :title="$t('IgnoredTokens')" :backnavpath="backNavPath" />
     <div
       style="padding-top:100px;height:100vh;"
       :class="[
-        darkMode ? '' : 'bg-brandlight',
         darkMode ? 'text-white' : 'text-black',
         'q-px-md',
       ]"
     >
       <q-tabs
         v-if="enableSmartBCH"
-        active-color="brandblue"
         class="col-12 q-px-sm q-pb-md pp-fcolor"
         v-model="selectedNetwork"
         style="margin-top: -20px; padding-bottom: 16px;"
+        :indicator-color="isDefaultTheme && 'transparent'"
       >
         <q-tab
           name="BCH"
-          :class="{'text-blue-5': darkMode}"
+          class="network-selection-tab"
+          :class="getDarkModeClass()"
           :label="'BCH' + (ignoredMainchainAssets.length ? ` (${ignoredMainchainAssets.length})` : '')"
         />
         <q-tab
           name="sBCH"
-          :class="{'text-blue-5': darkMode}"
+          class="network-selection-tab"
+          :class="getDarkModeClass()"
           :label="'SmartBCH' + (ignoredSmartchainAssets.length ? ` (${ignoredSmartchainAssets.length})` : '')"
         />
       </q-tabs>
@@ -126,6 +127,9 @@ export default {
         .some(this.isSmartchainAsset)
 
       return hasMainchainAssetsAdded || hasSmartchainAssetsAdded
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
@@ -179,6 +183,9 @@ export default {
           if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
           else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
         })
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   beforeRouteLeave (to, from, next) {

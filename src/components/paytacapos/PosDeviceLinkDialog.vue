@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide">
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
         <q-btn

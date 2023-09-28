@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': darkMode}">
+    <q-card class="q-dialog-plugin br-15 q-pb-sm add-asset-card" :class="getDarkModeClass('pt-dark-card-2', '')">
         <q-card-section class="pt-label text-weight-medium" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
           <span>{{ addTokenTitle }}</span>
         </q-card-section>
@@ -24,7 +24,7 @@
           </q-card-section>
 
           <div v-if="loading" class="flex justify-center">
-            <ProgressLoader/>
+            <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
           </div>
           <div class="col-12 q-mx-md q-mb-md overflow-hidden" v-if="asset !== null">
             <div class="row" v-for="val, key in asset" :key="key">
@@ -150,6 +150,12 @@ export default {
       if (this.isCashToken)
         return this.$t('EnterCashTokenCategoryID')
       return this.$t('Enter_SLP_TokenId')
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 
@@ -262,6 +268,9 @@ export default {
     },
     onDialogHide () {
       this.$emit('hide')
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

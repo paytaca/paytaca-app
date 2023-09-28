@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" full-width>
-    <q-card style="max-width:90vw;" :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card style="max-width:90vw;" class="pt-card" :class="getDarkModeClass('text-white', 'text-black')">
       <q-card-section
         class="row items-start no-wrap"
         style="position:sticky;top:0;z-index:1;max-width:100%;background:inherit;"
@@ -32,15 +32,37 @@
         </q-inner-loading>
       </q-img>
 
-      <q-tabs v-model="tab">
-        <q-tab :class="{'text-blue-5': darkMode}" name="details" :label="$t('Details')"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="transaction" :label="$t('Transaction')"/>
-        <q-tab :class="{'text-blue-5': darkMode}" name="extension" :label="$t('Extensions')" :disable="!nft?.metadata?.type_metadata?.extensions"/>
+      <q-tabs
+        v-model="tab"
+        style="padding-left: 3px; padding-right: 3px;"
+        :active-color="isDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+        :indicator-color="isDefaultTheme() && 'transparent'"
+      >
+        <q-tab
+          name="details"
+          class="network-selection-tab"
+          :class="{'text-blue-5': darkMode}"
+          :label="$t('Details')"
+        />
+        <q-tab
+          name="transaction"
+          class="network-selection-tab"
+          :class="{'text-blue-5': darkMode}"
+          :label="$t('Transaction')"
+        />
+        <q-tab
+          name="extension"
+          class="network-selection-tab"
+          :class="{'text-blue-5': darkMode}"
+          :label="$t('Extensions')"
+          :disable="!nft?.metadata?.type_metadata?.extensions"
+        />
       </q-tabs>
       <q-tab-panels
         animated
         v-model="tab"
-        :class="darkMode ? 'pt-dark-card' : 'text-black'"
+        class="pt-card"
+        :class="getDarkModeClass('', 'text-black')"
       >
         <q-tab-panel name="details">
           <!-- <q-btn
@@ -129,6 +151,7 @@
             :label="$t('Send')"
             icon="send"
             color="brandblue"
+            class="button"
             :to="{
               name: 'transaction-send',
               query: {
@@ -159,6 +182,7 @@ import VueJsonPretty from 'vue-json-pretty';
 
 const $q = useQuasar()
 const $store = useStore()
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const $emit = defineEmits([
   'update:modelValue',
@@ -224,6 +248,14 @@ function copyToClipboard(value, message) {
     color: 'blue-9',
     icon: 'mdi-clipboard-check'
   })
+}
+
+function isDefaultTheme () {
+  return this.$store.getters['global/theme'] !== 'default'
+}
+
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 

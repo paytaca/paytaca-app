@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" persistent @hide="onClose()">
-    <q-card class="q-dialog-plugin br-15" :class="{'pt-dark-card': darkMode }">
+    <q-card class="q-dialog-plugin br-15 pt-card" :class="getDarkModeClass()">
       <div class="row items-center no-wrap q-pb-sm">
         <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">
           <template v-if="loading">{{ $t('FindingUnlistedAssets') }}</template>
@@ -24,8 +24,9 @@
         padding="none"
         size="sm"
         icon="mdi-eye"
-        class="q-mx-md"
+        class="q-mx-md button button-text-primary"
         :text-color="darkMode ? 'blue-5' : 'blue-9'"
+        :class="getDarkModeClass()"
         style="margin-top:-1.5rem;"
         :to="{
           path: '/apps/settings/ignored-tokens',
@@ -100,7 +101,7 @@
           </q-list>
         </template>
         <div v-else-if="loading" class="column items-center justify-center">
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
           <div :class="darkMode ? 'text-white' : 'text-grey'">
             {{ $t('SearchingForOtherAssets') }}
           </div>
@@ -211,6 +212,12 @@ export default {
           }
         })
         .filter(Boolean)
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
@@ -327,6 +334,9 @@ export default {
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   watch: {
