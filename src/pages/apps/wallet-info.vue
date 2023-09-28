@@ -4,7 +4,7 @@
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <div class="col-12 q-px-lg q-mt-lg">
         <p class="section-title">{{ $t('BchAddresses') }}</p>
-        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass()">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -97,7 +97,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('SlpAddresses') }}</p>
-        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass()">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -190,7 +190,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('SmartBchAddresses') }}</p>
-        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass()">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -224,7 +224,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
-        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass()">
           <q-item clickable @click="executeSecurityChecking">
             <q-item-section class="text-black">
               <q-item-label :class="{'text-white': darkMode}" v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
@@ -713,8 +713,8 @@ export default {
         }
       })
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   beforeUnmount() {

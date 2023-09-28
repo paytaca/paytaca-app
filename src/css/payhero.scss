@@ -14,8 +14,6 @@ body.theme-payhero {
   $wallet_card: #111c2c;
   $wallet_address: #949494;
   $close_button: red;
-  $card_dark: #1a2a43;
-  $card_light: #475d82;
   $footer-bar: #1f1f1f;
   $transactions-text: #cecece;
   $transactions-subtext: #7e7e7e;
@@ -27,7 +25,10 @@ body.theme-payhero {
   $background-color_2: #f9f8ff;
   $background-color_3: #ecf3f3;
   $background-blue: #4872b8;
-  $info-banner: #273746;
+  $bg_info_banner: #273746;
+  $bg_container_dark: #1a2a43;
+  $bg_container_light: #475d82;
+  $bg_card_dark: #1c2833;
 
   body {
     font-family: $font-family_1;
@@ -245,12 +246,12 @@ body.theme-payhero {
     }
 
     &.info-banner {
-      background: $info-banner !important;
+      background: $bg_info_banner !important;
     }
   }
 
   .pt-dark-card {
-    background: #1c2833 !important;
+    background: $bg_card_dark !important;
 
     &.registration-card {
       background: $button_yellow !important;
@@ -264,7 +265,11 @@ body.theme-payhero {
 
   .pt-card {
     &.dark {
-      background: #1c2833 !important;
+      background: $bg_card_dark !important;
+    }
+
+    &.light {
+      background-color: white !important;
     }
   }
 
@@ -369,7 +374,6 @@ body.theme-payhero {
   }
 
   .text-section,
-  .view-ignored-label,
   .pin-icon,
   .dismiss-text {
     color: $brand_yellow !important;
@@ -385,11 +389,11 @@ body.theme-payhero {
 
   .fixed-footer {
     background-color: $footer-bar !important;
-  }
 
-  .footer-label {
-    color: $transactions-text;
-    font-weight: 300;
+    .footer-icon-btn {
+      color: $transactions-text;
+      font-weight: 300;
+    }
   }
 
   .price-chart {
@@ -517,19 +521,15 @@ body.theme-payhero {
     color: $footer-bar;
   }
 
-  .q-menu--dark {
-    box-shadow: none;
-  }
-
   .group-currency {
     border-radius: 6px;
 
     &.dark {
-      background: $card_dark !important;
+      background: $bg_container_dark !important;
     }
 
     &.light {
-      background: $card_light !important;
+      background: $bg_container_light !important;
     }
 
     .text-token.light {
@@ -556,7 +556,7 @@ body.theme-payhero {
 
   .transaction-container {
     &.dark {
-      background-color: $card_dark;
+      background-color: $bg_container_dark;
     }
 
     &.light {

@@ -29,7 +29,7 @@
 
     <q-card
       class="br-15 q-mx-md q-mb-md q-mt-sm pt-card"
-      :class="getDarkModeClass('text-white dark', 'text-black light')"
+      :class="getDarkModeClass('text-white', 'text-black')"
       style="transition: height 0.5s"
     >
       <template v-if="selectedAccountType === 'hedge'">
@@ -172,7 +172,7 @@
 
     <q-card
       class="br-15 q-mx-md q-mb-md pt-card"
-      :class="getDarkModeClass('text-white dark', 'text-black light')"
+      :class="getDarkModeClass('text-white', 'text-black')"
     >
       <template v-if="selectedAccountType === 'hedge'">
         <q-expansion-item ref="offersDrawerRef" :label="$t('HedgeOffers')">
@@ -1109,7 +1109,7 @@ function isDefaultTheme () {
   return this.$store.getters['global/theme'] !== 'default'
 }
 
-function getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-  return this.darkMode ? darkModeClass : lightModeClass
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

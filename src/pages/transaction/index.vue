@@ -3,7 +3,7 @@
     id="app-container"
     class="scroll-y"
     style="background-color: #ECF3F3;"
-    :class="getDarkModeClass('dark', 'light')"
+    :class="getDarkModeClass()"
   >
     <div>
       <q-pull-to-refresh @refresh="refresh">
@@ -64,7 +64,7 @@
           <div
             v-if="!showTokens"
             class="text-center button button-text-primary show-tokens-label"
-            :class="getDarkModeClass('dark', 'light text-black')"
+            :class="getDarkModeClass('', 'text-black')"
             @click.native="toggleShowTokens"
             style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
           >
@@ -98,7 +98,7 @@
                   @click="updateTokenMenuPosition"
                 >
                   <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
-                    <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px;">
+                    <q-list class="pt-card" :class="getDarkModeClass()" style="min-width: 100px;">
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleManageAssets">{{ $t('ManageTokens') }}</q-item-section>
                       </q-item>
@@ -179,7 +179,7 @@
                 padding="xs"
                 icon="mdi-chart-line-variant"
                 class="q-ml-md"
-                :class="getDarkModeClass('', 'price-chart-icon light')"
+                :class="getDarkModeClass('', 'price-chart-icon')"
                 @click="openPriceChart"
               />
             </div>
@@ -1063,8 +1063,8 @@ export default {
           })
       }
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
 

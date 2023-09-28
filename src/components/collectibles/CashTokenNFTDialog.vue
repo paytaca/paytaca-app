@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" full-width>
-    <q-card style="max-width:90vw;" :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card style="max-width:90vw;" class="pt-card" :class="getDarkModeClass('text-white', 'text-black')">
       <q-card-section
         class="row items-start no-wrap"
         style="position:sticky;top:0;z-index:1;max-width:100%;background:inherit;"
@@ -34,8 +34,9 @@
 
       <q-tabs
         v-model="tab"
-        :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-        :indicator-color="isDefaultTheme && 'transparent'"
+        style="padding-left: 3px; padding-right: 3px;"
+        :active-color="isDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+        :indicator-color="isDefaultTheme() && 'transparent'"
       >
         <q-tab
           name="details"
@@ -60,7 +61,8 @@
       <q-tab-panels
         animated
         v-model="tab"
-        :class="darkMode ? 'pt-dark-card' : 'text-black'"
+        class="pt-card"
+        :class="getDarkModeClass('', 'text-black')"
       >
         <q-tab-panel name="details">
           <!-- <q-btn
@@ -180,6 +182,7 @@ import VueJsonPretty from 'vue-json-pretty';
 
 const $q = useQuasar()
 const $store = useStore()
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const $emit = defineEmits([
   'update:modelValue',
@@ -249,6 +252,10 @@ function copyToClipboard(value, message) {
 
 function isDefaultTheme () {
   return this.$store.getters['global/theme'] !== 'default'
+}
+
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 

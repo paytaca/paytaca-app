@@ -14,7 +14,7 @@
         <div v-if="Number.isInteger(posDevice?.posid)" class="text-h6">
           {{ posDevice?.name || 'Device' }}#{{ padPosId(posDevice?.posid) }}
         </div>
-        <q-card :class="darkMode ? 'pt-dark-card' : 'text-black'">
+        <q-card class="pt-card" :class="getDarkModeClass('', 'text-black')">
           <q-card-section>
             <div class="row items-center">
               <div class="q-space text-subtitle1">Total sales</div>
@@ -184,5 +184,9 @@ function formatRangeType(value) {
   if (value === 'day') return 'daily'
   if (value === 'month') return 'monthly'
   return value
+}
+
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

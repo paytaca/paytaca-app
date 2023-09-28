@@ -44,7 +44,7 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass('dark', 'bg-white light')" v-if="isCashToken">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass('', 'bg-white')" v-if="isCashToken">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
@@ -54,7 +54,7 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none amount-text" :class="getDarkModeClass('dark', 'text-grad')">
+                <p class="q-ma-none amount-text" :class="getDarkModeClass('', 'text-grad')">
                   <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/'))).substring(0, 16) }}</span>
                   {{ asset.symbol }}
                 </p>
@@ -187,8 +187,8 @@ export default {
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

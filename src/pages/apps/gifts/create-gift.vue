@@ -351,8 +351,8 @@ export default {
         })
       })
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

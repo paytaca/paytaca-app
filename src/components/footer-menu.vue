@@ -1,11 +1,11 @@
 <template>
   <div
     class="row justify-center fixed-footer"
-    :class="{'pt-dark-card': darkMode}"
-    :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
+    :class="getDarkModeClass()"
+    :style="{width: $q.platform.is.bex ? '375px' : '100%', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ path: '/' }">
           <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-home.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
@@ -15,9 +15,9 @@
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push('/')" :class="{'footer-label': isDefaultTheme}">{{ $t('Home') }}</span>
+        <span @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
-      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
           <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-send.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
@@ -27,14 +27,9 @@
           </q-icon>
         </router-link>
         <br>
-        <span
-          @click="$router.push({ name: 'transaction-send-select-asset' })"
-          :class="{'footer-label': isDefaultTheme}"
-        >
-          {{ $t('Send') }}
-        </span>
+        <span @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
       </button>
-      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'transaction-receive-select-asset' }">
           <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-receive.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
@@ -44,14 +39,9 @@
           </q-icon>
         </router-link>
         <br>
-        <span
-          @click="$router.push({ name: 'transaction-receive-select-asset' })"
-          :class="{'footer-label': isDefaultTheme}"
-        >
-          {{ $t('Receive') }}
-        </span>
+        <span @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}">
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'apps-dashboard' }">
           <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-apps.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
@@ -61,14 +51,9 @@
           </q-icon>
         </router-link>
         <br>
-        <span
-          @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines"
-          :class="{'footer-label': isDefaultTheme}"
-        >
-          {{ $t('Apps') }}
-        </span>
+        <span @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="getDarkModeClass()" @click="openWalletDialog">
         <q-icon v-if="isDefaultTheme" name="img:/icons/theme/payhero/app-wallet.png" size="30px" />
         <q-icon v-else class="default-text-color mb-2" size="30px">
           <svg>
@@ -76,7 +61,7 @@
           </svg>
         </q-icon>
         <br>
-        <span :class="{'footer-label': isDefaultTheme}">{{ $t('Wallets') }}</span>
+        <span>{{ $t('Wallets') }}</span>
       </button>
       <!-- <button class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>
@@ -110,6 +95,9 @@ export default {
       this.$q.dialog({
         component: MultiWallet
       })
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }
@@ -127,6 +115,7 @@ export default {
     bottom: 0;
     box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
     z-index: 6;
+    margin: 0 auto;
 
     .footer-icon {
       font-size: 30px !important;

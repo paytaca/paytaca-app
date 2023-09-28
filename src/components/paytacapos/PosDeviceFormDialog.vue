@@ -162,7 +162,7 @@ function savePosDevice() {
   onDialogOK(apiRequest)
 }
 
-function getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-  return this.darkMode ? darkModeClass : lightModeClass
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

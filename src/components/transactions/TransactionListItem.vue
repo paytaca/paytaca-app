@@ -18,7 +18,7 @@
             <div
               v-if="marketValueData?.marketValue"
               class="transactions-wallet market-value"
-              :class="getDarkModeClass('text-weight-light dark', 'light')"
+              :class="getDarkModeClass('text-weight-light', '')"
               style="margin-top:-0.25em;"
             >
               {{ marketValueData?.marketValue }} {{ selectedMarketCurrency }}
@@ -166,8 +166,8 @@ function formatAmount (amount, decimals, isBCH=false, isSLP=false) {
   }
 }
 
-function getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-  return this.darkMode ? darkModeClass : lightModeClass
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 <style scoped>

@@ -1,7 +1,7 @@
 <template>
   <q-dialog ref="dialog" persistent full-width>
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" class="br-15">
-      <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg" v-if="!showInfo">
+    <q-card class="br-15 pt-card" :class="getDarkModeClass('text-white', 'text-black')">
+      <div class="row no-wrap items-center justify-center q-px-lg q-pt-sm" v-if="!showInfo">
         <div class="text-subtitle1 q-space q-mt-sm">
           {{ $t('TransactionHistory') }}
         </div>
@@ -201,6 +201,9 @@ export default {
       }
       vm.loadingNextPage = false
       vm.isloaded = true
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   async mounted () {

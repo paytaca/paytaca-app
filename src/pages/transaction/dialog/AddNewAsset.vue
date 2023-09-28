@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin br-15 q-pb-sm add-asset-card" :class="getDarkModeClass('pt-dark-card-2 dark', 'light')">
+    <q-card class="q-dialog-plugin br-15 q-pb-sm add-asset-card" :class="getDarkModeClass('pt-dark-card-2', '')">
         <q-card-section class="pt-label text-weight-medium" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
           <span>{{ addTokenTitle }}</span>
         </q-card-section>
@@ -269,8 +269,8 @@ export default {
     onDialogHide () {
       this.$emit('hide')
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

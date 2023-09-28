@@ -1,12 +1,12 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
     <q-card
-      class="q-dialog-plugin br-15"
+      class="q-dialog-plugin br-15 pt-card"
       style="padding: 5px 0;"
-      :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}"
+      :class="getDarkModeClass()"
     >
       <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
-        <q-btn icon="close" flat round dense v-close-popup :color="$store.getters['darkmode/getStatus'] ? 'grey' : 'black'" />
+        <q-btn icon="close" flat round dense v-close-popup :color="darkMode ? 'grey' : 'black'" class="close-button"/>
       </div>
 
       <q-card-section v-if="asset">
@@ -28,7 +28,7 @@
             <q-icon
               name="exit_to_app"
               class="button button-text-primary dark"
-              :color="$store.getters['darkmode/getStatus'] ? 'blue-5' : 'blue-9'"
+              :color="darkMode ? 'blue-5' : 'blue-9'"
               size="sm"
             />
           </a>
@@ -134,6 +134,9 @@ export default {
           assetId: this.asset.id
         }
       })
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

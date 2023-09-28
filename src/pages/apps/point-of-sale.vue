@@ -6,11 +6,9 @@
       class="apps-header"
     />
     <q-card
-      class="br-15 q-mx-md q-mt-lg q-mb-md"
+      class="br-15 q-mx-md q-mt-lg q-mb-md pt-card"
       :style="{ 'margin-top': $q.platform.is.ios ? '35px' : '0'}"
-      :class="[
-        darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
+      :class="getDarkModeClass('text-white', 'text-black')"
     >
       <q-card-section>
         <q-item
@@ -45,7 +43,12 @@
                   <q-space/>
                   <q-icon name="more_horiz" size="1.5em" class="q-px-sm"/>
                 </div>
-                <q-menu anchor="bottom right" self="top right" :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-pa-sm']">
+                <q-menu
+                  anchor="bottom right"
+                  self="top right"
+                  class="q-pa-sm pt-card"
+                  :class="getDarkModeClass('text-white', 'text-black')"
+                >
                   <q-list separator :dark="darkMode">
                     <q-item
                       v-for="branch in merchantBranches" :key="branch.id"
@@ -103,11 +106,9 @@
     </q-card>
 
     <q-card
-      class="br-15 q-pt-sm q-mx-md"
+      class="br-15 q-pt-sm q-mx-md pt-card"
       :style="{ 'margin-top': $q.platform.is.ios ? '55px' : '0'}"
-      :class="[
-        darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
+      :class="getDarkModeClass('text-white', 'text-black')"
     >
       <q-card-section>
         <div class="row items-center">
@@ -176,7 +177,7 @@
             <q-item-section side>
               <q-btn icon="more_vert" flat>
                 <q-menu>
-                  <q-list :class="{'pt-dark-card': darkMode, 'text-black': !darkMode }" style="min-width: 100px">
+                  <q-list style="min-width: 100px" class="pt-card" :class="getDarkModeClass('', 'text-black')">
                     <q-item
                       clickable
                       v-close-popup
@@ -929,8 +930,8 @@ function connectRpcClient(opts) {
     })
 }
 
-function getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-  return this.darkMode ? darkModeClass : lightModeClass
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 <style scoped>

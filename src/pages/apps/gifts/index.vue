@@ -58,7 +58,7 @@
                 v-for="i in 3"
                 class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               >
-                <q-card :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
+                <q-card class="q-py-sm q-px-md" :class="getDarkModeClass('text-white', 'text-black')">
                   <q-skeleton height="1.25em" class="q-mb-sm"/>
                   <q-skeleton height="1.25em" class="q-mb-sm"/>
                   <q-separator spaced :dark="darkMode"/>
@@ -79,7 +79,11 @@
                 :key="gift?.gift_code_hash"
                 class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               >
-                <q-card v-if="getGiftShare(gift?.gift_code_hash) || gift?.date_claimed !== 'None'" :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
+                <q-card
+                  v-if="getGiftShare(gift?.gift_code_hash) || gift?.date_claimed !== 'None'"
+                  class="q-py-sm q-px-md pt-card"
+                  :class="getDarkModeClass('text-white', 'text-black')"
+                >
                   <div class="row">
                     <div class="q-space">Amount</div>
                     <div class="text-caption text-grey">
@@ -334,8 +338,8 @@ export default {
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

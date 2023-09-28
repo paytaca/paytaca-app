@@ -1,6 +1,6 @@
 <template>
    <q-dialog ref="dialog" persistent full-width>
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" class="br-15">
+    <q-card class="br-15 pt-card" :class="getDarkModeClass('text-white', 'text-black')">
       <div class="row no-wrap items-center justify-center q-pl-md q-px-sm q-pt-sm">
         <div class="text-subtitle1 q-space q-mt-sm">{{ title }}</div>
         <q-btn
@@ -10,7 +10,12 @@
           v-close-popup
         />
       </div>
-      <q-tab-panels v-model="panel" animated :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+      <q-tab-panels
+        v-model="panel"
+        animated
+        class="pt-card"
+        :class="getDarkModeClass('text-white', 'text-black')"
+      >
         <q-tab-panel name="list" class="q-pa-md">
           <q-card-section>
             <q-input
@@ -95,6 +100,9 @@ export default {
       } else {
         return info.network.toUpperCase()
       }
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   computed: {

@@ -4,8 +4,8 @@
     @decode="onScannerDecode"
   />
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mb-lg"
-    :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
+    class="br-15 q-pt-sm q-mx-md q-mb-lg pt-card"
+    :class="getDarkModeClass('text-white', 'text-black')"
     v-if="isloaded && state === 'form' && !error"
   >
     <div class="row items-center justify-end q-mt-md q-mr-lg">
@@ -577,6 +577,9 @@ export default {
       }
 
       return icon
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   computed: {

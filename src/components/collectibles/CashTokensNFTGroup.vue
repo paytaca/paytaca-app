@@ -6,7 +6,7 @@
     <div class="row items-start q-pa-md">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
-        :class="darkMode ? 'text-white pt-dark-card' : 'text-black'"
+        :class="getDarkModeClass('text-white', 'text-black')"
         class="q-ma-sm"
         style="max-width:130px;width:100%;"
         @click.stop="() => $emit('openNft', nft)"
@@ -53,7 +53,7 @@
 import { CashNonFungibleToken } from "src/wallet/cashtokens";
 import { Wallet } from "src/wallet"
 import { useStore } from "vuex";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import ProgressLoader from 'components/ProgressLoader'
 import LimitOffsetPagination from 'components/LimitOffsetPagination.vue';
 
@@ -65,6 +65,7 @@ const $store = useStore()
 const $emit = defineEmits([
   'openNft',
 ])
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const props = defineProps({
   wallet: Wallet,
@@ -118,5 +119,9 @@ function isDefaultTheme () {
 
 function theme () {
   return this.$store.getters['global/theme']
+}
+
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

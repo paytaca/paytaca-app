@@ -1,9 +1,7 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm"
-    :class="[
-      darkMode ? 'text-white pt-dark-card' : 'text-black',
-    ]"
+    class="br-15 q-pt-sm pt-card"
+    :class="getDarkModeClass('text-white', 'text-black')"
   >
     <q-card-section v-if="!stagedSwapDetails.show">
       <div class="row items-center justify-end q-mb-md">
@@ -131,7 +129,8 @@
           flat
           padding="xs"
           size="sm"
-          class="button button-text-secondary"
+          class="button button-text-primary"
+          :class="getDarkModeClass()"
           @click="showSettingsDialogForm = true"
         />
       </div>
@@ -159,7 +158,12 @@
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else-if="computedFormData.parsedDistribution.steps > 0">
               {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" :color="darkMode ? 'blue-5' : 'blue-9'" class="button button-text-secondary" />
+              <q-icon
+                name="launch"
+                :color="darkMode ? 'blue-5' : 'blue-9'"
+                class="button button-text-primary"
+                :class="getDarkModeClass()"
+              />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedFormData.parsedDistribution.steps"
@@ -268,7 +272,12 @@
           <q-item-label @click="showRouteDialog = computedStagedSwapDetails.parsedDistribution.steps > 0" style="cursor:pointer;">
             <template v-if="computedStagedSwapDetails.parsedDistribution.steps > 0">
               {{ `${computedStagedSwapDetails.parsedDistribution.steps} step${computedStagedSwapDetails.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" color="blue-9" class="button button-text-secondary" />
+              <q-icon
+                name="launch"
+                color="blue-9"
+                class="button button-text-primary"
+                :class="getDarkModeClass()"
+              />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedStagedSwapDetails.parsedDistribution.steps"
@@ -329,7 +338,7 @@
       />
     </q-card-section>
     <q-dialog v-model="showSettingsDialogForm" persistent>
-      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;" class="br-15">
+      <q-card class="br-15 pt-card" :class="getDarkModeClass('text-white', 'text-black')" style="min-width:75vw;">
         <div class="row no-wrap items-center justify-center q-pl-md">
           <div
             class="text-subtitle1 text-weight-medium q-space q-pt-sm text-section"
@@ -343,7 +352,8 @@
               icon="refresh"
               round
               padding="sm"
-              class="button button-text-secondary"
+              class="button button-text-primary"
+              :class="getDarkModeClass()"
               @click="function(){
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
@@ -976,6 +986,9 @@ export default {
       const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       this.wallet = markRaw(new Wallet(mnemonic))
       return this.wallet
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   watch: {

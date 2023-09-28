@@ -54,7 +54,7 @@
                     </span>
                   </div>
                   <q-menu anchor="bottom right" self="top end" >
-                    <q-list class="text-h5" :class="{'pt-dark-card': darkMode}" style="min-width: 150px; font-size: 15px;">
+                    <q-list class="text-h5 pt-card" :class="getDarkModeClass()">
                       <q-item clickable v-close-popup>
                         <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">{{ $t('SwitchWallet') }}</q-item-section>
                       </q-item>
@@ -177,8 +177,8 @@ export default {
         return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   computed: {
@@ -227,5 +227,9 @@ export default {
 .active-color {
   color: #8ec351;
   -webkit-text-fill-color: #8ec351;
+}
+.pt-card {
+  min-width: 150px;
+  font-size: 15px;
 }
 </style>

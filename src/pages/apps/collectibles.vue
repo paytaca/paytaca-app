@@ -3,7 +3,7 @@
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
-        <q-list :class="{'pt-dark-card': darkMode}" style="min-width: 100px">
+        <q-list class="pt-card" :class="getDarkModeClass()" style="min-width: 100px">
           <q-item clickable v-close-popup>
             <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">{{ $t('ShowReceivingAddress') }}</q-item-section>
           </q-item>
@@ -348,8 +348,8 @@ export default {
         vm.wallet = markRaw(wallet)
       })
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

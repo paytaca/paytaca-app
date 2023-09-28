@@ -44,7 +44,7 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass('dark', 'bg-white light')">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass('', 'bg-white')">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50" /></div>
               <div class="col q-pl-sm q-pr-sm">
@@ -54,7 +54,7 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none amount-text" :class="getDarkModeClass('dark', 'text-grad')">
+                <p class="q-ma-none amount-text" :class="getDarkModeClass('', 'text-grad')">
                   {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
                   <span>
                     {{ asset.symbol }}
@@ -171,8 +171,8 @@ export default {
         query
       })
     },
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {
