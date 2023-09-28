@@ -38,9 +38,9 @@
           filled
           :dark="darkMode"
           v-model="shiftAmount"
-          @update:modelValue="function(){
-              updateConvertionRate()
-            }"
+          @focus="readonlyState(true)"
+          @blur="readonlyState(false)"
+          :readonly="amountInputState"
         />
         <q-item-label
           class="text-right q-mt-sm"
@@ -158,6 +158,14 @@
       />
     </div>
   </q-card>
+
+  <CustomKeyboard
+    v-if="showCustomKeyboard"
+    :custom-keyboard-state="customKeyboardState"
+    @addKey="setAmount"
+    @makeKeyAction="makeKeyAction"
+  />
+
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded && !error">
     <ProgressLoader/>
   </div>
@@ -191,6 +199,7 @@ import RampDisplayConfirmation from './RampDisplayConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
 import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from '../ProgressLoader.vue'
+import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import QrScanner from '../qr-scanner.vue'
 import { debounce } from 'quasar'
 import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
@@ -202,7 +211,8 @@ export default {
     RampDisplayConfirmation,
     RampDepositInfo,
     RampHistoryDialog,
-    QrScanner
+    QrScanner,
+    CustomKeyboard
   },
   data () {
     return {
@@ -237,7 +247,10 @@ export default {
       shiftData: {},
       convertionRate: '',
       addrType: '',
-      depositInfoState: 'created'
+      depositInfoState: 'created',
+      showCustomKeyboard: false,
+      amountInputState: false,
+      customKeyboardState: 'dismiss'
     }
   },
   methods: {
@@ -579,6 +592,56 @@ export default {
       }
 
       return icon
+    },
+    readonlyState (state) {
+      this.amountInputState = state
+      if (this.amountInputState) {
+        this.customKeyboardState = 'show'
+      }
+      this.showCustomKeyboard = true
+    },
+    setAmount (key) {
+      let tempAmount, amount
+
+      tempAmount = this.shiftAmount
+      tempAmount = tempAmount === 0 ? '' : tempAmount
+      if (key === '.' && tempAmount === '') {
+        amount = '0.'
+      } else {
+        amount = tempAmount.toString()
+        const hasPeriod = amount.indexOf('.')
+        if (hasPeriod < 1) {
+          if (Number(amount) === 0 && Number(key) > 0) {
+            amount = key
+          } else {
+            // Check amount if still zero
+            if (Number(amount) === 0 && Number(amount) === Number(key)) {
+              amount = 0
+            } else {
+              amount += key.toString()
+            }
+          }
+        } else {
+          amount += key !== '.' ? key.toString() : ''
+        }
+      }
+      // Set the new amount
+      this.shiftAmount = amount
+      this.updateConvertionRate()
+    },
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        // Backspace
+        this.shiftAmount = String(this.shiftAmount).slice(0, -1)
+        this.updateConvertionRate()
+      } else if (action === 'delete') {
+        // Delete
+        this.shiftAmount = ''
+        this.updateConvertionRate()
+      } else {
+        // Hide Custom Keyboard
+        this.showCustomKeyboard = false
+      }
     }
   },
   computed: {

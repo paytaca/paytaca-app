@@ -11,6 +11,9 @@
       v-model="innerModelValue.amount"
       :error="hasErrors"
       :error-message="errors?.[0]"
+      :readonly="readonly"
+      @focus="$emit('focus')"
+      @blur="$emit('blur')"
     />
     <q-select
       :dark="dark"
@@ -29,7 +32,7 @@
 import { ref, watch, onMounted, computed } from 'vue';
 import { useFormChild } from 'quasar'
 
-const $emit = defineEmits(['update:modelValue'])
+const $emit = defineEmits(['update:modelValue', 'focus', 'blur'])
 
 const props = defineProps({
   modelValue: Number,
@@ -39,6 +42,7 @@ const props = defineProps({
   disable: Boolean,
   label: String,
   rules: Array,
+  readonly: Boolean
   // rules is an array of functions that accept parameters:
   //   - modelValue - Number
   //   - modelValueUnit - { label:String, value:Number }
@@ -124,4 +128,15 @@ function resetValidation () {
 watch(() => innerAtomicValue.value, () => validate())
 
 useFormChild({ validate, resetValidation, requiresQForm: false })
+
+function updateAmountValue (amount) {
+  innerModelValue.value.amount = amount
+}
+function getAmountValue () {
+  return innerModelValue.value.amount
+}
+defineExpose({
+  updateAmountValue,
+  getAmountValue
+})
 </script>

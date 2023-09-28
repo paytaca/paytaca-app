@@ -154,6 +154,7 @@
         :label="$t('Amount')"
         suffix="BCH"
         :disable="loading"
+        :readonly="inputState.amount"
         inputmode="decimal"
         v-model="createHedgeForm.amount"
         reactive-rules
@@ -163,6 +164,8 @@
           val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${createHedgeFormConstraints.minimumAmount} BCH`,
           val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
         ]"
+        @focus="readonlyState(true, 'amount')"
+        @blur="readonlyState(false, 'amount')"
         class="q-space"
       >
         <template v-slot:hint>
@@ -190,6 +193,7 @@
       />
     </div>
     <DurationField
+      ref="durationRef"
       :dark="darkMode"
       outlined
       dense
@@ -202,6 +206,10 @@
         (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must at least be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
         (val, units, formatValue) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`,
       ]"
+      @focus="readonlyState(true, 'duration')"
+      @blur="readonlyState(false, 'duration')"
+      :readonly="inputState.duration"
+
     />
     <div class="row no-wrap q-gutter-x-sm">
       <q-input
@@ -218,6 +226,9 @@
           val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must be at least ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
           val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must be at most ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
         ]"
+        @focus="readonlyState(true, 'lowLiquidationMultiplierPctg')"
+        @blur="readonlyState(false, 'lowLiquidationMultiplierPctg')"
+        :readonly="inputState.lowLiquidationMultiplierPctg"
       >
         <template v-slot:hint>
           <div v-if="createHedgeFormMetadata.lowLiquidationPrice" class="text-caption text-grey">
@@ -238,6 +249,9 @@
           val => (val > 100) || 'Must be greater than 100%',
           val => (val <= 1000) || 'Must not be higher than 1000%'
         ]"
+        @focus="readonlyState(true, 'highLiquidationMultiplierPctg')"
+        @blur="readonlyState(false, 'highLiquidationMultiplierPctg')"
+        :readonly="inputState.highLiquidationMultiplierPctg"
       >
         <template v-slot:hint>
           <div v-if="createHedgeFormMetadata.highLiquidationPrice" class="text-caption text-grey">
@@ -298,6 +312,9 @@
             val => (val >= 1) || 'Must be greater than 1%',
             val => (val <= 100) || 'Must not be higher than 100%'
           ]"
+          @focus="readonlyState(true, 'match')"
+          @blur="readonlyState(false, 'match')"
+          :readonly="inputState.match"
         >
           <template v-slot:append>
             <q-icon name="help" :color="darkMode ? 'grey-7' : 'black'">
@@ -353,6 +370,7 @@ import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
 
+
 function alertError(...args) {
   console.error('form error', args)
 }
@@ -362,7 +380,101 @@ const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const $emit = defineEmits(['created', 'cancel'])
+// custom keyboard
+const inputState = ref({
+  amount: false,
+  duration: false,
+  lowLiquidationMultiplierPctg: false,
+  highLiquidationMultiplierPctg: false,
+  match: false
+})
+const activeInput = ref()
+const durationRef = ref()
+
+function readonlyState (state, type) {
+  this.inputState[type] = state
+
+  if (this.inputState[type]) {
+    this.activeInput = type
+    $emit('showKeyboard', this.activeInput)
+  }
+}
+
+function setAmount (key) {
+  let tempAmount, amount
+
+  // Set Initial Input
+  if (activeInput.value === 'match') {
+    tempAmount = createHedgeForm.value.p2pMatch.similarity
+  } else if (activeInput.value === 'duration') {
+    tempAmount = durationRef?.value?.getAmountValue()
+  } else {
+    tempAmount = createHedgeForm.value[activeInput.value]
+  }
+
+  // Add new Key
+  tempAmount = tempAmount === 0 ? '' : tempAmount
+  if (key === '.' && tempAmount === '') {
+    amount = '0.'
+  } else {
+    amount = tempAmount.toString()
+    const hasPeriod = amount.indexOf('.')
+    if (hasPeriod < 1) {
+      if (Number(amount) === 0 && Number(key) > 0) {
+        amount = key
+      } else {
+        // Check amount if still zero
+        if (Number(amount) === 0 && Number(amount) === Number(key)) {
+          amount = 0
+        } else {
+          amount += key.toString()
+        }
+      }
+    } else {
+      amount += key !== '.' ? key.toString() : ''
+    }
+  }
+
+  // Set the new amount
+  if (activeInput.value === 'match') {
+    createHedgeForm.value.p2pMatch.similarity = amount
+  } else if (activeInput.value === 'duration') {
+    durationRef?.value?.updateAmountValue(amount)
+  } else {
+    createHedgeForm.value[activeInput.value] = amount
+  }
+}
+
+function makeKeyAction (action) {
+  if (action === 'backspace') {
+    // Backspace
+    this.shiftAmount = String(this.shiftAmount).slice(0, -1)
+    if (activeInput.value === 'match') {
+      createHedgeForm.value.p2pMatch.similarity = String(createHedgeForm.value.p2pMatch.similarity).slice(0, -1)
+    } else if (activeInput.value === 'duration') {
+      const temp = durationRef?.value?.getAmountValue()
+      durationRef?.value?.updateAmountValue(String(temp).slice(0, -1))
+    } else {
+      createHedgeForm.value[activeInput.value] = String(createHedgeForm.value[activeInput.value]).slice(0, -1)
+    }
+  } else if (action === 'delete') {
+    // Delete
+    if (activeInput.value === 'match') {
+      createHedgeForm.value.p2pMatch.similarity = ''
+    } else if (activeInput.value === 'duration') {
+      durationRef?.value?.updateAmountValue('')
+    } else {
+      createHedgeForm.value[activeInput.value] = ''
+    }
+  }
+}
+
+defineExpose({
+  setAmount,
+  makeKeyAction
+})
+
+const $emit = defineEmits(['created', 'cancel', 'showKeyboard'])
 
 const $copyText = inject('$copyText')
 function copyText(value, message='') {
@@ -384,7 +496,8 @@ const props = defineProps({
       // The value must match one of these strings
       return ['hedge', 'long'].includes(value)
     }
-  }
+  },
+  keyBoardData: Object
 })
 
 async function dialogPromise(qDialogOptions) {
@@ -459,7 +572,7 @@ const createHedgeFormMetadata = computed(() => {
     data.nominalAmount = Math.round(priceValue * createHedgeForm.value.amount) / decimalsMultiplier
     data.lowLiquidationPrice = Math.round(assetPrice * createHedgeForm.value.lowLiquidationMultiplierPctg) / 100
     data.highLiquidationPrice = Math.round(assetPrice * createHedgeForm.value.highLiquidationMultiplierPctg) / 100
-    
+
     const totalBch = data.nominalAmount / data.lowLiquidationPrice
     const longBch = totalBch - createHedgeForm.value.amount
     const longNominalUnits = Math.round(longBch * priceValue) / decimalsMultiplier
@@ -634,7 +747,7 @@ async function createHedgePosition() {
 
   // hold data in case the source value changes while the whole process ingoing
   const position = props.position
-   
+
   // grouping data
   const intent = {
     amount: createHedgeFormMetadata.value.intentAmountBCH,
@@ -698,7 +811,7 @@ async function createHedgePosition() {
     positionTaker: position,
     contractCreationParams: {
       address: '',
-      version: '',  
+      version: '',
     },
     liquidityFee: 0,
     fees: [{ satoshis: 0, address: '', name: '', description: '' }],
@@ -813,8 +926,8 @@ async function createHedgePosition() {
       const findMatchData = {
         wallet_hash: misc.walletHash,
         position: position,
-        satoshis: position === 'hedge' ? 
-          Math.round(intent.amount * 10 ** 8) : 
+        satoshis: position === 'hedge' ?
+          Math.round(intent.amount * 10 ** 8) :
           Math.round(intent.longAmountBCH * 10 ** 8),
         duration_seconds: intent.duration,
         low_liquidation_multiplier: intent.lowPriceMult,
@@ -1182,7 +1295,7 @@ async function createHedgePosition() {
     if (position === 'long') loadingMsg.value = 'Finalizing long position'
   }
 
-  anyhedgeBackend.post(path, data)  
+  anyhedgeBackend.post(path, data)
     .then(response => {
       // console.log(response)
       if(response?.data?.id || response?.data?.hedge_position?.id) {
