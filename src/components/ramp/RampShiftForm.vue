@@ -598,19 +598,12 @@ export default {
       if (this.amountInputState) {
         this.customKeyboardState = 'show'
       }
-      console.log(this.amountInputState)
       this.showCustomKeyboard = true
-      // this.customKeyboardState = state ? 'show' : 'dismiss'
     },
     setAmount (key) {
       let tempAmount, amount
 
       tempAmount = this.shiftAmount
-      // if (this.setAmountInFiat) {
-      //   sendAmount = this.sendAmountInFiat
-      // } else {
-      //   sendAmount = this.sendData.amount
-      // }
       tempAmount = tempAmount === 0 ? '' : tempAmount
       if (key === '.' && tempAmount === '') {
         amount = '0.'
@@ -633,24 +626,16 @@ export default {
         }
       }
       // Set the new amount
-      console.log(amount)
       this.shiftAmount = amount
       this.updateConvertionRate()
-      // if (this.setAmountInFiat) {
-      //   this.sendAmountInFiat = amount
-      // } else {
-      //   this.sendData.amount = amount
-      // }
     },
     makeKeyAction (action) {
       if (action === 'backspace') {
         // Backspace
-
         this.shiftAmount = String(this.shiftAmount).slice(0, -1)
         this.updateConvertionRate()
       } else if (action === 'delete') {
         // Delete
-
         this.shiftAmount = ''
         this.updateConvertionRate()
       } else {
