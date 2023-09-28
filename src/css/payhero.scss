@@ -77,6 +77,13 @@ body.theme-payhero {
       #ed5f59
     );
     position: relative !important;
+
+    .q-field--dark {
+      .q-field__control,
+      .q-field__native {
+        color: black !important;
+      }
+    }
   }
 
   #bch-card {
@@ -400,7 +407,7 @@ body.theme-payhero {
     background: #212f3d !important;
 
     &.light {
-      background: white !important;
+      background: #f9f8ff !important;
     }
   }
 

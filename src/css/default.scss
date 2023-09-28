@@ -74,6 +74,16 @@ body.theme-default {
       #ed5f59
     );
     position: relative !important;
+
+    .q-field--dark {
+      .q-field__control {
+        color: $brand_blue !important;
+      }
+
+      .q-field__native {
+        color: black !important;
+      }
+    }
   }
   #bch-card {
     margin: 0px 20px 10px 20px;

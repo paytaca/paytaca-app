@@ -60,7 +60,6 @@ export default {
   margin-right: auto;
   padding-top: 20px;
   /* position: fixed; */
-  background: #ECF3F3;
   /* width: 100%; */
   z-index: 100;
 }
