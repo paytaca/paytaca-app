@@ -132,7 +132,8 @@ export default {
       standByDisplayKey: 0,
       escrowTransferProcessKey: 0,
       verifyEscrowTxKey: 0,
-      errorMessages: []
+      errorMessages: [],
+      selectedPaymentMethods: []
     }
   },
   components: {
@@ -315,7 +316,7 @@ export default {
         }
       })
         .then(response => {
-          // console.log('fetchOrderData:', response.data)
+          console.log('fetchOrderData:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.fees = response.data.fees
@@ -415,7 +416,10 @@ export default {
         signature: signature,
         timestamp: timestamp
       }
-      await vm.$axios.post(url, {}, { headers: headers })
+      const body = {
+        payment_methods: this.selectedPaymentMethods
+      }
+      await vm.$axios.post(url, body, { headers: headers })
         .then(response => {
           // console.log('sendConfirmPayment:', response.data)
           // if (response.data && response.data.status.value === 'PD_PN') {
@@ -423,7 +427,7 @@ export default {
           // }
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       // await this.fetchOrderData()
@@ -675,7 +679,9 @@ export default {
       this.openDialog = true
       this.title = 'Release crypto?'
     },
-    handleConfirmPayment () {
+    handleConfirmPayment (data) {
+      console.log('handleConfirmPayment:', data)
+      this.selectedPaymentMethods = data
       this.dialogType = 'confirmPayment'
       this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
 

@@ -6,8 +6,7 @@
     </div>
     <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">( Order #{{ order.id }} )</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
-    <q-scroll-area :style="`height: ${minHeight - 250}px`" style="overflow-y:auto;">
-        <!-- Fiat Input -->
+    <q-scroll-area :style="`height: ${minHeight - minHeight * 0.2}px`" style="overflow-y:auto;">
       <div class="q-mt-md q-mx-lg q-px-md">
         <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs">Please pay the seller</div>
         <div v-else class="sm-font-size q-pb-xs">Expect fiat payment of</div>
@@ -28,26 +27,32 @@
         <div style="font-size: 36px; color: #ed5f59;"> {{ countDown }}</div>
       </div>
 
-      <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
-
       <div class="q-mx-md q-px-md q-pt-sm">
         <!-- Buyer -->
         <div v-if="type === 'buyer'" class="q-pb-xs">
           <div class="xm-font-size q-pb-xs q-pl-sm text-left bold-text">Payment Methods</div>
           <div class="full-width">
               <div
-                v-for="(method, index) in order.payment_methods"
+                v-for="(method, index) in paymentMethods"
                 :key="index">
                 <div class="q-px-sm">
                   <q-card flat bordered>
                     <q-expansion-item
                       class="bg-grey-2"
+                      :default-opened=true
                       :label="method.payment_type"
                       expand-separator>
                       <q-card>
                         <q-card-section class="text-left">
-                          <div>{{ method.account_name }}</div>
-                          <div>{{ method.account_number }}</div>
+                          <div class="row">
+                            <div class="col">
+                              <div>{{ method.account_name }}</div>
+                              <div>{{ method.account_number }}</div>
+                            </div>
+                            <div>
+                              <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)"/>
+                            </div>
+                          </div>
                         </q-card-section>
                       </q-card>
                     </q-expansion-item>
@@ -63,9 +68,8 @@
         </div> -->
 
       </div>
-    </q-scroll-area>
-    <!-- Checkbox -->
-    <div class="q-mb-lg q-pb-lg">
+      <!-- Checkbox -->
+      <div class="q-mb-lg q-pb-lg">
         <div class="q-mx-lg q-px-md">
           <div v-if="type === 'seller'">
             <q-checkbox size="sm" v-model="confirmRelease"/>
@@ -81,15 +85,26 @@
         <!-- Confirm  -->
         <div class="row q-pt-sm q-mx-lg q-px-md">
           <q-btn
-            :disable="!confirmRelease || !confirmPayment"
+            v-if="type === 'seller'"
+            :disable="!confirmRelease"
             rounded
-            :label="type === 'seller' ? 'Release Crypto' : 'Confirm Payment'"
+            label='Release Crypto'
             class="q-space text-white"
             color="blue-6"
-            @click="$emit('confirm')"
+            @click="onConfirm"
+          />
+          <q-btn
+            v-else
+            :disable="!confirmPayment || selectedPaymentMethods.length === 0"
+            rounded
+            label='Confirm Payment'
+            class="q-space text-white"
+            color="blue-6"
+            @click="onConfirm"
           />
         </div>
       </div>
+    </q-scroll-area>
   </div>
 </template>
 <script>
@@ -105,6 +120,8 @@ export default {
       timer: null,
       confirmPayment: false,
       confirmRelease: false,
+      paymentMethods: [],
+      selectedPaymentMethods: [],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
@@ -145,11 +162,27 @@ export default {
 
       try {
         const response = await vm.$axios.get(url, { headers: headers })
-        // console.log('response: ', response)
         vm.order = response.data.order
+        vm.paymentMethods = response.data.order.ad.payment_methods.map(method => {
+          return { ...method, selected: false }
+        })
       } catch (error) {
         console.error(error.response)
       }
+    },
+    selectPaymentMethod (method) {
+      if (method.selected) {
+        this.selectedPaymentMethods.push(method.id)
+      } else {
+        const index = this.selectedPaymentMethods.indexOf(method.id)
+        if (index > -1) {
+          this.selectedPaymentMethods.splice(index, 1)
+        }
+      }
+    },
+    onConfirm () {
+      console.log('Emitting confirm with:', this.selectedPaymentMethod)
+      this.$emit('confirm', this.selectedPaymentMethods)
     },
     paymentCountdown () {
       const vm = this

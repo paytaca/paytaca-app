@@ -405,7 +405,7 @@ export default {
         const data = response.data
         vm.adData.tradeType = data.trade_type
         vm.adData.priceType = data.price_type
-        vm.adData.fixedPrice = data.fixed_price
+        vm.adData.fixedPrice = parseFloat(data.fixed_price)
         vm.adData.floatingPrice = data.floating_price
         vm.adData.fiatCurrency = data.fiat_currency
         vm.adData.tradeFloor = parseFloat(data.trade_floor)
