@@ -375,9 +375,13 @@ export class JSONPaymentProtocol {
       throw JsonPaymentProtocolError('Invalid recipient address')
     }
 
+    const utxoOpts = {
+      confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
+    }
     const bchUtxos = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.getBchUtxos(
       `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`,
       totalSendAmountSats,
+      utxoOpts,
     )
 
     if (bchUtxos.cumulativeValue < totalSendAmountSats) {
@@ -525,6 +529,7 @@ export class JSONPaymentProtocol {
       console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
       if (typeof error?.response?.data?.error === 'string') throw JsonPaymentProtocolError(error?.response?.data?.error)
+      if (typeof error?.response?.data?.msg === 'string') throw JsonPaymentProtocolError(error?.response?.data?.msg)
       throw error
     }
   }
