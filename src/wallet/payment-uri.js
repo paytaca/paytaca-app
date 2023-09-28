@@ -830,6 +830,6 @@ export class JSONPaymentProtocol {
     } else if(Array.isArray(response.data?.u) && response.data?.u.some(record => record?.tx?.h === txid)) {
       return { exists: true, confirmed: false }
     }
-    return false
+    return { exists: false, confirmed: false }
   }
 }
