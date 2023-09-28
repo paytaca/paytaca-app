@@ -22,7 +22,7 @@
         </div>
       </div>
       <div class="q-pt-sm" v-else>
-        <q-scroll-area :style="`height: ${minHeight - 180}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - minHeight * 0.2}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm bold-text">
               Price Setting
@@ -107,12 +107,12 @@
             </div>
           </div>
 
-          <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+          <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
 
           <!-- Crypto Amount -->
-          <div class="q-mx-lg">
+          <div class="q-mx-lg q-mt-sm">
             <div class="q-mt-sm q-px-md">
-              <div class="q-pb-xs q-pl-sm bold-text">Crypto Amount</div>
+              <div class="q-pb-xs q-pl-sm bold-text">Trade Amount</div>
                 <q-input
                   dense
                   outlined
@@ -175,7 +175,7 @@
             </div>
           </div>
 
-          <q-separator :dark="darkMode" class="q-mx-md"/>
+          <!-- <q-separator :dark="darkMode" class="q-mx-md"/> -->
 
           <!-- Payment Time Limit -->
           <div class="q-mx-lg q-pt-xs">
@@ -183,48 +183,46 @@
               <div class="q-pt-sm bold-text">Payment Time Limit</div>
             </div>
             <div class="q-mx-md q-pt-sm">
-              <div>
-                <q-select
-                    dense
-                    outlined
-                    rounded
-                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                    :dark="darkMode"
-                    v-model="paymentTimeLimit"
-                    :options="ptlSelection"
-                    @update:modelValue="updatePaymentTimeLimit()">
-                  <template v-slot:option="scope">
-                    <q-item v-bind="scope.itemProps">
-                      <q-item-section>
-                        <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                          {{ scope.opt.label }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </template>
-                </q-select>
-                    <!-- <template v-slot:append>
-                      <q-icon size="xs" name="close" @click.stop.prevent="ptl = ''"/>&nbsp;
-                    </template> -->
-                  <!-- </q-select> -->
-              </div>
+              <q-select
+                  dense
+                  outlined
+                  rounded
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                  :dark="darkMode"
+                  v-model="paymentTimeLimit"
+                  :options="ptlSelection"
+                  @update:modelValue="updatePaymentTimeLimit()">
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section>
+                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                        {{ scope.opt.label }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+            </div>
+            <div class="q-mx-md q-pt-xs">
+              <q-checkbox
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                v-model="adData.isPublic"
+                label="Public"
+              />
             </div>
           </div>
-        </q-scroll-area>
-        <!-- NEXT STEP -->
-        <div class="q-mx-lg">
-          <div class="row q-mx-sm q-py-lg">
+          <div class="row q-mx-lg q-px-md q-mt-xs q-mb-md">
             <q-btn
               :disable="checkPostData()"
               rounded
               no-caps
               label="Next"
-              color="blue-6"
+              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               class="q-space"
               @click="checkSubmitOption()"
             />
           </div>
-        </div>
+        </q-scroll-area>
       </div>
     </div>
     <div v-if="step === 2">
@@ -238,7 +236,6 @@
       </div>
     </div>
     <div v-if="step === 3">
-      <!-- UPDATE LATER -->
       <DisplayConfirmation
         :post-data="adData"
         :ptl="paymentTimeLimit"
@@ -303,7 +300,8 @@ export default {
         tradeCeiling: null,
         tradeAmount: null,
         timeDurationChoice: 5,
-        paymentMethods: []
+        paymentMethods: [],
+        isPublic: true
       },
       ptlSelection: [
         {
@@ -410,10 +408,11 @@ export default {
         vm.adData.fixedPrice = data.fixed_price
         vm.adData.floatingPrice = data.floating_price
         vm.adData.fiatCurrency = data.fiat_currency
-        vm.adData.tradeFloor = data.trade_floor
-        vm.adData.tradeCeiling = data.trade_ceiling
-        vm.adData.tradeAmount = data.trade_amount
+        vm.adData.tradeFloor = parseFloat(data.trade_floor)
+        vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
+        vm.adData.tradeAmount = parseFloat(data.trade_amount)
         vm.adData.paymentMethods = data.payment_methods
+        vm.adData.isPublic = data.is_public
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
         vm.selectedCurrency = data.fiat_currency
       } catch (error) {
@@ -536,7 +535,8 @@ export default {
         trade_ceiling: parseFloat(data.tradeCeiling),
         trade_amount: parseFloat(data.tradeAmount),
         time_duration_choice: data.timeDurationChoice,
-        payment_methods: idList
+        payment_methods: idList,
+        is_public: data.isPublic
       }
     },
     updatePriceValue (priceType) {

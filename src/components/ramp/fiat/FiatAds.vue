@@ -77,7 +77,7 @@
                             </span>
                             <div class="row sm-font-size">
                               <span class="q-mr-md">Quantity</span>
-                              <span>{{ formattedCurrency(listing.crypto_amount, null, false) }} BCH</span>
+                              <span>{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
                             </div>
                             <div class="row sm-font-size">
                               <span class="q-mr-md">Limit</span>

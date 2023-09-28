@@ -16,7 +16,7 @@
         <div class="q-pt-lg q-mx-lg ">
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Fiat Currency</span>
-            <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.name }} ({{ adData.fiatCurrency.symbol }})</span>
+            <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.symbol }}</span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Price Type</span>
@@ -26,7 +26,7 @@
             <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price Margin' }}</span>
             <!-- <span>Price:</span> -->
             <span class="text-nowrap q-ml-xs">
-              {{ adData.priceType === 'FIXED' ? formattedCurrencyNumber(adData.fixedPrice) : adData.floatingPrice }} {{ adData.priceType === 'FLOATING' ? '%' : '' }}
+              {{ adData.priceType === 'FIXED' ? formattedCurrency(adData.fixedPrice) : adData.floatingPrice }} {{ adData.priceType === 'FLOATING' ? '%' : '' }}
             </span>
           </div>
         </div>
@@ -36,11 +36,11 @@
         <div class="q-pt-lg q-mx-lg">
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Trade Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ formattedCurrencyNumber(adData.tradeFloor) }} - {{ formattedCurrencyNumber(adData.tradeCeiling) }} </span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} - {{ formattedCurrency(adData.tradeCeiling) }} </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text">
-            <span>Crypto Amount</span>
-            <span class="text-nowrap q-ml-xs">{{ adData.cryptoAmount }} BCH</span>
+            <span>Trade Amount</span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeAmount) }} BCH</span>
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
@@ -191,7 +191,7 @@ export default {
     vm.isLoaded = true
   },
   methods: {
-    formattedCurrencyNumber (value) {
+    formattedCurrency (value) {
       const parsedValue = parseFloat(value)
       const formattedNumber = parsedValue.toLocaleString(undefined, {
         style: 'currency',
