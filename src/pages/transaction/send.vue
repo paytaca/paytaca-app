@@ -218,25 +218,27 @@
           />
 
           <q-list v-if="showSlider" class="absolute-bottom">
-            <q-slide-item left-color="blue" @left="slideToSubmit">
-              <template v-slot:left>
-                <div style="font-size: 15px" class="text-body1">
-                <q-icon class="material-icons q-mr-md" size="lg">
-                  task_alt
-                </q-icon>
-                {{ $t('SecurityCheck') }}
-                </div>
-              </template>
+            <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
+              <q-slide-item left-color="blue" @left="slideToSubmit" style="background-color: transparent; border-radius: 40px;">
+                <template v-slot:left>
+                  <div style="font-size: 15px" class="text-body1">
+                  <q-icon class="material-icons q-mr-md" size="lg">
+                    task_alt
+                  </q-icon>
+                  {{ $t('SecurityCheck') }}
+                  </div>
+                </template>
 
-              <q-item class="bg-grad text-white q-py-md">
-                <q-item-section avatar>
-                  <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
-                </q-item-section>
-                <q-item-section class="text-right">
-                  <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
-                </q-item-section>
-              </q-item>
-            </q-slide-item>
+                <q-item class="bg-grad text-white q-py-md">
+                  <q-item-section avatar>
+                    <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+                  </q-item-section>
+                  <q-item-section class="text-right">
+                    <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
+                  </q-item-section>
+                </q-item>
+              </q-slide-item>
+            </div>
           </q-list>
           <template v-if="showFooter">
             <footer-menu />
@@ -1011,7 +1013,7 @@ export default {
         if (!Number.isNaN(amount))
           this.sendData.amount = amount
 
-        if (amount > 0) 
+        if (amount > 0)
           this.sliderStatus = true
       }
       const addressValidation = this.validateAddress(address)
