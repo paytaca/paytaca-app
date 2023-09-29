@@ -34,12 +34,14 @@
       </q-item-section>
       <q-item-section>
         <q-input
+          type="text"
+          inputmode="none"
+          @focus="readonlyState(true)"
+          @blur="readonlyState(false)"
           dense
           filled
           :dark="darkMode"
           v-model="shiftAmount"
-          @focus="readonlyState(true)"
-          @blur="readonlyState(false)"
           :readonly="amountInputState"
         />
         <q-item-label

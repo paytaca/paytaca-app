@@ -1,19 +1,20 @@
 <template>
   <div class="row no-wrap q-gutter-x-sm">
     <q-input
+      type="text"
+      inputmode="none"
+      @focus="$emit('focus')"
+      @blur="$emit('blur')"
       :dark="dark"
       :outlined="outlined"
       :dense="dense"
       :label="label"
       class="q-space"
       :disable="disable"
-      inputmode="numeric"
       v-model="innerModelValue.amount"
       :error="hasErrors"
       :error-message="errors?.[0]"
       :readonly="readonly"
-      @focus="$emit('focus')"
-      @blur="$emit('blur')"
     />
     <q-select
       :dark="dark"

@@ -148,6 +148,10 @@
     </div>
     <div class="row no-wrap q-gutter-x-sm">
       <q-input
+        type="text"
+        inputmode="none"
+        @focus="readonlyState(true, 'amount')"
+        @blur="readonlyState(false, 'amount')"
         :dark="darkMode"
         outlined
         dense
@@ -155,7 +159,6 @@
         suffix="BCH"
         :disable="loading"
         :readonly="inputState.amount"
-        inputmode="decimal"
         v-model="createHedgeForm.amount"
         reactive-rules
         :rules="[
@@ -164,8 +167,6 @@
           val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${createHedgeFormConstraints.minimumAmount} BCH`,
           val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
         ]"
-        @focus="readonlyState(true, 'amount')"
-        @blur="readonlyState(false, 'amount')"
         class="q-space"
       >
         <template v-slot:hint>
@@ -213,21 +214,22 @@
     />
     <div class="row no-wrap q-gutter-x-sm">
       <q-input
+        type="text"
+        inputmode="none"
+        @focus="readonlyState(true, 'lowLiquidationMultiplierPctg')"
+        @blur="readonlyState(false, 'lowLiquidationMultiplierPctg')"
         :dark="darkMode"
         outlined
         dense
         :label="$t('Low')"
         suffix="%"
         :disable="loading"
-        inputmode="numeric"
         v-model="createHedgeForm.lowLiquidationMultiplierPctg"
         reactive-rules
         :rules="[
           val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must be at least ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
           val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must be at most ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
         ]"
-        @focus="readonlyState(true, 'lowLiquidationMultiplierPctg')"
-        @blur="readonlyState(false, 'lowLiquidationMultiplierPctg')"
         :readonly="inputState.lowLiquidationMultiplierPctg"
       >
         <template v-slot:hint>
@@ -237,20 +239,21 @@
         </template>
       </q-input>
       <q-input
+        type="text"
+        inputmode="none"
+        @focus="readonlyState(true, 'highLiquidationMultiplierPctg')"
+        @blur="readonlyState(false, 'highLiquidationMultiplierPctg')"
         :dark="darkMode"
         outlined
         dense
         :label="$t('High')"
         suffix="%"
         :disable="loading"
-        inputmode="numeric"
         v-model="createHedgeForm.highLiquidationMultiplierPctg"
         :rules="[
           val => (val > 100) || 'Must be greater than 100%',
           val => (val <= 1000) || 'Must not be higher than 1000%'
         ]"
-        @focus="readonlyState(true, 'highLiquidationMultiplierPctg')"
-        @blur="readonlyState(false, 'highLiquidationMultiplierPctg')"
         :readonly="inputState.highLiquidationMultiplierPctg"
       >
         <template v-slot:hint>
@@ -300,20 +303,21 @@
     <q-slide-transition>
       <div v-if="createHedgeForm.autoMatchPoolTarget === 'watchtower_P2P'">
         <q-input
+          type="text"
+          inputmode="none"
+          @focus="readonlyState(true, 'match')"
+          @blur="readonlyState(false, 'match')"
           :dark="darkMode"
           outlined
           dense
           :label="$t('MatchSimilarity')"
           suffix="%"
           :disable="loading"
-          inputmode="numeric"
           v-model="createHedgeForm.p2pMatch.similarity"
           :rules="[
             val => (val >= 1) || 'Must be greater than 1%',
             val => (val <= 100) || 'Must not be higher than 100%'
           ]"
-          @focus="readonlyState(true, 'match')"
-          @blur="readonlyState(false, 'match')"
           :readonly="inputState.match"
         >
           <template v-slot:append>
@@ -381,22 +385,22 @@ const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 // custom keyboard
-const inputState = ref({
+let inputState = ref({
   amount: false,
   duration: false,
   lowLiquidationMultiplierPctg: false,
   highLiquidationMultiplierPctg: false,
   match: false
 })
-const activeInput = ref()
-const durationRef = ref()
+let activeInput = ref()
+let durationRef = ref()
 
 function readonlyState (state, type) {
-  this.inputState[type] = state
+  inputState[type] = state
 
-  if (this.inputState[type]) {
-    this.activeInput = type
-    $emit('showKeyboard', this.activeInput)
+  if (inputState[type]) {
+    activeInput.value = type
+    $emit('showKeyboard', activeInput)
   }
 }
 
