@@ -1,6 +1,6 @@
 <template>
   <div v-if="isloaded">
-    <div v-if="state === 'release-form'">
+    <div v-if="state === 'release-form' || state === 'completed-appeal'">
       <ReleaseForm
         :appealInfo="appeal"
         :ramp-contract="rampContract"
@@ -23,12 +23,13 @@
       />
     </div>
 
-    <div v-if="state === 'completed-appeal'">
+    <!-- <div v-if="state === 'completed-appeal'">
       <CompletedAppeal
-        :appealInfo="appeal"
+        :appeal="appeal"
+        :order="appeal.order"
         @back="$emit('back')"
       />
-    </div>
+    </div> -->
   </div>
 </template>
 <script>

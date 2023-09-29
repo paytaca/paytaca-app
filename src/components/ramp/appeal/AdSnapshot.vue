@@ -48,26 +48,38 @@
       </div>
 
       <div class="q-mx-lg q-pb-sm">
-        <div class="md-font-size bold-text q-px-md">Payment Methods</div>
+        <div class="md-font-size bold-text q-px-md">Ad Payment Methods</div>
         <div class="q-gutter-sm q-pt-sm q-px-md">
           <q-badge v-for="(method, index) in snapshot.payment_methods" :key="index" rounded outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-7'" :label="method.payment_type" />
         </div>
       </div>
 
       <div class="q-py-md q-mx-lg q-pb-sm">
-        <div class="md-font-size bold-text q-px-md">Selected Payment Method(s)</div>
-        <q-card class="br-15 q-mt-sm q-mx-sm" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
-          <q-card-section>
-            <div class="bold-text md-font-size text-uppercase">Gcash</div>
-          </q-card-section>
-
-          <q-separator :dark="darkMode"/>
-
-          <q-card-section :class="darkMode ? '' : 'text-grey-7'">
-            <div class="bold-text sm-font-size">Nancy Wheeler</div>
-            <div>xx-xxx-xxxx</div>
-          </q-card-section>
-        </q-card>
+        <div class="md-font-size bold-text q-px-md">Selected Payment Methods</div>
+        <div v-if="selectedPaymentMethods.length === 0" class="q-px-md sm-font-size">~ No payment method selected ~</div>
+        <div v-for="(method, index) in selectedPaymentMethods" :key="index">
+          <div class="q-px-sm q-my-sm">
+            <q-card flat bordered :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
+              <q-expansion-item
+                :label="method.payment_type"
+                expand-separator>
+                <q-card :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black bg-grey-2',]">
+                  <q-card-section class="text-left">
+                    <div class="row">
+                      <div class="col">
+                        <div>{{ method.account_name }}</div>
+                        <div>{{ method.account_number }}</div>
+                      </div>
+                      <!-- <div>
+                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)"/>
+                      </div> -->
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </q-expansion-item>
+            </q-card>
+          </div>
+        </div>
       </div>
     </q-card>
 </template>
@@ -82,11 +94,13 @@ export default {
     }
   },
   props: {
-    snapshot: Object
+    snapshot: Object,
+    selectedPaymentMethods: Array
   },
   emits: ['back'],
   mounted () {
     console.log('snapshot:', this.snapshot)
+    console.log('selectedPaymentMethods:', this.selectedPaymentMethods)
   },
   methods: {
     formattedCurrency (value, currency = null) {

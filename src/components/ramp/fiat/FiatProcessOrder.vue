@@ -163,7 +163,7 @@ export default {
       return formatCurrency(this.ad.trade_floor, this.order.fiat_currency.symbol) + ' - ' + formatCurrency(this.ad.trade_ceiling, this.order.fiat_currency.symbol)
     },
     fiatAmount () {
-      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
+      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
     },
     cryptoAmount () {
       return (this.fiatAmount / this.order.locked_price).toFixed(8)

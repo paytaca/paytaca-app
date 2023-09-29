@@ -71,7 +71,7 @@ export function formatCurrency (value, currency) {
       maximumFractionDigits: maximumFractionDigits
     })
   } else {
-    formattedNumber = parseFloat(value).toLocaleString(undefined, {
+    formattedNumber = parsedValue.toLocaleString(undefined, {
       minimumFractionDigits: 0,
       maximumFractionDigits: parsedValue % 1 === 0 ? 0 : 8
     })
@@ -124,7 +124,11 @@ export function formatRelativeDate (date) {
   const elapsedHours = Math.round(elapsedMinutes / 60)
   const elapsedDays = Math.round(elapsedHours / 24)
 
-  if (elapsedMinutes < 60) {
+  if (elapsedMinutes < 1) {
+    dateString = 'Just now'
+  } else if (elapsedMinutes === 1) {
+    dateString = `${elapsedMinutes} minute ago`
+  } else if (elapsedMinutes < 60) {
     dateString = `${elapsedMinutes} minutes ago`
   } else if (elapsedHours < 24) {
     dateString = `${elapsedHours} hours ago`
@@ -140,7 +144,7 @@ export function formatRelativeDate (date) {
     const elapsedYears = Math.round(elapsedDays / 365)
     dateString = `${elapsedYears} years ago`
   }
-  return dateString.toLocaleLowerCase()
+  return dateString
 }
 
 export function getPaymentTimeLimit (timeValue) {

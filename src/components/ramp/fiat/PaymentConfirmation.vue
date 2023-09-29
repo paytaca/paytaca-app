@@ -32,9 +32,7 @@
         <div v-if="type === 'buyer'" class="q-pb-xs">
           <div class="xm-font-size q-pb-xs q-pl-sm text-left bold-text">Payment Methods</div>
           <div class="full-width">
-              <div
-                v-for="(method, index) in paymentMethods"
-                :key="index">
+              <div v-for="(method, index) in paymentMethods" :key="index">
                 <div class="q-px-sm">
                   <q-card flat bordered>
                     <q-expansion-item
@@ -137,7 +135,6 @@ export default {
   async mounted () {
     const vm = this
     await vm.fetchOrderDetail()
-    // console.log('order:', vm.order)
     vm.paymentCountdown()
 
     if (vm.type === 'buyer') {
@@ -181,7 +178,6 @@ export default {
       }
     },
     onConfirm () {
-      console.log('Emitting confirm with:', this.selectedPaymentMethod)
       this.$emit('confirm', this.selectedPaymentMethods)
     },
     paymentCountdown () {

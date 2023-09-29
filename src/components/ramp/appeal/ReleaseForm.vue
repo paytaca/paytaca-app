@@ -18,18 +18,19 @@
             icon="arrow_back"
             @click="$emit('back')"
           />
-          <q-icon class="q-pl-lg" size="sm" name='o_question_answer'/>
+          <q-icon v-if="!appeal.resolved_at" class="q-pl-lg" size="sm" name='o_question_answer'/>
         </div>
         <div class="text-center">
-          <div class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
+          <div v-if="appeal.resolved_at" class="bold-text lg-font-size" >{{ appeal.order.status.label.toUpperCase() }} </div>
+          <div v-if="!appeal.resolved_at" class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
           <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
         </div>
         <q-scroll-area :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
           <div class="q-mx-lg">
             <q-card class="br-15 q-mt-xs" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
               <q-card-section>
-                <div class="bold-text md-font-size">Reasons:</div>
-                <q-badge v-for="(reason, index) in appeal.reasons" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
+                <div class="bold-text md-font-size">Appeal reasons</div>
+                <q-badge v-for="(reason, index) in appeal.reasons" class="q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
               </q-card-section>
             </q-card>
 
@@ -78,7 +79,7 @@
               <div class="row justify-between no-wrap q-mx-xs">
                 <span>Crypto Amount</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(ad_snapshot.crypto_amount) }} BCH
+                  {{ formattedCurrency(order.crypto_amount) }} BCH
                 </span>
               </div>
               <q-separator class="q-my-sm" :dark="darkMode"/>
@@ -86,7 +87,7 @@
               <div class="row justify-between no-wrap q-mx-xs">
                 <span>Fiat Price</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(ad_snapshot.price, ad_snapshot.fiat_currency.symbol) }}
+                  {{ formattedCurrency(sellerReceivesAmount, ad_snapshot.fiat_currency.symbol) }}
                 </span>
               </div>
 
@@ -164,7 +165,7 @@
               </q-card>
             </div>
             <!-- Simplified this -->
-            <div class="q-pb-md q-mb-lg">
+            <div v-if="!appeal.resolved_at" class="q-pb-md q-mb-lg">
               <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
                 <div class="text-center q-py-xs bold-text text-uppercase">
                   Select Options
@@ -217,6 +218,7 @@
   <AdSnapshot
     v-if="state === 'snapshot'"
     :snapshot="ad_snapshot"
+    :selected-payment-methods="order.payment_methods"
     @back="state = 'form'"
   />
 
@@ -286,10 +288,7 @@ export default {
       return Number(this.order.crypto_amount) * Number(this.order.locked_price)
     },
     contractAddress () {
-      console.log('this.contract.address:', this.contract.address)
-      const formattedAddr = this.formattedAddress(this.contract.address)
-      console.log('formattedAddr:', formattedAddr)
-      return formattedAddr
+      return this.formattedAddress(this.contract.address)
     }
   },
   async mounted () {
@@ -359,7 +358,7 @@ export default {
       }
     },
     formattedAddress (address) {
-      return formatAddress(address, 22, 5)
+      return formatAddress(address, 20, 5)
     },
     formattedDate (value, numeric = false) {
       if (numeric) {
