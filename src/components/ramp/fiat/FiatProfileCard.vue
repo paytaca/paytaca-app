@@ -16,7 +16,7 @@
       <div class="text-center q-pt-none">
         <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
         <div class="bold-text lg-font-size q-pt-sm">
-          {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+          {{ user.nickname }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
         </div>
       </div>
 
@@ -48,9 +48,9 @@
 
       <!-- User Stats -->
       <div class="text-center md-font-size subtext bold-text q-pt-md">
-          <span>100 total trades</span>&nbsp;&nbsp;
+          <span>{{ user.trade_count }} total trades</span>&nbsp;&nbsp;
           <span>|</span>&nbsp;&nbsp;
-          <span>50% completion</span>
+          <span> {{ user.completion_rate }}% completion</span>
       </div>
 
       <div class="q-px-sm q-pt-sm">
@@ -134,7 +134,8 @@ export default {
       user: null,
       editNickname: false,
       state: 'initial',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
       reviewList: null
@@ -156,20 +157,11 @@ export default {
     AddPaymentMethods,
     ProgressLoader
   },
-  // computed: {
-  //   user () {
-  //     if (this.type === 'self') {
-  //       return this.$store.getters['ramp/getUser']
-  //     }
-  //   }
-  // }
   methods: {
     processUserData () {
       if (this.type === 'self') {
         // get this user's info
-        this.user = {
-          name: this.$store.getters['ramp/getUser'].nickname
-        }
+        this.user = this.$store.getters['ramp/getUser']
       } else {
         this.user = this.userInfo
       }
@@ -224,9 +216,7 @@ export default {
         .catch(error => {
           console.log(error)
         })
-
         // top 5 reviews
-
     }
   },
   async mounted () {
