@@ -38,18 +38,21 @@
           <q-tabs
             v-if="enableSmartBCH"
             active-color="brandblue"
-            class="col-12 q-px-sm q-pb-md pp-fcolor"
+            class="col-12 q-px-sm q-pb-md"
             v-model="selectedNetwork"
             style="padding-bottom: 16px;"
+            :indicator-color="isDefaultTheme && 'transparent'"
           >
             <q-tab
               name="BCH"
-              :class="{'text-blue-5': darkMode}"
+              class="network-selection-tab"
+              :class="getDarkModeClass()"
               :label="'BCH' + (parsedMainchainTokens.length ? ` (${parsedMainchainTokens.length})` : '')"
             />
             <q-tab
               name="sBCH"
-              :class="{'text-blue-5': darkMode}"
+              class="network-selection-tab"
+              :class="getDarkModeClass()"
               :label="'SmartBCH' + (parsedSmartchainTokens.length ? ` (${parsedSmartchainTokens.length})` : '')"
             />
           </q-tabs>
@@ -57,7 +60,7 @@
             <template v-for="(token, index) in parsedTokens"  :key="index">
               <q-item
                 :class="[
-                  isAssetInIgnoredList(token.id) ? 'text-grey' : (darkMode ? 'text-white' : 'text-black'),
+                  isAssetInIgnoredList(token.id) ? 'text-grey' : getDarkModeClass('text-white', 'text-black'),
                 ]"
               >
                 <q-item-section v-if="token.logo" side>
@@ -123,8 +126,7 @@
           no-caps
           rounded
           :label="`${$t('AddAll')} ${parsedTokens.length}`"
-          text-color="white"
-          :color="darkMode ? 'blue-9': 'brandblue'"
+          class="button"
           @click="addAllTokens()"
         />
       </q-card-section>

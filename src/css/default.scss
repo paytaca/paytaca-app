@@ -353,6 +353,16 @@ body.theme-default {
     color: #3b7bf6;
   }
 
+  .ignored-tokens-button {
+    &.dark {
+      background: $brand_blue !important;
+    }
+
+    &.light {
+      background-color: white !important;
+    }
+  }
+
   .transaction-container {
     &.dark {
       background-color: #212f3d;

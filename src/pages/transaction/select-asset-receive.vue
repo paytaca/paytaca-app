@@ -123,7 +123,7 @@ export default {
     },
     assets () {
       let _assets
-      const themedIconPath = this.isDefaultTheme ? `/icons/theme/${this.$store.getters['global/theme']}/` : ''
+      const themedIconPath = this.isDefaultTheme ? `assets/img/theme/${this.$store.getters['global/theme']}/` : ''
       const themedNewTokenIcon = `${themedIconPath}new-token.png`
 
       if (this.selectedNetwork === 'sBCH') {

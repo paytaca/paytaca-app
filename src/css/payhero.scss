@@ -93,7 +93,7 @@ body.theme-payhero {
     box-shadow: none !important;
   }
 
-  #apps {
+  #apps-page-container {
     padding: 0px 0px 80px 0px;
   }
 
@@ -102,7 +102,7 @@ body.theme-payhero {
   }
 
   #app-container,
-  #apps {
+  #apps-page-container {
     &.dark {
       background: linear-gradient(
         180deg,
@@ -509,6 +509,16 @@ body.theme-payhero {
       &.light {
         font-weight: 500 !important;
       }
+    }
+  }
+
+  .ignored-tokens-button {
+    &.dark {
+      background: $button_yellow !important;
+    }
+
+    &.light {
+      background-color: white !important;
     }
   }
 

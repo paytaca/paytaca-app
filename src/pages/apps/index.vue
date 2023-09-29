@@ -1,6 +1,6 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': darkMode}">
-    <div id="apps" ref="apps" class="text-center" :class="getDarkModeClass()">
+  <div id="apps-page-container" :class="getDarkModeClass('pt-dark', '')">
+    <div id="apps" ref="apps" class="text-center">
       <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
         <div :class="{'pt-header apps-header': isDefaultTheme}">
           <p
@@ -156,7 +156,7 @@ export default {
   created () {
     this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
-    const themedIconPath = this.isDefaultTheme ? `/icons/theme/${currentTheme}/` : ''
+    const themedIconPath = this.isDefaultTheme ? `assets/img/theme/${currentTheme}/` : ''
     this.filteredApps.forEach(app => {
       if (this.isDefaultTheme) {
         const iconFileName = app.path.split('/')[2]
@@ -203,6 +203,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
+  #apps-page-container {
+    background-color: #ECF3F3;
+    min-height: 100vh;
+  }
+
   .section-title {
     font-size: 22px;
     margin-left: 14px;

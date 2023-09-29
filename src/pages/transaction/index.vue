@@ -170,7 +170,7 @@
                 v-if="isDefaultTheme && darkMode"
                 unelevated
                 @click="openPriceChart"
-                icon="img:/icons/theme/payhero/price-chart.png"
+                icon="img:assets/img/theme/payhero/price-chart.png"
               />
               <q-btn
                 v-else
@@ -339,7 +339,7 @@ export default {
 
   created () {
     if (this.isDefaultTheme && this.darkMode) {
-      this.settingsButtonIcon = 'img:/icons/theme/payhero/settings.png'
+      this.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
       this.assetsCloseButtonColor = 'color: #ffbf00;'
     } else {
       this.settingsButtonIcon = 'settings'
