@@ -65,7 +65,7 @@ export default {
           name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',
-          active: !this.$store.getters['global/isChipnet'],
+          active: true,
           smartBCHOnly: false
         },
         {

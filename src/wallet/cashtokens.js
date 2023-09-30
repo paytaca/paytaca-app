@@ -1,9 +1,19 @@
 import axios from "axios"
 import { setupCache } from 'axios-cache-interceptor';
 
-const bcmrBackend = setupCache(axios.create({
-  baseURL: 'https://bcmr.paytaca.com/api',
-}))
+
+function getBcmrBackend() {
+  const network = getBlockChainNetwork()
+  if (network === 'chipnet') {
+    return setupCache(axios.create({
+      baseURL: 'https://bcmr-chipnet.paytaca.com/api',
+    }))
+  } else {
+    return setupCache(axios.create({
+      baseURL: 'https://bcmr.paytaca.com/api',
+    }))
+  }
+}
 
 export function convertIpfsUrl(url='') {
   if (typeof url !== 'string') return url
@@ -98,7 +108,7 @@ export class CashNonFungibleToken {
     if (this.commitment) url += `${this.commitment}/`
     
     this.$state.fetchingMetadata = true
-    return bcmrBackend.get(url)
+    return getBcmrBackend().get(url)
       .then(response => {
         this.metadata = response?.data
         return response

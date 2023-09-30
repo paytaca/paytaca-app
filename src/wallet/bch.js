@@ -2,7 +2,7 @@ import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
 import * as openpgp from 'openpgp/lightweight'
-import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
+import { getWatchtowerApiUrl, getBlockChainNetwork, convertCashAddress } from './chipnet'
 import { convertIpfsUrl } from './cashtokens'
 import axios from 'axios'
 
@@ -10,9 +10,19 @@ const bchjs = new BCHJS()
 
 import { setupCache } from 'axios-cache-interceptor';
 
-const bcmrBackend = setupCache(axios.create({
-  baseURL: 'https://bcmr.paytaca.com/api',
-}))
+
+function getBcmrBackend() {
+  const network = getBlockChainNetwork()
+  if (network === 'chipnet') {
+    return setupCache(axios.create({
+      baseURL: 'https://bcmr-chipnet.paytaca.com/api',
+    }))
+  } else {
+    return setupCache(axios.create({
+      baseURL: 'https://bcmr.paytaca.com/api',
+    }))
+  }
+}
 
 
 export class BchWallet {
@@ -219,7 +229,7 @@ export class BchWallet {
 
   async getTokenDetails (tokenId) {
     const url = 'tokens/' + tokenId
-    const response = await bcmrBackend.get(url)
+    const response = await getBcmrBackend().get(url)
     const _metadata = response.data
 
     if (_metadata.error) {
