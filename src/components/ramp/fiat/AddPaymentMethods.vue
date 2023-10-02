@@ -30,6 +30,9 @@
                         {{ method.payment_type.name.toUpperCase() }}
                       </div>
                       <div class="subtext bold-text">
+                        {{ method.account_name }}
+                      </div>
+                      <div class="subtext bold-text">
                         {{ method.account_number }}
                       </div>
                     </div>
@@ -146,6 +149,7 @@
 
   <div v-if="openDialog">
     <MiscDialogs
+      :key="miscDialogsKey"
       :type="dialogType"
       :data="info"
       :current-payment-methods="paymentMethods"
@@ -208,7 +212,10 @@ export default {
       selectedMethodIndex: null,
       state: '',
       isloaded: false,
-      wallet: null
+      wallet: null,
+
+      savingPaymentMethod: false,
+      miscDialogsKey: 0
     }
   },
   emits: ['submit', 'back'],
@@ -260,13 +267,15 @@ export default {
     },
     receiveDialogInfo (data) {
       const vm = this
-
       switch (vm.dialogType) {
         case 'addMethodFromAd':
         case 'editPaymentMethod':
         case 'createPaymentMethod':
         case 'addPaymentMethod':
-          vm.updatePayment(data)
+          // vm.updatePayment(data)
+          // vm.loading = true
+          vm.savePaymentMethod(data)
+          // vm.loading = false
           break
         case 'confirmDeletePaymentMethod':
           vm.deletePaymentMethod(this.selectedMethodIndex)
@@ -286,13 +295,6 @@ export default {
       vm.text = ''
       vm.title = ''
     },
-    async updatePayment (data) {
-      const vm = this
-      vm.loading = true
-      await vm.savePaymentMethod(data)
-      vm.loading = false
-    },
-    // opening dialog
     orderConfirm () {
       this.dialogType = 'confirmOrderCreate'
       this.title = 'Create Order?'
@@ -440,27 +442,34 @@ export default {
       const vm = this
 
       const timestamp = Date.now()
-      let signature = ''
+      let message = ''
+      let url = vm.apiURL + '/payment-method/'
+      const body = {
+        account_name: info.account_name,
+        account_number: info.account_number
+      }
+
+      if (vm.dialogType === 'editPaymentMethod') {
+        url = url + vm.selectedMethodIndex
+        message = 'PAYMENT_METHOD_UPDATE'
+      } else {
+        message = 'PAYMENT_METHOD_CREATE'
+        body.payment_type = info.payment_type.id
+      }
+
+      const signature = await signMessage(vm.wallet.privateKeyWif, message, timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
 
       switch (vm.dialogType) {
         case 'addMethodFromAd':
         case 'createPaymentMethod':
-        case 'addPaymentMethod':
+        case 'addPaymentMethod': {
           // posting new payment method
-
-          signature = await signMessage(vm.wallet.privateKeyWif, 'PAYMENT_METHOD_CREATE', timestamp)
-          vm.$axios.post(vm.apiURL + '/payment-method/', {
-            payment_type: info.payment_type.id,
-            account_name: vm.$store.getters['ramp/getUser'].nickname,
-            account_number: info.account_number
-          },
-          {
-            headers: {
-              'wallet-hash': vm.wallet.walletHash,
-              signature: signature,
-              timestamp: timestamp
-            }
-          })
+          vm.$axios.post(url, body, { headers: headers })
             .then(response => {
               if (vm.paymentMethods.length < 5) {
                 vm.paymentMethods.push(response.data)
@@ -474,22 +483,21 @@ export default {
             })
 
           break
-        case 'editPaymentMethod':
+        }
+        case 'editPaymentMethod': {
           // editing payment method
-
-          signature = await signMessage(vm.wallet.privateKeyWif, 'PAYMENT_METHOD_UPDATE', timestamp)
-          vm.$axios.put(vm.apiURL + '/payment-method/' + vm.selectedMethodIndex, {
-            account_name: vm.$store.getters['ramp/getUser'].nickname,
-            account_number: info.account_number
-          },
-          {
-            headers: {
-              'wallet-hash': vm.wallet.walletHash,
-              signature: signature,
-              timestamp: timestamp
-            }
-          })
+          vm.$axios.put(url, body, { headers: headers })
+            .then(() => {
+              vm.dialogType = ''
+              vm.openDialog = false
+              vm.savingPaymentMethod = false
+            })
+            .catch(error => {
+              console.error(error.response)
+              vm.savingPaymentMethod = false
+            })
           break
+        }
       }
 
       if (this.dialogType === 'addMethodFromAd') {

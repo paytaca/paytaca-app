@@ -17,7 +17,7 @@
     </q-card>
   </q-dialog>
 
-  <!-- Create Payment Method -->
+  <!-- Create/Edit Payment Method -->
   <q-dialog full-width persistent v-model="createPaymentMethod">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
@@ -37,25 +37,39 @@
               :dark="darkMode"
               v-model="paymentMethod.payment_type"
               :options="paymentTypes"
-              option-label="name"
-            >
-              <template v-slot:append>
+              option-label="name">
+              <!-- <template v-slot:append>
                 <q-icon size="xs" name="close" @click.stop.prevent="paymentMethod.payment_type = null"/>&nbsp;
-              </template>
+              </template> -->
             </q-select>
           </div>
         </div>
         <div class="q-mx-lg q-pt-sm">
           <span class="md-font-size">
-            Information
+            Account Name
           </span>
-          <div class="text-center q-pt-sm=">
+          <div class="text-center q-pt-sm">
             <q-input
               dense
               filled
               :dark="darkMode"
-              v-model="paymentMethod.account_number"
-            >
+              v-model="paymentMethod.account_name">
+              <template v-slot:append>
+                <q-icon size="xs" name="close" @click="paymentMethod.account_name = ''"/>&nbsp;
+              </template>
+            </q-input>
+          </div>
+        </div>
+        <div class="q-mx-lg q-pt-sm">
+          <span class="md-font-size">
+            Account Number
+          </span>
+          <div class="text-center q-pt-sm">
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="paymentMethod.account_number">
               <template v-slot:append>
                 <q-icon size="xs" name="close" @click="paymentMethod.account_number = ''"/>&nbsp;
               </template>
@@ -90,6 +104,7 @@
     </q-card>
   </q-dialog>
 
+  <!-- Add Payment Method Dialog -->
   <q-dialog persistent v-model="addPaymentMethod">
     <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section class="q-mx-sm">
@@ -781,10 +796,7 @@ export default {
     submitData () {
       const vm = this
       const emitName = vm.stageData()
-      // console.log('emitName:', emitName)
-      // console.log('vm.info:', vm.info)
       this.$emit(emitName, vm.info)
-      // this.$emit('back', vm.info)
     },
     checkName: debounce(async function () {
       const vm = this

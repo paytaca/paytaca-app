@@ -533,14 +533,9 @@ export default {
         contractFee: this.fees.fees.hardcoded_fee
       }
       const timestamp = this.contract.timestamp
-      // const rampContract_ = new RampContract(publicKeys, fees, addresses, timestamp, !this.isChipnet)
       this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
       await this.rampContract.initialize()
-      // console.log('address_:', await rampContract_.getAddress())
       console.log('address:', await this.rampContract.getAddress())
-      // console.log('contract balance:', await this.rampContract.getBalance())
-      // this.contract.address = this.rampContract.getAddress()
-      // console.log('rampContract address:', this.rampContract.getAddress())
     },
 
     async submitAppeal (data) {

@@ -105,7 +105,6 @@
       <AddPaymentMethods
         :type="'Profile'"
         v-on:back="state = 'initial'"
-        v-on:submit="state === 'edit-pm'"
       />
     </div>
   </q-card>
@@ -156,6 +155,15 @@ export default {
     MiscDialogs,
     AddPaymentMethods,
     ProgressLoader
+  },
+  async mounted () {
+    const vm = this
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+
+    await this.processUserData()
+    await this.fetchTopAds()
+    vm.isloaded = true
   },
   methods: {
     processUserData () {
@@ -218,15 +226,6 @@ export default {
         })
         // top 5 reviews
     }
-  },
-  async mounted () {
-    const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-
-    await this.processUserData()
-    await this.fetchTopAds()
-    vm.isloaded = true
   }
 }
 </script>
