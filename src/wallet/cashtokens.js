@@ -1,5 +1,6 @@
 import axios from "axios"
-import { setupCache } from 'axios-cache-interceptor';
+import { getBlockChainNetwork } from './chipnet'
+import { setupCache } from 'axios-cache-interceptor'
 
 
 function getBcmrBackend() {
