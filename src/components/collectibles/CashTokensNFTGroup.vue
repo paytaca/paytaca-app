@@ -53,7 +53,7 @@
 import { CashNonFungibleToken } from "src/wallet/cashtokens";
 import { Wallet } from "src/wallet"
 import { useStore } from "vuex";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import ProgressLoader from 'components/ProgressLoader'
 import LimitOffsetPagination from 'components/LimitOffsetPagination.vue';
 
@@ -65,6 +65,8 @@ const $store = useStore()
 const $emit = defineEmits([
   'openNft',
 ])
+
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const props = defineProps({
   wallet: Wallet,
@@ -81,6 +83,12 @@ const nftsPagination = ref({count: 0, limit: 0, offset: 0})
 const nfts = ref([].map(CashNonFungibleToken.parse))
 function fetchNfts(opts={limit: 0, offset: 0}) {
   if (props.wallet) {
+    let watchtower
+    if (isChipnet) {
+      watchtower = props.wallet.BCH_CHIP.watchtower
+    } else {
+      watchtower = props.wallet.BCH.watchtower
+    }
     const params = {
       wallet_hash: props.wallet.BCH.walletHash,
       category: props.category || undefined,
@@ -92,7 +100,7 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
     }
 
     fetchingNfts.value = true
-    props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/', { params })
+    watchtower.BCH._api.get('/cashtokens/nft/', { params })
       .then(response => {
         if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
         nfts.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
