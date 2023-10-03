@@ -241,15 +241,16 @@
           />
 
           <q-list v-if="showSlider" class="absolute-bottom">
-            <q-slide-item left-color="blue" @left="slideToSubmit">
-              <template v-slot:left>
-                <div style="font-size: 15px" class="text-body1">
-                <q-icon class="material-icons q-mr-md" size="lg">
-                  task_alt
-                </q-icon>
-                {{ $t('SecurityCheck') }}
-                </div>
-              </template>
+            <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
+              <q-slide-item left-color="blue" @left="slideToSubmit" style="background-color: transparent; border-radius: 40px;">
+                <template v-slot:left>
+                  <div style="font-size: 15px" class="text-body1">
+                  <q-icon class="material-icons q-mr-md" size="lg">
+                    task_alt
+                  </q-icon>
+                  {{ $t('SecurityCheck') }}
+                  </div>
+                </template>
 
               <q-item class="bg-grad swipe text-white q-py-md" :class="getDarkModeClass()">
                 <q-item-section avatar>
@@ -260,6 +261,7 @@
                 </q-item-section>
               </q-item>
             </q-slide-item>
+            </div>
           </q-list>
           <template v-if="showFooter">
             <footer-menu />
@@ -1040,7 +1042,7 @@ export default {
         if (!Number.isNaN(amount))
           this.sendData.amount = amount
 
-        if (amount > 0) 
+        if (amount > 0)
           this.sliderStatus = true
       }
       const addressValidation = this.validateAddress(address)
@@ -1306,8 +1308,9 @@ export default {
 
     NativeAudio.preload({
       assetId: 'send-success',
-      assetPath: 'send-success.wav',
+      assetPath: vm.$q.platform.is.ios ? 'public/assets/send-success.mp3' : 'send-success.mp3',
       audioChannelNum: 1,
+      volume: 1.0,
       isUrl: false
     })
 

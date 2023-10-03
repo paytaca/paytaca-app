@@ -375,10 +375,43 @@ export class JSONPaymentProtocol {
       throw JsonPaymentProtocolError('Invalid recipient address')
     }
 
+    const utxoOpts = {
+      confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
+    }
     const bchUtxos = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.getBchUtxos(
       `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`,
       totalSendAmountSats,
+      utxoOpts,
     )
+
+    if (bchUtxos.cumulativeValue < totalSendAmountSats && utxoOpts.confirmed) {
+      console.log('Insufficient balance from confirmed utxos, checking usable unconfirmed utxos')
+      const unconfirmedBchUtxos = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.getBchUtxos(
+        `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`,
+        totalSendAmountSats,
+        { confirmed: false },
+      )
+      const confirmedTxHashes = {}
+      for (let i = 0; i < unconfirmedBchUtxos.utxos.length; i++ ) {
+        const utxo = unconfirmedBchUtxos.utxos[i];
+        const txHash = utxo.tx_hash
+        console.log('Checking unconfirmed utxo', utxo)
+        if (!confirmedTxHashes[txHash]) {
+          const txStatus = await JSONPaymentProtocol.isTxConfirmed(utxo.tx_hash)
+            .catch(() => Object({ confirmed: false }))
+          confirmedTxHashes[txHash] = txStatus.confirmed
+        }
+
+        console.log('Is', txHash, 'confirmed', confirmedTxHashes[txHash])
+        if (!confirmedTxHashes[txHash]) continue
+
+        bchUtxos.utxos.push(utxo)
+        bchUtxos.cumulativeValue += utxo.value
+        console.log('Added utxo', utxo)
+        console.log('New cumulative value', bchUtxos.cumulativeValue)
+        if (bchUtxos.cumulativeValue >= totalSendAmountSats) break
+      }
+    }
 
     if (bchUtxos.cumulativeValue < totalSendAmountSats) {
       throw JsonPaymentProtocolError('Not enough balance')
@@ -525,6 +558,7 @@ export class JSONPaymentProtocol {
       console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
       if (typeof error?.response?.data?.error === 'string') throw JsonPaymentProtocolError(error?.response?.data?.error)
+      if (typeof error?.response?.data?.msg === 'string') throw JsonPaymentProtocolError(error?.response?.data?.msg)
       throw error
     }
   }
@@ -776,5 +810,26 @@ export class JSONPaymentProtocol {
       return true
     }
     return false
+  }
+
+  static async isTxConfirmed(txid='') {
+    const query = {
+      v: 3,
+      q: {
+        find: {
+          "tx.h": txid,
+        },
+        "project": { "tx.h": 1  },
+        "limit": 10
+      }
+    }
+    const serializedQuery = btoa(JSON.stringify(query))
+    const response = await axios.get(`https://bitdb.bch.sx/q/${serializedQuery}`)
+    if (Array.isArray(response.data?.c) && response.data?.c.some(record => record?.tx?.h === txid)) {
+      return { exists: true, confirmed: true }
+    } else if(Array.isArray(response.data?.u) && response.data?.u.some(record => record?.tx?.h === txid)) {
+      return { exists: true, confirmed: false }
+    }
+    return { exists: false, confirmed: false }
   }
 }

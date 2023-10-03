@@ -79,7 +79,7 @@ export default {
           name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',
-          active: !this.$store.getters['global/isChipnet'],
+          active: true,
           smartBCHOnly: false
         },
         {
@@ -102,6 +102,13 @@ export default {
         //   path: '/apps/chat/',
         //   active: true
         // },
+        {
+          name: this.$t('Map'),
+          iconName: 'mdi-map',
+          path: '/apps/map/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
         {
           name: this.$t('POSAdmin'),
           iconName: 'point_of_sale',

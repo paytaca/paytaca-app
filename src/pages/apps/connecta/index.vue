@@ -316,7 +316,8 @@ export default {
   methods: {
     playSound (success) {
       if (success) {
-        const audio = new Audio('/audio/send-success.wav')
+        const path = this.$q.platform.is.ios ? 'public/assets/send-success.mp3' : 'send-success.mp3'
+        const audio = new Audio(path)
         audio.play()
       }
     },

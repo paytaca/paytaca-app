@@ -91,9 +91,14 @@
         <q-slide-transition>
           <q-card-section v-if="showCreateHedgeForm" style="border-top: 1px solid gray">
             <CreateHedgeForm
+              ref="createHedgeFormRef"
               :wallet="wallet"
               @created="emitData => onHedgeFormCreate(emitData)"
               @cancel="() => showCreateHedgeForm = false"
+              @showKeyboard="input => {
+                showCustomKeyboard = true
+                activeInput = input
+              }"
             />
           </q-card-section>
         </q-slide-transition>
@@ -127,10 +132,12 @@
         <q-slide-transition>
           <q-card-section v-if="showCreateLongForm" style="border-top: 1px solid gray">
             <CreateHedgeForm
+              ref="createHedgeFormRef"
               position="long"
               :wallet="wallet"
               @created="emitData => onHedgeFormCreate(emitData)"
               @cancel="() => showCreateLongForm = false"
+              @showKeyboard="() => showCustomKeyboard = true"
             />
           </q-card-section>
         </q-slide-transition>
@@ -347,6 +354,13 @@
         </q-expansion-item>
       </template>
     </q-card>
+    <div v-if="showCustomKeyboard" style="padding-top: 50px;">
+      <CustomKeyboard
+      :custom-keyboard-state="'show'"
+      @addKey="setAmount"
+      @makeKeyAction="makeKeyAction"
+    />
+    </div>
   </div>
 </template>
 <script setup>
@@ -363,6 +377,7 @@ import CreateHedgeForm from 'src/components/anyhedge/CreateHedgeForm.vue'
 import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
+import CustomKeyboard from '../transaction/dialog/CustomKeyboard.vue'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll
 
@@ -378,6 +393,23 @@ const hedgesDrawerRef = ref()
 const hedgesListRef = ref()
 const offersDrawerRef = ref()
 const offersListRef = ref()
+
+// Custom Keyboard
+const createHedgeFormRef = ref()
+const showCustomKeyboard = ref(false)
+const activeInput = ref()
+
+function setAmount (key) {
+  createHedgeFormRef?.value?.setAmount?.(key)
+}
+
+function makeKeyAction (action) {
+  if (action === 'backspace' || action === 'delete') {
+    createHedgeFormRef?.value?.makeKeyAction(action)
+  } else {
+    showCustomKeyboard.value = false
+  }
+}
 
 const wallet = ref(null)
 async function initWallet() {

@@ -67,6 +67,8 @@ const $emit = defineEmits([
 ])
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
+
 const props = defineProps({
   wallet: Wallet,
   ungrouped: Boolean,
@@ -82,6 +84,12 @@ const nftsPagination = ref({count: 0, limit: 0, offset: 0})
 const nfts = ref([].map(CashNonFungibleToken.parse))
 function fetchNfts(opts={limit: 0, offset: 0}) {
   if (props.wallet) {
+    let watchtower
+    if (isChipnet) {
+      watchtower = props.wallet.BCH_CHIP.watchtower
+    } else {
+      watchtower = props.wallet.BCH.watchtower
+    }
     const params = {
       wallet_hash: props.wallet.BCH.walletHash,
       category: props.category || undefined,
@@ -93,7 +101,7 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
     }
 
     fetchingNfts.value = true
-    props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/', { params })
+    watchtower.BCH._api.get('/cashtokens/nft/', { params })
       .then(response => {
         if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
         nfts.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
