@@ -82,7 +82,7 @@
         </div>
       </template>
       <div v-if="connecting">
-        <ProgressLoader />
+        <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
       </div>
     </div>
     <div v-if="connected" id="messages-container" ref="messagesContainer" style="width: 100%;">
@@ -170,6 +170,12 @@ export default {
           return msg
         }
       })
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   watch: {

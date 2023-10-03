@@ -1,14 +1,28 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div id="apps-page-container" :class="getDarkModeClass('pt-dark', '')">
     <div id="apps" ref="apps" class="text-center">
       <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
-        <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">{{ $t('Applications') }}</p>
-        <div class="row q-px-xs">
+        <div :class="{'pt-header apps-header': isDefaultTheme}">
+          <p
+            class="section-title"
+            :class="{'text-blue-5': darkMode, 'text-grad': isDefaultTheme}"
+          >
+            {{ $t('Applications') }}
+          </p>
+        </div>
+        <div class="row" :class="isDefaultTheme ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
-            <div class="pt-app bg-grad" :class="buttonClassByState(app.active)" @click="openApp(app)">
+            <div
+              class="pt-app bg-grad"
+              :class="[
+                buttonClassByState(app.active),
+                {'apps-border' : isDefaultTheme}
+              ]"
+              @click="openApp(app)"
+            >
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
-            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
+            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass()">{{ app.name }}</p>
           </div>
         </div>
       </div>
@@ -118,7 +132,8 @@ export default {
         }
       ],
       filteredApps: [],
-      appHeight: null
+      appHeight: null,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
@@ -127,6 +142,9 @@ export default {
     },
     showTokens () {
       return this.$store.getters['global/showTokens']
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
@@ -137,10 +155,24 @@ export default {
       if (app.active) {
         this.$router.push(app.path)
       }
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
-  created() {
+  created () {
     this.filteredApps = this.apps
+    const currentTheme = this.$store.getters['global/theme']
+    const themedIconPath = this.isDefaultTheme ? `assets/img/theme/${currentTheme}/` : ''
+    this.filteredApps.forEach(app => {
+      if (this.isDefaultTheme) {
+        const iconFileName = app.path.split('/')[2]
+        const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
+        // static; needs readjustment
+        app.iconName = iconFileName !== 'ramp' ? themedIconLoc : app.iconName
+      }
+    })
+
     if (!this.enableSmartBCH) {
       this.filteredApps = this.apps.filter((app) => {
         if (!app.smartBCHOnly) {
@@ -178,10 +210,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
-  #apps {
-    padding: 20px 20px 80px 20px;
-    color: #3B7BF6;
+  #apps-page-container {
+    background-color: #ECF3F3;
+    min-height: 100vh;
   }
+
   .section-title {
     font-size: 22px;
     margin-left: 14px;
@@ -192,12 +225,6 @@ export default {
   }
 
   /* New */
-  .pt-app {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 10px;
-  }
   .pt-light-app {
      background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }
@@ -211,7 +238,8 @@ export default {
   .app-icon {
     vertical-align: middle;
     align-content: center;
-    width: 100%;
+    width: 50%;
+    height: 50%;
   }
   .pt-black {
     color: #212F3C !important;

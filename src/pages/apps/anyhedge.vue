@@ -1,25 +1,35 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
     <HeaderNav
       title="AnyHedge"
       backnavpath="/apps"
+      class="apps-header"
     />
     <q-tabs
-      active-color="brandblue"
+      :active-color="isDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme() && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"
       :style="{ 'margin-top': $q.platform.is.ios ? '-10px' : '-35px'}"
     >
-      <q-tab name="hedge" :class="{'text-blue-5': darkMode}" :label="$t('Hedge')"/>
-      <q-tab name="long" :class="{'text-blue-5': darkMode}" :label="$t('Long')" />
+      <q-tab
+        name="hedge"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="$t('Hedge')"
+      />
+      <q-tab
+        name="long"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="$t('Long')"
+      />
     </q-tabs>
 
     <q-card
-      class="br-15 q-mx-md q-mb-md q-mt-sm"
-      :class="[
-       darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
+      class="br-15 q-mx-md q-mb-md q-mt-sm pt-card"
+      :class="getDarkModeClass('text-white', 'text-black')"
       style="transition: height 0.5s"
     >
       <template v-if="selectedAccountType === 'hedge'">
@@ -70,6 +80,7 @@
                 icon="add"
                 padding="xs"
                 round
+                class="button"
                 :color="darkMode ? 'grad' : 'brandblue'"
                 @click="showCreateHedgeForm = !showCreateHedgeForm"
               />
@@ -111,7 +122,8 @@
                 icon="add"
                 padding="xs"
                 round
-                :color="darkMode ? 'grad' : 'brandblue'"
+                class="button"
+                :color="getDarkModeClass('grad', 'brandblue')"
                 @click="showCreateLongForm = !showCreateLongForm"
               />
             </div>
@@ -166,10 +178,8 @@
     </q-card>
 
     <q-card
-      class="br-15 q-mx-md q-mb-md"
-      :class="[
-        darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
+      class="br-15 q-mx-md q-mb-md pt-card"
+      :class="getDarkModeClass('text-white', 'text-black')"
     >
       <template v-if="selectedAccountType === 'hedge'">
         <q-expansion-item ref="offersDrawerRef" :label="$t('HedgeOffers')">
@@ -1125,5 +1135,13 @@ async function displayContractFromNotification(data={address: '', position: '' }
     })
   }
   return contract
+}
+
+function isDefaultTheme () {
+  return this.$store.getters['global/theme'] !== 'default'
+}
+
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

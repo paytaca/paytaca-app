@@ -1,12 +1,14 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass()">
     <HeaderNav
       :title="$t('Ramp')"
       backnavpath="/apps"
+      class="apps-header"
     />
 
     <q-tabs
-      active-color="brandblue"
+      :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       style="padding-bottom: 16px;"
       v-model="selectedCurrency"
@@ -14,18 +16,20 @@
     >
       <q-tab
         name="fiat"
+        class="network-selection-tab"
         :class="{'text-blue-5': darkMode}"
         disable
         :label="$t('Fiat')"
       >
         <q-popup-proxy>
-          <q-banner :class="darkMode ? 'pt-dark text-white' : 'text-black'" class="q-pa-md br-15 text-center">
+          <q-banner :class="darkMode ? 'pt-dark info-banner text-white' : 'text-black'" class="q-pa-md br-15 text-center">
             {{ $t('RampFiatNotice') }}
           </q-banner>
         </q-popup-proxy>
       </q-tab>
       <q-tab
         name="crypto"
+        class="network-selection-tab"
         :class="{'text-blue-5': darkMode}"
         :label="$t('Crypto')"
       />
@@ -61,6 +65,16 @@ export default {
       selectedCurrency: ref('crypto'),
       isAllowed: true,
       error: false
+    }
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    }
+  },
+  methods: {
+    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
+      return this.darkMode ? darkModeClass : lightModeClass
     }
   },
   async mounted () {

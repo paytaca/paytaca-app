@@ -4,17 +4,16 @@
     @decode="onScannerDecode"
   />
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mb-lg"
-    :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
+    class="br-15 q-pt-sm q-mx-md q-mb-lg pt-card"
+    :class="getDarkModeClass('text-white', 'text-black')"
     v-if="isloaded && state === 'form' && !error"
   >
     <div class="row items-center justify-end q-mt-md q-mr-lg">
       <q-btn
         round
-        color="blue-9"
         padding="xs"
         icon="mdi-history"
-        class="q-ml-md"
+        class="q-ml-md button"
         @click="openHistory"
       />
     </div>
@@ -154,8 +153,7 @@
         rounded
         no-caps
         :label="$t('Submit')"
-        color="brandblue"
-        class="q-space"
+        class="q-space button"
         @click="checkData()"
       />
     </div>
@@ -169,7 +167,7 @@
   />
 
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded && !error">
-    <ProgressLoader/>
+    <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
@@ -595,6 +593,9 @@ export default {
 
       return icon
     },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
     readonlyState (state) {
       this.amountInputState = state
       if (this.amountInputState) {
@@ -665,6 +666,12 @@ export default {
         return true
       }
       return false
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   async mounted () {

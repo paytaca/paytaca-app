@@ -1,7 +1,7 @@
 <template>
   
   <q-dialog ref="dialogRef" @hide="onDialogHide">
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="min-width:300px;">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="min-width:300px;">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">Filter offers list</div>
         <q-btn
@@ -46,7 +46,7 @@
               no-caps
               color="brandblue"
               label="Filter"
-              class="full-width"
+              class="full-width button"
               type="submit"
             />
           </div>

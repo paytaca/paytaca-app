@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide">
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="width:max(300px, 90vw);">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="width:max(300px, 90vw);">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('SalesReport', {}, 'Sales Report') }}</div>
         <q-btn
@@ -14,7 +14,7 @@
         <div v-if="Number.isInteger(posDevice?.posid)" class="text-h6">
           {{ posDevice?.name || 'Device' }}#{{ padPosId(posDevice?.posid) }}
         </div>
-        <q-card :class="darkMode ? 'pt-dark-card' : 'text-black'">
+        <q-card class="pt-card" :class="getDarkModeClass('', 'text-black')">
           <q-card-section>
             <div class="row items-center">
               <div class="q-space text-subtitle1">Total sales</div>
@@ -184,5 +184,9 @@ function formatRangeType(value) {
   if (value === 'day') return 'daily'
   if (value === 'month') return 'monthly'
   return value
+}
+
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

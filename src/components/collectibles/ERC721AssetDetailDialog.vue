@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" ref="dialogRef">
-    <q-card class="q-dialog-plugin pp-text br-15" :class="{'pt-dark': darkMode}">
+    <q-card class="q-dialog-plugin pp-text br-15" :class="{'pt-dark info-banner': darkMode}">
       <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
         <strong class="text-h6" :class="darkMode ? 'text-grad' : ''">SEP721 Token</strong>
       </q-card-section>

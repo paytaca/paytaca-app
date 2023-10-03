@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" @hide="resetForm()" persistent>
-    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark': darkMode}">
+    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark info-banner': darkMode}">
         <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <span class="text-weight-medium">Add SEP721 Token</span>
         </q-card-section>
@@ -49,7 +49,7 @@
           <q-separator class="q-mt-none"/>
 
           <q-card-actions align="right">
-            <q-btn rounded class="text-white" color="blue-9" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
+            <q-btn rounded class="text-white button" color="blue-9" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
             <q-btn rounded padding="0.5em 2em 0.5em 2em" flat :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" :label="$t('Close')" v-close-popup />
           </q-card-actions>
         </q-form>

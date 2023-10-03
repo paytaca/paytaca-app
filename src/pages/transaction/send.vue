@@ -4,12 +4,18 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass()">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || $route.query.name)"
         :backnavpath="backPath"
       ></header-nav>
-      <q-banner v-if="assetId.startsWith('slp/')" inline-actions class="text-white bg-red text-center q-mt-lg" :class="darkMode ? 'text-white' : 'text-black'" style="width: 90%; margin-left: auto; margin-right: auto;">
+      <q-banner
+        v-if="assetId.startsWith('slp/')"
+        inline-actions
+        class="text-white bg-red text-center q-mt-lg"
+        :class="getDarkModeClass('text-white', 'text-black')"
+        style="width: 90%; margin-left: auto; margin-right: auto;"
+      >
         Sending of SLP tokens is temporarily disabled until further notice.
       </q-banner>
       <template v-else>
@@ -34,7 +40,11 @@
             <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
-              <div class="q-mt-md text-center" :class="darkMode ? 'text-white' : 'text-black'" v-if="$route.query.tokenType === 'CT-NFT'">
+              <div
+                class="q-mt-md text-center"
+                :class="getDarkModeClass('text-white', 'text-black')"
+                v-if="$route.query.tokenType === 'CT-NFT'"
+              >
                 <span>Name: {{ $route.query.name }}</span>
                 <p>Commitment: {{ $route.query.commitment }}</p>
               </div>
@@ -54,7 +64,13 @@
                   @update:model-value="resolveLnsName"
                 >
                   <template v-slot:append>
-                    <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
+                    <q-icon
+                      name="arrow_forward_ios"
+                      style="color: #3b7bf6;"
+                      class="button button-icon"
+                      :class="getDarkModeClass()"
+                      @click="!lns.loading ? checkAddress(manualAddress) : null"
+                    />
                   </template>
                   <q-menu v-model="lns.show" fit :no-parent-event="!isValidLNSName(manualAddress) && (!lns.name || lns.name !== manualAddress) && !lns.loading" no-focus>
                     <q-item v-if="lns.loading">
@@ -65,11 +81,11 @@
                     </q-item>
                     <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
                       <q-item-section>
-                        <q-item-label :class="darkMode ? '' : 'text-black'" caption>{{ lns.name }}</q-item-label>
-                        <q-item-label style="word-break:break-all;" :class="darkMode ? '' : 'text-black'">{{ lns.address }}</q-item-label>
+                        <q-item-label :class="getDarkModeClass('', 'text-black')" caption>{{ lns.name }}</q-item-label>
+                        <q-item-label style="word-break:break-all;" :class="getDarkModeClass('', 'text-black')">{{ lns.address }}</q-item-label>
                       </q-item-section>
                     </q-item>
-                    <q-item v-else :class="[darkMode ? 'pt-dark-label' : 'text-grey']">
+                    <q-item v-else :class="getDarkModeClass('pt-dark-label', 'text-grey')">
                       <q-item-section side>
                         <q-icon name="error"/>
                       </q-item-section>
@@ -86,7 +102,7 @@
                 {{ $t('or') }}
               </div>
               <div class="col-12 q-mt-lg text-center">
-                <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
+                <q-btn round size="lg" class="btn-scan button text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
               </div>
             </div>
             <div class="q-pa-md text-center text-weight-medium">
@@ -95,7 +111,10 @@
           </div>
           <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
             <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
-              <div v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0" :class="darkMode ? 'text-white': 'text-black'">
+              <div
+                v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0"
+                :class="getDarkModeClass('text-white', 'text-black')"
+              >
                 POS:
                 {{ sendData.posDevice.walletHash.substring(0, 5) }}
                 ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
@@ -186,6 +205,8 @@
                     v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
                     @click.prevent="setMaximumSendAmount"
                     style="float: right; text-decoration: none; color: #3b7bf6;"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass()"
                   >
                     {{ $t('MAX') }}
                   </a>
@@ -196,6 +217,8 @@
                   <a
                     style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
                     href="#"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass()"
                     @click.prevent="() => {sendData.amount = 0; setAmountInFiat = true}"
                   >
                     Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
@@ -204,7 +227,7 @@
               </div>
               <div class="row" v-if="sendData.sending">
                 <div class="col-12 text-center">
-                  <ProgressLoader/>
+                  <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
                 </div>
               </div>
             </form>
@@ -229,15 +252,15 @@
                   </div>
                 </template>
 
-                <q-item class="bg-grad text-white q-py-md">
-                  <q-item-section avatar>
-                    <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
-                  </q-item-section>
-                  <q-item-section class="text-right">
-                    <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
-                  </q-item-section>
-                </q-item>
-              </q-slide-item>
+              <q-item class="bg-grad swipe text-white q-py-md" :class="getDarkModeClass()">
+                <q-item-section avatar>
+                  <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+                </q-item-section>
+                <q-item-section class="text-right">
+                  <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
+                </q-item-section>
+              </q-item>
+            </q-slide-item>
             </div>
           </q-list>
           <template v-if="showFooter">
@@ -256,7 +279,7 @@
           </div>
           <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
             <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
-            <div :class="darkMode ? 'text-white' : 'pp-text'" :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}">
+            <div :class="getDarkModeClass('text-white', 'pp-text')" :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}">
               <p style="font-size: 26px;">{{ $t('SuccessfullySent') }}</p>
               <template v-if="isNFT">
                 <p style="font-size: 28px; margin-top: -10px;">{{ $route.query.name }}</p>
@@ -308,9 +331,9 @@
                 <div
                   class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1"
                   style="min-width:50vw;border: 1px solid grey;background-color: inherit;"
-                  :class="darkMode ? 'text-white': ''"
+                  :class="getDarkModeClass('text-white', '')"
                 >
-                  <span :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Memo:</span>
+                  <span :class="getDarkModeClass('text-grey-5', 'text-grey-8')">Memo:</span>
                   {{ sendData.paymentAckMemo }}
                 </div>
               </div>
@@ -588,6 +611,12 @@ export default {
       if (this.sendData.responseOTP) return this.sendData.responseOTP
 
       return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 
@@ -1255,6 +1284,9 @@ export default {
     },
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
 
@@ -1323,7 +1355,6 @@ export default {
     border: 2px solid #3b7bf6;
   }
   .btn-scan {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
     color: white;
   }
   .btn-scan-dark {

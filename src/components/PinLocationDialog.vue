@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom" full-height full-width>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" style="height:100%;width:100%;">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" style="height:100%;width:100%;">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">{{ headerText || $t('PinLocation', {}, 'Pin location') }}</div>
         <q-btn
@@ -28,7 +28,7 @@
           no-caps
           label="OK"
           color="brandblue"
-          class="col"
+          class="col button"
           @click="onDialogOK(coordinates)"
         />
       </q-card-actions>

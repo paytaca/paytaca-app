@@ -260,7 +260,7 @@
           </q-item-section>
         </q-item>
         <div v-if="stagedSwapInfo.loading" class="row items-center justify-center">
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
         </div>
         <q-btn
           v-else
@@ -453,6 +453,12 @@ export default {
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

@@ -1,22 +1,36 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div id="app-container" :class="getDarkModeClass()">
     <header-nav :title="$t('Send')" backnavpath="/"></header-nav>
     <q-tabs
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
+      :indicator-color="isDefaultTheme && 'transparent'"
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
-      <q-tab name="BCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name" :disable="isChipnet"/>
+      <q-tab
+        name="BCH"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="networks.BCH.name"
+      />
+      <q-tab
+        name="sBCH"
+        class="network-selection-tab"
+        :class="{'text-blue-5': darkMode}"
+        :label="networks.sBCH.name"
+        :disable="isChipnet"
+      />
     </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
-        <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToSend') }}</p>
+        <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
+          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass()">
+            {{ $t('SelectAssetToSend') }}
+          </p>
         </div>
         <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
@@ -30,14 +44,17 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-card' : 'bg-white'">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass('', 'bg-white')">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50" /></div>
               <div class="col q-pl-sm q-pr-sm">
-                <p class="q-ma-none text-token text-weight-regular" :class="$store.getters['darkmode/getStatus'] ? 'text-pink-5' : 'text-dark'" style="font-size: 18px;">
+                <p
+                  class="q-ma-none text-token text-weight-regular"
+                  :class="darkMode ? isDefaultTheme ? 'text-grad' : 'dark' : 'light'"
+                >
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none" :class="$store.getters['darkmode/getStatus'] ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
+                <p class="q-ma-none amount-text" :class="getDarkModeClass('', 'text-grad')">
                   {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
                   <span>
                     {{ asset.symbol }}
@@ -84,6 +101,7 @@ export default {
       result: '',
       error: '',
       isCashToken: true,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
@@ -92,9 +110,6 @@ export default {
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
-    },
-    darkMode () {
-      return this.$store.getters['darkMode/getStatus']
     },
     selectedNetwork: {
       get () {
@@ -132,6 +147,9 @@ export default {
         }
       })
     },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    }
   },
   methods: {
     convertTokenAmount,
@@ -152,6 +170,9 @@ export default {
         name: 'transaction-send',
         query
       })
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {
@@ -170,7 +191,14 @@ export default {
     margin-top: 5px;
     margin-bottom: 5px;
   }
+  .text-token {
+    font-size: 18px;
+  }
   .pp-fcolor {
     color: #000 !important;
+  }
+  .pt-label {
+    font-size: 16px;
+    font-weight: 300;
   }
 </style>
