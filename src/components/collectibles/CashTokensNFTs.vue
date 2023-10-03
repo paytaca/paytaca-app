@@ -92,7 +92,7 @@ const nftGroups = ref([].map(CashNonFungibleToken.parse))
 function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
   if (props.wallet) {
     let watchtower
-    if (isChipnet) {
+    if (isChipnet.value) {
       watchtower = props.wallet.BCH_CHIP.watchtower
     } else {
       watchtower = props.wallet.BCH.watchtower
@@ -103,7 +103,6 @@ function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
       offset: 0,
     }
     fetchingNftGroups.value = true
-    console.log(props.wallet)
     return watchtower.BCH._api.get('/cashtokens/nft/groups/', { params })
       .then(response => {
         if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })

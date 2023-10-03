@@ -84,7 +84,7 @@ const nfts = ref([].map(CashNonFungibleToken.parse))
 function fetchNfts(opts={limit: 0, offset: 0}) {
   if (props.wallet) {
     let watchtower
-    if (isChipnet) {
+    if (isChipnet.value) {
       watchtower = props.wallet.BCH_CHIP.watchtower
     } else {
       watchtower = props.wallet.BCH.watchtower
