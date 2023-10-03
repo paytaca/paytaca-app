@@ -647,4 +647,14 @@ body.theme-payhero {
       }
     }
   }
+
+  .pt-keyboard-container {
+    &.dark {
+      background: $footer-bar !important;
+    }
+
+    &.light {
+      background: $label-white !important;
+    }
+  }
 }
