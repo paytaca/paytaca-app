@@ -460,7 +460,8 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
-    }
+    },
+    currentCountry: { type: String }
   },
   data () {
     return {
@@ -618,7 +619,7 @@ export default {
         address: this.formData.sourceToken.address
       }
       this.$q.dialog({
-        title: this.$t('ApproveToken'),
+        title: this.$t(this.isHongKong() ? 'ApprovePoint' : 'ApproveToken'),
         message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
         persistent: true,
         ok: {
@@ -643,7 +644,7 @@ export default {
 
       this.approvingToken = true
       const dialog = this.$q.dialog({
-        title: this.$t('ApprovingToken'),
+        title: this.$t(this.isHongKong() ? 'ApprovingPoint' : 'ApprovingToken'),
         message: this.$t(
           'ApprovingTokenName',
           { tokenInfoName: tokenInfo.name },
@@ -657,7 +658,7 @@ export default {
 
       const onApproveSuccess = () => {
         dialog.update({
-          message: this.$t('TokenApproved') + '!',
+          message: $t(this.isHongKong() ? 'PointApproved' : 'TokenApproved') + '!',
           progress: false,
           ok: true
         })
@@ -762,7 +763,7 @@ export default {
         component: SmartSwapTokenSelectorDialog,
         componentProps: {
           tokensList: this.tokensList,
-          title: this.$t('SelectToken'),
+          title: this.$t(this.isHongKong() ? 'SelectPoint' : 'SelectToken'),
           darkMode: this.darkMode
         }
       })
@@ -989,6 +990,9 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
     }
   },
   watch: {

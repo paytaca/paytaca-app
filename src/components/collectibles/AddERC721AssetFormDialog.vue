@@ -2,7 +2,7 @@
   <q-dialog v-model="val" @hide="resetForm()" persistent>
     <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark info-banner': darkMode}">
         <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-          <span class="text-weight-medium">Add SEP721 Token</span>
+          <span class="text-weight-medium">{{$t(isHongKong() ? 'Add_SEP721_Point' : 'Add_SEP721_Token')}}</span>
         </q-card-section>
         <q-separator />
         <q-form class="q-gutter-y-sm q-mx-none" method="post" @submit="submitAddToken">
@@ -10,7 +10,7 @@
             <q-input
               dense
               filled
-              :label="('Input_SEP721_TokenAddress')"
+              :label="$t(isHongKong() ? 'Input_SEP721_PointAddress' : 'Input_SEP721_TokenAddress')"
               type="text"
               lazy-rules
               v-model="formData.contractAddress"
@@ -19,7 +19,7 @@
               :rules="[
                 val => Boolean(val) || $t('Required'),
                 val => isValidAddress(val) || $t('InputValidAddress'),
-                val => !isAddressInAssets(val) || $t('TokenAlreadyInList'),
+                val => !isAddressInAssets(val) || $t(isHongKong() ? 'PointAlreadyInList' : 'TokenAlreadyInList'),
               ]"
             />
             <q-input
@@ -69,7 +69,8 @@ export default {
       type: Boolean,
       default: false
     },
-    darkMode: Boolean
+    darkMode: Boolean,
+    currentCountry: String
   },
 
   data () {
@@ -127,13 +128,16 @@ export default {
     },
     alertTokenAdded (token) {
       this.$q.dialog({
-        title: this.$t('TokenAdded'),
+        title: this.$t(this.isHongKong() ? 'PointAdded' : 'TokenAdded'),
         message: `Added token ${token.name} with address: ${token.address}`,
         class: 'pp-text',
         darkMode: this.darkMode
       }).onDismiss(() => {
         this.val = false
       })
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
     }
   },
 

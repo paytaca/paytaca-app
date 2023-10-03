@@ -110,7 +110,8 @@ export default {
       type: Object,
       required: true
     },
-    darkMode: Boolean
+    darkMode: Boolean,
+    currentCountry: String
   },
 
   data () {
@@ -118,7 +119,7 @@ export default {
       tokenId: '',
       addBtnDisabled: true,
       asset: null,
-      loading: false,
+      loading: false
     }
   },
   watch: {
@@ -139,17 +140,18 @@ export default {
     },
     addTokenTitle () {
       if (this.isSep20)
-        return this.$t('Add_SEP20_Token')
-      if (this.isCashToken)
-        return this.$t('AddFungibleCashToken')
-      return this.$t('Add_Type1_Token')
+        return this.$t(this.isHongKong() ? 'Add_SEP20_Point' : 'Add_SEP20_Token')
+      if (this.isCashToken) {
+        return this.$t(this.isHongKong() ? 'AddFungibleCashPoint' : 'AddFungibleCashToken')
+      }
+      return this.$t(this.isHongKong() ? 'Add_Type1_Point' : 'Add_Type1_Token')
     },
     inputPlaceholder () {
       if (this.isSep20)
         this.$t('Enter_SEP20_ContractAddress')
       if (this.isCashToken)
-        return this.$t('EnterCashTokenCategoryID')
-      return this.$t('Enter_SLP_TokenId')
+        return this.$t(this.isHongKong() ? 'EnterCashPointCategoryID' : 'EnterCashTokenCategoryID')
+      return this.$t(this.isHongKong() ? 'Enter_SLP_PointId' : 'Enter_SLP_TokenId')
     },
     isDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
@@ -271,6 +273,9 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
     }
   }
 }

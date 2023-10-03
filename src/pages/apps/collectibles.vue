@@ -84,7 +84,7 @@
         </keep-alive>
       </q-tab-panel>
       <q-tab-panel name="sBCH">
-        <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" />
+        <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" :currentCountry="currentCountry" />
         <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :darkMode="darkMode" :asset="erc721AssetDetailDialog.asset"/>
         <div class="row items-start justify-end q-px-sm">
           <q-btn
@@ -242,7 +242,8 @@ export default {
       selectedERC721AssetIndex: -1,
       showAddress: false,
       wallet: null,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      currentCountry: this.$store.getters['global/country'].code
     }
   },
   computed: {

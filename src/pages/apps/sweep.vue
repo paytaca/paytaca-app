@@ -74,7 +74,7 @@
                 </div>
               </div>
               <div v-if="tokens.length > 0" style="margin-top: 15px">
-                <p><strong>{{ $t('Tokens') }} ({{ tokens.length }})</strong></p>
+                <p><strong>{{ $t(isHongKong() ? 'Points' : 'Tokens') }} ({{ tokens.length }})</strong></p>
                 <p>
                   {{ $t('SlpAddress') }}: {{ ellipsisText(sweeper.slpAddress) }}
                   <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.slpAddress)" />
@@ -85,7 +85,7 @@
                 <div v-for="(token, index) in tokens" :key="index">
                   <div style="border: 1px solid black; padding: 10px; margin-top: 10px;">
                     <p>
-                      {{ $t('TokenId') }}: {{ ellipsisText(token.token_id) }}
+                      {{ $t(isHongKong() ? 'PointId' : 'TokenId') }}: {{ ellipsisText(token.token_id) }}
                       <q-icon name="mdi-content-copy" @click="copyToClipboard(token.token_id)" />
                     </p>
                     <p>{{ $t('Symbol') }}: {{ token.symbol }}</p>
@@ -144,7 +144,8 @@ export default {
         { label: this.$t('Address'), value: 'address' }
       ],
       payFeeFrom: { label: this.$t('Wallet'), value: 'wallet' },
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      currentCountry: this.$store.getters['global/country'].code
     }
   },
   watch: {
@@ -257,6 +258,9 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
     }
   },
   mounted () {

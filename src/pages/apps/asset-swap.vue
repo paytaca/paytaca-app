@@ -37,6 +37,7 @@
 
     <SmartSwapForm
       :darkMode="darkMode"
+      :currentCountry="currentCountry"
       class="q-mx-md"
     />
 
@@ -61,7 +62,8 @@ export default {
   data () {
     return {
       selectedNetwork: 'sBCH',
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      currentCountry: this.$store.getters['global/country'].code
     }
   },
   computed: {

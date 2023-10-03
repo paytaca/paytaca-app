@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="getDarkModeClass('pt-dark', 'light')" class="pt-settings">
-    <header-nav :title="$t('IgnoredTokens')" :backnavpath="backNavPath" />
+    <header-nav :title="$t(isHongKong() ? 'IgnoredPoints' : 'IgnoredTokens')" :backnavpath="backNavPath" />
     <div
       style="padding-top:25px;height:100vh;"
       :class="[
@@ -80,7 +80,7 @@
         ]"
         style="font-size: 18px"
       >
-        {{ $t('NoIgnoredTokens') }}
+        {{ $t(isHongKong() ? 'NoIgnoredPoints' : 'NoIgnoredTokens') }}
       </div>
     </div>
   </div>
@@ -95,7 +95,8 @@ export default {
   },
   data () {
     return {
-      selectedNetwork: this.$store.getters['global/network']
+      selectedNetwork: this.$store.getters['global/network'],
+      currentCountry: this.$store.getters['global/country'].code
     }
   },
   computed: {
@@ -190,6 +191,9 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
     }
   },
   beforeRouteLeave (to, from, next) {

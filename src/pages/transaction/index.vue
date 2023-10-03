@@ -68,7 +68,7 @@
             @click.native="toggleShowTokens"
             style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
           >
-            {{ $t('ShowTokens') }}
+            {{ $t(isHongKong() ? 'ShowPoints' : 'ShowTokens') }}
           </div>
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
@@ -76,7 +76,7 @@
                 class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary payment-methods"
                 :class="getDarkModeClass()"
               >
-                {{ $t('Tokens') }}
+                {{ $t(isHongKong() ? 'Points' : 'Tokens') }}
                 <q-btn
                   flat
                   padding="none"
@@ -100,13 +100,19 @@
                   <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
                     <q-list class="pt-card" :class="getDarkModeClass()" style="min-width: 100px;">
                       <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleManageAssets">{{ $t('ManageTokens') }}</q-item-section>
+                        <q-item-section @click="toggleManageAssets">
+                          {{ $t(isHongKong() ? 'ManagePoints' : 'ManageTokens') }}
+                        </q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
-                        <q-item-section @click="checkMissingAssets({autoOpen: true})">{{ $t('ScanForTokens') }}</q-item-section>
+                        <q-item-section @click="checkMissingAssets({autoOpen: true})">
+                          {{ $t(isHongKong() ? 'ScanForPoints' : 'ScanForTokens') }}
+                        </q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleShowTokens">{{ $t('HideTokens') }}</q-item-section>
+                        <q-item-section @click="toggleShowTokens">
+                          {{ $t(isHongKong() ? 'HidePoints' : 'HideTokens') }}
+                        </q-item-section>
                       </q-item>
                     </q-list>
                   </q-menu>
@@ -129,6 +135,7 @@
               :network="selectedNetwork"
               :wallet="wallet"
               :isCashToken="isCashToken"
+              :currentCountry="currentCountry"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -146,6 +153,7 @@
               :network="selectedNetwork"
               :wallet="wallet"
               :isCashToken="isCashToken"
+              :currentCountry="currentCountry"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -330,6 +338,7 @@ export default {
       prevPath: null,
       showTokenSuggestionsDialog: false,
       showTokens: this.$store.getters['global/showTokens'],
+      currentCountry: this.$store.getters['global/country'].code,
       isCashToken: true,
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;'
@@ -1063,6 +1072,9 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
     }
   },
 

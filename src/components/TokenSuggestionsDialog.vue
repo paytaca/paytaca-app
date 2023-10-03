@@ -18,7 +18,7 @@
 
       <q-btn
         v-if="!loading"
-        :label="$t('ViewIgnoredTokens')"
+        :label="$t(isHongKong() ? 'ViewIgnoredPoints' : 'ViewIgnoredTokens')"
         no-caps
         flat
         padding="none"
@@ -117,7 +117,7 @@
             'text-center',
           ]"
         >
-          {{ $t('NoTokensFound') }}
+          {{ $t(isHongKong() ? 'NoPointsFound' : 'NoTokensFound') }}
         </div>
       </q-card-section>
       <q-card-section class="row q-gutter-sm justify-around">
@@ -170,6 +170,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    currentCountry() {
+      return this.$store.getters['global/country'].code
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
@@ -322,7 +325,7 @@ export default {
               handler: () => { /* ... */ }
             },
             {
-              label: this.$t('ViewTokens'),
+              label: this.$t(this.isHongKong() ? 'ViewPoints' : 'ViewTokens'),
               color: 'white',
               handler: () => {
                 this.val = true
@@ -339,6 +342,9 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
     }
   },
   watch: {
