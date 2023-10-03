@@ -124,30 +124,38 @@ const marketValueData = computed(() => {
 const badges = computed(() => {
   if (!Array.isArray(props.transaction?.attributes)) return []
   const badges = []
+  const icons = {
+    anyhedge: 'img:anyhedge-logo.png',
+    voucher_claim: 'mdi-ticket-confirmation',
+  }
+  const pushBadge = (icon, text, value) => {
+    badges.push({
+      icon,
+      text,
+      data: {
+        address: value
+      }
+    })
+  }
 
   props.transaction?.attributes.forEach(attribute => {
-    switch(attribute?.key) {
+    const key = attribute?.key.includes('anyhedge') ? 'anyhedge' : attribute?.key
+    const value = attribute?.value
+    const icon = icons[key]
+    
+    switch(key) {
       case('anyhedge_funding_tx'):
-        badges.push({
-          icon: 'img:anyhedge-logo.png',
-          text: 'AnyHedge funding transaction',
-          data: { address: attribute?.value },
-        })
+        pushBadge(icon, 'AnyHedge funding transaction', value)
         break
       case('anyhedge_hedge_funding_utxo'):
       case('anyhedge_long_funding_utxo'):
-        badges.push({
-          icon: 'img:anyhedge-logo.png',
-          text: 'AnyHedge funding UTXO',
-          data: { address: attribute?.value },
-        })
+        pushBadge(icon, 'AnyHedge funding UTXO', value)
         break
       case('anyhedge_settlement_tx'):
-        badges.push({
-          icon: 'img:anyhedge-logo.png',
-          text: 'AnyHedge settlement transaction',
-          data: { address: attribute?.value },
-        })
+        pushBadge(icon, 'AnyHedge settlement transaction', value)
+        break
+      case('voucher_claim'):
+        pushBadge(icon, value, value)
         break
     }
   })

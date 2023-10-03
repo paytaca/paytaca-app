@@ -125,20 +125,27 @@ const linkCode = computed(() => {
 onMounted(() => generateLinkCode({ checkExpiry: true }))
 
 async function generateLinkCode(opts) {
-  const xpubkey = await props.wallet.BCH.getXPubKey()
+  const wallet = props.wallet.BCH
+  const xpubkey = await wallet.getXPubKey()
+  const ppvsAddrPath = `0/${wallet.purelypeerVaultSigner.index}`
+  const ppvsDerivationPath = wallet.purelypeerVaultSigner.derivationPath
+  const ppvsPrivKey = await wallet.getPrivateKey(ppvsAddrPath, ppvsDerivationPath, true)
+
+  const toBeEncryptedData = xpubkey + '@' + ppvsPrivKey.receiving
+
   const key = aes.generateKey()
-  const encryptedXpubkey = aes.encrypt(xpubkey, key.password, key.iv)
+  const encryptedData = aes.encrypt(toBeEncryptedData, key.password, key.iv)
   const password = key.password + '.' + key.iv
 
   const nonce = Math.floor(Math.random() * 2 ** 31-1)
-  const privkey = await props.wallet.BCH.getPrivateKey(nonce)
+  const privkey = await wallet.getPrivateKey(nonce)
 
-  const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encryptedXpubkey)
+  const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encryptedData)
 
   const data = {
-    walletHash: props.wallet.BCH.walletHash,
+    walletHash: wallet.walletHash,
     posid: props.posid,
-    encryptedXpubkey: encryptedXpubkey,
+    encryptedData: encryptedData,
     decryptKey: password,
     nonce: nonce,
     signature: signature,
@@ -192,6 +199,8 @@ function copyToClipboard(value, message) {
 <style scoped>
 .qr-code-container {
   position:relative;
+  margin-left: -10px;
+  margin-right: -10px;
 
   background-color: white;
 

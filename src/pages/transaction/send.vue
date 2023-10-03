@@ -658,7 +658,6 @@ export default {
       let paymentUriData
       try {
         paymentUriData = parsePaymentUri(content, { chain: this.isSep20 ? 'smart' : 'main' })
-        console.log(paymentUriData)
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
@@ -1122,7 +1121,6 @@ export default {
           }
           if (promise) {
             promise.then(function (result) {
-              console.log('Result:', result)
               if (result.success) {
                 vm.sendData.txid = result.txid
                 vm.playSound(true)

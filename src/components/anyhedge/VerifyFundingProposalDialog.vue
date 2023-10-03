@@ -117,7 +117,6 @@ async function verifyFundingProposalUtxo() {
 onMounted(() => verifyFundingProposalUtxo())
 
 function onHide() {
-  console.log(onDialogHide)
   emit('ok', { spendingTx: spendingTx.value, error: errorMessage.value })
 }
 </script>

@@ -114,7 +114,7 @@ export default {
         const isChipnet = true
 
         // save BCH_CHIP
-        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity, purelypeerVaultSigner }) {
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'bch',
@@ -122,7 +122,8 @@ export default {
             derivationPath: bchChipWallet.derivationPath,
             lastAddress: addresses !== null ? addresses.receiving : '',
             lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
+            lastAddressIndex: 0,
+            purelypeerVaultSigner
           })
           vm.$store.dispatch('chat/addIdentity', pgpIdentity)
           try {
@@ -174,7 +175,6 @@ export default {
 
       if (this.$q.platform.is.mobile) {
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
-          console.log('Notification:', notification)
           if (notification?.title || notification?.body) {
             this.$q.notify({
               color: 'brandblue',

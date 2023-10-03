@@ -838,14 +838,18 @@ export default {
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
         if (bchChangeAddress.length === 0) {
-          getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({ addresses }) {
+          getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({
+            addresses,
+            purelypeerVaultSigner
+          }) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
               walletHash: getWalletByNetwork(vm.wallet, 'bch').walletHash,
               derivationPath: getWalletByNetwork(vm.wallet, 'bch').derivationPath,
               lastAddress: addresses.receiving,
               lastChangeAddress: addresses.change,
-              lastAddressIndex: 0
+              lastAddressIndex: 0,
+              purelypeerVaultSigner
             })
           })
         }

@@ -661,10 +661,8 @@ export default {
         seamless: true,
         ok: 'Yes',
       }).onOk(() => {
-        console.log('Proceed to delete wallet')
         vm.deleteWallet()
       }).onCancel(() => {
-        console.log('Cancelled')
         vm.disableDeleteButton = false
       })
     },

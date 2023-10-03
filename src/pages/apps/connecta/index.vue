@@ -358,7 +358,6 @@ export default {
           return Promise.resolve(result)
         })
         .catch(err => {
-          console.log(err)
           const errors = []
 
           if (err.error) {

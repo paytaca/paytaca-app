@@ -19,7 +19,12 @@ export default function () {
         lastAddressIndex: 0,
         connectedAddress: '',
         connectedAddressIndex: '0/0',
-        connectedSites: {}
+        connectedSites: {},
+        purelypeerVaultSigner: {
+          receiving: '',
+          change: '',
+          derivationPath: 'm/44\'/145\'/1\''
+        } 
       },
       slp: {
         walletHash: '',
@@ -52,7 +57,12 @@ export default function () {
         lastAddressIndex: 0,
         connectedAddress: '',
         connectedAddressIndex: '0/0',
-        connectedSites: {}
+        connectedSites: {},
+        purelypeerVaultSigner: {
+          receiving: '',
+          change: '',
+          derivationPath: 'm/44\'/145\'/1\''
+        }
       },
       slp: {
         walletHash: '',

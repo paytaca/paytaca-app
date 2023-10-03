@@ -104,6 +104,7 @@ export function updateWallet (state, details) {
   wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
   wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
   wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
+  wallet.purelypeerVaultSigner = details.purelypeerVaultSigner ?? wallet.purelypeerVaultSigner
 }
 
 export function setLanguage (state, language) {

@@ -166,9 +166,7 @@ function resolvePaymentUriAssetParam(paramValue='') {
  * @param {'main' | 'smart'} opts.chain
  */
 export function parsePaymentUri(content, opts) {
-  console.log('Parsing payment URI:', content)
   if (content.startsWith('paytaca:')) {
-    console.log('Parsing content using in-app protocol')
     return parsePaytacaPaymentUri(content)
   }
 
@@ -202,7 +200,6 @@ export function parsePaymentUri(content, opts) {
   }
 
   if ((!opts?.chain || opts?.chain === 'main') && bip0021Decoded) {
-    console.log('Parsing content using BIP0021')
     data.outputs[0].address = bip0021Decoded.address
     data.name = bip0021Decoded.label
     data.message = bip0021Decoded.message
@@ -218,7 +215,6 @@ export function parsePaymentUri(content, opts) {
   }
 
   if ((!opts?.chain || opts.chain === 'smart') && eip681Decoded) {
-    console.log('Parsing content using EIP681')
     data.outputs[0].address = eip681Decoded.target_address
     data.outputs[0].address = eip681Decoded.target_address
     if (eip681Decoded.parsedValue) data.outputs[0].amount.value = eip681Decoded.parsedValue
