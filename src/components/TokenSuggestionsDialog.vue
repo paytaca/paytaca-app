@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" persistent @hide="onClose()">
-    <q-card class="q-dialog-plugin br-15" :class="{'pt-dark-card': darkMode }">
+    <q-card class="q-dialog-plugin br-15 pt-card" :class="getDarkModeClass()">
       <div class="row items-center no-wrap q-pb-sm">
         <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">
           <template v-if="loading">{{ $t('FindingUnlistedAssets') }}</template>
@@ -24,8 +24,9 @@
         padding="none"
         size="sm"
         icon="mdi-eye"
-        class="q-mx-md"
+        class="q-mx-md button button-text-primary"
         :text-color="darkMode ? 'blue-5' : 'blue-9'"
+        :class="getDarkModeClass()"
         style="margin-top:-1.5rem;"
         :to="{
           path: '/apps/settings/ignored-tokens',
@@ -37,18 +38,21 @@
           <q-tabs
             v-if="enableSmartBCH"
             active-color="brandblue"
-            class="col-12 q-px-sm q-pb-md pp-fcolor"
+            class="col-12 q-px-sm q-pb-md"
             v-model="selectedNetwork"
             style="padding-bottom: 16px;"
+            :indicator-color="isDefaultTheme && 'transparent'"
           >
             <q-tab
               name="BCH"
-              :class="{'text-blue-5': darkMode}"
+              class="network-selection-tab"
+              :class="getDarkModeClass()"
               :label="'BCH' + (parsedMainchainTokens.length ? ` (${parsedMainchainTokens.length})` : '')"
             />
             <q-tab
               name="sBCH"
-              :class="{'text-blue-5': darkMode}"
+              class="network-selection-tab"
+              :class="getDarkModeClass()"
               :label="'SmartBCH' + (parsedSmartchainTokens.length ? ` (${parsedSmartchainTokens.length})` : '')"
             />
           </q-tabs>
@@ -56,7 +60,7 @@
             <template v-for="(token, index) in parsedTokens"  :key="index">
               <q-item
                 :class="[
-                  isAssetInIgnoredList(token.id) ? 'text-grey' : (darkMode ? 'text-white' : 'text-black'),
+                  isAssetInIgnoredList(token.id) ? 'text-grey' : getDarkModeClass('text-white', 'text-black'),
                 ]"
               >
                 <q-item-section v-if="token.logo" side>
@@ -100,7 +104,7 @@
           </q-list>
         </template>
         <div v-else-if="loading" class="column items-center justify-center">
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
           <div :class="darkMode ? 'text-white' : 'text-grey'">
             {{ $t('SearchingForOtherAssets') }}
           </div>
@@ -122,8 +126,7 @@
           no-caps
           rounded
           :label="`${$t('AddAll')} ${parsedTokens.length}`"
-          text-color="white"
-          :color="darkMode ? 'blue-9': 'brandblue'"
+          class="button"
           @click="addAllTokens()"
         />
       </q-card-section>
@@ -211,6 +214,12 @@ export default {
           }
         })
         .filter(Boolean)
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
@@ -327,6 +336,9 @@ export default {
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   watch: {

@@ -21,7 +21,7 @@
     </div>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
-    <ProgressLoader/>
+    <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
     <div class="q-px-lg">{{error_msg }} &#128533;</div>
@@ -72,6 +72,14 @@ export default {
   props: {
     info: Object,
     type: String
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    }
   },
   methods: {
     rampType () {

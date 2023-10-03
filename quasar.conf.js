@@ -45,8 +45,8 @@ module.exports = function (/* ctx */) {
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
     css: [
-      'app.sass',
-      'custom.css'
+      'default.scss',
+      'payhero.scss'
     ],
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
@@ -155,7 +155,9 @@ module.exports = function (/* ctx */) {
 
       // Updated for Quasar v1 to v2 migration. en-us -> en-US
       lang: 'en-US', // Quasar language pack
-      config: {},
+      config: {
+        dark: true
+      },
 
       // Possible values for "importStrategy":
       // * 'auto' - (DEFAULT) Auto-import needed Quasar components & directives
@@ -183,7 +185,7 @@ module.exports = function (/* ctx */) {
 
     // animations: 'all', // --- includes all animations
     // https://quasar.dev/options/animations
-    animations: [],
+    animations: 'all',
 
     // https://quasar.dev/quasar-cli/developing-ssr/configuring-ssr
     ssr: {

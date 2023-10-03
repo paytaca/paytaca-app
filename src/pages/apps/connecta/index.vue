@@ -143,7 +143,7 @@
             {{ paymentRequest.paymentDetails.getTotalAmountBCHString() }}
           </div>
           <div v-if="paymentRequestStatus.executing" class="q-mt-md row justify-center">
-            <ProgressLoader/>
+            <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
           </div>
           <div v-else class="q-mt-md row justify-end">
             <q-btn
@@ -305,6 +305,12 @@ export default {
       merchantData.shop.name = this.paymentRequest.paymentDetails.merchantData.order.shop.name
 
       return merchantData
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

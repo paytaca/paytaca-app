@@ -1,29 +1,30 @@
 <template>
-  <div class="pt-settings" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass('pt-dark', 'light')" class="pt-settings">
     <header-nav :title="$t('IgnoredTokens')" :backnavpath="backNavPath" />
     <div
-      style="padding-top:100px;height:100vh;"
+      style="padding-top:25px;height:100vh;"
       :class="[
-        darkMode ? '' : 'bg-brandlight',
         darkMode ? 'text-white' : 'text-black',
         'q-px-md',
       ]"
     >
       <q-tabs
         v-if="enableSmartBCH"
-        active-color="brandblue"
         class="col-12 q-px-sm q-pb-md pp-fcolor"
         v-model="selectedNetwork"
         style="margin-top: -20px; padding-bottom: 16px;"
+        :indicator-color="isDefaultTheme && 'transparent'"
       >
         <q-tab
           name="BCH"
-          :class="{'text-blue-5': darkMode}"
+          class="network-selection-tab"
+          :class="getDarkModeClass()"
           :label="'BCH' + (ignoredMainchainAssets.length ? ` (${ignoredMainchainAssets.length})` : '')"
         />
         <q-tab
           name="sBCH"
-          :class="{'text-blue-5': darkMode}"
+          class="network-selection-tab"
+          :class="getDarkModeClass()"
           :label="'SmartBCH' + (ignoredSmartchainAssets.length ? ` (${ignoredSmartchainAssets.length})` : '')"
         />
       </q-tabs>
@@ -50,6 +51,8 @@
                 <q-btn
                   round
                   padding="sm"
+                  class="ignored-tokens-button"
+                  :class="getDarkModeClass()"
                   :icon="assetIdExists(token.id) ? 'remove' : 'add'"
                   :text-color="darkMode ? 'white' : (assetIdExists(token.id) ? 'red' : 'green')"
                   @click="assetIdExists(token.id) ? removeToken(token) : addToken(token)"
@@ -58,6 +61,8 @@
                   round
                   padding="sm"
                   icon="close"
+                  class="ignored-tokens-button"
+                  :class="getDarkModeClass()"
                   :text-color="darkMode ? 'white' : 'red'"
                   @click="confirmRemoveIgnoredAsset(token)"
                 />
@@ -126,6 +131,9 @@ export default {
         .some(this.isSmartchainAsset)
 
       return hasMainchainAssetsAdded || hasSmartchainAssetsAdded
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
@@ -173,12 +181,15 @@ export default {
         message: this.$t('RemoveIgnoredToken') + `, '${tokenInfo.name}(${tokenInfo.symbol})'?`,
         cancel: true,
         persistent: true,
-        class: this.darkMode ? 'pt-dark text-white' : 'text-black'
+        class: this.darkMode ? 'pt-dark info-banner text-white' : 'text-black'
       })
         .onOk(() => {
           if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
           else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
         })
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   beforeRouteLeave (to, from, next) {

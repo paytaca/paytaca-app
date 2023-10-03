@@ -6,6 +6,7 @@ export default function () {
       name: 'United States',
       code: 'US'
     },
+    theme: 'default', // [default, payhero]
     isChipnet: false,
     showTokens: true,
     enableSmartBCH: false,

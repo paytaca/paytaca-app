@@ -4,21 +4,21 @@
       <div class="col col-transaction">
         <div>
           <p
-            :class="{'pt-dark-label': darkMode}"
-            class="q-mb-none transactions-wallet ib-text text-uppercase"
+            class="q-mb-none transactions-wallet type ib-text text-uppercase"
             style="font-size: 15px;"
+            :class="getDarkModeClass()"
           >
             {{ recordTypeText }}
           </p>
           <p
-            :class="{'text-grey': darkMode, 'q-mt-sm': !marketValueData?.marketValue }"
-            class="q-mb-none transactions-wallet float-right ib-text text-right"
+            class="q-mb-none transactions-wallet amount float-right ib-text text-right"
+            :class="[getDarkModeClass(), {'q-mt-sm': !marketValueData?.marketValue }]"
           >
             <div>{{ +(formatAmount(transaction?.amount, asset?.decimals, isBCH=asset?.id === 'bch', isSLP=asset?.id.startsWith('slp/'))) }} {{ asset?.symbol }}</div>
-            <div 
+            <div
               v-if="marketValueData?.marketValue"
-              class="text-caption text-grey"
-              :class="[darkMode ? 'text-weight-light' : '']"
+              class="transactions-wallet market-value"
+              :class="getDarkModeClass('text-weight-light', '')"
               style="margin-top:-0.25em;"
             >
               {{ marketValueData?.marketValue }} {{ selectedMarketCurrency }}
@@ -26,7 +26,7 @@
           </p>
         </div>
         <div class="col">
-            <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
+            <span class="float-left transactions-wallet date" :class="getDarkModeClass()">
               <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
               <template v-else>{{ formatDate(transaction.date_created) }}</template>
             </span>
@@ -174,22 +174,16 @@ function formatAmount (amount, decimals, isBCH=false, isSLP=false) {
   }
 }
 
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+}
 </script>
 <style scoped>
 .col-transaction {
   padding-top: 2px;
   font-weight: 500;
 }
-.transactions-wallet {
-  color: #4C4F4F;
-}
 .ib-text {
   display: inline-block;
-}
-
-.subtext {
-  font-size: 11px;
-  color: #4C4F4F;
-  opacity: .5;
 }
 </style>

@@ -114,6 +114,11 @@ export function setLanguage (state, language) {
 export function setCountry (state, country) {
   state.country.name = country.name
   state.country.code = country.code
+  if (country.code === 'HK') {
+    state.theme = 'payhero'
+  } else {
+    state.theme = 'default'
+  }
 }
 
 export function setConnectedAddress (state, details) {

@@ -38,7 +38,7 @@
           </q-item-section>
         </q-item>
         <div v-if="waiting" class="row items-center justify-center">
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
         </div>
         <div v-else-if="fulfillmentTxDetails.hash" class="q-mt-md">
           <div class="ellipsis">
@@ -110,6 +110,12 @@ export default {
         success: this.swapRequest?.fulfillment?.success || false,
         dateFulfilled: this.swapRequest?.date_fulfilled || null
       }
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

@@ -1,12 +1,12 @@
 <template>
   <div>
     <div v-if="fetchingNfts" class="row items-center justify-center">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme() ? theme() : 'pink'"/>
     </div>
     <div class="row items-start q-pa-md">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
-        :class="darkMode ? 'text-white pt-dark-card' : 'text-black'"
+        :class="getDarkModeClass('text-white', 'text-black')"
         class="q-ma-sm"
         style="max-width:130px;width:100%;"
         @click.stop="() => $emit('openNft', nft)"
@@ -65,6 +65,7 @@ const $store = useStore()
 const $emit = defineEmits([
   'openNft',
 ])
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
@@ -118,5 +119,17 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
 
 function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
   return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
+}
+
+function isDefaultTheme () {
+  return this.$store.getters['global/theme'] !== 'default'
+}
+
+function theme () {
+  return this.$store.getters['global/theme']
+}
+
+function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

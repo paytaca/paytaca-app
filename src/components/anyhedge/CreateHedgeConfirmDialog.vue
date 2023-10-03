@@ -8,7 +8,7 @@
     no-backdrop-dismiss
     no-shake
   >
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;margin-bottom:3rem;">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;margin-bottom:3rem;">
       <div class="row no-wrap items-center justify-center q-pl-md q-mb-md">
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="isPositionOffer">

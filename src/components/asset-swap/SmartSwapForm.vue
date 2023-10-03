@@ -1,9 +1,7 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm"
-    :class="[
-      darkMode ? 'text-white pt-dark-card' : 'text-black',
-    ]"
+    class="br-15 q-pt-sm pt-card"
+    :class="getDarkModeClass('text-white', 'text-black')"
   >
     <q-card-section v-if="!stagedSwapDetails.show">
       <div class="row items-center justify-end q-mb-md">
@@ -12,7 +10,7 @@
           color="blue-9"
           padding="xs"
           icon="refresh"
-          class="q-ml-md"
+          class="q-ml-md button"
           @click="function(){
             updateNetworkData()
             updateTokenListBalances()
@@ -23,7 +21,7 @@
           color="blue-9"
           padding="xs"
           icon="settings"
-          class="q-ml-md"
+          class="q-ml-md button"
           @click="showSettingsDialogForm = true"
         />
       </div>
@@ -125,7 +123,16 @@
         </q-item-section>
       </q-item>
       <div class="q-px-sm row items-center justify-end q-mt-md">
-        <q-btn icon="launch" color="blue-9" flat padding="xs" size="sm" @click="showSettingsDialogForm = true"/>
+        <q-btn
+          icon="launch"
+          color="blue-9"
+          flat
+          padding="xs"
+          size="sm"
+          class="button button-text-primary"
+          :class="getDarkModeClass()"
+          @click="showSettingsDialogForm = true"
+        />
       </div>
       <q-item class="q-mt-sm">
         <q-item-section side>
@@ -151,7 +158,12 @@
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else-if="computedFormData.parsedDistribution.steps > 0">
               {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" :color="darkMode ? 'blue-5' : 'blue-9'" />
+              <q-icon
+                name="launch"
+                :color="darkMode ? 'blue-5' : 'blue-9'"
+                class="button button-text-primary"
+                :class="getDarkModeClass()"
+              />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedFormData.parsedDistribution.steps"
@@ -185,7 +197,7 @@
           :loading="networkData.approvingToken"
           :label="$t('Approve') + ' ' + formData.sourceToken.symbol"
           color="brandblue"
-          class="q-space"
+          class="q-space button"
           rounded
           @click="confirmApproveToken()"
         />
@@ -196,7 +208,7 @@
           no-caps
           :label="$t('EnterAmount')"
           color="brandblue"
-          class="q-space"
+          class="q-space button"
         />
         <q-btn
           v-else
@@ -205,7 +217,7 @@
           rounded
           :label="insufficientBalance ? $t('InsufficientBalance') : $t('Swap')"
           color="brandblue"
-          class="q-space"
+          class="q-space button"
           @click="moveSwapDetailsToStaging()"
         />
       </div>
@@ -260,7 +272,12 @@
           <q-item-label @click="showRouteDialog = computedStagedSwapDetails.parsedDistribution.steps > 0" style="cursor:pointer;">
             <template v-if="computedStagedSwapDetails.parsedDistribution.steps > 0">
               {{ `${computedStagedSwapDetails.parsedDistribution.steps} step${computedStagedSwapDetails.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" color="blue-9" />
+              <q-icon
+                name="launch"
+                color="blue-9"
+                class="button button-text-primary"
+                :class="getDarkModeClass()"
+              />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedStagedSwapDetails.parsedDistribution.steps"
@@ -303,7 +320,7 @@
       </div>
       <q-separator />
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
-        <ProgressLoader/>
+        <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
       </div>
       <div class="row justify-center" style="margin-top: 20px; color: gray;">
         <span>{{ $t('PoweredBy') }} SmartSwap.fi</span>
@@ -321,15 +338,22 @@
       />
     </q-card-section>
     <q-dialog v-model="showSettingsDialogForm" persistent>
-      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;" class="br-15">
+      <q-card class="br-15 pt-card" :class="getDarkModeClass('text-white', 'text-black')" style="min-width:75vw;">
         <div class="row no-wrap items-center justify-center q-pl-md">
-          <div class="text-subtitle1 text-weight-medium q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">{{ $t('Settings') }}</div>
+          <div
+            class="text-subtitle1 text-weight-medium q-space q-pt-sm text-section"
+            :class="darkMode ? 'text-blue-5' : ''"
+          >
+            {{ $t('Settings') }}
+          </div>
           <q-btn
               flat
               color="blue-9"
               icon="refresh"
               round
               padding="sm"
+              class="button button-text-primary"
+              :class="getDarkModeClass()"
               @click="function(){
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
@@ -341,6 +365,7 @@
             color="grey"
             padding="sm"
             icon="close"
+            class="close-button"
             v-close-popup
           />
         </div>
@@ -349,7 +374,7 @@
             {{ $t('SlippageTolerance') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
                   {{ $t('SlippageToleranceDescription') }}
                 </div>
               </q-popup-proxy>
@@ -359,9 +384,9 @@
             <q-btn-toggle
               v-model="formData.slippageTolerance"
               rounded
-              toggle-color="grad"
+              :toggle-color="isDefaultTheme ? 'toggle-active' : 'grad'"
               :toggle-text-color="darkMode ? 'dark' : 'white'"
-              :color="darkMode ? 'blue-9' : 'grey-3'"
+              :color="isDefaultTheme ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
               :text-color="darkMode ? 'pt-dark-label' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
@@ -381,7 +406,7 @@
             {{ $t('TransactionDeadline') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
                   {{ $t('SwapTransactionDeadlineDescription') }}
                 </div>
               </q-popup-proxy>
@@ -392,6 +417,7 @@
             <q-slider
               :min="5"
               :max="30"
+              color="slider"
               v-model="formData.transactionDeadline"
             />
           </div>
@@ -572,6 +598,12 @@ export default {
         formattedMinReturn: formattedMinReturn,
         parsedDistribution: parseDistribution(this.stagedSwapDetails.distribution)
       }
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
@@ -954,6 +986,9 @@ export default {
       const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       this.wallet = markRaw(new Wallet(mnemonic))
       return this.wallet
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   watch: {

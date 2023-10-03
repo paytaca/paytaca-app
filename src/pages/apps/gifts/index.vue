@@ -1,30 +1,39 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass()">
       <HeaderNav
         title="Gifts"
         backnavpath="/apps"
-        class="q-px-sm"
+        class="q-px-sm apps-header gift-app-header"
       />
       <div :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
         <div class="row items-center justify-end q-mx-md q-mb-md q-px-xs q-gutter-sm">
-          <q-btn 
+          <q-btn
             no-caps
             color="primary"
             label="Create Gift"
+            class="button"
             :to="{ name: 'create-gift'}"
           />
-          <q-btn 
+          <q-btn
             no-caps
             color="primary"
             label="Claim Gift"
+            class="button"
             :to="{ name: 'claim-gift'}"
           />
         </div>
         <div class="q-pa-md" :class="{'text-black': !darkMode}" style="margin-top: -10px;">
           <div class="q-px-xs row items-start">
             <div class="q-table__title q-space">Gifts you created</div>
-            <q-btn-dropdown color="primary" no-caps :label="capitalize(filterOpts.recordType.active)" dense class="q-pl-sm" :dark="darkMode" content-style="color: black;">
+            <q-btn-dropdown
+              color="primary"
+              no-caps :label="capitalize(filterOpts.recordType.active)"
+              dense
+              class="q-pl-sm button"
+              :dark="darkMode"
+              content-style="color: black;"
+            >
               <q-list dense>
                 <q-item
                   v-for="recordType in filterOpts.recordType.options"
@@ -49,7 +58,7 @@
                 v-for="i in 3"
                 class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               >
-                <q-card :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
+                <q-card class="q-py-sm q-px-md" :class="getDarkModeClass('text-white', 'text-black')">
                   <q-skeleton height="1.25em" class="q-mb-sm"/>
                   <q-skeleton height="1.25em" class="q-mb-sm"/>
                   <q-separator spaced :dark="darkMode"/>
@@ -70,7 +79,11 @@
                 :key="gift?.gift_code_hash"
                 class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               >
-                <q-card v-if="getGiftShare(gift?.gift_code_hash) || gift?.date_claimed !== 'None'" :class="['q-py-sm q-px-md', darkMode ? 'text-white pt-dark-card' : 'text-black']">
+                <q-card
+                  v-if="getGiftShare(gift?.gift_code_hash) || gift?.date_claimed !== 'None'"
+                  class="q-py-sm q-px-md pt-card"
+                  :class="getDarkModeClass('text-white', 'text-black')"
+                >
                   <div class="row">
                     <div class="q-space">Amount</div>
                     <div class="text-caption text-grey">
@@ -324,6 +337,9 @@ export default {
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

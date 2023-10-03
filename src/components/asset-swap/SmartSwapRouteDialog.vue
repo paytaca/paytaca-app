@@ -1,8 +1,8 @@
 <template>
   <q-dialog v-model="val" persistent>
-    <q-card :class="[darkMode ? 'pt-dark-card' : 'text-black']" class="br-15">
+    <q-card class="br-15 pt-card" :class="getDarkModeClass('', 'text-black')">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-subtitle1 q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">{{ $t('Routing') }}</div>
+        <div class="text-subtitle1 q-space q-pt-sm text-section" :class="darkMode ? 'text-blue-5' : ''">{{ $t('Routing') }}</div>
         <q-btn
           flat
           padding="sm"
@@ -31,7 +31,7 @@
             :class="[
               'br-15',
               'q-mb-sm',
-              darkMode ? 'pt-dark' : 'bg-grey-2',
+              darkMode ? 'pt-dark info-banner' : 'bg-grey-2',
             ]"
           >
             <q-item-section avatar class="items-center">
@@ -148,6 +148,11 @@ export default {
     },
     modelValue () {
       this.val = this.modelValue
+    }
+  },
+  methods: {
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

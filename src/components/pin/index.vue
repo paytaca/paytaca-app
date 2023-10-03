@@ -8,37 +8,37 @@
     transition-hide="slide-down"
     seamless
     >
-      <q-card v-if="loader" class="full-height flex flex-center" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+      <q-card v-if="loader" class="full-height flex flex-center" :class="{'pt-dark': darkMode}">
           <q-card-section>
               <div class="row">
                   <div class="col-12 text-center q-mt-lg">
                       <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
                   </div>
                   <div class="col-12 text-center">
-                      <ProgressLoader/>
+                      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
                   </div>
               </div>
           </q-card-section>
       </q-card>
 
-      <q-card v-else class="pt-bg-card" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+      <q-card v-else id="app-container" :class="getDarkModeClass()">
         <q-card-section class="q-mt-md q-pb-none">
             <div class="text-center">
-                <p class="text-h6 text-blue-9 text-uppercase" :class="{'text-grad': $store.getters['darkmode/getStatus']}"><strong>{{ actionCaption }}</strong></p>
-                <p class="dim-text q-mt-md" :class="{'text-grey-5': $store.getters['darkmode/getStatus']}">{{ subTitle }}</p>
+                <p class="text-h6 text-blue-9 text-uppercase" :class="{'text-grad': darkMode}"><strong>{{ actionCaption }}</strong></p>
+                <p class="dim-text q-mt-md" :class="{'text-grey-5': darkMode}">{{ subTitle }}</p>
             </div>
         </q-card-section>
 
         <q-card-section class="q-pt-none">
           <div class="row justify-center">
               <div class="col-10 text-center">
-                  <p class="q-py-none q-my-none text-blue-9" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ pinLabel }}</p>
+                  <p class="q-py-none q-my-none text-blue-9" :class="{'pt-dark-label': darkMode}">{{ pinLabel }}</p>
               </div>
               <div class="col-10">
                   <div class="row justify-center">
                       <div class="col-2 pt-pin-key" v-for="(keys, index) in pinKeys" :key="index">
                         <p class="q-py-md text-h5 text-center q-my-none pt-text-key">
-                            <span v-if="keys.key !== ''" class="material-icons" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">
+                            <span v-if="keys.key !== ''" class="material-icons pin-icon" :class="{'text-blue-5': darkMode}">
                               radio_button_checked
                             </span>
                             <span v-else class="material-icons">
@@ -69,8 +69,8 @@
               <q-btn
                 push
                 class="pp-key pt-key-num"
-                :class="$store.getters['darkmode/getStatus'] ? 'pt-bg-dark' : 'bg-white'"
-                :text-color="$store.getters['darkmode/getStatus'] ? '#515151' : 'black'"
+                :class="darkMode ? 'pt-bg-dark' : 'bg-white'"
+                :text-color="darkMode ? '#515151' : 'black'"
                 :disable="(key === 13)"
                 v-else-if="(key !== 15)" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key"
                 @click="processKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : (key-2) : (key-1) : key)" />
@@ -123,7 +123,8 @@ export default {
       loader: false,
       resetStatus: true,
       saveBtn: true,
-      subTitle: null
+      subTitle: null,
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   components: { ProgressLoader },
@@ -153,6 +154,14 @@ export default {
           vm.dialog = false
         }
       }
+    }
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
@@ -275,6 +284,9 @@ export default {
     cancelPin () {
       this.removeKey('reset')
       this.$emit('nextAction', 'cancel')
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }
