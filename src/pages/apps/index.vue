@@ -168,8 +168,7 @@ export default {
       if (this.isDefaultTheme) {
         const iconFileName = app.path.split('/')[2]
         const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
-        // static; needs readjustment
-        app.iconName = iconFileName !== 'ramp' ? themedIconLoc : app.iconName
+        app.iconName = themedIconLoc
       }
     })
 
