@@ -318,6 +318,7 @@ export default {
   Select: "選擇",
   SelectAssetToBeReceived: "選擇要收到的資產",
   SelectAssetToSend: "選擇要發送的資產",
+  SelectBCHDenomination: "BCH面額",
   SelectCustomPoint: "選擇自定義積分",
   SelectCustomToken: "選擇自定義令牌",
   SelectFromList: "從列表中選擇",

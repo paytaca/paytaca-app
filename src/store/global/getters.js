@@ -222,3 +222,7 @@ export function getConnectedSites (state) {
     return walletData.connectedSites
   }
 }
+
+export function denomination (state) {
+  return state.denomination
+}

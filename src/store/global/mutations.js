@@ -116,8 +116,10 @@ export function setCountry (state, country) {
   state.country.code = country.code
   if (country.code === 'HK') {
     state.theme = 'payhero'
+    state.denomination = 'DEEM'
   } else {
     state.theme = 'default'
+    state.denomination = 'BCH'
   }
 }
 
@@ -216,3 +218,6 @@ export function updateConnectivityStatus (state, online) {
   state.online = online
 }
 
+export function setDenomination (state, denomination) {
+  state.denomination = denomination
+}

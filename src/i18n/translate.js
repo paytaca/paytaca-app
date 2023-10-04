@@ -1,5 +1,5 @@
-const translate = require("translate-google");
-const fs = require("fs");
+const translate = require("translate-google")
+const fs = require("fs")
 
 /**
  * NOTE: YOU ONLY NEED TO UPDATE TEXTS HERE and run this script.
@@ -53,7 +53,6 @@ const words = [
     Deadline: "Deadline",
     Deposit: "Deposit",
     Disconnected: "Disconnected",
-    Dismiss: "Dismiss",
     English: "English",
     Error: "Error",
     Done: "Done",
@@ -132,8 +131,8 @@ const words = [
     Expired: "Expired",
     High: "High",
     Liquidity: "Liquidity",
-  },
-];
+  }
+]
 const phrases = {
   /**
    * NOTE: separate text objects if it gets too big in size
@@ -160,10 +159,8 @@ const phrases = {
       BchToReceive: "BCH to receive",
       BchToSend: "BCH to send",
       BridgeBalance: "Bridge balance",
-      BiometricMaxAttemptsMsg:
-        'You"ve done many attempts. Please try again after 30 seconds.',
-      BridgeLeavingPageMsg:
-        "Leaving the page may result in being unable to view progress. Leave page?",
+      BiometricMaxAttemptsMsg: 'You"ve done many attempts. Please try again after 30 seconds.',
+      BridgeLeavingPageMsg: "Leaving the page may result in being unable to view progress. Leave page?",
       BridgeError1: "Must be at least 0.01",
       BridgeError2: 'Amount must be less than bridge"s balance',
       BranchDetails: "Branch details",
@@ -183,10 +180,8 @@ const phrases = {
       CameraPermissionErrMsg2: "No camera found on this device",
       CameraPermissionErrMsg3: "Unable to acccess camera in non-secure context",
       CameraPermissionErrMsg4: "Unable to access camera",
-      CameraPermissionErrMsg5:
-        'Constraints don"t match any installed camera. Did you ask for the front camera although there is none?',
-      ChoosePreferredSecAuth:
-        "Please choose your preferred security authentication",
+      CameraPermissionErrMsg5: 'Constraints don"t match any installed camera. Did you ask for the front camera although there is none?',
+      ChoosePreferredSecAuth: "Please choose your preferred security authentication",
       ClickToCopyAddress: "Click to copy address",
       ClearCallRequests: "Clear call requests",
       ClearCallRequestsPrompt: "Removing all call requests. Are you sure?",
@@ -236,16 +231,13 @@ const phrases = {
       MinerFee: "Miner fee",
       MinimumReturn: "Minimum return",
       MnemonicBackupPhrase: "Mnemonic Backup Phrase",
-      MnemonicBackupPhraseDescription1:
-        "Double check if this matches your mnemonic backup phrase",
-      MnemonicBackupPhraseDescription2:
-        "Write on paper or take a screenshot and keep it somewhere safe",
+      MnemonicBackupPhraseDescription1: "Double check if this matches your mnemonic backup phrase",
+      MnemonicBackupPhraseDescription2: "Write on paper or take a screenshot and keep it somewhere safe",
       MerchantDetails: "Merchant details",
       MerchantDetailsRequired: "Merchant details required",
       MerchantDetailsSaved: "Merchant details saved",
       NewDevice: "New device",
-      NotifyPOSDeviceToConfirmUnlinking:
-        "Notify POS device to confirm unlinking",
+      NotifyPOSDeviceToConfirmUnlinking: "Notify POS device to confirm unlinking",
       NativeBiometricReason1: "For easy log in",
       NativeBiometricReason2: "For ownership verification",
       NativeBiometricSubtitle: "Verify your account using fingerprint",
@@ -254,8 +246,7 @@ const phrases = {
       NotEnoughBalForSendAmount: "Not enough balance to cover the send amount",
       NotEnoughBchForFee: "Not enough BCH to cover for transaction fee",
       NoIgnoredTokens: "No ignored tokens",
-      NoInternetConnectionNotice:
-        "You have lost connection to the internet. This app is offline.",
+      NoInternetConnectionNotice: "You have lost connection to the internet. This app is offline.",
       NoTokensFound: "No tokens found",
       NoTransactionsToDisplay: "No transactions to display",
       OpenSourceCode: "Open source code",
@@ -277,8 +268,7 @@ const phrases = {
       PaymentAcknowledged: "Payment acknowledged",
       PinMismatched: "PIN mismatched",
       PinSubtext1: "Enter your PIN to proceed.",
-      PinSubtext2:
-        "PIN will serve as a verification of your account in every transaction you make for security purposes.",
+      PinSubtext2: "PIN will serve as a verification of your account in every transaction you make for security purposes.",
       PoweredBy: "Powered by",
       ReceivingAddress: "Receiving address",
       ResolvingLnsAddress: "Resolving LNS name address",
@@ -287,10 +277,8 @@ const phrases = {
       RejectedByUser: "Rejected by user",
       RejectedCallRequest: "Rejected call request",
       RemoveIgnoredToken: "Remove ignored token",
-      RemoveIgnoredTokenPrompt:
-        "You have added assets from ignored list. Remove them from the ignored list?",
-      RestoreWalletDescription:
-        "Restore your Paytaca wallet from its mnemonic backup phrase",
+      RemoveIgnoredTokenPrompt: "You have added assets from ignored list. Remove them from the ignored list?",
+      RestoreWalletDescription: "Restore your Paytaca wallet from its mnemonic backup phrase",
       RestoringYourWallet: "Restoring your wallet",
       RemoveBranch: "Remove branch",
       RemoveBranchConfirm: "Remove branch. Are you sure?",
@@ -311,8 +299,7 @@ const phrases = {
       SecurityCheck: "Security Check",
       SearchingForOtherAssets: "Searching for other assets",
       SeedPhraseCaution1: "Warning: Do not copy this to clipboard!",
-      SeedPhraseCaution2:
-        "Some malicious apps installed in your device may be able to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.",
+      SeedPhraseCaution2: "Some malicious apps installed in your device may be able to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.",
       SelectAssetToSend: "Select Asset to Send",
       SelectAssetToBeReceived: "Select Asset to be Received",
       SendToAnotherAddress: "Send to another address",
@@ -327,8 +314,7 @@ const phrases = {
       ShowMore: "Show More",
       SignMessage: "Sign Message",
       SlippageTolerance: "Slippage Tolerance",
-      SlippageToleranceDescription:
-        "The swap will be reverted if price changes unfavorably by this percentage",
+      SlippageToleranceDescription: "The swap will be reverted if price changes unfavorably by this percentage",
       SlpAddress: "SLP Address",
       SlpAddresses: "SLP Addresses",
       SLP_to_SEP20: "SLP to SEP20",
@@ -341,13 +327,11 @@ const phrases = {
       SwapFrom: "Swap from",
       SwapTo: "Swap to",
       SwapSuccess: "Swap success",
-      SwapTransactionDeadlineDescription:
-        "The swap will be reverted if the transaction is pending for more than this duration",
+      SwapTransactionDeadlineDescription: "The swap will be reverted if the transaction is pending for more than this duration",
       SweepInputPlaceholder: "Paste here the private key in WIF format",
       SweepTheTokensFirst: "Sweep the tokens first",
       SweepErrMsg1: "This address is empty",
-      SweepErrMsg2:
-        "You will need sufficient BCH balance to be able to sweep the token(s) below",
+      SweepErrMsg2: "You will need sufficient BCH balance to be able to sweep the token(s) below",
       SwipeToSend: "Swipe To Send",
       SwapUpdate: "Swap update",
       TokenApproved: "Token approved",
@@ -373,8 +357,7 @@ const phrases = {
       TotalLongPositions: "Total Long Positions",
       SelectLiquidityPool: "Select liquidity pool",
       MatchSimilarity: "Match similarity",
-      AnyHedgeNoExactMatchInfo:
-        "If there is no exact match found from the pool, a list of similar offers is suggested instead",
+      AnyHedgeNoExactMatchInfo: "If there is no exact match found from the pool, a list of similar offers is suggested instead",
       AddAll: "Add All",
       SelectSource: "Select Source",
       TransactionHistory: "Transaction History",
@@ -382,13 +365,11 @@ const phrases = {
       AppInfo: "App Info",
       AddressScan: "Address Scan",
       UtxoScan: "UTXO Scan",
-      BackendDown:
-        "Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down",
+      BackendDown: "Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down",
       ClickToReveal: "Click to Reveal",
       SLPTokens: "SLP Tokens",
       AddFungibleCashToken: "Add Fungible CashToken",
-      AssetValueNote:
-        "Asset value is based on prices at the time of transaction",
+      AssetValueNote: "Asset value is based on prices at the time of transaction",
       CreateOrImportWallet: "Create/Import Wallet",
       EnterCashTokenCategoryID: "Enter CashToken category ID",
       ManageIgnoredTokens: "Manage Ignored Tokens",
@@ -396,8 +377,7 @@ const phrases = {
       ScanForTokens: "Scan for Tokens",
       HideTokens: "Hide Tokens",
       OnBoardSettingHeader: "Set Localization Preferences",
-      OnBoardSettingDescription:
-        "Adjust settings to fit your native experience",
+      OnBoardSettingDescription: "Adjust settings to fit your native experience",
       POSAdmin: "POS Admin",
       RenameWallet: "Rename Wallet",
       ShowTokens: "Show Tokens",
@@ -440,10 +420,10 @@ const phrases = {
       RefreshList: "Refresh List",
       LoadingMetadata: "Loading metadata",
       CategoryID: "Category ID",
-      RampFiatNotice:
-        "Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!",
+      RampFiatNotice: "Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!",
       Add_SEP721_Token: "Add SEP721 Token",
-    },
+      SelectBCHDenomination: "BCH Denomination",
+    }
   ],
   dynamic: [
     {
@@ -457,9 +437,9 @@ const phrases = {
       UpdateDeviceIDNo: "Update device #{ID}",
       UpdatedDeviceIDNo: "Updated device #{ID}",
       UpdatingDeviceIDNo: "Updating device #{ID}",
-    },
-  ],
-};
+    }
+  ]
+}
 
 // token to point
 const hongKongSpecific = [
@@ -480,8 +460,7 @@ const hongKongSpecific = [
     SelectPoint: "Select point",
     SmartSwapBchSoonPoints: "We will integrate SLP DEX for SLP points soon!",
     SweepThePointsFirst: "Sweep the points first",
-    SweepErrMsg2:
-      "You will need sufficient BCH balance to be able to sweep the point(s) below",
+    SweepErrMsg2: "You will need sufficient BCH balance to be able to sweep the point(s) below",
     PointApproved: "Point approved",
     PointId: "Point ID",
     PointAdded: "Point added",
@@ -498,104 +477,104 @@ const hongKongSpecific = [
     ViewPoints: "View Points",
     Waiting_SEP20_PointSent: "Waiting for SEP20 point to be sent",
     Add_SEP721_Point: "Add SEP721 Point",
-  },
-];
+  }
+]
 
 const TEXT_GROUPS = [
   ...words,
   ...phrases.static,
   ...phrases.dynamic,
-  ...hongKongSpecific,
-];
+  ...hongKongSpecific
+]
 
 // check for supported language codes here
 // https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
-const supportedLangs = ["en-us", "es", "zh-tw", "zh-cn", "de"];
+const supportedLangs = ['en-us', 'es', 'zh-tw', 'zh-cn', 'de']
 
 // ordering of keys
-function orderObj(unorderedObj) {
+function orderObj (unorderedObj) {
   return Object.keys(unorderedObj)
     .sort()
     .reduce((obj, key) => {
-      obj[key] = unorderedObj[key];
-      return obj;
-    }, {});
+      obj[key] = unorderedObj[key]
+      return obj
+    }, {})
 }
 
 // writing to language index files
-function write(data, to) {
+function write (data, to) {
   fs.writeFile(`./${to}/index.js`, data, (err) => {
-    if (err) throw err;
-  });
+    if (err) throw err
+  })
 }
 
 // get text group label for logging
-function getTextGroupLabel(index) {
-  const wordsLen = words.length;
-  const staticPhrasesLen = phrases.static.length;
-  const wordsAndStaticPhrasesLen = staticPhrasesLen + wordsLen;
+function getTextGroupLabel (index) {
+  const wordsLen = words.length
+  const staticPhrasesLen = phrases.static.length
+  const wordsAndStaticPhrasesLen = staticPhrasesLen + wordsLen
 
   if (index < wordsLen) {
-    return `words group ${index + 1}`;
+    return `words group ${index + 1}`
   } else if (index < wordsAndStaticPhrasesLen) {
-    const groupNo = index - (wordsLen - 1);
-    return `static phrases group ${groupNo}`;
+    const groupNo = index - (wordsLen - 1)
+    return `static phrases group ${groupNo}`
   } else {
-    const groupNo = index - (wordsAndStaticPhrasesLen - 1);
-    return `dynamic phrases group ${groupNo}`;
+    const groupNo = index - (wordsAndStaticPhrasesLen - 1)
+    return `dynamic phrases group ${groupNo}`
   }
 }
 
 // print out length of texts for verification later after writing to file
-let sum = 0;
+let sum = 0
 for (const group of TEXT_GROUPS) {
-  sum += Object.keys(group).length;
+  sum += Object.keys(group).length
 }
-console.log("Expected no. of translation keys on i18n files: ", sum);
+console.log('Expected no. of translation keys on i18n files: ', sum)
 
 // translate all texts here
 let jsonData = {};
 
 (async () => {
   for (let lang of supportedLangs) {
-    const codes = { from: "en", to: lang };
-    if (lang === "en-us") {
-      codes.to = "en";
+    const codes = { from: 'en', to: lang }
+    if (lang === 'en-us') {
+      codes.to = 'en'
     }
 
-    console.log("==============================");
-    console.log(`Processing ${codes.to}:`);
-    console.log("==============================");
+    console.log('==============================')
+    console.log(`Processing ${codes.to}:`)
+    console.log('==============================')
 
-    let index = 0;
+    let index = 0
     for (const group of TEXT_GROUPS) {
       if (Object.keys(group).length === 0) {
-        continue;
+        continue
       }
 
-      const label = getTextGroupLabel(index);
-      console.log(`Translating ${label}...`);
+      const label = getTextGroupLabel(index)
+      console.log(`Translating ${label}...`)
 
-      const translatedObj = await translate(group, codes);
+      const translatedObj = await translate(group, codes)
 
       // merge the previous and current objects
-      Object.assign(jsonData, translatedObj);
-      jsonData = orderObj(jsonData);
+      Object.assign(jsonData, translatedObj)
+      jsonData = orderObj(jsonData)
 
-      let strData = "// NOTE: DONT EDIT THIS FILE\n";
+      let strData = '// NOTE: DONT EDIT THIS FILE\n'
       strData +=
-        "// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n";
-      strData += "export default ";
+        '// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n'
+      strData += 'export default '
 
-      strData += JSON.stringify(jsonData, null, 2);
+      strData += JSON.stringify(jsonData, null, 2)
 
       // to remove the quotes on keys after stringify
-      strData = strData.replace(/"([^"]+)":/g, "$1:");
+      strData = strData.replace(/"([^"]+)":/g, '$1:')
 
       // write to our i18n/{lang_code}/index.js
-      write(strData, lang);
+      write(strData, lang)
 
-      index++;
+      index++
     }
   }
-})();
+})()

@@ -51,7 +51,9 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ManageIgnoredTokens') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">
+                    {{ $t(isHongKong() ? 'ManageIgnoredPoints' : 'ManageIgnoredTokens') }}
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn
@@ -89,6 +91,14 @@
                       keep-color
                     />
                   </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SelectBCHDenomination') }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <DenominatorSelector :darkMode="darkMode" :currentCountry="currentCountry" />
+                </q-item-section>
               </q-item>
             </q-list>
         </div>
@@ -167,6 +177,7 @@ import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
+import DenominatorSelector from 'src/components/settings/DenominatorSelector'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -194,6 +205,7 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
+    DenominatorSelector
   },
   watch: {
     isChipnet (n, o) {

@@ -318,6 +318,7 @@ export default {
   Select: "Select",
   SelectAssetToBeReceived: "Select Asset to be Received",
   SelectAssetToSend: "Select Asset to Send",
+  SelectBCHDenomination: "BCH Denomination",
   SelectCustomPoint: "Select custom point",
   SelectCustomToken: "Select custom token",
   SelectFromList: "Select from list",
@@ -440,5 +441,5 @@ export default {
   XpubKey: "xPub Key",
   YouReceive: "You receive",
   YouSend: "You send",
-  or: "or",
-};
+  or: "or"
+}
