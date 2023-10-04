@@ -1106,6 +1106,19 @@ async function unsubscribeUpdatesToRpc() {
     .filter(handler => handler !== onNotificationHandler)
 }
 
+const openedNotification = computed(() => $store.getters['notification/openedNotification'])
+watch(() => [openedNotification.value?.id], () => handleOpenedNotification())
+onMounted(() => handleOpenedNotification())
+function handleOpenedNotification() {
+  const notificationTypes = $store.getters['notification/types']
+  const type = openedNotification.value?.data?.type
+  if (type == notificationTypes.MARKETPLACE_ORDER_INCOMING_CALL) {
+    fetchOrderCallSession()
+    showOrderCallDialog.value = true
+    $store.commit('notification/clearOpenedNotification')
+  }
+}
+
 const $copyText = inject('$copyText')
 function copyToClipboard(value, message) {
   $copyText(value)

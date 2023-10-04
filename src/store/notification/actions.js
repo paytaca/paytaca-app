@@ -27,6 +27,7 @@ export function getOpenedNotificationRoute(context) {
       route = { name: 'app-any-hedge' }
       break
     case (NotificationTypes.MARKETPLACE_ORDER_STATUS_UPDATE):
+    case (NotificationTypes.MARKETPLACE_ORDER_INCOMING_CALL):
       route = {
         name: 'app-marketplace-order',
         params: { orderId: openedNotification?.data?.order_id },
