@@ -12,12 +12,6 @@ backend.interceptors.request.use(async (config) => {
   if (['get', 'option'].indexOf(config.method) >= 0 && !config.forceSign) return config
   if (config.skipSigning) return config
 
-  const { value } = await getSignerData()
-  if (!value) return config
-
-  const [walletHash, privkey] = value.split(':')
-  if (!walletHash || !privkey) return config
-
   let data = config.data
   let timestamp = Date.now()
   try {
@@ -26,14 +20,27 @@ backend.interceptors.request.use(async (config) => {
   if (data === null || data === undefined) data = ''
   data = Buffer.from(`${data}${timestamp}`).toString('hex')
 
-  const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
-  if (!signature) return config
+  const signResponse = await signPaytacaCustomerData(data)
+  if (!signResponse.signature) return config
 
-  config.headers['X-Paytaca-Customer'] = [walletHash, timestamp, signature].join(':')
+  config.headers['X-Paytaca-Customer'] = [signResponse.walletHash, timestamp, signResponse.signature].join(':')
   return config
 })
 
 const SIGNER_STORAGE_KEY = 'marketplace-api-customer-signer-data'
+
+export async function signPaytacaCustomerData(data) {
+  const response = { walletHash: '', signature: '' }
+  const { value } = await getSignerData()
+  if (!value) return response
+
+  const [walletHash, privkey] = value.split(':')
+  if (!walletHash || !privkey) return response
+  response.walletHash = walletHash
+
+  response.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
+  return response
+}
 
 export async function getSignerData() {
   try {

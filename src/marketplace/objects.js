@@ -721,6 +721,49 @@ export class Checkout {
   }
 }
 
+export class OrderCallSession {
+  static parse(data) {
+    return new OrderCallSession(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.order_id
+   * @param {{ id:Number, type:String, first_name:String, last_name:String }} data.caller
+   * @param {String} [data.ended_at]
+   * @param {String} data.created_at
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.caller = {
+      id: data?.caller?.id,
+      type: data?.caller?.type,
+      firstName: data?.caller?.first_name,
+      lastName: data?.caller?.last_name,
+    }
+    if (data?.ended_at) this.endedAt = new Date(data?.ended_at)
+    else if (this.endedAt) delete this.endedAt
+
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+  }
+
+  get hasEnded() {
+    return Boolean(!this.id || this.endedAt)
+  }
+}
+
+
 export class OrderItem {
   static parse(data) {
     return new OrderItem(data) 

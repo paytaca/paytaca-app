@@ -59,6 +59,7 @@
     "translate-google": "^1.5.0",
     "v-offline": "^3.3.0",
     "vue": "^3.2.37",
+    "vue-audio-visual": "^3.0.5",
     "vue-clipboard2": "^0.3.1",
     "vue-confetti": "^2.3.0",
     "vue-dragscroll": "^3.0.1",
