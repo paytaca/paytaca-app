@@ -52,18 +52,18 @@
                   class="q-ma-none text-token text-weight-regular"
                   :class="darkMode ? isDefaultTheme ? 'text-grad' : 'dark' : 'light'"
                 >
-                  {{ asset.name }}
+                  {{ isHongKong() ? asset.name.replace('Token', 'Point') : asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass('', 'text-grad')">
                   <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/'))).substring(0, 16) }}</span>
-                  {{ asset.symbol }}
+                  {{ isHongKong() ? asset.symbol.replace('Token', 'Point') : asset.symbol }}
                 </p>
               </div>
             </div>
           </div>
         </div>
         <q-banner v-if="!isCashToken" inline-actions class="text-white bg-red text-center q-mt-lg" :class="darkMode ? 'text-white' : 'text-black'" style="width: 90%; margin-left: auto; margin-right: auto;">
-          Receiving SLP tokens is temporarily disabled until further notice.
+          {{ `Receiving SLP ${isHongKong() ? 'points' : 'tokens'} is temporarily disabled until further notice.` }}
         </q-banner>
       </div>
       <div style="height: 90px;" v-if="assets.length > 5"></div>
@@ -103,7 +103,8 @@ export default {
       result: '',
       error: '',
       isCashToken: true,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      currentCountry: this.$store.getters['global/country'].code
     }
   },
   computed: {
@@ -139,7 +140,7 @@ export default {
         const unlistedAsset = {
           id: 'sep20/unlisted',
           name: this.$t('NewUnlisted'),
-          symbol: 'SEP20 token',
+          symbol: `SEP20 ${this.isHongKong() ? 'point' : 'token'}`,
           logo: themedNewTokenIcon
         }
         _assets.push(unlistedAsset)
@@ -189,7 +190,10 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    }
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
+    },
   },
   mounted () {
     const assets = this.$store.getters['assets/getAssets']

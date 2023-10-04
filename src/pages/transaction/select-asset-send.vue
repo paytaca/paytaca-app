@@ -52,7 +52,7 @@
                   class="q-ma-none text-token text-weight-regular"
                   :class="darkMode ? isDefaultTheme ? 'text-grad' : 'dark' : 'light'"
                 >
-                  {{ asset.name }}
+                  {{ isHongKong() ? asset.name.replace('Token', 'Point') : asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass('', 'text-grad')">
                   {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
@@ -101,7 +101,8 @@ export default {
       result: '',
       error: '',
       isCashToken: true,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      currentCountry: this.$store.getters['global/country'].code
     }
   },
   computed: {
@@ -173,7 +174,10 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    }
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
+    },
   },
   mounted () {
     this.$store.dispatch('market/updateAssetPrices', {})
