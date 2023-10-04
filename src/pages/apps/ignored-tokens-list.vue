@@ -107,8 +107,8 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     ignoredAssets () {
-      if (this.selectedNetwork === 'BCH') return this.ignoredMainchainAssets
-      if (this.selectedNetwork === 'sBCH') return this.ignoredSmartchainAssets
+      if (this.selectedNetwork === 'BCH') return this.parseTokenName(this.ignoredMainchainAssets)
+      if (this.selectedNetwork === 'sBCH') return this.parseTokenName(this.ignoredSmartchainAssets)
 
       return []
     },
@@ -178,8 +178,8 @@ export default {
     },
     confirmRemoveIgnoredAsset (tokenInfo) {
       this.$q.dialog({
-        title: this.$t('RemoveIgnoredToken'),
-        message: this.$t('RemoveIgnoredToken') + `, '${tokenInfo.name}(${tokenInfo.symbol})'?`,
+        title: this.$t(this.isHongKong() ? 'RemoveIgnoredPoint' : 'RemoveIgnoredToken'),
+        message: `${this.$t(this.isHongKong() ? 'RemoveIgnoredPoint' : 'RemoveIgnoredToken')}, '${tokenInfo.name}(${tokenInfo.symbol})'?`,
         cancel: true,
         persistent: true,
         class: this.darkMode ? 'pt-dark info-banner text-white' : 'text-black'
@@ -194,6 +194,16 @@ export default {
     },
     isHongKong () {
       return this.currentCountry === 'HK'
+    },
+    parseTokenName (ignoredList) {
+      // copy to remove binding from state
+      const ignoredListCopy = JSON.parse(JSON.stringify(ignoredList))
+      if (ignoredListCopy.length > 0 && this.isHongKong()) {
+        ignoredListCopy.forEach(token => {
+          token.name = token.name.replace('Token', 'Point')
+        })
+      }
+      return ignoredListCopy
     }
   },
   beforeRouteLeave (to, from, next) {

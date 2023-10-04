@@ -11,7 +11,7 @@
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="fetching && tokens.length === 0" style="text-align: center; margin-top: 25px;">
               <p>{{ $t('Scanning') }}...</p>
-              <progress-loader />
+              <progress-loader :color="isDefaultTheme ? theme : 'pink'" />
             </div>
             <q-form v-if="!submitted" class="text-center" style="margin-top: 25px;">
               <textarea
@@ -51,7 +51,9 @@
                 <div style="border: 1px solid black; padding: 10px;">
                   <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
                   <q-btn color="primary" v-if="selectedToken !== 'bch'" @click.prevent="sweepBch" :disabled="(tokens.length - skippedTokens.length) > 0">Sweep</q-btn>
-                  <span v-if="(tokens.length - skippedTokens.length) > 0" style="color: red;"><i>{{ $t('SweepTheTokensFirst') }}</i></span>
+                  <span v-if="(tokens.length - skippedTokens.length) > 0" style="color: red;">
+                    <i>{{ $t(isHongKong() ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
+                  </span>
                   <div v-if="sweeping && selectedToken === 'bch'">
                     <progress-loader />
                   </div>
@@ -171,6 +173,12 @@ export default {
         }
       }
       return funder
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {

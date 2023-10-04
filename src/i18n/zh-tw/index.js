@@ -21,8 +21,7 @@ export default {
   AddressScan: "地址掃描",
   All: "全部",
   Amount: "數量",
-  AnyHedgeNoExactMatchInfo:
-    "如果沒有從游泳池中找到確切的匹配項，則建議使用類似報價的列表",
+  AnyHedgeNoExactMatchInfo: "如果沒有從游泳池中找到確切的匹配項，則建議使用類似報價的列表",
   AppInfo: "應用信息",
   Applications: "申請",
   Approve: "批准",
@@ -39,8 +38,7 @@ export default {
   AssetsSwappedSuccesfully: "資產成功交換",
   Back: "後退",
   BackToEdit: "返回編輯",
-  BackendDown:
-    "我們的後端服務器無法到達。這可能是由於您的互聯網連接或我們的服務器暫時下降",
+  BackendDown: "我們的後端服務器無法到達。這可能是由於您的互聯網連接或我們的服務器暫時下降",
   Balance: "平衡",
   BalanceExceeded: "餘額超過",
   BchAddress: "BCH地址",
@@ -218,8 +216,7 @@ export default {
   NoCollectibles: "您還沒有任何SLP NFT。",
   NoIgnoredPoints: "沒有忽略的積分",
   NoIgnoredTokens: "沒有忽略的令牌",
-  NoInternetConnectionNotice:
-    "您已經失去了與互聯網的連接。這個應用程序是離線的。",
+  NoInternetConnectionNotice: "您已經失去了與互聯網的連接。這個應用程序是離線的。",
   NoOngoingContract: "沒有持續的合同",
   NoPointsFound: "找不到積分",
   NoTokensFound: "找不到令牌",
@@ -281,8 +278,7 @@ export default {
   RemoveDeviceFailed: "刪除設備失敗",
   RemoveIgnoredPoint: "刪除被忽略的積分",
   RemoveIgnoredToken: "刪除忽略的令牌",
-  RemoveIgnoredTokenPrompt:
-    "您已經添加了忽略列表中的資產。將它們從忽略的列表中刪除？",
+  RemoveIgnoredTokenPrompt: "您已經添加了忽略列表中的資產。將它們從忽略的列表中刪除？",
   RemovePOSDevice: "卸下POS設備",
   RemovePOSDeviceNumName: "刪除POS設備＃{id} {name}",
   RemovedDeviceIDNo: "卸下設備＃{id}",
@@ -318,8 +314,7 @@ export default {
   SecurityAuthenticationSetup: "安全身份驗證設置",
   SecurityCheck: "安全檢查",
   SeedPhraseCaution1: "警告：請勿將其複製到剪貼板！",
-  SeedPhraseCaution2:
-    "設備中安裝的一些惡意應用程序可能可以從那裡搶走它。保留種子短語備份的最佳方法是將其寫在紙上。",
+  SeedPhraseCaution2: "設備中安裝的一些惡意應用程序可能可以從那裡搶走它。保留種子短語備份的最佳方法是將其寫在紙上。",
   Select: "選擇",
   SelectAssetToBeReceived: "選擇要收到的資產",
   SelectAssetToSend: "選擇要發送的資產",
@@ -354,12 +349,12 @@ export default {
   Skip: "跳過",
   Slippage: "滑移",
   SlippageTolerance: "滑板公差",
-  SlippageToleranceDescription:
-    "如果價格因這個百分比而不利地變化，則互換將被恢復",
+  SlippageToleranceDescription: "如果價格因這個百分比而不利地變化，則互換將被恢復",
   SlpAddress: "SLP地址",
   SlpAddresses: "SLP地址",
   SmartBchAddresses: "SmartBCH地址",
-  SmartSwapBchSoon: "我們將盡快為SLP積分集成SLP DEX！",
+  SmartSwapBchSoonPoints: "我們將盡快為SLP積分集成SLP DEX！",
+  SmartSwapBchSoonTokens: "我們將盡快為SLP令牌集成SLP DEX！",
   SmartSwapFormErr: "獲取交換信息發生錯誤",
   SourceCodeRepo: "源代碼存儲庫",
   Spanish: "西班牙語",
@@ -375,8 +370,7 @@ export default {
   SwapRatio: "掉期比率",
   SwapSuccess: "交換成功",
   SwapTo: "交換",
-  SwapTransactionDeadlineDescription:
-    "如果交易持續時間超過此持續時間，則互換將被恢復",
+  SwapTransactionDeadlineDescription: "如果交易持續時間超過此持續時間，則互換將被恢復",
   SwapUpdate: "交換更新",
   Sweep: "Sweep",
   SweepErrMsg1: "這個地址為空",
@@ -446,5 +440,5 @@ export default {
   XpubKey: "XPUB鍵",
   YouReceive: "你收到",
   YouSend: "您發送",
-  or: "或者",
-};
+  or: "或者"
+}

@@ -325,7 +325,7 @@ export default {
   SlpAddress: "Dirección SLP",
   SlpAddresses: "Direcciones SLP",
   SmartBchAddresses: "Direcciones smartbch",
-  SmartSwapBchSoon: "¡Integraremos pronto de SLP Dex para tokens SLP!",
+  SmartSwapBchSoonTokens: "¡Integraremos pronto de SLP Dex para tokens SLP!",
   SmartSwapFormErr: "Se produjo un error al obtener información de intercambio",
   SourceCodeRepo: "Repositorio de código fuente",
   Spanish: "Español",

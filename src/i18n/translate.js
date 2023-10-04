@@ -335,7 +335,7 @@ const phrases = {
       SwapRatio: "Swap ratio",
       SEP20_VaultBalance: "SEP20 vault balance",
       SmartBchAddresses: "SmartBCH Addresses",
-      SmartSwapBchSoon: "We will integrate SLP DEX for SLP tokens soon!",
+      SmartSwapBchSoonTokens: "We will integrate SLP DEX for SLP tokens soon!",
       SmartSwapFormErr: "Error occurred in fetching swap information",
       SwapAgain: "Swap Again",
       SwapFrom: "Swap from",
@@ -478,7 +478,7 @@ const hongKongSpecific = [
     RemoveIgnoredPoint: "Remove ignored point",
     SelectCustomPoint: "Select custom point",
     SelectPoint: "Select point",
-    SmartSwapBchSoon: "We will integrate SLP DEX for SLP points soon!",
+    SmartSwapBchSoonPoints: "We will integrate SLP DEX for SLP points soon!",
     SweepThePointsFirst: "Sweep the points first",
     SweepErrMsg2:
       "You will need sufficient BCH balance to be able to sweep the point(s) below",

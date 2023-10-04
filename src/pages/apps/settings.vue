@@ -37,7 +37,9 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ShowTokens') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">
+                    {{ $t(isHongKong() ? 'ShowPoints' : 'ShowTokens') }}
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section avatar>
                     <q-toggle
@@ -181,6 +183,7 @@ export default {
       isChipnet: this.$store.getters['global/isChipnet'],
       showTokens: this.$store.getters['global/showTokens'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+      currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app'
     }
   },
@@ -272,7 +275,10 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    }
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
+    },
   },
   created () {
     NativeBiometric.isAvailable()

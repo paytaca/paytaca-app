@@ -764,7 +764,8 @@ export default {
         componentProps: {
           tokensList: this.tokensList,
           title: this.$t(this.isHongKong() ? 'SelectPoint' : 'SelectToken'),
-          darkMode: this.darkMode
+          darkMode: this.darkMode,
+          currentCountry: this.currentCountry
         }
       })
         .onOk(token => {
@@ -781,7 +782,8 @@ export default {
         component: SmartSwapTokenSelectorDialog,
         componentProps: {
           tokensList: this.tokensList,
-          darkMode: this.darkMode
+          darkMode: this.darkMode,
+          currentCountry: this.currentCountry
         }
       })
         .onOk(token => {

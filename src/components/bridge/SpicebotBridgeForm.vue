@@ -29,7 +29,7 @@
               </div>
             </template>
             <div v-else v-ripple class="text-center text-subtitle1 cursor-pointer relative-position q-pa-md">
-              {{ $t('SelectToken') }}
+              {{ $t(isHongKong() ? 'SelectPoint' : 'SelectToken') }}
             </div>
           </div>
         </q-card-section>
@@ -341,7 +341,9 @@ export default {
         swapRequest: null,
 
         sentTxid: ''
-      }
+      },
+
+      currentCountry: this.$store.getters['global/country'].code,
     }
   },
   computed: {
@@ -562,7 +564,7 @@ export default {
             const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
             this.$q.dialog({
               title: this.$t('TransactionSent') + '!',
-              message: this.$t('Waiting_SEP20_TokenSent'),
+              message: this.$t(this.isHongKong() ? 'Waiting_SEP20_PointSent' : 'Waiting_SEP20_TokenSent'),
               class: dialogStyleClass
             })
               .onDismiss(() => {
@@ -697,7 +699,10 @@ export default {
             vm.wallet = markRaw(wallet)
           })
       })
-    }
+    },
+    isHongKong () {
+      return this.currentCountry === 'HK'
+    },
   },
   watch: {
     'formData.token.slp_token_id': {

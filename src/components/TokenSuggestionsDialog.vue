@@ -171,15 +171,15 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
-    currentCountry() {
+    currentCountry () {
       return this.$store.getters['global/country'].code
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
     },
     parsedTokens () {
-      if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
-      if (this.selectedNetwork === 'sBCH') return this.parsedSmartchainTokens
+      if (this.selectedNetwork === 'BCH') return this.parseTokenName(this.parsedMainchainTokens)
+      if (this.selectedNetwork === 'sBCH') return this.parseTokenName(this.parsedSmartchainTokens)
       return []
     },
     parsedMainchainTokens () {
@@ -345,6 +345,16 @@ export default {
     },
     isHongKong () {
       return this.currentCountry === 'HK'
+    },
+    parseTokenName (ignoredList) {
+      // copy to remove binding from state
+      const ignoredListCopy = JSON.parse(JSON.stringify(ignoredList))
+      if (ignoredListCopy.length > 0 && this.isHongKong()) {
+        ignoredListCopy.forEach(token => {
+          token.name = token.name.replace('Token', 'Point')
+        })
+      }
+      return ignoredListCopy
     }
   },
   watch: {

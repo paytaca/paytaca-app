@@ -18,7 +18,7 @@
                 no-caps
                 flat
                 icon-right="mdi-arrow-right"
-                :label="$t('SelectCustomToken')"
+                :label="$t(isHongKong() ? 'SelectCustomPoint' : 'SelectCustomToken')"
                 class="button button-text-secondary"
                 padding="none xs"
                 @click="panel='custom'"
@@ -158,7 +158,8 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
-    }
+    },
+    currentCountry: { type: String }
   },
   data () {
     return {
@@ -290,6 +291,10 @@ export default {
     onCancelClick () {
       // we just need to hide dialog
       this.hide()
+    },
+
+    isHongKong () {
+      return this.currentCountry === 'HK'
     }
   }
 }

@@ -325,7 +325,7 @@ export default {
   SlpAddress: "SLP地址",
   SlpAddresses: "SLP地址",
   SmartBchAddresses: "SmartBCH地址",
-  SmartSwapBchSoon: "我们将尽快为SLP令牌集成SLP DEX！",
+  SmartSwapBchSoonTokens: "我们将尽快为SLP令牌集成SLP DEX！",
   SmartSwapFormErr: "获取交换信息发生错误",
   SourceCodeRepo: "源代码存储库",
   Spanish: "西班牙语",
