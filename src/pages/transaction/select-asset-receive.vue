@@ -55,8 +55,14 @@
                   {{ isHongKong() ? asset.name.replace('Token', 'Point') : asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass('', 'text-grad')">
-                  <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/'))).substring(0, 16) }}</span>
-                  {{ isHongKong() ? asset.symbol.replace('Token', 'Point') : asset.symbol }}
+                  <span v-if="asset.balance">{{ parseAssetDenomination(denomination, asset, 16) }}</span>
+                  {{
+                      asset.name.includes('New')
+                        ? isHongKong()
+                          ? asset.symbol.replace('Token', 'Point')
+                          : asset.symbol
+                        : ''
+                  }}
                 </p>
               </div>
             </div>
@@ -83,6 +89,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { convertTokenAmount } from 'src/wallet/chipnet'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   name: 'Receive-page',
@@ -104,7 +111,8 @@ export default {
       error: '',
       isCashToken: true,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      currentCountry: this.$store.getters['global/country'].code
+      currentCountry: this.$store.getters['global/country'].code,
+      denomination: this.$store.getters['global/denomination']
     }
   },
   computed: {
@@ -181,6 +189,7 @@ export default {
   },
   methods: {
     convertTokenAmount,
+    parseAssetDenomination,
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))

@@ -53,8 +53,21 @@
                       <q-skeleton style="font-size: 22px;" type="rect"/>
                     </div>
                     <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                      <p style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme}">{{ String(bchAsset.balance).substring(0, 10) }} {{ selectedNetwork }}</p>
-                      <div style="padding: 0; margin-top: -15px;">{{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}</div>
+                      <p style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme}">
+                        {{
+                          selectedNetwork === 'sBCH'
+                            ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
+                            : parseAssetDenomination(denomination, {
+                              id: '',
+                              balance: bchAsset.balance,
+                              symbol: 'BCH',
+                              decimals: 0
+                            }, 10)
+                        }}
+                      </p>
+                      <div style="padding: 0; margin-top: -15px;">
+                        {{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                      </div>
                     </div>
                   </q-card-section>
                 </q-card>
@@ -279,6 +292,7 @@ import { VOffline } from 'v-offline'
 import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -341,7 +355,8 @@ export default {
       currentCountry: this.$store.getters['global/country'].code,
       isCashToken: true,
       settingsButtonIcon: 'settings',
-      assetsCloseButtonColor: 'color: #3B7BF6;'
+      assetsCloseButtonColor: 'color: #3B7BF6;',
+      denomination: this.$store.getters['global/denomination']
     }
   },
 
@@ -448,6 +463,7 @@ export default {
     }
   },
   methods: {
+    parseAssetDenomination,
     openPriceChart () {
       this.$q.dialog({
         component: PriceChart

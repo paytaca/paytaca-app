@@ -52,13 +52,10 @@
                   class="q-ma-none text-token text-weight-regular"
                   :class="darkMode ? isDefaultTheme ? 'text-grad' : 'dark' : 'light'"
                 >
-                  {{ isHongKong() ? asset.name.replace('Token', 'Point') : asset.name }}
+                  {{ isHongKong(currentCountry) ? asset.name.replace('Token', 'Point') : asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass('', 'text-grad')">
-                  {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
-                  <span>
-                    {{ asset.symbol }}
-                  </span>
+                  {{ parseAssetDenomination(denomination, asset) }}
                 </p>
               </div>
             </div>
@@ -81,6 +78,8 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { convertTokenAmount } from 'src/wallet/chipnet'
+import { isHongKong } from 'src/utils/payhero-utils'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   name: 'Send-select-asset',
@@ -102,7 +101,8 @@ export default {
       error: '',
       isCashToken: true,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      currentCountry: this.$store.getters['global/country'].code
+      currentCountry: this.$store.getters['global/country'].code,
+      denomination: this.$store.getters['global/denomination']
     }
   },
   computed: {
@@ -154,6 +154,8 @@ export default {
   },
   methods: {
     convertTokenAmount,
+    isHongKong,
+    parseAssetDenomination,
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
@@ -174,9 +176,6 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    },
-    isHongKong () {
-      return this.currentCountry === 'HK'
     },
   },
   mounted () {

@@ -161,7 +161,7 @@
                       :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
                     >
                       <template v-slot:append>
-                        {{ asset.symbol }}
+                        {{ asset.symbol === 'BCH' ? denomination : asset.symbol }}
                       </template>
                     </q-input>
                     <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
@@ -195,8 +195,7 @@
               </template>
               <div class="row" v-if="!isNFT">
                 <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                  {{ $t('Balance') }}: {{ convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/')) }}
-                  {{ asset.symbol }}
+                  {{ parseAssetDenomination(denomination, asset) }}
                   <template v-if="asset.id === 'bch' && setAmountInFiat">
                     = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
                   </template>
@@ -385,6 +384,7 @@ import {
   getWalletByNetwork,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -526,7 +526,8 @@ export default {
       sendAmountInFiat: null,
       balanceExceeded: false,
       setMax: false,
-      computingMax: false
+      computingMax: false,
+      denomination: this.$store.getters['global/denomination']
     }
   },
 
@@ -656,6 +657,7 @@ export default {
 
   methods: {
     convertTokenAmount,
+    parseAssetDenomination,
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 

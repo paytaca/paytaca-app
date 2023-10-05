@@ -14,7 +14,16 @@
             class="q-mb-none transactions-wallet amount float-right ib-text text-right"
             :class="[getDarkModeClass(), {'q-mt-sm': !marketValueData?.marketValue }]"
           >
-            <div>{{ +(formatAmount(transaction?.amount, asset?.decimals, isBCH=asset?.id === 'bch', isSLP=asset?.id.startsWith('slp/'))) }} {{ asset?.symbol }}</div>
+            <div>
+              {{
+                parseAssetDenomination(denomination, {
+                  id: asset?.id,
+                  balance: transaction?.amount,
+                  symbol: asset?.symbol,
+                  decimals: asset?.decimals
+                })
+              }}
+            </div>
             <div
               v-if="marketValueData?.marketValue"
               class="transactions-wallet market-value"
@@ -62,10 +71,12 @@ import ago from 's-ago'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 const $store = useStore()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 
 const props = defineProps({
   transaction: Object,
@@ -164,14 +175,6 @@ const badges = computed(() => {
 
 function formatDate (date) {
   return ago(new Date(date))
-}
-
-function formatAmount (amount, decimals, isBCH=false, isSLP=false) {
-  if (isBCH || isSLP) {
-    return amount
-  } else {
-    return amount / (10 ** decimals)
-  }
 }
 
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {

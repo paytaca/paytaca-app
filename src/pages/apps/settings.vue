@@ -97,7 +97,7 @@
                   <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SelectBCHDenomination') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <DenominatorSelector :darkMode="darkMode" :currentCountry="currentCountry" />
+                  <DenominatorSelector :darkMode="darkMode" />
                 </q-item-section>
               </q-item>
             </q-list>

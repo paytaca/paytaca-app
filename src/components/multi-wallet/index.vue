@@ -42,7 +42,7 @@
                       {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
                     </span>
                     <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass()">
-                      {{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}
+                      {{ parseAssetDenomination(denomination, getAssetData(index), 10) }}
                     </span>
                   </div>
                   <div :class="getDarkModeClass('pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
@@ -74,6 +74,7 @@
 </template>
 <script>
 import renameDialog from './renameDialog.vue'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   data () {
@@ -81,6 +82,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       currentIndex: this.$store.getters['global/getWalletIndex'],
       isChipnet: this.$store.getters['global/isChipnet'],
+      denomination: this.$store.getters['global/denomination'],
       vault: [],
       isloading: false,
       secondDialog: false,
@@ -91,6 +93,7 @@ export default {
     renameDialog
   },
   methods: {
+    parseAssetDenomination,
     processVaultName () {
       const vm = this
       let count = 1

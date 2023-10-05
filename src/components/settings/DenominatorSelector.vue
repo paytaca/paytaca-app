@@ -2,7 +2,7 @@
   <q-select
     :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="denomination"
-    :options="filteredDenominationOptions"
+    :options="denominationOptions"
     :dark="darkMode"
     @filter="filterDenominationSelection"
     popup-content-style="color: black;"
@@ -27,8 +27,7 @@
 <script>
 export default {
   props: {
-    darkMode: { type: Boolean, default: false },
-    currentCountry: { type: String }
+    darkMode: { type: Boolean, default: false }
   },
   data () {
     return {
@@ -37,7 +36,8 @@ export default {
         { value: 'mBCH', label: 'mBCH' },
         { value: 'Satoshis', label: 'Satoshis' }
       ],
-      filteredDenominationOptions: []
+      filteredDenominationOptions: [],
+      currentCountry: this.$store.getters['global/country'].code
     }
   },
   methods: {
@@ -53,7 +53,7 @@ export default {
     },
     hkSelection (options) {
       if (this.currentCountry === 'HK' && !options.some((a) => a.value === 'DEEM')) {
-        options.push({ value: 'DEEM', label: this.$t('DEEM') })
+        options.push({ value: 'DEEM', label: 'DEEM' })
       } else if (this.currentCountry !== 'HK' && options.some((a) => a.value === 'DEEM')) {
         options.pop()
       }
@@ -69,6 +69,11 @@ export default {
         const newDenomination = denom.value
         this.$store.commit('global/setDenomination', newDenomination)
       }
+    }
+  },
+  watch: {
+    denomination () {
+      this.currentCountry = this.$store.getters['global/country'].code
     }
   }
 }
