@@ -723,7 +723,7 @@
 <script setup>
 import { backend } from 'src/marketplace/backend'
 import { Checkout, Rider, Payment, Location } from 'src/marketplace/objects'
-import { TransactionListener } from 'src/wallet/transaction-listener'
+import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { errorParser, formatTimestampToText, getISOWithTimezone } from 'src/marketplace/utils'
 import { Wallet, loadWallet } from 'src/wallet'
 import { debounce, useQuasar } from 'quasar'
@@ -782,6 +782,13 @@ const tabs = ref({
   ]
 })
 
+const tabOptsMap = computed(() => {
+  return tabs.value.opts.reduce((map, tab) => {
+    map[tab.name] = tab
+    return map
+  }, {})
+})
+
 function nextTab() {
   const _tabs = tabs.value.opts
   const index = _tabs.findIndex(tabOpt => tabOpt.name === tabs.value.active)
@@ -802,19 +809,34 @@ watch(() => [tabs.value.active], () => {
   }
 })
 
-function resetTabs() {
+async function resetTabs() {
   tabs.value.opts.forEach(tab => tab.disable = true)
   tabs.value.opts[0].disable = false
   tabs.value.active = tabs.value.opts[0].name
   nextTab()
 
-  setTimeout(async () => {
-    if (validCoordinates.value) {
-      await findRider({ replaceExisting: false, displayDialog: true })
-      nextTab()
-    }
-    if (!checkout.value.balanceToPay) setTimeout(() => nextTab(), 10)
-  }, 10)
+  await asyncSleep(10)
+  if (!validCoordinates.value) return
+  await findRider({ replaceExisting: false, displayDialog: true })
+  nextTab()
+
+  if (checkout.value.balanceToPay) return
+  await asyncSleep(10)
+  nextTab()
+}
+
+async function enableTabs() {
+  if (checkout.value?.cart?.subtotal && tabOptsMap.value?.items) {
+    tabOptsMap.value.items.disable = false
+    tabOptsMap.value.delivery.disable = false
+  }
+  await asyncSleep(10)
+  if (validCoordinates.value && tabOptsMap.value?.payment) {
+    tabOptsMap.value.payment.disable = false
+  }
+  if (!checkout.value.balanceToPay && tabOptsMap.value?.review) {
+    tabOptsMap.value.review.disable = false
+  }
 }
 
 const loadingState = ref({
@@ -1080,6 +1102,7 @@ function fetchCheckout() {
   }).then(response => {
     checkout.value = Checkout.parse(response?.data)
     if (!initialized.value) resetTabs()
+    else enableTabs()
     return response
   }).catch(error => {
     if (initialized.value) return Promise.reject(error)
