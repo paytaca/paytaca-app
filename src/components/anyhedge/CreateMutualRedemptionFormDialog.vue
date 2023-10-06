@@ -21,7 +21,7 @@
             </ul>
           </q-banner>
           <div v-if="totalPayoutSats" class="text-subtitle1">
-            Total Payout: {{ (totalPayoutSats||0) / 10 ** 8 }} BCH
+            Total Payout: {{ getAssetDenomination(denomination, (totalPayoutSats || 0) / 10 ** 8) }}
           </div>
           <q-select
             :dark="darkMode"
@@ -40,7 +40,7 @@
             outlined
             dense
             label="Settlement Price"
-            :suffix="oracleInfo?.assetCurrency ? `${oracleInfo?.assetCurrency}/BCH` : ''"
+            :suffix="oracleInfo?.assetCurrency ? `${oracleInfo?.assetCurrency}/${denomination}` : ''"
             v-model="mutualRedemptionProposal.settlementPrice"
             :rules="[
               val => val >= settlemenPriceBounds.min || `Must be greater than ${settlemenPriceBounds.min}`,
@@ -65,7 +65,7 @@
             <div>
               <div class="row">
                 <div class="q-space">Hedge</div>
-                <div>{{ mutualRedemptionProposal.hedgeBch }} BCH</div>
+                <div>{{ `${mutualRedemptionProposal.hedgeBch} ${denomination}` }}</div>
               </div>
               <q-slider
                 :dark="darkMode"
@@ -82,7 +82,7 @@
             <div>
               <div class="row">
                 <div class="q-space">Long</div>
-                <div>{{ mutualRedemptionProposal.longBch }} BCH</div>
+                <div>{{ `${mutualRedemptionProposal.longBch} ${denomination}` }}</div>
               </div>
               <q-slider
                 :dark="darkMode"
@@ -158,6 +158,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 const manager = new AnyHedgeManager()
 // dialog plugins requirement
@@ -173,6 +174,7 @@ const DUST = computed(() => 546 / 10 ** 8)
 // misc
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
+const denomination = computed(() => store.getters['global/denomination'])
 const $q = useQuasar()
 
 const props = defineProps({

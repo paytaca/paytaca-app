@@ -42,13 +42,15 @@
         </q-banner>
 
         <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-          {{ amount }} BCH
+          {{ getAssetConversion(denomination, amount) }}
           <q-icon name="arrow_forward"/>
-          ~{{ expectedAmount }} BCH
+          ~{{ getAssetConversion(denomination, expectedAmount) }}
         </div>
         <div class="q-mt-sm">
           <div class="q-mb-sm">
-            <span :class="[darkMode ? 'text-white' : 'pp-text']" v-if="transferType === 'c2s'">BCH Transaction:</span>
+            <span :class="[darkMode ? 'text-white' : 'pp-text']" v-if="transferType === 'c2s'">
+              {{ `${denomination} Transaction:` }}
+            </span>
             <span :class="[darkMode ? 'text-white' : 'pp-text']" v-else-if="transferType === 's2c'">SmartBCH Transaction:</span>
             <span :class="[darkMode ? 'text-white' : 'pp-text']" v-else>Source tx:</span>
             <q-btn
@@ -70,11 +72,11 @@
         <div v-if="fetchingOutgoingTx || waiting" class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <template v-if="fetchingOutgoingTx">
             <div v-if="transferType === 'c2s'">Looking for SmartBCH Transaction</div>
-            <div v-else-if="transferType === 's2c'">Looking for BCH Transaction</div>
+            <div v-else-if="transferType === 's2c'">{{ `Looking for ${denomination} Transaction` }}</div>
           </template>
           <template v-else-if="waiting">
             <div v-if="transferType === 'c2s'">Waiting for SmartBCH Transaction</div>
-            <div v-else-if="transferType === 's2c'">Waiting for BCH Transaction</div>
+            <div v-else-if="transferType === 's2c'">{{ `Waiting for ${denomination} Transaction` }}</div>
           </template>
           <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
         </div>
@@ -115,6 +117,7 @@
 <script>
 import { findC2SOutgoingTx, findS2COutgoingTx, waitC2SOutgoing, waitS2COutgoing } from '../../wallet/hopcash'
 import ProgressLoader from 'components/ProgressLoader.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 export default {
   name: 'HopCashSwapWait',
   components: { ProgressLoader },
@@ -135,7 +138,8 @@ export default {
     return {
       waitPromiseObj: null,
       fetchingOutgoingTx: false,
-      tx: null
+      tx: null,
+      denomination: this.$store.getters['global/denomination']
     }
   },
   computed: {
@@ -180,6 +184,7 @@ export default {
     }
   },
   methods: {
+    getAssetDenomination,
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({

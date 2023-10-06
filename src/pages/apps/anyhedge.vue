@@ -111,7 +111,7 @@
               <div class="q-space">
                 <q-skeleton v-if="fetchingLongPositions" class="q-mr-sm"/>
                 <div v-else>
-                  <div>{{ totalLongSats / 10 ** 8 }} BCH</div>
+                  <div>{{ getAssetDenomination(denomination, totalLongSats / 10 ** 8) }}</div>
                   <div v-if="totalLongMarketValue" class="text-caption text-grey-7" style="margin-top:-0.5em;">
                     {{ totalLongMarketValue }} {{ selectedMarketCurrency }}
                   </div>
@@ -378,6 +378,7 @@ import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
 import CustomKeyboard from '../transaction/dialog/CustomKeyboard.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll
 
@@ -387,6 +388,7 @@ const $copyText = inject('$copyText')
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 const selectedAccountType = ref('hedge')
 
 const hedgesDrawerRef = ref()

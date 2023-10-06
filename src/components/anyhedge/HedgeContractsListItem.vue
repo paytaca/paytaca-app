@@ -51,7 +51,7 @@
               {{ oracleInfo.assetCurrency }}
             </div>
             <div style="margin-top:-0.45em" class="text-grey">
-              {{ contract.metadata.hedgeInputInSatoshis / (10**8) }} BCH
+              {{ getAssetDenomination(denomination, contract.metadata.hedgeInputInSatoshis / (10**8)) }}
             </div>
           </div>
         </div>
@@ -63,7 +63,7 @@
               {{ oracleInfo.assetCurrency }}
             </div>
             <div style="margin-top:-0.45em" class="text-grey">
-              {{ contract.metadata.longInputInSatoshis / (10**8) }} BCH
+              {{ getAssetDenomination(denomination, contract.metadata.longInputInSatoshis / (10**8)) }}
             </div>
           </div>
         </div>
@@ -98,7 +98,7 @@
             {{ oracleInfo?.assetCurrency || 'Asset' }}: {{ settlementMetadata.hedge.assetChangePctg }}%
           </div>
           <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
-            BCH: {{ settlementMetadata.hedge.bchChangePctg }}%
+            {{ `${denomination}: ${settlementMetadata.hedge.bchChangePctg}%` }}
           </div>
         </div>
         <div class="col">
@@ -107,7 +107,7 @@
             {{ oracleInfo?.assetCurrency || 'Asset' }}: {{ settlementMetadata.long.assetChangePctg }}%
           </div>
           <div :class="`text-${resolveColor(settlementMetadata.long.bchChangePctg)}` + ' text-weight-medium'">
-            BCH: {{ settlementMetadata.long.bchChangePctg }}%
+            {{ `${denomination}: ${settlementMetadata.long.bchChangePctg}%` }}
           </div>
         </div>
       </div>
@@ -126,10 +126,12 @@ import { useQuasar } from 'quasar';
 import { formatUnits, formatDate, ellipsisText, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useStore } from 'vuex';
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 const props = defineProps({ contract: Object })
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 
 const durationUpdateTimeout = ref(null)
 const updateTickCtr = ref(0)

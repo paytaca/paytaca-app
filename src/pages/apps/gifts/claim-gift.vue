@@ -11,7 +11,7 @@
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="processing" style="text-align: center; padding-top: 25px;">
               <p><span class="text-capitalize">{{ action }}</span>ing gift...</p>
-              <progress-loader />
+              <progress-loader :color="isDefaultTheme ? theme : 'pink'" />
             </div>
             <q-form v-if="!processing && !completed" class="text-center" style="margin-top: 25px;">
               <textarea
@@ -27,7 +27,7 @@
                 <div style="margin-top: 20px; margin-bottom: 20px; font-size: 15px; color: grey;">
                   OR
                 </div>
-                <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+                <q-btn round size="lg" class="btn-scan button text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
               <div style="margin-top: 20px;">
                 <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift(null)">
@@ -36,7 +36,7 @@
               </div>
             </q-form>
             <div class="text-center q-pt-md">
-              <p v-if="bchAmount" style="font-size: 24px;">Amount:<br>{{ bchAmount }} BCH</p>
+              <p v-if="bchAmount" style="font-size: 24px;">Amount:<br>{{ getAssetDenomination(bchAmount) }}</p>
               <p v-if="completed" style="color: green; font-size: 20px;">{{ action }} gift completed!</p>
               <p v-if="error" style="color: red;">
                 {{ error }}
@@ -58,6 +58,7 @@ import ProgressLoader from '../../../components/ProgressLoader'
 import SweepPrivateKey from '../../../wallet/sweep'
 import QrScanner from '../../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   name: 'sweep',
@@ -86,10 +87,20 @@ export default {
       completed: false,
       error: null,
       showQrScanner: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      denomination: this.$store.getters['global/denomination']
+    }
+  },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    getAssetDenomination,
     claimGift (giftCodeHash) {
       const vm = this
       vm.processing = true

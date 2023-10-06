@@ -62,7 +62,7 @@
                 padding="xs sm"
                 flat
                 :disable="lockInputs || bridgeDisabled"
-                :label="maxBridgeBalance + ' BCH'"
+                :label="getAssetDenomination(denomination, maxBridgeBalance)"
                 :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                 @click="amount = maxBridgeBalance"
               />
@@ -73,7 +73,7 @@
                 padding="xs sm"
                 flat
                 :disable="lockInputs || bridgeDisabled"
-                :label="sourceTransferBalance + ' BCH'"
+                :label="getAssetDenomination(denomination, sourceTransferBalance)"
                 :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                 @click="amount = sourceTransferBalance"
               />
@@ -83,7 +83,7 @@
                 <img height="40" :src="transferType === 'c2s' ? 'bch-logo.png' : 'sep20-logo.png'"/>
                 <div class="q-ml-sm">
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouSend') }}:</div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ transferType === 'c2s' ? 'BCH' : 'sBCH' }}</div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ transferType === 'c2s' ? `${denomination}` : 'sBCH' }}</div>
                 </div>
               </div>
               <CustomKeyboardInput
@@ -121,7 +121,7 @@
                 <img height="40" :src="transferType === 'c2s' ? 'sep20-logo.png' : 'bch-logo.png'"/>
                 <div class="q-ml-sm">
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouReceive') }}:</div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ transferType === 'c2s' ? 'sBCH' : 'BCH' }}</div>
+                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ transferType === 'c2s' ? 'sBCH' : `${denomination}` }}</div>
                 </div>
               </div>
               <CustomKeyboardInput
@@ -211,7 +211,7 @@
             <div v-if="!loading" class="q-pa-sm rounded-borders">
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                 <span>{{ $t('BchToSend') }}:</span>
-                <span class="text-nowrap q-ml-xs">{{ amount || 0 }} BCH</span>
+                <span class="text-nowrap q-ml-xs">{{ getAssetDenomination(denomination, amount || 0) }}</span>
               </div>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                 <span>
@@ -219,24 +219,24 @@
                   <!-- <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/> -->
                 </span>
                 <span v-if="!showSplitFees" class="text-nowrap q-ml-xs">
-                  ~{{ formatAmount(fees.paytaca + fees.hopcash) }} BCH
+                  ~{{ getAssetDenomination(denomination, formatAmount(fees.paytaca + fees.hopcash)) }}
                 </span>
               </div>
               <q-slide-transition>
                 <div v-if="showSplitFees">
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
                     <span>Paytaca:</span>
-                    <span class="text-nowrap q-ml-xs">~{{ formatAmount(fees.paytaca) }} BCH</span>
+                    <span class="text-nowrap q-ml-xs">~{{ getAssetDenomination(denomination, formatAmount(fees.paytaca)) }}</span>
                   </div>
                   <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
                     <span>Hopcash:</span>
-                    <span class="text-nowrap q-ml-xs">~{{ formatAmount(fees.hopcash) }} BCH</span>
+                    <span class="text-nowrap q-ml-xs">~{{ getAssetDenomination(denomination, formatAmount(fees.hopcash)) }}</span>
                   </div>
                 </div>
               </q-slide-transition>
               <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
                 <span>{{ $t('BchToReceive') }}:</span>
-                <span class="text-nowrap q-ml-xs">~{{ formatAmount(transferredAmount) }} BCH</span>
+                <span class="text-nowrap q-ml-xs">~{{ getAssetDenomination(denomination, formatAmount(transferredAmount)) }}</span>
               </div>
             </div>
             <div class="row justify-center q-mt-sm" style="color: gray;">{{ $t('PoweredBy') }} hop.cash</div>
@@ -298,6 +298,7 @@ import Pin from 'components/pin'
 import BiometricWarningAttempt from 'components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -342,7 +343,8 @@ export default {
       verification: {
         type: '',
         warningAttemptsStatus: 'dismiss'
-      }
+      },
+      denomination: this.$store.getters['global/denomination']
     }
   },
 
@@ -426,6 +428,7 @@ export default {
     }
   },
   methods: {
+    getAssetDenomination,
     formatAmount (value) {
       const parsedNum = Number(value)
       if (isNaN(parsedNum)) return ''
@@ -641,7 +644,7 @@ export default {
 
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    }
+    },
   },
 
   watch: {

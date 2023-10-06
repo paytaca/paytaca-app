@@ -114,9 +114,12 @@
             <div>
               <q-skeleton v-if="networkData.loading" type="text"/>
               <template v-else>
-                1 {{ formData.sourceToken.symbol}} ~=
-                {{ formatNumber(networkData.exchangeRate, 10) }}
-                {{ formData.destToken.symbol }}
+                1 {{ formData.sourceToken.symbol === 'BCH' ? denomination : formData.sourceToken.symbol}} ~=
+                {{
+                  formData.destToken.symbol === 'BCH'
+                    ? getAssetDenomination(denomination, networkData.exchangeRate)
+                    : `${formatNumber(networkData.exchangeRate, 10)} ${formData.destToken.symbol}`
+                }}
               </template>
             </div>
           </q-item-label>
@@ -180,8 +183,11 @@
           <q-item-label>
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else>
-              ~ {{ formatNumber(computedFormData.minimumReturn, 6) }}
-              {{ formData.destToken.symbol }}
+              ~ {{ 
+                  formData.destToken.symbol === 'BCH'
+                    ? getAssetDenomination(denomination, computedFormData.minimumReturn)
+                    : `${formatNumber(computedFormData.minimumReturn, 6)} ${formData.destToken.symbol}`
+                }}
             </template>
           </q-item-label>
         </q-item-section>
@@ -448,6 +454,7 @@ import ProgressLoader from '../ProgressLoader.vue'
 import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SmartSwapTokenSelectorDialog from './SmartSwapTokenSelectorDialog.vue'
 import SmartSwapRouteDialog from './SmartSwapRouteDialog.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   name: 'SmartSwapForm',
@@ -532,7 +539,8 @@ export default {
       },
 
       tokensList: [bchToken, ...tokensList],
-      updatingTokenBalances: false
+      updatingTokenBalances: false,
+      denomination: this.$store.getters['global/denomination']
     }
   },
   computed: {
@@ -608,6 +616,7 @@ export default {
     }
   },
   methods: {
+    getAssetDenomination,
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },

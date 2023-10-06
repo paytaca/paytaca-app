@@ -103,7 +103,17 @@
             :class="darkMode ? 'text-grey-6' : ''"
             v-if="settleAmount && shiftAmount"
           >
-            <i>1 {{ deposit.coin }} = {{ convertionRate }} {{ settle.coin }}</i>
+            <i>
+              {{
+                `1 ${deposit.coin === 'BCH' ? denomination : deposit.coin} =
+                  ${
+                    settle.coin === 'BCH'
+                      ? getAssetDenomination(denomination, convertionRate)
+                      : `${convertionRate} ${settle.coin}`
+                  }
+                `
+               }}
+            </i>
           </q-item-label>
       </q-item-section>
     </q-item>
@@ -204,6 +214,7 @@ import QrScanner from '../qr-scanner.vue'
 import { debounce } from 'quasar'
 import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
 import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   components: {
@@ -250,10 +261,12 @@ export default {
       depositInfoState: 'created',
       showCustomKeyboard: false,
       amountInputState: false,
-      customKeyboardState: 'dismiss'
+      customKeyboardState: 'dismiss',
+      denomination: this.$store.getters['global/denomination']
     }
   },
   methods: {
+    getAssetDenomination,
     selectSourceToken () {
       if (!this.isFromBCH) {
         this.$q.dialog({
@@ -428,10 +441,16 @@ export default {
       }
       const amount = parseFloat(vm.shiftAmount)
       if (min > amount) {
-        vm.errorMsg = 'Minimum ' + vm.minimum + ' ' + vm.deposit.coin
+        const amount = vm.deposit.coin === 'BCH'
+          ? getAssetDenomination(this.denomination, min)
+          : `${vm.minimum} ${vm.deposit.coin}`
+        vm.errorMsg = `Minimum ${amount}`
       }
       if (max < amount) {
-        vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
+        const amount = vm.deposit.coin === 'BCH'
+          ? getAssetDenomination(this.denomination, max)
+          : `${vm.maximum} ${vm.deposit.coin}`
+        vm.errorMsg = `Maximum ${amount}`
       }
       // balance checking
       if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {

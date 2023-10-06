@@ -39,7 +39,7 @@
                 {{ formatUnits(contractValues.hedge.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
               <div>
-                {{ contractValues.hedge.satoshis / (10**8) }} BCH
+                {{ getAssetDenomination(denomination, contractValues.hedge.satoshis / (10**8)) }}
               </div>
             </div>
             <div class="col-6">
@@ -49,7 +49,7 @@
               </div>
               <div>
                 {{ contractValues.priceValue ? '' : '~' }}
-                {{ contractValues.long.satoshis / (10**8) }} BCH
+                {{ getAssetDenomination(denomination, contractValues.long.satoshis / (10**8)) }}
                 <q-icon
                   v-if="!contractValues.priceValue"
                   :color="darkMode ? 'grey-7' : 'black'"
@@ -57,7 +57,7 @@
                   name="help"
                 >
                   <q-popup-proxy :breakpoint="0">
-                    <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                    <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label info-banner pt-dark' : 'text-black']" class="text-caption">
                       Long amount is only an approximation without a starting price value on the asset
                     </div>
                   </q-popup-proxy>
@@ -353,6 +353,7 @@ import { formatDuration, formatUnits, formatTimestampToText, ellipsisText } from
 import { useDialogPluginComponent } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 // dialog plugins requirement
 defineEmits([
@@ -364,6 +365,7 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginC
 
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
+const denomination = computed(() => store.getters['global/denomination'])
 
 /**
  * 

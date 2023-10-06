@@ -9,12 +9,12 @@
       <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '145px' : '80px'}">
         <div class="text-center" v-if="processing">
           <p :class="{'text-white': darkMode}" >Creating gift...</p>
-          <progress-loader />
+          <progress-loader :color="isDefaultTheme ? theme : 'pink'" />
         </div>
         <div :class="{'text-white': darkMode}" v-if="!processing && !completed">
           <div class="text-h5 q-mb-md">Create Gift</div>
           <div class="q-mb-lg">
-            Balance: {{ spendableBch }} BCH
+            Balance: {{ getAssetDenomination(denomination, spendableBch) }}
           </div>
           <label>
             Enter Amount:
@@ -35,7 +35,7 @@
             :error="amountBCH > spendableBch"
             :error-message="amountBCH > spendableBch ? 'Amount is greater than your balance' : null"
           >
-            <template v-slot:append>BCH</template>
+            <template v-slot:append>{{ denomination }}</template>
           </q-input>
           <p class="q-mt-sm">
             <template v-if="sendAmountMarketValue">
@@ -90,7 +90,7 @@
               :error="maxPerCampaign > 0 && maxPerCampaign < amountBCH"
               :error-message="maxPerCampaign > 0 && maxPerCampaign < amountBCH ? 'This cannot be lower than the gift amount' : null"
             >
-              <template v-slot:append>BCH</template>
+              <template v-slot:append>{{ denomination }}</template>
             </q-input>
           </template>
           <template v-else>
@@ -128,7 +128,7 @@
           </div>
         </div>
         <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}">
-          <p style="font-size: 22px;">Amount:<br>{{ amountBCH }} BCH</p>
+          <p style="font-size: 22px;">Amount:<br>{{ getAssetDenomination(amountBCH) }}</p>
           <div v-if="amountBCH" style="margin-top: -10px;">
             ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
           </div>
@@ -159,6 +159,7 @@ import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   name: 'Gifts',
@@ -187,7 +188,8 @@ export default {
       completed: false,
       wallet: null,
       showCampaignInfo: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      denomination: this.$store.getters['global/denomination']
     }
   },
   watch: {
@@ -233,9 +235,16 @@ export default {
       const balance = asset[0].spendable
       if (!Number.isFinite(balance)) return null
       return balance
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    getAssetDenomination,
     disableGenerateButton () {
       if (this.amountBCH > 0) {
         if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {

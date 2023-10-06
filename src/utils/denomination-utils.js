@@ -17,12 +17,25 @@ export function parseAssetDenomination (denomination, asset, subStringMax = 0) {
   const setSubStringMaxLength = subStringMax > 0 ? subStringMax : asset.balance.length
   let completeAsset = ''
   if (isBCH) {
-    const newBalance = String(asset.balance.toFixed(denomDecimalPlaces[denomination])).substring(0, setSubStringMaxLength)
-    completeAsset = `${newBalance} ${denomination}`
+    const newBalance = String(
+      asset.balance.toFixed(denomDecimalPlaces[denomination])
+    ).substring(0, setSubStringMaxLength)
+    completeAsset = `${parseFloat(newBalance)} ${denomination}`
   } else {
     const isSLP = asset.id?.startsWith('slp/')
-    const newBalance = String(convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP)).substring(0, setSubStringMaxLength)
+    const newBalance = String(
+      convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP)
+    ).substring(0, setSubStringMaxLength)
     completeAsset = `${newBalance} ${asset.symbol}`
   }
   return completeAsset
+}
+
+export function getAssetDenomination (denomination, assetBalance) {
+  return parseAssetDenomination(denomination, {
+    id: 'BCH',
+    balance: assetBalance,
+    symbol: 'BCH',
+    decimals: 0
+  })
 }

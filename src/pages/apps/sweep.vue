@@ -55,7 +55,7 @@
                     <i>{{ $t(isHongKong() ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
                   </span>
                   <div v-if="sweeping && selectedToken === 'bch'">
-                    <progress-loader />
+                    <progress-loader :color="isDefaultTheme ? theme : 'pink'" />
                   </div>
                 </div>
               </div>
@@ -99,7 +99,7 @@
                       </q-btn>&nbsp;&nbsp;&nbsp; <span class="text-uppercase">{{ $t('or') }}</span> <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" :label="$t('Skip')" />
                     </template>
                     <div v-if="sweeping && selectedToken === token.token_id">
-                      <progress-loader />
+                      <progress-loader :color="isDefaultTheme ? theme : 'pink'" />
                     </div>
                   </div>
                 </div>

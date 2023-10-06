@@ -87,7 +87,7 @@
                   <div class="row">
                     <div class="q-space">Amount</div>
                     <div class="text-caption text-grey">
-                      {{gift?.amount}} BCH
+                      {{ getAssetDenomination(gift?.amount) }}
                     </div>
                   </div>
                   <div class="row">
@@ -187,6 +187,7 @@ import ShareGiftDialog from 'src/components/gifts/ShareGiftDialog.vue'
 import { capitalize } from 'vue'
 import { formatDistance } from 'date-fns'
 import axios from 'axios'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   name: 'Gift',
@@ -208,7 +209,8 @@ export default {
         limit: 0,
         offset: 0,
       },
-      campaign_filter: {}
+      campaign_filter: {},
+      denomination: this.$store.getters['global/denomination']
     }
   },
 
@@ -233,6 +235,7 @@ export default {
   },
 
   methods: {
+    getAssetDenomination,
     capitalize: capitalize,
     formatRelativeTimestamp(val) {
       if (isNaN(new Date(val).valueOf())) return ''
