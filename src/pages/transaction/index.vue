@@ -66,7 +66,7 @@
                         }}
                       </p>
                       <div style="padding: 0; margin-top: -15px;">
-                        {{ getAssetMarketBalance(bchAsset) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                        {{ parseFiatCurrency(getAssetMarketBalance(bchAsset), selectedMarketCurrency) }}
                       </div>
                     </div>
                   </q-card-section>
@@ -292,7 +292,7 @@ import { VOffline } from 'v-offline'
 import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
-import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -464,6 +464,7 @@ export default {
   },
   methods: {
     parseAssetDenomination,
+    parseFiatCurrency,
     openPriceChart () {
       this.$q.dialog({
         component: PriceChart

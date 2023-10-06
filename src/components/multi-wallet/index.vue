@@ -50,7 +50,7 @@
                       {{ arrangeAddressText(wallet) }}
                     </span>
                     <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass()">
-                      {{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                      {{ parseFiatCurrency(getAssetMarketBalance(getAssetData(index)), selectedMarketCurrency) }}
                     </span>
                   </div>
                   <q-menu anchor="bottom right" self="top end" >
@@ -74,7 +74,7 @@
 </template>
 <script>
 import renameDialog from './renameDialog.vue'
-import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   data () {
@@ -94,6 +94,7 @@ export default {
   },
   methods: {
     parseAssetDenomination,
+    parseFiatCurrency,
     processVaultName () {
       const vm = this
       let count = 1

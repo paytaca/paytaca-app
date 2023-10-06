@@ -31,6 +31,9 @@ export function parseAssetDenomination (denomination, asset, subStringMax = 0) {
   return completeAsset
 }
 
+/**
+ * Used for when values does not come from a single object **(`asset`)**
+ */
 export function getAssetDenomination (denomination, assetBalance) {
   return parseAssetDenomination(denomination, {
     id: 'BCH',
@@ -38,4 +41,12 @@ export function getAssetDenomination (denomination, assetBalance) {
     symbol: 'BCH',
     decimals: 0
   })
+}
+
+export function parseFiatCurrency (amount, currency) {
+  const newAmount = Number(amount).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+  return `${newAmount} ${currency.toUpperCase()}`
 }

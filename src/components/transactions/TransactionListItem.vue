@@ -30,7 +30,7 @@
               :class="getDarkModeClass('text-weight-light', '')"
               style="margin-top:-0.25em;"
             >
-              {{ marketValueData?.marketValue }} {{ selectedMarketCurrency }}
+              {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
             </div>
           </p>
         </div>
@@ -71,7 +71,7 @@ import ago from 's-ago'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 const $store = useStore()
 const $t = useI18n().t
