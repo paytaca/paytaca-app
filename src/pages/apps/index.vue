@@ -73,7 +73,7 @@ export default {
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
           active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: true
+          smartBCHOnly: false
         },
         {
           name: this.$t('Collectibles'),

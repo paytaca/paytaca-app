@@ -29,6 +29,21 @@ export function createConnector (uri) {
 }
 
 /**
+ * @param {WalletConnect} connector 
+ * @returns {Promise<{ error?: Error, payload: any}>}
+ */
+export function waitSessionRequest(connector) {
+  const promise = new Promise((resolve, reject) => {
+    connector.on('session_request', (error, payload) => {
+      connector.off('session_request')
+      const response = {error, payload}
+      resolve(response)
+    })
+    setTimeout(() => reject(new Error('Timeout')), 60 * 1000)
+  })
+}
+
+/**
   * @param {object}         payload a JSON-RPC request
   * @param {ethers.Wallet}  wallet  a Wallet instance
 */
@@ -119,29 +134,40 @@ export function parseWalletConnectUri (uri) {
     handshakeTopic: '',
     version: '',
     bridge: '',
-    key: ''
+    key: '',
+
+    // WalletConnect v2 related
+    relayProtocol: '',
+    symKey: '',
   }
 
-  const match = String(uri).match(/^wc:([0-9a-f-]{36})@(\d*)(\?(bridge=.*)|(key=[0-9a-f]*))?$/i)
+  const matchV1 = String(uri).match(/^wc:([0-9a-f-]{36})@(\d*)(\?(bridge=.*)|(key=[0-9a-f]*))?$/i)
+  const matchV2 = String(uri).match(/^wc:([0-9a-f-]{64})@(\d*)(\?(relay-protocol=.*)|(symKey=[0-9a-f]*))?$/i)
+  const match = matchV1 || matchV2
+
   if (!match) return
 
   const url = new URL(uri)
   data.handshakeTopic = match[1]
   data.version = match[2]
+  data.relayProtocol = url.searchParams.get('relay-protocol')
+  data.symKey = url.searchParams.get('symKey')
   data.bridge = url.searchParams.get('bridge')
   data.key = url.searchParams.get('key')
 
   return data
 }
+window.test = parseWalletConnectUri
 
 export class WalletConnectManager {
   // store is the vuex instance of the app
-  constructor (store) {
+  constructor (store, connector) {
     this.store = store
     this._listeners = {}
     this._subscribedListeners = []
 
-    this.connector = getPreviousConnector()
+    if (connector) this.connector
+    else this.connector = getPreviousConnector()
   }
 
   get connector () {
