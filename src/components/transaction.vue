@@ -205,11 +205,13 @@ export default {
         incoming: this.$t('Received'),
         outgoing: this.$t('Sent')
       },
-      transaction: {},
-      darkMode: false
+      transaction: {}
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -296,8 +298,7 @@ export default {
         return addresses.join(', ')
       }
     },
-    show (transaction, darkMode) {
-      this.darkMode = darkMode
+    show (transaction) {
       try {
         this.transaction = transaction
         this.$refs.dialog.show()

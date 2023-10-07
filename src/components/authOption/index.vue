@@ -53,8 +53,7 @@ export default {
     }
   },
   props: [
-    'securityOptionDialogStatus',
-    'darkMode'
+    'securityOptionDialogStatus'
   ],
   watch: {
     securityOptionDialogStatus () {

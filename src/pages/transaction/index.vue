@@ -329,7 +329,6 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       prevPath: null,
       showTokenSuggestionsDialog: false,
-      darkMode: this.$store.getters['darkmode/getStatus'],
       showTokens: this.$store.getters['global/showTokens'],
       isCashToken: true,
       settingsButtonIcon: 'settings',
@@ -337,15 +336,6 @@ export default {
     }
   },
 
-  created () {
-    if (this.isDefaultTheme && this.darkMode) {
-      this.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
-      this.assetsCloseButtonColor = 'color: #ffbf00;'
-    } else {
-      this.settingsButtonIcon = 'settings'
-      this.assetsCloseButtonColor = 'color: #3B7BF6;'
-    }
-  },
 
   watch: {
     showTokens (n, o) {
@@ -377,6 +367,9 @@ export default {
   },
 
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -551,7 +544,7 @@ export default {
       const txCheck = setInterval(function () {
         if (transaction) {
           if (!transaction?.asset) transaction.asset = vm.selectedAsset
-          vm.$refs.transaction.show(transaction, vm.darkMode)
+          vm.$refs.transaction.show(transaction)
           vm.hideBalances = true
           clearInterval(txCheck)
         }
@@ -1080,6 +1073,14 @@ export default {
 
   async mounted () {
     const vm = this
+
+    if (vm.isDefaultTheme && vm.darkMode) {
+      vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
+      vm.assetsCloseButtonColor = 'color: #ffbf00;'
+    } else {
+      vm.settingsButtonIcon = 'settings'
+      vm.assetsCloseButtonColor = 'color: #3B7BF6;'
+    }
 
     // Check if preferredSecurity and if it's set as PIN
     const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')

@@ -163,6 +163,6 @@ function savePosDevice() {
 }
 
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

@@ -122,14 +122,14 @@ function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
 }
 
 function isDefaultTheme () {
-  return this.$store.getters['global/theme'] !== 'default'
+  return $store.getters['global/theme'] !== 'default'
 }
 
 function theme () {
-  return this.$store.getters['global/theme']
+  return $store.getters['global/theme']
 }
 
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

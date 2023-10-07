@@ -931,7 +931,7 @@ function connectRpcClient(opts) {
 }
 
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 <style scoped>

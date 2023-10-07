@@ -251,11 +251,11 @@ function copyToClipboard(value, message) {
 }
 
 function isDefaultTheme () {
-  return this.$store.getters['global/theme'] !== 'default'
+  return $store.getters['global/theme'] !== 'default'
 }
 
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 

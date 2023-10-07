@@ -42,7 +42,6 @@ export default {
   },
   data () {
     return {
-      darkMode: false,
       origin: "",
       connectedAddresses: [],
       activeAddress: "",
@@ -121,11 +120,8 @@ export default {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(address)
     },
-    show (transaction, darkMode) {
-      // this.darkMode = darkMode
-      // try {
-        this.$refs.dialog.show()
-      // } catch (err) {}
+    show () {
+      this.$refs.dialog.show()
     },
     hide () {
       this.$refs.dialog.hide()
