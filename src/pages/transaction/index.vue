@@ -453,11 +453,12 @@ export default {
       this.adjustTransactionsDivHeight()
     },
     adjustTransactionsDivHeight (opts={timeout: 500}) {
+      const vm = this
       let timeout = opts?.timeout
       if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
-        const sectionHeight = this.$refs.fixedSection.clientHeight
-        this.$refs.transactionSection.setAttribute(
+        const sectionHeight = vm.$refs.fixedSection.clientHeight
+        vm.$refs.transactionSection.setAttribute(
           'style',
           `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1; transition: margin-top 0.25s ease-in-out`
         )
