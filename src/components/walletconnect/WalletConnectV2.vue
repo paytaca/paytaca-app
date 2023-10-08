@@ -70,13 +70,14 @@
       </div>
       <q-list separator>
         <q-item
-          v-for="sessionRequest in sessionRequests" :key="sessionRequest?.id"
+          v-for="sessionRequest in selectedSessionRequests" :key="sessionRequest?.id"
           clickable v-ripple
           @click="() => openSessionRequestDialog(sessionRequest)"
         >
           <q-item-section>
             <q-item-label caption>
               #{{ sessionRequest?.id }}
+              <q-spinner v-if="loadingSessionRequests?.[sessionRequest?.id]"/>
             </q-item-label>
             <q-item-label>
               Method: {{ sessionRequest?.params?.request?.method }}
@@ -89,18 +90,28 @@
             </q-item-label>
             <div class="row items-center q-gutter-x-sm q-mt-sm">
               <q-btn
+                :disable="loadingSessionRequests?.[sessionRequest?.id]"
+                :loading="loadingSessionRequests?.[sessionRequest?.id]"
                 no-caps label="Accept"
                 icon="check" color="green"
                 padding="xs md"
                 class="q-space"
-                @click.stop="() => handleSessionRequest(sessionRequest)"
+                @click.stop="() => respondToSessionRequest({
+                  sessionRequest: sessionRequest,
+                  accept: true,
+                })"
               />
               <q-btn
+                :disable="loadingSessionRequests?.[sessionRequest?.id]"
+                :loading="loadingSessionRequests?.[sessionRequest?.id]"
                 no-caps label="Reject"
                 icon="close" color="red"
                 padding="xs md"
                 class="q-space"
-                @click.stop="() => rejectSessionRequest(sessionRequest)"
+                @click.stop="() => respondToSessionRequest({
+                  sessionRequest: sessionRequest,
+                  accept: false,
+                })"
               />
             </div>
           </q-item-section>
@@ -197,6 +208,20 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+    <WC2SessionRequestDialog
+      :disable="loadingSessionRequests?.[sessionRequestDialog.sessionRequest?.id]"
+      :loading="loadingSessionRequests?.[sessionRequestDialog.sessionRequest?.id]"
+      v-model="sessionRequestDialog.show"
+      :session-request="sessionRequestDialog.sessionRequest"
+      @accepted="() => respondToSessionRequest({
+        sessionRequest: sessionRequestDialog.sessionRequest,
+        accept: true,
+      }).finally(() => sessionRequestDialog.show = false)"
+      @rejected="() => respondToSessionRequest({
+        sessionRequest: sessionRequestDialog.sessionRequest,
+        accept: false,
+      }).finally(() => sessionRequestDialog.show = false)"
+    />
   </div>
 </template>
 <script setup>
@@ -341,14 +366,47 @@ async function approveSessionProposal(sessionProposal) {
   statusUpdate()
 }
 
+const loadingSessionRequests = ref({})
 const sessionRequests = ref([])
+const selectedSessionRequests = computed(() => {
+  const topic = selectedActiveSession.value?.topic
+  if (!topic) return sessionRequests
+  return sessionRequests.value.filter(sessionRequest => sessionRequest?.topic == topic)
+})
+const sessionRequestDialog = ref({ show: false, sessionRequest: null })
 function handleRequestIfWhitelisted(sessionRequest) {
   const method = sessionRequest?.params?.request?.method
   const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
-  if (whitelistedMethods.includes(method)) return handleSessionRequest(sessionRequest)
+  if (whitelistedMethods.includes(method)) return respondToSessionRequest({sessionRequest, accept: true})
 }
 function handleWhitelistedRequests() {
   sessionRequests?.value?.forEach(handleRequestIfWhitelisted)
+}
+
+async function respondToSessionRequest(opts={ sessionRequest, accept }) {
+  const id = opts?.sessionRequest?.id
+  try {
+    loadingSessionRequests.value[id] = true
+    if (opts?.accept) return await handleSessionRequest(opts?.sessionRequest)
+    else return await rejectSessionRequest(opts?.sessionRequest)
+  } finally {
+    delete loadingSessionRequests.value[id]
+  }
+}
+
+function openSessionRequestDialog(sessionRequest) {
+  sessionRequestDialog.value.sessionRequest = sessionRequest
+  sessionRequestDialog.value.show = true
+  selectedActiveSessionTopic.value = sessionRequest?.topic
+}
+
+async function rejectSessionRequest(sessionRequest) {
+  const id = sessionRequest?.id
+  const topic = sessionRequest?.topic
+  return await web3Wallet.value.respondSessionRequest({
+    topic,
+    response: { id, jsonrpc: '2.0', error: { code: 5000, reason: 'User rejected' } },
+  }).finally(() => statusUpdate());
 }
 
 async function handleSessionRequest(sessionRequest) {
@@ -365,24 +423,6 @@ async function handleSessionRequest(sessionRequest) {
         response: { id, jsonrpc: '2.0', error: { code: -32601, reason: 'Method not found' } },
       }).finally(() => statusUpdate());
   }
-}
-
-function openSessionRequestDialog(sessionRequest) {
-  $q.dialog({
-    component: WC2SessionRequestDialog,
-    componentProps: { sessionRequest }
-  })
-    .onOk(() => handleSessionRequest(sessionRequest))
-    .onCancel(() => rejectSessionRequest(sessionRequest))
-}
-
-async function rejectSessionRequest(sessionRequest) {
-  const id = sessionRequest?.id
-  const topic = sessionRequest?.topic
-  return await web3Wallet.value.respondSessionRequest({
-    topic,
-    response: { id, jsonrpc: '2.0', error: { code: 5000, reason: 'User rejected' } },
-  }).finally(() => statusUpdate());
 }
 
 async function handleBchSessionRequest(sessionRequest) {
@@ -477,6 +517,9 @@ onMounted(async () => {
 watch(web3Wallet, () => {
   statusUpdate()
   handleWhitelistedRequests()
+  if (selectedSessionRequests.value.length === 1) {
+    openSessionRequestDialog(selectedSessionRequests.value[0])
+  }
 })
 watch(web3Wallet, newValue => attachEventListeners(newValue))
 watch(web3Wallet, (_, oldValue) => detachEventsListeners(oldValue))
@@ -525,6 +568,9 @@ function onSessionRequest(...args) {
   // const sessionRequest = args[0]
   statusUpdate()
   handleWhitelistedRequests()
+  if (selectedSessionRequests.value.length === 1) {
+    openSessionRequestDialog(selectedSessionRequests.value[0])
+  }
 }
 
 defineExpose({

@@ -1,8 +1,11 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogHide">
+  <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogCancel">
     <q-card :class="getDarkModeClass('text-white pt-dark-card', 'text-black')">
       <div class="row items-center q-pb-sm q-px-sm q-pt-sm">
-        <div class="text-h5 q-space">{{ title }}</div>
+        <div class="text-h5 q-space">
+          {{ title }}
+          <q-spinner v-if="loading"/>
+        </div>
         <q-btn flat icon="close" padding="sm" v-close-popup/>
       </div>
       <q-card-section class="q-pt-none" style="max-height:calc(80vh - 6rem);overflow:auto;">
@@ -37,7 +40,7 @@
             class="q-ma-sm"
           />
         </template>
-        <template v-if="sessionRequest?.params?.request?.method === 'bch_signMessage'">
+        <template v-else-if="sessionRequest?.params?.request?.method === 'bch_signMessage'">
           <div class="text-grey">Message</div>
           <q-banner :class="getDarkModeClass('pt-dark', 'text-black')" class="rounded-borders">
             <div style="word-break: break-all;">
@@ -51,6 +54,8 @@
 
         <div class="row items-center q-gutter-x-sm q-my-md">
           <q-btn
+            :loading="loading"
+            :disable="disable"
             no-caps label="Accept"
             icon="check" color="green"
             padding="xs md"
@@ -58,6 +63,8 @@
             @click.stop="() => emitAccept()"
           />
           <q-btn
+            :loading="loading"
+            :disable="disable"
             no-caps label="Reject"
             icon="close" color="red"
             padding="xs md"
@@ -89,6 +96,8 @@ const $emit = defineEmits([
 const props = defineProps({
   modelValue: Boolean,
   sessionRequest: Object,
+  loading: Boolean,
+  disable: Boolean,
 })
 
 const $store = useStore()
@@ -118,6 +127,6 @@ function emitAccept() {
 
 function emitReject() {
   $emit('rejected')
-  onDialogCancel()
+  onDialogHide()
 }
 </script>
