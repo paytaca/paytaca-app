@@ -300,13 +300,14 @@ const selectedActiveSession = computed(() => activeSessions.value?.[selectedActi
 const showSessionProposalsDialog = ref(false)
 const sessionProposals = ref()
 
-async function connectNewSession() {
+async function connectNewSession(value='') {
   $q.dialog({
     title: 'New Session',
     prompt: {
       label: 'URI',
       placeholder: 'Input uri',
       color: 'brandblue',
+      model: value,
     },
     ok: {
       flat: true,
@@ -370,7 +371,7 @@ const loadingSessionRequests = ref({})
 const sessionRequests = ref([])
 const selectedSessionRequests = computed(() => {
   const topic = selectedActiveSession.value?.topic
-  if (!topic) return sessionRequests
+  if (!topic) return sessionRequests.value
   return sessionRequests.value.filter(sessionRequest => sessionRequest?.topic == topic)
 })
 const sessionRequestDialog = ref({ show: false, sessionRequest: null })
@@ -509,8 +510,10 @@ function statusUpdate() {
 }
 
 const web3Wallet = ref()
+const web3WalletPromise = ref()
 onMounted(async () => {
-  const _web3Wallet = await initWeb3Wallet()
+  web3WalletPromise.value = initWeb3Wallet()
+  const _web3Wallet = await web3WalletPromise.value
   web3Wallet.value = _web3Wallet
   window.w3w = _web3Wallet
 })
@@ -560,7 +563,6 @@ async function onSessionProposal(sessionProposal) {
   console.log('Session proposal', sessionProposal)
   openSessionProposal(sessionProposal?.params)
   statusUpdate()
-  tab.value = 'requests'
 }
 
 function onSessionRequest(...args) {
@@ -575,6 +577,9 @@ function onSessionRequest(...args) {
 
 defineExpose({
   statusUpdate,
+  web3Wallet,
+  web3WalletPromise,
+  connectNewSession,
 })
 </script>
 <style lang="scss" scoped>
