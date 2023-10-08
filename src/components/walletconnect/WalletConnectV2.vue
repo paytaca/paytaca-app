@@ -228,13 +228,13 @@ const accountInfo = computed(() => {
   return {
     address: bchWallet.value?.lastAddress,
     changeAddress: bchWallet.value?.lastChangeAddress,
-    addressPath: bchWallet.value?.lastAddressIndex,
+    walletIndex: bchWallet.value?.lastAddressIndex,
   }
 })
 
 async function getCurrentAddressWif() {
-  const addressPath = accountInfo.value.addressPath
-  const utxoPkWif = await getWalletByNetwork(wallet.value, 'bch').getPrivateKey(addressPath)
+  const walletIndex = accountInfo.value.walletIndex
+  const utxoPkWif = await getWalletByNetwork(wallet.value, 'bch').getPrivateKey(`0/${walletIndex}`)
   return utxoPkWif
 }
 
