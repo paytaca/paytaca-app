@@ -27,8 +27,15 @@
             />
             <q-space/>
             <div class="text-right">
+              <q-menu v-if="debugMode" :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
+                <div>StreamID: {{ manager?.localStream?.id }}</div>
+                <div>AudioTrackIDs: {{  manager?.localStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                <div>VideoTrackIDs: {{  manager?.localStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+              </q-menu>
               <AVMedia
                 v-if="manager?.localStream?.getAudioTracks?.().length"
+                ref="localAudioBarRef"
+                :id="`local-audio-bar-${manager?.localStream?.id}`"
                 :media="manager?.localStream"
                 type="vbar" class="audio-meter"
                 style="justify-self: center;align-self: center;"
@@ -41,19 +48,51 @@
               </div>
             </div>
             <div
-              v-if="manager?.localStream?.getVideoTracks?.()?.length"
               class="row items-center q-ml-xs"
-              style="height:3rem;"
+              :style="{
+                height:'3rem',
+                display: manager?.localStream?.getVideoTracks?.()?.length ? 'unset' : 'none',
+              }"
             >
               <video
-                :srcObject="manager.localStream"
+                ref="localAudioRef"
+                :id="`local-stream-${manager?.localStream?.id}`"
+                :srcObject="manager?.localStream"
                 autoplay playsinline
-                muted
+                :muted="muteLocalStream"
                 style="width:100%;height:100%;border-radius: 4px;"
               ></video>
             </div>
-            <q-icon v-else :name="manager?.constraints?.audio ? 'mic' : 'mic_off'" size="2rem"/>
+            <q-icon
+              v-if="!manager?.localStream?.getVideoTracks?.()?.length"
+              size="2rem"
+              :name="manager?.constraints?.audio ? 'mic' : 'mic_off'"
+            />
           </div>
+          <template v-if="debugMode">
+            <div class="row items-center">
+              <q-toggle label="Keep manager" v-model="keepManager" dense class="q-mx-sm"/>
+              <q-space/>
+              <q-toggle label="Mute local stream" v-model="muteLocalStream" dense class="q-mx-sm"/>
+            </div>
+            <div class="row items-center q-mt-sm">
+              <q-space/>
+              <q-toggle
+                dense
+                :icon="constraints.audio ? 'mic' :'mic_off'"
+                v-model="constraints.audio"
+                class="q-mx-sm"
+              />
+              <q-space/>
+              <q-toggle
+                dense
+                :icon="constraints.video ? 'video_cam' : 'video_cam_off'"
+                v-model="constraints.video"
+                class="q-mx-sm"
+              />
+              <q-space/>
+            </div>
+          </template>
         </div>
         <div class="row items-center justify-center chat-members-container">
           <q-banner
@@ -77,7 +116,7 @@
             Waiting for others to join call
           </div>
 
-          <div v-for="member in manager?.members" :key="member.id" class="chat-member-container">
+          <div v-for="(member, index) in manager?.members" :key="member.id" class="chat-member-container">
             <div class="chat-member-content">
               <div
                 :style="{
@@ -87,23 +126,33 @@
                 }"
               >
                 <video
+                  :ref="val => memberAudioRef[index] = val"
+                  :id="`video-${member?.id}-${member?.mediaStream?.id}`"
                   :srcObject="member.mediaStream"
                   autoplay playsinline
                   style="width:100%;height:100%;border-radius:8px;"
                 ></video>
               </div>
-              <div class="text-center">
+              <div class="text-center" style="position:relative;">
                 <q-icon
                 :name="member.audioEnabled ? 'mic' : 'mic_off'"
                 size="3rem"
                 />
                 <AVMedia
-                v-if="member.newTrackCtr && member.mediaStream?.getAudioTracks?.().length"
-                :media="member.mediaStream"
-                type="vbar" class="audio-meter"
+                  v-if="member.newTrackCtr && member.mediaStream?.getAudioTracks?.().length"
+                  :id="`audio-bar-${member?.id}-${member?.mediaStream?.id}`"
+                  :ref="val => memberAudioBarRef[index] = val"
+                  :media="member.mediaStream"
+                  type="vbar" class="audio-meter"
                 />
                 <div v-if="member.name">{{ member.name }}</div>
                 <div v-else >#{{ member.id }}</div>
+
+                <q-menu v-if="debugMode" :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
+                  <div>StreamID: {{ member?.mediaStream?.id }}</div>
+                  <div>AudioTrackIDs: {{  member?.mediaStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                  <div>VideoTrackIDs: {{  member?.mediaStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                </q-menu>
               </div>
             </div>
           </div>
@@ -222,6 +271,8 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
+    const debugMode = ref(false)
+
     onMounted(() => onLoadOrShow())
     watch(() => [props.orderId], () => onLoadOrShow())
     watch(innerVal, () => onLoadOrShow())
@@ -294,15 +345,33 @@ export default defineComponent({
       return startCall()
     }
 
+    const localAudioRef = ref()
+    const localAudioBarRef = ref()
+    const memberAudioRef = ref([])
+    const memberAudioBarRef = ref([])
+    window.mar = memberAudioRef.value
+    window.mabr = memberAudioBarRef.value
+    const muteLocalStream = ref(true)
+    const keepManager = ref(false)
+    const constraints = ref({ audio: true, video: false })
     const manager = ref([].map(() => new WebRtcCallManager())[0])
     const callRunning = computed(() => manager.value?.members?.length || manager.value?.signaller?.isWebsocketOpen)
+    watch(constraints, () => {
+      if (!manager.value) return
+      manager.value.updateConstraints(constraints.value)
+      if (constraints.value.audio || constraints.value.video) manager.value.getLocalStream()
+    }, { deep: true })
     function initManager() {
       manager.value?.cleanUp?.()
+      if (manager.value && keepManager.value) {
+        manager.value.callId = orderCallSession.value.id
+        return
+      }
       manager.value = new WebRtcCallManager({
         callId: orderCallSession.value?.id,
         peerId: Date.now(),
         identity: localIdentity.value,
-        constraints: { video: false, audio: true },
+        constraints: constraints.value,
         signaller: {
           url: async (callId) => {
             const timestamp = Date.now()
@@ -324,6 +393,29 @@ export default defineComponent({
       })
       window.m  = manager.value
     }
+    function onWebsocketClose(...args) {
+      console.log('Websocket closed', ...args)
+      if (manager.value?.members?.length) {
+        manager.value?.signaller.connectWs()
+        console.log('Connecting signaller websocket')
+      }
+    }
+    watch(() => manager.value?.signaller?._websocket, (newVal, prevVal) => {
+      console.log('Websocket update to', newVal, 'from', prevVal)
+      if (newVal) {
+        newVal?.addEventListener?.('close', onWebsocketClose)
+        console.log('Added onclose event listener on new websocket', newVal)
+      }
+      if (prevVal) {
+        prevVal?.removeEventListener?.('close', onWebsocketClose)
+        console.log('Removed onclose event listener on previous websocket', prevVal)
+      }
+
+      if (!newVal && manager.value?.members?.length) {
+        console.log('Reconnecting signaller websocket')
+        manager.value?.signaller.connectWs() 
+      }
+    })
 
     const localIdentity = computed(() => {
       const customer = $store.getters['marketplace/customer']
@@ -380,7 +472,7 @@ export default defineComponent({
 
     function hangUp() {
       manager.value?.cleanUp?.()
-      manager.value = null
+      if (!keepManager.value || !innerVal.value) manager.value = null
       membersMuted.value = false
       if (innerVal.value) getOrderCallSession()
     }
@@ -410,6 +502,7 @@ export default defineComponent({
 
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
+      debugMode,
 
       orderCallSession,
       fetchingSession,
@@ -420,6 +513,14 @@ export default defineComponent({
       createCallSession,
 
       prepareAndStartCall,
+
+      localAudioRef,
+      localAudioBarRef,
+      memberAudioRef,
+      memberAudioBarRef,
+      muteLocalStream,
+      keepManager,
+      constraints,
 
       manager,
       callRunning,
