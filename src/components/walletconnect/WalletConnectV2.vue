@@ -529,7 +529,7 @@ async function handleBchSessionRequest(sessionRequest) {
     case 'bch_signTransaction':
       try {
         const wif = await getCurrentAddressWif()
-        response.result = await signBchTransaction(params?.transaction, wif)
+        response.result = await signBchTransaction(params?.transaction, params?.sourceOutputs, wif)
         if (params?.broadcast) {
           const watchtower = new Watchtower($store.getters['global/isChipnet'])
           const broadcastResponse = watchtower.BCH.broadcastTransaction(response.result.signedTransaction)
