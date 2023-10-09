@@ -79,7 +79,7 @@ export async function signMessage(message, wif='') {
   return Buffer.from(signatureBase64, 'base64').toString('hex')
 }
 
-export async function signBchTransaction(transaction, wif='') {
+export async function signBchTransaction(transaction, sourceOutputsUnpacked, wif='') {
   const template = importAuthenticationTemplate(authenticationTemplateP2pkhNonHd);
   const compiler = authenticationTemplateToCompilerBCH(template);
 
@@ -105,7 +105,7 @@ export async function signBchTransaction(transaction, wif='') {
       if (unlockingBytecodeHex.indexOf(sigPlaceholder) !== -1) {
         // compute the signature argument
         const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId;
-        const context = { inputIndex: index, sourceOutputs: sourceOutputsUnpacked, transaction: tx };
+        const context = { inputIndex: index, sourceOutputs: sourceOutputsUnpacked, transaction: transaction };
         const signingSerializationType = new Uint8Array([hashType]);
 
         const coveredBytecode = sourceOutputsUnpacked[index].contract?.redeemScript;

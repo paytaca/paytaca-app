@@ -77,6 +77,16 @@ function changeNetwork(newNetwork = 'BCH') {
   return $store.commit('global/setNetwork', newNetwork)
 }
 
+onMounted(async () => {
+  if (selectedNetwork.value !== 'BCH') return console.log('Not bch')
+  if (!walletConnectV2.value) return console.log('No v2 component')
+
+  const uriData = parseWalletConnectUri(props.url)
+  if (uriData.uri && uriData.version == '2') {
+    walletConnectV2.value?.connectNewSession?.(uriData.uri)
+  }
+})
+
 onMounted(() => {
   if (selectedNetwork.value !== 'sBCH') return console.log('Not sbch')
   if (!walletConnectV1.value) return console.log('No v1 component')
