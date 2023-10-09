@@ -78,7 +78,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { convertTokenAmount } from 'src/wallet/chipnet'
-import { isHongKong } from 'src/utils/payhero-utils'
+import { isHongKong } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {

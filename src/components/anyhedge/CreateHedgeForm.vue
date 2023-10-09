@@ -235,7 +235,12 @@
       >
         <template v-slot:hint>
           <div v-if="createHedgeFormMetadata.lowLiquidationPrice" class="text-caption text-grey">
-            {{ `${createHedgeFormMetadata.lowLiquidationPrice} ${createHedgeForm.selectedAsset?.assetCurrency} / ${denomination}` }}
+            {{
+              `${parseFiatCurrency(
+                  createHedgeFormMetadata.lowLiquidationPrice,
+                  createHedgeForm.selectedAsset?.assetCurrency
+                )} / ${denomination}`
+            }}
           </div>
         </template>
       </q-input>
@@ -259,7 +264,12 @@
       >
         <template v-slot:hint>
           <div v-if="createHedgeFormMetadata.highLiquidationPrice" class="text-caption text-grey">
-            {{ `${createHedgeFormMetadata.highLiquidationPrice} ${createHedgeForm.selectedAsset?.assetCurrency} / ${denomination}` }}
+            {{
+              `${parseFiatCurrency(
+                  createHedgeFormMetadata.highLiquidationPrice,
+                  createHedgeForm.selectedAsset?.assetCurrency
+                )} / ${denomination}`
+            }}
           </div>
         </template>
       </q-input>
@@ -375,7 +385,7 @@ import HedgePositionOfferSelectionDialog from './HedgePositionOfferSelectionDial
 import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
-import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 
 function alertError(...args) {

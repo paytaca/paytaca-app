@@ -686,7 +686,7 @@ export default {
         })
         .catch((error) => {
           dialog.update({
-            message: 'Failed to approve token' + ((error && error.error) ? `. ${error.error}` : ''),
+            message: `Failed to approve ${this.isHongKong() ? 'point' : 'token'}. ${error?.error ? error.error : ''}`,
             progress: false,
             ok: true
           })

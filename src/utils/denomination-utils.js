@@ -14,7 +14,7 @@ const denomDecimalPlaces = {
  */
 export function parseAssetDenomination (denomination, asset, subStringMax = 0) {
   const isBCH = asset.symbol === 'BCH'
-  const setSubStringMaxLength = subStringMax > 0 ? subStringMax : asset.balance.length
+  const setSubStringMaxLength = subStringMax > 0 ? subStringMax : asset.balance?.length
   let completeAsset = ''
   if (isBCH) {
     const newBalance = String(

@@ -47,7 +47,7 @@
                 class="text-caption text-grey"
                 style="margin-top:-0.25em"
               >
-                {{ hedgeMarketValue }} {{ selectedMarketCurrency }}
+                {{ parseFiatCurrency(hedgeMarketValue, selectedMarketCurrency) }}
               </div>
             </div>
             <div class="col-6">
@@ -61,8 +61,9 @@
               <div
                 v-if="isFinite(longMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
                 class="text-caption text-grey"
-                style="margin-top:-0.25em">
-                {{ longMarketValue }} {{ selectedMarketCurrency }}
+                style="margin-top:-0.25em"
+              >
+                {{ parseFiatCurrency(longMarketValue, selectedMarketCurrency) }}
               </div>
             </div>
           </div>
@@ -513,7 +514,7 @@ import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
 import FundingAmountsPanel from './FundingAmountsPanel.vue'
 import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
-import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 const bchjs = new BCHJS()
 

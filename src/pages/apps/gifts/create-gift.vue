@@ -39,7 +39,7 @@
           </q-input>
           <p class="q-mt-sm">
             <template v-if="sendAmountMarketValue">
-              ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+              {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
             </template>
           </p>
 
@@ -130,7 +130,7 @@
         <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}">
           <p style="font-size: 22px;">Amount:<br>{{ getAssetDenomination(amountBCH) }}</p>
           <div v-if="amountBCH" style="margin-top: -10px;">
-            ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+            {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
           </div>
           <div class="flex flex-center" style="margin-top: 30px;">
             <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
@@ -159,7 +159,7 @@ import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
-import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   name: 'Gifts',
@@ -245,6 +245,7 @@ export default {
   },
   methods: {
     getAssetDenomination,
+    parseFiatCurrency,
     disableGenerateButton () {
       if (this.amountBCH > 0) {
         if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {

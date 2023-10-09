@@ -28,10 +28,10 @@
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
                 <template v-if="transaction.record_type === 'outgoing'">
-                  {{ transactionAmountMarketValue * -1 }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                  {{ `-${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
                 </template>
                 <template v-else>
-                  {{ transactionAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                  {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
                 </template>
                 <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
                   <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
@@ -106,18 +106,20 @@
             <q-item>
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>{{ $t('GasFee') }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.gas }} BCH</q-item-label>
+                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                  {{ getAssetDenomination(denomination, transaction.gas) }}
+                </q-item-label>
                 <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
-                  {{ txFeeMarketValue }}
-                  {{ String(selectedMarketCurrency).toUpperCase() }}
+                  {{ parseFiatCurrency(txFeeMarketValue, selectedMarketCurrency) }}
                 </q-item-label>
               </q-item-section>
               <q-item-section v-else>
                 <q-item-label class="text-gray" caption>{{ $t('MinerFee') }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.tx_fee / (10**8) }} BCH</q-item-label>
+                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                  {{ getAssetDenomination(denomination, transaction.tx_fee / (10**8)) }}
+                </q-item-label>
                 <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
-                  {{ txFeeMarketValue }}
-                  {{ String(selectedMarketCurrency).toUpperCase() }}
+                  {{ parseFiatCurrency(txFeeMarketValue, selectedMarketCurrency) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -187,6 +189,7 @@ import { ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/format
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import { convertTokenAmount } from 'src/wallet/chipnet'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   name: 'transaction',
@@ -205,7 +208,9 @@ export default {
         incoming: this.$t('Received'),
         outgoing: this.$t('Sent')
       },
-      transaction: {}
+      transaction: {},
+      darkMode: false,
+      denomination: this.$store.getters['global/denomination']
     }
   },
   computed: {
@@ -287,6 +292,8 @@ export default {
   methods: {
     ellipsisText,
     convertTokenAmount,
+    getAssetDenomination,
+    parseFiatCurrency,
     concatenate (array) {
       let addresses = array.map(function (item) {
         return item[0]

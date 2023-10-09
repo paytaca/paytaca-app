@@ -165,7 +165,7 @@
                       </template>
                     </q-input>
                     <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                      ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
                     </div>
                   </div>
                 </div>
@@ -188,7 +188,7 @@
                       </template>
                     </q-input>
                     <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                      ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
                     </div>
                   </div>
                 </div>
@@ -197,7 +197,7 @@
                 <div class="col q-mt-md" style="font-size: 18px; color: gray;">
                   {{ parseAssetDenomination(denomination, asset) }}
                   <template v-if="asset.id === 'bch' && setAmountInFiat">
-                    = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                    {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), selectedMarketCurrency)}` }}
                   </template>
                   <a
                     href="#"
@@ -286,7 +286,7 @@
               <template v-else>
                 <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
                 <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
-                  ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
+                  ({{ parseFiatCurrency(sendAmountInFiat, selectedMarketCurrency) }})
                 </p>
               </template>
 
@@ -384,7 +384,7 @@ import {
   getWalletByNetwork,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
-import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -658,6 +658,7 @@ export default {
   methods: {
     convertTokenAmount,
     parseAssetDenomination,
+    parseFiatCurrency,
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 

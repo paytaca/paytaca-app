@@ -21,8 +21,7 @@
       </div>
       <div v-if="isloaded && !networkError">
         <div class="full-width q-pb-sm q-pt-lg" style="font-size: 18px; padding-left: 40px; margin-top: 40px;">
-          {{ bchPrice[bchPrice.length - 1].toFixed(2) }}
-          {{ selectedCurrency.toUpperCase() }}&nbsp;
+          {{ parseFiatCurrency(bchPrice[bchPrice.length - 1], selectedCurrency) }}&nbsp;
           <span style="font-size: 13px;" :class="ishigher ? 'inc-text-color' : 'dec-text-color'">
             <q-icon size="sm" :name="ishigher ? 'mdi-menu-up':'mdi-menu-down'"/><b>{{ percentage }} %</b>
           </span>
@@ -41,6 +40,7 @@ import { load } from 'dotenv'
 import darkmode from 'src/store/darkmode'
 import Chart from 'chart.js/auto'
 import ProgressLoader from '../../../components/ProgressLoader'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   data () {
@@ -62,6 +62,7 @@ export default {
     ProgressLoader
   },
   methods: {
+    parseFiatCurrency,
     async loadData () {
       const vm = this
       // vm.isloaded = false

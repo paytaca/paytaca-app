@@ -70,7 +70,7 @@
                       class="text-caption q-ml-xs text-grey-7"
                       style="margin-top:-0.5em;"
                     >
-                      {{ summary?.totalHedgeMarketValue }} {{ selectedMarketCurrency }}
+                      {{ parseFiatCurrency(summary?.totalHedgeMarketValue, selectedMarketCurrency) }}
                     </div>
                   </div>
                 </template>
@@ -113,7 +113,7 @@
                 <div v-else>
                   <div>{{ getAssetDenomination(denomination, totalLongSats / 10 ** 8) }}</div>
                   <div v-if="totalLongMarketValue" class="text-caption text-grey-7" style="margin-top:-0.5em;">
-                    {{ totalLongMarketValue }} {{ selectedMarketCurrency }}
+                    {{ parseFiatCurrency(totalLongMarketValue, selectedMarketCurrency) }}
                   </div>
                 </div>
               </div>
@@ -378,7 +378,7 @@ import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
 import CustomKeyboard from '../transaction/dialog/CustomKeyboard.vue'
-import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll
 
