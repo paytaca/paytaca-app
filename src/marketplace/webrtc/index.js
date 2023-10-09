@@ -135,7 +135,7 @@ export class RoomMember {
   async sendSignalToDataChannel(action, message) {
     console.log(this.handle, 'Sending datachannel signal', action, message)
     const data = JSON.stringify({ action, message })
-    this.dataChannel?.send?.(data)
+    await this.dataChannel?.send?.(data)
   }
 
   async close() {
@@ -328,7 +328,6 @@ export class WebRtcCallManager {
     } else if (action == 'request-identity') {
       member.sendSignalToDataChannel('set-identity', this.localIdentity);
     } else if (action == 'close') {
-      member.peer.close()
       this.removeMember(member)
     }
   }
@@ -375,17 +374,9 @@ export class WebRtcCallManager {
     await member.createOfferLocalDescription();
     console.log(member.handle, 'Local description set successfully')
 
-    member.waitGatheringComplete()
-      .then(() => console.log(member.handle, 'Gathering complete'));
-
-    member.peer.addEventListener('icecandidate', evt => {
-      console.log('icecandidate', evt)
-      if (!evt.candidate) return
-      this.signaller.sendSignal('ice-candidate', {
-        receiver_channel_name: channelName,
-        candidate: evt.candidate,
-      })
-    })
+    this.signaller.sendSignal('new-offer', { receiver_channel_name: channelName });
+    await member.waitGatheringComplete();
+    console.log(member.handle, 'Gathering complete');
 
     this.signaller.sendSignal('new-offer', {
       sdp: member.peer.localDescription,
@@ -441,6 +432,7 @@ export class WebRtcCallManager {
 
     member.peer.addEventListener('negotiationneeded', evt => {
       console.log(member.handle, 'Negotiation needed', evt)
+      if (!member.peer.remoteDescription) return
       member.createAnswerLocalDescription()
         .then(() => {      
           this.signaller.sendSignal('new-answer', {
@@ -507,7 +499,7 @@ export class WebRtcCallManager {
     console.log('Closing member peers')
     this.members.forEach(member => {
       member.sendSignalToDataChannel('close')
-      member.peer.close()
+      member.close()
     })
     this.members = []
 
