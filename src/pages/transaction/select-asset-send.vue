@@ -1,11 +1,11 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('Send')" backnavpath="/"></header-nav>
     <q-tabs
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
-      :indicator-color="isDefaultTheme && 'transparent'"
+      :indicator-color="isDefaultTheme(theme) && 'transparent'"
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :modelValue="selectedNetwork"
@@ -28,7 +28,7 @@
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
-          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass()">
+          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
             {{ $t('SelectAssetToSend') }}
           </p>
         </div>
@@ -44,17 +44,17 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass('', 'bg-white')">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode, '', 'bg-white')">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50" /></div>
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
-                  :class="darkMode ? isDefaultTheme ? 'text-grad' : 'dark' : 'light'"
+                  :class="darkMode ? isDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
                 >
                   {{ isHongKong(currentCountry) ? asset.name.replace('Token', 'Point') : asset.name }}
                 </p>
-                <p class="q-ma-none amount-text" :class="getDarkModeClass('', 'text-grad')">
+                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
                   {{ parseAssetDenomination(denomination, asset) }}
                 </p>
               </div>
@@ -78,8 +78,8 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { convertTokenAmount } from 'src/wallet/chipnet'
-import { isHongKong } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Send-select-asset',
@@ -99,13 +99,22 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: true,
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      currentCountry: this.$store.getters['global/country'].code,
-      denomination: this.$store.getters['global/denomination']
+      isCashToken: true
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -147,13 +156,12 @@ export default {
           return tokenType === 'slp' || isBch
         }
       })
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
     convertTokenAmount,
+    getDarkModeClass,
+    isDefaultTheme,
     isHongKong,
     parseAssetDenomination,
     getFallbackAssetLogo (asset) {
@@ -173,10 +181,7 @@ export default {
         name: 'transaction-send',
         query
       })
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    },
+    }
   },
   mounted () {
     this.$store.dispatch('market/updateAssetPrices', {})

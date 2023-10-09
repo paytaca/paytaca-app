@@ -1,16 +1,21 @@
 <template>
   <div id="transaction">
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
-      <q-card ref="card" v-if="transaction && transaction.asset" style="padding: 20px 10px 5px 0;" :class="{'pt-dark-card': darkMode}" class="pp-text br-15">
+      <q-card
+        ref="card"
+        v-if="transaction && transaction.asset"
+        class="pp-text br-15 pt-card"
+        :class="getDarkModeClass(darkMode)"
+      >
         <div style="right: 10px; top: 10px; position: absolute; z-index: 100;">
-          <q-btn icon="close" flat round dense v-close-popup :color="darkMode ? 'grey' : ''" />
+          <q-btn icon="close" flat round dense v-close-popup class="close-button" :color="darkMode ? 'grey' : ''" />
         </div>
         <div class="text-h6 text-uppercase" :class="darkMode ? 'text-white' : 'pp-text'" style="text-align: center !important;">
           {{ actionMap[transaction.record_type] }}
         </div>
         <div class="text-h6" style="text-align: center !important; margin: 10px 0;">
-          <q-icon v-if="transaction.record_type === 'incoming'" name="arrow_downward" class="record-type-icon"></q-icon>
-          <q-icon v-if="transaction.record_type === 'outgoing'" name="arrow_upward" class="record-type-icon"></q-icon>
+          <q-icon v-if="transaction.record_type === 'incoming'" name="arrow_downward" class="button record-type-icon"></q-icon>
+          <q-icon v-if="transaction.record_type === 'outgoing'" name="arrow_upward" class="button record-type-icon"></q-icon>
         </div>
         <q-card-section class="amount q-pb-none">
           <q-item class="q-px-none">
@@ -35,7 +40,7 @@
                 </template>
                 <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
                   <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
-                    <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                    <div class="q-px-md q-py-sm pt-label text-caption" :class="getDarkModeClass(darkMode, '', 'text-black')">
                       {{ $t('AssetValueNote') }}
                     </div>
                   </q-popup-proxy>
@@ -133,8 +138,8 @@
                 >
                   <q-popup-proxy :breakpoint="0">
                     <div
-                      :class="['q-px-sm q-py-xs', darkMode ? 'pt-dark-label pt-dark' : 'text-black']"
-                      class="text-caption"
+                      class="q-px-sm q-py-xs text-caption pt-label"
+                      :class="getDarkModeClass(darkMode, '', 'text-black')"
                     >
                       {{ contractInfo.label }}
                     </div>
@@ -162,7 +167,11 @@
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
                 <q-item-label>
-                  <a :href="'https://sonar.cash/tx/' + transaction.hash" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
+                  <a
+                    style="text-decoration: none;"
+                    class="button button-text-primary"
+                    :href="'https://sonar.cash/tx/' + transaction.hash"
+                  >
                     {{ $t('ViewInExplorer') }}
                   </a>
                 </q-item-label>
@@ -170,7 +179,12 @@
               <q-item-section v-else>
                 <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
                 <q-item-label>
-                  <a :href="explorerLink" :class="darkMode ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;">
+                  <a
+                    style="text-decoration: none;"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :href="explorerLink"
+                  >
                     {{ $t('ViewInExplorer') }}
                   </a>
                 </q-item-label>
@@ -190,6 +204,7 @@ import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'transaction',
@@ -294,6 +309,7 @@ export default {
     convertTokenAmount,
     getAssetDenomination,
     parseFiatCurrency,
+    getDarkModeClass,
     concatenate (array) {
       let addresses = array.map(function (item) {
         return item[0]
@@ -367,6 +383,9 @@ export default {
 </script>
 
 <style scoped>
+  .pt-card{
+    padding: 20px 10px 5px 0;
+  }
   .amount {
     /* height: 50px; */
     font-size: 20px;
@@ -384,10 +403,7 @@ export default {
     background: black;
   }
   .record-type-icon {
-    /* color: #3b7bf6; */
-    color: #fff;
     font-size: 30px;
-    background: #3b7bf6;
     border-radius: 20px;
   }
 </style>

@@ -468,7 +468,8 @@ export default {
       type: Boolean,
       default: false
     },
-    currentCountry: { type: String }
+    currentCountry: { type: String },
+    denomination: { type: String }
   },
   data () {
     return {
@@ -539,8 +540,7 @@ export default {
       },
 
       tokensList: [bchToken, ...tokensList],
-      updatingTokenBalances: false,
-      denomination: this.$store.getters['global/denomination']
+      updatingTokenBalances: false
     }
   },
   computed: {

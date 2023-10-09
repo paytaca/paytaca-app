@@ -3,7 +3,7 @@
     <q-card
       class="q-dialog-plugin br-15 pt-card"
       style="padding: 5px 0;"
-      :class="getDarkModeClass()"
+      :class="getDarkModeClass(darkMode)"
     >
       <div style="right: 10px; top: 10px; position: absolute; border-radius: 20px; z-index: 100;">
         <q-btn icon="close" flat round dense v-close-popup :color="darkMode ? 'grey' : 'black'" class="close-button"/>
@@ -11,7 +11,7 @@
 
       <q-card-section v-if="asset">
         <div style="text-align: center; font-size: 20px;">
-          <p :class="darkMode ? 'pt-dark-label' : 'pp-text'">
+          <p class="pt-label" :class="getDarkModeClass(darkMode)">
             {{ asset.symbol }}
           </p>
         </div>
@@ -25,16 +25,11 @@
             target="_blank"
           >
             {{ asset.id.split('/')[1].slice(0, 7) }}...
-            <q-icon
-              name="exit_to_app"
-              class="button button-text-primary dark"
-              :color="darkMode ? 'blue-5' : 'blue-9'"
-              size="sm"
-            />
+            <q-icon name="exit_to_app" class="button button-text-primary dark" size="sm" />
           </a>
         </div>
         <div style="margin-top: 20px; margin-bottom: 10px; text-align: center;">
-          <q-btn @click="send" class="q-mr-sm button" color="blue-9" rounded :label="$t('Send')" no-caps>
+          <q-btn @click="send" rounded class="q-mr-sm button" :label="$t('Send')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
               <svg>
@@ -42,7 +37,7 @@
               </svg>
             </q-icon>
           </q-btn>
-          <q-btn @click="receive" rounded class="button" color="blue-9" :label="$t('Receive')" no-caps>
+          <q-btn @click="receive" rounded class="button" :label="$t('Receive')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
               <svg>
@@ -57,7 +52,8 @@
 </template>
 
 <script>
-import darkmode from 'src/store/darkmode'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
 export default {
   name: 'AssetInfo',
   emits: [
@@ -73,12 +69,14 @@ export default {
   data () {
     return {
       asset: null,
-      selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      darkMode: this.$store.getters['darkmode/getStatus']
+      selectedCurrency: this.$store.getters['market/selectedCurrency']
     }
   },
 
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     isSep20 () {
       return this.network === 'sBCH'
     },
@@ -98,6 +96,7 @@ export default {
   },
 
   methods: {
+    getDarkModeClass,
     show (asset) {
       try {
         this.asset = asset
@@ -134,9 +133,6 @@ export default {
           assetId: this.asset.id
         }
       })
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

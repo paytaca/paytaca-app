@@ -6,13 +6,13 @@
           <p
             class="q-mb-none transactions-wallet type ib-text text-uppercase"
             style="font-size: 15px;"
-            :class="getDarkModeClass()"
+            :class="getDarkModeClass(darkMode)"
           >
             {{ recordTypeText }}
           </p>
           <p
             class="q-mb-none transactions-wallet amount float-right ib-text text-right"
-            :class="[getDarkModeClass(), {'q-mt-sm': !marketValueData?.marketValue }]"
+            :class="[getDarkModeClass(darkMode), {'q-mt-sm': !marketValueData?.marketValue }]"
           >
             <div>
               {{
@@ -27,7 +27,7 @@
             <div
               v-if="marketValueData?.marketValue"
               class="transactions-wallet market-value"
-              :class="getDarkModeClass('text-weight-light', '')"
+              :class="getDarkModeClass(darkMode, 'text-weight-light', '')"
               style="margin-top:-0.25em;"
             >
               {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
@@ -35,7 +35,7 @@
           </p>
         </div>
         <div class="col">
-            <span class="float-left transactions-wallet date" :class="getDarkModeClass()">
+            <span class="float-left transactions-wallet date" :class="getDarkModeClass(darkMode)">
               <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
               <template v-else>{{ formatDate(transaction.date_created) }}</template>
             </span>
@@ -72,6 +72,7 @@ import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $store = useStore()
 const $t = useI18n().t
@@ -175,10 +176,6 @@ const badges = computed(() => {
 
 function formatDate (date) {
   return ago(new Date(date))
-}
-
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 <style scoped>
