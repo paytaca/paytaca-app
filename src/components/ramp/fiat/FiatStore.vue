@@ -81,7 +81,7 @@
                             <span class="sm-font-size">/BCH</span><br>
                             <div class="row sm-font-size">
                                 <span class="q-mr-md">Quantity</span>
-                                <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
+                                <span>{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
                             </div>
                             <div class="row sm-font-size">
                                 <span class="q-mr-md">Limit</span>
@@ -183,7 +183,8 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       adFilter: {}
       // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
     }
@@ -194,10 +195,8 @@ export default {
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       if (vm.pageNumber === null || vm.totalPages === null) {
-        if (!vm.listings || vm.listings.length === 0) {
-          vm.loading = true
-          vm.fetchStoreListings()
-        }
+        vm.loading = true
+        vm.resetAndRefetchListings()
       }
     },
     async selectedCurrency () {

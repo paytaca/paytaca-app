@@ -149,7 +149,8 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       viewProfile: false
     }
   },
@@ -232,7 +233,7 @@ export default {
     },
     async loadMoreData (_, done) {
       const vm = this
-      if (!vm.hasMoreData) {
+      if (!vm.hasMoreData || !vm.wallet) {
         done(true)
         return
       }
@@ -247,6 +248,7 @@ export default {
       if (done) done()
     },
     async resetAndRefetchListings () {
+      console.log('resetAndRefetchListings')
       const vm = this
       // console.time('non-blocking-await')
       vm.$store.dispatch('ramp/resetOrdersPagination')

@@ -19,6 +19,8 @@
           filled
           dense
           v-model="selectedArbiter"
+          :loading="!selectedArbiter"
+          :label="selectedArbiter ? selectedArbiter.address : ''"
           :options="arbiterOptions"
           :disable="!contractAddress"
           behavior="dialog">
@@ -28,11 +30,16 @@
                   <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
                     {{ scope.opt.name }}
                   </q-item-label>
+                  <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                    {{ formattedAddress(scope.opt.address) }}
+                  </q-item-label>
                 </q-item-section>
               </q-item>
             </template>
             <template v-slot:selected v-if="selectedArbiter">
-              {{ selectedArbiter.name }}
+              <span :style="darkMode ? 'color: white;' : 'color: black;'">
+                {{ selectedArbiter.name }}
+              </span>
             </template>
         </q-select>
         <!-- </div> -->
@@ -100,7 +107,6 @@
   </template>
 <script>
 import { signMessage } from 'src/wallet/ramp/signature'
-// import { makeid } from 'src/wallet/ramp'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { Dialog } from 'quasar'
@@ -149,7 +155,6 @@ export default {
       this.generateContractAddress()
     },
     fees (value) {
-      // console.log('fees.total:', value)
       const totalFees = value.total / 100000000
       this.transferAmount += totalFees
     }
@@ -171,9 +176,9 @@ export default {
     vm.transferAmount = vm.amount
     await vm.fetchOrderDetail()
     await vm.fetchArbiters()
-    // console.log('!!!contract:', vm.contract)
     if (vm.contract) {
       vm.contractAddress = vm.contract.address
+      console.log('contractAddress:', vm.contractAddress)
     } else {
       await vm.generateContractAddress()
     }
@@ -186,12 +191,10 @@ export default {
       // Send crypto to smart contract
       const vm = this
       try {
-        // console.log('transferAmount:', vm.transferAmount)
         const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
-        console.log('result:', result)
+        console.log('sendBch:', result)
         if (result.success) {
           vm.txid = result.txid
-          // vm.txid = makeid(64)
           const txidData = {
             id: vm.order.id,
             txidInfo: {
@@ -199,9 +202,7 @@ export default {
               txid: this.txid
             }
           }
-          // console.log('txidData:', txidData)
           vm.$store.dispatch('ramp/saveTxid', txidData)
-          // console.log('txid:', vm.txid)
           await vm.escrowPendingOrder()
         } else {
           vm.sendErrors = []
@@ -216,8 +217,8 @@ export default {
         }
       } catch (err) {
         console.error(err)
+        vm.showDragSlide = true
       }
-      // await vm.escrowPendingOrder()
     },
     async escrowPendingOrder () {
       const vm = this
@@ -228,18 +229,15 @@ export default {
         timestamp: timestamp,
         signature: signature
       }
-      // console.log('headers:', headers)
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
       const body = { txid: vm.txid }
       try {
         const response = await vm.$axios.post(url, body, { headers: headers })
-        // console.log('response:', response)
         const result = {
           txid: vm.txid,
           status: response.data.status
         }
-        // console.log('Emitting:', result)
         vm.$emit('success', result)
       } catch (error) {
         console.error(error.response)
@@ -256,7 +254,6 @@ export default {
         const response = await vm.$axios.get(url, { headers: headers })
         // console.log('response:', response.data)
         vm.fees = response.data.fees
-        vm.selectedArbiter = response.data.order.arbiter
       } catch (error) {
         console.error(error.response)
       }
@@ -266,10 +263,20 @@ export default {
       const url = vm.apiURL + '/arbiter'
       try {
         const response = await vm.$axios.get(url)
+        // console.log('response:', response)
         vm.arbiterOptions = response.data
-        if (!vm.selectedArbiter && vm.arbiterOptions.length > 0) {
-          vm.selectedArbiter = vm.arbiterOptions[0]
+        vm.selectedArbiter = vm.order.arbiter
+        if (vm.arbiterOptions.length > 0) {
+          if (!vm.selectedArbiter) {
+            vm.selectedArbiter = vm.arbiterOptions[0]
+          } else {
+            vm.selectedArbiter = vm.arbiterOptions.find(function(obj) {
+              return obj.id === vm.selectedArbiter.id
+            })
+          }
         }
+        console.log('>arbiterOptions:', vm.arbiterOptions)
+        console.log('>selectedArbiter:', vm.selectedArbiter)
       } catch (error) {
         console.error(error.response)
       }
@@ -317,10 +324,21 @@ export default {
       Dialog.create({
         component: SecurityCheckDialog
       })
-        .onOk(() => this.completePayment())
+        .onOk(() => {
+          this.showDragSlide = false
+          this.completePayment()
+        })
         .onDismiss(() => {
           this.showDragSlide = true
         })
+    },
+    formattedAddress (address) {
+      const startLength = 35
+      const endLength = 5
+      if (address.length <= startLength + endLength) {
+        return address
+      }
+      return address.slice(0, startLength) + '...' + address.slice(-endLength)
     }
   }
 }

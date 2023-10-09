@@ -15,40 +15,46 @@
         Select Ramp App
       </div>
       <div class="row no-wrap justify-around items-baseline md-font-size q-pt-lg q-mb-lg">
-        <div v-for="(app, index) in apps" :key="index">
-          <div class="col column items-center">
-            <q-btn @click="selectApp(app.name)" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" :icon="app.icon"/>
-            <span class="text-capitalize">{{ app.name }}</span>
-          </div>
+        <div class="col column items-center">
+          <q-btn @click="selectApp('crypto')" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" icon="currency_bitcoin"/>
+          <span class="text-capitalize">crypto</span>
+        </div>
+        <div class="col column items-center">
+          <q-btn @click="selectApp('fiat')" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" icon="attach_money"/>
+          <span class="text-capitalize">fiat</span>
+        </div>
+        <div class="col column items-center">
+          <q-btn @click="selectApp('appeal')" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" icon="gavel"/>
+          <span class="text-capitalize">appeals</span>
         </div>
       </div>
     </q-card>
   </q-dialog>
 </template>
 <script>
-
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
+      arbiter: this.$store.getters['ramp/getArbiter'],
       openDialog: true,
-      apps: [
-        {
-          name: 'fiat',
-          icon: 'attach_money'
-        },
-        {
-          name: 'crypto',
-          icon: 'currency_bitcoin'
-        },
-        {
-          name: 'appeal',
-          icon: 'gavel'
-        }
-      ]
+      loading: true
     }
   },
   emits: ['back', 'submit'],
+  async created () {
+    await this.$store.dispatch('ramp/fetchArbiter')
+    this.loading = false
+  },
+  watch: {
+    loading (val) {
+      console.log('loading:', val)
+    }
+  },
+  async mounted () {
+    console.log('arbiter:', this.arbiter)
+  },
   methods: {
     selectApp (app) {
       this.$emit('submit', app)

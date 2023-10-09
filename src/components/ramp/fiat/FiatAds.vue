@@ -77,7 +77,7 @@
                             </span>
                             <div class="row sm-font-size">
                               <span class="q-mr-md">Quantity</span>
-                              <span>{{ formattedCurrency(listing.crypto_amount, null, false) }} BCH</span>
+                              <span>{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
                             </div>
                             <div class="row sm-font-size">
                               <span class="q-mr-md">Limit</span>
@@ -177,7 +177,8 @@ export default {
       totalPages: null,
       pageNumber: null,
       selectedAdId: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
   watch: {

@@ -43,6 +43,7 @@
       :action="verifyAction"
       :txid="txid"
       :errors="errorMessages"
+      :ramp-contract="rampContract"
       @back="onBack"
       @success="onVerifyTxSuccess"
     />
@@ -54,6 +55,7 @@
         :feedback-data="feedback"
         :key="standByDisplayKey"
         @send-feedback="sendFeedback"
+        @submit-appeal="submitAppeal"
       />
     </div>
 
@@ -85,7 +87,7 @@
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency, makeid } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 import RampContract from 'src/wallet/ramp/contract'
 
@@ -101,9 +103,11 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      isChipnet: this.$store.getters['global/isChipnet'],
+      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      websocket: null,
       state: '',
       isloaded: false,
       confirmType: '',
@@ -128,7 +132,8 @@ export default {
       standByDisplayKey: 0,
       escrowTransferProcessKey: 0,
       verifyEscrowTxKey: 0,
-      errorMessages: []
+      errorMessages: [],
+      selectedPaymentMethods: []
     }
   },
   components: {
@@ -158,7 +163,7 @@ export default {
       return formatCurrency(this.ad.trade_floor, this.order.fiat_currency.symbol) + ' - ' + formatCurrency(this.ad.trade_ceiling, this.order.fiat_currency.symbol)
     },
     fiatAmount () {
-      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
+      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
     },
     cryptoAmount () {
       return (this.fiatAmount / this.order.locked_price).toFixed(8)
@@ -230,13 +235,13 @@ export default {
           }
           break
         case 'CNF': // Confirmed
+          if (!this.rampContract) {
+            vm.generateContract()
+          }
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
-          }
-          if (!this.rampContract) {
-            vm.generateContract()
           }
           break
         case 'ESCRW_PN': // Escrow Pending
@@ -246,6 +251,9 @@ export default {
             vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
+          }
+          if (!this.rampContract) {
+            vm.generateContract()
           }
           break
         case 'ESCRW': // Escrowed
@@ -278,26 +286,19 @@ export default {
             vm.generateContract()
           }
           break
-        case 'RLS_PN': // Release Pending
-          vm.state = 'standby-view'
+        case 'RFN': // Refunded
+          this.status = 'refund'
+          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
           break
         case 'RLS': // Released
           vm.state = 'standby-view'
           vm.standByDisplayKey++
           vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
           break
-        case 'CNCL': // Canceled
+        default:
+          // includes status = CNCL, APL, RFN_PN, RLS_PN
           this.state = 'standby-view'
-          break
-          // TODO: add pages later
-        case 'RLS_APL': // Appealed for Release
-        case 'RFN_APL': // Appealed for Refund
-          this.status = 'appeal'
-          break
-        case 'RFN_PN': // Refund Pending
-        case 'RFN': // Refunded
-          this.status = 'refund'
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
+          vm.standByDisplayKey++
           break
       }
       if (this.isExpired) {
@@ -315,10 +316,11 @@ export default {
         }
       })
         .then(response => {
-          // console.log('fetchOrderData:', response.data)
+          console.log('fetchOrderData:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.fees = response.data.fees
+          console.log('contract:', vm.contract)
           vm.updateStatus(vm.order.status)
         })
         .catch(error => {
@@ -352,22 +354,17 @@ export default {
     },
     async confirmOrder () {
       const vm = this
-
       const timestamp = Date.now()
       const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CONFIRM', timestamp)
-
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
-
       const headers = {
         'wallet-hash': vm.wallet.walletHash,
         signature: signature,
         timestamp: timestamp
       }
-
       await vm.$axios.post(url, {}, { headers: headers })
         .then(response => {
-          // console.log(response)
           if (response.data && response.data.status.value === 'CNF') {
             vm.updateStatus(response.data.status)
           }
@@ -419,7 +416,10 @@ export default {
         signature: signature,
         timestamp: timestamp
       }
-      await vm.$axios.post(url, {}, { headers: headers })
+      const body = {
+        payment_methods: this.selectedPaymentMethods
+      }
+      await vm.$axios.post(url, body, { headers: headers })
         .then(response => {
           // console.log('sendConfirmPayment:', response.data)
           // if (response.data && response.data.status.value === 'PD_PN') {
@@ -427,7 +427,7 @@ export default {
           // }
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       // await this.fetchOrderData()
@@ -435,32 +435,35 @@ export default {
       vm.isloaded = true
     },
     async releaseCrypto () {
-      // console.log('[releasing crypto]')
+      this.txid = null
       if (!this.rampContract) {
         await this.generateContract()
       }
+      const feContractAddr = await this.rampContract.getAddress()
+      const beContractAddr = this.contract.address
+      if (feContractAddr !== beContractAddr) {
+        this.errorMessages.push('contract addresses mismatched')
+      }
       await this.rampContract.release(this.wallet.privateKeyWif, this.order.crypto_amount)
         .then(result => {
-          // console.log('[rampContract.release]:', result.txInfo.txid)
           this.txid = result.txInfo.txid
           this.verifyEscrowTxKey++
+
+          const txidData = {
+            id: this.order.id,
+            txidInfo: {
+              action: 'RELEASE',
+              txid: this.txid
+            }
+          }
+          this.$store.dispatch('ramp/saveTxid', txidData)
+          console.log('rampContract:', this.rampContract)
         })
         .catch(error => {
-          console.error(error.response)
+          console.error('release error:', error.response)
         })
-      // this.txid = makeid(64) // temporary txid generation
-      const txidData = {
-        id: this.order.id,
-        txidInfo: {
-          action: 'RELEASE',
-          txid: this.txid
-        }
-      }
-      this.$store.dispatch('ramp/saveTxid', txidData)
-      // console.log('rampContract:', this.rampContract)
     },
     async verifyRelease () {
-      // console.log('verifyRelease')
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
       const timestamp = Date.now()
@@ -501,7 +504,7 @@ export default {
       }
       try {
         const response = await vm.$axios.post(url, body, { headers: headers })
-        // console.log('verifyEscrow response:', response)
+        console.log('verifyEscrow response:', response)
       } catch (error) {
         console.error(error.response)
         const errorMsg = error.response.data.error
@@ -511,7 +514,6 @@ export default {
     },
     async generateContract () {
       await this.fetchOrderData()
-      // console.log('generateContract: ', this.contract)
       if (!this.contract) return
       const publicKeys = {
         arbiter: this.contract.arbiter.public_key,
@@ -531,12 +533,31 @@ export default {
         contractFee: this.fees.fees.hardcoded_fee
       }
       const timestamp = this.contract.timestamp
-      this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, false)
+      this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
       await this.rampContract.initialize()
-      // this.contract.address = this.rampContract.getAddress()
-      // console.log('rampContract address:', this.rampContract.getAddress())
+      console.log('address:', await this.rampContract.getAddress())
     },
-    // Peer Feedback
+
+    async submitAppeal (data) {
+      console.log('onSubmitAppeal:', data)
+      const vm = this
+      const timestamp = Date.now()
+      const signature = await signMessage(vm.wallet.privateKeyWif, 'APPEAL_REQUEST', timestamp)
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+      const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
+      vm.$axios.post(url, data, { headers: headers })
+        .then(response => {
+          console.log('response: ', response)
+          this.updateStatus(response.data.status)
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
+    },
     async sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
@@ -566,7 +587,7 @@ export default {
           }
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       vm.isloaded = true
@@ -653,7 +674,9 @@ export default {
       this.openDialog = true
       this.title = 'Release crypto?'
     },
-    handleConfirmPayment () {
+    handleConfirmPayment (data) {
+      console.log('handleConfirmPayment:', data)
+      this.selectedPaymentMethods = data
       this.dialogType = 'confirmPayment'
       this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
 
@@ -679,17 +702,16 @@ export default {
       }
       return true
     },
-    onEscrowSuccess (data) {
-      // console.log('onEscrowSubmit:', data)
-      // this.txid = data.txid
-      // this.updateStatus(data.status)
-    },
     onVerifyTxSuccess (status) {
-      // console.log('onVerifyTxSuccess:', status)
       this.updateStatus(status)
     },
     onBack () {
       this.state = 'order-list'
+    },
+    onEscrowSuccess (data) {
+      console.log('onEscrowSuccess:', data)
+      this.txid = data.txid
+      this.updateStatus(data.status.status)
     },
     copyToClipboard (value) {
       this.$copyText(value)
@@ -710,23 +732,31 @@ export default {
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
-        if (data && data.success) {
-          if (data.txid) {
-            this.txid = data.txid
-          }
-          if (data.status) {
-            this.updateStatus(data.status.status)
-          }
-          if (data.contract_address) {
-            if (this.contract) {
-              this.contract.address = data.contract_address
-            } else {
-              this.contract = {
-                address: data.contract_address
-              }
+        if (data) {
+          if (data.success) {
+            if (data.txid) {
+              this.txid = data.txid
             }
-            // console.log('contract:', this.contract)
-            this.escrowTransferProcessKey++
+            if (data.status) {
+              this.updateStatus(data.status.status)
+            }
+            if (data.contract_address) {
+              if (this.contract) {
+                this.contract.address = data.contract_address
+              } else {
+                this.contract = {
+                  address: data.contract_address
+                }
+              }
+              // console.log('contract:', this.contract)
+              this.escrowTransferProcessKey++
+            }
+          } else if (data.error) {
+            this.errorMessages.push(data.error)
+            this.verifyEscrowTxKey++
+          } else if (data.errors) {
+            this.errorMessages.push(...data.errors)
+            this.verifyEscrowTxKey++
           }
         }
       }

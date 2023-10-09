@@ -17,7 +17,7 @@
     </q-card>
   </q-dialog>
 
-  <!-- Create Payment Method -->
+  <!-- Create/Edit Payment Method -->
   <q-dialog full-width persistent v-model="createPaymentMethod">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
@@ -37,25 +37,39 @@
               :dark="darkMode"
               v-model="paymentMethod.payment_type"
               :options="paymentTypes"
-              option-label="name"
-            >
-              <template v-slot:append>
+              option-label="name">
+              <!-- <template v-slot:append>
                 <q-icon size="xs" name="close" @click.stop.prevent="paymentMethod.payment_type = null"/>&nbsp;
-              </template>
+              </template> -->
             </q-select>
           </div>
         </div>
         <div class="q-mx-lg q-pt-sm">
           <span class="md-font-size">
-            Information
+            Account Name
           </span>
-          <div class="text-center q-pt-sm=">
+          <div class="text-center q-pt-sm">
             <q-input
               dense
               filled
               :dark="darkMode"
-              v-model="paymentMethod.account_number"
-            >
+              v-model="paymentMethod.account_name">
+              <template v-slot:append>
+                <q-icon size="xs" name="close" @click="paymentMethod.account_name = ''"/>&nbsp;
+              </template>
+            </q-input>
+          </div>
+        </div>
+        <div class="q-mx-lg q-pt-sm">
+          <span class="md-font-size">
+            Account Number
+          </span>
+          <div class="text-center q-pt-sm">
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="paymentMethod.account_number">
               <template v-slot:append>
                 <q-icon size="xs" name="close" @click="paymentMethod.account_number = ''"/>&nbsp;
               </template>
@@ -90,6 +104,7 @@
     </q-card>
   </q-dialog>
 
+  <!-- Add Payment Method Dialog -->
   <q-dialog persistent v-model="addPaymentMethod">
     <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section class="q-mx-sm">
@@ -395,7 +410,46 @@
 
       <q-card-actions class="q-pt-lg text-center" align="center">
         <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="I understand, proceed" @click="submitData()" color="blue-6" v-close-popup />
+        <q-btn flat label="I understand, proceed" @click="onProceedAppeal()" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog full-width persistent v-model="appealForm">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Appeal Form</div>
+      </q-card-section>
+      <q-card-section class="q-pt-none">
+        <div class="q-mx-md">
+          <div class="sm-font-size bold-text">Type</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              rounded :outline="!(selectedAppealType && appealType.value === selectedAppealType.value)" color="blue-grey-6"
+              @click="selectedAppealType = appealType"
+              v-for="appealType in appealTypeOpts" :key="appealType.value" >
+              {{ appealType.label }}
+            </q-badge>
+          </div>
+          <div class="sm-font-size bold-text q-mt-sm">Reasons</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              rounded
+              color="blue-grey-6"
+              :outline="!(selectedReasons.includes(reason))"
+              @click="updateAppealReasons(reason)"
+              v-for="reason in reasonOpts" :key="reason" >
+              {{ reason }}
+            </q-badge>
+          </div>
+        </div>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-lg text-center" align="center">
+        <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Submit" :disable="!selectedAppealType || selectedReasons.length === 0" @click="submitData()" color="blue-6" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -451,6 +505,7 @@ export default {
       maxMethodReached: false,
       filterAd: false,
       appeal: false,
+      appealForm: false,
 
       // Input Model
       nickname: '',
@@ -467,7 +522,24 @@ export default {
       selectedPaymentTypes: [],
       selectedPTL: [],
       isAscending: false,
-      isFixed: true
+      isFixed: true,
+      appealTypeOpts: [
+        {
+          label: 'Release',
+          value: 'RLS'
+        },
+        {
+          label: 'Refund',
+          value: 'RFN'
+        }
+      ],
+      selectedAppealType: null,
+      reasonOpts: [
+        'Unresponsive seller/buyer',
+        'Payment failed',
+        'I changed my mind'
+      ],
+      selectedReasons: []
     }
   },
   watch: {
@@ -513,7 +585,7 @@ export default {
         } else {
           if (this.selectedPTL.length === this.ptl.length) {
             this.selectedPTL = []
-          } else{
+          } else {
             this.selectedPTL = []
 
             for (const p in this.ptl) {
@@ -718,6 +790,12 @@ export default {
         case 'confirmCancelOrder':
         case 'confirmOrderCreate':
           return 'submit'
+        case 'appeal':
+          vm.info = {
+            type: vm.selectedAppealType.value,
+            reasons: vm.selectedReasons
+          }
+          return 'submit'
         default:
           vm.info = vm.selectedPaymentMethods
           return 'submit'
@@ -727,10 +805,7 @@ export default {
     submitData () {
       const vm = this
       const emitName = vm.stageData()
-      // console.log('emitName:', emitName)
-      // console.log('vm.info:', vm.info)
       this.$emit(emitName, vm.info)
-      // this.$emit('back', vm.info)
     },
     checkName: debounce(async function () {
       const vm = this
@@ -763,6 +838,21 @@ export default {
           console.error(error)
           console.error(error.response)
         })
+    },
+    onProceedAppeal () {
+      this.appeal = false
+      this.appealForm = true
+    },
+    updateAppealReasons (reason) {
+      if (this.selectedReasons.includes(reason)) {
+        const index = this.selectedReasons.indexOf(reason)
+        if (index > -1) {
+          this.selectedReasons.splice(index, 1)
+        }
+      } else {
+        this.selectedReasons.push(reason)
+      }
+      console.log('selectedReasons:', this.selectedReasons)
     }
   }
 }

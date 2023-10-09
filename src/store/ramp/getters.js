@@ -1,3 +1,6 @@
+export function getArbiter (state) {
+  return state.arbiter
+}
 export function getUser (state) {
   return state.user
 }
@@ -147,6 +150,42 @@ export function getOrdersPageNumber (state) {
 }
 
 // orders getters //
+
+// appeals getters //
+export function pendingAppeals (state) {
+  return state.pendingAppeals
+}
+
+export function resolvedAppeals (state) {
+  return state.resolvedAppeals
+}
+
+export function appealsTotalPages (state) {
+  return function (appealState) {
+    switch (appealState) {
+      case 'PENDING':
+        return state.pendingAppealsTotalPages
+      case 'RESOLVED':
+        return state.resolvedAppealsTotalPages
+      default:
+        return null
+    }
+  }
+}
+
+export function appealsPageNumber (state) {
+  return function (appealState) {
+    switch (appealState) {
+      case 'PENDING':
+        return state.pendingAppealsPageNumber
+      case 'RESOLVED':
+        return state.resolvedAppealsPageNumber
+      default:
+        return null
+    }
+  }
+}
+// appeals getters //
 
 export function getTxidHistory (state) {
   return state.txids

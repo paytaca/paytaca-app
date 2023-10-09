@@ -100,6 +100,7 @@ export default {
         vm.$store.commit('assets/updatedCurrentAssets', index)
         vm.$store.dispatch('ramp/resetData')
         vm.$store.dispatch('ramp/resetPagination')
+        vm.$store.dispatch('ramp/clearArbiter')
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {
           vm.$router.push('/')

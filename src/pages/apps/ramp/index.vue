@@ -76,14 +76,14 @@ export default {
   methods: {
     selectApp (app) {
       const vm = this
-      console.log(app)
+      // console.log(app)
 
       vm.selectedApp = app
       vm.pageName = 'ramp-' + app
       if (app === 'fiat') {
         vm.pageName += '-store'
       }
-      console.log('pageName:', vm.pageName)
+      // console.log('pageName:', vm.pageName)
       this.$router.push({ name: vm.pageName })
 
       vm.appSelection = false
