@@ -264,7 +264,7 @@ async function getCurrentAddressWif() {
 }
 
 function getBchAddresses() {
-  return [ accountInfo.value.address, accountInfo.value.changeAddress ]
+  return [ accountInfo.value.address ]
 }
 
 function getNamespaces() {
@@ -351,20 +351,31 @@ function openSessionProposal(sessionProposal) {
     })
 }
 async function approveSessionProposal(sessionProposal) {
-  const namespaces = getNamespaces()
-  console.log('Namespaces', namespaces)
-
-  const approvedNamespaces = buildApprovedNamespaces({
-    proposal: sessionProposal,
-    supportedNamespaces: namespaces,
+  const dialog = $q.dialog({
+    title: 'Approving session',
+    progress: { color: 'brandblue', },
+    persistent: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
-
-  const session = await web3Wallet.value.approveSession({
-    id: sessionProposal?.id,
-    namespaces: approvedNamespaces,
-  })
-  console.log('Session approved', session)
-  statusUpdate()
+  try {
+    const namespaces = getNamespaces()
+    console.log('Namespaces', namespaces)
+  
+    const approvedNamespaces = buildApprovedNamespaces({
+      proposal: sessionProposal,
+      supportedNamespaces: namespaces,
+    })
+  
+    const session = await web3Wallet.value.approveSession({
+      id: sessionProposal?.id,
+      namespaces: approvedNamespaces,
+    })
+    console.log('Session approved', session)
+    statusUpdate()
+  } finally {
+    dialog.hide()
+  }
 }
 
 const loadingSessionRequests = ref({})
@@ -392,6 +403,9 @@ async function respondToSessionRequest(opts={ sessionRequest, accept }) {
     else return await rejectSessionRequest(opts?.sessionRequest)
   } finally {
     delete loadingSessionRequests.value[id]
+    if (sessionRequestDialog.value?.sessionRequest?.id == id) {
+      sessionRequestDialog.value.show = false
+    }
   }
 }
 
