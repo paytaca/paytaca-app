@@ -5,13 +5,17 @@ const { ec: EC } = ec
 import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256 } from '@bitauth/libauth'
 import { IncorrectWIFError } from '@generalprotocols/anyhedge'
 
-export async function signMessage (privateKeyWIF, message, timestamp) {
-  const timedMessage = message + '::' + timestamp
-
+export async function signMessage (privateKeyWIF, message, timestamp = null) {
+  let stringToSign = message
+  if (timestamp) {
+    const timedMessage = message + '::' + timestamp
+    stringToSign = timedMessage
+  }
+  // console.log('stringToSign:', stringToSign)
   const privateKeyBin = decodePrivateKeyWif(privateKeyWIF).privateKey
   if (typeof privateKeyBin === 'string') throw (new IncorrectWIFError(privateKeyWIF))
 
-  const messageHash = await sha256.hash(utf8ToBin(timedMessage))
+  const messageHash = await sha256.hash(utf8ToBin(stringToSign))
   const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
 
   if (typeof signatureBin === 'string') throw new Error(signatureBin)

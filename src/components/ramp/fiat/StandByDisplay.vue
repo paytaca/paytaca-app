@@ -111,6 +111,7 @@
           </div>
           <div class="q-pt-sm q-px-xs">
             <q-input
+              v-if="!feedback.is_posted || (feedback.is_posted && feedback.comment)"
               v-model="feedback.comment"
               :dark="darkMode"
               :readonly="feedback.is_posted"
@@ -140,7 +141,7 @@
               color="blue-8"
             /> -->
           </div>
-          <div class="text-right text-blue md-font-size q-mt-sm" @click="openReviews = true">See all reviews</div>
+          <!-- <div class="text-right text-blue md-font-size q-mt-sm" @click="openReviews = true">See all reviews</div> -->
         </div>
       </div>
     </q-scroll-area>
@@ -212,7 +213,7 @@ export default {
   },
   computed: {
     isCompletedOrder () {
-      return (this.order.status.value !== 'RLS' || this.order.status.value !== 'RFN')
+      return (this.order.status.value === 'RLS' || this.order.status.value === 'RFN')
     },
     orderStatus () {
       return this.order.status.label.toUpperCase()

@@ -26,7 +26,7 @@
             <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price Margin' }}</span>
             <!-- <span>Price:</span> -->
             <span class="text-nowrap q-ml-xs">
-              {{ adData.priceType === 'FIXED' ? formattedCurrency(adData.fixedPrice) : adData.floatingPrice }} {{ adData.priceType === 'FLOATING' ? '%' : '' }}
+              {{ adData.priceType === 'FIXED' ? formattedCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) : adData.floatingPrice }} {{ adData.priceType === 'FLOATING' ? '%' : '' }}
             </span>
           </div>
         </div>
@@ -36,7 +36,7 @@
         <div class="q-pt-lg q-mx-lg">
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Trade Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} - {{ formattedCurrency(adData.tradeCeiling) }} </span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor, postData.fiatCurrency.symbol) }} - {{ formattedCurrency(adData.tradeCeiling, postData.fiatCurrency.symbol) }} </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Trade Amount</span>
@@ -144,6 +144,7 @@
 </template>
 <script>
 import DragSlide from '../../drag-slide.vue'
+import { formatCurrency } from 'src/wallet/ramp'
 export default {
   data () {
     return {
@@ -191,15 +192,8 @@ export default {
     vm.isLoaded = true
   },
   methods: {
-    formattedCurrency (value) {
-      const parsedValue = parseFloat(value)
-      const formattedNumber = parsedValue.toLocaleString(undefined, {
-        style: 'currency',
-        currency: this.postData.fiatCurrency.symbol,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: parsedValue % 1 === 0 ? 0 : 2
-      })
-      return formattedNumber
+    formattedCurrency (value, currency) {
+      return formatCurrency(value, currency)
     },
     checkMatchingPaymentMethod (userPM, adMethodList) {
       adMethodList = adMethodList.map(p => p.payment_type)

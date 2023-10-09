@@ -43,6 +43,11 @@
                         <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                           <div class="row q-mx-md">
                             <div class="col ib-text">
+                              <div
+                                :class="{'pt-dark-label': darkMode}"
+                                class="q-mb-none md-font-size">
+                                #{{ listing.id }}
+                              </div>
                               <span
                                 :class="{'pt-dark-label': darkMode}"
                                 class="q-mb-none md-font-size"
@@ -57,13 +62,12 @@
                                 {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
                               </div>
                               <div class="sm-font-size">
-                                <!-- &asymp; -->
-                                <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
                                 {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
                               <div class="xs-font-size">
                                 <span class="q-pr-sm">Price</span> {{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}
                               </div>
-                              <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div>
+                              <!-- <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div> -->
+                              <div v-if="listing.created_at" class="row xs-font-size" style="color: grey">{{ formattedDate(listing.created_at) }}</div>
                             </div>
                             <div class="text-right">
                               <span class="row subtext" v-if="listing.status && isCompleted(listing.status.label) == false && listing.expiration_date != null">
@@ -317,18 +321,21 @@ export default {
       }
     },
     formatExpiration (expirationDate) {
-      let [days, hours, minutes] = this.getElapsedTime(expirationDate)
+      // eslint-disable-next-line no-unused-vars
+      let [_, hours, minutes] = this.getElapsedTime(expirationDate)
 
-      if (days < 0) days = days * -1
       if (hours < 0) hours = hours * -1
       if (minutes < 0) minutes = minutes * -1
       let formattedElapsedTime = ''
 
-      if (days > 0) {
-        formattedElapsedTime = `${days} days`
-      } else {
-        formattedElapsedTime = `${hours} hours ${minutes} minutes`
+      if (hours > 0) {
+        formattedElapsedTime += `${hours}h `
       }
+
+      if (minutes > 0) {
+        formattedElapsedTime += `${minutes}m `
+      }
+
       return formattedElapsedTime
     },
     isExpired (expirationDate, status) {

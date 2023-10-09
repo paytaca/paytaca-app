@@ -9,11 +9,15 @@
         <span class="text-nowrap q-ml-xs">{{ price }}  {{ order.crypto_currency.symbol }}</span>
       </div>
       <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-        <span>Limit</span>
+        <span>Trade Limit</span>
         <span class="text-nowrap q-ml-xs">{{ $parent.getAdLimit }} </span>
       </div>
+      <div class="row justify-between no-wrap q-mx-lg" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <span>Time Limit</span>
+        <span class="text-nowrap q-ml-xs">{{ formattedPlt(order.ad.time_duration).label }} </span>
+      </div>
       <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-        <span>Payment Time Limit</span>
+        <span>Status</span>
         <span class="text-nowrap q-ml-xs" :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status.label }}</span>
       </div>
     </div>
@@ -26,17 +30,14 @@
           <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
         </template>
       </q-input>
-      <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div>
+      <div class="text-right subtext sm-font-size q-pr-sm"> {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div>
     </div>
-
-    <div>
-      <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-      <div class="row justify-between no-wrap q-mx-lg sm-font-size bold-text subtext q-pt-sm q-px-lg">
-        <span>Balance:</span>
-        <span class="text-nowrap q-ml-xs">
-          {{ $parent.bchBalance }} BCH
-        </span>
-      </div>
+    <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
+    <div class="row justify-between no-wrap q-mx-lg sm-font-size subtext q-pt-sm q-px-lg">
+      <span>Balance</span>
+      <span class="text-nowrap q-ml-xs">
+        {{ $parent.bchBalance }} BCH
+      </span>
     </div>
 
     <div class="row q-pt-md q-mx-lg q-px-md">
@@ -64,6 +65,8 @@
 </template>
 <script>
 
+import { getPaymentTimeLimit } from 'src/wallet/ramp'
+
 export default {
   data () {
     return {
@@ -82,10 +85,13 @@ export default {
   emits: ['confirm', 'cancel'],
   async mounted () {
     this.order = this.orderData
-
     this.price = this.$parent.formattedCurrency(this.order.crypto_amount)
-
     this.isloaded = true
+  },
+  methods: {
+    formattedPlt (value) {
+      return getPaymentTimeLimit(value)
+    }
   }
 }
 </script>

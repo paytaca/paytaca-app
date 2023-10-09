@@ -145,7 +145,7 @@ import FiatOrderForm from './FiatOrderForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, getCookie } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
 
@@ -169,6 +169,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       walletIndex: this.$store.getters['global/getWalletIndex'],
+      wallet: null,
       viewProfile: false,
       transactionType: 'SELL',
       loading: false,
@@ -233,7 +234,8 @@ export default {
   },
   async mounted () {
     const vm = this
-    // console.log('listings:', vm.listings)
+    const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    this.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
     if (!vm.listings || vm.listings.length === 0) {
       vm.loading = true
     }
@@ -248,7 +250,11 @@ export default {
     },
     async fetchFiatCurrencies () {
       const vm = this
-      vm.$axios.get(vm.apiURL + '/currency/fiat')
+      const headers = {
+        'wallet-hash': vm.wallet.walletHash,
+        Authorization: `Token ${getCookie('token')}`
+      }
+      vm.$axios.get(vm.apiURL + '/currency/fiat', { headers: headers })
         .then(response => {
           vm.fiatCurrencies = response.data
           if (!vm.selectedCurrency) {
@@ -272,19 +278,18 @@ export default {
           currency: vm.selectedCurrency.symbol,
           trade_type: vm.transactionType
         }
-        const walletInfo = vm.$store.getters['global/getWallet']('bch')
-        const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
         const timestamp = Date.now()
-        const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+        const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
         const headers = {
-          'wallet-hash': wallet.walletHash,
+          'wallet-hash': vm.wallet.walletHash,
           signature: signature,
-          timestamp: timestamp
+          timestamp: timestamp,
+          Authorization: `Token ${getCookie('token')}`
         }
         try {
           await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers, overwrite: overwrite })
         } catch (error) {
-          console.error(error)
+          console.error(error.response)
         }
         vm.loading = false
       }
@@ -354,10 +359,6 @@ export default {
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
-    },
-    updateNickname (info) {
-      this.$store.commit('global/editRampNickname', info.nickname)
-      // this.proceed = true
     },
     viewUserProfile (user, data) {
       this.viewProfile = true

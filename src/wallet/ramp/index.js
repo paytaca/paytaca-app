@@ -126,23 +126,51 @@ export function formatRelativeDate (date) {
 
   if (elapsedMinutes < 1) {
     dateString = 'Just now'
-  } else if (elapsedMinutes === 1) {
-    dateString = `${elapsedMinutes} minute ago`
   } else if (elapsedMinutes < 60) {
-    dateString = `${elapsedMinutes} minutes ago`
+    dateString = elapsedMinutes.toString()
+    if (elapsedMinutes > 1) {
+      dateString += ' minutes ago'
+    } else {
+      dateString += ' minute ago'
+    }
   } else if (elapsedHours < 24) {
-    dateString = `${elapsedHours} hours ago`
+    dateString = elapsedHours.toString()
+    if (elapsedHours > 1) {
+      dateString += ' hours ago'
+    } else {
+      dateString += ' hour ago'
+    }
   } else if (elapsedDays < 7) {
-    dateString = `${elapsedDays} days ago`
+    dateString = elapsedDays.toString()
+    if (elapsedDays > 1) {
+      dateString += ' days ago'
+    } else {
+      dateString += ' day ago'
+    }
   } else if (elapsedDays < 30) {
     const elapsedWeeks = Math.round(elapsedDays / 7)
-    dateString = `${elapsedWeeks} weeks ago`
+    dateString = elapsedWeeks.toString()
+    if (elapsedWeeks > 1) {
+      dateString += ' weeks ago'
+    } else {
+      dateString += ' week ago'
+    }
   } else if (elapsedDays < 365) {
     const elapsedMonths = Math.round(elapsedDays / 30)
-    dateString = `${elapsedMonths} months ago`
+    dateString = elapsedMonths.toString()
+    if (elapsedMonths > 1) {
+      dateString += ' months ago'
+    } else {
+      dateString += ' month ago'
+    }
   } else {
     const elapsedYears = Math.round(elapsedDays / 365)
-    dateString = `${elapsedYears} years ago`
+    dateString = elapsedYears.toString()
+    if (elapsedYears === 1) {
+      dateString = dateString + ' year ago'
+    } else {
+      dateString = dateString + ' years ago'
+    }
   }
   return dateString
 }
@@ -182,4 +210,15 @@ export function makeid (length) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength))
   }
   return result
+}
+
+export function getCookie (name) {
+  const cookieArr = document.cookie.split('; ')
+  for (let i = 0; i < cookieArr.length; i++) {
+    const cookiePair = cookieArr[i].split('=')
+    if (name === cookiePair[0]) {
+      return decodeURIComponent(cookiePair[1])
+    }
+  }
+  return null
 }
