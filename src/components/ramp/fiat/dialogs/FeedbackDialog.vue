@@ -92,7 +92,7 @@ export default {
           if (response.data) {
             // const data = response.data
             vm.reviewList = response.data
-            console.log('reviews: ', vm.reviewList)
+            // console.log('reviews: ', vm.reviewList)
           }
         })
         .catch(error => {

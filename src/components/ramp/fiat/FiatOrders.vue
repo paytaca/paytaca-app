@@ -371,6 +371,7 @@ export default {
       // vm.loading = false
     },
     viewUserProfile (data) {
+      // console.log(data)
       this.selectedUser = {
         id: data.ad.owner.id,
         name: data.ad.owner.nickname,

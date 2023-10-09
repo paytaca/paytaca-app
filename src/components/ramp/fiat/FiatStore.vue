@@ -85,7 +85,8 @@
                             </div>
                             <div class="row sm-font-size">
                                 <span class="q-mr-md">Limit</span>
-                                <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span>
+                                <span> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
+                                <!-- <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span> -->
                             </div>
                           </div>
                         </div>
@@ -148,6 +149,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { loadP2PWalletInfo, formatCurrency, getCookie } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
+import { SignatureTemplate } from 'cashscript'
 
 export default {
   setup () {
@@ -368,7 +370,45 @@ export default {
       }
       // console.log(this.selectedUser)
     },
+    async filterAds () {
+      const vm = this
+      vm.loading = true
+      console.log('filtering ads')
+      const walletInfo = vm.$store.getters['global/getWallet']('bch')
+      const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      const timestamp = Date.now()
+      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+
+      const headers = {
+        'wallet-hash': wallet.walletHash,
+        signature: signature,
+        timestamp: timestamp
+      }
+
+      const params = {
+        currency: 'PHP',
+        limit: 20
+      }
+      const url = `${vm.apiURL}/ad`
+      await this.$axios.get(url, {
+        headers: headers,
+        params: params
+      })
+        .then(response => {
+          console.log(response.data)
+        })
+        .catch(error => {
+          console.log(error)
+        })
+      // try {
+      //   await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers, overwrite: false })
+      // } catch (error) {
+      //   console.error(error)
+      // }
+      vm.loading = false
+    },
     openFilter () {
+      this.filterAds()
       this.openDialog = true
       this.dialogType = 'filterAd'
     }

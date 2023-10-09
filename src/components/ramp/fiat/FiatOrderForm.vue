@@ -35,7 +35,7 @@
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ formattedCurrency(ad.trade_floor, ad.fiat_currency.symbol) }} - {{ formattedCurrency(ad.trade_ceiling, ad.fiat_currency.symbol) }}
+                {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}  - {{ parseFloat(ad.trade_ceiling) }} {{ ad.crypto_currency.symbol }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
@@ -261,7 +261,7 @@ export default {
     vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
 
     await vm.fetchAd()
-    this.amount = parseFloat(this.ad.trade_floor)
+    this.amount = parseFloat(this.ad.trade_floor) * parseFloat(this.ad.price)
     vm.isloaded = true
   },
   methods: {
@@ -329,6 +329,11 @@ export default {
       }
     },
     isValidInputAmount (value) {
+      if (this.byFiat) {
+        console.log(this.byFiat)
+        console.log(this.equivalentAmount)
+        value = this.equivalentAmount
+      }
       if (value === undefined) return false
       const parsedValue = parseFloat(value)
       const tradeFloor = parseFloat(this.ad.trade_floor)
