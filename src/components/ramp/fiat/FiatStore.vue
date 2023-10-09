@@ -85,7 +85,8 @@
                             </div>
                             <div class="row sm-font-size">
                                 <span class="q-mr-md">Limit</span>
-                                <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span>
+                                <span> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
+                                <!-- <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span> -->
                             </div>
                           </div>
                         </div>

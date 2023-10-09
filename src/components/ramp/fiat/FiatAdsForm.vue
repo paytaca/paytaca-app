@@ -145,7 +145,7 @@
                     v-model="adData.tradeFloor"
                   >
                     <template v-slot:append>
-                      <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
+                      <span class="xs-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
                       <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                     </template>
                   </q-input>
@@ -166,7 +166,7 @@
                     v-model="adData.tradeCeiling"
                   >
                     <template v-slot:append>
-                      <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
+                      <span class="xs-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
                       <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                     </template>
                   </q-input>
@@ -288,7 +288,7 @@ export default {
       },
       adData: {
         tradeType: this.transactionType,
-        priceType: 'FIXED',
+        priceType: 'FLOATING',
         fiatCurrency: this.$store.getters['market/selectedCurrency'],
         cryptoCurrency: { // get crypro_currency ID
           name: 'Bitcoin Cash',
@@ -296,9 +296,9 @@ export default {
         },
         fixedPrice: 0,
         floatingPrice: 100,
-        tradeFloor: null,
-        tradeCeiling: null,
-        tradeAmount: null,
+        tradeFloor: 0.5,
+        tradeCeiling: 1,
+        tradeAmount: 0.5,
         timeDurationChoice: 5,
         paymentMethods: [],
         isPublic: true
