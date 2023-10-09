@@ -282,6 +282,7 @@ import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } 
 import { getWalletByNetwork } from 'src/wallet/chipnet';
 import { Wallet, loadWallet } from 'src/wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
+import Watchtower from 'watchtower-cash-js';
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -529,6 +530,14 @@ async function handleBchSessionRequest(sessionRequest) {
       try {
         const wif = await getCurrentAddressWif()
         response.result = await signBchTransaction(params?.transaction, wif)
+        if (params?.broadcast) {
+          const watchtower = new Watchtower($store.getters['global/isChipnet'])
+          const broadcastResponse = watchtower.BCH.broadcastTransaction(response.result.signedTransaction)
+          if (!broadcastResponse.success) {
+            response.error = { code: -1, error: broadcastResponse?.error }
+            response.result = undefined
+          }
+        }
       } catch(err) {
         console.error(err)
         response.error = {
