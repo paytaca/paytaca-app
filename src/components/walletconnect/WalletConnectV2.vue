@@ -1,12 +1,61 @@
 <template>
   <div>
+    <QrScanner
+      v-model="showScanner"
+      @decode="onScannerDecode"
+    />
     <div class="row items-center">
       <div class="text-h6">Session</div>
       <q-space/>
-      <q-btn flat no-caps label="New" padding="none md" @click="() => connectNewSession()"/>
-      <q-btn flat no-caps padding="none md" @click="() => showSessionProposalsDialog = true">
-        Pending
+      <q-btn flat padding="xs">
+        <q-icon name="more_vert"/>
         <q-badge v-if="sessionProposals?.length" floating>{{ sessionProposals?.length }}</q-badge>
+        <q-menu :class="getDarkModeClass('pt-dark', 'text-black')">
+          <q-item
+            clickable v-ripple
+            v-close-popup
+            @click="() => showScanner = true"
+          >
+            <q-item-section side class="q-pr-sm">
+              <q-icon name="mdi-qrcode"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Scan new session</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            clickable v-ripple
+            v-close-popup
+            @click="() => connectNewSession()"
+          >
+            <q-item-section side class="q-pr-sm">
+              <q-icon name="link"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Pase URL</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator/>
+          <q-item
+            clickable v-ripple
+            v-close-popup
+            @click="() => showSessionProposalsDialog = true"
+          >
+            <q-item-section side class="q-pr-sm">
+              <q-icon name="pending"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>
+                Pending session requests
+              </q-item-label>
+            </q-item-section>
+            <q-item-section v-if="sessionProposals?.length" side>
+              <q-item-label>
+                <q-badge>{{ sessionProposals?.length }}</q-badge>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-menu>
       </q-btn>
     </div>
     <q-item
@@ -51,12 +100,16 @@
     </q-item>
     <q-item
       v-else
-      clickable v-ripple
-      @click="() => connectNewSession()"
       class="rounded-borders q-my-sm session-item"
     >
       <q-item-section>
-        <q-item-label>No active sessions, connect new session</q-item-label>
+        <div>
+          <div class="q-mb-sm">No active sessions, connect new session</div>
+          <q-btn-group spread>
+            <q-btn color="brandblue" icon="mdi-qrcode" no-caps label="Scan" @click="() => showScanner = true"/>
+            <q-btn color="brandblue" icon="link" no-caps label="Copy link" @click="() => connectNewSession()"/>
+          </q-btn-group>
+        </div>
       </q-item-section>
     </q-item>
     
@@ -234,6 +287,7 @@ import { useStore } from 'vuex';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import WalletConnectConfirmDialog from 'src/components/walletconnect/WalletConnectConfirmDialog.vue';
 import WC2SessionRequestDialog from 'src/components/walletconnect/WC2SessionRequestDialog.vue';
+import QrScanner from "src/components/qr-scanner.vue"
 
 const $q = useQuasar()
 const $store = useStore()
@@ -241,6 +295,24 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
   return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+}
+
+const showScanner = ref(false)
+async function onScannerDecode (content) {
+  console.log('Scanned', content)
+  showScanner.value = false
+  const dialog = $q.dialog({
+    title: 'Connecting',
+    progress: { color: 'brandblue', },
+    persistent: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  try {
+    await web3Wallet.value.pair({ uri: content })
+  } finally {
+    dialog.hide()
+  }
 }
 
 const wallet = ref([].map(() => new Wallet())[0])
