@@ -93,7 +93,7 @@
         </div> -->
       </div>
       <!-- Feedback -->
-      <div class="q-pt-xs q-mx-md" v-if="isCompletedOrder">
+      <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
         <div class="md-font-size">
           <span v-if="!feedback.is_posted">Rate your experience</span>
           <span v-else>Your Review</span>

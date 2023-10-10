@@ -296,9 +296,9 @@ export default {
         },
         fixedPrice: 0,
         floatingPrice: 100,
-        tradeFloor: 0.5,
-        tradeCeiling: 1,
-        tradeAmount: 0.5,
+        tradeFloor: 0.02,
+        tradeCeiling: 100,
+        tradeAmount: 100,
         timeDurationChoice: 5,
         paymentMethods: [],
         isPublic: true
@@ -381,6 +381,12 @@ export default {
           vm.adData.floatingPrice = value
       }
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
+    },
+    'adData.tradeAmount' (value) {
+      this.adData.tradeCeiling = value
+    },
+    'adData.tradeCeiling' (value) {
+      this.adData.tradeAmount = value
     }
   },
   methods: {

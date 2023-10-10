@@ -261,7 +261,7 @@ export default {
     vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
 
     await vm.fetchAd()
-    this.amount = parseFloat(this.ad.trade_floor) * parseFloat(this.ad.price)
+    this.amount = (parseFloat(this.ad.trade_floor) * parseFloat(this.ad.price)).toFixed(2)
     vm.isloaded = true
   },
   methods: {
@@ -353,10 +353,10 @@ export default {
     },
     updateInput (max = false) {
       if (max) this.amount = parseFloat(this.ad.trade_ceiling)
-      if (this.byFiat) {
-        if (!max) this.amount = parseFloat(this.amount) * parseFloat(this.ad.price)
+      if (!this.byFiat) {
+        if (!max) this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
       } else {
-        this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
+        this.amount = (parseFloat(this.amount) * parseFloat(this.ad.price)).toFixed(2)
       }
     },
     // orderConfirm () {
