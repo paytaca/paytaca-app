@@ -128,8 +128,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
-      wallet: null,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
       user: null,
       editNickname: false,
@@ -178,23 +177,8 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'PEER_UPDATE', timestamp)
       // this.$store.commit('global/editRampNickname', info.nickname)
-      vm.$axios.put(vm.apiURL + '/peer', {
-        nickname: info.nickname
-      },
-      {
-        headers: {
-          'wallet-hash': wallet.walletHash,
-          signature: signature,
-          timestamp: timestamp
-        }
-      })
+      vm.$axios.put(vm.apiURL + '/peer', { nickname: info.nickname }, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response.data)
           vm.$store.commit('ramp/updateUser', response.data)
@@ -208,13 +192,12 @@ export default {
     },
     async fetchTopReview () {
       const vm = this
-
       const url = `${vm.apiURL}/order/feedback/peer`
-
       await vm.$axios.get(url, {
         params: {
           to_peer: this.$store.getters['ramp/getUser'].id
-        }
+        },
+        headers: vm.authHeaders
       })
         .then(response => {
           if (response.data) {

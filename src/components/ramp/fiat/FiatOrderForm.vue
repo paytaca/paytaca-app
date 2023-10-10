@@ -199,8 +199,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
-      wallet: null,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
@@ -273,15 +272,8 @@ export default {
     async fetchAd () {
       const vm = this
       const url = `${vm.apiURL}/ad/${vm.adId}`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.ad = response.data
         console.log('ad:', vm.ad)
         // set the minimum trade amount in form
@@ -292,13 +284,6 @@ export default {
     },
     async createOrder () {
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const cryptoAmount = vm.getCryptoAmount()
       // console.log('cryptoAmount:', cryptoAmount)
       const body = {
@@ -313,7 +298,7 @@ export default {
       // console.log('headers:', headers)
       // console.log('body:', body)
       try {
-        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
+        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: vm.authHeaders })
         console.log('response:', response)
         vm.order = response.data.order
         vm.state = 'order-process'

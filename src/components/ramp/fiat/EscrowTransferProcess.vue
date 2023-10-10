@@ -117,6 +117,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       adData: null,
       loading: false,
       selectedArbiter: null,
@@ -221,18 +222,11 @@ export default {
     },
     async escrowPendingOrder () {
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'ORDER_ESCROW_PENDING', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
       const body = { txid: vm.txid }
       try {
-        const response = await vm.$axios.post(url, body, { headers: headers })
+        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
         const result = {
           txid: vm.txid,
           status: response.data.status
@@ -244,13 +238,10 @@ export default {
     },
     async fetchOrderDetail () {
       const vm = this
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash
-      }
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.fees = response.data.fees
       } catch (error) {
         console.error(error.response)
@@ -260,8 +251,8 @@ export default {
       const vm = this
       const url = vm.apiURL + '/arbiter'
       try {
-        const response = await vm.$axios.get(url)
-        // console.log('response:', response)
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
+        console.log('response:', response)
         vm.arbiterOptions = response.data
         vm.selectedArbiter = vm.order.arbiter
         if (vm.arbiterOptions.length > 0) {
@@ -280,20 +271,13 @@ export default {
     async generateContractAddress () {
       // console.log('generateContractAddress')
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'CONTRACT_CREATE', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/generate-contract'
       const body = {
         arbiter: vm.selectedArbiter.id
       }
       try {
-        const response = await vm.$axios.post(url, body, { headers: headers })
+        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
         if (response.data.data) {
           const data = response.data.data
           // console.log('>>data:', data)

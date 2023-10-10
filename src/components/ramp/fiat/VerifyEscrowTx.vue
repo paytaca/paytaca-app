@@ -89,6 +89,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       loading: true,
       contract: {
         balance: null,
@@ -148,14 +149,10 @@ export default {
   methods: {
     async fetchOrderDetail () {
       const vm = this
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash
-      }
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.orderId
-
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.contract.address = response.data.contract.address
         // vm.contract.balance = await getBalanceByAddress(vm.contract.address)
         if (this.rampContract) {
@@ -205,17 +202,10 @@ export default {
       vm.state = 'verifying'
       console.log('Verifying Release: ', vm.transactionId)
       const url = `${vm.apiURL}/order/${vm.orderId}/verify-release`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_RELEASE', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const body = {
         txid: this.transactionId
       }
-      await vm.$axios.post(url, body, { headers: headers })
+      await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log('response:', response)
         })
@@ -232,19 +222,12 @@ export default {
       const vm = this
       vm.state = 'verifying'
       console.log('Verifying escrow:', vm.transactionId)
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_ESCROW_VERIFY', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       const url = vm.apiURL + '/order/' + vm.orderId + '/verify-escrow'
       const body = {
         txid: vm.transactionId
       }
       try {
-        const response = await vm.$axios.post(url, body, { headers: headers })
+        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
         // console.log('response:', response)
       } catch (error) {
         console.error(error.response)

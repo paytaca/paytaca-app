@@ -189,3 +189,13 @@ export function resetData (state) {
   resetOrdersData(state)
   resetAppealsData(state)
 }
+
+export function updateWallet (state, wallet) {
+  state.wallet = wallet
+  console.log('Updated wallet:', state.wallet)
+}
+
+export function updateAuthHeaders (state, headers) {
+  state.authHeaders = headers
+  console.log('Updated authHeaders: ', state.authHeaders)
+}

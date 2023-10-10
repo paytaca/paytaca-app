@@ -43,8 +43,6 @@ import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadWallet } from 'src/wallet'
-import { markRaw } from 'vue'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from 'src/wallet/ramp/signature'
 
@@ -53,11 +51,9 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL,
-      walletIndex: this.$store.getters['global/getWalletIndex'],
       network: 'BCH',
       menu: 'store',
       isLoading: true,
-      wallet: null,
       user: null,
       proceed: false,
       createUser: false,
@@ -74,9 +70,9 @@ export default {
     ProgressLoader
   },
   async mounted () {
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
-    this.login()
+    await this.$store.dispatch('ramp/loadWallet')
+    this.wallet = this.$store.getters['ramp/wallet']
+    await this.login()
   },
   watch: {
     menu (val) {
@@ -95,16 +91,21 @@ export default {
         }
         await this.$axios.post(`${this.apiURL}/auth/login`, body)
           .then(response => {
+            console.log('response:', response)
             // save token as cookie and set to expire 1h later
             document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
             this.user = response.data.user
             if (this.user) {
               this.$store.commit('ramp/updateUser', response.data.user)
-              this.proceed = true
+              this.$store.dispatch('ramp/loadAuthHeaders')
+                .then(() => {
+                  this.proceed = true
+                  this.isLoading = false
+                })
             }
-            this.isLoading = false
           })
       } catch (error) {
+        console.error(error)
         console.error(error.response)
         this.isLoading = false
       }
@@ -120,10 +121,10 @@ export default {
     },
     async createRampUser (value) {
       this.createUser = true
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
-      await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: wallet })
-      this.proceed = true
+      this.user = await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: this.wallet })
+      if (this.user) {
+        this.login()
+      }
     },
     onOrderCanceled () {
       this.switchMenu('orders')

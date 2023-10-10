@@ -170,8 +170,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
-      wallet: null,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       viewProfile: false,
       transactionType: 'SELL',
       loading: false,
@@ -236,11 +235,10 @@ export default {
   },
   async mounted () {
     const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
     if (!vm.listings || vm.listings.length === 0) {
       vm.loading = true
     }
+    console.log('FiatStore authHeaders:', vm.authHeaders)
     await vm.fetchFiatCurrencies()
     await vm.resetAndRefetchListings()
     vm.loading = false
@@ -252,11 +250,7 @@ export default {
     },
     async fetchFiatCurrencies () {
       const vm = this
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        Authorization: `Token ${getCookie('token')}`
-      }
-      vm.$axios.get(vm.apiURL + '/currency/fiat', { headers: headers })
+      vm.$axios.get(vm.apiURL + '/currency/fiat', { headers: vm.authHeaders })
         .then(response => {
           vm.fiatCurrencies = response.data
           if (!vm.selectedCurrency) {
@@ -280,16 +274,8 @@ export default {
           currency: vm.selectedCurrency.symbol,
           trade_type: vm.transactionType
         }
-        const timestamp = Date.now()
-        const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_LIST', timestamp)
-        const headers = {
-          'wallet-hash': vm.wallet.walletHash,
-          signature: signature,
-          timestamp: timestamp,
-          Authorization: `Token ${getCookie('token')}`
-        }
         try {
-          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers, overwrite: overwrite })
+          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
         } catch (error) {
           console.error(error.response)
         }
@@ -374,24 +360,13 @@ export default {
       const vm = this
       vm.loading = true
       console.log('filtering ads')
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
-
-      const headers = {
-        'wallet-hash': wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-
       const params = {
         currency: 'PHP',
         limit: 20
       }
       const url = `${vm.apiURL}/ad`
       await this.$axios.get(url, {
-        headers: headers,
+        headers: vm.authHeaders,
         params: params
       })
         .then(response => {

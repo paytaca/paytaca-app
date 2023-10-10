@@ -183,6 +183,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       nickname: this.$store.getters['ramp/getUser'].nickname,
       order: null,
       appeal: null,
@@ -288,13 +289,9 @@ export default {
     // },
     async fetchOrderDetail () {
       const vm = this
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash
-      }
       const url = vm.apiURL + '/order/' + vm.orderId
-
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         // console.log('response: ', response)
         vm.order = response.data.order
         vm.appeal = response.data.appeal

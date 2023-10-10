@@ -1,5 +1,7 @@
 export default function () {
   return {
+    wallet: null,
+    authHeaders: null,
     user: null,
     arbiter: null,
     itemsPerPage: 20,

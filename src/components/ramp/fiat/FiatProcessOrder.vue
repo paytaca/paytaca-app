@@ -104,9 +104,10 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
+      wallet: this.$store.getters['ramp/wallet'],
       websocket: null,
       state: '',
       isloaded: false,
@@ -123,7 +124,6 @@ export default {
         address: null
       },
       fees: null,
-      wallet: null,
       txid: null,
       status: null,
       title: '',
@@ -190,12 +190,6 @@ export default {
   emits: ['back'],
   async mounted () {
     const vm = this
-    if (vm.initWallet) {
-      vm.wallet = vm.initWallet
-    } else {
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-    }
     await vm.fetchOrderData()
     if (!vm.order) {
       vm.order = vm.orderData
@@ -310,11 +304,7 @@ export default {
     async fetchOrderData () {
       const vm = this
       const url = `${vm.apiURL}/order/${vm.orderData.id}`
-      await vm.$axios.get(url, {
-        headers: {
-          'wallet-hash': vm.wallet.walletHash
-        }
-      })
+      await vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
           console.log('fetchOrderData:', response.data)
           vm.order = response.data.order
@@ -329,20 +319,9 @@ export default {
     },
     async fetchAdData () {
       const vm = this
-
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
-
       const adId = vm.order.ad.id
       const url = `${vm.apiURL}/ad/${adId}`
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-
-      await vm.$axios.get(url, { headers: headers })
+      await vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
           vm.ad = response.data
           // console.log('ad', vm.ad)
@@ -354,16 +333,9 @@ export default {
     },
     async confirmOrder () {
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CONFIRM', timestamp)
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-      await vm.$axios.post(url, {}, { headers: headers })
+      await vm.$axios.post(url, {}, { headers: vm.authHeaders })
         .then(response => {
           if (response.data && response.data.status.value === 'CNF') {
             vm.updateStatus(response.data.status)
@@ -375,20 +347,9 @@ export default {
     },
     async cancelOrder () {
       const vm = this
-
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CANCEL', timestamp)
-
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/cancel`
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-
-      await vm.$axios.post(url, {}, { headers: headers })
+      await vm.$axios.post(url, {}, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response)
           if (response.data && response.data.status.value === 'CNCL') {
@@ -402,24 +363,11 @@ export default {
     async sendConfirmPayment (type) {
       const vm = this
       vm.isloaded = false
-
       const url = `${this.apiURL}/order/${vm.order.id}/confirm-payment/${type}`
-      const timestamp = Date.now()
-      let action = 'ORDER_BUYER_CONF_PAYMENT'
-      if (type === 'seller') {
-        action = 'ORDER_SELLER_CONF_PAYMENT'
-      }
-      const signature = await signMessage(vm.wallet.privateKeyWif, action, timestamp) // update later
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const body = {
         payment_methods: this.selectedPaymentMethods
       }
-      await vm.$axios.post(url, body, { headers: headers })
+      await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log('sendConfirmPayment:', response.data)
           // if (response.data && response.data.status.value === 'PD_PN') {
@@ -466,18 +414,10 @@ export default {
     async verifyRelease () {
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_RELEASE', timestamp) // update later
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const body = {
         txid: this.txid
       }
-      // console.log('body:', body)
-      await vm.$axios.post(url, body, { headers: headers })
+      await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log('response:', response)
           vm.updateStatus(response.data.status)
@@ -491,19 +431,12 @@ export default {
     async verifyEscrow () {
       const vm = this
       console.log('Verifying escrow:', vm.txid)
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_ESCROW_VERIFY', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       const url = vm.apiURL + '/order/' + vm.order.id + '/escrow-verify'
       const body = {
         txid: vm.txid
       }
       try {
-        const response = await vm.$axios.post(url, body, { headers: headers })
+        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
         console.log('verifyEscrow response:', response)
       } catch (error) {
         console.error(error.response)
@@ -541,15 +474,8 @@ export default {
     async submitAppeal (data) {
       console.log('onSubmitAppeal:', data)
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'APPEAL_REQUEST', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
-      vm.$axios.post(url, data, { headers: headers })
+      vm.$axios.post(url, data, { headers: vm.authHeaders })
         .then(response => {
           console.log('response: ', response)
           this.updateStatus(response.data.status)
@@ -562,21 +488,13 @@ export default {
       const vm = this
       vm.isloaded = false
       const url = `${vm.apiURL}/order/feedback/peer`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'FEEDBACK_PEER_CREATE', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const body = {
         order_id: vm.order.id,
         rating: feedback.rating,
         comment: feedback.comment
-
       }
       // console.log(body)
-      await vm.$axios.post(url, body, { headers: headers })
+      await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response)
           const data = response.data
@@ -602,7 +520,8 @@ export default {
         params: {
           from_peer: vm.$store.getters['ramp/getUser'].id,
           order_id: vm.order.id
-        }
+        },
+        headers: vm.authHeaders
       })
         .then(response => {
           if (response.data) {
