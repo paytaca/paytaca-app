@@ -33,11 +33,13 @@
   display: flex;
 }
 .qrcode-scanner {
-  position: absolute;
+  visibility: visible;
+  position: fixed;
   top: 0;
   right: 0;
   margin: 10px;
   color: #ef4f84;
+  z-index: 10000;
 }
 .qrcode-scanner > .scanner-error-dialog {
 	border-radius: 15px;

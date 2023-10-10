@@ -82,7 +82,7 @@ onMounted(async () => {
   if (!walletConnectV2.value) return console.log('No v2 component')
 
   const uriData = parseWalletConnectUri(props.url)
-  if (uriData.uri && uriData.version == '2') {
+  if (uriData?.uri && uriData?.version == '2') {
     walletConnectV2.value?.connectNewSession?.(uriData.uri)
   }
 })

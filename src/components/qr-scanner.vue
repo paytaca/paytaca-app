@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="isMobile" id="qr-scanner-ui" class="qrcode-scanner hide-section">
+    <div v-if="isMobile" ref="mobileScannerUI" id="qr-scanner-ui" class="qrcode-scanner hide-section">
       <q-btn
         icon="close"
         rounded
@@ -66,11 +66,16 @@ export default {
     frontCamera: {
       type: Boolean,
       defualt: false
+    },
+    forceDesktopVersion: {
+      type: Boolean,
+      default: false,
     }
 
   },
   computed: {
     isMobile() {
+      if (this.forceDesktopVersion) return false
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     }
   },
@@ -84,20 +89,21 @@ export default {
         if (bool) {
           this.prepareScanner()
         }
-      } else {
-        this.val = bool
       }
+
+      this.val = bool
     }
   },
   methods: {
     stopScan () {
       this.$emit('input', false)
+      this.$emit('update:model-value', false)
       BarcodeScanner.showBackground()
       BarcodeScanner.stopScan()
       try {
-        document.getElementById('app-container').classList.remove('hide-section')
+        this.$root.$el.classList.remove('root-hide-section')
         document.body.classList.remove('transparent-body')
-        document.getElementById('qr-scanner-ui').classList.add('hide-section')
+        this.$refs.mobileScannerUI.classList.add('hide-section')
       } catch (err) {
         // console.log(err)
       }
@@ -111,16 +117,18 @@ export default {
         this.scanBarcode()
       } else {
         this.$emit('input', false)
+        this.$emit('update:model-value', false)
       }
     },
     async scanBarcode () {
       BarcodeScanner.hideBackground()
-      const appContainer = document.getElementById('app-container')
-      const scannerUI = document.getElementById('qr-scanner-ui')
+      const rootEl = this.$root.$el
+      const scannerUI = this.$refs.mobileScannerUI
       const hide = 'hide-section'
+      const rootHide = 'root-hide-section'
       const transparent = 'transparent-body'
 
-      appContainer.classList.add(hide)
+      rootEl.classList.add(rootHide)
       document.body.classList.add(transparent)
       scannerUI.classList.remove(hide)
 
@@ -128,15 +136,16 @@ export default {
 
       if (res.content) {
         BarcodeScanner.showBackground()
-        appContainer.classList.remove(hide)
+        rootEl.classList.remove(rootHide)
         document.body.classList.remove(transparent)
         scannerUI.classList.add(hide)
         this.$emit('decode', res.content)
       } else {
-        appContainer.classList.remove(hide)
+        rootEl.classList.remove(rootHide)
         document.body.classList.remove(transparent)
         scannerUI.classList.add(hide)
         this.$emit('input', false)
+        this.$emit('update:model-value', false)
       }
     },
     async checkPermission () {
@@ -271,10 +280,16 @@ export default {
 .hide-section {
   display: none !important;
 }
+
+.root-hide-section {
+  display: unset !important;
+  visibility: hidden;
+}
 .transparent-body {
   background: transparent !important;
 }
 .cancel-barcode-button {
   display: block !important;
 }
+
 </style>
