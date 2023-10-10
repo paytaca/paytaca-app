@@ -7,7 +7,7 @@
   <q-pull-to-refresh
     id="app-container"
     style="background-color: #ECF3F3; min-height: 100vh;padding-bottom:50px;"
-    :class="getDarkModeClass('pt-dark')"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
     <HeaderNav
@@ -17,8 +17,8 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
-      :indicator-color="isDefaultTheme ? 'transparent' : undefined"
+      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
+      :indicator-color="isDefaultTheme(theme) ? 'transparent' : undefined"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
@@ -40,7 +40,7 @@
     <q-tab-panels
       animated keep-alive
       v-model="selectedNetwork"
-      :class="getDarkModeClass('pt-dark info-banner', 'text-black')"
+      :class="getDarkModeClass(darkMode)"
     >
       <q-tab-panel name="BCH">
         <WalletConnectV2 ref="walletConnectV2" @request-scanner="openScanner"/>
@@ -61,6 +61,7 @@ import HeaderNav from "src/components/header-nav.vue";
 import QrScanner from "src/components/qr-scanner.vue";
 import WalletConnectV1 from "src/components/walletconnect/WalletConnectV1.vue"
 import WalletConnectV2 from "src/components/walletconnect/WalletConnectV2.vue"
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const props = defineProps({
   uri: String,
@@ -92,12 +93,8 @@ function onScannerDecode(content) {
 const $t = useI18n().t
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-function getDarkModeClass(darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-}
+const theme =  computed(() => $store.getters['global/theme'])
 const enableSmartBCH = computed(() => $store.getters['global/enableSmartBCH'])
-const isDefaultTheme = computed(() => $store.getters['global/theme'] !== 'default')
-
 const selectedNetwork = computed(() => $store.getters['global/network'])
 function changeNetwork(newNetwork = 'BCH') {
   return $store.commit('global/setNetwork', newNetwork)
@@ -146,3 +143,12 @@ async function refreshPage(done=() => {}) {
   }
 }
 </script>
+<style>
+.q-tab-panels {
+  margin-top: 10px;
+  background: transparent;
+}
+.q-tab-panels.light {
+  color: black;
+}
+</style>

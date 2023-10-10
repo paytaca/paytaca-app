@@ -255,7 +255,7 @@ function isDefaultTheme () {
 }
 
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 

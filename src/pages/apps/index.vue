@@ -1,28 +1,28 @@
 <template>
-  <div id="apps-page-container" :class="getDarkModeClass('pt-dark', '')">
+  <div id="apps-page-container" :class="getDarkModeClass(darkMode, 'pt-dark', '')">
     <div id="apps" ref="apps" class="text-center">
       <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
-        <div :class="{'pt-header apps-header': isDefaultTheme}">
+        <div :class="{'pt-header apps-header': isDefaultTheme(theme)}">
           <p
             class="section-title"
-            :class="{'text-blue-5': darkMode, 'text-grad': isDefaultTheme}"
+            :class="{'text-blue-5': darkMode, 'text-grad': isDefaultTheme(theme)}"
           >
             {{ $t('Applications') }}
           </p>
         </div>
-        <div class="row" :class="isDefaultTheme ? 'q-px-md' : 'q-px-xs'">
+        <div class="row" :class="isDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div
               class="pt-app bg-grad"
               :class="[
                 buttonClassByState(app.active),
-                {'apps-border' : isDefaultTheme}
+                {'apps-border' : isDefaultTheme(theme)}
               ]"
               @click="openApp(app)"
             >
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
-            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass()">{{ app.name }}</p>
+            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
           </div>
         </div>
       </div>
@@ -33,6 +33,8 @@
 </template>
 
 <script>
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+
 export default {
   name: 'apps',
   data () {
@@ -132,22 +134,26 @@ export default {
         }
       ],
       filteredApps: [],
-      appHeight: null,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      appHeight: null
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
     },
     showTokens () {
       return this.$store.getters['global/showTokens']
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     buttonClassByState (active) {
       return active ? '' : 'disabled'
     },
@@ -155,17 +161,14 @@ export default {
       if (app.active) {
         this.$router.push(app.path)
       }
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   created () {
     this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
-    const themedIconPath = this.isDefaultTheme ? `assets/img/theme/${currentTheme}/` : ''
+    const themedIconPath = isDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
     this.filteredApps.forEach(app => {
-      if (this.isDefaultTheme) {
+      if (isDefaultTheme(this.theme)) {
         const iconFileName = app.path.split('/')[2]
         const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
         app.iconName = themedIconLoc

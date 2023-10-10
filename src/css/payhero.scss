@@ -489,13 +489,13 @@ body.theme-payhero {
     }
 
     &.button-icon {
+      background: transparent !important;
+
       &.dark {
-        background: transparent !important;
         color: $brand_yellow !important;
       }
 
       &.light {
-        background: transparent !important;
         color: $footer-bar !important;
       }
     }

@@ -1,10 +1,10 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('WalletInfo')" backnavpath="/apps" class="apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <div class="col-12 q-px-lg q-mt-lg">
         <p class="section-title">{{ $t('BchAddresses') }}</p>
-        <q-list bordered separator class="list pt-card" :class="getDarkModeClass()">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -97,7 +97,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('SlpAddresses') }}</p>
-        <q-list bordered separator class="list pt-card" :class="getDarkModeClass()">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -190,7 +190,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('SmartBchAddresses') }}</p>
-        <q-list bordered separator class="list pt-card" :class="getDarkModeClass()">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -224,7 +224,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
-        <q-list bordered separator class="list pt-card" :class="getDarkModeClass()">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
           <q-item clickable @click="executeSecurityChecking">
             <q-item-section class="text-black">
               <q-item-label :class="{'text-white': darkMode}" v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
@@ -261,6 +261,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { Plugins } from '@capacitor/core'
 import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -295,7 +296,7 @@ export default {
     }
   },
   computed: {
-    darkMode() {
+    darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
     bchUtxoScanTaskInfo() {
@@ -367,6 +368,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     formatTimestampToText(timestamp) {
       const dateObj = new Date(timestamp)
       return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
@@ -710,9 +712,6 @@ export default {
           vm.switchWallet(undeletedWallets[0])
         }
       })
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   beforeUnmount() {

@@ -29,7 +29,7 @@
               </div>
             </template>
             <div v-else v-ripple class="text-center text-subtitle1 cursor-pointer relative-position q-pa-md">
-              {{ $t(isHongKong() ? 'SelectPoint' : 'SelectToken') }}
+              {{ $t(isHongKong(currentCountry) ? 'SelectPoint' : 'SelectToken') }}
             </div>
           </div>
         </q-card-section>
@@ -260,7 +260,7 @@
           </q-item-section>
         </q-item>
         <div v-if="stagedSwapInfo.loading" class="row items-center justify-center">
-          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <q-btn
           v-else
@@ -302,6 +302,7 @@ import ProgressLoader from '../ProgressLoader.vue'
 import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SpicebotBridgeTokenSelectDialog from './SpicebotBridgeTokenSelectDialog.vue'
 import SpicebotBridgeSwapListenerDialog from './SpicebotBridgeSwapListenerDialog.vue'
+import { isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SpicebotBridgeForm',
@@ -341,12 +342,19 @@ export default {
         swapRequest: null,
 
         sentTxid: ''
-      },
-
-      currentCountry: this.$store.getters['global/country'].code,
+      }
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     lockInputs () {
       if (!this.formData || !this.formData.token) return true
       if (this.stagedSwapInfo && this.stagedSwapInfo.show) return true
@@ -452,18 +460,11 @@ export default {
       if (!addressValidator.isSLPAddress()) params.valid = false
 
       return params
-    },
-    darkMode () {
-      return this.$store.getters['darkmode/getStatus']
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    isDefaultTheme,
+    isHongKong,
     shortenSlpAddress (value = '', keepPrefix = false) {
       if (!value) return value
       let prefix = ''
@@ -564,7 +565,7 @@ export default {
             const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
             this.$q.dialog({
               title: this.$t('TransactionSent') + '!',
-              message: this.$t(this.isHongKong() ? 'Waiting_SEP20_PointSent' : 'Waiting_SEP20_TokenSent'),
+              message: this.$t(isHongKong(this.currentCountry) ? 'Waiting_SEP20_PointSent' : 'Waiting_SEP20_TokenSent'),
               class: dialogStyleClass
             })
               .onDismiss(() => {
@@ -699,10 +700,7 @@ export default {
             vm.wallet = markRaw(wallet)
           })
       })
-    },
-    isHongKong () {
-      return this.currentCountry === 'HK'
-    },
+    }
   },
   watch: {
     'formData.token.slp_token_id': {

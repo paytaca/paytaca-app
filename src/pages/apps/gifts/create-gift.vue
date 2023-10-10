@@ -1,6 +1,6 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="getDarkModeClass()">
+    <div id="app-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         title="Gifts"
         backnavpath="/apps/gifts"
@@ -9,7 +9,7 @@
       <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '145px' : '80px'}">
         <div class="text-center" v-if="processing">
           <p :class="{'text-white': darkMode}" >Creating gift...</p>
-          <progress-loader :color="isDefaultTheme ? theme : 'pink'" />
+          <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
         </div>
         <div :class="{'text-white': darkMode}" v-if="!processing && !completed">
           <div class="text-h5 q-mb-md">Create Gift</div>
@@ -128,7 +128,7 @@
           </div>
         </div>
         <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}">
-          <p style="font-size: 22px;">Amount:<br>{{ getAssetDenomination(amountBCH) }}</p>
+          <p style="font-size: 22px;">Amount:<br>{{ getAssetDenomination(denomination, amountBCH) }}</p>
           <div v-if="amountBCH" style="margin-top: -10px;">
             {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
           </div>
@@ -160,6 +160,7 @@ import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Gifts',
@@ -187,9 +188,7 @@ export default {
       processing: false,
       completed: false,
       wallet: null,
-      showCampaignInfo: false,
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      denomination: this.$store.getters['global/denomination']
+      showCampaignInfo: false
     }
   },
   watch: {
@@ -213,6 +212,15 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
@@ -235,17 +243,13 @@ export default {
       const balance = asset[0].spendable
       if (!Number.isFinite(balance)) return null
       return balance
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   methods: {
     getAssetDenomination,
     parseFiatCurrency,
+    getDarkModeClass,
+    isDefaultTheme,
     disableGenerateButton () {
       if (this.amountBCH > 0) {
         if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {
@@ -360,9 +364,6 @@ export default {
           value: 'create-new'
         })
       })
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

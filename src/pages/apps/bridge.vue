@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('Bridge')"
       backnavpath="/apps"
@@ -63,6 +63,7 @@ import HeaderNav from '../../components/header-nav'
 import HopCashSwapForm from '../../components/bridge/HopCashSwapForm.vue'
 import HopCashSwapWait from '../../components/bridge/HopCashSwapWait.vue'
 import SpicebotBridgeForm from '../../components/bridge/SpicebotBridgeForm.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Bridge',
@@ -84,11 +85,13 @@ export default {
         // incomingTxid: '6f4f020193146fb711e64977917753d1f927da2815a6e350ce470c114b123b57',
         amount: '0.02306408',
         expectedAmount: '0.02295788'
-      },
-      darkMode: this.$store.getters['darkmode/getStatus']
+      }
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     waiting () {
       return Boolean(this.parsedWaitInfo.incomingTxid)
     },
@@ -102,6 +105,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     onNewIncoming (info) {
       let message = this.$t('TransactionSent') + '! '
       if (info && info.transferType === 'c2s') message += this.$t('WaitingSmartBchTransaction')
@@ -121,9 +125,6 @@ export default {
         amount: '',
         expectedAmount: ''
       }
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   beforeRouteLeave (to, from, next) {

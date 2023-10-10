@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" full-width persistent seamless>
-    <q-card v-if="collectible" class="pp-text" style="max-width:90vw;" :class="{'pt-dark': darkMode}">
+    <q-card v-if="collectible" class="pp-text" style="max-width:90vw;" :class="{'pt-dark info-banner': darkMode}">
       <q-card-section
         class="row no-wrap items-start"
         style="position:sticky;top:0;z-index:1"

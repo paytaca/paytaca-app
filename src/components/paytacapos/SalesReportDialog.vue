@@ -7,6 +7,7 @@
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -14,7 +15,7 @@
         <div v-if="Number.isInteger(posDevice?.posid)" class="text-h6">
           {{ posDevice?.name || 'Device' }}#{{ padPosId(posDevice?.posid) }}
         </div>
-        <q-card class="pt-card" :class="getDarkModeClass('', 'text-black')">
+        <q-card class="pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
           <q-card-section>
             <div class="row items-center">
               <div class="q-space text-subtitle1">Total sales</div>
@@ -82,6 +83,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import Watchtower from 'watchtower-cash-js';
 import SalesReportFilterFormDialog from './SalesReportFilterFormDialog.vue';
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const watchtower = new Watchtower()
 
@@ -186,9 +188,5 @@ function formatRangeType(value) {
   if (value === 'day') return 'daily'
   if (value === 'month') return 'monthly'
   return value
-}
-
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

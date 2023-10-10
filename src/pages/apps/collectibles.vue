@@ -1,14 +1,26 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
-        <q-list class="pt-card" :class="getDarkModeClass()" style="min-width: 100px">
+        <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="showAddress = !showAddress">{{ $t('ShowReceivingAddress') }}</q-item-section>
+            <q-item-section
+              class="pt-label"
+              :class="getDarkModeClass(darkMode)"
+              @click="showAddress = !showAddress"
+            >
+              {{ $t('ShowReceivingAddress') }}
+            </q-item-section>
           </q-item>
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="getCollectibles()">{{ $t('RefreshList') }}</q-item-section>
+            <q-item-section
+              class="pt-label"
+              :class="getDarkModeClass(darkMode)"
+              @click="getCollectibles()"
+            >
+              {{ $t('RefreshList') }}
+            </q-item-section>
           </q-item>
         </q-list>
       </q-menu>
@@ -16,8 +28,8 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isDefaultTheme && 'transparent'"
+      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme(theme) && 'transparent'"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
@@ -95,7 +107,7 @@
             icon="add"
             style="color: #3B7BF6;"
             class="q-mx-sm button button-icon"
-            :class="getDarkModeClass()"
+            :class="getDarkModeClass(darkMode)"
             @click="showAddERC721Form = true"
           />
           <q-btn
@@ -106,7 +118,7 @@
             icon="app_registration"
             style="color: #3B7BF6;"
             class="q-mx-sm button button-icon"
-            :class="getDarkModeClass()"
+            :class="getDarkModeClass(darkMode)"
             @click="toggleManageAssets"
           />
         </div>
@@ -127,9 +139,8 @@
                     rounded
                     padding="sm"
                     icon="info"
-                    style="color: #3B7BF6;"
                     class="button button-icon"
-                    :class="getDarkModeClass()"
+                    :class="getDarkModeClass(darkMode)"
                     @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
                   />
                   <div class="text-subtitle1" :class="darkMode ? 'pt-dark-label' : 'text-black'">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
@@ -159,7 +170,7 @@
                   icon="delete"
                   style="color: #3B7BF6;"
                   class="button button-icon"
-                  :class="getDarkModeClass()"
+                  :class="getDarkModeClass(darkMode)"
                   @click.stop="confirmRemoveERC721Asset(asset)"
                 />
               </q-item-section>
@@ -174,7 +185,7 @@
                   icon="info"
                   style="color: #3B7BF6;"
                   class="button button-icon"
-                  :class="getDarkModeClass()"
+                  :class="getDarkModeClass(darkMode)"
                   @click.stop="showERC721Asset(asset)"
                 />
               </q-item-section>
@@ -213,6 +224,7 @@ import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
 import { convertCashAddress } from 'src/wallet/chipnet'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'app-wallet-info',
@@ -223,7 +235,7 @@ export default {
     ERC721AssetDetailDialog,
     SLPCollectibles,
     CashTokensNFTs,
-    AssetFilter,
+    AssetFilter
   },
   data () {
     return {
@@ -241,12 +253,19 @@ export default {
       },
       selectedERC721AssetIndex: -1,
       showAddress: false,
-      wallet: null,
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      currentCountry: this.$store.getters['global/country'].code
+      wallet: null
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
     },
@@ -273,12 +292,11 @@ export default {
         return convertCashAddress(bchAddress, false, true)
       }
       return this.$store.getters['global/getAddress']('slp')
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     filterTokens (isCashToken) {
       this.bchNftType = isCashToken ? 'ct' : 'slp'
     },
@@ -348,9 +366,6 @@ export default {
         const wallet = new Wallet(mnemonic, vm.selectedNetwork)
         vm.wallet = markRaw(wallet)
       })
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

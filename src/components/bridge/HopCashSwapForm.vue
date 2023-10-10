@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" class="bridge-swap-form" :class="getDarkModeClass()">
+    <div id="app-container" class="bridge-swap-form" :class="getDarkModeClass(darkMode)">
       <div
         v-if="Array.isArray(errors) && errors.length"
         class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
@@ -241,7 +241,7 @@
             </div>
             <div class="row justify-center q-mt-sm" style="color: gray;">{{ $t('PoweredBy') }} hop.cash</div>
             <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
-              <ProgressLoader v-if="loading" :color="isDefaultTheme ? theme : 'pink'"/>
+              <ProgressLoader v-if="loading" :color="isDefaultTheme(theme) ? theme : 'pink'"/>
               <q-btn
                 v-else
                 no-caps
@@ -299,6 +299,7 @@ import BiometricWarningAttempt from 'components/authOption/biometric-warning-att
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -343,12 +344,17 @@ export default {
       verification: {
         type: '',
         warningAttemptsStatus: 'dismiss'
-      },
-      denomination: this.$store.getters['global/denomination']
+      }
     }
   },
 
   computed: {
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     maxBridgeBalance () {
       let balance = 0
       if (this.transferType === 'c2s') balance = this.bridgeBalances.sbch
@@ -422,13 +428,12 @@ export default {
         return this.$store.getters['global/getAddress']('sbch')
       }
       return this.$store.getters['global/getAddress']('bch')
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
     getAssetDenomination,
+    getDarkModeClass,
+    isDefaultTheme,
     formatAmount (value) {
       const parsedNum = Number(value)
       if (isNaN(parsedNum)) return ''
@@ -640,11 +645,7 @@ export default {
         const wallet = new Wallet(mnemonic, network)
         vm.wallet = markRaw(wallet)
       })
-    },
-
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    },
+    }
   },
 
   watch: {

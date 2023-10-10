@@ -345,7 +345,12 @@ body.theme-default {
 
     &.button-text-secondary {
       background: transparent !important;
-      color: $color_4 !important;
+      color: $brand_blue !important;
+    }
+
+    &.button-icon {
+      background: transparent !important;
+      color: $brand_blue !important;
     }
   }
 

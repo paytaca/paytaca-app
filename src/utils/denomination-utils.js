@@ -13,12 +13,13 @@ const denomDecimalPlaces = {
  * `Satoshis`, `DEEM` - 0 decimal places
  */
 export function parseAssetDenomination (denomination, asset, subStringMax = 0) {
+  const balanceCheck = asset.balance ?? 0
   const isBCH = asset.symbol === 'BCH'
-  const setSubStringMaxLength = subStringMax > 0 ? subStringMax : asset.balance?.length
+  const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
   let completeAsset = ''
   if (isBCH) {
     const newBalance = String(
-      asset.balance.toFixed(denomDecimalPlaces[denomination])
+      balanceCheck.toFixed(denomDecimalPlaces[denomination])
     ).substring(0, setSubStringMaxLength)
     completeAsset = `${parseFloat(newBalance)} ${denomination}`
   } else {

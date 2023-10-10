@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('POSAdmin')"
       backnavpath="/apps"
@@ -8,7 +8,7 @@
     <q-card
       class="br-15 q-mx-md q-mt-lg q-mb-md pt-card"
       :style="{ 'margin-top': $q.platform.is.ios ? '35px' : '0'}"
-      :class="getDarkModeClass('text-white', 'text-black')"
+      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
     >
       <q-card-section>
         <q-item
@@ -47,7 +47,7 @@
                   anchor="bottom right"
                   self="top right"
                   class="q-pa-sm pt-card"
-                  :class="getDarkModeClass('text-white', 'text-black')"
+                  :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
                 >
                   <q-list separator :dark="darkMode">
                     <q-item
@@ -108,7 +108,7 @@
     <q-card
       class="br-15 q-pt-sm q-mx-md pt-card"
       :style="{ 'margin-top': $q.platform.is.ios ? '55px' : '0'}"
-      :class="getDarkModeClass('text-white', 'text-black')"
+      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
     >
       <q-card-section>
         <div class="row items-center">
@@ -177,7 +177,7 @@
             <q-item-section side>
               <q-btn icon="more_vert" flat>
                 <q-menu>
-                  <q-list style="min-width: 100px" class="pt-card" :class="getDarkModeClass('', 'text-black')">
+                  <q-list style="min-width: 100px" class="pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
                     <q-item
                       clickable
                       v-close-popup
@@ -296,6 +296,7 @@ import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.v
 import SalesReportDialog from 'src/components/paytacapos/SalesReportDialog.vue'
 import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
 
@@ -928,10 +929,6 @@ function connectRpcClient(opts) {
         console.log('Skipping reconnection')
       }
     })
-}
-
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 <style scoped>

@@ -78,7 +78,7 @@
             <div v-if="transferType === 'c2s'">Waiting for SmartBCH Transaction</div>
             <div v-else-if="transferType === 's2c'">{{ `Waiting for ${denomination} Transaction` }}</div>
           </template>
-          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-else-if="parsedOutgoingTx.hash">
           <div>
@@ -118,6 +118,7 @@
 import { findC2SOutgoingTx, findS2COutgoingTx, waitC2SOutgoing, waitS2COutgoing } from '../../wallet/hopcash'
 import ProgressLoader from 'components/ProgressLoader.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'HopCashSwapWait',
   components: { ProgressLoader },
@@ -138,11 +139,16 @@ export default {
     return {
       waitPromiseObj: null,
       fetchingOutgoingTx: false,
-      tx: null,
-      denomination: this.$store.getters['global/denomination']
+      tx: null
     }
   },
   computed: {
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     outgoingTxFound () {
       // Could do more checks like comparing `this.incomingTxid` with the data in `this.tx` to be more convincing
       return Boolean(this.parsedOutgoingTx.hash)
@@ -175,16 +181,11 @@ export default {
       }
 
       return data
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   methods: {
     getAssetDenomination,
+    isDefaultTheme,
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
