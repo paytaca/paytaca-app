@@ -85,21 +85,18 @@ export default {
       this.$emit('update:model-value', this.val)
     },
     modelValue (bool) {
-      if (this.isMobile) {
-        if (bool) {
-          this.prepareScanner()
-        }
-      }
-
+      if (this.isMobile && bool) this.prepareScanner()
       this.val = bool
     }
   },
   methods: {
-    stopScan () {
+    async stopScan () {
       this.$emit('input', false)
       this.$emit('update:model-value', false)
-      BarcodeScanner.showBackground()
-      BarcodeScanner.stopScan()
+      try {
+        await BarcodeScanner.showBackground()
+        await BarcodeScanner.stopScan()
+      } catch {}
       try {
         this.$root.$el.classList.remove('root-hide-section')
         document.body.classList.remove('transparent-body')
@@ -134,16 +131,13 @@ export default {
 
       const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
 
+      rootEl.classList.remove(rootHide)
+      document.body.classList.remove(transparent)
+      scannerUI.classList.add(hide)
       if (res.content) {
         BarcodeScanner.showBackground()
-        rootEl.classList.remove(rootHide)
-        document.body.classList.remove(transparent)
-        scannerUI.classList.add(hide)
         this.$emit('decode', res.content)
       } else {
-        rootEl.classList.remove(rootHide)
-        document.body.classList.remove(transparent)
-        scannerUI.classList.add(hide)
         this.$emit('input', false)
         this.$emit('update:model-value', false)
       }
