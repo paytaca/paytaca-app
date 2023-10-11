@@ -1,5 +1,11 @@
 <template>
+  <div>
+  <QrScanner
+    v-model="showScanner"
+    @decode="onScannerDecode"
+  />
   <q-pull-to-refresh
+    id="app-container"
     style="background-color: #ECF3F3; min-height: 100vh;padding-bottom:50px;"
     :class="getDarkModeClass('pt-dark')"
     @refresh="refreshPage"
@@ -37,13 +43,14 @@
       :class="getDarkModeClass('pt-dark info-banner', 'text-black')"
     >
       <q-tab-panel name="BCH">
-        <WalletConnectV2 ref="walletConnectV2"/>
+        <WalletConnectV2 ref="walletConnectV2" @request-scanner="openScanner"/>
       </q-tab-panel>
       <q-tab-panel name="sBCH">
-        <WalletConnectV1 ref="walletConnectV1"/>
+        <WalletConnectV1 ref="walletConnectV1" @request-scanner="openScanner"/>
       </q-tab-panel>
     </q-tab-panels>
   </q-pull-to-refresh>
+  </div>
 </template>
 <script setup>
 import { parseWalletConnectUri } from "src/wallet/walletconnect";
@@ -51,6 +58,7 @@ import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import { computed, onMounted, ref } from "vue";
 import HeaderNav from "src/components/header-nav.vue";
+import QrScanner from "src/components/qr-scanner.vue";
 import WalletConnectV1 from "src/components/walletconnect/WalletConnectV1.vue"
 import WalletConnectV2 from "src/components/walletconnect/WalletConnectV2.vue"
 
@@ -62,6 +70,24 @@ const walletConnectV1 = ref()
 const walletConnectV2 = ref()
 window.wc1 = walletConnectV1
 window.wc2 = walletConnectV2
+
+const showScanner = ref(false)
+function openScanner() {
+  console.log("Opening scanner")
+
+  // flipping the value due to qr-scanner not updating its internal value on mobile
+  showScanner.value = false
+  setTimeout(() => {
+    showScanner.value = true
+  }, 250)
+}
+function onScannerDecode(content) {
+  console.log('Decoded', content)
+  showScanner.value = false
+  const isSbch = selectedNetwork.value === 'sBCH'
+  if (isSbch) walletConnectV1.value?.onScannerDecode?.(content)
+  else walletConnectV2.value?.onScannerDecode?.(content)
+}
 
 const $t = useI18n().t
 const $store = useStore()

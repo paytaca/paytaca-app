@@ -1,9 +1,9 @@
 <template>
   <div>
-    <QrScanner
+    <!-- <QrScanner
       v-model="showScanner"
       @decode="onScannerDecode"
-    />
+    /> -->
     <div class="row items-center">
       <div class="text-h6">Session</div>
       <q-space/>
@@ -11,10 +11,10 @@
         <q-icon name="more_vert"/>
         <q-badge v-if="sessionProposals?.length" floating>{{ sessionProposals?.length }}</q-badge>
         <q-menu :class="getDarkModeClass('pt-dark', 'text-black')">
-          <!-- <q-item
+          <q-item
             clickable v-ripple
             v-close-popup
-            @click="() => showScanner = true"
+            @click="() => $emit('request-scanner')"
           >
             <q-item-section side class="q-pr-sm">
               <q-icon name="mdi-qrcode"/>
@@ -22,7 +22,7 @@
             <q-item-section>
               <q-item-label>Scan new session</q-item-label>
             </q-item-section>
-          </q-item> -->
+          </q-item>
           <q-item
             clickable v-ripple
             v-close-popup
@@ -105,11 +105,11 @@
       <q-item-section>
         <div>
           <div class="q-mb-sm">No active sessions, connect new session</div>
-          <!-- <q-btn-group spread>
-            <q-btn color="brandblue" icon="mdi-qrcode" no-caps label="Scan" @click="() => showScanner = true"/>
+          <q-btn-group spread>
+            <q-btn color="brandblue" icon="mdi-qrcode" no-caps label="Scan" @click="() => $emit('request-scanner')"/>
             <q-btn color="brandblue" icon="link" no-caps label="Copy link" @click="() => connectNewSession()"/>
-          </q-btn-group> -->
-          <q-form @submit="() => pairUrlInInput()">
+          </q-btn-group>
+          <!-- <q-form @submit="() => pairUrlInInput()">
             <q-input
               dense outlined
               label="Paste URL"
@@ -117,7 +117,7 @@
               bottom-slots
             />
             <q-btn color="brandblue" no-caps label="Connect" type="submit" class="full-width"/>
-          </q-form>
+          </q-form> -->
         </div>
       </q-item-section>
     </q-item>
@@ -297,7 +297,11 @@ import { useStore } from 'vuex';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import WalletConnectConfirmDialog from 'src/components/walletconnect/WalletConnectConfirmDialog.vue';
 import WC2SessionRequestDialog from 'src/components/walletconnect/WC2SessionRequestDialog.vue';
-import QrScanner from "src/components/qr-scanner.vue"
+// import QrScanner from "src/components/qr-scanner.vue"
+
+const $emit = defineEmits([
+  'request-scanner',  
+])
 
 const $q = useQuasar()
 const $store = useStore()
@@ -307,10 +311,10 @@ function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
   return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 
-const showScanner = ref(false)
+// const showScanner = ref(false)
 async function onScannerDecode (content) {
   console.log('Scanned', content)
-  showScanner.value = false
+  // showScanner.value = false
   const dialog = $q.dialog({
     title: 'Connecting',
     progress: { color: 'brandblue', },
@@ -319,7 +323,13 @@ async function onScannerDecode (content) {
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
   try {
-    await web3Wallet.value.pair({ uri: content })
+    await new Promise(async (resolve, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), 15 * 1000)
+      try {
+        const resp = await web3Wallet.value.pair({ uri: content })
+        resolve(resp)
+      } catch(error) { reject(error) }
+    })
   } finally {
     dialog.hide()
   }
@@ -705,6 +715,8 @@ function onSessionRequest(...args) {
 }
 
 defineExpose({
+  onScannerDecode,
+
   statusUpdate,
   web3Wallet,
   web3WalletPromise,

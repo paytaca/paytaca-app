@@ -1,9 +1,9 @@
 <template>
   <div style="margin-top: 50px;">
-    <QrScanner
+    <!-- <QrScanner
       v-model="showScanner"
       @decode="onScannerDecode"
-    />
+    /> -->
     <div v-if="!connector">
       <q-input
         :label="$t('InputWalletConnectUri')"
@@ -34,7 +34,7 @@
           color="grad"
           size="lg"
           class="button"
-          @click="showScanner = true"
+          @click="() => $emit('request-scanner')"
           :disable="handshakeOnProgress"
         />
       </div>
@@ -186,8 +186,12 @@ import { useI18n } from "vue-i18n"
 import { useStore } from "vuex"
 import { computed, inject, markRaw, onMounted, onUnmounted, reactive, ref, watch } from "vue"
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import QrScanner from "src/components/qr-scanner.vue"
+// import QrScanner from "src/components/qr-scanner.vue"
 import WalletConnectCallRequestDialog from 'src/components/walletconnect/WalletConnectCallRequestDialog.vue'
+
+const $emit = defineEmits([
+  'request-scanner'
+])
 
 const $copyText = inject('$copyText')
 const $t = useI18n().t
@@ -205,10 +209,11 @@ onMounted(async () => {
   wallet.value = markRaw(_wallet)
 })
 
-const showScanner = ref(false)
+// const showScanner = ref(false)
 function onScannerDecode (content) {
+  console.log('Decoded', content)
   handshakeUrl.value = content
-  showScanner.value = false
+  // showScanner.value = false
   initHandshake()
 }
 const handshakeUrl = ref('')
@@ -447,6 +452,8 @@ function promiseDialog(dialogOpts) {
 }
 
 defineExpose({
+  onScannerDecode,
+
   handshakeUrl,
   initHandshake,
 
