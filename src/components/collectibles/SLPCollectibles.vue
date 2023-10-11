@@ -1,7 +1,7 @@
 <template>
   <div :class="[darkMode ? 'pt-dark-label' : 'text-grey-8']">
     <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <template v-if="collectibles.length > 0">
       <div class="q-mx-md q-px-sm row items-center">
@@ -75,6 +75,7 @@
 import ProgressLoader from 'components/ProgressLoader'
 import Collectible from 'components/collectibles/SLPCollectibleDetail'
 import SLPCollectiblesItem from 'components/collectibles/SLPCollectiblesItem.vue'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SLPCollectibles',
@@ -100,8 +101,11 @@ export default {
   },
 
   computed: {
-    darkMode() {
+    darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     },
     groupedView () {
       return this.viewType === 'list'
@@ -125,16 +129,11 @@ export default {
         })
         return { token: group, collectibles }
       })
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
 
   methods: {
+    isDefaultTheme,
     toggleExpandGroup(groupId) {
       const index = this.expandedGroupIds.indexOf(groupId)
       if (index >= 0) this.expandedGroupIds.splice(index, 1)

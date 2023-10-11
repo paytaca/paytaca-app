@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="getDarkModeClass()">
+    <div id="app-container" :class="getDarkModeClass(darkMode)">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || $route.query.name)"
         :backnavpath="backPath"
@@ -13,7 +13,7 @@
         v-if="assetId.startsWith('slp/')"
         inline-actions
         class="text-white bg-red text-center q-mt-lg"
-        :class="getDarkModeClass('text-white', 'text-black')"
+        :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
         style="width: 90%; margin-left: auto; margin-right: auto;"
       >
         Sending of SLP tokens is temporarily disabled until further notice.
@@ -42,7 +42,7 @@
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
               <div
                 class="q-mt-md text-center"
-                :class="getDarkModeClass('text-white', 'text-black')"
+                :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
                 v-if="$route.query.tokenType === 'CT-NFT'"
               >
                 <span>Name: {{ $route.query.name }}</span>
@@ -68,7 +68,7 @@
                       name="arrow_forward_ios"
                       style="color: #3b7bf6;"
                       class="button button-icon"
-                      :class="getDarkModeClass()"
+                      :class="getDarkModeClass(darkMode)"
                       @click="!lns.loading ? checkAddress(manualAddress) : null"
                     />
                   </template>
@@ -81,11 +81,15 @@
                     </q-item>
                     <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
                       <q-item-section>
-                        <q-item-label :class="getDarkModeClass('', 'text-black')" caption>{{ lns.name }}</q-item-label>
-                        <q-item-label style="word-break:break-all;" :class="getDarkModeClass('', 'text-black')">{{ lns.address }}</q-item-label>
+                        <q-item-label :class="getDarkModeClass(darkMode, '', 'text-black')" caption>
+                          {{ lns.name }}
+                        </q-item-label>
+                        <q-item-label style="word-break:break-all;" :class="getDarkModeClass(darkMode, '', 'text-black')">
+                          {{ lns.address }}
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
-                    <q-item v-else :class="getDarkModeClass('pt-dark-label', 'text-grey')">
+                    <q-item v-else :class="getDarkModeClass(darkMode, 'pt-dark-label', 'text-grey')">
                       <q-item-section side>
                         <q-icon name="error"/>
                       </q-item-section>
@@ -113,7 +117,7 @@
             <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
               <div
                 v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0"
-                :class="getDarkModeClass('text-white', 'text-black')"
+                :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
               >
                 POS:
                 {{ sendData.posDevice.walletHash.substring(0, 5) }}
@@ -205,7 +209,7 @@
                     @click.prevent="setMaximumSendAmount"
                     style="float: right; text-decoration: none; color: #3b7bf6;"
                     class="button button-text-primary"
-                    :class="getDarkModeClass()"
+                    :class="getDarkModeClass(darkMode)"
                   >
                     {{ $t('MAX') }}
                   </a>
@@ -217,7 +221,7 @@
                     style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
                     href="#"
                     class="button button-text-primary"
-                    :class="getDarkModeClass()"
+                    :class="getDarkModeClass(darkMode)"
                     @click.prevent="() => {sendData.amount = 0; setAmountInFiat = true}"
                   >
                     Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
@@ -226,7 +230,7 @@
               </div>
               <div class="row" v-if="sendData.sending">
                 <div class="col-12 text-center">
-                  <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+                  <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
                 </div>
               </div>
             </form>
@@ -251,7 +255,7 @@
                   </div>
                 </template>
 
-              <q-item class="bg-grad swipe text-white q-py-md" :class="getDarkModeClass()">
+              <q-item class="bg-grad swipe text-white q-py-md" :class="getDarkModeClass(darkMode)">
                 <q-item-section avatar>
                   <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
                 </q-item-section>
@@ -278,7 +282,10 @@
           </div>
           <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
             <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
-            <div :class="getDarkModeClass('text-white', 'pp-text')" :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}">
+            <div
+              :class="getDarkModeClass(darkMode, 'text-white', 'pp-text')"
+              :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}"
+            >
               <p style="font-size: 26px;">{{ $t('SuccessfullySent') }}</p>
               <template v-if="isNFT">
                 <p style="font-size: 28px; margin-top: -10px;">{{ $route.query.name }}</p>
@@ -330,9 +337,9 @@
                 <div
                   class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1"
                   style="min-width:50vw;border: 1px solid grey;background-color: inherit;"
-                  :class="getDarkModeClass('text-white', '')"
+                  :class="getDarkModeClass(darkMode, 'text-white', '')"
                 >
-                  <span :class="getDarkModeClass('text-grey-5', 'text-grey-8')">Memo:</span>
+                  <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">Memo:</span>
                   {{ sendData.paymentAckMemo }}
                 </div>
               </div>
@@ -385,6 +392,7 @@ import {
   convertTokenAmount,
 } from 'src/wallet/chipnet'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -520,18 +528,25 @@ export default {
       amountInputState: false,
       customKeyboardState: 'dismiss',
       sliderStatus: false,
-      darkMode: this.$store.getters['darkmode/getStatus'],
       showQrScanner: false,
       setAmountInFiat: false,
       sendAmountInFiat: null,
       balanceExceeded: false,
       setMax: false,
-      computingMax: false,
-      denomination: this.$store.getters['global/denomination']
+      computingMax: false
     }
   },
 
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -612,12 +627,6 @@ export default {
       if (this.sendData.responseOTP) return this.sendData.responseOTP
 
       return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
 
@@ -659,6 +668,8 @@ export default {
     convertTokenAmount,
     parseAssetDenomination,
     parseFiatCurrency,
+    getDarkModeClass,
+    isDefaultTheme,
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
@@ -1287,9 +1298,6 @@ export default {
     },
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
 

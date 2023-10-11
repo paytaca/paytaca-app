@@ -4,7 +4,7 @@
       v-model="scanner.show"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="getDarkModeClass()">
+    <div id="app-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         :title="$t('WalletConnect')"
         backnavpath="/apps"
@@ -47,7 +47,7 @@
           </div>
           <template v-if="handshakeOnProgress">
             <div class="row items-center justify-center">
-              <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+              <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
             </div>
             <div v-if="pendingConnector" class="row items-center justify-center">
               <q-btn
@@ -198,6 +198,7 @@ import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader.vue'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
 import WalletConnectCallRequestDialog from '../../components/walletconnect/WalletConnectCallRequestDialog.vue'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 const ago = require('s-ago')
 
 export default {
@@ -229,8 +230,7 @@ export default {
       },
 
       onDisconnectListener: null,
-      onCallRequestListener: null,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      onCallRequestListener: null
     }
   },
   computed: {
@@ -241,6 +241,12 @@ export default {
       set (value) {
         this.walletConnect.connector = value
       },
+    },
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     },
     parsedPeerMeta () {
       const meta = {
@@ -263,16 +269,12 @@ export default {
     },
     callRequests () {
       return this.$store.getters['walletconnect/callRequests']
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
 
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value
@@ -537,9 +539,6 @@ export default {
         .then(function (mnemonic) {
           vm.wallet = markRaw(new Wallet(mnemonic, 'sBCH'))
         })
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
 
