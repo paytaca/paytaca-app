@@ -26,13 +26,13 @@
     >
       <q-tab
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         name="BCH"
         label="BCH"
       />
       <q-tab
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         name="sBCH"
         label="SmartBCH"
       />

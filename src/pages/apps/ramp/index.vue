@@ -17,7 +17,7 @@
       <q-tab
         name="fiat"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         disable
         :label="$t('Fiat')"
       >
@@ -30,7 +30,7 @@
       <q-tab
         name="crypto"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         :label="$t('Crypto')"
       />
     </q-tabs>

@@ -17,7 +17,7 @@
       <q-tab
         name="BCH"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         disable
         label="BCH"
       >
@@ -33,7 +33,7 @@
       <q-tab
         name="sBCH"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         label="SmartBCH"
       />
     </q-tabs>

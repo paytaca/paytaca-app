@@ -41,19 +41,19 @@
         <q-tab
           name="details"
           class="network-selection-tab"
-          :class="{'text-blue-5': darkMode}"
+          :class="getDarkModeClass(darkMode)"
           :label="$t('Details')"
         />
         <q-tab
           name="transaction"
           class="network-selection-tab"
-          :class="{'text-blue-5': darkMode}"
+          :class="getDarkModeClass(darkMode)"
           :label="$t('Transaction')"
         />
         <q-tab
           name="extension"
           class="network-selection-tab"
-          :class="{'text-blue-5': darkMode}"
+          :class="getDarkModeClass(darkMode)"
           :label="$t('Extensions')"
           :disable="!nft?.metadata?.type_metadata?.extensions"
         />

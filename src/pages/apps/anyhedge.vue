@@ -16,13 +16,13 @@
       <q-tab
         name="hedge"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         :label="$t('Hedge')"
       />
       <q-tab
         name="long"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         :label="$t('Long')"
       />
     </q-tabs>

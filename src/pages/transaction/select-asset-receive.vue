@@ -14,13 +14,13 @@
       <q-tab
         name="BCH"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         :label="networks.BCH.name"
       />
       <q-tab
         name="sBCH"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         :label="networks.sBCH.name"
         :disable="isChipnet"
       />

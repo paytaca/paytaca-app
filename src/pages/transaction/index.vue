@@ -1161,6 +1161,10 @@ export default {
 </script>
 
 <style scoped>
+  #bch-card {
+    margin: 0px 20px 10px 20px;
+    border-radius: 15px;
+  }
   .fixed-container {
     position: fixed;
     top: 0 !important;
