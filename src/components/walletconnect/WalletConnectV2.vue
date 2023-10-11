@@ -11,7 +11,7 @@
         <q-icon name="more_vert"/>
         <q-badge v-if="sessionProposals?.length" floating>{{ sessionProposals?.length }}</q-badge>
         <q-menu :class="getDarkModeClass('pt-dark', 'text-black')">
-          <q-item
+          <!-- <q-item
             clickable v-ripple
             v-close-popup
             @click="() => showScanner = true"
@@ -22,7 +22,7 @@
             <q-item-section>
               <q-item-label>Scan new session</q-item-label>
             </q-item-section>
-          </q-item>
+          </q-item> -->
           <q-item
             clickable v-ripple
             v-close-popup
@@ -32,7 +32,7 @@
               <q-icon name="link"/>
             </q-item-section>
             <q-item-section>
-              <q-item-label>Pase URL</q-item-label>
+              <q-item-label>Paste URL</q-item-label>
             </q-item-section>
           </q-item>
           <q-separator/>
@@ -105,10 +105,19 @@
       <q-item-section>
         <div>
           <div class="q-mb-sm">No active sessions, connect new session</div>
-          <q-btn-group spread>
+          <!-- <q-btn-group spread>
             <q-btn color="brandblue" icon="mdi-qrcode" no-caps label="Scan" @click="() => showScanner = true"/>
             <q-btn color="brandblue" icon="link" no-caps label="Copy link" @click="() => connectNewSession()"/>
-          </q-btn-group>
+          </q-btn-group> -->
+          <q-form @submit="() => pairUrlInInput()">
+            <q-input
+              dense outlined
+              label="Paste URL"
+              v-model="walletConnectUriInput"
+              bottom-slots
+            />
+            <q-btn color="brandblue" no-caps label="Connect" type="submit" class="full-width"/>
+          </q-form>
         </div>
       </q-item-section>
     </q-item>
@@ -359,6 +368,7 @@ function getNamespaces() {
   }
 }
 
+const walletConnectUriInput = ref()
 const showActiveSessionsDialog = ref(false)
 const activeSessions = ref()
 const activeSessionsList = computed(() => {
@@ -391,7 +401,31 @@ async function connectNewSession(value='') {
     position: 'bottom',
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
-    .onOk(val => web3Wallet.value.pair({ uri: val }) )
+    .onOk(val => pairUrl(val))
+}
+
+async function pairUrlInInput() {
+  console.log(walletConnectUriInput.value)
+  return pairUrl(walletConnectUriInput.value)
+    .finally(() => {
+      walletConnectUriInput.value = ''
+    })
+}
+
+async function pairUrl(uri, opts={ showDialog: true }) {
+  if (!uri) return
+  const dialog = !opts?.showDialog ? undefined : $q.dialog({
+    title: 'Connecting',
+    progress: { color: 'brandblue', },
+    persistent: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  try {
+    await web3Wallet.value.pair({ uri: uri })
+  } finally {
+    dialog?.hide?.()
+  }
 }
 
 async function disconnectSession(sessionTopic) {
