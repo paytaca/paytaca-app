@@ -8,6 +8,7 @@ export function clearArbiter (state) {
 
 export function updateUser (state, user) {
   state.user = user
+  console.log('updated user:', state.user)
 }
 
 export function clearProfile (state) {

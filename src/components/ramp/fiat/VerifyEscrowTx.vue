@@ -80,8 +80,6 @@
     <!-- else progress loader -->
   </template>
 <script>
-import { signMessage } from '../../../wallet/ramp/signature.js'
-// import { getBalanceByAddress } from 'src/wallet/bch'
 
 export default {
   data () {
@@ -109,10 +107,6 @@ export default {
   props: {
     orderId: {
       type: Number,
-      default: null
-    },
-    wallet: {
-      type: Object,
       default: null
     },
     rampContract: Object,

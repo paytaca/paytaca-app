@@ -100,7 +100,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      wallet: null,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       statusType: 'PENDING',
       state: 'appeal-list',
       selectedAppeal: null,
@@ -155,40 +155,30 @@ export default {
     if (!vm.appeals || vm.appeals.length === 0) {
       vm.loading = true
     }
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
-      vm.wallet = wallet
-      vm.resetAndRefetchListings()
-    })
+    // const walletInfo = vm.$store.getters['global/getWallet']('bch')
+    // loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
+    //   vm.wallet = wallet
+    vm.resetAndRefetchListings()
+    // })
   },
   methods: {
     async fetchAppeals (overwrite = false) {
       // console.log('fetching appeals')
       const vm = this
       vm.loading = true
-      if (!vm.wallet) return
-      const timestamp = Date.now()
-      signMessage(this.wallet.privateKeyWif, 'APPEAL_LIST', timestamp).then(signature => {
-        const headers = {
-          'wallet-hash': this.wallet.walletHash,
-          timestamp: timestamp,
-          signature: signature
-        }
-        const params = { state: vm.statusType }
-        vm.$store.dispatch('ramp/fetchAppeals',
-          {
-            appealState: vm.statusType,
-            params: params,
-            headers: headers,
-            overwrite: overwrite
-          })
-          .then(() => {
-            vm.loading = false
-          })
-          .catch(error => {
-            console.error(error.response)
-          })
-      })
+      const params = { state: vm.statusType }
+      vm.$store.dispatch('ramp/fetchAppeals',
+        {
+          appealState: vm.statusType,
+          params: params,
+          overwrite: overwrite
+        })
+        .then(() => {
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
     },
     async loadMoreData (_, done) {
       const vm = this

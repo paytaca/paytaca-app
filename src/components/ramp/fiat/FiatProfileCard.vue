@@ -121,7 +121,6 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
   data () {
@@ -137,7 +136,7 @@ export default {
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-      reviewList: null
+      reviewList: []
     }
   },
   props: {
@@ -157,13 +156,9 @@ export default {
     ProgressLoader
   },
   async mounted () {
-    const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-
-    await this.processUserData()
-    await this.fetchTopAds()
-    vm.isloaded = true
+    this.processUserData()
+    // await this.fetchTopAds()
+    this.isloaded = true
   },
   methods: {
     processUserData () {
@@ -177,15 +172,15 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      // this.$store.commit('global/editRampNickname', info.nickname)
-      vm.$axios.put(vm.apiURL + '/peer', { nickname: info.nickname }, { headers: vm.authHeaders })
+      console.log('authHeaders:', this.authHeaders)
+      vm.$axios.put(vm.apiURL + '/peer/detail', { nickname: info.nickname }, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response.data)
           vm.$store.commit('ramp/updateUser', response.data)
           this.processUserData()
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       this.editNickname = false
@@ -210,45 +205,45 @@ export default {
           console.log(error)
         })
       // top 5 reviews
-  //   async fetchUserAds () {
-  //     const vm = this
-  //     vm.loading = true
-  //     console.log('filtering ads')
-  //     const walletInfo = vm.$store.getters['global/getWallet']('bch')
-  //     const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-  //     const timestamp = Date.now()
-  //     const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
+      //   async fetchUserAds () {
+      //     const vm = this
+      //     vm.loading = true
+      //     console.log('filtering ads')
+      //     const walletInfo = vm.$store.getters['global/getWallet']('bch')
+      //     const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      //     const timestamp = Date.now()
+      //     const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
 
-  //     const headers = {
-  //       'wallet-hash': wallet.walletHash,
-  //       signature: signature,
-  //       timestamp: timestamp
-  //     }
+      //     const headers = {
+      //       'wallet-hash': wallet.walletHash,
+      //       signature: signature,
+      //       timestamp: timestamp
+      //     }
 
-  //     let ownerID = 1
-  //     if (this.user.hasOwnProperty('id')) {
-  //       ownerID = this.user.id
-  //     }
+      //     let ownerID = 1
+      //     if (this.user.hasOwnProperty('id')) {
+      //       ownerID = this.user.id
+      //     }
 
-  //     const params = {
-  //       currency: 'PHP',
-  //       limit: 20,
-  //       owner_id: ownerID
-  //     }
-  //     const url = `${vm.apiURL}/ad`
-  //     await this.$axios.get(url, {
-  //       headers: headers,
-  //       params: params
-  //     })
-  //       .then(response => {
-  //         console.log(response.data)
-  //       })
-  //       .catch(error => {
-  //         console.log(error)
-  //       })
-  //     vm.loading = false
-  //   }
-  // },
+      //     const params = {
+      //       currency: 'PHP',
+      //       limit: 20,
+      //       owner_id: ownerID
+      //     }
+      //     const url = `${vm.apiURL}/ad`
+      //     await this.$axios.get(url, {
+      //       headers: headers,
+      //       params: params
+      //     })
+      //       .then(response => {
+      //         console.log(response.data)
+      //       })
+      //       .catch(error => {
+      //         console.log(error)
+      //       })
+      //     vm.loading = false
+      //   }
+      // },
     }
   }
 }

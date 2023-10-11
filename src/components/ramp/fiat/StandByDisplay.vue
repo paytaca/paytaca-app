@@ -204,7 +204,6 @@ export default {
   },
   props: {
     orderId: Number,
-    wallet: Object,
     feedbackData: Object
   },
   emits: ['sendFeedback', 'submitAppeal'],

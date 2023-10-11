@@ -27,19 +27,19 @@
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Price</span>
+              <span>Fiat Price</span>
               <span class="text-nowrap q-ml-xs">
                 {{ formattedCurrency(ad.price, ad.fiat_currency.symbol) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Limit</span>
+              <span>Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
                 {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}  - {{ parseFloat(ad.trade_ceiling) }} {{ ad.crypto_currency.symbol }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Payment Time Limit</span>
+              <span>Time Limit</span>
               <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
             </div>
           </div>
@@ -99,7 +99,7 @@
           <!-- create order btn -->
           <div class="row q-mx-lg q-py-md" v-if="!isOwner">
             <q-btn
-              :disabled="!isValidInputAmount(fiatAmount)"
+              :disabled="!isValidInputAmount(amount)"
               rounded
               no-caps
               :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
@@ -315,8 +315,8 @@ export default {
     },
     isValidInputAmount (value) {
       if (this.byFiat) {
-        console.log(this.byFiat)
-        console.log(this.equivalentAmount)
+        // console.log(this.byFiat)
+        // console.log(this.equivalentAmount)
         value = this.equivalentAmount
       }
       if (value === undefined) return false

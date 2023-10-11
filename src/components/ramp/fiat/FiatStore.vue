@@ -250,6 +250,7 @@ export default {
     },
     async fetchFiatCurrencies () {
       const vm = this
+      console.log('FiatStore authHeaders:', vm.authHeaders)
       vm.$axios.get(vm.apiURL + '/currency/fiat', { headers: vm.authHeaders })
         .then(response => {
           vm.fiatCurrencies = response.data

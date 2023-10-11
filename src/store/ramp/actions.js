@@ -24,23 +24,15 @@ export async function loadWallet (context) {
 }
 
 export async function fetchArbiter (context) {
-  if (!context.state.wallet) {
-    console.error('Ramp wallet not initialized')
-    return
+  const state = context.state
+  if (!state.authHeaders) {
+    throw new Error('Ramp authentication headers not initialized')
   }
   const wallet = context.state.wallet
   const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/arbiter/detail'
-  const timestamp = Date.now()
-  const signature = await signMessage(wallet.privateKeyWif, 'ARBITER_GET', timestamp)
-  const headers = {
-    'wallet-hash': wallet.walletHash,
-    timestamp: timestamp,
-    signature: signature,
-    Authorization: `Token ${getCookie('token')}`
-  }
   const params = { public_key: wallet.publicKey }
   try {
-    const response = await axiosInstance.get(url, { headers: headers, params: params })
+    const response = await axiosInstance.get(url, { headers: state.authHeaders, params: params })
     console.log('response:', response)
     context.commit('updateArbiter', response.data.arbiter)
     return response.data.arbiter
@@ -99,15 +91,15 @@ export async function createUser (context, data) {
   }
 }
 
-export async function fetchAds (context, { component = null, params = null, headers = null, overwrite = false }) {
-  if (!context.state.wallet) {
-    throw new Error('Ramp wallet not initialized')
+export async function fetchAds (context, { component = null, params = null, overwrite = false }) {
+  const state = context.state
+  if (!state.authHeaders) {
+    throw new Error('Ramp authentication headers not initialized')
   }
   /**
    * Setup pagination parameters based on
    * component & transaction type.
    **/
-  const state = context.state
   let pageNumber = null
   let totalPages = null
   switch (component) {
@@ -147,11 +139,7 @@ export async function fetchAds (context, { component = null, params = null, head
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
     params.page = pageNumber
     params.limit = state.itemsPerPage
-    headers = {
-      'wallet-hash': context.state.wallet.walletHash,
-      Authorization: `Token ${getCookie('token')}`
-    }
-    const response = await axiosInstance.get(apiURL, { params: params, headers: headers })
+    const response = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
 
     switch (params.trade_type) {
       case 'BUY':
@@ -184,8 +172,8 @@ export async function fetchAds (context, { component = null, params = null, head
 
 export async function fetchOrders (context, { orderState = null, params = null, overwrite = false }) {
   const state = context.state
-  if (!state.wallet) {
-    throw new Error('Ramp wallet not initialized')
+  if (!state.authHeaders) {
+    throw new Error('Ramp authentication headers not initialized')
   }
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
@@ -210,12 +198,8 @@ export async function fetchOrders (context, { orderState = null, params = null, 
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
     params.page = pageNumber
     params.limit = state.itemsPerPage
-    const headers = {
-      'wallet-hash': context.state.wallet.walletHash,
-      Authorization: `Token ${getCookie('token')}`
-    }
     try {
-      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
+      const data = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
       switch (orderState) {
         case 'ONGOING':
           context.commit('updateOngoingOrders', { overwrite: overwrite, data: data.data })
@@ -234,7 +218,7 @@ export async function fetchOrders (context, { orderState = null, params = null, 
   }
 }
 
-export async function fetchAppeals (context, { appealState = null, params = null, headers = null, overwrite = false }) {
+export async function fetchAppeals (context, { appealState = null, params = null, overwrite = false }) {
   const state = context.state
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null

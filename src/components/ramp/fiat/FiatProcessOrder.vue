@@ -28,7 +28,6 @@
       v-if="state === 'escrow-bch'"
       :key="escrowTransferProcessKey"
       :action="state"
-      :wallet="wallet"
       :order="order"
       :contract="contract"
       :amount="transferAmount"
@@ -38,7 +37,6 @@
     <VerifyEscrowTx
       v-if="state === 'tx-confirmation'"
       :key="verifyEscrowTxKey"
-      :wallet="wallet"
       :order-id="order.id"
       :action="verifyAction"
       :txid="txid"
@@ -50,7 +48,6 @@
     <!-- Waiting Page -->
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
-        :wallet="wallet"
         :order-id="order.id"
         :feedback-data="feedback"
         :key="standByDisplayKey"
@@ -62,7 +59,6 @@
     <!-- Payment Confirmation -->
     <div v-if="state === 'payment-confirmation'">
       <PaymentConfirmation
-        :wallet="wallet"
         :order-id="order.id"
         :type="confirmType"
         @confirm="handleConfirmPayment"
@@ -87,8 +83,7 @@
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency } from 'src/wallet/ramp'
 import RampContract from 'src/wallet/ramp/contract'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -146,10 +141,6 @@ export default {
     PaymentConfirmation
   },
   props: {
-    initWallet: {
-      type: Object,
-      default: null
-    },
     orderData: {
       type: Object,
       default: null
@@ -160,7 +151,9 @@ export default {
       return Number(this.order.crypto_amount)
     },
     getAdLimit () {
-      return formatCurrency(this.ad.trade_floor, this.order.fiat_currency.symbol) + ' - ' + formatCurrency(this.ad.trade_ceiling, this.order.fiat_currency.symbol)
+      const floor = formatCurrency(this.ad.trade_floor)
+      const ceiling = formatCurrency(this.ad.trade_ceiling)
+      return `${floor} BCH - ${ceiling} BCH`
     },
     fiatAmount () {
       return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))

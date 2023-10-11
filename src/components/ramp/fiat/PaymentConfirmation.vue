@@ -125,10 +125,6 @@ export default {
     }
   },
   props: {
-    wallet: {
-      type: Object,
-      default: null
-    },
     orderId: Number,
     type: String
   },

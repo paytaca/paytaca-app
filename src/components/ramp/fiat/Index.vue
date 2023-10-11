@@ -82,14 +82,14 @@ export default {
   methods: {
     async login () {
       try {
-        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp`, { headers: { 'wallet-hash': this.wallet.walletHash } })
+        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/peer`, { headers: { 'wallet-hash': this.wallet.walletHash } })
         const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
         const body = {
           wallet_hash: this.wallet.walletHash,
           signature: signature,
           public_key: this.wallet.publicKey
         }
-        await this.$axios.post(`${this.apiURL}/auth/login`, body)
+        await this.$axios.post(`${this.apiURL}/auth/login/peer`, body)
           .then(response => {
             console.log('response:', response)
             // save token as cookie and set to expire 1h later
@@ -121,7 +121,28 @@ export default {
     },
     async createRampUser (value) {
       this.createUser = true
-      this.user = await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: this.wallet })
+      const timestamp = Date.now()
+      const url = `${this.apiURL}/ramp-p2p/peer/create`
+      try {
+        const signature = await signMessage(this.wallet.privateKeyWif, 'PEER_CREATE', timestamp)
+        const headers = {
+          'wallet-hash': this.wallet.walletHash,
+          timestamp: timestamp,
+          signature: signature,
+          'public-key': this.wallet.publicKey
+        }
+        const body = {
+          nickname: value.nickname,
+          address: this.wallet.address
+        }
+        const { data: user } = await this.$axios.post(url, body, { headers: headers })
+        this.user = user
+        this.$store.commit('updateUser', user)
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
+      }
+      // this.user = await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: this.wallet })
       if (this.user) {
         this.login()
       }

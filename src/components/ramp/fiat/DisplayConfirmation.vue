@@ -36,7 +36,7 @@
         <div class="q-pt-lg q-mx-lg">
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Trade Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor, postData.fiatCurrency.symbol) }} - {{ formattedCurrency(adData.tradeCeiling, postData.fiatCurrency.symbol) }} </span>
+            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} - {{ formattedCurrency(adData.tradeCeiling) }} BCH </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Trade Amount</span>

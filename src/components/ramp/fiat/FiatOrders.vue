@@ -96,7 +96,6 @@
       </div>
       <div v-if="state === 'view-order'">
         <FiatProcessOrder
-          :init-wallet="wallet"
           :order-data="selectedOrder"
           @back="returnOrderList()"
         />
@@ -114,8 +113,7 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 
 export default {

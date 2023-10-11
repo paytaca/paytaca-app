@@ -1,4 +1,5 @@
 <template>
+  <q-scroll-area :style="`height: ${minHeight - minHeight*0.2}px`" style="overflow-y:auto;">
     <div class="q-pb-md">
       <!-- <div>
         <q-btn
@@ -22,7 +23,7 @@
           :loading="!selectedArbiter"
           :label="selectedArbiter ? selectedArbiter.address : ''"
           :options="arbiterOptions"
-          :disable="!contractAddress"
+          :disable="!contractAddress || sendingBch"
           behavior="dialog">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
@@ -59,9 +60,9 @@
         <div class="sm-font-size q-pl-sm q-pb-xs">Transfer Amount</div>
         <q-input
           readonly
-          :dark="darkMode"
           filled
           dense
+          :dark="darkMode"
           v-model="transferAmount"
           :error="balanceExceeded"
           :error-message="balanceExceeded? $t('Insufficient balance') : ''">
@@ -70,7 +71,10 @@
           </template>
         </q-input>
         <!-- </div> -->
-        <div class="sm-font-size q-mt-sm" style="color: grey;">
+        <div v-if="sendingBch" class="sm-font-size">
+          <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+        </div>
+        <div v-else class="sm-font-size q-mt-sm">
           <div v-if="fees" class="row q-ml-md">
             Fee: {{ fees.total / 100000000 }} BCH
           </div>
@@ -104,9 +108,9 @@
       />
     </div>
     <!-- else progress loader -->
-  </template>
+  </q-scroll-area>
+</template>
 <script>
-import { signMessage } from 'src/wallet/ramp/signature'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { Dialog } from 'quasar'
@@ -118,6 +122,7 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
       authHeaders: this.$store.getters['ramp/authHeaders'],
+      wallet: this.$store.getters['ramp/wallet'],
       adData: null,
       loading: false,
       selectedArbiter: null,
@@ -127,7 +132,8 @@ export default {
       txid: null,
       fees: null,
       showDragSlide: true,
-      sendErrors: []
+      sendErrors: [],
+      sendingBch: false
     }
   },
   emits: ['back', 'success'],
@@ -142,10 +148,6 @@ export default {
     amount: {
       type: Number,
       default: 0
-    },
-    wallet: {
-      type: Object,
-      default: null
     },
     contract: Object
   },
@@ -191,6 +193,7 @@ export default {
       // Send crypto to smart contract
       const vm = this
       try {
+        vm.sendingBch = true
         const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
         console.log('sendBch:', result)
         if (result.success) {
@@ -219,6 +222,7 @@ export default {
         console.error(err.response)
         vm.showDragSlide = true
       }
+      vm.sendingBch = false
     },
     async escrowPendingOrder () {
       const vm = this
