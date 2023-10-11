@@ -107,7 +107,7 @@
           <div class="q-mb-sm">No active sessions, connect new session</div>
           <q-btn-group spread>
             <q-btn color="brandblue" icon="mdi-qrcode" no-caps label="Scan" @click="() => $emit('request-scanner')"/>
-            <q-btn color="brandblue" icon="link" no-caps label="Copy link" @click="() => connectNewSession()"/>
+            <q-btn color="brandblue" icon="link" no-caps label="Paste URL" @click="() => connectNewSession()"/>
           </q-btn-group>
           <!-- <q-form @submit="() => pairUrlInInput()">
             <q-input
