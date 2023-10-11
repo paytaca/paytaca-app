@@ -1,0 +1,53 @@
+import { convertTokenAmount } from 'src/wallet/chipnet'
+
+const denomDecimalPlaces = {
+  BCH: 8,
+  mBCH: 5,
+  Satoshis: 0,
+  DEEM: 0
+}
+
+/**
+ * `BCH` - 8 decimal places;
+ * `mBCH` - 5 decimal places;
+ * `Satoshis`, `DEEM` - 0 decimal places
+ */
+export function parseAssetDenomination (denomination, asset, subStringMax = 0) {
+  const balanceCheck = asset.balance ?? 0
+  const isBCH = asset.symbol === 'BCH'
+  const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
+  let completeAsset = ''
+  if (isBCH) {
+    const newBalance = String(
+      balanceCheck.toFixed(denomDecimalPlaces[denomination])
+    ).substring(0, setSubStringMaxLength)
+    completeAsset = `${parseFloat(newBalance)} ${denomination}`
+  } else {
+    const isSLP = asset.id?.startsWith('slp/')
+    const newBalance = String(
+      convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP)
+    ).substring(0, setSubStringMaxLength)
+    completeAsset = `${newBalance} ${asset.symbol}`
+  }
+  return completeAsset
+}
+
+/**
+ * Used for when values does not come from a single object **(`asset`)**
+ */
+export function getAssetDenomination (denomination, assetBalance) {
+  return parseAssetDenomination(denomination, {
+    id: 'BCH',
+    balance: assetBalance,
+    symbol: 'BCH',
+    decimals: 0
+  })
+}
+
+export function parseFiatCurrency (amount, currency) {
+  const newAmount = Number(amount).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+  return `${newAmount} ${currency.toUpperCase()}`
+}

@@ -1,17 +1,16 @@
-const translate = require('translate-google')
-const fs = require('fs')
-
+const translate = require("translate-google")
+const fs = require("fs")
 
 /**
  * NOTE: YOU ONLY NEED TO UPDATE TEXTS HERE and run this script.
  * This script automatically translates and writes the translated
  * objects to the language index files (i18n/{language}/index.js)
- * 
- * 
+ *
+ *
  * To execute this script:
  * 1) go to the directory of this file
  * 2) run "node translate.js"
- * 
+ *
  */
 const words = [
   {
@@ -54,7 +53,6 @@ const words = [
     Deadline: "Deadline",
     Deposit: "Deposit",
     Disconnected: "Disconnected",
-    Dismiss: "Dismiss",
     English: "English",
     Error: "Error",
     Done: "Done",
@@ -118,7 +116,7 @@ const words = [
     Wallets: "Wallets",
     Details: "Details",
     Transaction: "Transaction",
-    Extensions: "Extensions", 
+    Extensions: "Extensions",
     Description: "Description",
     Unlink: "Unlink",
     Gifts: "Gifts",
@@ -139,9 +137,9 @@ const phrases = {
   /**
    * NOTE: separate text objects if it gets too big in size
    * bec the translator has a limit (unspecified in docs)
-  */
- static: [
-   {
+   */
+  static: [
+    {
       ApproveToken: "Approve token",
       AboutTheApp: "About the App",
       Add_SEP20_Token: "Add SEP20 Token",
@@ -149,7 +147,7 @@ const phrases = {
       ApprovingToken: "Approving token",
       AssetRemovalText: "Do you want to continue removing the asset?",
       AssetsSwappedSuccesfully: "Assets swapped succesfully",
-      AssetSwap: "Asset Swap",    
+      AssetSwap: "Asset Swap",
       AddingNewDevice: "Adding new device",
       AddNewDevice: "Add new device",
       BackToEdit: "Back to Edit",
@@ -161,10 +159,10 @@ const phrases = {
       BchToReceive: "BCH to receive",
       BchToSend: "BCH to send",
       BridgeBalance: "Bridge balance",
-      BiometricMaxAttemptsMsg: "You\"ve done many attempts. Please try again after 30 seconds.",
+      BiometricMaxAttemptsMsg: 'You"ve done many attempts. Please try again after 30 seconds.',
       BridgeLeavingPageMsg: "Leaving the page may result in being unable to view progress. Leave page?",
       BridgeError1: "Must be at least 0.01",
-      BridgeError2: "Amount must be less than bridge\"s balance",
+      BridgeError2: 'Amount must be less than bridge"s balance',
       BranchDetails: "Branch details",
       BranchDetailsSaved: "Branch details saved",
       BranchName: "Branch name",
@@ -182,7 +180,7 @@ const phrases = {
       CameraPermissionErrMsg2: "No camera found on this device",
       CameraPermissionErrMsg3: "Unable to acccess camera in non-secure context",
       CameraPermissionErrMsg4: "Unable to access camera",
-      CameraPermissionErrMsg5: "Constraints don\"t match any installed camera. Did you ask for the front camera although there is none?",
+      CameraPermissionErrMsg5: 'Constraints don"t match any installed camera. Did you ask for the front camera although there is none?',
       ChoosePreferredSecAuth: "Please choose your preferred security authentication",
       ClickToCopyAddress: "Click to copy address",
       ClearCallRequests: "Clear call requests",
@@ -244,7 +242,7 @@ const phrases = {
       NativeBiometricReason2: "For ownership verification",
       NativeBiometricSubtitle: "Verify your account using fingerprint",
       NewUnlisted: "New / Unlisted",
-      NoCollectibles: "You don\'t own any SLP NFTs yet.",
+      NoCollectibles: "You don't own any SLP NFTs yet.",
       NotEnoughBalForSendAmount: "Not enough balance to cover the send amount",
       NotEnoughBchForFee: "Not enough BCH to cover for transaction fee",
       NoIgnoredTokens: "No ignored tokens",
@@ -323,7 +321,7 @@ const phrases = {
       SwapRatio: "Swap ratio",
       SEP20_VaultBalance: "SEP20 vault balance",
       SmartBchAddresses: "SmartBCH Addresses",
-      SmartSwapBchSoon: "We will integrate SLP DEX for SLP tokens soon!",
+      SmartSwapBchSoonTokens: "We will integrate SLP DEX for SLP tokens soon!",
       SmartSwapFormErr: "Error occurred in fetching swap information",
       SwapAgain: "Swap Again",
       SwapFrom: "Swap from",
@@ -423,7 +421,9 @@ const phrases = {
       LoadingMetadata: "Loading metadata",
       CategoryID: "Category ID",
       RampFiatNotice: "Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!",
-    },
+      Add_SEP721_Token: "Add SEP721 Token",
+      SelectBCHDenomination: "BCH Denomination",
+    }
   ],
   dynamic: [
     {
@@ -441,36 +441,69 @@ const phrases = {
   ]
 }
 
+// token to point
+const hongKongSpecific = [
+  {
+    CashPoints: "CashPoints",
+    Points: "Points",
+    ApprovePoint: "Approve point",
+    Add_SEP20_Point: "Add SEP20 Point",
+    Add_Type1_Point: "Add SLP Type 1 Point",
+    ApprovingPoint: "Approving point",
+    Enter_SLP_PointId: "Enter SLP point ID",
+    IgnoredPoints: "Ignored Points",
+    Input_SEP721_PointAddress: "Input SEP721 Point address",
+    NoIgnoredPoints: "No ignored points",
+    NoPointsFound: "No points found",
+    RemoveIgnoredPoint: "Remove ignored point",
+    SelectCustomPoint: "Select custom point",
+    SelectPoint: "Select point",
+    SmartSwapBchSoonPoints: "We will integrate SLP DEX for SLP points soon!",
+    SweepThePointsFirst: "Sweep the points first",
+    SweepErrMsg2: "You will need sufficient BCH balance to be able to sweep the point(s) below",
+    PointApproved: "Point approved",
+    PointId: "Point ID",
+    PointAdded: "Point added",
+    PointAlreadyInList: "Point already exists in list",
+    SLPPoints: "SLP Points",
+    AddFungibleCashPoint: "Add Fungible CashPoint",
+    EnterCashPointCategoryID: "Enter CashPoint category ID",
+    ManageIgnoredPoints: "Manage Ignored Points",
+    ManagePoints: "Manage Points",
+    ScanForPoints: "Scan for Points",
+    HidePoints: "Hide Points",
+    ShowPoints: "Show Points",
+    ViewIgnoredPoints: "View ignored points",
+    ViewPoints: "View Points",
+    Waiting_SEP20_PointSent: "Waiting for SEP20 point to be sent",
+    Add_SEP721_Point: "Add SEP721 Point",
+  }
+]
+
 const TEXT_GROUPS = [
   ...words,
   ...phrases.static,
-  ...phrases.dynamic
+  ...phrases.dynamic,
+  ...hongKongSpecific
 ]
 
 // check for supported language codes here
 // https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
-const supportedLangs = [
-  'en-us',
-  'es',
-  'zh-tw',
-  'zh-cn',
-  'de',
-]
+const supportedLangs = ['en-us', 'es', 'zh-tw', 'zh-cn', 'de']
 
 // ordering of keys
 function orderObj (unorderedObj) {
-  return Object.keys(unorderedObj).sort().reduce(
-    (obj, key) => {
+  return Object.keys(unorderedObj)
+    .sort()
+    .reduce((obj, key) => {
       obj[key] = unorderedObj[key]
       return obj
-    }, 
-    {}
-  )
+    }, {})
 }
 
 // writing to language index files
 function write (data, to) {
-  fs.writeFile(`./${to}/index.js`, data, err => {
+  fs.writeFile(`./${to}/index.js`, data, (err) => {
     if (err) throw err
   })
 }
@@ -492,14 +525,12 @@ function getTextGroupLabel (index) {
   }
 }
 
-
 // print out length of texts for verification later after writing to file
 let sum = 0
 for (const group of TEXT_GROUPS) {
   sum += Object.keys(group).length
 }
 console.log('Expected no. of translation keys on i18n files: ', sum)
-
 
 // translate all texts here
 let jsonData = {};
@@ -529,9 +560,10 @@ let jsonData = {};
       // merge the previous and current objects
       Object.assign(jsonData, translatedObj)
       jsonData = orderObj(jsonData)
-      
+
       let strData = '// NOTE: DONT EDIT THIS FILE\n'
-      strData += '// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n'
+      strData +=
+        '// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n'
       strData += 'export default '
 
       strData += JSON.stringify(jsonData, null, 2)
@@ -545,4 +577,4 @@ let jsonData = {};
       index++
     }
   }
-})();
+})()

@@ -6,27 +6,36 @@
           <p
             class="q-mb-none transactions-wallet type ib-text text-uppercase"
             style="font-size: 15px;"
-            :class="getDarkModeClass()"
+            :class="getDarkModeClass(darkMode)"
           >
             {{ recordTypeText }}
           </p>
           <p
             class="q-mb-none transactions-wallet amount float-right ib-text text-right"
-            :class="[getDarkModeClass(), {'q-mt-sm': !marketValueData?.marketValue }]"
+            :class="[getDarkModeClass(darkMode), {'q-mt-sm': !marketValueData?.marketValue }]"
           >
-            <div>{{ +(formatAmount(transaction?.amount, asset?.decimals, isBCH=asset?.id === 'bch', isSLP=asset?.id.startsWith('slp/'))) }} {{ asset?.symbol }}</div>
+            <div>
+              {{
+                parseAssetDenomination(denomination, {
+                  id: asset?.id,
+                  balance: transaction?.amount,
+                  symbol: asset?.symbol,
+                  decimals: asset?.decimals
+                })
+              }}
+            </div>
             <div
               v-if="marketValueData?.marketValue"
               class="transactions-wallet market-value"
-              :class="getDarkModeClass('text-weight-light', '')"
+              :class="getDarkModeClass(darkMode, 'text-weight-light', '')"
               style="margin-top:-0.25em;"
             >
-              {{ marketValueData?.marketValue }} {{ selectedMarketCurrency }}
+              {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
             </div>
           </p>
         </div>
         <div class="col">
-            <span class="float-left transactions-wallet date" :class="getDarkModeClass()">
+            <span class="float-left transactions-wallet date" :class="getDarkModeClass(darkMode)">
               <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
               <template v-else>{{ formatDate(transaction.date_created) }}</template>
             </span>
@@ -62,10 +71,13 @@ import ago from 's-ago'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $store = useStore()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 
 const props = defineProps({
   transaction: Object,
@@ -164,18 +176,6 @@ const badges = computed(() => {
 
 function formatDate (date) {
   return ago(new Date(date))
-}
-
-function formatAmount (amount, decimals, isBCH=false, isSLP=false) {
-  if (isBCH || isSLP) {
-    return amount
-  } else {
-    return amount / (10 ** decimals)
-  }
-}
-
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>
 <style scoped>

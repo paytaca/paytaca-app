@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" persistent @hide="onClose()">
-    <q-card class="q-dialog-plugin br-15 pt-card" :class="getDarkModeClass()">
+    <q-card class="q-dialog-plugin br-15 pt-card" :class="getDarkModeClass(darkMode)">
       <div class="row items-center no-wrap q-pb-sm">
         <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">
           <template v-if="loading">{{ $t('FindingUnlistedAssets') }}</template>
@@ -18,7 +18,7 @@
 
       <q-btn
         v-if="!loading"
-        :label="$t('ViewIgnoredTokens')"
+        :label="$t(isHongKong(currentCountry) ? 'ViewIgnoredPoints' : 'ViewIgnoredTokens')"
         no-caps
         flat
         padding="none"
@@ -26,7 +26,7 @@
         icon="mdi-eye"
         class="q-mx-md button button-text-primary"
         :text-color="darkMode ? 'blue-5' : 'blue-9'"
-        :class="getDarkModeClass()"
+        :class="getDarkModeClass(darkMode)"
         style="margin-top:-1.5rem;"
         :to="{
           path: '/apps/settings/ignored-tokens',
@@ -41,18 +41,18 @@
             class="col-12 q-px-sm q-pb-md"
             v-model="selectedNetwork"
             style="padding-bottom: 16px;"
-            :indicator-color="isDefaultTheme && 'transparent'"
+            :indicator-color="isDefaultTheme(theme) && 'transparent'"
           >
             <q-tab
               name="BCH"
               class="network-selection-tab"
-              :class="getDarkModeClass()"
+              :class="getDarkModeClass(darkMode)"
               :label="'BCH' + (parsedMainchainTokens.length ? ` (${parsedMainchainTokens.length})` : '')"
             />
             <q-tab
               name="sBCH"
               class="network-selection-tab"
-              :class="getDarkModeClass()"
+              :class="getDarkModeClass(darkMode)"
               :label="'SmartBCH' + (parsedSmartchainTokens.length ? ` (${parsedSmartchainTokens.length})` : '')"
             />
           </q-tabs>
@@ -60,7 +60,7 @@
             <template v-for="(token, index) in parsedTokens"  :key="index">
               <q-item
                 :class="[
-                  isAssetInIgnoredList(token.id) ? 'text-grey' : getDarkModeClass('text-white', 'text-black'),
+                  isAssetInIgnoredList(token.id) ? 'text-grey' : darkMode ? 'text-white' : 'text-black',
                 ]"
               >
                 <q-item-section v-if="token.logo" side>
@@ -104,7 +104,7 @@
           </q-list>
         </template>
         <div v-else-if="loading" class="column items-center justify-center">
-          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
           <div :class="darkMode ? 'text-white' : 'text-grey'">
             {{ $t('SearchingForOtherAssets') }}
           </div>
@@ -117,7 +117,7 @@
             'text-center',
           ]"
         >
-          {{ $t('NoTokensFound') }}
+          {{ $t(isHongKong(currentCountry) ? 'NoPointsFound' : 'NoTokensFound') }}
         </div>
       </q-card-section>
       <q-card-section class="row q-gutter-sm justify-around">
@@ -136,6 +136,8 @@
 <script>
 import ProgressLoader from './ProgressLoader.vue'
 import TokenTypeBadge from './TokenTypeBadge.vue'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+
 
 export default {
   name: 'TokenSuggestionsDialog',
@@ -171,12 +173,21 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
     },
     parsedTokens () {
-      if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
-      if (this.selectedNetwork === 'sBCH') return this.parsedSmartchainTokens
+      if (this.selectedNetwork === 'BCH') return this.parseTokenName(this.parsedMainchainTokens)
+      if (this.selectedNetwork === 'sBCH') return this.parseTokenName(this.parsedSmartchainTokens)
       return []
     },
     parsedMainchainTokens () {
@@ -214,15 +225,12 @@ export default {
           }
         })
         .filter(Boolean)
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
+    isHongKong,
     isMainchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['assets/getAssets'])) {
         return this.$store.getters['assets/getAssets'].some(asset => asset && asset.id === assetId)
@@ -322,7 +330,7 @@ export default {
               handler: () => { /* ... */ }
             },
             {
-              label: this.$t('ViewTokens'),
+              label: this.$t(this.isHongKong(this.currentCountry) ? 'ViewPoints' : 'ViewTokens'),
               color: 'white',
               handler: () => {
                 this.val = true
@@ -339,6 +347,16 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
+    parseTokenName (ignoredList) {
+      // copy to remove binding from state
+      const ignoredListCopy = JSON.parse(JSON.stringify(ignoredList))
+      if (ignoredListCopy.length > 0 && this.isHongKong(this.currentCountry)) {
+        ignoredListCopy.forEach(token => {
+          token.name = token.name.replace('Token', 'Point')
+        })
+      }
+      return ignoredListCopy
     }
   },
   watch: {

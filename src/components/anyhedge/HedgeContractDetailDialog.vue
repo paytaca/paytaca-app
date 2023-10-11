@@ -40,14 +40,14 @@
                 {{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
               </div>
               <div>
-                {{ contract.metadata.hedgeInputInSatoshis / (10**8) }} BCH
+                {{ getAssetDenomination(denomination, contract.metadata.hedgeInputInSatoshis / (10**8)) }}
               </div>
               <div
                 v-if="isFinite(hedgeMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
                 class="text-caption text-grey"
                 style="margin-top:-0.25em"
               >
-                {{ hedgeMarketValue }} {{ selectedMarketCurrency }}
+                {{ parseFiatCurrency(hedgeMarketValue, selectedMarketCurrency) }}
               </div>
             </div>
             <div class="col-6">
@@ -56,13 +56,14 @@
                 {{ formatUnits(contract.metadata.longInputInOracleUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
               </div>
               <div>
-                {{ contract.metadata.longInputInSatoshis / (10**8) }} BCH
+                {{ getAssetDenomination(denomination, contract.metadata.longInputInSatoshis / (10**8)) }}
               </div>
               <div
                 v-if="isFinite(longMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
                 class="text-caption text-grey"
-                style="margin-top:-0.25em">
-                {{ longMarketValue }} {{ selectedMarketCurrency }}
+                style="margin-top:-0.25em"
+              >
+                {{ parseFiatCurrency(longMarketValue, selectedMarketCurrency) }}
               </div>
             </div>
           </div>
@@ -240,14 +241,14 @@
           <div class="text-grey text-caption">Start Price</div>
           <div>
             {{ formatUnits(contract.metadata.startPrice, oracleInfo.assetDecimals) }}
-            <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+            <template v-if="oracleInfo.assetCurrency">{{ `${oracleInfo.assetCurrency}/${denomination}` }}</template>
           </div>
           <div class="text-grey text-caption">Liquidation Price</div>
           <div>
             {{ formatUnits(contract.parameters.lowLiquidationPrice, oracleInfo.assetDecimals) }}
             -
             {{ formatUnits(contract.parameters.highLiquidationPrice, oracleInfo.assetDecimals) }}
-            <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+            <template v-if="oracleInfo.assetCurrency">{{ `${oracleInfo.assetCurrency}/${denomination}` }}</template>
           </div>
         </div>
 
@@ -326,7 +327,7 @@
             <div class="text-grey">Start - Settlement Price:</div>
             {{ formatUnits(contract.metadata.startPrice, oracleInfo.assetDecimals) }} -
             {{ formatUnits(settlementMetadata.settlementPriceValue, oracleInfo.assetDecimals) }}
-            <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+            <template v-if="oracleInfo.assetCurrency">{{ `${oracleInfo.assetCurrency}/${denomination}` }}</template>
           </div>
           <div class="row">
             <div class="col">
@@ -336,8 +337,8 @@
                 {{ formatUnits(settlementMetadata.hedge.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
               <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
-                {{ contract?.metadata?.hedgeInputInSatoshis / 10 ** 8 }} -
-                {{ settlementMetadata.hedge.satoshis / 10 ** 8 }} BCH
+                {{ parseFloat(getAssetDenomination(denomination, contract?.metadata?.hedgeInputInSatoshis / 10 ** 8)) }} -
+                {{ getAssetDenomination(denomination, settlementMetadata.hedge.satoshis / 10 ** 8) }}
               </div>
             </div>
             <div class="col">
@@ -347,8 +348,8 @@
                 {{ formatUnits(settlementMetadata.long.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
               <div :class="`text-${resolveColor(settlementMetadata.long.bchChangePctg)}` + ' text-weight-medium'">
-                {{ contract?.metadata?.longInputInSatoshis / 10 ** 8 }} -
-                {{ settlementMetadata.long.satoshis / 10 ** 8 }} BCH
+                {{ parseFloat(getAssetDenomination(denomination, contract?.metadata?.longInputInSatoshis / 10 ** 8)) }} -
+                {{ getAssetDenomination(denomination, settlementMetadata.long.satoshis / 10 ** 8) }}
               </div>
             </div>
           </div>
@@ -358,13 +359,13 @@
               <template v-if="viewAs === 'hedge'">
                 You {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? 'lost' : 'gained' }}
                 <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.actualSatsChange)}` + ' text-weight-medium'">
-                  {{ settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8 }} BCH
+                  {{ getAssetDenomination(denomination, settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8) }}
                 </span>.
               </template>
               <template v-else-if="viewAs === 'long'">
                 You {{ settlementMetadata.summary.long.actualSatsChange < 0 ? 'lost' : 'gained' }}
                 <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
-                  {{ settlementMetadata.summary.long.actualSatsChange / 10 ** 8 }} BCH
+                  {{ getAssetDenomination(denomination, settlementMetadata.summary.long.actualSatsChange / 10 ** 8) }}
                 </span>.
               </template>
             </div>
@@ -384,14 +385,14 @@
               </span>
               by a
               <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.actualSatsChange)}` + ' text-weight-medium'">
-                {{ settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8 }} BCH
+                {{ getAssetDenomination(denomination, settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8) }}
               </span>
               {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? 'loss' : 'gain' }}.
             </div>
             <div v-else-if="viewAs === 'long'">
               You {{ settlementMetadata.summary.long.actualSatsChange < 0 ? 'lost' : 'gained' }}
               <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
-                {{ settlementMetadata.summary.long.actualSatsChange / 10 ** 8 }} BCH
+                {{ getAssetDenomination(denomination, settlementMetadata.summary.long.actualSatsChange / 10 ** 8) }}
               </span>.
             </div>
           </div>
@@ -415,12 +416,12 @@
             <div>Type: {{ mutualRedemptionData.redemptionTypeLabel }}</div>
             <div v-if="mutualRedemptionData.redemptionType === 'early_maturation'">
               Settlement price: {{ formatUnits(mutualRedemptionData.settlementPrice, oracleInfo.assetDecimals) }}
-              <template v-if="oracleInfo.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
+              <template v-if="oracleInfo.assetCurrency">{{ `${oracleInfo.assetCurrency}/${denomination}` }}</template>
             </div>
             <div class="row q-gutter-x-xs items-center">
               <div>Hedge:</div>
               <div class="row q-gutter-x-xs items-center q-space no-wrap">
-                <div>{{ mutualRedemptionData.hedgeSatoshis / 10 ** 8 }} BCH</div>
+                <div>{{ getAssetDenomination(denomination, mutualRedemptionData.hedgeSatoshis / 10 ** 8) }}</div>
                 <div class="q-space">
                   <q-badge v-if="mutualRedemptionData.hedgeSchnorrSig" color="brandblue">Signed</q-badge>
                   <q-badge v-else color="grey-7">Pending</q-badge>
@@ -449,7 +450,7 @@
             <div class="row q-gutter-x-xs items-center">
               <div>Long:</div>
               <div class="row q-gutter-x-xs items-center q-space no-wrap">
-                <div>{{ mutualRedemptionData.longSatoshis / 10 ** 8 }} BCH</div>
+                <div>{{ getAssetDenomination(denomination, mutualRedemptionData.longSatoshis / 10 ** 8) }}</div>
                 <div class="q-space">
                   <q-badge v-if="mutualRedemptionData.longSchnorrSig" color="brandblue">Signed</q-badge>
                   <q-badge v-else color="grey-7">Pending</q-badge>
@@ -513,6 +514,7 @@ import VerifyFundingProposalDialog from './VerifyFundingProposalDialog.vue'
 import FundingAmountsPanel from './FundingAmountsPanel.vue'
 import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 const bchjs = new BCHJS()
 
@@ -527,6 +529,7 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginC
 // misc
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
+const denomination = computed(() => store.getters['global/denomination'])
 const $q = useQuasar()
 
 const $copyText = inject('$copyText')

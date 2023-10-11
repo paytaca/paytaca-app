@@ -79,7 +79,7 @@
           Current price:
           {{ createHedgeForm.selectedAsset.latestPrice.priceValue / 10 ** (createHedgeForm.selectedAsset.assetDecimals || 0) }}
           <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
-            {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
+            {{ `${createHedgeForm.selectedAsset.assetCurrency} / ${denomination} ` }}
           </template>
           <q-icon :color="darkMode ? 'grey-7' : 'black'" size="sm" name="info">
           </q-icon>
@@ -118,7 +118,7 @@
             flat padding="xs"
             class="text-section"
             :text-color="darkMode ? 'blue' : 'brandblue'"
-            :label="`${spendableBch} BCH`"
+            :label="getAssetDenomination(denomination, spendableBch)"
             :disable="loading"
             @click="createHedgeForm.amount = spendableBch"
           />
@@ -157,16 +157,16 @@
         outlined
         dense
         :label="$t('Amount')"
-        suffix="BCH"
+        :suffix="denomination"
         :disable="loading"
         :readonly="inputState.amount"
         v-model="createHedgeForm.amount"
         reactive-rules
         :rules="[
           val => val > 0 || 'Invalid amount',
-          val => spendableBch === null || val <= spendableBch || `Exceeding balance ${spendableBch} BCH`,
-          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${createHedgeFormConstraints.minimumAmount} BCH`,
-          val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
+          val => spendableBch === null || val <= spendableBch || `Exceeding balance ${getAssetDenomination(denomination, spendableBch)}`,
+          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${getAssetDenomination(denomination, createHedgeFormConstraints.minimumAmount)}`,
+          val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${getAssetDenomination(denomination, createHedgeFormConstraints.maximumAmount)}`,
         ]"
         class="q-space"
       >
@@ -235,7 +235,12 @@
       >
         <template v-slot:hint>
           <div v-if="createHedgeFormMetadata.lowLiquidationPrice" class="text-caption text-grey">
-            {{ createHedgeFormMetadata.lowLiquidationPrice }} {{ createHedgeForm.selectedAsset?.assetCurrency }} / BCH
+            {{
+              `${parseFiatCurrency(
+                  createHedgeFormMetadata.lowLiquidationPrice,
+                  createHedgeForm.selectedAsset?.assetCurrency
+                )} / ${denomination}`
+            }}
           </div>
         </template>
       </q-input>
@@ -259,7 +264,12 @@
       >
         <template v-slot:hint>
           <div v-if="createHedgeFormMetadata.highLiquidationPrice" class="text-caption text-grey">
-            {{ createHedgeFormMetadata.highLiquidationPrice }} {{ createHedgeForm.selectedAsset?.assetCurrency }} / BCH
+            {{
+              `${parseFiatCurrency(
+                  createHedgeFormMetadata.highLiquidationPrice,
+                  createHedgeForm.selectedAsset?.assetCurrency
+                )} / ${denomination}`
+            }}
           </div>
         </template>
       </q-input>
@@ -375,6 +385,7 @@ import HedgePositionOfferSelectionDialog from './HedgePositionOfferSelectionDial
 import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 
 function alertError(...args) {
@@ -385,6 +396,7 @@ function alertError(...args) {
 const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 
 // custom keyboard
 let inputState = ref({

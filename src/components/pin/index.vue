@@ -15,13 +15,13 @@
                       <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
                   </div>
                   <div class="col-12 text-center">
-                      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+                      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
                   </div>
               </div>
           </q-card-section>
       </q-card>
 
-      <q-card v-else id="app-container" :class="getDarkModeClass()">
+      <q-card v-else id="app-container" :class="getDarkModeClass(darkMode)">
         <q-card-section class="q-mt-md q-pb-none">
             <div class="text-center">
                 <p class="text-h6 text-blue-9 text-uppercase" :class="{'text-grad': darkMode}"><strong>{{ actionCaption }}</strong></p>
@@ -95,6 +95,7 @@
 import ProgressLoader from '../../components/ProgressLoader'
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -123,8 +124,7 @@ export default {
       loader: false,
       resetStatus: true,
       saveBtn: true,
-      subTitle: null,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      subTitle: null
     }
   },
   components: { ProgressLoader },
@@ -157,14 +157,16 @@ export default {
     }
   },
   computed: {
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
     },
     theme () {
       return this.$store.getters['global/theme']
-    }
+    },
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     nonNumKeysClass (key) {
       let classes = ''
       if (this.$store.getters['darkmode/getStatus']) {
@@ -284,9 +286,6 @@ export default {
     cancelPin () {
       this.removeKey('reset')
       this.$emit('nextAction', 'cancel')
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

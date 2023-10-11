@@ -1,6 +1,6 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="getDarkModeClass()">
+    <div id="app-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         title="Gifts"
         backnavpath="/apps"
@@ -58,7 +58,7 @@
                 v-for="i in 3"
                 class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               >
-                <q-card class="q-py-sm q-px-md" :class="getDarkModeClass('text-white', 'text-black')">
+                <q-card class="q-py-sm q-px-md" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">
                   <q-skeleton height="1.25em" class="q-mb-sm"/>
                   <q-skeleton height="1.25em" class="q-mb-sm"/>
                   <q-separator spaced :dark="darkMode"/>
@@ -82,12 +82,12 @@
                 <q-card
                   v-if="getGiftShare(gift?.gift_code_hash) || gift?.date_claimed !== 'None'"
                   class="q-py-sm q-px-md pt-card"
-                  :class="getDarkModeClass('text-white', 'text-black')"
+                  :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
                 >
                   <div class="row">
                     <div class="q-space">Amount</div>
                     <div class="text-caption text-grey">
-                      {{gift?.amount}} BCH
+                      {{ getAssetDenomination(gift?.amount) }}
                     </div>
                   </div>
                   <div class="row">
@@ -187,6 +187,8 @@ import ShareGiftDialog from 'src/components/gifts/ShareGiftDialog.vue'
 import { capitalize } from 'vue'
 import { formatDistance } from 'date-fns'
 import axios from 'axios'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Gift',
@@ -213,8 +215,11 @@ export default {
   },
 
   computed: {
-    darkMode() {
+    darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
     },
     pageNumberPaginationData () {
       if (
@@ -233,6 +238,8 @@ export default {
   },
 
   methods: {
+    getAssetDenomination,
+    getDarkModeClass,
     capitalize: capitalize,
     formatRelativeTimestamp(val) {
       if (isNaN(new Date(val).valueOf())) return ''
@@ -337,9 +344,6 @@ export default {
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

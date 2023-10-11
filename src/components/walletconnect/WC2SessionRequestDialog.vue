@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogCancel">
-    <q-card :class="getDarkModeClass('text-white pt-dark-card', 'text-black')">
+    <q-card :class="getDarkModeClass(darkMode, 'text-white pt-dark-card', 'text-black')">
       <div class="row items-center q-pb-sm q-px-sm q-pt-sm">
         <div class="text-h5 q-space">
           {{ title }}
@@ -31,7 +31,7 @@
         <template v-if="sessionRequest?.params?.request?.method === 'bch_signTransaction'">
           <q-banner
             v-if="sessionRequest?.params?.request?.params?.userPrompt"
-            :class="getDarkModeClass('pt-dark', 'text-black')" class="rounded-borders"
+            :class="getDarkModeClass(darkMode, 'pt-dark info-banner', 'text-black')" class="rounded-borders"
           >
             {{ sessionRequest?.params?.request?.params?.userPrompt }}
           </q-banner>
@@ -42,7 +42,7 @@
         </template>
         <template v-else-if="sessionRequest?.params?.request?.method === 'bch_signMessage'">
           <div class="text-grey">Message</div>
-          <q-banner :class="getDarkModeClass('pt-dark', 'text-black')" class="rounded-borders">
+          <q-banner :class="getDarkModeClass(darkMode, 'pt-dark info-banner', 'text-black')" class="rounded-borders">
             <div style="word-break: break-all;">
               {{ sessionRequest?.params?.request?.params?.message }}
             </div>
@@ -82,6 +82,7 @@ import { useStore } from 'vuex';
 import { computed, ref, watch } from 'vue'
 import JSONRenderer from 'src/components/JSONRenderer.vue';
 import TransactionDetailsPanel from 'src/components/walletconnect/TransactionDetailsPanel.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $emit = defineEmits([
   'update:modelValue',
@@ -102,9 +103,6 @@ const props = defineProps({
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-}
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 

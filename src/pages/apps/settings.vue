@@ -1,10 +1,10 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
       <header-nav :title="$t('Settings')" backnavpath="/apps" class="apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Security') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass()">
+            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SecurityAuthenticationSetup') }}</q-item-label>
@@ -26,7 +26,7 @@
 
         <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Wallet') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass()">
+            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
               <q-item>
                   <q-item-section>
                     <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
@@ -37,7 +37,9 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ShowTokens') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">
+                    {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section avatar>
                     <q-toggle
@@ -49,7 +51,9 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ManageIgnoredTokens') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">
+                    {{ $t(isHongKong(currentCountry) ? 'ManageIgnoredPoints' : 'ManageIgnoredTokens') }}
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn
@@ -88,12 +92,20 @@
                     />
                   </q-item-section>
               </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SelectBCHDenomination') }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <DenominatorSelector :darkMode="darkMode" />
+                </q-item-section>
+              </q-item>
             </q-list>
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
           <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Personalize') }}</p>
-          <q-list bordered separator class="pt-card" :class="getDarkModeClass()">
+          <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
             <q-item>
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
@@ -128,7 +140,7 @@
         </div>
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
           <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('AppInfo') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass()">
+            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
               <q-item>
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
@@ -165,6 +177,8 @@ import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
+import DenominatorSelector from 'src/components/settings/DenominatorSelector'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -181,6 +195,7 @@ export default {
       isChipnet: this.$store.getters['global/isChipnet'],
       showTokens: this.$store.getters['global/showTokens'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+      currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app'
     }
   },
@@ -191,6 +206,7 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
+    DenominatorSelector
   },
   watch: {
     isChipnet (n, o) {
@@ -207,6 +223,8 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
+    isHongKong,
     setNewPin () {
       this.securityChange = 'change-pin'
       this.pinDialogAction = 'VERIFY'
@@ -269,9 +287,6 @@ export default {
       //   vm.pinStatus = false
       //   vm.securityOptionDialogStatus = 'dismiss'
       // }
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   created () {

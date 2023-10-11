@@ -122,7 +122,7 @@
       </q-item-section>
     </q-item>
     
-    <div>
+    <div style="margin-top: 20px;">
       <div class="row items-center">
         <div class="text-h6">Requests</div>
         <q-space/>
@@ -182,11 +182,11 @@
     </div>
 
     <q-dialog v-model="showSessionProposalsDialog" position="bottom">
-      <q-card :class="getDarkModeClass('text-white pt-dark-card', 'text-black')">
+      <q-card class="pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center q-pb-sm">
-            <div class="text-h5 q-space">Session Proposals</div>
-            <q-btn flat icon="close" padding="sm" v-close-popup/>
+            <div class="text-h5 q-space pt-label" :class="getDarkModeClass(darkMode)">Session Proposals</div>
+            <q-btn flat icon="close" padding="sm" class="close-button" color="blue-9" v-close-popup/>
           </div>
           <div v-if="!sessionProposals.length" class="q-my-md text-grey text-center">
             No pending session proposals
@@ -222,7 +222,7 @@
     </q-dialog>
 
     <q-dialog v-model="showActiveSessionsDialog" position="bottom">
-      <q-card :class="getDarkModeClass('text-white pt-dark-card', 'text-black')">
+      <q-card class="pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center q-pb-sm">
             <div class="text-h5 q-space">Active Sessions</div>
@@ -287,6 +287,7 @@
   </div>
 </template>
 <script setup>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { getWalletByNetwork } from 'src/wallet/chipnet';
 import { Wallet, loadWallet } from 'src/wallet';
@@ -307,9 +308,6 @@ const $q = useQuasar()
 const $store = useStore()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-}
 
 // const showScanner = ref(false)
 async function onScannerDecode (content) {
@@ -407,6 +405,7 @@ async function connectNewSession(value='') {
       noCaps: true,
       label: 'Add',
       color: 'brandblue',
+      class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
     },
     position: 'bottom',
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',

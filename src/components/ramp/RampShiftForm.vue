@@ -5,7 +5,7 @@
   />
   <q-card
     class="br-15 q-pt-sm q-mx-md q-mb-lg pt-card"
-    :class="getDarkModeClass('text-white', 'text-black')"
+    :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
     v-if="isloaded && state === 'form' && !error"
   >
     <div class="row items-center justify-end q-mt-md q-mr-lg">
@@ -103,7 +103,17 @@
             :class="darkMode ? 'text-grey-6' : ''"
             v-if="settleAmount && shiftAmount"
           >
-            <i>1 {{ deposit.coin }} = {{ convertionRate }} {{ settle.coin }}</i>
+            <i>
+              {{
+                `1 ${deposit.coin === 'BCH' ? denomination : deposit.coin} =
+                  ${
+                    settle.coin === 'BCH'
+                      ? getAssetDenomination(denomination, convertionRate)
+                      : `${convertionRate} ${settle.coin}`
+                  }
+                `
+               }}
+            </i>
           </q-item-label>
       </q-item-section>
     </q-item>
@@ -167,7 +177,7 @@
   />
 
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded && !error">
-    <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+    <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
@@ -204,6 +214,8 @@ import QrScanner from '../qr-scanner.vue'
 import { debounce } from 'quasar'
 import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
 import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -223,7 +235,6 @@ export default {
       isloaded: false,
       state: 'form', // confirmation, deposit,
       showQrScanner: false,
-      darkMode: this.$store.getters['darkmode/getStatus'],
       deposit: {
         coin: 'BTC',
         network: 'bitcoin',
@@ -254,6 +265,9 @@ export default {
     }
   },
   methods: {
+    getAssetDenomination,
+    getDarkModeClass,
+    isDefaultTheme,
     selectSourceToken () {
       if (!this.isFromBCH) {
         this.$q.dialog({
@@ -428,10 +442,16 @@ export default {
       }
       const amount = parseFloat(vm.shiftAmount)
       if (min > amount) {
-        vm.errorMsg = 'Minimum ' + vm.minimum + ' ' + vm.deposit.coin
+        const amount = vm.deposit.coin === 'BCH'
+          ? getAssetDenomination(this.denomination, min)
+          : `${vm.minimum} ${vm.deposit.coin}`
+        vm.errorMsg = `Minimum ${amount}`
       }
       if (max < amount) {
-        vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
+        const amount = vm.deposit.coin === 'BCH'
+          ? getAssetDenomination(this.denomination, max)
+          : `${vm.maximum} ${vm.deposit.coin}`
+        vm.errorMsg = `Maximum ${amount}`
       }
       // balance checking
       if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {
@@ -593,9 +613,6 @@ export default {
 
       return icon
     },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    },
     readonlyState (state) {
       this.amountInputState = state
       if (this.amountInputState) {
@@ -648,6 +665,15 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     bchAddress () {
       return this.$store.getters['global/getAddress']('bch')
     },
@@ -666,12 +692,6 @@ export default {
         return true
       }
       return false
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   async mounted () {
