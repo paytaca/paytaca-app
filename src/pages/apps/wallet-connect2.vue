@@ -55,7 +55,7 @@ import WalletConnectV1 from "src/components/walletconnect/WalletConnectV1.vue"
 import WalletConnectV2 from "src/components/walletconnect/WalletConnectV2.vue"
 
 const props = defineProps({
-  url: String,
+  uri: String,
 })
 
 const walletConnectV1 = ref()
@@ -81,8 +81,8 @@ onMounted(async () => {
   if (selectedNetwork.value !== 'BCH') return console.log('Not bch')
   if (!walletConnectV2.value) return console.log('No v2 component')
 
-  const uriData = parseWalletConnectUri(props.url)
-  if (uriData.uri && uriData.version == '2') {
+  const uriData = parseWalletConnectUri(props.uri)
+  if (uriData?.uri && uriData?.version == '2') {
     walletConnectV2.value?.connectNewSession?.(uriData.uri)
   }
 })
@@ -91,7 +91,7 @@ onMounted(() => {
   if (selectedNetwork.value !== 'sBCH') return console.log('Not sbch')
   if (!walletConnectV1.value) return console.log('No v1 component')
 
-  const uriData = parseWalletConnectUri(props.url)
+  const uriData = parseWalletConnectUri(props.uri)
   console.log(uriData)
   if (uriData?.handshakeTopic && uriData?.key && uriData?.bridge) {
     if (walletConnectV1.value?.connector?.handshakeTopic !== uriData?.handshakeTopic) {
