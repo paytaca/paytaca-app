@@ -91,7 +91,7 @@
       </div>
 
       <DragSlide
-        v-if="!loading && showDragSlide && contractAddress"
+        v-if="showDragSlide && (!loading && contractAddress)"
         :style="{
           position: 'fixed',
           bottom: 0,
@@ -178,7 +178,6 @@ export default {
     await vm.fetchArbiters()
     if (vm.contract) {
       vm.contractAddress = vm.contract.address
-      console.log('contractAddress:', vm.contractAddress)
     } else {
       await vm.generateContractAddress()
     }
@@ -216,7 +215,7 @@ export default {
           vm.showDragSlide = true
         }
       } catch (err) {
-        console.error(err)
+        console.error(err.response)
         vm.showDragSlide = true
       }
     },
@@ -252,7 +251,6 @@ export default {
       const url = vm.apiURL + '/order/' + vm.order.id
       try {
         const response = await vm.$axios.get(url, { headers: headers })
-        // console.log('response:', response.data)
         vm.fees = response.data.fees
       } catch (error) {
         console.error(error.response)
@@ -275,8 +273,6 @@ export default {
             })
           }
         }
-        console.log('>arbiterOptions:', vm.arbiterOptions)
-        console.log('>selectedArbiter:', vm.selectedArbiter)
       } catch (error) {
         console.error(error.response)
       }
@@ -325,10 +321,9 @@ export default {
         component: SecurityCheckDialog
       })
         .onOk(() => {
-          this.showDragSlide = false
           this.completePayment()
         })
-        .onDismiss(() => {
+        .onCancel(() => {
           this.showDragSlide = true
         })
     },
