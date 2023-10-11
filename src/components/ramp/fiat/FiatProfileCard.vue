@@ -163,7 +163,7 @@ export default {
     vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
 
     await this.processUserData()
-    await this.fetchTopAds()
+    await this.fetchTopReview()
     vm.isloaded = true
   },
   methods: {
