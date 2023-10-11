@@ -132,8 +132,7 @@
             no-caps
             :disable="lockInputs"
             :label="$t('Swap')"
-            color="brandblue"
-            class="full-width"
+            class="full-width button"
             type="submit"
           />
         </q-card-section>
