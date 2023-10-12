@@ -294,9 +294,9 @@ export default {
         },
         fixedPrice: 0,
         floatingPrice: 100,
-        tradeFloor: 0.5,
-        tradeCeiling: 1,
-        tradeAmount: 0.5,
+        tradeFloor: 0.02,
+        tradeCeiling: 100,
+        tradeAmount: 100,
         timeDurationChoice: 5,
         paymentMethods: [],
         isPublic: true
@@ -375,6 +375,12 @@ export default {
           vm.adData.floatingPrice = value
       }
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
+    },
+    'adData.tradeAmount' (value) {
+      if (!this.loading) { this.adData.tradeCeiling = value }
+    },
+    'adData.tradeCeiling' (value) {
+      if (!this.loading) { this.adData.tradeAmount = value }
     }
   },
   methods: {
@@ -392,14 +398,15 @@ export default {
       try {
         const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         const data = response.data
+        console.log(data)
         vm.adData.tradeType = data.trade_type
         vm.adData.priceType = data.price_type
         vm.adData.fixedPrice = parseFloat(data.fixed_price)
-        vm.adData.floatingPrice = data.floating_price
+        vm.adData.floatingPrice = parseFloat(data.floating_price)
         vm.adData.fiatCurrency = data.fiat_currency
+        vm.adData.tradeAmount = parseFloat(data.trade_amount)
         vm.adData.tradeFloor = parseFloat(data.trade_floor)
         vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
-        vm.adData.tradeAmount = parseFloat(data.trade_amount)
         vm.adData.paymentMethods = data.payment_methods
         vm.adData.isPublic = data.is_public
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)

@@ -40,7 +40,7 @@
           </div>
           <div class="row justify-between no-wrap q-mx-lg bold-text">
             <span>Trade Amount</span>
-            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeAmount) }} BCH</span>
+            <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
           </div>
         </div>
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>

@@ -157,7 +157,7 @@ export default {
   },
   async mounted () {
     this.processUserData()
-    // await this.fetchTopAds()
+    await this.fetchTopReview()
     this.isloaded = true
   },
   methods: {
