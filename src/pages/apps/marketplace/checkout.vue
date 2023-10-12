@@ -759,7 +759,9 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const initialized = ref(false)
-onMounted(() => refreshPage())
+// onMounted(() => refreshPage())
+onActivated(() => refreshPage())
+onDeactivated(() => resetPage())
 function resetPage() {
   checkout.value.raw = Checkout.parse()
   payments.value = []
