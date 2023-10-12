@@ -120,7 +120,7 @@
             :text-color="darkMode ? 'blue' : 'brandblue'"
             :label="getAssetDenomination(denomination, spendableBch)"
             :disable="loading"
-            @click="createHedgeForm.amount = spendableBch"
+            @click="onBalanceClick"
           />
         </div>
       </div>
@@ -134,7 +134,7 @@
       />
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
-      <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }} BCH</span>
+      <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }} {{ denomination }}</span>
       <q-icon
         :color="darkMode ? 'grey-7' : 'black'"
         size="sm"
@@ -160,13 +160,13 @@
         :suffix="denomination"
         :disable="loading"
         :readonly="inputState.amount"
-        v-model="createHedgeForm.amount"
+        v-model="amountInputFormatted"
         reactive-rules
         :rules="[
-          val => val > 0 || 'Invalid amount',
-          val => spendableBch === null || val <= spendableBch || `Exceeding balance ${getAssetDenomination(denomination, spendableBch)}`,
-          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${getAssetDenomination(denomination, createHedgeFormConstraints.minimumAmount)}`,
-          val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${getAssetDenomination(denomination, createHedgeFormConstraints.maximumAmount)}`,
+          val => createHedgeForm.amount > 0 || 'Invalid amount',
+          val => spendableBch === null || createHedgeForm.amount <= spendableBch || `Exceeding balance ${getAssetDenomination(denomination, spendableBch)}`,
+          val => createHedgeForm.amount >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${getAssetDenomination(denomination, createHedgeFormConstraints.minimumAmount)}`,
+          val => createHedgeForm.amount <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${getAssetDenomination(denomination, createHedgeFormConstraints.maximumAmount)}`,
         ]"
         class="q-space"
       >
@@ -408,6 +408,7 @@ let inputState = ref({
 })
 let activeInput = ref()
 let durationRef = ref()
+const amountInputFormatted = ref(0)
 
 function readonlyState (state, type) {
   inputState[type] = state
@@ -460,6 +461,7 @@ function setAmount (key) {
     durationRef?.value?.updateAmountValue(amount)
   } else {
     createHedgeForm.value[activeInput.value] = amount
+    amountInputFormatted.value = amount
   }
 }
 
@@ -474,6 +476,7 @@ function makeKeyAction (action) {
       durationRef?.value?.updateAmountValue(String(temp).slice(0, -1))
     } else {
       createHedgeForm.value[activeInput.value] = String(createHedgeForm.value[activeInput.value]).slice(0, -1)
+      amountInputFormatted.value = String(amountInputFormatted.value).slice(0, -1)
     }
   } else if (action === 'delete') {
     // Delete
@@ -483,6 +486,7 @@ function makeKeyAction (action) {
       durationRef?.value?.updateAmountValue('')
     } else {
       createHedgeForm.value[activeInput.value] = ''
+      amountInputFormatted.value = ''
     }
   }
 }
@@ -1364,6 +1368,11 @@ function updateSelectedAssetPrice() {
   if (!createHedgeForm.value?.selectedAsset?.oraclePubkey) return
   const dispatchPayload = { oraclePubkey: createHedgeForm.value?.selectedAsset?.oraclePubkey, checkTimestampAge: true }
   $store.dispatch('anyhedge/updateOracleLatestPrice', dispatchPayload)
+}
+
+function onBalanceClick () {
+  amountInputFormatted.value = parseFloat(getAssetDenomination(denomination, spendableBch.value))
+  createHedgeForm.value.amount = spendableBch.value
 }
 </script>
 <style scoped>
