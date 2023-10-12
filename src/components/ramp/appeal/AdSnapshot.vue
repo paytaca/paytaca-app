@@ -98,10 +98,6 @@ export default {
     selectedPaymentMethods: Array
   },
   emits: ['back'],
-  mounted () {
-    console.log('snapshot:', this.snapshot)
-    console.log('selectedPaymentMethods:', this.selectedPaymentMethods)
-  },
   methods: {
     formattedCurrency (value, currency = null) {
       if (currency) {

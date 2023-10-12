@@ -170,7 +170,6 @@
     <!-- Process Order -->
     <div v-if="state === 'order-process'">
       <FiatProcessOrder
-        :init-wallet="wallet"
         :order-data="order"
         @back="onBack"
       />
@@ -190,9 +189,7 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 // import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
-
-import { loadP2PWalletInfo, formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -256,9 +253,6 @@ export default {
   },
   async mounted () {
     const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-
     await vm.fetchAd()
     this.amount = parseFloat(this.ad.trade_floor) * parseFloat(this.ad.price)
     vm.isloaded = true

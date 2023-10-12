@@ -43,18 +43,6 @@ export default {
     }
   },
   emits: ['back', 'submit'],
-  async created () {
-    await this.$store.dispatch('ramp/fetchArbiter')
-    this.loading = false
-  },
-  watch: {
-    loading (val) {
-      console.log('loading:', val)
-    }
-  },
-  async mounted () {
-    console.log('arbiter:', this.arbiter)
-  },
   methods: {
     selectApp (app) {
       this.$emit('submit', app)

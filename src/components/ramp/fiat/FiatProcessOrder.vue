@@ -275,12 +275,12 @@ export default {
           break
         case 'RFN': // Refunded
           this.status = 'refund'
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
+          vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
           break
         case 'RLS': // Released
           vm.state = 'standby-view'
           vm.standByDisplayKey++
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
+          vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
           break
         default:
           // includes status = CNCL, APL, RFN_PN, RLS_PN
@@ -397,7 +397,7 @@ export default {
               txid: this.txid
             }
           }
-          this.$store.dispatch('ramp/saveTxid', txidData)
+          this.$store.commit('ramp/saveTxid', txidData)
           console.log('rampContract:', this.rampContract)
         })
         .catch(error => {

@@ -1,14 +1,6 @@
 <template>
-  <q-scroll-area :style="`height: ${minHeight - minHeight*0.2}px`" style="overflow-y:auto;">
-    <div class="q-pb-md">
-      <!-- <div>
-        <q-btn
-          flat
-          padding="md"
-          icon="close"
-          @click="$emit('back')"
-        />
-      </div> -->
+  <div class="q-pb-md">
+    <q-scroll-area :style="`height: ${minHeight - minHeight*0.2}px`" style="overflow-y:auto;">
       <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
       <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">( Order #{{ order.id }} )</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
@@ -93,22 +85,22 @@
           </div>
         </div>
       </div>
+    </q-scroll-area>
 
-      <DragSlide
-        v-if="showDragSlide && (!loading && contractAddress)"
-        :style="{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1500,
-        }"
-        @swiped="onSwipe"
-        text="Swipe To Escrow"
-      />
-    </div>
-    <!-- else progress loader -->
-  </q-scroll-area>
+    <DragSlide
+      v-if="showDragSlide && (!loading && contractAddress)"
+      :style="{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1500,
+      }"
+      @swiped="onSwipe"
+      text="Swipe To Escrow"
+    />
+  </div>
+  <!-- else progress loader -->
 </template>
 <script>
 import DragSlide from '../../drag-slide.vue'
@@ -133,7 +125,8 @@ export default {
       fees: null,
       showDragSlide: true,
       sendErrors: [],
-      sendingBch: false
+      sendingBch: false,
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2
     }
   },
   emits: ['back', 'success'],
@@ -205,7 +198,7 @@ export default {
               txid: this.txid
             }
           }
-          vm.$store.dispatch('ramp/saveTxid', txidData)
+          vm.$store.commit('ramp/saveTxid', txidData)
           await vm.escrowPendingOrder()
         } else {
           vm.sendErrors = []

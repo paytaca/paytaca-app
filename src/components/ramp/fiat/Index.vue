@@ -43,7 +43,6 @@ import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from 'src/wallet/ramp/signature'
 
 export default {
@@ -51,6 +50,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL,
+      wallet: null,
       network: 'BCH',
       menu: 'store',
       isLoading: true,

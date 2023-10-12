@@ -1,17 +1,9 @@
-export function updateArbiter (state, arbiter) {
-  state.arbiter = arbiter
-}
-
-export function clearArbiter (state) {
-  state.arbiter = null
-}
-
 export function updateUser (state, user) {
   state.user = user
-  console.log('updated user:', state.user)
+  // console.log('updated user:', state.user)
 }
 
-export function clearProfile (state) {
+export function resetUser (state) {
   state.user = null
 }
 

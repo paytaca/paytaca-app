@@ -273,7 +273,7 @@ export default {
     },
     async resetAndRefetchListings () {
       const vm = this
-      await vm.$store.dispatch('ramp/resetAdsPagination')
+      await vm.$store.commit('ramp/resetAdsPagination')
       await vm.fetchAds(true)
       vm.updatePaginationValues()
     },

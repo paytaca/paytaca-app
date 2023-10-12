@@ -239,14 +239,12 @@ export default {
       console.log('resetAndRefetchListings')
       const vm = this
       // console.time('non-blocking-await')
-      vm.$store.dispatch('ramp/resetOrdersPagination')
-        .then(
-          vm.fetchOrders(true)
-            .then(function () {
-              vm.updatePaginationValues()
-              vm.loading = false
-            })
-        )
+      vm.$store.commit('ramp/resetOrdersPagination')
+      vm.fetchOrders(true)
+        .then(function () {
+          vm.updatePaginationValues()
+          vm.loading = false
+        })
       // console.timeEnd('non-blocking-await')
     },
     updatePaginationValues () {

@@ -75,16 +75,15 @@
   <div v-if="state === 'appeal-process'">
     <AppealProcess
       :selectedAppeal="selectedAppeal"
-      :init-wallet="wallet"
       @back="state = 'appeal-list'"
     />
   </div>
 </template>
 <script>
 import AppealProcess from './AppealProcess.vue'
-import { signMessage } from '../../../wallet/ramp/signature.js'
-import { loadP2PWalletInfo, formatDate } from 'src/wallet/ramp'
+import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
+import { signMessage } from 'src/wallet/ramp/signature'
 
 export default {
   setup () {
@@ -99,8 +98,10 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       walletIndex: this.$store.getters['global/getWalletIndex'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      apiURL: process.env.WATCHTOWER_BASE_URL,
       authHeaders: this.$store.getters['ramp/authHeaders'],
+      wallet: null,
+      user: null,
       statusType: 'PENDING',
       state: 'appeal-list',
       selectedAppeal: null,
@@ -141,7 +142,6 @@ export default {
       return this.$store.getters['ramp/pendingAppeals']
     },
     resolvedAppeals () {
-      console.log('resolvedAppeals:', this.$store.getters['ramp/resolvedAppeals'])
       return this.$store.getters['ramp/resolvedAppeals']
     },
     hasMoreData () {
@@ -150,24 +150,49 @@ export default {
       return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
     }
   },
-  mounted () {
-    const vm = this
-    if (!vm.appeals || vm.appeals.length === 0) {
-      vm.loading = true
+  async mounted () {
+    this.loading = true
+    await this.$store.dispatch('ramp/loadWallet')
+    this.wallet = this.$store.getters['ramp/wallet']
+    // if (!vm.appeals || vm.appeals.length === 0) {
+    //   vm.loading = true
+    // }
+    await this.login()
+    if (this.user) {
+      this.resetAndRefetchListings()
     }
-    // const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    // loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
-    //   vm.wallet = wallet
-    vm.resetAndRefetchListings()
-    // })
   },
   methods: {
+    async login () {
+      try {
+        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/arbiter`, { headers: { 'wallet-hash': this.wallet.walletHash } })
+        const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
+        const body = {
+          wallet_hash: this.wallet.walletHash,
+          signature: signature,
+          public_key: this.wallet.publicKey
+        }
+        await this.$axios.post(`${this.apiURL}/auth/login/arbiter`, body)
+          .then(response => {
+            // save token as cookie and set to expire 1h later
+            document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
+            this.user = response.data.user
+            if (this.user) {
+              this.$store.commit('ramp/updateUser', response.data.user)
+              this.$store.dispatch('ramp/loadAuthHeaders')
+            }
+          })
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
+        this.$router.go(-2)
+      }
+    },
     async fetchAppeals (overwrite = false) {
-      // console.log('fetching appeals')
       const vm = this
       vm.loading = true
       const params = { state: vm.statusType }
-      vm.$store.dispatch('ramp/fetchAppeals',
+      await vm.$store.dispatch('ramp/fetchAppeals',
         {
           appealState: vm.statusType,
           params: params,
@@ -194,20 +219,13 @@ export default {
     async refreshData (done) {
       this.loading = true
       await this.resetAndRefetchListings()
-      // this.loading = false
       if (done) done()
     },
     async resetAndRefetchListings () {
       const vm = this
-      // console.time('non-blocking-await')
-      vm.$store.dispatch('ramp/resetAppealsPagination')
-        .then(
-          vm.fetchAppeals(true)
-            .then(function () {
-              vm.updatePaginationValues()
-            })
-        )
-      // console.timeEnd('non-blocking-await')
+      vm.$store.commit('ramp/resetAppealsPagination')
+      await vm.fetchAppeals(true)
+      vm.updatePaginationValues()
     },
     updatePaginationValues () {
       const vm = this
@@ -271,8 +289,4 @@ export default {
 .subtext {
   opacity: .5;
 }
-// .custom-spinner {
-//   margin-top: 1px !important;
-//   margin-bottom: 1px !important;
-// }
 </style>

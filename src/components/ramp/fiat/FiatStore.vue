@@ -304,7 +304,7 @@ export default {
     async resetAndRefetchListings () {
       // reset pagination and reload ads list
       const vm = this
-      await vm.$store.dispatch('ramp/resetStorePagination')
+      await vm.$store.commit('ramp/resetStorePagination')
       await vm.fetchStoreListings(true)
       vm.updatePaginationValues()
     },

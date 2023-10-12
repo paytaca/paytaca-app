@@ -220,6 +220,9 @@ export async function fetchOrders (context, { orderState = null, params = null, 
 
 export async function fetchAppeals (context, { appealState = null, params = null, overwrite = false }) {
   const state = context.state
+  if (!state.authHeaders) {
+    throw new Error('Ramp authentication headers not initialized')
+  }
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
   let totalPages = null
@@ -244,7 +247,8 @@ export async function fetchAppeals (context, { appealState = null, params = null
     params.page = pageNumber
     params.limit = state.itemsPerPage
     try {
-      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
+      const data = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
+      console.log('data:', data)
       switch (appealState) {
         case 'PENDING':
           context.commit('updatePendingAppeals', { overwrite: overwrite, data: data.data })
@@ -302,38 +306,34 @@ export async function fetchOwnedAds (context, params, headers) {
   }
 }
 
-export function resetStorePagination (context) {
-  context.commit('resetStorePagination')
-}
+// export function resetStorePagination (context) {
+//   context.commit('resetStorePagination')
+// }
 
-export function resetAdsPagination (context) {
-  context.commit('resetAdsPagination')
-}
+// export function resetAdsPagination (context) {
+//   context.commit('resetAdsPagination')
+// }
 
-export function resetOrdersPagination (context) {
-  context.commit('resetOrdersPagination')
-}
+// export function resetOrdersPagination (context) {
+//   context.commit('resetOrdersPagination')
+// }
 
-export function resetAppealsPagination (context) {
-  context.commit('resetAppealsPagination')
-}
+// export function resetAppealsPagination (context) {
+//   context.commit('resetAppealsPagination')
+// }
 
-export function resetPagination (context) {
-  context.commit('resetPagination')
-}
+// export function resetPagination (context) {
+//   context.commit('resetPagination')
+// }
 
-export function resetData (context) {
-  context.commit('resetData')
-}
+// export function resetData (context) {
+//   context.commit('resetData')
+// }
 
-export function saveTxid (context, data) {
-  context.commit('saveTxid', data)
-}
+// export function saveTxid (context, data) {
+//   context.commit('saveTxid', data)
+// }
 
-export function clearOrderTxids (context, id) {
-  context.commit('clearOrderTxids', id)
-}
-
-export function clearArbiter (context) {
-  context.commit('clearArbiter')
-}
+// export function clearOrderTxids (context, id) {
+//   context.commit('clearOrderTxids', id)
+// }
