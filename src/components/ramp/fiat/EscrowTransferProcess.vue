@@ -1,13 +1,6 @@
 <template>
-    <div class="q-pb-md">
-      <!-- <div>
-        <q-btn
-          flat
-          padding="md"
-          icon="close"
-          @click="$emit('back')"
-        />
-      </div> -->
+  <div class="q-pb-md">
+    <q-scroll-area :style="`height: ${minHeight - minHeight*0.2}px`" style="overflow-y:auto;">
       <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
       <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">( Order #{{ order.id }} )</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
@@ -22,7 +15,7 @@
           :loading="!selectedArbiter"
           :label="selectedArbiter ? selectedArbiter.address : ''"
           :options="arbiterOptions"
-          :disable="!contractAddress"
+          :disable="!contractAddress || sendingBch"
           behavior="dialog">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
@@ -59,9 +52,9 @@
         <div class="sm-font-size q-pl-sm q-pb-xs">Transfer Amount</div>
         <q-input
           readonly
-          :dark="darkMode"
           filled
           dense
+          :dark="darkMode"
           v-model="transferAmount"
           :error="balanceExceeded"
           :error-message="balanceExceeded? $t('Insufficient balance') : ''">
@@ -70,7 +63,10 @@
           </template>
         </q-input>
         <!-- </div> -->
-        <div class="sm-font-size q-mt-sm" style="color: grey;">
+        <div v-if="sendingBch" class="sm-font-size">
+          <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+        </div>
+        <div v-else class="sm-font-size q-mt-sm">
           <div v-if="fees" class="row q-ml-md">
             Fee: {{ fees.total / 100000000 }} BCH
           </div>
@@ -89,24 +85,24 @@
           </div>
         </div>
       </div>
+    </q-scroll-area>
 
-      <DragSlide
-        v-if="showDragSlide && (!loading && contractAddress)"
-        :style="{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1500,
-        }"
-        @swiped="onSwipe"
-        text="Swipe To Escrow"
-      />
-    </div>
-    <!-- else progress loader -->
-  </template>
+    <DragSlide
+      v-if="showDragSlide && (!loading && contractAddress)"
+      :style="{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1500,
+      }"
+      @swiped="onSwipe"
+      text="Swipe To Escrow"
+    />
+  </div>
+  <!-- else progress loader -->
+</template>
 <script>
-import { signMessage } from 'src/wallet/ramp/signature'
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { Dialog } from 'quasar'
@@ -117,6 +113,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
+      wallet: this.$store.getters['ramp/wallet'],
       adData: null,
       loading: false,
       selectedArbiter: null,
@@ -126,7 +124,9 @@ export default {
       txid: null,
       fees: null,
       showDragSlide: true,
-      sendErrors: []
+      sendErrors: [],
+      sendingBch: false,
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2
     }
   },
   emits: ['back', 'success'],
@@ -141,10 +141,6 @@ export default {
     amount: {
       type: Number,
       default: 0
-    },
-    wallet: {
-      type: Object,
-      default: null
     },
     contract: Object
   },
@@ -190,6 +186,7 @@ export default {
       // Send crypto to smart contract
       const vm = this
       try {
+        vm.sendingBch = true
         const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
         console.log('sendBch:', result)
         if (result.success) {
@@ -201,7 +198,7 @@ export default {
               txid: this.txid
             }
           }
-          vm.$store.dispatch('ramp/saveTxid', txidData)
+          vm.$store.commit('ramp/saveTxid', txidData)
           await vm.escrowPendingOrder()
         } else {
           vm.sendErrors = []
@@ -218,21 +215,15 @@ export default {
         console.error(err.response)
         vm.showDragSlide = true
       }
+      vm.sendingBch = false
     },
     async escrowPendingOrder () {
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'ORDER_ESCROW_PENDING', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
       const body = { txid: vm.txid }
       try {
-        const response = await vm.$axios.post(url, body, { headers: headers })
+        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
         const result = {
           txid: vm.txid,
           status: response.data.status
@@ -244,13 +235,10 @@ export default {
     },
     async fetchOrderDetail () {
       const vm = this
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash
-      }
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.fees = response.data.fees
       } catch (error) {
         console.error(error.response)
@@ -260,8 +248,8 @@ export default {
       const vm = this
       const url = vm.apiURL + '/arbiter'
       try {
-        const response = await vm.$axios.get(url)
-        // console.log('response:', response)
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
+        console.log('response:', response)
         vm.arbiterOptions = response.data
         vm.selectedArbiter = vm.order.arbiter
         if (vm.arbiterOptions.length > 0) {
@@ -280,20 +268,13 @@ export default {
     async generateContractAddress () {
       // console.log('generateContractAddress')
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'CONTRACT_CREATE', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/generate-contract'
       const body = {
         arbiter: vm.selectedArbiter.id
       }
       try {
-        const response = await vm.$axios.post(url, body, { headers: headers })
+        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
         if (response.data.data) {
           const data = response.data.data
           // console.log('>>data:', data)

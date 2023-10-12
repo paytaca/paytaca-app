@@ -52,9 +52,6 @@ import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadWallet } from 'src/wallet'
-import { markRaw } from 'vue'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
 import { signMessage } from 'src/wallet/ramp/signature'
 
 export default {
@@ -62,11 +59,10 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL,
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      wallet: null,
       network: 'BCH',
       menu: 'store',
       isLoading: true,
-      wallet: null,
       user: null,
       proceed: false,
       createUser: false,
@@ -84,22 +80,25 @@ export default {
     ProgressLoader
   },
   async mounted () {
-    const walletInfo = this.$store.getters['global/getWallet']('bch')
-    this.wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
+    // const walletInfo = this.$store.getters['global/getWallet']('bch')
+    // this.wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
 
     // check if has account
-    await this.$store.dispatch('ramp/fetchUser', this.wallet.walletHash)
-      .then(user => {
-        if (user) this.hasAccount = true
-      })
+    // await this.$store.dispatch('ramp/fetchUser', this.wallet.walletHash)
+    //   .then(user => {
+    //     if (user) this.hasAccount = true
+    //   })
 
-    this.login()
+    // this.login()
     // vm.$store.dispatch('ramp/fetchUser', walletHash)
     //   .then(user => {
     //     vm.user = user
     //     if (vm.user) vm.proceed = true
     //     vm.isLoading = false
     //   })
+    await this.$store.dispatch('ramp/loadWallet')
+    this.wallet = this.$store.getters['ramp/wallet']
+    await this.login()
   },
   watch: {
     menu (val) {
@@ -109,29 +108,31 @@ export default {
   methods: {
     async login () {
       try {
-        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp`, { headers: { 'wallet-hash': this.wallet.walletHash } })
+        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/peer`, { headers: { 'wallet-hash': this.wallet.walletHash } })
         const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
         const body = {
           wallet_hash: this.wallet.walletHash,
           signature: signature,
           public_key: this.wallet.publicKey
         }
-        await this.$axios.post(`${this.apiURL}/auth/login`, body)
+        await this.$axios.post(`${this.apiURL}/auth/login/peer`, body)
           .then(response => {
+            console.log('response:', response)
             // save token as cookie and set to expire 1h later
             document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
             this.user = response.data.user
             if (this.user) {
               this.$store.commit('ramp/updateUser', response.data.user)
-              this.proceed = true
-              this.hasAccount = true
+              this.$store.dispatch('ramp/loadAuthHeaders')
+                .then(() => {
+                  this.hasAccount = t
+                  this.proceed = true
+                  this.isLoading = false
+                })
             }
-            // setTimeout(function () {
-            this.isLoading = false
-            // }, 3000)
           })
       } catch (error) {
-        console.log('has error')
+        console.error(error)
         console.error(error.response)
         // setTimeout(function () {
         //   console.log('hello')
@@ -150,10 +151,31 @@ export default {
     },
     async createRampUser (value) {
       this.createUser = true
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
-      await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: wallet })
-      this.proceed = true
+      const timestamp = Date.now()
+      const url = `${this.apiURL}/ramp-p2p/peer/create`
+      try {
+        const signature = await signMessage(this.wallet.privateKeyWif, 'PEER_CREATE', timestamp)
+        const headers = {
+          'wallet-hash': this.wallet.walletHash,
+          timestamp: timestamp,
+          signature: signature,
+          'public-key': this.wallet.publicKey
+        }
+        const body = {
+          nickname: value.nickname,
+          address: this.wallet.address
+        }
+        const { data: user } = await this.$axios.post(url, body, { headers: headers })
+        this.user = user
+        this.$store.commit('updateUser', user)
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
+      }
+      // this.user = await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: this.wallet })
+      if (this.user) {
+        this.login()
+      }
     },
     onOrderCanceled () {
       this.switchMenu('orders')

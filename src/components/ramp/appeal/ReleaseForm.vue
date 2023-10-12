@@ -112,7 +112,7 @@
                 <q-separator  class="q-mb-sm" :dark="darkMode"/>
 
                 <div v-if="tab === 'status'">
-                  <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm" :class="darkMode ? '' : 'subtext'">
+                  <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
                     <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
                     <div class="row justify-between no-wrap q-mx-lg">
                       <span class="col">{{ formattedOrderStatus(status.status) }}</span>
@@ -124,7 +124,7 @@
                 </div>
 
                 <div v-if="tab === 'transaction'">
-                  <div class="row bold-text sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
+                  <div class="row bold-text sm-font-size">
                     <div class="col text-center">Action</div>
                     <div class="col text-center">Txid</div>
                     <div class="col text-center">Status</div>
@@ -240,15 +240,14 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import AdSnapshot from './AdSnapshot.vue'
-import { loadP2PWalletInfo, formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: null,
       tab: 'status',
       appeal: null,
@@ -292,48 +291,33 @@ export default {
     }
   },
   async mounted () {
-    const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
-      vm.wallet = wallet
-      this.fetchAppealDetail()
-    })
+    this.fetchAppealDetail()
     this.contractBalance = await this.rampContract.getBalance()
   },
   methods: {
     fetchAppealDetail (done) {
       const vm = this
-      const timestamp = Date.now()
-      if (!vm.wallet) return
-      signMessage(vm.wallet.privateKeyWif, 'APPEAL_GET', timestamp).then(signature => {
-        const headers = {
-          'wallet-hash': vm.wallet.walletHash,
-          timestamp: timestamp,
-          signature: signature
-        }
-        const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
-        vm.$axios.get(url, { headers })
-          .then(response => {
-            console.log('response:', response)
-            vm.appeal = response.data.appeal
-            vm.order = response.data.order
-            vm.ad_snapshot = response.data.ad_snapshot
-            vm.statusHistory = response.data.statuses
-            vm.transactionHistory = response.data.transactions
-            vm.contract = response.data.contract
-            vm.fees = response.data.fees
-            this.loading = false
-            if (done) done()
-          })
-          .catch(error => {
-            console.error(error.response)
-            this.loading = false
-            if (done) done()
-          })
-      })
+      const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
+      vm.$axios.get(url, { headers: vm.authHeaders })
+        .then(response => {
+          console.log('response:', response)
+          vm.appeal = response.data.appeal
+          vm.order = response.data.order
+          vm.ad_snapshot = response.data.ad_snapshot
+          vm.statusHistory = response.data.statuses
+          vm.transactionHistory = response.data.transactions
+          vm.contract = response.data.contract
+          vm.fees = response.data.fees
+          this.loading = false
+          if (done) done()
+        })
+        .catch(error => {
+          console.error(error.response)
+          this.loading = false
+          if (done) done()
+        })
     },
     async confirmAction () {
-      console.log('confirming', this.selectedAction)
       this.$emit('submit', this.selectedAction, this.order.crypto_amount)
     },
     selectReleaseType (type) {

@@ -96,7 +96,6 @@
       </div>
       <div v-if="state === 'view-order'">
         <FiatProcessOrder
-          :init-wallet="wallet"
           :order-data="selectedOrder"
           @back="returnOrderList()"
         />
@@ -114,8 +113,7 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 
 export default {
@@ -143,8 +141,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      walletIndex: this.$store.getters['global/getWalletIndex'],
-      wallet: null,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       selectedOrder: null,
       selectedUser: null,
       statusType: this.initStatusType,
@@ -202,38 +199,25 @@ export default {
     if (!vm.listings || vm.listings.length === 0) {
       vm.loading = true
     }
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
-      vm.wallet = wallet
-      vm.resetAndRefetchListings()
-    })
+    vm.resetAndRefetchListings()
   },
   methods: {
     async fetchOrders (overwrite = false) {
       const vm = this
-      if (!vm.wallet) return
-      const timestamp = Date.now()
-      signMessage(this.wallet.privateKeyWif, 'ORDER_LIST', timestamp).then(signature => {
-        const headers = {
-          'wallet-hash': this.wallet.walletHash,
-          timestamp: timestamp,
-          signature: signature
-        }
-        const params = { state: vm.statusType }
-        vm.$store.dispatch('ramp/fetchOrders',
-          {
-            orderState: vm.statusType,
-            params: params,
-            headers: headers,
-            overwrite: overwrite
-          })
-          .then(response => {
-            vm.loading = false
-          })
-          .catch(error => {
-            console.error(error.response)
-          })
-      })
+      const params = { state: vm.statusType }
+      vm.$store.dispatch('ramp/fetchOrders',
+        {
+          orderState: vm.statusType,
+          params: params,
+          overwrite: overwrite
+        })
+        .then(response => {
+          console.log('response:', response)
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
     },
     async loadMoreData (_, done) {
       const vm = this
@@ -255,14 +239,12 @@ export default {
       console.log('resetAndRefetchListings')
       const vm = this
       // console.time('non-blocking-await')
-      vm.$store.dispatch('ramp/resetOrdersPagination')
-        .then(
-          vm.fetchOrders(true)
-            .then(function () {
-              vm.updatePaginationValues()
-              vm.loading = false
-            })
-        )
+      vm.$store.commit('ramp/resetOrdersPagination')
+      vm.fetchOrders(true)
+        .then(function () {
+          vm.updatePaginationValues()
+          vm.loading = false
+        })
       // console.timeEnd('non-blocking-await')
     },
     updatePaginationValues () {

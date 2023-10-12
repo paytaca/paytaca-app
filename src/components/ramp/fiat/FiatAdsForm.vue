@@ -251,8 +251,7 @@ import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { debounce } from 'quasar'
-import { signMessage } from '../../../wallet/ramp/signature.js'
-import { formatCurrency, loadP2PWalletInfo, getPaymentTimeLimit } from 'src/wallet/ramp'
+import { formatCurrency, getPaymentTimeLimit, getCookie } from 'src/wallet/ramp'
 
 export default {
   props: {
@@ -271,12 +270,11 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
-      wallet: null,
       marketPrice: null,
       priceValue: null,
       step: 1,
@@ -342,14 +340,10 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
-
     if (vm.selectedAdId !== null) {
       await vm.fetchAdDetail()
     }
-
-    // Setup initial market price and subscription
     await vm.getInitialMarketPrice()
-
     vm.updatePriceValue(vm.adData.priceType)
     vm.loading = false
     vm.setupWebsocket()
@@ -392,22 +386,17 @@ export default {
   methods: {
     async fetchAdDetail () {
       const vm = this
-      let timestamp = null
-      let signature = null
-      if (vm.wallet === null) {
-        const walletInfo = this.$store.getters['global/getWallet']('bch')
-        vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-        timestamp = Date.now()
-        signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
-      }
+      // let timestamp = null
+      // let signature = null
+      // if (vm.wallet === null) {
+      //   const walletInfo = this.$store.getters['global/getWallet']('bch')
+      //   vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      //   timestamp = Date.now()
+      //   signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
+      // }
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         const data = response.data
         console.log(data)
         vm.adData.tradeType = data.trade_type
@@ -429,28 +418,22 @@ export default {
     },
     async onSubmit () {
       const vm = this
-      if (vm.wallet === null) {
-        const walletInfo = this.$store.getters['global/getWallet']('bch')
-        vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      }
-      let url = vm.apiURL + '/ad/'
-      const timestamp = Date.now()
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp
-      }
+      // if (vm.wallet === null) {
+      //   const walletInfo = this.$store.getters['global/getWallet']('bch')
+      //   vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      // }
+      // const timestamp = Date.now()
+      const url = vm.apiURL + '/ad/'
       const body = vm.transformPostData()
       try {
         let response = null
-        if (vm.adsState === 'create') {
-          const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
-          headers.signature = signature
-          response = await vm.$axios.post(url, body, { headers: headers })
-        } else if (vm.adsState === 'edit') {
-          url = url + vm.selectedAdId
-          const signature = await signMessage(this.wallet.privateKeyWif, 'AD_UPDATE', timestamp)
-          headers.signature = signature
-          response = await vm.$axios.put(url, body, { headers: headers })
+        switch (vm.adsState) {
+          case 'create':
+            response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
+            break
+          case 'edit':
+            response = await vm.$axios.put(url + vm.selectedAdId, body, { headers: vm.authHeaders })
+            break
         }
         console.log('response:', response)
         vm.swipeStatus = true
@@ -478,7 +461,7 @@ export default {
       const vm = this
       const url = vm.apiURL + '/currency/fiat'
       try {
-        const response = await vm.$axios.get(url)
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.fiatCurrencies = response.data
         if (!vm.selectedCurrency) {
           vm.selectedCurrency = vm.fiatCurrencies[0]
@@ -494,16 +477,10 @@ export default {
       }
     },
     async getPaymentMethods () {
-      const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
-      const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
-      return response.data
+      const url = this.apiURL + '/payment-method/'
+      const { data } = await this.$axios.get(url, { headers: this.authHeaders })
+      console.log('getPaymentMethods: ', data)
+      return data
     },
     async checkSubmitOption () {
       const vm = this

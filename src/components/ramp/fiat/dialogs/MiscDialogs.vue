@@ -482,7 +482,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       info: {},
       loading: false,
       isNameValid: false,
@@ -637,18 +637,7 @@ export default {
     async fetchPaymentMethod () {
       const vm = this
       vm.loading = true
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      const timestamp = Date.now()
-      const signature = await signMessage(wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
-      vm.$axios.get(vm.apiURL + '/payment-method',
-        {
-          headers: {
-            'wallet-hash': wallet.walletHash,
-            signature: signature,
-            timestamp: timestamp
-          }
-        })
+      vm.$axios.get(vm.apiURL + '/payment-method', { headers: vm.authHeaders })
         .then(response => {
           const data = response.data
           if (vm.addPaymentMethod) {
@@ -830,7 +819,7 @@ export default {
     },
     async fetchPaymentTypes () {
       const vm = this
-      await vm.$axios.get(vm.apiURL + '/payment-type')
+      await vm.$axios.get(vm.apiURL + '/payment-type', { headers: vm.authHeaders })
         .then(response => {
           vm.paymentTypes = response.data
         })

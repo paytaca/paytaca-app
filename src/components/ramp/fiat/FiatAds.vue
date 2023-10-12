@@ -141,8 +141,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
-import { signMessage } from '../../../wallet/ramp/signature.js'
-import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
+import { getCookie, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 
 export default {
@@ -164,9 +163,8 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      wallet: null,
       openMiscDialog: false,
       openDialog: false,
       dialogName: '',
@@ -224,34 +222,22 @@ export default {
     }
   },
   async mounted () {
-    const vm = this
-    if (!vm.listings || vm.listings.length === 0) {
-      vm.loading = true
-    }
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-    await vm.resetAndRefetchListings()
-    vm.loading = false
+    this.loading = true
+    await this.resetAndRefetchListings()
+    this.loading = false
   },
   methods: {
     async fetchAds (overwrite = false) {
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_LIST', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
+      vm.loading = true
       const params = { trade_type: vm.transactionType, owned: true }
-      vm.$store.dispatch(
-        'ramp/fetchAds',
-        { component: 'ads', params: params, headers: headers, overwrite: overwrite })
+      vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, overwrite: overwrite })
         .then(response => {
           vm.loading = false
         })
         .catch(error => {
-          console.error(error.response)
+          console.error(error)
+          vm.loading = false
         })
     },
     async loadMoreData (_, done) {
@@ -268,17 +254,9 @@ export default {
     },
     async deleteAd () {
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'AD_DELETE', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
       try {
-        await vm.$axios.delete(url, { headers: headers })
-
+        await vm.$axios.delete(url, { headers: vm.authHeaders })
         setTimeout(() => {
           vm.dialogName = 'notifyDeleteAd'
           vm.openDialog = true
@@ -295,7 +273,7 @@ export default {
     },
     async resetAndRefetchListings () {
       const vm = this
-      await vm.$store.dispatch('ramp/resetAdsPagination')
+      await vm.$store.commit('ramp/resetAdsPagination')
       await vm.fetchAds(true)
       vm.updatePaginationValues()
     },

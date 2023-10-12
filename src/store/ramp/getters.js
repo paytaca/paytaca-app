@@ -197,3 +197,11 @@ export function getOrderTxid (state) {
     return state.txids[id]
   }
 }
+
+export function wallet (state) {
+  return state.wallet
+}
+
+export function authHeaders (state) {
+  return state.authHeaders
+}
