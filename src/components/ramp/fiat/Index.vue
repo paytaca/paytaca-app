@@ -84,15 +84,9 @@ export default {
     ProgressLoader
   },
   async mounted () {
-    const vm = this
-    vm.wallet = await markRaw(loadWallet(this.network, this.walletIndex))
-    const walletHash = this.wallet.BCH.getWalletHash()
-    vm.$store.dispatch('ramp/fetchUser', walletHash)
-      .then(user => {
-        vm.user = user
-        if (vm.user) vm.proceed = true
-        vm.isLoading = false
-      })
+    const walletInfo = this.$store.getters['global/getWallet']('bch')
+    this.wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
+    this.login()
   },
   watch: {
     menu (val) {
