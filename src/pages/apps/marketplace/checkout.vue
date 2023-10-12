@@ -718,6 +718,12 @@
       </q-tab-panels>
     </div>
     <PaymentsListDialog v-model="showPaymentsListDialog" :payments="payments"/>
+    <RefundPaymentsDialog
+      ref="refundPaymentsDialogRef"
+      v-model="refundPaymentsDialog.show"
+      :payments="refundPaymentsDialog.payments"
+      @refunded="onRefundedPayments"
+    />
   </q-pull-to-refresh>  
 </template>
 <script setup>
@@ -727,9 +733,9 @@ import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener
 import { errorParser, formatTimestampToText, getISOWithTimezone } from 'src/marketplace/utils'
 import { Wallet, loadWallet } from 'src/wallet'
 import { debounce, useQuasar } from 'quasar'
-import { useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, inject, onDeactivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
@@ -740,6 +746,7 @@ import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dia
 import CustomerLocationsDialog from 'src/components/marketplace/CustomerLocationsDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import RefundPaymentsDialog from 'src/components/marketplace/RefundPaymentsDialog.vue'
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -1380,7 +1387,7 @@ const createPayment = debounce(() => {
     checkout_id: checkout.value.id,
     ignore_pending_payments: true,
     escrow: {
-      // network: 'chipnet',
+      // network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
       buyer_address: checkout.value?.payment?.escrowRefundAddress ? undefined : formData.value.payment?.escrowRefundAddress,
     },
     // amount: 100,
@@ -1478,6 +1485,7 @@ const txListenerCallback = (msg, parsedData) => {
     .then(() => {
       if (tabs.value.active == 'payment') nextTab()
     })
+    .finally(() => fetchPayments())
 }
 
 function getFundingTxFromReceivedTxs() {
@@ -1625,6 +1633,77 @@ function checkPaymentFundingTx() {
     })
 }
 
+
+async function dialogPromise(qDialogOptions) {
+  return new Promise((resolve, reject) => {
+    $q.dialog(qDialogOptions).onOk(resolve).onDismiss(reject)
+  })
+}
+
+onBeforeRouteLeave(async (to, from, next) => {
+  next(await onLeaveCheckout())
+})
+
+async function onLeaveCheckout() {
+  if (checkout.value?.orderId) return true
+
+  const totalPending = checkout.value.totalPendingPayment
+  const totalSent = checkout.value.totalPaymentsSent
+  if (totalSent > 0) {
+    const leaveWithPaymentsMade = await dialogPromise({
+      title: 'Leaving page',
+      message: 'You have payments sent already. Are you sure?',
+      persistent: true,
+      ok: { color: 'red', label: 'Leave page', noCaps: true, class: 'q-space' },
+      cancel: { color: 'grey', label: 'Stay on page', noCaps: true, class: 'q-space' },
+      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    }).then(() => true).catch(() => false)
+    if (!leaveWithPaymentsMade) return leaveWithPaymentsMade
+
+    if (totalPending > 0) {
+      const didProceedToRefund = await refundPendingPaymentsPromptBeforeRouteLeave()
+      if (didProceedToRefund) return false
+    }
+
+    return leaveWithPaymentsMade
+  }
+
+  return true
+}
+
+async function refundPendingPaymentsPromptBeforeRouteLeave() {
+  const refund = await dialogPromise({
+    title: 'Refund payments',
+    message: 'You have refundable payments. Proceed to refund?',
+    persistent: true,
+    ok: { color: 'brandblue', label: 'Refund', noCaps: true, class: 'q-space' },
+    cancel: { color: 'grey', label: 'Leave page', noCaps: true, class: 'q-space' },
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  }).then(() => true).catch(() => false)
+
+  if (refund) openRefundPaymentsDialog()
+  return refund
+}
+
+const refundPaymentsDialogRef = ref()
+const refundPaymentsDialog = ref({
+  show: false,
+  payments: [].map(Payment.parse),
+})
+function onRefundedPayments(payments=[].map(Payment.parse)) {
+  if (!payments?.length) return
+  fetchCheckout()
+  fetchPayments()
+}
+async function openRefundPaymentsDialog() {
+  refundPaymentsDialog.value.show = true
+  refundPaymentsDialog.value.payments = payments.value
+    .filter(payment => ['sent', 'received'].includes(payment?.status))
+
+  // setTimeout(() => refundPaymentsDialogRef.value?.refundPayments?.(), 250)
+}
+window.t = () => openRefundPaymentsDialog()
+
 function updateCheckout(data) {
   return backend.patch(`connecta/checkouts/${checkout.value.id}/`, data)
     .then(response => {
@@ -1673,6 +1752,7 @@ async function completeCheckout() {
       if (!response?.data?.id) return Promise.reject({ response })
 
       const orderId = response?.data?.id
+      checkout.value.orderId = orderId
       dialog.update({ title: 'Order placed!' }).onDismiss(() => {
         $router.replace({ name: 'app-marketplace-order', params: { orderId }})
       })
