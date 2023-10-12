@@ -7,9 +7,7 @@
           <div style="margin-top: 75%; font-weight: 500; font-size: 30px;">
             Logging in...
           </div>
-          <!-- <q-inner-loading :showing="visible"> -->
           <q-spinner-hourglass class="q-pt-sm" size="80px" color="white" />
-          <!-- </q-inner-loading> -->
         </q-card>
       </q-dialog>
     </div>
@@ -36,6 +34,7 @@
         />
       </div>
       <div v-else>
+        <!-- If user DNE -->
         <MiscDialogs
           :type="'editNickname'"
           v-on:submit="createRampUser"
@@ -71,7 +70,8 @@ export default {
       user: null,
       proceed: false,
       createUser: false,
-      initStatusType: 'ONGOING'
+      initStatusType: 'ONGOING',
+      hasAccount: false
     }
   },
   components: {
@@ -86,7 +86,20 @@ export default {
   async mounted () {
     const walletInfo = this.$store.getters['global/getWallet']('bch')
     this.wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
+
+    // check if has account
+    await this.$store.dispatch('ramp/fetchUser', this.wallet.walletHash)
+      .then(user => {
+        if (user) this.hasAccount = true
+      })
+
     this.login()
+    // vm.$store.dispatch('ramp/fetchUser', walletHash)
+    //   .then(user => {
+    //     vm.user = user
+    //     if (vm.user) vm.proceed = true
+    //     vm.isLoading = false
+    //   })
   },
   watch: {
     menu (val) {
@@ -111,12 +124,19 @@ export default {
             if (this.user) {
               this.$store.commit('ramp/updateUser', response.data.user)
               this.proceed = true
+              this.hasAccount = true
             }
+            // setTimeout(function () {
             this.isLoading = false
+            // }, 3000)
           })
       } catch (error) {
+        console.log('has error')
         console.error(error.response)
+        // setTimeout(function () {
+        //   console.log('hello')
         this.isLoading = false
+        // }, 3000)
       }
     },
     switchMenu (item) {
