@@ -256,7 +256,7 @@ export class WebRtcCallManager {
   }
 
   joinRoom() {
-    return this.signaller.sendSignal('new-peer', { peerId: this.localPeerId });
+    return this.signaller.sendSignal('new-peer', { peerId: this.localPeerId, local_identity: this.localIdentity });
   }
 
   getMember(peerId=0) {
@@ -280,13 +280,15 @@ export class WebRtcCallManager {
       const iceConnectionState = member.peer.iceConnectionState
       if (['failed', 'disconnected', 'closed'].includes(iceConnectionState)) {
         console.log(member.handle, 'iceConnectionState', iceConnectionState)
-        this.members = this.members.filter(_member => _member.id !== member.id);
         if (iceConnectionState != 'closed') member.peer.close();
 
+        this.removeMember(member)
         if (member.peerType == 'offerer') {
           this.createNewOfferer(member.id, member.channelName);
         } else if (member.peerType == 'answerer') {
-          this.createNewAnswerer(null, member.id, member.channelName)
+          this.signaller.sendSignal('request-offer', {
+            receiver_channel_name: member.channelName,
+          })
         }
       }
     })
@@ -332,7 +334,7 @@ export class WebRtcCallManager {
     }
   }
 
-  async createNewOfferer(peerId=0, channelName='') {
+  async createNewOfferer(peerId=0, channelName='', identity=undefined) {
     if (!this.localStream) throw new Error('Unable to create offer, no media stream');
 
     let existingMember = this.getMember(peerId);
@@ -346,6 +348,7 @@ export class WebRtcCallManager {
     if (existingIndex >= 0) this.members[existingIndex] = member;
     else this.members.push(member);
 
+    if (identity) member.identity = identity
     member.channelName = channelName;
 
     member.dataChannel = member.peer.createDataChannel('mydatachannel')
@@ -374,7 +377,10 @@ export class WebRtcCallManager {
     await member.createOfferLocalDescription();
     console.log(member.handle, 'Local description set successfully')
 
-    this.signaller.sendSignal('new-offer', { receiver_channel_name: channelName });
+    this.signaller.sendSignal('new-offer', {
+      receiver_channel_name: channelName,
+      local_identity: this.localIdentity,
+    });
     await member.waitGatheringComplete();
     console.log(member.handle, 'Gathering complete');
 
@@ -399,7 +405,7 @@ export class WebRtcCallManager {
    * @param {Number} peerId
    * @param {String} channelName
    */
-  async createNewAnswerer(offer, peerId, channelName) {
+  async createNewAnswerer(offer, peerId, channelName, identity) {
     if (!this.localStream) throw new Error('Unable to create offer, no media stream');
 
     let existingMember = this.getMember(peerId);
@@ -414,6 +420,7 @@ export class WebRtcCallManager {
     if (existingIndex >= 0) this.members[existingIndex] = member;
     else this.members.push(member);
     
+    if (identity) member.identity = identity
     member.channelName = channelName;
 
     member.peer.addEventListener('datachannel', evt => {
@@ -438,6 +445,7 @@ export class WebRtcCallManager {
           this.signaller.sendSignal('new-answer', {
             sdp: member.peer.localDescription,
             receiver_channel_name: channelName,
+            local_identity: this.localIdentity,
           });
         })
     })
@@ -452,6 +460,7 @@ export class WebRtcCallManager {
       this.signaller.sendSignal('new-answer', {
         sdp: member.peer.localDescription,
         receiver_channel_name: channelName,
+        local_identity: this.localIdentity,
       })
     }
 
@@ -564,7 +573,8 @@ export class WebRtcSignallerManager {
 
     const peerId = msgData?.peer;
     const action = msgData?.action;
-    const channelName = msgData?. message?.receiver_channel_name;
+    const channelName = msgData?.message?.receiver_channel_name;
+    const localIdentity = msgData?.message?.local_identity
 
     if (peerId == this.localPeerId) return;
     console.log(peerId, action, channelName);
@@ -573,15 +583,16 @@ export class WebRtcSignallerManager {
     // The smaller peerId will always be the one creating the offerer
     // This also assumes peerIds are unique within the callId
     if (action == 'new-peer' && peerId < this.localPeerId) {
-      this.webRtcManager.createNewAnswerer(null, peerId, channelName)
+      this.webRtcManager.createNewAnswerer(null, peerId, channelName, localIdentity)
       return this.sendSignal('request-offer', {
         receiver_channel_name: channelName,
+        local_identity: this.webRtcManager?.localIdentity,
       })
     } else if ((action == 'new-peer' || action == 'request-offer') && peerId >= this.localPeerId) {
-      return this.webRtcManager.createNewOfferer(peerId, channelName)
+      return this.webRtcManager.createNewOfferer(peerId, channelName, localIdentity)
     } else if (action == 'new-offer') {
       const offer = msgData?.message?.sdp
-      return this.webRtcManager.createNewAnswerer(offer, peerId, channelName)
+      return this.webRtcManager.createNewAnswerer(offer, peerId, channelName, localIdentity)
     } else if (action == 'new-answer') {
       const answer = msgData?.message?.sdp
       return this.webRtcManager.receivedAnswer(answer, peerId)
