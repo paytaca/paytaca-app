@@ -1,5 +1,9 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <q-pull-to-refresh
+    id="app-container"
+    :class="getDarkModeClass(darkMode)"
+    @refresh="getCollectibles"
+  >
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
@@ -49,7 +53,8 @@
       />
     </q-tabs>
     <div v-if="showAddress" class="flex flex-center" style="padding-top: 30px;">
-      <div class="q-pa-md br-15 col-qr-code">
+      <div class="q-pa-md br-15 col-qr-code text-center">
+        <img src="/ct-logo.png" height="50" class="receive-icon-asset">
         <qr-code
           :text="receivingAddress"
           style="width: 200px; margin-left: auto; margin-right: auto;"
@@ -57,6 +62,7 @@
           :size="200"
           error-level="H"
           class="q-mb-sm"
+          @click="copyAddress(receivingAddress)"
         />
       </div>
     </div>
@@ -210,7 +216,7 @@
       </q-tab-panel>
     </q-tab-panels>
     <div style="padding-bottom:60px;"></div>
-  </div>
+  </q-pull-to-refresh>
 </template>
 
 <script>
@@ -334,21 +340,25 @@ export default {
         this.$store.commit(commitName, asset.address)
       })
     },
-    getCollectibles () {
-      if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
-        this.$refs.slpCollectibles.fetchCollectibles()
-      }
+    getCollectibles (done=() => {}) {
+      try {
+        if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
+          this.$refs.slpCollectibles.fetchCollectibles()
+        }
 
-      if (this?.$refs?.cashtokenNFTs?.refresh?.call) {
-        this.$refs.cashtokenNFTs.refresh()
-      }
+        if (this?.$refs?.cashtokenNFTs?.refresh?.call) {
+          this.$refs.cashtokenNFTs.refresh()
+        }
 
-      if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {
-        this.$refs.erc721Collectibles.fetchCollectibles()
-      } else if (Array.isArray(this?.$refs?.erc721Collectibles)) {
-        this.$refs.erc721Collectibles.forEach(component => {
-          if (component?.fetchCollectibles?.call) component.fetchCollectibles()
-        })
+        if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {
+          this.$refs.erc721Collectibles.fetchCollectibles()
+        } else if (Array.isArray(this?.$refs?.erc721Collectibles)) {
+          this.$refs.erc721Collectibles.forEach(component => {
+            if (component?.fetchCollectibles?.call) component.fetchCollectibles()
+          })
+        }
+      } finally {
+        done()
       }
     },
     copyAddress (address) {
@@ -405,5 +415,14 @@ export default {
   background: white;
   border: 4px solid #ed5f59;
   padding: 30px;
+}
+
+.receive-icon-asset {
+  position: absolute;
+  margin-top: 73px;
+  margin-left: -25px;
+  background: white;
+  border-radius: 50%;
+  padding: 4px;
 }
 </style>
