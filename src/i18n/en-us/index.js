@@ -106,6 +106,7 @@ export default {
   CreatingYourWallet: "Creating your wallet",
   Crypto: "Crypto",
   Currency: "Currency",
+  DEEM: "DEEM",
   DarkMode: "Dark Mode",
   Data: "Data",
   Date: "Date",

@@ -36,8 +36,7 @@ export default {
         { value: 'mBCH', label: 'mBCH' },
         { value: 'Satoshis', label: 'Satoshis' }
       ],
-      filteredDenominationOptions: [],
-      currentCountry: this.$store.getters['global/country'].code
+      filteredDenominationOptions: []
     }
   },
   methods: {
@@ -52,15 +51,25 @@ export default {
       update()
     },
     hkSelection (options) {
-      if (this.currentCountry === 'HK' && !options.some((a) => a.value === 'DEEM')) {
-        options.push({ value: 'DEEM', label: 'DEEM' })
-      } else if (this.currentCountry !== 'HK' && options.some((a) => a.value === 'DEEM')) {
+      // get rid of duplicate DEEM entry from language switching
+      if (options.length > 3) {
+        options.pop()
+      }
+      if (this.currentCountry === 'HK' && !options.some((a) => a.value === this.$t('DEEM'))) {
+        options.push({ value: this.$t('DEEM'), label: this.$t('DEEM') })
+      } else if (this.currentCountry !== 'HK' && options.some((a) => a.value === this.$t('DEEM'))) {
         options.pop()
       }
       return options
     }
   },
   computed: {
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    language () {
+      return this.$store.getters['global/language'].value
+    },
     denomination: {
       get () {
         return this.$store.getters['global/denomination']
@@ -72,8 +81,17 @@ export default {
     }
   },
   watch: {
-    denomination () {
-      this.currentCountry = this.$store.getters['global/country'].code
+    language () {
+      if (this.currentCountry === 'HK' &&
+          this.language !== 'zh-tw' &&
+          this.denomination !== this.$t('DEEM') &&
+          !['BCH', 'mBCH', 'Satoshis'].includes(this.denomination)
+      ) {
+        this.$store.commit('global/setDenomination', 'DEEM')
+      } else {
+        const translatedDenom = this.$t(this.denomination)
+        this.$store.commit('global/setDenomination', translatedDenom)
+      }
     }
   }
 }

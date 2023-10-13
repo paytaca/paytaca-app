@@ -477,6 +477,7 @@ const hongKongSpecific = [
     ViewPoints: "View Points",
     Waiting_SEP20_PointSent: "Waiting for SEP20 point to be sent",
     Add_SEP721_Point: "Add SEP721 Point",
+    DEEM: "DEEM"
   }
 ]
 

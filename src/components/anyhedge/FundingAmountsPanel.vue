@@ -28,7 +28,7 @@
         <div class="q-space">Service fee{{ data?.fees?.serviceFees?.length > 1 ? 's' : '' }}:</div>
         <div>{{ getAssetDenomination(denomination, data?.fees?.service / 10 ** 8) }}</div>
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
             <div>
               <div v-for="(fee, index) in data?.fees?.serviceFees" :key="index" class="row no-wrap">
                 <div class="q-space ellipsis">
@@ -40,7 +40,7 @@
                 </div>
 
                 <q-popup-proxy v-if="fee?.description" :breakpoint="0">
-                  <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                  <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
                     <template v-if="fee?.name">
                       <div class="text-subtitle1">{{ fee?.name }} </div>
                       <q-separator :dark="darkMode"/>

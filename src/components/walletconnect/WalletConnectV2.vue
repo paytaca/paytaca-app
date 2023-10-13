@@ -10,7 +10,7 @@
       <q-btn flat padding="xs">
         <q-icon name="more_vert"/>
         <q-badge v-if="sessionProposals?.length" floating>{{ sessionProposals?.length }}</q-badge>
-        <q-menu :class="getDarkModeClass('pt-dark', 'text-black')">
+        <q-menu :class="getDarkModeClass(darkMode, 'pt-dark', 'text-black')">
           <q-item
             clickable v-ripple
             v-close-popup
@@ -106,8 +106,8 @@
         <div>
           <div class="q-mb-sm">No active sessions, connect new session</div>
           <q-btn-group spread>
-            <q-btn color="brandblue" icon="mdi-qrcode" no-caps label="Scan" @click="() => $emit('request-scanner')"/>
-            <q-btn color="brandblue" icon="link" no-caps label="Paste URL" @click="() => connectNewSession()"/>
+            <q-btn class="button" icon="mdi-qrcode" no-caps label="Scan" @click="() => $emit('request-scanner')"/>
+            <q-btn class="button" icon="link" no-caps label="Paste URL" @click="() => connectNewSession()"/>
           </q-btn-group>
           <!-- <q-form @submit="() => pairUrlInInput()">
             <q-input
