@@ -106,6 +106,7 @@ export default {
   CreatingYourWallet: "創建錢包",
   Crypto: "加密",
   Currency: "貨幣",
+  DEEM: "認為",
   DarkMode: "黑暗模式",
   Data: "數據",
   Date: "日期",

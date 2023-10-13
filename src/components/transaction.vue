@@ -25,10 +25,10 @@
             <q-item-section :class="darkMode ? 'text-white' : 'pp-text'">
               <q-item-label>
                 <template v-if="transaction.record_type === 'outgoing'">
-                  {{ transaction.amount * -1 }} {{ transaction.asset.symbol }}
+                  {{ `-${parseAssetDenomination(denomination, transaction.asset)}` }}
                 </template>
                 <template v-else>
-                  {{ convertTokenAmount(transaction.amount, transaction.asset.decimals, isBCH=transaction.asset.id === 'bch', isSLP=isSLP=transaction.asset.id.startsWith('slp/')) }} {{ transaction.asset.symbol }}
+                  {{ `${parseAssetDenomination(denomination, transaction.asset)}` }}
                 </template>
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
@@ -203,7 +203,7 @@ import { ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/format
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import { convertTokenAmount } from 'src/wallet/chipnet'
-import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -224,7 +224,6 @@ export default {
         outgoing: this.$t('Sent')
       },
       transaction: {},
-      darkMode: false,
       denomination: this.$store.getters['global/denomination']
     }
   },
@@ -308,6 +307,7 @@ export default {
     ellipsisText,
     convertTokenAmount,
     getAssetDenomination,
+    parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
     concatenate (array) {

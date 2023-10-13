@@ -391,7 +391,7 @@ import {
   getWalletByNetwork,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
-import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { parseAssetDenomination, getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
@@ -667,6 +667,7 @@ export default {
   methods: {
     convertTokenAmount,
     parseAssetDenomination,
+    getAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
     isDefaultTheme,
@@ -1025,10 +1026,11 @@ export default {
             this.sendErrors.push('Not enough balance to cover the gas fee')
           }
         } else {
+          // this.sendData.amount = getAssetDenomination(this.denomination, this.asset.spendable)
           this.sendData.amount = this.asset.spendable
         }
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = this.convertToFiatAmount(this.sendData.amount)
+          this.sendAmountInFiat = this.convertToFiatAmount(this.asset.spendable)
         }
       } else {
         if (this.asset.id.startsWith('ct/')) {
