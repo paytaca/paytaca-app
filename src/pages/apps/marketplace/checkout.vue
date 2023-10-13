@@ -735,7 +735,7 @@ import { Wallet, loadWallet } from 'src/wallet'
 import { debounce, useQuasar } from 'quasar'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onUnmounted, inject, onDeactivated } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, inject, onDeactivated, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
@@ -766,7 +766,7 @@ function resetPage() {
   checkout.value.raw = Checkout.parse()
   payments.value = []
   transactionsReceived.value = []
-  resetFormData()
+  resetFormData({ resetRider: true })
   resetFormErrors()
   tabs.value.active = tabs.value.opts?.[0]?.name
   tabs.value.opts.forEach(tab => tab.disable = tab.name === tabs.value.active)
@@ -894,8 +894,8 @@ const formData = ref({
   },
 })
 
-function resetFormData() {
-  const existingRider = formData.value.delivery?.rider
+function resetFormData(opts={ resetRider: false }) {
+  const existingRider = opts?.resetRider ? undefined : formData.value.delivery?.rider
   formData.value = {
     payment: {
       escrowRefundAddress: checkout.value?.payment?.escrowRefundAddress || bchAddress.value,
