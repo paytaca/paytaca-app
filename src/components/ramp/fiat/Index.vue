@@ -1,51 +1,57 @@
 <template>
   <div>
-    <div v-if="isLoading">
-      <!-- <ProgressLoader/> -->
-      <q-dialog maximized v-model="isLoading">
-        <q-card class="bg-blue-6 text-white text-center">
-          <div style="margin-top: 75%; font-weight: 500; font-size: 30px;">
-            Logging in...
-          </div>
-          <q-spinner-hourglass class="q-pt-sm" size="80px" color="white" />
-        </q-card>
-      </q-dialog>
+    <div v-if="loggingIn">
+      <login/>
     </div>
     <div v-else>
-      <div v-if="proceed">
-        <div class="q-mt-md">
-          <FiatStore
-            v-if="menu === 'store'"
-            @order-canceled="onOrderCanceled"
-          />
-          <FiatOrders
-            v-if="menu === 'orders'"
-            :init-status-type="initStatusType"
-          />
-          <FiatAds v-if="menu === 'ads'"/>
-          <FiatProfileCard
-            v-if="menu === 'profile'"
-            v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
-          />
-        </div>
-        <footerMenu
-          v-on:clicked="switchMenu"
-          ref="footer"
-        />
+      <div v-if="isLoading">
+        <!-- <ProgressLoader/> -->
+        <q-dialog maximized v-model="isLoading">
+          <q-card class="bg-blue-6 text-white text-center">
+            <div style="margin-top: 75%; font-weight: 500; font-size: 30px;">
+              Logging in...
+            </div>
+            <q-spinner-hourglass class="q-pt-sm" size="80px" color="white" />
+          </q-card>
+        </q-dialog>
       </div>
       <div v-else>
-        <!-- If user DNE -->
-        <MiscDialogs
-          :type="'editNickname'"
-          v-on:submit="createRampUser"
-          v-on:back="processDialog()"
-        />
+        <div v-if="proceed">
+          <div class="q-mt-md">
+            <FiatStore
+              v-if="menu === 'store'"
+              @order-canceled="onOrderCanceled"
+            />
+            <FiatOrders
+              v-if="menu === 'orders'"
+              :init-status-type="initStatusType"
+            />
+            <FiatAds v-if="menu === 'ads'"/>
+            <FiatProfileCard
+              v-if="menu === 'profile'"
+              v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
+            />
+          </div>
+          <footerMenu
+            v-on:clicked="switchMenu"
+            ref="footer"
+          />
+        </div>
+        <div v-else>
+          <!-- If user DNE -->
+          <MiscDialogs
+            :type="'editNickname'"
+            v-on:submit="createRampUser"
+            v-on:back="processDialog()"
+          />
+        </div>
       </div>
     </div>
   </div>
 </template>
 <script>
 import footerMenu from './footerMenu.vue'
+import login from 'src/pages/apps/ramp/login.vue'
 import FiatStore from './FiatStore.vue'
 import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
@@ -67,11 +73,13 @@ export default {
       proceed: false,
       createUser: false,
       initStatusType: 'ONGOING',
-      hasAccount: false
+      hasAccount: false,
+      loggingIn: true
     }
   },
   components: {
     footerMenu,
+    login,
     FiatStore,
     FiatOrders,
     FiatAds,
@@ -98,7 +106,7 @@ export default {
     //   })
     await this.$store.dispatch('ramp/loadWallet')
     this.wallet = this.$store.getters['ramp/wallet']
-    await this.login()
+    // await this.login()
   },
   watch: {
     menu (val) {
@@ -125,7 +133,7 @@ export default {
               this.$store.commit('ramp/updateUser', response.data.user)
               this.$store.dispatch('ramp/loadAuthHeaders')
                 .then(() => {
-                  this.hasAccount = t
+                  this.hasAccount = true
                   this.proceed = true
                   this.isLoading = false
                 })
