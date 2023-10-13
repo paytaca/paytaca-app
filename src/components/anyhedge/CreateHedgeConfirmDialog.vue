@@ -86,19 +86,25 @@
                 />
               </div>
               <div class="text-body1 text-grey">Hedge</div>
-              <div class="q-space text-body1 text-right">{{ fundingAmounts?.hedge?.total / (10**8) }} BCH</div>
+              <div class="q-space text-body1 text-right">
+                {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.total / (10**8)) }}
+              </div>
             </div>
             <q-slide-transition>
               <div v-if="expandFundingAmounts.hedge" class="q-pl-md">
                 <div class="row items-start q-pr-md">
                   <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
-                  <div class="q-space text-right">{{ fundingAmounts?.hedge?.sats / (10**8) }} BCH</div>
+                  <div class="q-space text-right">
+                    {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.sats / (10**8)) }}
+                  </div>
                 </div>
                 <div class="text-caption text-grey" style="margin-bottom:-0.5em">Fees</div>
                 <div class="q-pl-md">
                   <div class="row items-start q-pr-md">
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
-                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.network / (10**8) }} BCH</div>
+                    <div class="q-space text-right">
+                      {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.fees?.network / (10**8)) }}
+                    </div>
                   </div>
                   <div>
                     <div
@@ -116,9 +122,11 @@
                         <q-icon v-if="fee?.description" name="description"/>
                       </div>
                       <q-space/>
-                      <div class="text-right q-ml-xs" style="white-space:nowrap">{{ fee?.satoshis / (10**8) }} BCH</div>
+                      <div class="text-right q-ml-xs" style="white-space:nowrap">
+                        {{ getAssetDenomination(denomination, fee?.satoshis / (10**8)) }}
+                      </div>
                       <q-popup-proxy v-if="fee?.description || fee?.stats?.pctg" :breakpoint="0">
-                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
                           <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
                           <div v-if="fee?.stats?.pctg" class="text-caption" style="margin-top:-0.25em">
                             <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
@@ -146,7 +154,7 @@
                         size="1.5em"
                       >
                         <q-popup-proxy :breakpoint="0">
-                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
                             Premium is 
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.hedge?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.hedge?.pctg, 2) }}%
@@ -156,7 +164,9 @@
                         </q-popup-proxy>
                       </q-icon>
                     </div>
-                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.premium / (10**8) }} BCH</div>
+                    <div class="q-space text-right">
+                      {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.fees?.premium / (10**8)) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -179,19 +189,25 @@
                 />
               </div>
               <div class="text-body1 text-grey">Long</div>
-              <div class="q-space text-body1 text-right">{{ fundingAmounts?.long?.total / (10**8) }} BCH</div>
+              <div class="q-space text-body1 text-right">
+                {{ getAssetDenomination(denomination, fundingAmounts?.long?.total / (10**8)) }}
+              </div>
             </div>
             <q-slide-transition>
               <div v-if="expandFundingAmounts.long" class="q-pl-md">
                 <div class="row items-start q-pr-md">
                   <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
-                  <div class="q-space text-right">{{ fundingAmounts?.long?.sats / (10**8) }} BCH</div>
+                  <div class="q-space text-right">
+                    {{ getAssetDenomination(denomination, fundingAmounts?.long?.sats / (10**8)) }}
+                  </div>
                 </div>
                 <div class="text-caption text-grey" style="margin-bottom:-0.5em">Fees</div>
                 <div class="q-pl-md">
                   <div class="row items-start q-pr-md">
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
-                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.network / (10**8) }} BCH</div>
+                    <div class="q-space text-right">
+                      {{ getAssetDenomination(denomination, fundingAmounts?.long?.fees?.network / (10**8)) }}
+                    </div>
                   </div>
                   <div>
                     <div
@@ -209,9 +225,11 @@
                         <q-icon v-if="fee?.description" name="description"/>
                       </div>
                       <q-space/>
-                      <div class="text-right q-ml-xs" style="white-space:nowrap">{{ fee?.satoshis / (10**8) }} BCH</div>
+                      <div class="text-right q-ml-xs" style="white-space:nowrap">
+                        {{ getAssetDenomination(denomination, fee?.satoshis / (10**8)) }}
+                      </div>
                       <q-popup-proxy v-if="fee?.description || fee?.stats?.pctg" :breakpoint="0">
-                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
                           <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
                           <div v-if="fee?.stats?.pctg" class="text-caption" style="margin-top:-0.25em">
                             <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
@@ -238,7 +256,7 @@
                         size="1.5em"
                       >
                         <q-popup-proxy :breakpoint="0">
-                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
                             Premium is 
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.long?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.long?.pctg, 2) }}%
@@ -248,7 +266,9 @@
                         </q-popup-proxy>
                       </q-icon>
                     </div>
-                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.premium / (10**8) }} BCH</div>
+                    <div class="q-space text-right">
+                      {{ getAssetDenomination(denomination, fundingAmounts?.long?.fees?.premium / (10**8)) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -287,8 +307,8 @@
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.low.price, oracleInfo?.assetDecimals || 0) }}
-                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
-                    <template v-else="oracleInfo?.assetCurrency">units/BCH</template>
+                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/{{ denomination }}</template>
+                    <template v-else="oracleInfo?.assetCurrency">units/{{ denomination }}</template>
                   </template>
                   {{ liquidationData.priceValue ? `(${liquidationData.low.pctg}%)` : `${liquidationData.low.pctg}%` }}
                 </div>
@@ -298,8 +318,8 @@
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.high.price, oracleInfo?.assetDecimals || 0) }}
-                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
-                    <template v-else="oracleInfo?.assetCurrency">units/BCH</template>
+                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/{{ denomination }}</template>
+                    <template v-else="oracleInfo?.assetCurrency">units/{{ denomination }}</template>
                   </template>
                   {{ liquidationData.priceValue ? `(${liquidationData.high.pctg}%)` : `${liquidationData.high.pctg}%` }}
                 </div>

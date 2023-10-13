@@ -134,7 +134,7 @@
       />
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
-      <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }} {{ denomination }}</span>
+      <span>Approx hedge amount: {{ getAssetDenomination(denomination, createHedgeFormMetadata.intentAmountBCH) }}</span>
       <q-icon
         :color="darkMode ? 'grey-7' : 'black'"
         size="sm"
@@ -163,10 +163,7 @@
         v-model="amountInputFormatted"
         reactive-rules
         :rules="[
-          val => createHedgeForm.amount > 0 || 'Invalid amount',
-          val => spendableBch === null || createHedgeForm.amount <= spendableBch || `Exceeding balance ${getAssetDenomination(denomination, spendableBch)}`,
-          val => createHedgeForm.amount >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${getAssetDenomination(denomination, createHedgeFormConstraints.minimumAmount)}`,
-          val => createHedgeForm.amount <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${getAssetDenomination(denomination, createHedgeFormConstraints.maximumAmount)}`,
+          val => amountRules(val) || createHedgeForm.amount > 0 || 'Invalid amount'
         ]"
         class="q-space"
       >
@@ -385,7 +382,7 @@ import HedgePositionOfferSelectionDialog from './HedgePositionOfferSelectionDial
 import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
-import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
 
 
 function alertError(...args) {
@@ -409,6 +406,7 @@ let inputState = ref({
 let activeInput = ref()
 let durationRef = ref()
 const amountInputFormatted = ref(0)
+const isBalanceClicked = ref(false)
 
 function readonlyState (state, type) {
   inputState[type] = state
@@ -420,7 +418,7 @@ function readonlyState (state, type) {
 }
 
 function setAmount (key) {
-  let tempAmount, amount
+  let tempAmount, amount, tempAmountInput = '', amountInput
 
   // Set Initial Input
   if (activeInput.value === 'match') {
@@ -429,28 +427,35 @@ function setAmount (key) {
     tempAmount = durationRef?.value?.getAmountValue()
   } else {
     tempAmount = createHedgeForm.value[activeInput.value]
+    tempAmountInput = amountInputFormatted.value === 0 ? '' : amountInputFormatted.value
   }
 
   // Add new Key
   tempAmount = tempAmount === 0 ? '' : tempAmount
   if (key === '.' && tempAmount === '') {
     amount = '0.'
+    amountInput = '0.'
   } else {
-    amount = tempAmount.toString()
+    amount = activeInput.value === 'amount' ? tempAmountInput.toString() : tempAmount.toString()
+    amountInput = tempAmountInput.toString()
     const hasPeriod = amount.indexOf('.')
     if (hasPeriod < 1) {
       if (Number(amount) === 0 && Number(key) > 0) {
         amount = key
+        amountInput = key
       } else {
         // Check amount if still zero
         if (Number(amount) === 0 && Number(amount) === Number(key)) {
           amount = 0
+          amountInput = 0
         } else {
           amount += key.toString()
+          amountInput += key.toString()
         }
       }
     } else {
       amount += key !== '.' ? key.toString() : ''
+      amountInput += key !== '.' ? key.toString() : ''
     }
   }
 
@@ -461,7 +466,10 @@ function setAmount (key) {
     durationRef?.value?.updateAmountValue(amount)
   } else {
     createHedgeForm.value[activeInput.value] = amount
-    amountInputFormatted.value = amount
+    if (activeInput.value === 'amount') {
+      amountInputFormatted.value = amountInput
+      createHedgeForm.value[activeInput.value] = convertToBCH(denomination.value, amountInput)
+    }
   }
 }
 
@@ -476,7 +484,9 @@ function makeKeyAction (action) {
       durationRef?.value?.updateAmountValue(String(temp).slice(0, -1))
     } else {
       createHedgeForm.value[activeInput.value] = String(createHedgeForm.value[activeInput.value]).slice(0, -1)
-      amountInputFormatted.value = String(amountInputFormatted.value).slice(0, -1)
+      if (activeInput.value === 'amount') {
+        amountInputFormatted.value = String(amountInputFormatted.value).slice(0, -1)
+      }
     }
   } else if (action === 'delete') {
     // Delete
@@ -486,7 +496,9 @@ function makeKeyAction (action) {
       durationRef?.value?.updateAmountValue('')
     } else {
       createHedgeForm.value[activeInput.value] = ''
-      amountInputFormatted.value = ''
+      if (activeInput.value === 'amount') {
+        amountInputFormatted.value = ''
+      }
     }
   }
 }
@@ -654,6 +666,7 @@ async function clearCreateHedgeForm(opts) {
   createHedgeForm.value.p2pMatch = {
     similarity: 50,
   }
+  amountInputFormatted.value = 0
 
   if (opts?.clearErrors) {
     mainError.value = ''
@@ -1371,8 +1384,32 @@ function updateSelectedAssetPrice() {
 }
 
 function onBalanceClick () {
-  amountInputFormatted.value = parseFloat(getAssetDenomination(denomination, spendableBch.value))
+  amountInputFormatted.value = parseFloat(getAssetDenomination(denomination.value, spendableBch.value, true))
   createHedgeForm.value.amount = spendableBch.value
+  isBalanceClicked.value = true
+}
+
+function amountRules (val) {
+  const denominationValue = denomination.value
+  const spendableBchValue = spendableBch.value !== null
+    ? getAssetDenomination(denominationValue, spendableBch.value, true)
+    : null
+  const minimumAmount = createHedgeFormConstraints.value.minimumAmount
+  const maximumAmount = createHedgeFormConstraints.value.maximumAmount
+  const convertedMinimumAmount = getAssetDenomination(denominationValue, minimumAmount)
+  const convertedMaximumAmount = getAssetDenomination(denominationValue, maximumAmount)
+
+  if (spendableBchValue !== null && val > parseFloat(spendableBchValue)) {
+    return `Exceeding balance ${spendableBchValue}`
+  }
+  if (val < parseFloat(convertedMinimumAmount)) {
+    return `Liquidity requires at least ${convertedMinimumAmount}`
+  }
+  if (val > parseFloat(convertedMaximumAmount)) {
+    return `Liquidity requires at most ${convertedMaximumAmount}`
+  }
+
+  return true
 }
 </script>
 <style scoped>
