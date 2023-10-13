@@ -32,19 +32,17 @@ export default {
   props: {
     title: {
       type: String,
-      default: '',
+      default: ''
     },
     backnavpath: {
       type: String,
-      default: '/apps/settings',
-    }
-  },
-  data () {
-    return {
-      darkMode: this.$store.getters['darkmode/getStatus']
+      default: '/apps/settings'
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     isDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
     }

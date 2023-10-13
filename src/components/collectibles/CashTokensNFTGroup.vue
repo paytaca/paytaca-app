@@ -1,12 +1,12 @@
 <template>
   <div>
     <div v-if="fetchingNfts" class="row items-center justify-center">
-      <ProgressLoader :color="isDefaultTheme() ? theme() : 'pink'"/>
+      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div class="row items-start q-pa-md">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
-        :class="getDarkModeClass('text-white', 'text-black')"
+        :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
         class="q-ma-sm"
         style="max-width:130px;width:100%;"
         @click.stop="() => $emit('openNft', nft)"
@@ -56,6 +56,7 @@ import { useStore } from "vuex";
 import { computed, onMounted, ref, watch } from "vue";
 import ProgressLoader from 'components/ProgressLoader'
 import LimitOffsetPagination from 'components/LimitOffsetPagination.vue';
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 defineExpose({
   fetchNfts,
@@ -66,6 +67,7 @@ const $emit = defineEmits([
   'openNft',
 ])
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const theme = computed(() => $store.getters['global/theme'])
 
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
@@ -119,17 +121,5 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
 
 function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
   return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
-}
-
-function isDefaultTheme () {
-  return $store.getters['global/theme'] !== 'default'
-}
-
-function theme () {
-  return $store.getters['global/theme']
-}
-
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

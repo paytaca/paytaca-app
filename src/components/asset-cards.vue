@@ -73,7 +73,9 @@ export default {
     manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
     balanceLoaded: { type: Boolean },
-    isCashToken: { type: Boolean }
+    isCashToken: { type: Boolean },
+    currentLanguage: { type: String },
+    currentCountry: { type: String }
   },
   data () {
     return {
@@ -140,7 +142,8 @@ export default {
           network: vm.network,
           darkMode: vm.darkMode,
           isCashToken: vm.isCashToken,
-          wallet: vm.$parent.$parent.wallet
+          wallet: vm.$parent.$parent.wallet,
+          currentCountry: vm.currentCountry
         },
         component: AddNewAsset
       }).onOk((asset) => {

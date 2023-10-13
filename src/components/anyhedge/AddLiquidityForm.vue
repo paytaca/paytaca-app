@@ -12,7 +12,7 @@
       outlined
       dense
       label="Allowance"
-      suffix="BCH"
+      :suffix="denomination"
       :disable="loading"
       inputmode="decimal"
       v-model="addLiquidityForm.approvedAmount"
@@ -75,6 +75,7 @@ import DurationField from './DurationField.vue';
 // misc
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 
 const $emit = defineEmits(['cancel', 'new-long-account', 'update-long-account'])
 

@@ -43,7 +43,7 @@
       </div>
     </div>
     <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
-      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">
@@ -60,7 +60,7 @@
 
     <div class="row" v-if="mnemonic.length > 0">
       <div class="pt-get-started q-mt-sm" :class="{ 'pt-dark': darkMode, 'registration' : theme }">
-        <div :class="{'logo-splash-bg' : isDefaultTheme}">
+        <div :class="{'logo-splash-bg' : isDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
             <div class="row justify-center" v-if="openSettings">
               <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5>
@@ -184,6 +184,7 @@ import { Device } from '@capacitor/device'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 function countWords(str) {
   if (str) {
@@ -224,8 +225,7 @@ export default {
       pinDialogAction: '',
       pin: '',
       securityOptionDialogStatus: 'dismiss',
-      walletIndex: 0,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      walletIndex: 0
     }
   },
   watch: {
@@ -239,14 +239,15 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     theme () {
       return this.$store.getters['global/theme']
     },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    }
   },
   methods: {
+    isDefaultTheme,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
         return utils.isValidMnemonic(this.seedPhraseBackup)

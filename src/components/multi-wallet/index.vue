@@ -1,6 +1,6 @@
 <template>
   <q-dialog  ref="dialog" position="bottom" full-width>
-    <q-card class="br-15 wallet-card" :class="getDarkModeClass()">
+    <q-card class="br-15 wallet-card" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-h5 q-space q-mt-sm title">
           {{ $t('Wallets') }}
@@ -19,7 +19,7 @@
         <div
           clickable
           class="q-pr-md text-blue-9"
-          :class="{'text-grad': isDefaultTheme}"
+          :class="{'text-grad': isDefaultTheme(theme)}"
           style="margin-top: 10px;"
           @click="$router.push('/accounts')"
         >
@@ -33,28 +33,28 @@
               <q-item
                 clickable
                 class="q-pb-sm bottom-border"
-                :class="getDarkModeClass()"
+                :class="getDarkModeClass(darkMode)"
                 @click="selectedIndex = index"
               >
                 <q-item-section style="overflow-wrap: break-word;">
-                  <div :class="getDarkModeClass('pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
-                    <span class="text-h5" :class="{'text-grad' : isDefaultTheme}" style="font-size: 15px;">
+                  <div :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
+                    <span class="text-h5" :class="{'text-grad' : isDefaultTheme(theme)}" style="font-size: 15px;">
                       {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
                     </span>
-                    <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass()">
-                      {{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}
+                    <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
+                      {{ parseAssetDenomination(denomination, getAssetData(index), 10) }}
                     </span>
                   </div>
-                  <div :class="getDarkModeClass('pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
-                    <span class="address" :class="getDarkModeClass()">
+                  <div :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
+                    <span class="address" :class="getDarkModeClass(darkMode)">
                       {{ arrangeAddressText(wallet) }}
                     </span>
-                    <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass()">
-                      {{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                    <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass(darkMode)">
+                      {{ parseFiatCurrency(getAssetMarketBalance(getAssetData(index)), selectedMarketCurrency) }}
                     </span>
                   </div>
                   <q-menu anchor="bottom right" self="top end" >
-                    <q-list class="text-h5 pt-card" :class="getDarkModeClass()">
+                    <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
                       <q-item clickable v-close-popup>
                         <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">{{ $t('SwitchWallet') }}</q-item-section>
                       </q-item>
@@ -74,11 +74,12 @@
 </template>
 <script>
 import renameDialog from './renameDialog.vue'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       currentIndex: this.$store.getters['global/getWalletIndex'],
       isChipnet: this.$store.getters['global/isChipnet'],
       vault: [],
@@ -91,6 +92,10 @@ export default {
     renameDialog
   },
   methods: {
+    parseAssetDenomination,
+    parseFiatCurrency,
+    getDarkModeClass,
+    isDefaultTheme,
     processVaultName () {
       const vm = this
       let count = 1
@@ -176,21 +181,24 @@ export default {
       } else {
         return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     bchAsset () {
       return this.$store.getters['assets/getAssets'][0]
     },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   async mounted () {

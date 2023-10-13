@@ -12,7 +12,7 @@
     </div>
     <div class="row">
       <div class="col">
-        <div>{{ hedgePositionOffer?.satoshis / (10**8) }} BCH</div>
+        <div>{{ getAssetDenomination(denomination, hedgePositionOffer?.satoshis / (10**8)) }}</div>
       </div>
       <div class="col" style="text-align:right">
         {{ hedgePositionOffer?.lowLiquidationPriceMultiplier * 100 }}% -
@@ -78,10 +78,12 @@ import { useStore } from 'vuex'
 import { format, useQuasar } from 'quasar'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from './HedgeContractDetailDialog.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 const { capitalize } = format
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
+const denomination = computed(() => store.getters['global/denomination'])
 const $q = useQuasar()
 
 const $emit = defineEmits([

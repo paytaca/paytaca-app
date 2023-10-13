@@ -18,7 +18,7 @@
                 no-caps
                 flat
                 icon-right="mdi-arrow-right"
-                :label="$t('SelectCustomToken')"
+                :label="$t(isHongKong(currentCountry) ? 'SelectCustomPoint' : 'SelectCustomToken')"
                 class="button button-text-secondary"
                 padding="none xs"
                 @click="panel='custom'"
@@ -92,7 +92,7 @@
           </q-card-section>
           <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
             <div v-if="customToken.fetchingInfo" class="row items-center justify-center">
-              <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+              <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
             </div>
 
             <q-item
@@ -132,6 +132,7 @@ import { debounce } from 'quasar'
 import { inject } from 'vue'
 import { getSep20ContractDetails } from '../../wallet/sbch/utils'
 import ProgressLoader from '../ProgressLoader.vue'
+import { isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 const _customTokenInfoCache = {}
 
@@ -158,7 +159,8 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
-    }
+    },
+    currentCountry: { type: String }
   },
   data () {
     return {
@@ -179,6 +181,9 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     filteredTokensList () {
       if (!Array.isArray(this.tokensList)) return []
       if (!this.searchText && !this.showHasBalance) return this.tokensList
@@ -205,15 +210,11 @@ export default {
           if (!token) return
           return this.customToken.address.toLowerCase() === token.address.toLowerCase()
         })
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    isDefaultTheme,
+    isHongKong,
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },

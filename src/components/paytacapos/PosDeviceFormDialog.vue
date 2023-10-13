@@ -14,6 +14,7 @@
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -60,7 +61,7 @@
               flat
               :disable="loading"
               class="button button-text-primary"
-              :class="getDarkModeClass()"
+              :class="getDarkModeClass(darkMode)"
               :label="$t('Cancel', {}, 'Cancel')"
               @click="onDialogCancel"
             />
@@ -69,7 +70,7 @@
               type="submit"
               :disable="loading"
               class="button button-text-primary"
-              :class="getDarkModeClass()"
+              :class="getDarkModeClass(darkMode)"
               :label="newDevice ? $t('Create', {}, 'Create') : $t('Update', {}, 'Update')"
             />
           </div>
@@ -84,6 +85,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 const emit = defineEmits([
@@ -160,9 +162,5 @@ function savePosDevice() {
     })
 
   onDialogOK(apiRequest)
-}
-
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

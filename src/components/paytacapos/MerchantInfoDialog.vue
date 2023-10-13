@@ -7,6 +7,7 @@
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>

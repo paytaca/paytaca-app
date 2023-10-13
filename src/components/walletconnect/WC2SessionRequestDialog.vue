@@ -1,8 +1,11 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogHide">
-    <q-card :class="getDarkModeClass('text-white pt-dark-card', 'text-black')">
+  <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogCancel">
+    <q-card :class="getDarkModeClass(darkMode, 'text-white pt-dark-card', 'text-black')">
       <div class="row items-center q-pb-sm q-px-sm q-pt-sm">
-        <div class="text-h5 q-space">{{ title }}</div>
+        <div class="text-h5 q-space">
+          {{ title }}
+          <q-spinner v-if="loading"/>
+        </div>
         <q-btn flat icon="close" padding="sm" v-close-popup/>
       </div>
       <q-card-section class="q-pt-none" style="max-height:calc(80vh - 6rem);overflow:auto;">
@@ -28,7 +31,7 @@
         <template v-if="sessionRequest?.params?.request?.method === 'bch_signTransaction'">
           <q-banner
             v-if="sessionRequest?.params?.request?.params?.userPrompt"
-            :class="getDarkModeClass('pt-dark', 'text-black')" class="rounded-borders"
+            :class="getDarkModeClass(darkMode, 'pt-dark info-banner', 'text-black')" class="rounded-borders"
           >
             {{ sessionRequest?.params?.request?.params?.userPrompt }}
           </q-banner>
@@ -37,9 +40,9 @@
             class="q-ma-sm"
           />
         </template>
-        <template v-if="sessionRequest?.params?.request?.method === 'bch_signMessage'">
+        <template v-else-if="sessionRequest?.params?.request?.method === 'bch_signMessage'">
           <div class="text-grey">Message</div>
-          <q-banner :class="getDarkModeClass('pt-dark', 'text-black')" class="rounded-borders">
+          <q-banner :class="getDarkModeClass(darkMode, 'pt-dark info-banner', 'text-black')" class="rounded-borders">
             <div style="word-break: break-all;">
               {{ sessionRequest?.params?.request?.params?.message }}
             </div>
@@ -51,6 +54,8 @@
 
         <div class="row items-center q-gutter-x-sm q-my-md">
           <q-btn
+            :loading="loading"
+            :disable="disable"
             no-caps label="Accept"
             icon="check" color="green"
             padding="xs md"
@@ -58,6 +63,8 @@
             @click.stop="() => emitAccept()"
           />
           <q-btn
+            :loading="loading"
+            :disable="disable"
             no-caps label="Reject"
             icon="close" color="red"
             padding="xs md"
@@ -75,6 +82,7 @@ import { useStore } from 'vuex';
 import { computed, ref, watch } from 'vue'
 import JSONRenderer from 'src/components/JSONRenderer.vue';
 import TransactionDetailsPanel from 'src/components/walletconnect/TransactionDetailsPanel.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $emit = defineEmits([
   'update:modelValue',
@@ -89,13 +97,12 @@ const $emit = defineEmits([
 const props = defineProps({
   modelValue: Boolean,
   sessionRequest: Object,
+  loading: Boolean,
+  disable: Boolean,
 })
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-}
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
@@ -118,6 +125,6 @@ function emitAccept() {
 
 function emitReject() {
   $emit('rejected')
-  onDialogCancel()
+  onDialogHide()
 }
 </script>

@@ -77,6 +77,7 @@ export default {
   watch: {
     val () {
       this.$emit('input', this.val)
+      this.$emit('update:model-value', this.val)
     },
     modelValue (bool) {
       if (this.isMobile) {

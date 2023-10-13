@@ -1,12 +1,61 @@
 <template>
   <div>
+    <!-- <QrScanner
+      v-model="showScanner"
+      @decode="onScannerDecode"
+    /> -->
     <div class="row items-center">
       <div class="text-h6">Session</div>
       <q-space/>
-      <q-btn flat no-caps label="New" padding="none md" @click="() => connectNewSession()"/>
-      <q-btn flat no-caps padding="none md" @click="() => showSessionProposalsDialog = true">
-        Pending
+      <q-btn flat padding="xs">
+        <q-icon name="more_vert"/>
         <q-badge v-if="sessionProposals?.length" floating>{{ sessionProposals?.length }}</q-badge>
+        <q-menu :class="getDarkModeClass(darkMode, 'pt-dark', 'text-black')">
+          <q-item
+            clickable v-ripple
+            v-close-popup
+            @click="() => $emit('request-scanner')"
+          >
+            <q-item-section side class="q-pr-sm">
+              <q-icon name="mdi-qrcode"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Scan new session</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            clickable v-ripple
+            v-close-popup
+            @click="() => connectNewSession()"
+          >
+            <q-item-section side class="q-pr-sm">
+              <q-icon name="link"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Paste URL</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator/>
+          <q-item
+            clickable v-ripple
+            v-close-popup
+            @click="() => showSessionProposalsDialog = true"
+          >
+            <q-item-section side class="q-pr-sm">
+              <q-icon name="pending"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>
+                Pending session requests
+              </q-item-label>
+            </q-item-section>
+            <q-item-section v-if="sessionProposals?.length" side>
+              <q-item-label>
+                <q-badge>{{ sessionProposals?.length }}</q-badge>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-menu>
       </q-btn>
     </div>
     <q-item
@@ -51,16 +100,29 @@
     </q-item>
     <q-item
       v-else
-      clickable v-ripple
-      @click="() => connectNewSession()"
       class="rounded-borders q-my-sm session-item"
     >
       <q-item-section>
-        <q-item-label>No active sessions, connect new session</q-item-label>
+        <div>
+          <div class="q-mb-sm">No active sessions, connect new session</div>
+          <q-btn-group spread>
+            <q-btn class="button" icon="mdi-qrcode" no-caps label="Scan" @click="() => $emit('request-scanner')"/>
+            <q-btn class="button" icon="link" no-caps label="Paste URL" @click="() => connectNewSession()"/>
+          </q-btn-group>
+          <!-- <q-form @submit="() => pairUrlInInput()">
+            <q-input
+              dense outlined
+              label="Paste URL"
+              v-model="walletConnectUriInput"
+              bottom-slots
+            />
+            <q-btn color="brandblue" no-caps label="Connect" type="submit" class="full-width"/>
+          </q-form> -->
+        </div>
       </q-item-section>
     </q-item>
     
-    <div>
+    <div style="margin-top: 20px;">
       <div class="row items-center">
         <div class="text-h6">Requests</div>
         <q-space/>
@@ -70,13 +132,14 @@
       </div>
       <q-list separator>
         <q-item
-          v-for="sessionRequest in sessionRequests" :key="sessionRequest?.id"
+          v-for="sessionRequest in selectedSessionRequests" :key="sessionRequest?.id"
           clickable v-ripple
           @click="() => openSessionRequestDialog(sessionRequest)"
         >
           <q-item-section>
             <q-item-label caption>
               #{{ sessionRequest?.id }}
+              <q-spinner v-if="loadingSessionRequests?.[sessionRequest?.id]"/>
             </q-item-label>
             <q-item-label>
               Method: {{ sessionRequest?.params?.request?.method }}
@@ -89,18 +152,28 @@
             </q-item-label>
             <div class="row items-center q-gutter-x-sm q-mt-sm">
               <q-btn
+                :disable="loadingSessionRequests?.[sessionRequest?.id]"
+                :loading="loadingSessionRequests?.[sessionRequest?.id]"
                 no-caps label="Accept"
                 icon="check" color="green"
                 padding="xs md"
                 class="q-space"
-                @click.stop="() => handleSessionRequest(sessionRequest)"
+                @click.stop="() => respondToSessionRequest({
+                  sessionRequest: sessionRequest,
+                  accept: true,
+                })"
               />
               <q-btn
+                :disable="loadingSessionRequests?.[sessionRequest?.id]"
+                :loading="loadingSessionRequests?.[sessionRequest?.id]"
                 no-caps label="Reject"
                 icon="close" color="red"
                 padding="xs md"
                 class="q-space"
-                @click.stop="() => rejectSessionRequest(sessionRequest)"
+                @click.stop="() => respondToSessionRequest({
+                  sessionRequest: sessionRequest,
+                  accept: false,
+                })"
               />
             </div>
           </q-item-section>
@@ -109,11 +182,11 @@
     </div>
 
     <q-dialog v-model="showSessionProposalsDialog" position="bottom">
-      <q-card :class="getDarkModeClass('text-white pt-dark-card', 'text-black')">
+      <q-card class="pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center q-pb-sm">
-            <div class="text-h5 q-space">Session Proposals</div>
-            <q-btn flat icon="close" padding="sm" v-close-popup/>
+            <div class="text-h5 q-space pt-label" :class="getDarkModeClass(darkMode)">Session Proposals</div>
+            <q-btn flat icon="close" padding="sm" class="close-button" color="blue-9" v-close-popup/>
           </div>
           <div v-if="!sessionProposals.length" class="q-my-md text-grey text-center">
             No pending session proposals
@@ -149,7 +222,7 @@
     </q-dialog>
 
     <q-dialog v-model="showActiveSessionsDialog" position="bottom">
-      <q-card :class="getDarkModeClass('text-white pt-dark-card', 'text-black')">
+      <q-card class="pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center q-pb-sm">
             <div class="text-h5 q-space">Active Sessions</div>
@@ -197,25 +270,67 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+    <WC2SessionRequestDialog
+      :disable="loadingSessionRequests?.[sessionRequestDialog.sessionRequest?.id]"
+      :loading="loadingSessionRequests?.[sessionRequestDialog.sessionRequest?.id]"
+      v-model="sessionRequestDialog.show"
+      :session-request="sessionRequestDialog.sessionRequest"
+      @accepted="() => respondToSessionRequest({
+        sessionRequest: sessionRequestDialog.sessionRequest,
+        accept: true,
+      }).finally(() => sessionRequestDialog.show = false)"
+      @rejected="() => respondToSessionRequest({
+        sessionRequest: sessionRequestDialog.sessionRequest,
+        accept: false,
+      }).finally(() => sessionRequestDialog.show = false)"
+    />
   </div>
 </template>
 <script setup>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { getWalletByNetwork } from 'src/wallet/chipnet';
 import { Wallet, loadWallet } from 'src/wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
+import Watchtower from 'watchtower-cash-js';
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import WalletConnectConfirmDialog from 'src/components/walletconnect/WalletConnectConfirmDialog.vue';
 import WC2SessionRequestDialog from 'src/components/walletconnect/WC2SessionRequestDialog.vue';
+// import QrScanner from "src/components/qr-scanner.vue"
+
+const $emit = defineEmits([
+  'request-scanner',  
+])
 
 const $q = useQuasar()
 const $store = useStore()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+
+// const showScanner = ref(false)
+async function onScannerDecode (content) {
+  console.log('Scanned', content)
+  // showScanner.value = false
+  const dialog = $q.dialog({
+    title: 'Connecting',
+    progress: { color: 'brandblue', },
+    persistent: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  try {
+    await new Promise(async (resolve, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), 15 * 1000)
+      try {
+        const resp = await web3Wallet.value.pair({ uri: content })
+        resolve(resp)
+      } catch(error) { reject(error) }
+    })
+  } finally {
+    dialog.hide()
+  }
 }
 
 const wallet = ref([].map(() => new Wallet())[0])
@@ -228,18 +343,18 @@ const accountInfo = computed(() => {
   return {
     address: bchWallet.value?.lastAddress,
     changeAddress: bchWallet.value?.lastChangeAddress,
-    addressPath: bchWallet.value?.lastAddressIndex,
+    walletIndex: bchWallet.value?.lastAddressIndex,
   }
 })
 
 async function getCurrentAddressWif() {
-  const addressPath = accountInfo.value.addressPath
-  const utxoPkWif = await getWalletByNetwork(wallet.value, 'bch').getPrivateKey(addressPath)
+  const walletIndex = accountInfo.value.walletIndex
+  const utxoPkWif = await getWalletByNetwork(wallet.value, 'bch').getPrivateKey(`0/${walletIndex}`)
   return utxoPkWif
 }
 
 function getBchAddresses() {
-  return [ accountInfo.value.address, accountInfo.value.changeAddress ]
+  return [ accountInfo.value.address ]
 }
 
 function getNamespaces() {
@@ -261,6 +376,7 @@ function getNamespaces() {
   }
 }
 
+const walletConnectUriInput = ref()
 const showActiveSessionsDialog = ref(false)
 const activeSessions = ref()
 const activeSessionsList = computed(() => {
@@ -275,24 +391,50 @@ const selectedActiveSession = computed(() => activeSessions.value?.[selectedActi
 const showSessionProposalsDialog = ref(false)
 const sessionProposals = ref()
 
-async function connectNewSession() {
+async function connectNewSession(value='') {
   $q.dialog({
     title: 'New Session',
     prompt: {
       label: 'URI',
       placeholder: 'Input uri',
       color: 'brandblue',
+      model: value,
     },
     ok: {
       flat: true,
       noCaps: true,
       label: 'Add',
       color: 'brandblue',
+      class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
     },
     position: 'bottom',
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
-    .onOk(val => web3Wallet.value.pair({ uri: val }) )
+    .onOk(val => pairUrl(val))
+}
+
+async function pairUrlInInput() {
+  console.log(walletConnectUriInput.value)
+  return pairUrl(walletConnectUriInput.value)
+    .finally(() => {
+      walletConnectUriInput.value = ''
+    })
+}
+
+async function pairUrl(uri, opts={ showDialog: true }) {
+  if (!uri) return
+  const dialog = !opts?.showDialog ? undefined : $q.dialog({
+    title: 'Connecting',
+    progress: { color: 'brandblue', },
+    persistent: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+  try {
+    await web3Wallet.value.pair({ uri: uri })
+  } finally {
+    dialog?.hide?.()
+  }
 }
 
 async function disconnectSession(sessionTopic) {
@@ -325,30 +467,77 @@ function openSessionProposal(sessionProposal) {
     })
 }
 async function approveSessionProposal(sessionProposal) {
-  const namespaces = getNamespaces()
-  console.log('Namespaces', namespaces)
-
-  const approvedNamespaces = buildApprovedNamespaces({
-    proposal: sessionProposal,
-    supportedNamespaces: namespaces,
+  const dialog = $q.dialog({
+    title: 'Approving session',
+    progress: { color: 'brandblue', },
+    persistent: true,
+    ok: false,
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
-
-  const session = await web3Wallet.value.approveSession({
-    id: sessionProposal?.id,
-    namespaces: approvedNamespaces,
-  })
-  console.log('Session approved', session)
-  statusUpdate()
+  try {
+    const namespaces = getNamespaces()
+    console.log('Namespaces', namespaces)
+  
+    const approvedNamespaces = buildApprovedNamespaces({
+      proposal: sessionProposal,
+      supportedNamespaces: namespaces,
+    })
+  
+    const session = await web3Wallet.value.approveSession({
+      id: sessionProposal?.id,
+      namespaces: approvedNamespaces,
+    })
+    console.log('Session approved', session)
+    statusUpdate()
+  } finally {
+    dialog.hide()
+  }
 }
 
+const loadingSessionRequests = ref({})
 const sessionRequests = ref([])
+const selectedSessionRequests = computed(() => {
+  const topic = selectedActiveSession.value?.topic
+  if (!topic) return sessionRequests.value
+  return sessionRequests.value.filter(sessionRequest => sessionRequest?.topic == topic)
+})
+const sessionRequestDialog = ref({ show: false, sessionRequest: null })
 function handleRequestIfWhitelisted(sessionRequest) {
   const method = sessionRequest?.params?.request?.method
   const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
-  if (whitelistedMethods.includes(method)) return handleSessionRequest(sessionRequest)
+  if (whitelistedMethods.includes(method)) return respondToSessionRequest({sessionRequest, accept: true})
 }
 function handleWhitelistedRequests() {
   sessionRequests?.value?.forEach(handleRequestIfWhitelisted)
+}
+
+async function respondToSessionRequest(opts={ sessionRequest, accept }) {
+  const id = opts?.sessionRequest?.id
+  try {
+    loadingSessionRequests.value[id] = true
+    if (opts?.accept) return await handleSessionRequest(opts?.sessionRequest)
+    else return await rejectSessionRequest(opts?.sessionRequest)
+  } finally {
+    delete loadingSessionRequests.value[id]
+    if (sessionRequestDialog.value?.sessionRequest?.id == id) {
+      sessionRequestDialog.value.show = false
+    }
+  }
+}
+
+function openSessionRequestDialog(sessionRequest) {
+  sessionRequestDialog.value.sessionRequest = sessionRequest
+  sessionRequestDialog.value.show = true
+  selectedActiveSessionTopic.value = sessionRequest?.topic
+}
+
+async function rejectSessionRequest(sessionRequest) {
+  const id = sessionRequest?.id
+  const topic = sessionRequest?.topic
+  return await web3Wallet.value.respondSessionRequest({
+    topic,
+    response: { id, jsonrpc: '2.0', error: { code: 5000, reason: 'User rejected' } },
+  }).finally(() => statusUpdate());
 }
 
 async function handleSessionRequest(sessionRequest) {
@@ -367,24 +556,6 @@ async function handleSessionRequest(sessionRequest) {
   }
 }
 
-function openSessionRequestDialog(sessionRequest) {
-  $q.dialog({
-    component: WC2SessionRequestDialog,
-    componentProps: { sessionRequest }
-  })
-    .onOk(() => handleSessionRequest(sessionRequest))
-    .onCancel(() => rejectSessionRequest(sessionRequest))
-}
-
-async function rejectSessionRequest(sessionRequest) {
-  const id = sessionRequest?.id
-  const topic = sessionRequest?.topic
-  return await web3Wallet.value.respondSessionRequest({
-    topic,
-    response: { id, jsonrpc: '2.0', error: { code: 5000, reason: 'User rejected' } },
-  }).finally(() => statusUpdate());
-}
-
 async function handleBchSessionRequest(sessionRequest) {
   const id = sessionRequest?.id
   const topic = sessionRequest?.topic
@@ -401,7 +572,15 @@ async function handleBchSessionRequest(sessionRequest) {
     case 'bch_signTransaction':
       try {
         const wif = await getCurrentAddressWif()
-        response.result = await signBchTransaction(params?.transaction, wif)
+        response.result = await signBchTransaction(params?.transaction, params?.sourceOutputs, wif)
+        if (params?.broadcast) {
+          const watchtower = new Watchtower($store.getters['global/isChipnet'])
+          const broadcastResponse = watchtower.BCH.broadcastTransaction(response.result.signedTransaction)
+          if (!broadcastResponse.success) {
+            response.error = { code: -1, error: broadcastResponse?.error }
+            response.result = undefined
+          }
+        }
       } catch(err) {
         console.error(err)
         response.error = {
@@ -469,14 +648,19 @@ function statusUpdate() {
 }
 
 const web3Wallet = ref()
+const web3WalletPromise = ref()
 onMounted(async () => {
-  const _web3Wallet = await initWeb3Wallet()
+  web3WalletPromise.value = initWeb3Wallet()
+  const _web3Wallet = await web3WalletPromise.value
   web3Wallet.value = _web3Wallet
   window.w3w = _web3Wallet
 })
 watch(web3Wallet, () => {
   statusUpdate()
   handleWhitelistedRequests()
+  if (selectedSessionRequests.value.length === 1) {
+    openSessionRequestDialog(selectedSessionRequests.value[0])
+  }
 })
 watch(web3Wallet, newValue => attachEventListeners(newValue))
 watch(web3Wallet, (_, oldValue) => detachEventsListeners(oldValue))
@@ -517,7 +701,6 @@ async function onSessionProposal(sessionProposal) {
   console.log('Session proposal', sessionProposal)
   openSessionProposal(sessionProposal?.params)
   statusUpdate()
-  tab.value = 'requests'
 }
 
 function onSessionRequest(...args) {
@@ -525,10 +708,18 @@ function onSessionRequest(...args) {
   // const sessionRequest = args[0]
   statusUpdate()
   handleWhitelistedRequests()
+  if (selectedSessionRequests.value.length === 1) {
+    openSessionRequestDialog(selectedSessionRequests.value[0])
+  }
 }
 
 defineExpose({
+  onScannerDecode,
+
   statusUpdate,
+  web3Wallet,
+  web3WalletPromise,
+  connectNewSession,
 })
 </script>
 <style lang="scss" scoped>

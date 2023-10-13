@@ -1,7 +1,7 @@
 <template>
   <q-card
     class="br-15 q-pt-sm pt-card"
-    :class="getDarkModeClass('text-white', 'text-black')"
+    :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
   >
     <q-card-section v-if="!stagedSwapDetails.show">
       <div class="row items-center justify-end q-mb-md">
@@ -114,9 +114,12 @@
             <div>
               <q-skeleton v-if="networkData.loading" type="text"/>
               <template v-else>
-                1 {{ formData.sourceToken.symbol}} ~=
-                {{ formatNumber(networkData.exchangeRate, 10) }}
-                {{ formData.destToken.symbol }}
+                1 {{ formData.sourceToken.symbol === 'BCH' ? denomination : formData.sourceToken.symbol}} ~=
+                {{
+                  formData.destToken.symbol === 'BCH'
+                    ? getAssetDenomination(denomination, networkData.exchangeRate)
+                    : `${formatNumber(networkData.exchangeRate, 10)} ${formData.destToken.symbol}`
+                }}
               </template>
             </div>
           </q-item-label>
@@ -130,7 +133,7 @@
           padding="xs"
           size="sm"
           class="button button-text-primary"
-          :class="getDarkModeClass()"
+          :class="getDarkModeClass(darkMode)"
           @click="showSettingsDialogForm = true"
         />
       </div>
@@ -162,7 +165,7 @@
                 name="launch"
                 :color="darkMode ? 'blue-5' : 'blue-9'"
                 class="button button-text-primary"
-                :class="getDarkModeClass()"
+                :class="getDarkModeClass(darkMode)"
               />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
@@ -180,8 +183,11 @@
           <q-item-label>
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else>
-              ~ {{ formatNumber(computedFormData.minimumReturn, 6) }}
-              {{ formData.destToken.symbol }}
+              ~ {{ 
+                  formData.destToken.symbol === 'BCH'
+                    ? getAssetDenomination(denomination, computedFormData.minimumReturn)
+                    : `${formatNumber(computedFormData.minimumReturn, 6)} ${formData.destToken.symbol}`
+                }}
             </template>
           </q-item-label>
         </q-item-section>
@@ -276,7 +282,7 @@
                 name="launch"
                 color="blue-9"
                 class="button button-text-primary"
-                :class="getDarkModeClass()"
+                :class="getDarkModeClass(darkMode)"
               />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
@@ -320,7 +326,7 @@
       </div>
       <q-separator />
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
-        <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div class="row justify-center" style="margin-top: 20px; color: gray;">
         <span>{{ $t('PoweredBy') }} SmartSwap.fi</span>
@@ -338,7 +344,7 @@
       />
     </q-card-section>
     <q-dialog v-model="showSettingsDialogForm" persistent>
-      <q-card class="br-15 pt-card" :class="getDarkModeClass('text-white', 'text-black')" style="min-width:75vw;">
+      <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')" style="min-width:75vw;">
         <div class="row no-wrap items-center justify-center q-pl-md">
           <div
             class="text-subtitle1 text-weight-medium q-space q-pt-sm text-section"
@@ -353,7 +359,7 @@
               round
               padding="sm"
               class="button button-text-primary"
-              :class="getDarkModeClass()"
+              :class="getDarkModeClass(darkMode)"
               @click="function(){
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
@@ -384,9 +390,9 @@
             <q-btn-toggle
               v-model="formData.slippageTolerance"
               rounded
-              :toggle-color="isDefaultTheme ? 'toggle-active' : 'grad'"
+              :toggle-color="isDefaultTheme(theme) ? 'toggle-active' : 'grad'"
               :toggle-text-color="darkMode ? 'dark' : 'white'"
-              :color="isDefaultTheme ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
+              :color="isDefaultTheme(theme) ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
               :text-color="darkMode ? 'pt-dark-label' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
@@ -448,6 +454,8 @@ import ProgressLoader from '../ProgressLoader.vue'
 import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SmartSwapTokenSelectorDialog from './SmartSwapTokenSelectorDialog.vue'
 import SmartSwapRouteDialog from './SmartSwapRouteDialog.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SmartSwapForm',
@@ -460,7 +468,9 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
-    }
+    },
+    currentCountry: { type: String },
+    denomination: { type: String }
   },
   data () {
     return {
@@ -535,6 +545,9 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     insufficientBalance () {
       const hasValidBalance = this.formData.sourceToken.balance >= 0
       if (!hasValidBalance) return true
@@ -598,15 +611,13 @@ export default {
         formattedMinReturn: formattedMinReturn,
         parsedDistribution: parseDistribution(this.stagedSwapDetails.distribution)
       }
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    getAssetDenomination,
+    getDarkModeClass,
+    isDefaultTheme,
+    isHongKong,
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },
@@ -618,7 +629,7 @@ export default {
         address: this.formData.sourceToken.address
       }
       this.$q.dialog({
-        title: this.$t('ApproveToken'),
+        title: this.$t(isHongKong(this.currentCountry) ? 'ApprovePoint' : 'ApproveToken'),
         message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
         persistent: true,
         ok: {
@@ -643,7 +654,7 @@ export default {
 
       this.approvingToken = true
       const dialog = this.$q.dialog({
-        title: this.$t('ApprovingToken'),
+        title: this.$t(isHongKong(this.currentCountry) ? 'ApprovingPoint' : 'ApprovingToken'),
         message: this.$t(
           'ApprovingTokenName',
           { tokenInfoName: tokenInfo.name },
@@ -657,7 +668,7 @@ export default {
 
       const onApproveSuccess = () => {
         dialog.update({
-          message: this.$t('TokenApproved') + '!',
+          message: this.$t(isHongKong(this.currentCountry) ? 'PointApproved' : 'TokenApproved') + '!',
           progress: false,
           ok: true
         })
@@ -676,7 +687,7 @@ export default {
         })
         .catch((error) => {
           dialog.update({
-            message: 'Failed to approve token' + ((error && error.error) ? `. ${error.error}` : ''),
+            message: `Failed to approve ${isHongKong(this.currentCountry) ? 'point' : 'token'}. ${error?.error ? error.error : ''}`,
             progress: false,
             ok: true
           })
@@ -762,8 +773,9 @@ export default {
         component: SmartSwapTokenSelectorDialog,
         componentProps: {
           tokensList: this.tokensList,
-          title: this.$t('SelectToken'),
-          darkMode: this.darkMode
+          title: this.$t(isHongKong(this.currentCountry) ? 'SelectPoint' : 'SelectToken'),
+          darkMode: this.darkMode,
+          currentCountry: this.currentCountry
         }
       })
         .onOk(token => {
@@ -780,7 +792,8 @@ export default {
         component: SmartSwapTokenSelectorDialog,
         componentProps: {
           tokensList: this.tokensList,
-          darkMode: this.darkMode
+          darkMode: this.darkMode,
+          currentCountry: this.currentCountry
         }
       })
         .onOk(token => {
@@ -986,9 +999,6 @@ export default {
       const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       this.wallet = markRaw(new Wallet(mnemonic))
       return this.wallet
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   watch: {

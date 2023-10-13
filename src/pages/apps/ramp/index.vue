@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('Ramp')"
       backnavpath="/apps"
@@ -7,8 +7,8 @@
     />
 
     <q-tabs
-      :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isDefaultTheme && 'transparent'"
+      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme(theme) && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       style="padding-bottom: 16px;"
       v-model="selectedCurrency"
@@ -17,7 +17,7 @@
       <q-tab
         name="fiat"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         disable
         :label="$t('Fiat')"
       >
@@ -30,7 +30,7 @@
       <q-tab
         name="crypto"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         :label="$t('Crypto')"
       />
     </q-tabs>
@@ -53,6 +53,7 @@
 import { ref } from 'vue'
 import HeaderNav from '../../../components/header-nav'
 import RampShiftForm from '../../../components/ramp/RampShiftForm'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -61,21 +62,22 @@ export default {
   },
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: ref('crypto'),
       isAllowed: true,
       error: false
     }
   },
   computed: {
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
-    getDarkModeClass (darkModeClass = 'dark', lightModeClass = 'light') {
-      return this.darkMode ? darkModeClass : lightModeClass
-    }
+    getDarkModeClass,
+    isDefaultTheme
   },
   async mounted () {
     const vm = this

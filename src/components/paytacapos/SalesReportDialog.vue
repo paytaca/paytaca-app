@@ -7,6 +7,7 @@
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -14,12 +15,12 @@
         <div v-if="Number.isInteger(posDevice?.posid)" class="text-h6">
           {{ posDevice?.name || 'Device' }}#{{ padPosId(posDevice?.posid) }}
         </div>
-        <q-card class="pt-card" :class="getDarkModeClass('', 'text-black')">
+        <q-card class="pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
           <q-card-section>
             <div class="row items-center">
               <div class="q-space text-subtitle1">Total sales</div>
               <div class="text-right">
-                <div class="text-subtitle1">{{ Number(totalSales.total.toFixed(8)) }} BCH</div>
+                <div class="text-subtitle1">{{ getAssetDenomination(denomination, totalSales.total) }}</div>
                 <div v-if="(totalSales.totalMarketValue && totalSales.currency)" class="text-subtitle2">
                   {{ totalSales.totalMarketValue.toFixed(2) }} {{ totalSales.currency }}
                 </div>
@@ -60,7 +61,7 @@
               </q-item-section>
               <q-item-section avatar>
                 <q-item-label>
-                  {{ Math.round(record?.total * 10 ** 8) / 10 ** 8 }} BCH
+                  {{ getAssetDenomination(denomination, record?.total) }}
                 </q-item-label>
                 <q-item-label v-if="(record?.total_market_value && record?.currency)" caption>
                   {{ Number(record.total_market_value).toFixed(2) }} {{ record.currency }}
@@ -81,6 +82,8 @@ import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import Watchtower from 'watchtower-cash-js';
 import SalesReportFilterFormDialog from './SalesReportFilterFormDialog.vue';
+import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const watchtower = new Watchtower()
 
@@ -100,6 +103,7 @@ const props = defineProps({
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 
 function openFilterForm() {
   const currency = salesReportData.value?.data?.find?.(record => record?.currency)?.currency
@@ -184,9 +188,5 @@ function formatRangeType(value) {
   if (value === 'day') return 'daily'
   if (value === 'month') return 'monthly'
   return value
-}
-
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

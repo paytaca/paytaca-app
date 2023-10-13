@@ -143,7 +143,7 @@
             {{ paymentRequest.paymentDetails.getTotalAmountBCHString() }}
           </div>
           <div v-if="paymentRequestStatus.executing" class="q-mt-md row justify-center">
-            <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+            <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
           </div>
           <div v-else class="q-mt-md row justify-end">
             <q-btn
@@ -233,6 +233,7 @@ import { Plugins } from '@capacitor/core'
 const { SecureStoragePlugin } = Plugins
 
 import { PaymentRequest } from './payment-request'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'connecta',
@@ -278,6 +279,9 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     paymentRequest () {
       if (!this.rawPaymentRequest) return
 
@@ -305,15 +309,10 @@ export default {
       merchantData.shop.name = this.paymentRequest.paymentDetails.merchantData.order.shop.name
 
       return merchantData
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    isDefaultTheme,
     playSound (success) {
       if (success) {
         const path = this.$q.platform.is.ios ? 'public/assets/send-success.mp3' : 'send-success.mp3'

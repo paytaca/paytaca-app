@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
@@ -24,7 +24,7 @@
       </q-menu>
     </q-icon>
     <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
-      <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <template v-else>
       <div class="row">
@@ -89,6 +89,7 @@ import {
   convertCashAddress,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -109,8 +110,7 @@ export default {
       legacy: false,
       lnsName: '',
       generatingAddress: false,
-      copying: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      copying: false
     }
   },
   props: {
@@ -125,6 +125,12 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -140,15 +146,11 @@ export default {
       } else {
         return address
       }
-    },
-    isDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     updateLnsName () {
       if (!this.isSep20) return
       if (!this.address) return
@@ -391,10 +393,6 @@ export default {
       if (this.sBCHListener && this.sBCHListener.stop && this.sBCHListener.stop.call) {
         this.sBCHListener.stop()
       }
-    },
-
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
 

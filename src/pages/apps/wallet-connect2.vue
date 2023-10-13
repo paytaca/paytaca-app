@@ -1,7 +1,13 @@
 <template>
+  <div>
+  <QrScanner
+    v-model="showScanner"
+    @decode="onScannerDecode"
+  />
   <q-pull-to-refresh
+    id="app-container"
     style="background-color: #ECF3F3; min-height: 100vh;padding-bottom:50px;"
-    :class="getDarkModeClass('pt-dark')"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
     <HeaderNav
@@ -11,8 +17,8 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      :active-color="isDefaultTheme ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
-      :indicator-color="isDefaultTheme ? 'transparent' : undefined"
+      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
+      :indicator-color="isDefaultTheme(theme) ? 'transparent' : undefined"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
@@ -20,13 +26,13 @@
     >
       <q-tab
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         name="BCH"
         label="BCH"
       />
       <q-tab
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         name="sBCH"
         label="SmartBCH"
       />
@@ -34,16 +40,17 @@
     <q-tab-panels
       animated keep-alive
       v-model="selectedNetwork"
-      :class="getDarkModeClass('pt-dark info-banner', 'text-black')"
+      :class="getDarkModeClass(darkMode)"
     >
       <q-tab-panel name="BCH">
-        <WalletConnectV2 ref="walletConnectV2"/>
+        <WalletConnectV2 ref="walletConnectV2" @request-scanner="openScanner"/>
       </q-tab-panel>
       <q-tab-panel name="sBCH">
-        <WalletConnectV1 ref="walletConnectV1"/>
+        <WalletConnectV1 ref="walletConnectV1" @request-scanner="openScanner"/>
       </q-tab-panel>
     </q-tab-panels>
   </q-pull-to-refresh>
+  </div>
 </template>
 <script setup>
 import { parseWalletConnectUri } from "src/wallet/walletconnect";
@@ -51,11 +58,13 @@ import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import { computed, onMounted, ref } from "vue";
 import HeaderNav from "src/components/header-nav.vue";
+import QrScanner from "src/components/qr-scanner.vue";
 import WalletConnectV1 from "src/components/walletconnect/WalletConnectV1.vue"
 import WalletConnectV2 from "src/components/walletconnect/WalletConnectV2.vue"
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const props = defineProps({
-  url: String,
+  uri: String,
 })
 
 const walletConnectV1 = ref()
@@ -63,25 +72,49 @@ const walletConnectV2 = ref()
 window.wc1 = walletConnectV1
 window.wc2 = walletConnectV2
 
+const showScanner = ref(false)
+function openScanner() {
+  console.log("Opening scanner")
+
+  // flipping the value due to qr-scanner not updating its internal value on mobile
+  showScanner.value = false
+  setTimeout(() => {
+    showScanner.value = true
+  }, 250)
+}
+function onScannerDecode(content) {
+  console.log('Decoded', content)
+  showScanner.value = false
+  const isSbch = selectedNetwork.value === 'sBCH'
+  if (isSbch) walletConnectV1.value?.onScannerDecode?.(content)
+  else walletConnectV2.value?.onScannerDecode?.(content)
+}
+
 const $t = useI18n().t
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-function getDarkModeClass(darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-}
+const theme =  computed(() => $store.getters['global/theme'])
 const enableSmartBCH = computed(() => $store.getters['global/enableSmartBCH'])
-const isDefaultTheme = computed(() => $store.getters['global/theme'] !== 'default')
-
 const selectedNetwork = computed(() => $store.getters['global/network'])
 function changeNetwork(newNetwork = 'BCH') {
   return $store.commit('global/setNetwork', newNetwork)
 }
 
+onMounted(async () => {
+  if (selectedNetwork.value !== 'BCH') return console.log('Not bch')
+  if (!walletConnectV2.value) return console.log('No v2 component')
+
+  const uriData = parseWalletConnectUri(props.uri)
+  if (uriData?.uri && uriData?.version == '2') {
+    walletConnectV2.value?.connectNewSession?.(uriData.uri)
+  }
+})
+
 onMounted(() => {
   if (selectedNetwork.value !== 'sBCH') return console.log('Not sbch')
   if (!walletConnectV1.value) return console.log('No v1 component')
 
-  const uriData = parseWalletConnectUri(props.url)
+  const uriData = parseWalletConnectUri(props.uri)
   console.log(uriData)
   if (uriData?.handshakeTopic && uriData?.key && uriData?.bridge) {
     if (walletConnectV1.value?.connector?.handshakeTopic !== uriData?.handshakeTopic) {
@@ -110,3 +143,12 @@ async function refreshPage(done=() => {}) {
   }
 }
 </script>
+<style>
+.q-tab-panels {
+  margin-top: 10px;
+  background: transparent;
+}
+.q-tab-panels.light {
+  color: black;
+}
+</style>

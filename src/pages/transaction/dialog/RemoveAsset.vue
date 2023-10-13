@@ -1,14 +1,14 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin br-15 q-pb-sm pt-card" :class="getDarkModeClass()">
+    <q-card class="q-dialog-plugin br-15 q-pb-sm pt-card" :class="getDarkModeClass(darkMode)">
 
-        <q-card-section class="pt-label" :class="getDarkModeClass()">
+        <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
             <span class="text-weight-medium">{{ $t('Confirmation') }}</span>
         </q-card-section>
 
         <q-separator />
 
-        <q-card-section class="pt-label text-black" :class="{'pt-dark-label': darkMode}">
+        <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
           <label>{{$t('AssetRemovalText') }}</label>
         </q-card-section>
 
@@ -16,13 +16,15 @@
 
         <q-card-actions align="right">
             <q-btn rounded class="button" padding="0.5em 1.5em 0.5em 1.5em" :label="$t('Continue')" @click="onOKClick" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" flat class="button" :label="$t('Cancel')" @click="onCancelClick" />
+            <q-btn rounded class="button" padding="0.5em 2em 0.5em 2em" flat :label="$t('Cancel')" @click="onCancelClick" />
         </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
 export default {
   emits: [
     // REQUIRED
@@ -30,12 +32,16 @@ export default {
   ],
   data () {
     return {
-      assets: null,
-      darkMode: this.$store.getters['darkmode/getStatus'],
+      assets: null
     }
   },
-
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    }
+  },
   methods: {
+    getDarkModeClass,
     show () {
       this.$refs.dialog.show()
     },
@@ -51,9 +57,6 @@ export default {
     },
     onDialogHide () {
       this.$emit('hide')
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

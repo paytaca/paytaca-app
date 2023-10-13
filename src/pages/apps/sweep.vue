@@ -4,14 +4,14 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="getDarkModeClass()">
+    <div id="app-container" :class="getDarkModeClass(darkMode)">
       <div>
         <header-nav :title="$t('Sweep')" backnavpath="/apps" />
         <div style="margin-top: 60px;" :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}">
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="fetching && tokens.length === 0" style="text-align: center; margin-top: 25px;">
               <p>{{ $t('Scanning') }}...</p>
-              <progress-loader />
+              <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
             </div>
             <q-form v-if="!submitted" class="text-center" style="margin-top: 25px;">
               <textarea
@@ -25,7 +25,7 @@
                 <div style="margin-top: 20px; margin-bottom: 20px; font-size: 15px; color: grey;" class="text-uppercase">
                   {{ $t('or') }}
                 </div>
-                <q-btn round size="lg" class="btn-scan button text-white" icon="mdi-qrcode" @click="showQrScanner = true" />
+                <q-btn round size="lg" class="btn-scan button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
               <div style="margin-top: 20px; ">
                 <q-btn
@@ -51,9 +51,11 @@
                 <div style="border: 1px solid black; padding: 10px;">
                   <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
                   <q-btn color="primary" v-if="selectedToken !== 'bch'" @click.prevent="sweepBch" :disabled="(tokens.length - skippedTokens.length) > 0">Sweep</q-btn>
-                  <span v-if="(tokens.length - skippedTokens.length) > 0" style="color: red;"><i>{{ $t('SweepTheTokensFirst') }}</i></span>
+                  <span v-if="(tokens.length - skippedTokens.length) > 0" style="color: red;">
+                    <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
+                  </span>
                   <div v-if="sweeping && selectedToken === 'bch'">
-                    <progress-loader />
+                    <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
                   </div>
                 </div>
               </div>
@@ -74,7 +76,7 @@
                 </div>
               </div>
               <div v-if="tokens.length > 0" style="margin-top: 15px">
-                <p><strong>{{ $t('Tokens') }} ({{ tokens.length }})</strong></p>
+                <p><strong>{{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }} ({{ tokens.length }})</strong></p>
                 <p>
                   {{ $t('SlpAddress') }}: {{ ellipsisText(sweeper.slpAddress) }}
                   <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.slpAddress)" />
@@ -85,7 +87,7 @@
                 <div v-for="(token, index) in tokens" :key="index">
                   <div style="border: 1px solid black; padding: 10px; margin-top: 10px;">
                     <p>
-                      {{ $t('TokenId') }}: {{ ellipsisText(token.token_id) }}
+                      {{ $t(isHongKong(currentCountry) ? 'PointId' : 'TokenId') }}: {{ ellipsisText(token.token_id) }}
                       <q-icon name="mdi-content-copy" @click="copyToClipboard(token.token_id)" />
                     </p>
                     <p>{{ $t('Symbol') }}: {{ token.symbol }}</p>
@@ -97,7 +99,7 @@
                       </q-btn>&nbsp;&nbsp;&nbsp; <span class="text-uppercase">{{ $t('or') }}</span> <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" :label="$t('Skip')" />
                     </template>
                     <div v-if="sweeping && selectedToken === token.token_id">
-                      <progress-loader />
+                      <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
                     </div>
                   </div>
                 </div>
@@ -117,6 +119,7 @@ import ProgressLoader from '../../components/ProgressLoader'
 import SweepPrivateKey from '../../wallet/sweep'
 import QrScanner from '../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../wallet'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'sweep',
@@ -143,8 +146,7 @@ export default {
         { label: this.$t('Wallet'), value: 'wallet' },
         { label: this.$t('Address'), value: 'address' }
       ],
-      payFeeFrom: { label: this.$t('Wallet'), value: 'wallet' },
-      darkMode: this.$store.getters['darkmode/getStatus']
+      payFeeFrom: { label: this.$t('Wallet'), value: 'wallet' }
     }
   },
   watch: {
@@ -155,6 +157,18 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     feeFunder () {
       let funder
       if (this.payFeeFrom.value === 'address') {
@@ -173,6 +187,9 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
+    isHongKong,
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value
@@ -254,9 +271,6 @@ export default {
     onScannerDecode (content) {
       this.showQrScanner = false
       this.wif = content
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   mounted () {

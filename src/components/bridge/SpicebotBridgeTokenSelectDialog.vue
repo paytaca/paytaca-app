@@ -1,8 +1,8 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" full-width>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-subtitle1 q-space">{{ $t('SelectToken') }}</div>
+        <div class="text-subtitle1 q-space">{{ $t(isHongKong(currentCountry) ? 'SelectPoint' : 'SelectToken') }}</div>
         <q-btn
           flat
           padding="sm"
@@ -31,6 +31,7 @@
   </q-dialog>
 </template>
 <script>
+import { isHongKong } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'SpicebotBridgeTokenSelectDialog',
   emits: [
@@ -54,6 +55,9 @@ export default {
   },
 
   computed: {
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
     filteredTokensList () {
       if (!this.searchText) return this.tokens
 
@@ -65,6 +69,7 @@ export default {
   },
 
   methods: {
+    isHongKong,
     // following method is REQUIRED
     // (don't change its name --> "show")
     show () {

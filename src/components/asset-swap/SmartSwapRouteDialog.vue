@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" persistent>
-    <q-card class="br-15 pt-card" :class="getDarkModeClass('', 'text-black')">
+    <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space q-pt-sm text-section" :class="darkMode ? 'text-blue-5' : ''">{{ $t('Routing') }}</div>
         <q-btn
@@ -71,6 +71,7 @@
   </q-dialog>
 </template>
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const routeGroupCurrencyLogoMap = {
   BCH: 'bch-logo.png',
@@ -151,9 +152,7 @@ export default {
     }
   },
   methods: {
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    }
+    getDarkModeClass
   }
 }
 </script>

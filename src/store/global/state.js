@@ -97,6 +97,7 @@ export default function () {
     },
     online: null,
     walletIndex: 0,
-    vault: []
+    vault: [],
+    denomination: 'BCH'
   }
 }

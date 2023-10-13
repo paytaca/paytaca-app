@@ -1,13 +1,13 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass()">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       title="AnyHedge"
       backnavpath="/apps"
       class="apps-header"
     />
     <q-tabs
-      :active-color="isDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isDefaultTheme() && 'transparent'"
+      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme(theme) && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"
@@ -16,20 +16,20 @@
       <q-tab
         name="hedge"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         :label="$t('Hedge')"
       />
       <q-tab
         name="long"
         class="network-selection-tab"
-        :class="{'text-blue-5': darkMode}"
+        :class="getDarkModeClass(darkMode)"
         :label="$t('Long')"
       />
     </q-tabs>
 
     <q-card
       class="br-15 q-mx-md q-mb-md q-mt-sm pt-card"
-      :class="getDarkModeClass('text-white', 'text-black')"
+      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
       style="transition: height 0.5s"
     >
       <template v-if="selectedAccountType === 'hedge'">
@@ -70,7 +70,7 @@
                       class="text-caption q-ml-xs text-grey-7"
                       style="margin-top:-0.5em;"
                     >
-                      {{ summary?.totalHedgeMarketValue }} {{ selectedMarketCurrency }}
+                      {{ parseFiatCurrency(summary?.totalHedgeMarketValue, selectedMarketCurrency) }}
                     </div>
                   </div>
                 </template>
@@ -111,9 +111,9 @@
               <div class="q-space">
                 <q-skeleton v-if="fetchingLongPositions" class="q-mr-sm"/>
                 <div v-else>
-                  <div>{{ totalLongSats / 10 ** 8 }} BCH</div>
+                  <div>{{ getAssetDenomination(denomination, totalLongSats / 10 ** 8) }}</div>
                   <div v-if="totalLongMarketValue" class="text-caption text-grey-7" style="margin-top:-0.5em;">
-                    {{ totalLongMarketValue }} {{ selectedMarketCurrency }}
+                    {{ parseFiatCurrency(totalLongMarketValue, selectedMarketCurrency) }}
                   </div>
                 </div>
               </div>
@@ -123,7 +123,7 @@
                 padding="xs"
                 round
                 class="button"
-                :color="getDarkModeClass('grad', 'brandblue')"
+                :color="darkMode ? 'grad' : 'brandblue'"
                 @click="showCreateLongForm = !showCreateLongForm"
               />
             </div>
@@ -179,7 +179,7 @@
 
     <q-card
       class="br-15 q-mx-md q-mb-md pt-card"
-      :class="getDarkModeClass('text-white', 'text-black')"
+      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
     >
       <template v-if="selectedAccountType === 'hedge'">
         <q-expansion-item ref="offersDrawerRef" :label="$t('HedgeOffers')">
@@ -378,6 +378,8 @@ import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
 import CustomKeyboard from '../transaction/dialog/CustomKeyboard.vue'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll
 
@@ -387,6 +389,8 @@ const $copyText = inject('$copyText')
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
+const theme = computed(() => $store.getters['global/theme'])
 const selectedAccountType = ref('hedge')
 
 const hedgesDrawerRef = ref()
@@ -1135,13 +1139,5 @@ async function displayContractFromNotification(data={address: '', position: '' }
     })
   }
   return contract
-}
-
-function isDefaultTheme () {
-  return $store.getters['global/theme'] !== 'default'
-}
-
-function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 </script>

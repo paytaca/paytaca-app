@@ -1,9 +1,9 @@
 <template>
   <div style="margin-top: 50px;">
-    <QrScanner
+    <!-- <QrScanner
       v-model="showScanner"
       @decode="onScannerDecode"
-    />
+    /> -->
     <div v-if="!connector">
       <q-input
         :label="$t('InputWalletConnectUri')"
@@ -34,13 +34,13 @@
           color="grad"
           size="lg"
           class="button"
-          @click="showScanner = true"
+          @click="() => $emit('request-scanner')"
           :disable="handshakeOnProgress"
         />
       </div>
       <template v-if="handshakeOnProgress">
         <div class="row items-center justify-center">
-          <ProgressLoader :color="isDefaultTheme ? theme : 'pink'"/>
+          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-if="pendingConnector" class="row items-center justify-center">
           <q-btn
@@ -54,7 +54,7 @@
       </template>
     </div>
     <div v-else>
-      <q-card style="max-width: 320px;" :class="getDarkModeClass('pt-dark-card')" class="shadow-2 br-15">
+      <q-card style="max-width: 320px;" class="shadow-2 br-15 pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-start q-mb-sm">
             <div class="text-grey">Connected to:</div>
@@ -76,7 +76,7 @@
               style="border-radius: 50%"
               :src="parsedPeerMeta.icon"
             />
-            <div class="text-h6" :class="getDarkModeClass('text-white', 'text-black')">{{ parsedPeerMeta.name }}</div>
+            <div class="text-h6" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">{{ parsedPeerMeta.name }}</div>
           </div>
           <div v-if="parsedPeerMeta.url" class="q-mt-md text-body2">
             <a :href="parsedPeerMeta.url" target="_blank" style="text-decoration: none" :class="darkMode ? 'text-blue-5' : 'text-blue-9'">
@@ -88,7 +88,7 @@
           </div>
         </q-card-section>
         <q-card-section>
-          <div class="text-weight-medium q-ml-sm" :class="getDarkModeClass('text-grey', 'text-black')">Account</div>
+          <div class="text-weight-medium q-ml-sm" :class="getDarkModeClass(darkMode, 'text-grey', 'text-black')">Account</div>
           <q-list separator class="q-mt-sm">
             <template v-if="Array.isArray(connector.accounts)">
               <q-item
@@ -186,18 +186,20 @@ import { useI18n } from "vue-i18n"
 import { useStore } from "vuex"
 import { computed, inject, markRaw, onMounted, onUnmounted, reactive, ref, watch } from "vue"
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import QrScanner from "src/components/qr-scanner.vue"
+// import QrScanner from "src/components/qr-scanner.vue"
 import WalletConnectCallRequestDialog from 'src/components/walletconnect/WalletConnectCallRequestDialog.vue'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+
+const $emit = defineEmits([
+  'request-scanner'
+])
 
 const $copyText = inject('$copyText')
 const $t = useI18n().t
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const isDefaultTheme = computed(() => $store.getters['global/theme'] !== 'default')
-function getDarkModeClass(darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-}
+const theme = computed(() => $store.getters['global/theme'])
 
 const wallet = ref([].map(() => new Wallet())[0])
 onMounted(async () => {
@@ -205,10 +207,11 @@ onMounted(async () => {
   wallet.value = markRaw(_wallet)
 })
 
-const showScanner = ref(false)
+// const showScanner = ref(false)
 function onScannerDecode (content) {
+  console.log('Decoded', content)
   handshakeUrl.value = content
-  showScanner.value = false
+  // showScanner.value = false
   initHandshake()
 }
 const handshakeUrl = ref('')
@@ -447,6 +450,8 @@ function promiseDialog(dialogOpts) {
 }
 
 defineExpose({
+  onScannerDecode,
+
   handshakeUrl,
   initHandshake,
 

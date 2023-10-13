@@ -87,9 +87,7 @@ body.theme-payhero {
   }
 
   #bch-card {
-    background: transparent !important;
-    margin: 0px 20px 10px 20px;
-    border: none !important;
+    background: $black_opaque_50;
     box-shadow: none !important;
   }
 
@@ -340,6 +338,7 @@ body.theme-payhero {
     border-bottom-right-radius: 17px;
 
     &.home-header {
+      background: transparent !important;
       padding-top: 0;
     }
 
@@ -438,10 +437,10 @@ body.theme-payhero {
     }
 
     &.q-tab--inactive {
-      color: $transactions-subtext !important;
+      color: #f2f2f2 !important;
 
       &.light {
-        color: $transactions-text !important;
+        color: #333333 !important;
       }
     }
   }
@@ -489,13 +488,13 @@ body.theme-payhero {
     }
 
     &.button-icon {
+      background: transparent !important;
+
       &.dark {
-        background: transparent !important;
         color: $brand_yellow !important;
       }
 
       &.light {
-        background: transparent !important;
         color: $footer-bar !important;
       }
     }
