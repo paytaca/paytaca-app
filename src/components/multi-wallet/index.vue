@@ -1,5 +1,5 @@
 <template>
-  <q-dialog  ref="dialog" position="bottom" full-width>
+  <q-dialog  ref="dialog" position="bottom" full-width seamless>
     <q-card class="br-15 wallet-card" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-h5 q-space q-mt-sm title">
