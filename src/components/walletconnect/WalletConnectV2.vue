@@ -395,8 +395,8 @@ async function connectNewSession(value='') {
   $q.dialog({
     title: 'New Session',
     prompt: {
-      label: 'URI',
-      placeholder: 'Input uri',
+      label: 'Session URL',
+      placeholder: 'Paste URL',
       color: 'brandblue',
       model: value,
     },
@@ -407,7 +407,15 @@ async function connectNewSession(value='') {
       color: 'brandblue',
       class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
     },
+    cancel: {
+      flat: true,
+      noCaps: true,
+      label: 'Close',
+      color: 'brandblue',
+      class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
+    },
     position: 'bottom',
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
     .onOk(val => pairUrl(val))
