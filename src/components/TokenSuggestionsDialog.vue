@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="val" persistent @hide="onClose()">
+  <q-dialog v-model="val" seamless persistent @hide="onClose()">
     <q-card class="q-dialog-plugin br-15 pt-card" :class="getDarkModeClass(darkMode)">
       <div class="row items-center no-wrap q-pb-sm">
         <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">

@@ -181,7 +181,7 @@
       </q-list>
     </div>
 
-    <q-dialog v-model="showSessionProposalsDialog" position="bottom">
+    <q-dialog v-model="showSessionProposalsDialog" position="bottom" seamless>
       <q-card class="pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center q-pb-sm">
@@ -221,7 +221,7 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showActiveSessionsDialog" position="bottom">
+    <q-dialog v-model="showActiveSessionsDialog" position="bottom" seamless>
       <q-card class="pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center q-pb-sm">
@@ -317,6 +317,7 @@ async function onScannerDecode (content) {
     title: 'Connecting',
     progress: { color: 'brandblue', },
     persistent: true,
+    seamless: true,
     ok: false,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
@@ -435,6 +436,7 @@ async function pairUrl(uri, opts={ showDialog: true }) {
     title: 'Connecting',
     progress: { color: 'brandblue', },
     persistent: true,
+    seamless: true,
     ok: false,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
@@ -479,6 +481,7 @@ async function approveSessionProposal(sessionProposal) {
     title: 'Approving session',
     progress: { color: 'brandblue', },
     persistent: true,
+    seamless: true,
     ok: false,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })

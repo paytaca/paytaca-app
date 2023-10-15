@@ -312,6 +312,7 @@ export default {
         message: `Recover gift of ${gift.amount} BCH. Proceed?`,
         ok: true,
         cancel: true,
+        seamless: true,
         class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
       })
         .onOk(() => this.recoverGift(gift?.gift_code_hash))

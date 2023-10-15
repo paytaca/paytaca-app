@@ -7,6 +7,7 @@
       updateSwapRequest()
     }"
     full-width
+    seamless
     persistent>
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
       <div class="row no-wrap items-center justify-center q-pl-md">

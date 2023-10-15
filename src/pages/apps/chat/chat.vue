@@ -19,7 +19,7 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <q-dialog class="text-black" v-model="confirmDeletion" persistent>
+    <q-dialog class="text-black" v-model="confirmDeletion" persistent seamless>
       <q-card :dark="darkMode">
         <q-card-section class="row items-center">
           <span class="q-ml-sm">This will delete your local copy of this conversation except the last message. Do you want to proceed?</span>

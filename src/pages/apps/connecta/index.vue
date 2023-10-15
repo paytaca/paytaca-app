@@ -198,7 +198,7 @@
       </div>
     </div>
 
-    <q-dialog v-model="paymentRequestStatus.showSuccessDialog">
+    <q-dialog v-model="paymentRequestStatus.showSuccessDialog" seamless>
       <q-card
         flat
         bordered

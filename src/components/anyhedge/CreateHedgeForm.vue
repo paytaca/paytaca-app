@@ -994,6 +994,7 @@ async function createHedgePosition() {
           title: 'No matching offer',
           message: `No matching offers found but found similar offers. Select one instead?`,
           ok: true,
+          seamless: true,
           cancel: true,
           class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
         })
@@ -1031,6 +1032,7 @@ async function createHedgePosition() {
           title: 'No matching offer',
           message: `No matching offers found, create one instead?`,
           ok: true,
+          seamless: true,
           cancel: true,
           class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
         })

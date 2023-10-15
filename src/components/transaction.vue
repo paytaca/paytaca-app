@@ -350,6 +350,7 @@ export default {
         title: 'AnyHedge Contract',
         message: 'Fetching contract',
         ok: false,
+        seamless: true,
         progress: true,
         class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
       })

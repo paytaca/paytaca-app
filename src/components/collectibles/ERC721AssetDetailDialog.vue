@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="val" ref="dialogRef">
+  <q-dialog v-model="val" ref="dialogRef" seamless>
     <q-card class="q-dialog-plugin pp-text br-15" :class="{'pt-dark info-banner': darkMode}">
       <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
         <strong class="text-h6" :class="darkMode ? 'text-grad' : ''">

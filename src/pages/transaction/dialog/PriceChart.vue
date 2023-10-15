@@ -1,10 +1,14 @@
 <template>
-  <q-dialog ref="dialog" full-width>
+  <q-dialog ref="dialog" full-width seamless>
     <q-card
       :class="getDarkModeClass(darkMode, 'text-white pt-dark modal', 'text-black')"
       class="br-15"
       style="padding-bottom: 10px; background-color: #ECF3F3"
     >
+      <q-card-section class="row items-center q-pb-none" style="float: right;">
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
       <div class="row no-wrap items-center justify-center">
         <div v-if="isloaded && !networkError" style="">
           <img src="../../../assets/bch-logo.png" style="height: 40px; position: absolute; top: 12px; left: 25px; z-index: 1;"/>

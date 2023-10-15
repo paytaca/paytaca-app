@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" full-width>
+  <q-dialog ref="dialogRef" @hide="onDialogHide" full-width seamless>
     <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">{{ title }}</div>

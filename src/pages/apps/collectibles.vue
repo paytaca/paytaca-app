@@ -327,6 +327,7 @@ export default {
         title: title,
         message: message,
         persistent: true,
+        seamless: true,
         class: dialogStyleClass,
         ok: {
           rounded: true

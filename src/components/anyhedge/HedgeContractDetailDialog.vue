@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide">
+  <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
     <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">
@@ -776,6 +776,7 @@ async function fundHedgeProposal(position) {
     message: 'Retrieving addresses',
     progress: true, // we enable default settings
     persistent: true, // we want the user to not be able to close it
+    seamless: true,
     ok: false, // we want the user to not be able to close it
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
   })
@@ -883,6 +884,7 @@ async function completeFunding() {
     title: 'Completing contract funding',
     message: '',
     progress: true, // we enable default settings
+    seamless: true,
     persistent: true, // we want the user to not be able to close it
     ok: false, // we want the user to not be able to close it
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
@@ -937,6 +939,7 @@ async function verifyFundingProposalUtxo(position) {
     if (data?.spendingTx && !data?.error) {
       $q.dialog({
         message: 'Resubmit funding proposal?',
+        seamless: true,
         cancel: true,
         class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
       })
@@ -1006,6 +1009,7 @@ async function signMutualRedemption(position) {
   const dialog = $q.dialog({
     title: 'Signing mutual redemption proposal',
     persistent: true,
+    seamless: true,
     progress: true,
     html: true,
     ok: false,
@@ -1189,6 +1193,7 @@ async function cancelMutualRedemption(position) {
     title: position === initiator ? 'Cancel proposal' : 'Decline proposal',
     message: 'Signing message',
     persistent: true,
+    seamless: true,
     progress: true,
     html: true,
     ok: false,
@@ -1267,6 +1272,7 @@ async function cancelContract(position) {
     title: 'Cancel contract',
     message: 'Cancelling contract',
     persistent: true,
+    seamless: true,
     progress: true,
     html: true,
     ok: false,

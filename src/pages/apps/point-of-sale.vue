@@ -480,6 +480,7 @@ async function deviceUnlinkRequest(posDevice) {
     message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request'),
     persistent: true,
     progress: true,
+    seamless: true,
     ok: false,
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -530,6 +531,7 @@ function confirmCancelUnlinkPosDevice(posDevice) {
     message: $t('CancellingUnlinkRequest', {}, 'Cancelling unlink request'),
     persistent: true,
     progress: true,
+    seamless: true,
     ok: false,
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -559,6 +561,7 @@ function updateDeviceSuspension(posDevice, isSuspended) {
     ok: false,
     cancel: false,
     persistent: true,
+    seamless: true,
     progress: true,
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -656,6 +659,7 @@ function confirmUnlinkPosDevice(posDevice) {
       label: $t('UnlinkDevice', {}, 'Unlink device'),
       color: 'red-5',
     },
+    seamless: true,
     cancel: { noCaps: true, flat: true, padding: 'xs md' },
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -678,6 +682,7 @@ function addNewPosDevice() {
         message: $t('AddingNewDevice', {}, 'Adding new device'),
         persistent: true,
         progress: true,
+        seamless: true,
         class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
       })
       apiCall
@@ -730,6 +735,7 @@ function updatePosDevice(posDevice) {
         message: updateDialogMsg,
         persistent: true,
         progress: true,
+        seamless: true,
         class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
       })
       apiCall
@@ -785,6 +791,7 @@ function confirmRemovePosDevice(posDevice) {
       label: $t('RemoveDevice', {}, 'Remove device'),
       color: 'red-5',
     },
+    seamless: true,
     cancel: { noCaps: true, flat: true, padding: 'xs md' },
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -796,6 +803,7 @@ function confirmRemovePosDevice(posDevice) {
       const dialog = $q.dialog({
         message: updateDialogMsg,
         persistent: true,
+        seamless: true,
         progress: true,
         class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
       })

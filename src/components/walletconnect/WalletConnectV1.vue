@@ -309,6 +309,8 @@ function onConnectorDisconnect(error, payload) {
   $q.dialog({
     title: this.$t('WalletConnect'),
     message: this.$t('Disconnected') + '!',
+    seamless: true,
+    ok: true,
     class: 'text-black'
   })
   disconnectConnector()
@@ -348,6 +350,7 @@ function confirmClearCallRequests () {
       rounded: true,
       flat: true
     },
+    seamless: true,
     class: darkMode ? 'br-15 text-white pt-dark' : 'text-black br-15'
   })
     .onOk(() => {
