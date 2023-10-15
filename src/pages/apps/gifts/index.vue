@@ -144,7 +144,12 @@
                   </div>
                   <div v-else class="row items-center q-gutter-sm">
                     <div class="q-space">
-                      <q-badge color="green" class="q-my-xs">Claimed</q-badge>
+                      <q-badge v-if="gift?.recovered" color="blue" class="q-my-xs">
+                        Recovered
+                      </q-badge>
+                      <q-badge v-else color="green" class="q-my-xs">
+                        Claimed
+                      </q-badge>
                     </div>
                     <div class="text-caption text-grey">
                       {{formatRelativeTimestamp(gift?.date_claimed)}}

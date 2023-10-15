@@ -322,6 +322,8 @@ export default {
                   spendable: response.spendable
                 })
               })
+            } else {
+              vm.processing = false
             }
           })
         }
