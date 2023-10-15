@@ -266,7 +266,9 @@ export default defineComponent({
       if (typeof decodeResult === "string") {
         this.$q.dialog({
           message: "Not enough information provided, please include contract redeemScript",
-          title: "Error"
+          title: "Error",
+          seamless: true,
+          ok: true
         });
         return;
       }
@@ -276,6 +278,8 @@ export default defineComponent({
         this.$q.dialog({
           message: pubkeyCompressed,
           title: "Error",
+          seamless: true,
+          ok: true
         });
         return;
       }
@@ -298,7 +302,9 @@ export default defineComponent({
             if (!coveredBytecode) {
               this.$q.dialog({
                 message: "Not enough information provided, please include contract redeemScript",
-                title: "Error"
+                title: "Error",
+                seamless: true,
+                ok: true
               });
               return;
             }
@@ -309,6 +315,8 @@ export default defineComponent({
               this.$q.dialog({
                 message: signature,
                 title: "Error",
+                seamless: true,
+                ok: true
               });
               return;
             }

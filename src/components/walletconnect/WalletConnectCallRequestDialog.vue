@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="val" :persistent="persistent">
+  <q-dialog v-model="val" :persistent="persistent" seamless>
     <q-card style="max-width:90vw; min-width:300px;" class="br-15 q-pb-xs" :class="{'pt-dark-card': darkMode, 'text-white': darkMode, 'text-black': !darkMode }">
       <q-card-section class="row no-wrap items-center q-pb-xs">
         <div>

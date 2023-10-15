@@ -413,6 +413,8 @@ export default {
         this.$q.dialog({
           title: this.$t('WalletConnect'),
           message: this.$t('Disconnected') + '!',
+          seamless: true,
+          ok: true,
           class: 'text-black'
         })
 
@@ -523,6 +525,7 @@ export default {
           rounded: true,
           flat: true
         },
+        seamless: true,
         class: this.darkMode ? 'br-15 text-white pt-dark' : 'text-black br-15'
       })
         .onOk(() => {

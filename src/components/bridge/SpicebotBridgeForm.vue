@@ -565,6 +565,7 @@ export default {
             this.$q.dialog({
               title: this.$t('TransactionSent') + '!',
               message: this.$t(isHongKong(this.currentCountry) ? 'Waiting_SEP20_PointSent' : 'Waiting_SEP20_TokenSent'),
+              seamless: true,
               class: dialogStyleClass
             })
               .onDismiss(() => {

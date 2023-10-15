@@ -490,6 +490,7 @@ export default {
                   lastAddressFromStore ? `<br/><br/>Previous:<br/>${lastAddressFromStore}` : '',
                 ].join(''),
                 ok: true,
+                seamless: true,
                 class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
                 style: 'word-break:break-word;',
               })
@@ -557,6 +558,7 @@ export default {
                   lastAddressFromStore ? `<br/><br/>Previous:<br/>${lastAddressFromStore}` : '',
                 ].join(''),
                 ok: true,
+                seamless: true,
                 class: this.darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
                 style: 'word-break:break-word;',
               })

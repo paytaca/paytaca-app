@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="innerVal" full-width>
+  <q-dialog v-model="innerVal" full-width seamless>
     <q-card style="max-width:90vw;" class="pt-card" :class="getDarkModeClass('text-white', 'text-black')">
       <q-card-section
         class="row items-start no-wrap"

@@ -782,6 +782,7 @@ function onHedgeFormCreate(data) {
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position Offer`,
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position offer created`,
       class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      seamless: true,
       style: 'word-break:break-all;',
     })
       .onDismiss(() => {
@@ -798,6 +799,7 @@ function onHedgeFormCreate(data) {
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position`,
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position created.<br/>Address: ` + contractAddress,
       html: true,
+      seamless: true,
       class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
       style: 'word-break:break-all;',
     }).onDismiss(() => {
@@ -1135,6 +1137,8 @@ async function displayContractFromNotification(data={address: '', position: '' }
   } else {
     $q.dialog({
       message: 'Unable to find contract',
+      seamless: true,
+      ok: true,
       class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
     })
   }

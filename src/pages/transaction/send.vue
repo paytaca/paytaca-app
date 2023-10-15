@@ -775,6 +775,7 @@ export default {
         message: 'Fetching invoice data',
         progress: true,
         persistent: true,
+        seamless: true,
         ok: false,
         class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
       })

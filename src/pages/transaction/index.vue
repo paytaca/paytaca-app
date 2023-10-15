@@ -1042,6 +1042,8 @@ export default {
       if (!transaction) {
         this.$q.dialog({
           message: 'Transaction not found',
+          seamless: true,
+          ok: true,
           class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
         })
         return

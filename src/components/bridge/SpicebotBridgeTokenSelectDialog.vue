@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" full-width>
+  <q-dialog ref="dialog" @hide="onDialogHide" full-width seamless>
     <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space">{{ $t(isHongKong(currentCountry) ? 'SelectPoint' : 'SelectToken') }}</div>

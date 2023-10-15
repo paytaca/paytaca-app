@@ -114,6 +114,8 @@ export default {
       this.$q.dialog({
         title: this.$t('SwapUpdate'),
         message: message,
+        seamless: true,
+        ok: true,
         class: dialogStyleClass
       })
       this.waitInfo = info
@@ -135,6 +137,7 @@ export default {
       message: this.$t('BridgeLeavingPageMsg'),
       cancel: true,
       persistent: true,
+      seamless: true,
       class: dialogStyleClass
     }).onOk(() => {
       next()

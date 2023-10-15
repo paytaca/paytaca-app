@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="val" @hide="resetForm()" persistent>
+  <q-dialog v-model="val" @hide="resetForm()" persistent seamless>
     <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark info-banner': darkMode}">
         <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
           <span class="text-weight-medium">{{$t(isHongKong(currentCountry) ? 'Add_SEP721_Point' : 'Add_SEP721_Token')}}</span>
@@ -133,6 +133,7 @@ export default {
         title: this.$t(isHongKong(this.currentCountry) ? 'PointAdded' : 'TokenAdded'),
         message: `Added token ${token.name} with address: ${token.address}`,
         class: 'pp-text',
+        seamless: true,
         darkMode: this.darkMode
       }).onDismiss(() => {
         this.val = false

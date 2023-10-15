@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogCancel">
+  <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogCancel" seamless>
     <q-card :class="getDarkModeClass(darkMode, 'text-white pt-dark-card', 'text-black')">
       <div class="row items-center q-pb-sm q-px-sm q-pt-sm">
         <div class="text-h5 q-space">

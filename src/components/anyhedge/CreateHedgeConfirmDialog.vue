@@ -7,6 +7,7 @@
     transition-hide="slide-down"
     no-backdrop-dismiss
     no-shake
+    seamless
   >
     <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;margin-bottom:3rem;">
       <div class="row no-wrap items-center justify-center q-pl-md q-mb-md">

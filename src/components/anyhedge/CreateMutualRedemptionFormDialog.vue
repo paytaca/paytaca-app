@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading">
+  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" seamless>
     <q-card :class="darkMode ? 'text-white br-15 pt-dark-card' : 'text-black'">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">Mutual Redemption Proposal</div>
@@ -445,6 +445,7 @@ async function createMutualRedemption() {
         parseHedgePositionData(response?.data).then(contractData => Object.assign(props.contract, contractData))
         $q.dialog({
           title: 'Mutual redemption submitted',
+          seamless: true,
           ok: true,
           class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
         }).onDismiss(() => onDialogHide())

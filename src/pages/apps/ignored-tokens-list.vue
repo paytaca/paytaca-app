@@ -191,6 +191,7 @@ export default {
         message: `${this.$t(this.isHongKong(this.currentCountry) ? 'RemoveIgnoredPoint' : 'RemoveIgnoredToken')}, '${tokenInfo.name}(${tokenInfo.symbol})'?`,
         cancel: true,
         persistent: true,
+        seamless: true,
         class: this.darkMode ? 'pt-dark info-banner text-white' : 'text-black'
       })
         .onOk(() => {
@@ -223,6 +224,7 @@ export default {
           flat: true
         },
         persistent: true,
+        seamless: true,
         class: this.darkMode ? 'pt-dark text-white' : 'text-black'
       })
         .onOk(() => this.removeAddedIgnoredAssets())

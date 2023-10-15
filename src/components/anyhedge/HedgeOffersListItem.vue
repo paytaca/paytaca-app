@@ -144,6 +144,7 @@ function openUpdateExpirationForm() {
       ]
     },
     cancel: true,
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
     .onOk(updateExpiration)
@@ -157,6 +158,7 @@ function updateExpiration(expirationTime) {
     title: expirationTime ? 'Updating expiration' : 'Removing expiration',
     progress: true,
     persistent: true,
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
   anyhedgeBackend.patch(`anyhedge/hedge-position-offers/${props.hedgePositionOffer?.id}/`, data)
@@ -180,6 +182,7 @@ function confirmRemoveHedgeOffer() {
     message: `Removing ${props.hedgePositionOffer.position} position offer. Are you sure?`,
     ok: true,
     cancel: true,
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
     .onOk(() => removeHedgePositionOffer())
@@ -190,6 +193,7 @@ function removeHedgePositionOffer() {
     message: `Removing ${props.hedgePositionOffer.position} position offer`,
     persistent: true,
     progress: true,
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
   anyhedgeBackend.delete(`anyhedge/hedge-position-offers/${props.hedgePositionOffer.id}/`)

@@ -343,7 +343,7 @@
         @swiped="confirmSwiped()"
       />
     </q-card-section>
-    <q-dialog v-model="showSettingsDialogForm" persistent>
+    <q-dialog v-model="showSettingsDialogForm" persistent seamless>
       <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')" style="min-width:75vw;">
         <div class="row no-wrap items-center justify-center q-pl-md">
           <div
@@ -632,6 +632,7 @@ export default {
         title: this.$t(isHongKong(this.currentCountry) ? 'ApprovePoint' : 'ApproveToken'),
         message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
         persistent: true,
+        seamless: true,
         ok: {
           rounded: true
         },
@@ -661,6 +662,7 @@ export default {
           `Approving ${tokenInfo.name}`
         ),
         progress: true,
+        seamless: true,
         persistent: false,
         ok: false, // we want the user to not be able to close it
         class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
@@ -892,6 +894,7 @@ export default {
             rounded: true
           },
           persisted: true,
+          seamless: true,
           class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
         })
       } catch (err) {

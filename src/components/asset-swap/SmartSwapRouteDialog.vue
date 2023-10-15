@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="val" persistent>
+  <q-dialog v-model="val" persistent seamless>
     <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space q-pt-sm text-section" :class="darkMode ? 'text-blue-5' : ''">{{ $t('Routing') }}</div>
