@@ -926,6 +926,7 @@ export default {
           this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
         } else {
           this.sendData.amount = String(this.sendData.amount).slice(0, -1)
+          this.amountFormatted = String(this.amountFormatted).slice(0, -1)
         }
       } else if (action === 'delete') {
         // Delete
@@ -933,6 +934,7 @@ export default {
           this.sendAmountInFiat = ''
         } else {
           this.sendData.amount = ''
+          this.amountFormatted = ''
         }
       } else {
         // Enabled submit slider
