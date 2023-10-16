@@ -192,6 +192,8 @@ export default {
   MnemonicBackupPhrase: "Mnemonic Backup -Phrase",
   MnemonicBackupPhraseDescription1: "Überprüfen Sie, ob dies mit Ihrem Mnemonik -Backup -Phrase übereinstimmt",
   MnemonicBackupPhraseDescription2: "Schreiben Sie auf Papier oder machen Sie einen Screenshot und bewahren Sie es an einem sicheren Ort auf",
+  SkipVerification: "Überprüfung überspringen",
+  SkipVerificationMessage: "Sind Sie sicher, dass Sie den Verifizierungsschritt überspringen möchten?",
   Name: "Name",
   NativeBiometricReason1: "Für eine einfache Anmeldung",
   NativeBiometricReason2: "Zur Eigentümerüberprüfung",

@@ -208,6 +208,8 @@ export default {
   MnemonicBackupPhrase: "Mnemonic Backup Phrase",
   MnemonicBackupPhraseDescription1: "Double check if this matches your mnemonic backup phrase",
   MnemonicBackupPhraseDescription2: "Write on paper or take a screenshot and keep it somewhere safe",
+  SkipVerification: "Skip Verification",
+  SkipVerificationMessage: "Are you sure you want to skip the verification step?",
   Name: "Name",
   NativeBiometricReason1: "For easy log in",
   NativeBiometricReason2: "For ownership verification",

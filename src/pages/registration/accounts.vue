@@ -149,9 +149,14 @@
                   </div>
                 </template>
               </div>
-              <div class="row" v-if="steps === totalSteps">
+              <div class="row q=mt-md" v-if="steps === totalSteps">
                 <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="openSettings = true" :label="$t('Continue')" rounded />
-                <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                <template v-else>
+                  <q-btn v-if="showMnemonicTest" class="full-width q-mt-md" @click="confirmSkipVerification" no-caps rounded>
+                    {{ $t('SkipVerification') }}
+                  </q-btn>
+                  <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                </template>
               </div>
             </div>
           </div>
@@ -261,6 +266,17 @@ export default {
         .replace(/[^\x00-\x7F]/g, '') // Remove non-ascii characters
         .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuations
         .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
+    },
+    confirmSkipVerification () {
+      const vm = this
+      this.$q.dialog({
+        title: this.$t('SkipVerification'),
+        message: this.$t('SkipVerificationMessage'),
+        ok: true,
+        cancel: true,
+        seamless: true,
+        class: 'text-white br-15 pt-dark-card'
+      }).onOk(() => { vm.openSettings = true })
     },
     saveToVault () {
       // saving to wallet vault

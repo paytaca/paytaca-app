@@ -192,6 +192,8 @@ export default {
   MnemonicBackupPhrase: "Frase de respaldo mnemónico",
   MnemonicBackupPhraseDescription1: "Compruebe dos veces si esto coincide con su frase de copia de seguridad mnemónica",
   MnemonicBackupPhraseDescription2: "Escribe en papel o toma una captura de pantalla y manténgala en algún lugar seguro",
+  SkipVerification: "Saltar verificación",
+  SkipVerificationMessage: "¿Está seguro de que desea omitir el paso de verificación?",
   Name: "Nombre",
   NativeBiometricReason1: "Para fácil iniciar sesión",
   NativeBiometricReason2: "Para la verificación de la propiedad",

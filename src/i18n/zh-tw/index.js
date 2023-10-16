@@ -208,6 +208,8 @@ export default {
   MnemonicBackupPhrase: "助記符備用短語",
   MnemonicBackupPhraseDescription1: "仔細檢查這是否與您的助記符備份短語匹配",
   MnemonicBackupPhraseDescription2: "在紙上寫或屏幕截圖並將其保存在安全的地方",
+  SkipVerification: "跳過驗證",
+  SkipVerificationMessage: "您確定要跳過驗證步驟嗎？",
   Name: "姓名",
   NativeBiometricReason1: "簡單登錄",
   NativeBiometricReason2: "用於所有權驗證",
