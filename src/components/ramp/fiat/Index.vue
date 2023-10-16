@@ -1,13 +1,8 @@
 <template>
   <div>
-<<<<<<< Updated upstream
-    <div v-if="isLoading" class="row justify-center q-ma-lg q-pa-lg">
-      <ProgressLoader/>
-=======
     <div class="q-mt-md" v-if="loggingIn">
       <Login @login="login()"
       />
->>>>>>> Stashed changes
     </div>
     <div v-else>
       <div v-if="proceed">
@@ -43,11 +38,8 @@
 </template>
 <script>
 import footerMenu from './footerMenu.vue'
-<<<<<<< Updated upstream
-=======
 // import login from 'src/pages/apps/ramp/login.vue'
 import Login from './Login.vue'
->>>>>>> Stashed changes
 import FiatStore from './FiatStore.vue'
 import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
@@ -75,10 +67,7 @@ export default {
   },
   components: {
     footerMenu,
-<<<<<<< Updated upstream
-=======
     Login,
->>>>>>> Stashed changes
     FiatStore,
     FiatOrders,
     FiatAds,
@@ -103,8 +92,6 @@ export default {
     }
   },
   methods: {
-<<<<<<< Updated upstream
-=======
     // async login () {
     //   this.loggingIn = false
     //   this.proceed = true
@@ -148,7 +135,6 @@ export default {
         // }, 3000)
       }
     },
->>>>>>> Stashed changes
     switchMenu (item) {
       this.menu = item
       this.$refs.footer.selectMenu(this.menu)
