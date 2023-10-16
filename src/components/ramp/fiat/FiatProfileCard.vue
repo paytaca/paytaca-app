@@ -16,7 +16,7 @@
       <div class="text-center q-pt-none">
         <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
         <div class="bold-text lg-font-size q-pt-sm">
-          {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+          {{ user.nickname }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
         </div>
       </div>
 
@@ -42,15 +42,16 @@
           color="blue-8"
           class="q-space"
           icon="sym_o_sell"
+          @click="fetchUserAds()"
           >
         </q-btn>
       </div>
 
       <!-- User Stats -->
       <div class="text-center md-font-size subtext bold-text q-pt-md">
-          <span>100 total trades</span>&nbsp;&nbsp;
+          <span>{{ user.trade_count }} total trades</span>&nbsp;&nbsp;
           <span>|</span>&nbsp;&nbsp;
-          <span>50% completion</span>
+          <span> {{ user.completion_rate }}% completion</span>
       </div>
 
       <div class="q-px-sm q-pt-sm">
@@ -105,7 +106,6 @@
       <AddPaymentMethods
         :type="'Profile'"
         v-on:back="state = 'initial'"
-        v-on:submit="state === 'edit-pm'"
       />
     </div>
   </q-card>
@@ -121,23 +121,22 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { loadP2PWalletInfo } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
-      wallet: null,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
       user: null,
       editNickname: false,
       state: 'initial',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-      reviewList: null
+      reviewList: []
     }
   },
   props: {
@@ -156,63 +155,44 @@ export default {
     AddPaymentMethods,
     ProgressLoader
   },
-  // computed: {
-  //   user () {
-  //     if (this.type === 'self') {
-  //       return this.$store.getters['ramp/getUser']
-  //     }
-  //   }
-  // }
+  async mounted () {
+    this.processUserData()
+    await this.fetchTopReview()
+    this.isloaded = true
+  },
   methods: {
     processUserData () {
       if (this.type === 'self') {
         // get this user's info
-        this.user = {
-          name: this.$store.getters['ramp/getUser'].nickname
-        }
+        this.user = this.$store.getters['ramp/getUser']
       } else {
         this.user = this.userInfo
       }
+      console.log('user', this.user)
     },
     async updateUserName (info) {
       const vm = this
-
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'PEER_UPDATE', timestamp)
-      // this.$store.commit('global/editRampNickname', info.nickname)
-      vm.$axios.put(vm.apiURL + '/peer', {
-        nickname: info.nickname
-      },
-      {
-        headers: {
-          'wallet-hash': wallet.walletHash,
-          signature: signature,
-          timestamp: timestamp
-        }
-      })
+      console.log('authHeaders:', this.authHeaders)
+      vm.$axios.put(vm.apiURL + '/peer/detail', { nickname: info.nickname }, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response.data)
           vm.$store.commit('ramp/updateUser', response.data)
           this.processUserData()
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       this.editNickname = false
     },
-    async fetchTopAds () {
+    async fetchTopReview () {
       const vm = this
-
       const url = `${vm.apiURL}/order/feedback/peer`
-
       await vm.$axios.get(url, {
         params: {
           to_peer: this.$store.getters['ramp/getUser'].id
-        }
+        },
+        headers: vm.authHeaders
       })
         .then(response => {
           if (response.data) {
@@ -224,19 +204,47 @@ export default {
         .catch(error => {
           console.log(error)
         })
+      // top 5 reviews
+      //   async fetchUserAds () {
+      //     const vm = this
+      //     vm.loading = true
+      //     console.log('filtering ads')
+      //     const walletInfo = vm.$store.getters['global/getWallet']('bch')
+      //     const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      //     const timestamp = Date.now()
+      //     const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
 
-        // top 5 reviews
+      //     const headers = {
+      //       'wallet-hash': wallet.walletHash,
+      //       signature: signature,
+      //       timestamp: timestamp
+      //     }
 
+      //     let ownerID = 1
+      //     if (this.user.hasOwnProperty('id')) {
+      //       ownerID = this.user.id
+      //     }
+
+      //     const params = {
+      //       currency: 'PHP',
+      //       limit: 20,
+      //       owner_id: ownerID
+      //     }
+      //     const url = `${vm.apiURL}/ad`
+      //     await this.$axios.get(url, {
+      //       headers: headers,
+      //       params: params
+      //     })
+      //       .then(response => {
+      //         console.log(response.data)
+      //       })
+      //       .catch(error => {
+      //         console.log(error)
+      //       })
+      //     vm.loading = false
+      //   }
+      // },
     }
-  },
-  async mounted () {
-    const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-
-    await this.processUserData()
-    await this.fetchTopAds()
-    vm.isloaded = true
   }
 }
 </script>

@@ -1,8 +1,9 @@
 <template>
   <div v-if="isloaded">
-    <div v-if="state === 'release-form'">
+    <div v-if="state === 'release-form' || state === 'completed-appeal'">
       <ReleaseForm
         :appealInfo="appeal"
+        :ramp-contract="rampContract"
         @back="$emit('back')"
         @submit="onSubmit"
       />
@@ -22,18 +23,17 @@
       />
     </div>
 
-    <div v-if="state === 'completed-appeal'">
+    <!-- <div v-if="state === 'completed-appeal'">
       <CompletedAppeal
-        :appealInfo="appeal"
+        :appeal="appeal"
+        :order="appeal.order"
         @back="$emit('back')"
       />
-    </div>
+    </div> -->
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
 import RampContract from 'src/wallet/ramp/contract'
-import { signMessage } from '../../../wallet/ramp/signature.js'
 import CompletedAppeal from './CompletedAppeal.vue'
 import ReleaseForm from './ReleaseForm.vue'
 import VerifyTransfer from './VerifyTransfer.vue'
@@ -41,13 +41,13 @@ import VerifyTransfer from './VerifyTransfer.vue'
 export default {
   data () {
     return {
-      walletIndex: this.$store.getters['global/getWalletIndex'],
       isChipnet: this.$store.getters['global/isChipnet'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
+      wallet: this.$store.getters['ramp/wallet'],
       rampContract: null,
       websocket: null,
-      wallet: null,
       state: 'release-form',
       actionState: 'verifying',
       appeal: null,
@@ -74,14 +74,7 @@ export default {
   async mounted () {
     const vm = this
     vm.appeal = vm.selectedAppeal
-    console.log('appeal:', vm.appeal)
     vm.updateStatus(vm.appeal.order.status)
-    if (vm.initWallet) {
-      vm.wallet = vm.initWallet
-    } else {
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-    }
     await vm.fetchOrderDetail(vm.appeal.order.id)
     await vm.generateContract()
     vm.isloaded = true
@@ -92,7 +85,6 @@ export default {
   },
   methods: {
     updateStatus (status) {
-      // return if this.status == status
       if (this.status && status && this.status.value === status.value) return
       this.status = status
 
@@ -110,7 +102,6 @@ export default {
     checkStep () {
       const vm = this
       vm.openDialog = false
-      console.log('Checking step:', vm.status)
       if (!vm.status) return
       switch (vm.status.value) {
         case 'APL':
@@ -124,11 +115,11 @@ export default {
           break
         case 'RLS':
           vm.state = 'completed-appeal'
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.appeal.order.id)
+          vm.$store.commit('ramp/clearOrderTxids', vm.appeal.order.id)
           break
         case 'RFN':
           vm.state = 'completed-appeal'
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.appeal.order.id)
+          vm.$store.commit('ramp/clearOrderTxids', vm.appeal.order.id)
           break
         default:
           vm.state = 'release-form'
@@ -138,30 +129,19 @@ export default {
     async onSubmit (action, amount) {
       const vm = this
       vm.selectedAction = action.toUpperCase()
-      const timestamp = Date.now()
-      let msg = null
       let url = `${vm.apiURL}/order/${vm.appeal.order.id}/appeal/`
       switch (action) {
         case 'release':
-          msg = 'APPEAL_PENDING_RELEASE'
           url = url + 'pending-release'
           break
         case 'refund':
-          msg = 'APPEAL_PENDING_REFUND'
           url = url + 'pending-refund'
           break
         default:
           return
       }
-      const signature = await signMessage(vm.wallet.privateKeyWif, msg, timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-      vm.$axios.post(url, {}, { headers: headers })
+      vm.$axios.post(url, {}, { headers: vm.authHeaders })
         .then(response => {
-          console.log(response)
           switch (action) {
             case 'release':
               vm.releaseBch(vm.rampContract, amount)
@@ -185,7 +165,7 @@ export default {
             txid: this.txid
           }
         }
-        this.$store.dispatch('ramp/saveTxid', txidData)
+        this.$store.commit('ramp/saveTxid', txidData)
       }
     },
     async releaseBch (contract, amount) {
@@ -211,31 +191,13 @@ export default {
     async verifyTxn (action) {
       const vm = this
       vm.state = 'verifying'
-      console.log('Verifying: ', vm.txid)
       let url = `${vm.apiURL}/order/${vm.appeal.order.id}/`
-      let msg = ''
       if (action === 'RELEASE') {
         url = `${url}verify-release`
-        msg = 'ORDER_RELEASE'
       } else {
         url = `${url}verify-refund`
-        msg = 'ORDER_REFUND'
       }
-      console.log('url:', url)
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, msg, timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-      const body = {
-        txid: this.txid
-      }
-      await vm.$axios.post(url, body, { headers: headers })
-        .then(response => {
-          console.log('response:', response)
-        })
+      await vm.$axios.post(url, { txid: this.txid }, { headers: vm.authHeaders })
         .catch(error => {
           console.error(error.response)
           const errorMsg = error.response.data.error
@@ -244,16 +206,12 @@ export default {
     },
     async fetchOrderDetail (id) {
       const vm = this
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash
-      }
       vm.loading = true
       const url = vm.apiURL + '/order/' + id
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.contract = response.data.contract
         vm.fees = response.data.fees
-        console.log('order details: ', response)
       } catch (error) {
         console.error(error.response)
       }
@@ -292,9 +250,6 @@ export default {
         console.log('WebSocket data:', data)
         if (data) {
           if (data.success) {
-            // if (data.txid) {
-            //   this.txid = data.txid
-            // }
             if (data.status) {
               this.updateStatus(data.status.status)
             }

@@ -28,7 +28,6 @@
       v-if="state === 'escrow-bch'"
       :key="escrowTransferProcessKey"
       :action="state"
-      :wallet="wallet"
       :order="order"
       :contract="contract"
       :amount="transferAmount"
@@ -38,7 +37,6 @@
     <VerifyEscrowTx
       v-if="state === 'tx-confirmation'"
       :key="verifyEscrowTxKey"
-      :wallet="wallet"
       :order-id="order.id"
       :action="verifyAction"
       :txid="txid"
@@ -50,7 +48,6 @@
     <!-- Waiting Page -->
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
-        :wallet="wallet"
         :order-id="order.id"
         :feedback-data="feedback"
         :key="standByDisplayKey"
@@ -62,7 +59,6 @@
     <!-- Payment Confirmation -->
     <div v-if="state === 'payment-confirmation'">
       <PaymentConfirmation
-        :wallet="wallet"
         :order-id="order.id"
         :type="confirmType"
         @confirm="handleConfirmPayment"
@@ -87,8 +83,7 @@
   </div>
 </template>
 <script>
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency } from 'src/wallet/ramp'
 import RampContract from 'src/wallet/ramp/contract'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -104,9 +99,10 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
+      wallet: this.$store.getters['ramp/wallet'],
       websocket: null,
       state: '',
       isloaded: false,
@@ -123,7 +119,6 @@ export default {
         address: null
       },
       fees: null,
-      wallet: null,
       txid: null,
       status: null,
       title: '',
@@ -132,7 +127,8 @@ export default {
       standByDisplayKey: 0,
       escrowTransferProcessKey: 0,
       verifyEscrowTxKey: 0,
-      errorMessages: []
+      errorMessages: [],
+      selectedPaymentMethods: []
     }
   },
   components: {
@@ -145,10 +141,6 @@ export default {
     PaymentConfirmation
   },
   props: {
-    initWallet: {
-      type: Object,
-      default: null
-    },
     orderData: {
       type: Object,
       default: null
@@ -159,10 +151,12 @@ export default {
       return Number(this.order.crypto_amount)
     },
     getAdLimit () {
-      return formatCurrency(this.ad.trade_floor, this.order.fiat_currency.symbol) + ' - ' + formatCurrency(this.ad.trade_ceiling, this.order.fiat_currency.symbol)
+      const floor = formatCurrency(this.ad.trade_floor)
+      const ceiling = formatCurrency(this.ad.trade_ceiling)
+      return `${floor} BCH - ${ceiling} BCH`
     },
     fiatAmount () {
-      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
+      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
     },
     cryptoAmount () {
       return (this.fiatAmount / this.order.locked_price).toFixed(8)
@@ -189,12 +183,6 @@ export default {
   emits: ['back'],
   async mounted () {
     const vm = this
-    if (vm.initWallet) {
-      vm.wallet = vm.initWallet
-    } else {
-      const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-    }
     await vm.fetchOrderData()
     if (!vm.order) {
       vm.order = vm.orderData
@@ -234,13 +222,13 @@ export default {
           }
           break
         case 'CNF': // Confirmed
+          if (!this.rampContract) {
+            vm.generateContract()
+          }
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
-          }
-          if (!this.rampContract) {
-            vm.generateContract()
           }
           break
         case 'ESCRW_PN': // Escrow Pending
@@ -287,12 +275,12 @@ export default {
           break
         case 'RFN': // Refunded
           this.status = 'refund'
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
+          vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
           break
         case 'RLS': // Released
           vm.state = 'standby-view'
           vm.standByDisplayKey++
-          vm.$store.dispatch('ramp/clearOrderTxids', vm.order.id)
+          vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
           break
         default:
           // includes status = CNCL, APL, RFN_PN, RLS_PN
@@ -309,16 +297,13 @@ export default {
     async fetchOrderData () {
       const vm = this
       const url = `${vm.apiURL}/order/${vm.orderData.id}`
-      await vm.$axios.get(url, {
-        headers: {
-          'wallet-hash': vm.wallet.walletHash
-        }
-      })
+      await vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
-          // console.log('fetchOrderData:', response.data)
+          console.log('fetchOrderData:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.fees = response.data.fees
+          console.log('contract:', vm.contract)
           vm.updateStatus(vm.order.status)
         })
         .catch(error => {
@@ -327,20 +312,9 @@ export default {
     },
     async fetchAdData () {
       const vm = this
-
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
-
       const adId = vm.order.ad.id
       const url = `${vm.apiURL}/ad/${adId}`
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-
-      await vm.$axios.get(url, { headers: headers })
+      await vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
           vm.ad = response.data
           // console.log('ad', vm.ad)
@@ -352,18 +326,10 @@ export default {
     },
     async confirmOrder () {
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CONFIRM', timestamp)
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-      await vm.$axios.post(url, {}, { headers: headers })
+      await vm.$axios.post(url, {}, { headers: vm.authHeaders })
         .then(response => {
-          // console.log(response)
           if (response.data && response.data.status.value === 'CNF') {
             vm.updateStatus(response.data.status)
           }
@@ -374,20 +340,9 @@ export default {
     },
     async cancelOrder () {
       const vm = this
-
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CANCEL', timestamp)
-
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/cancel`
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-
-      await vm.$axios.post(url, {}, { headers: headers })
+      await vm.$axios.post(url, {}, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response)
           if (response.data && response.data.status.value === 'CNCL') {
@@ -401,21 +356,11 @@ export default {
     async sendConfirmPayment (type) {
       const vm = this
       vm.isloaded = false
-
       const url = `${this.apiURL}/order/${vm.order.id}/confirm-payment/${type}`
-      const timestamp = Date.now()
-      let action = 'ORDER_BUYER_CONF_PAYMENT'
-      if (type === 'seller') {
-        action = 'ORDER_SELLER_CONF_PAYMENT'
+      const body = {
+        payment_methods: this.selectedPaymentMethods
       }
-      const signature = await signMessage(vm.wallet.privateKeyWif, action, timestamp) // update later
-
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
-      await vm.$axios.post(url, {}, { headers: headers })
+      await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log('sendConfirmPayment:', response.data)
           // if (response.data && response.data.status.value === 'PD_PN') {
@@ -423,7 +368,7 @@ export default {
           // }
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       // await this.fetchOrderData()
@@ -431,44 +376,41 @@ export default {
       vm.isloaded = true
     },
     async releaseCrypto () {
+      this.txid = null
       if (!this.rampContract) {
         await this.generateContract()
+      }
+      const feContractAddr = await this.rampContract.getAddress()
+      const beContractAddr = this.contract.address
+      if (feContractAddr !== beContractAddr) {
+        this.errorMessages.push('contract addresses mismatched')
       }
       await this.rampContract.release(this.wallet.privateKeyWif, this.order.crypto_amount)
         .then(result => {
           this.txid = result.txInfo.txid
           this.verifyEscrowTxKey++
+
+          const txidData = {
+            id: this.order.id,
+            txidInfo: {
+              action: 'RELEASE',
+              txid: this.txid
+            }
+          }
+          this.$store.commit('ramp/saveTxid', txidData)
+          console.log('rampContract:', this.rampContract)
         })
         .catch(error => {
-          console.error(error.response)
+          console.error('release error:', error.response)
         })
-      // this.txid = makeid(64) // temporary txid generation
-      const txidData = {
-        id: this.order.id,
-        txidInfo: {
-          action: 'RELEASE',
-          txid: this.txid
-        }
-      }
-      this.$store.dispatch('ramp/saveTxid', txidData)
-      // console.log('rampContract:', this.rampContract)
     },
     async verifyRelease () {
-      // console.log('verifyRelease')
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_RELEASE', timestamp) // update later
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const body = {
         txid: this.txid
       }
-      // console.log('body:', body)
-      await vm.$axios.post(url, body, { headers: headers })
+      await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log('response:', response)
           vm.updateStatus(response.data.status)
@@ -482,20 +424,13 @@ export default {
     async verifyEscrow () {
       const vm = this
       console.log('Verifying escrow:', vm.txid)
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_ESCROW_VERIFY', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       const url = vm.apiURL + '/order/' + vm.order.id + '/escrow-verify'
       const body = {
         txid: vm.txid
       }
       try {
-        const response = await vm.$axios.post(url, body, { headers: headers })
-        // console.log('verifyEscrow response:', response)
+        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
+        console.log('verifyEscrow response:', response)
       } catch (error) {
         console.error(error.response)
         const errorMsg = error.response.data.error
@@ -526,24 +461,14 @@ export default {
       const timestamp = this.contract.timestamp
       this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
       await this.rampContract.initialize()
-      console.log('contract address:', await this.rampContract.getAddress())
-      console.log('contract balance:', await this.rampContract.getBalance())
-      // this.contract.address = this.rampContract.getAddress()
-      // console.log('rampContract address:', this.rampContract.getAddress())
+      console.log('address:', await this.rampContract.getAddress())
     },
 
     async submitAppeal (data) {
       console.log('onSubmitAppeal:', data)
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'APPEAL_REQUEST', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
-      vm.$axios.post(url, data, { headers: headers })
+      vm.$axios.post(url, data, { headers: vm.authHeaders })
         .then(response => {
           console.log('response: ', response)
           this.updateStatus(response.data.status)
@@ -556,21 +481,13 @@ export default {
       const vm = this
       vm.isloaded = false
       const url = `${vm.apiURL}/order/feedback/peer`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'FEEDBACK_PEER_CREATE', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const body = {
         order_id: vm.order.id,
         rating: feedback.rating,
         comment: feedback.comment
-
       }
       // console.log(body)
-      await vm.$axios.post(url, body, { headers: headers })
+      await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response)
           const data = response.data
@@ -581,7 +498,7 @@ export default {
           }
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response)
         })
 
       vm.isloaded = true
@@ -596,7 +513,8 @@ export default {
         params: {
           from_peer: vm.$store.getters['ramp/getUser'].id,
           order_id: vm.order.id
-        }
+        },
+        headers: vm.authHeaders
       })
         .then(response => {
           if (response.data) {
@@ -668,7 +586,9 @@ export default {
       this.openDialog = true
       this.title = 'Release crypto?'
     },
-    handleConfirmPayment () {
+    handleConfirmPayment (data) {
+      console.log('handleConfirmPayment:', data)
+      this.selectedPaymentMethods = data
       this.dialogType = 'confirmPayment'
       this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
 
@@ -694,17 +614,16 @@ export default {
       }
       return true
     },
-    onEscrowSuccess (data) {
-      // console.log('onEscrowSubmit:', data)
-      // this.txid = data.txid
-      // this.updateStatus(data.status)
-    },
     onVerifyTxSuccess (status) {
-      // console.log('onVerifyTxSuccess:', status)
       this.updateStatus(status)
     },
     onBack () {
       this.state = 'order-list'
+    },
+    onEscrowSuccess (data) {
+      console.log('onEscrowSuccess:', data)
+      this.txid = data.txid
+      this.updateStatus(data.status.status)
     },
     copyToClipboard (value) {
       this.$copyText(value)

@@ -18,18 +18,19 @@
             icon="arrow_back"
             @click="$emit('back')"
           />
-          <q-icon class="q-pl-lg" size="sm" name='o_question_answer'/>
+          <q-icon v-if="!appeal.resolved_at" class="q-pl-lg" size="sm" name='o_question_answer'/>
         </div>
         <div class="text-center">
-          <div class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
+          <div v-if="appeal.resolved_at" class="bold-text lg-font-size" >{{ appeal.order.status.label.toUpperCase() }} </div>
+          <div v-if="!appeal.resolved_at" class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
           <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
         </div>
         <q-scroll-area :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
           <div class="q-mx-lg">
             <q-card class="br-15 q-mt-xs" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
               <q-card-section>
-                <div class="bold-text md-font-size">Reasons:</div>
-                <q-badge v-for="(reason, index) in appeal.reasons" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
+                <div class="bold-text md-font-size">Appeal reasons</div>
+                <q-badge v-for="(reason, index) in appeal.reasons" class="q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
               </q-card-section>
             </q-card>
 
@@ -78,7 +79,7 @@
               <div class="row justify-between no-wrap q-mx-xs">
                 <span>Crypto Amount</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(ad_snapshot.crypto_amount) }} BCH
+                  {{ formattedCurrency(order.crypto_amount) }} BCH
                 </span>
               </div>
               <q-separator class="q-my-sm" :dark="darkMode"/>
@@ -86,7 +87,7 @@
               <div class="row justify-between no-wrap q-mx-xs">
                 <span>Fiat Price</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(ad_snapshot.price, ad_snapshot.fiat_currency.symbol) }}
+                  {{ formattedCurrency(sellerReceivesAmount, ad_snapshot.fiat_currency.symbol) }}
                 </span>
               </div>
 
@@ -111,7 +112,7 @@
                 <q-separator  class="q-mb-sm" :dark="darkMode"/>
 
                 <div v-if="tab === 'status'">
-                  <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm" :class="darkMode ? '' : 'subtext'">
+                  <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
                     <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
                     <div class="row justify-between no-wrap q-mx-lg">
                       <span class="col">{{ formattedOrderStatus(status.status) }}</span>
@@ -123,7 +124,7 @@
                 </div>
 
                 <div v-if="tab === 'transaction'">
-                  <div class="row bold-text sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
+                  <div class="row bold-text sm-font-size">
                     <div class="col text-center">Action</div>
                     <div class="col text-center">Txid</div>
                     <div class="col text-center">Status</div>
@@ -144,9 +145,27 @@
                 </div>
               </q-card>
             </div>
-
+            <div>
+              <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+                <div class="text-center q-py-xs bold-text text-uppercase">
+                  Contract Information
+                </div>
+                <q-separator class="q-my-sm" :dark="darkMode"/>
+                <div class="q-mx-lg">
+                  <div class="sm-font-size q-pb-xs text-italic">Address</div>
+                  <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="contractAddress">
+                  </q-input>
+                  <div class="sm-font-size q-pb-xs text-italic">Balance</div>
+                  <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="contractBalance">
+                    <template v-slot:append>
+                      <span class="sm-font-size bold-text">BCH</span>
+                    </template>
+                  </q-input>
+                </div>
+              </q-card>
+            </div>
             <!-- Simplified this -->
-            <div class="q-pb-md q-mb-lg">
+            <div v-if="!appeal.resolved_at" class="q-pb-md q-mb-lg">
               <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
                 <div class="text-center q-py-xs bold-text text-uppercase">
                   Select Options
@@ -199,6 +218,7 @@
   <AdSnapshot
     v-if="state === 'snapshot'"
     :snapshot="ad_snapshot"
+    :selected-payment-methods="order.payment_methods"
     @back="state = 'form'"
   />
 
@@ -220,21 +240,21 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import AdSnapshot from './AdSnapshot.vue'
-import { loadP2PWalletInfo, formatCurrency, formatDate, formatOrderStatus } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      walletIndex: this.$store.getters['global/getWalletIndex'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: null,
       tab: 'status',
       appeal: null,
       order: null,
       ad_snapshot: null,
       contract: null,
+      contractBalance: null,
       fees: null,
       statusHistory: [],
       transactionHistory: [],
@@ -250,7 +270,8 @@ export default {
     }
   },
   props: {
-    appealInfo: Object
+    appealInfo: Object,
+    rampContract: Object
   },
   emits: ['back', 'submit'],
   components: {
@@ -264,50 +285,39 @@ export default {
     },
     sellerReceivesAmount () {
       return Number(this.order.crypto_amount) * Number(this.order.locked_price)
+    },
+    contractAddress () {
+      return this.formattedAddress(this.contract.address)
     }
   },
   async mounted () {
-    const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
-      vm.wallet = wallet
-      this.fetchAppealDetail()
-    })
+    this.fetchAppealDetail()
+    this.contractBalance = await this.rampContract.getBalance()
   },
   methods: {
     fetchAppealDetail (done) {
       const vm = this
-      const timestamp = Date.now()
-      if (!vm.wallet) return
-      signMessage(vm.wallet.privateKeyWif, 'APPEAL_GET', timestamp).then(signature => {
-        const headers = {
-          'wallet-hash': vm.wallet.walletHash,
-          timestamp: timestamp,
-          signature: signature
-        }
-        const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
-        vm.$axios.get(url, { headers })
-          .then(response => {
-            console.log('response:', response)
-            vm.appeal = response.data.appeal
-            vm.order = response.data.order
-            vm.ad_snapshot = response.data.ad_snapshot
-            vm.statusHistory = response.data.statuses
-            vm.transactionHistory = response.data.transactions
-            vm.contract = response.data.contract
-            vm.fees = response.data.fees
-            this.loading = false
-            if (done) done()
-          })
-          .catch(error => {
-            console.error(error.response)
-            this.loading = false
-            if (done) done()
-          })
-      })
+      const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
+      vm.$axios.get(url, { headers: vm.authHeaders })
+        .then(response => {
+          console.log('response:', response)
+          vm.appeal = response.data.appeal
+          vm.order = response.data.order
+          vm.ad_snapshot = response.data.ad_snapshot
+          vm.statusHistory = response.data.statuses
+          vm.transactionHistory = response.data.transactions
+          vm.contract = response.data.contract
+          vm.fees = response.data.fees
+          this.loading = false
+          if (done) done()
+        })
+        .catch(error => {
+          console.error(error.response)
+          this.loading = false
+          if (done) done()
+        })
     },
     async confirmAction () {
-      console.log('confirming', this.selectedAction)
       this.$emit('submit', this.selectedAction, this.order.crypto_amount)
     },
     selectReleaseType (type) {
@@ -330,6 +340,9 @@ export default {
       } else {
         return formatCurrency(value)
       }
+    },
+    formattedAddress (address) {
+      return formatAddress(address, 20, 5)
     },
     formattedDate (value, numeric = false) {
       if (numeric) {

@@ -1,9 +1,9 @@
 <template>
   <q-dialog maximized persistent v-model="dialog">
-    <q-card class="text-center" :class="{'pt-dark': darkMode}">
+    <q-card class="bg-blue-6 text-white text-center">
       <div v-if="state === 'standby'">
-        <div style="margin-top: 45%; font-weight: 500; font-size: 25px;">
-          PEER-TO-PEER<br>FIAT RAMP
+        <div style="margin-top: 75%; font-weight: 500; font-size: 30px;">
+          Click to Log in
         </div>
         <q-btn class="q-mt-md" padding="md" outline round color="white" icon="login" size="1.5em" @click="loginProcess()"/>
       </div>
@@ -45,7 +45,6 @@ import { signMessage } from 'src/wallet/ramp/signature'
 export default {
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL,
       dialog: false,
       hasAccount: false,
@@ -58,14 +57,6 @@ export default {
     }
   },
   emits: ['login', 'createUser'],
-  async mounted () {
-    await this.$store.dispatch('ramp/loadWallet')
-    this.wallet = this.$store.getters['ramp/wallet']
-    this.dialog = true
-    this.isLoading = false
-    this.getProfile()
-    // this.getOTP()
-  },
   methods: {
     async loginProcess () {
       await this.fetchOTP()
@@ -74,18 +65,9 @@ export default {
         this.login()
       }
     },
-    async getProfile () {
-      const url = `${this.apiURL}/ramp-p2p/peer/profile`
-      const { data } = await this.$axios.get(url, { headers: { 'wallet-hash': this.wallet.walletHash } })
-      console.log('data:', data)
-    },
-    async getOTP () {
-      const url = `${this.apiURL}/auth/otp/peer`
-      const { data } = await this.$axios.get(url, { headers: { 'wallet-hash': this.wallet.walletHash } })
-      console.log('data:', data)
-    },
     async login () {
       try {
+        // const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/peer`, { headers: { 'wallet-hash': this.wallet.walletHash } })
         const signature = await signMessage(this.wallet.privateKeyWif, this.auth.otp)
         const body = {
           wallet_hash: this.wallet.walletHash,
@@ -165,6 +147,12 @@ export default {
         }
       }
     }
+  },
+  async mounted () {
+    this.wallet = this.$store.getters['ramp/wallet']
+    this.dialog = true
+
+    this.isLoading = false
   }
 }
 </script>

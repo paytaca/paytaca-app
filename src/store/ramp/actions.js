@@ -1,21 +1,42 @@
 import { axiosInstance } from '../../boot/axios'
 import { signMessage } from 'src/wallet/ramp/signature'
+import { Store } from '..'
+import { loadP2PWalletInfo, getCookie } from 'src/wallet/ramp'
 
-export async function fetchArbiter (context, wallet) {
-  const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/arbiter'
-  const timestamp = Date.now()
-  const signature = await signMessage(wallet.privateKeyWif, 'ARBITER_GET', timestamp)
+export async function loadAuthHeaders (context) {
+  if (!context.state.wallet) {
+    throw new Error('Ramp wallet not initialized')
+  }
+  const wallet = context.state.wallet // await loadWallet(context)
   const headers = {
     'wallet-hash': wallet.walletHash,
-    timestamp: timestamp,
-    signature: signature
+    Authorization: `Token ${getCookie('token')}`
   }
+  context.commit('updateAuthHeaders', headers)
+}
+
+export async function loadWallet (context) {
+  const walletInfo = Store.getters['global/getWallet']('bch')
+  const index = Store.getters['global/getWalletIndex']
+  const wallet = await loadP2PWalletInfo(walletInfo, index)
+  context.commit('updateWallet', wallet)
+  return wallet
+}
+
+export async function fetchArbiter (context) {
+  const state = context.state
+  if (!state.authHeaders) {
+    throw new Error('Ramp authentication headers not initialized')
+  }
+  const wallet = context.state.wallet
+  const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/arbiter/detail'
+  const params = { public_key: wallet.publicKey }
   try {
-    const response = await axiosInstance.get(url, { headers: headers })
+    const response = await axiosInstance.get(url, { headers: state.authHeaders, params: params })
+    console.log('response:', response)
     context.commit('updateArbiter', response.data.arbiter)
     return response.data.arbiter
   } catch (error) {
-    console.error(error)
     console.error(error.response)
   }
 }
@@ -41,40 +62,44 @@ export async function fetchUser (context, walletHash) {
 }
 
 export async function createUser (context, data) {
+  if (!context.state.wallet) {
+    throw new Error('Ramp wallet not initialized')
+  }
+  const wallet = context.state.wallet
   const nickname = data.nickname
-  const wallet = data.wallet
   const timestamp = Date.now()
   const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/peer/'
-  let user = null
-
-  signMessage(wallet.privateKeyWif, 'PEER_CREATE', timestamp)
-    .then(result => {
-      const signature = result
-      const headers = {
-        'wallet-hash': wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature,
-        'public-key': wallet.publicKey
-      }
-      const body = {
-        nickname: nickname,
-        address: wallet.address
-      }
-      axiosInstance.post(url, body, { headers: headers })
-        .then(response => {
-          user = response.data
-          context.commit('updateUser', user)
-        })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response)
-        })
-    })
+  try {
+    const signature = await signMessage(wallet.privateKeyWif, 'PEER_CREATE', timestamp)
+    const headers = {
+      'wallet-hash': wallet.walletHash,
+      timestamp: timestamp,
+      signature: signature,
+      'public-key': wallet.publicKey
+    }
+    const body = {
+      nickname: nickname,
+      address: wallet.address
+    }
+    const response = await axiosInstance.post(url, body, { headers: headers })
+    const user = response.data
+    context.commit('updateUser', user)
+    return user
+  } catch (error) {
+    console.error(error)
+    console.error(error.response)
+  }
 }
 
-export async function fetchAds (context, { component = null, params = null, headers = null, overwrite = false }) {
+export async function fetchAds (context, { component = null, params = null, overwrite = false }) {
   const state = context.state
-  // Setup pagination parameters based on component & transaction type
+  if (!state.authHeaders) {
+    throw new Error('Ramp authentication headers not initialized')
+  }
+  /**
+   * Setup pagination parameters based on
+   * component & transaction type.
+   **/
   let pageNumber = null
   let totalPages = null
   switch (component) {
@@ -114,44 +139,42 @@ export async function fetchAds (context, { component = null, params = null, head
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
     params.page = pageNumber
     params.limit = state.itemsPerPage
-    try {
-      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
+    const response = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
 
-      switch (params.trade_type) {
-        case 'BUY':
-          switch (component) {
-            case 'store':
-              context.commit('updateStoreBuyListings', { overwrite: overwrite, data: data.data })
-              context.commit('incStoreBuyPage')
-              break
-            case 'ads':
-              context.commit('updateAdsBuyListings', { overwrite: overwrite, data: data.data })
-              context.commit('incAdsBuyPage')
-              break
-          }
-          break
-        case 'SELL':
-          switch (component) {
-            case 'store':
-              context.commit('updateStoreSellListings', { overwrite: overwrite, data: data.data })
-              context.commit('incStoreSellPage')
-              break
-            case 'ads':
-              context.commit('updateAdsSellListings', { overwrite: overwrite, data: data.data })
-              context.commit('incAdsSellPage')
-              break
-          }
-          break
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-      throw error
+    switch (params.trade_type) {
+      case 'BUY':
+        switch (component) {
+          case 'store':
+            context.commit('updateStoreBuyListings', { overwrite: overwrite, data: response.data })
+            context.commit('incStoreBuyPage')
+            break
+          case 'ads':
+            context.commit('updateAdsBuyListings', { overwrite: overwrite, data: response.data })
+            context.commit('incAdsBuyPage')
+            break
+        }
+        break
+      case 'SELL':
+        switch (component) {
+          case 'store':
+            context.commit('updateStoreSellListings', { overwrite: overwrite, data: response.data })
+            context.commit('incStoreSellPage')
+            break
+          case 'ads':
+            context.commit('updateAdsSellListings', { overwrite: overwrite, data: response.data })
+            context.commit('incAdsSellPage')
+            break
+        }
+        break
     }
   }
 }
 
-export async function fetchOrders (context, { orderState = null, params = null, headers = null, overwrite = false }) {
+export async function fetchOrders (context, { orderState = null, params = null, overwrite = false }) {
   const state = context.state
+  if (!state.authHeaders) {
+    throw new Error('Ramp authentication headers not initialized')
+  }
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
   let totalPages = null
@@ -176,7 +199,7 @@ export async function fetchOrders (context, { orderState = null, params = null, 
     params.page = pageNumber
     params.limit = state.itemsPerPage
     try {
-      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
+      const data = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
       switch (orderState) {
         case 'ONGOING':
           context.commit('updateOngoingOrders', { overwrite: overwrite, data: data.data })
@@ -187,6 +210,7 @@ export async function fetchOrders (context, { orderState = null, params = null, 
           context.commit('incCompletedOrdersPage')
           break
       }
+      return data
     } catch (error) {
       console.error('Error fetching user data:', error)
       throw error
@@ -194,8 +218,11 @@ export async function fetchOrders (context, { orderState = null, params = null, 
   }
 }
 
-export async function fetchAppeals (context, { appealState = null, params = null, headers = null, overwrite = false }) {
+export async function fetchAppeals (context, { appealState = null, params = null, overwrite = false }) {
   const state = context.state
+  if (!state.authHeaders) {
+    throw new Error('Ramp authentication headers not initialized')
+  }
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
   let totalPages = null
@@ -220,7 +247,8 @@ export async function fetchAppeals (context, { appealState = null, params = null
     params.page = pageNumber
     params.limit = state.itemsPerPage
     try {
-      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
+      const data = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
+      console.log('data:', data)
       switch (appealState) {
         case 'PENDING':
           context.commit('updatePendingAppeals', { overwrite: overwrite, data: data.data })
@@ -278,38 +306,34 @@ export async function fetchOwnedAds (context, params, headers) {
   }
 }
 
-export function resetStorePagination (context) {
-  context.commit('resetStorePagination')
-}
+// export function resetStorePagination (context) {
+//   context.commit('resetStorePagination')
+// }
 
-export function resetAdsPagination (context) {
-  context.commit('resetAdsPagination')
-}
+// export function resetAdsPagination (context) {
+//   context.commit('resetAdsPagination')
+// }
 
-export function resetOrdersPagination (context) {
-  context.commit('resetOrdersPagination')
-}
+// export function resetOrdersPagination (context) {
+//   context.commit('resetOrdersPagination')
+// }
 
-export function resetAppealsPagination (context) {
-  context.commit('resetAppealsPagination')
-}
+// export function resetAppealsPagination (context) {
+//   context.commit('resetAppealsPagination')
+// }
 
-export function resetPagination (context) {
-  context.commit('resetPagination')
-}
+// export function resetPagination (context) {
+//   context.commit('resetPagination')
+// }
 
-export function resetData (context) {
-  context.commit('resetData')
-}
+// export function resetData (context) {
+//   context.commit('resetData')
+// }
 
-export function saveTxid (context, data) {
-  context.commit('saveTxid', data)
-}
+// export function saveTxid (context, data) {
+//   context.commit('saveTxid', data)
+// }
 
-export function clearOrderTxids (context, id) {
-  context.commit('clearOrderTxids', id)
-}
-
-export function clearArbiter (context) {
-  context.commit('clearArbiter')
-}
+// export function clearOrderTxids (context, id) {
+//   context.commit('clearOrderTxids', id)
+// }

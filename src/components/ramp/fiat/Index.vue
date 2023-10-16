@@ -5,34 +5,40 @@
       />
     </div>
     <div v-else>
-      <div v-if="proceed">
-        <div class="q-mt-md">
-          <FiatStore
-            v-if="menu === 'store'"
-            @order-canceled="onOrderCanceled"
-          />
-          <FiatOrders
-            v-if="menu === 'orders'"
-            :init-status-type="initStatusType"
-          />
-          <FiatAds v-if="menu === 'ads'"/>
-          <FiatProfileCard
-            v-if="menu === 'profile'"
-            v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
+      <!-- <div v-if="isLoading">
+        <ProgressLoader/>
+      </div> -->
+      <!-- <div v-else> -->
+        <div v-if="proceed">
+          <div class="q-mt-md">
+            <FiatStore
+              v-if="menu === 'store'"
+              @order-canceled="onOrderCanceled"
+            />
+            <FiatOrders
+              v-if="menu === 'orders'"
+              :init-status-type="initStatusType"
+            />
+            <FiatAds v-if="menu === 'ads'"/>
+            <FiatProfileCard
+              v-if="menu === 'profile'"
+              v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
+            />
+          </div>
+          <footerMenu
+            v-on:clicked="switchMenu"
+            ref="footer"
           />
         </div>
-        <footerMenu
-          v-on:clicked="switchMenu"
-          ref="footer"
-        />
-      </div>
-      <div v-else>
-        <MiscDialogs
-          :type="'editNickname'"
-          v-on:submit="createRampUser"
-          v-on:back="processDialog()"
-        />
-      </div>
+        <div v-else>
+          <!-- If user DNE -->
+          <MiscDialogs
+            :type="'editNickname'"
+            v-on:submit="createRampUser"
+            v-on:back="processDialog()"
+          />
+        </div>
+      <!-- </div> -->
     </div>
   </div>
 </template>
@@ -46,23 +52,23 @@ import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadWallet } from 'src/wallet'
-import { markRaw } from 'vue'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { signMessage } from 'src/wallet/ramp/signature'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      apiURL: process.env.WATCHTOWER_BASE_URL,
+      wallet: null,
       network: 'BCH',
       menu: 'store',
       isLoading: true,
-      wallet: null,
       user: null,
       proceed: false,
       createUser: false,
-      initStatusType: 'ONGOING'
+      initStatusType: 'ONGOING',
+      hasAccount: false,
+      loggingIn: true
     }
   },
   components: {
@@ -76,15 +82,9 @@ export default {
     ProgressLoader
   },
   async mounted () {
-    const vm = this
-    vm.wallet = await markRaw(loadWallet(this.network, this.walletIndex))
-    const walletHash = this.wallet.BCH.getWalletHash()
-    vm.$store.dispatch('ramp/fetchUser', walletHash)
-      .then(user => {
-        vm.user = user
-        if (vm.user) vm.proceed = true
-        vm.isLoading = false
-      })
+    await this.$store.dispatch('ramp/loadWallet')
+    this.wallet = this.$store.getters['ramp/wallet']
+    // await this.login()
   },
   watch: {
     menu (val) {
@@ -143,13 +143,6 @@ export default {
       if (!this.proceed && !this.createUser) {
         this.$router.go(-2)
       }
-    },
-    async createRampUser (value) {
-      this.createUser = true
-      const walletInfo = this.$store.getters['global/getWallet']('bch')
-      const wallet = await loadP2PWalletInfo(walletInfo, this.walletIndex)
-      await this.$store.dispatch('ramp/createUser', { nickname: value.nickname, wallet: wallet })
-      this.proceed = true
     },
     onOrderCanceled () {
       this.switchMenu('orders')

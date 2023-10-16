@@ -27,19 +27,19 @@
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Price</span>
+              <span>Fiat Price</span>
               <span class="text-nowrap q-ml-xs">
                 {{ formattedCurrency(ad.price, ad.fiat_currency.symbol) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Limit</span>
+              <span>Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ formattedCurrency(ad.trade_floor, ad.fiat_currency.symbol) }} - {{ formattedCurrency(ad.trade_ceiling, ad.fiat_currency.symbol) }}
+                {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}  - {{ parseFloat(ad.trade_ceiling) }} {{ ad.crypto_currency.symbol }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Payment Time Limit</span>
+              <span>Time Limit</span>
               <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
             </div>
           </div>
@@ -99,7 +99,7 @@
           <!-- create order btn -->
           <div class="row q-mx-lg q-py-md" v-if="!isOwner">
             <q-btn
-              :disabled="!isValidInputAmount(fiatAmount)"
+              :disabled="!isValidInputAmount(amount)"
               rounded
               no-caps
               :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
@@ -170,7 +170,6 @@
     <!-- Process Order -->
     <div v-if="state === 'order-process'">
       <FiatProcessOrder
-        :init-wallet="wallet"
         :order-data="order"
         @back="onBack"
       />
@@ -190,19 +189,17 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 // import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
-
-import { loadP2PWalletInfo, formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
-      wallet: null,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
 
       ad: null,
       state: 'initial',
@@ -256,11 +253,8 @@ export default {
   },
   async mounted () {
     const vm = this
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-
     await vm.fetchAd()
-    this.amount = parseFloat(this.ad.trade_floor)
+    this.amount = (parseFloat(this.ad.trade_floor) * parseFloat(this.ad.price)).toFixed(2)
     vm.isloaded = true
   },
   methods: {
@@ -272,15 +266,8 @@ export default {
     async fetchAd () {
       const vm = this
       const url = `${vm.apiURL}/ad/${vm.adId}`
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.ad = response.data
         console.log('ad:', vm.ad)
         // set the minimum trade amount in form
@@ -291,13 +278,6 @@ export default {
     },
     async createOrder () {
       const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(vm.wallet.privateKeyWif, 'ORDER_CREATE', timestamp)
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        signature: signature,
-        timestamp: timestamp
-      }
       const cryptoAmount = vm.getCryptoAmount()
       // console.log('cryptoAmount:', cryptoAmount)
       const body = {
@@ -312,7 +292,7 @@ export default {
       // console.log('headers:', headers)
       // console.log('body:', body)
       try {
-        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: headers })
+        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: vm.authHeaders })
         console.log('response:', response)
         vm.order = response.data.order
         vm.state = 'order-process'
@@ -328,6 +308,11 @@ export default {
       }
     },
     isValidInputAmount (value) {
+      if (this.byFiat) {
+        // console.log(this.byFiat)
+        // console.log(this.equivalentAmount)
+        value = this.equivalentAmount
+      }
       if (value === undefined) return false
       const parsedValue = parseFloat(value)
       const tradeFloor = parseFloat(this.ad.trade_floor)
@@ -347,10 +332,10 @@ export default {
     },
     updateInput (max = false) {
       if (max) this.amount = parseFloat(this.ad.trade_ceiling)
-      if (this.byFiat) {
-        if (!max) this.amount = parseFloat(this.amount) * parseFloat(this.ad.price)
+      if (!this.byFiat) {
+        if (!max) this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
       } else {
-        this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
+        this.amount = (parseFloat(this.amount) * parseFloat(this.ad.price)).toFixed(2)
       }
     },
     // orderConfirm () {

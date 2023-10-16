@@ -71,7 +71,7 @@ export function formatCurrency (value, currency) {
       maximumFractionDigits: maximumFractionDigits
     })
   } else {
-    formattedNumber = parseFloat(value).toLocaleString(undefined, {
+    formattedNumber = parsedValue.toLocaleString(undefined, {
       minimumFractionDigits: 0,
       maximumFractionDigits: parsedValue % 1 === 0 ? 0 : 8
     })
@@ -102,6 +102,15 @@ export function formatDate (
   return dateString
 }
 
+export function formatAddress (address, startLength = 35, endLength = 5) {
+  // const startLength = 35
+  // const endLength = 5
+  if (address.length <= startLength + endLength) {
+    return address
+  }
+  return address.slice(0, startLength) + '...' + address.slice(-endLength)
+}
+
 export function formatRelativeDate (date) {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -115,23 +124,55 @@ export function formatRelativeDate (date) {
   const elapsedHours = Math.round(elapsedMinutes / 60)
   const elapsedDays = Math.round(elapsedHours / 24)
 
-  if (elapsedMinutes < 60) {
-    dateString = `${elapsedMinutes} minutes ago`
+  if (elapsedMinutes < 1) {
+    dateString = 'Just now'
+  } else if (elapsedMinutes < 60) {
+    dateString = elapsedMinutes.toString()
+    if (elapsedMinutes > 1) {
+      dateString += ' minutes ago'
+    } else {
+      dateString += ' minute ago'
+    }
   } else if (elapsedHours < 24) {
-    dateString = `${elapsedHours} hours ago`
+    dateString = elapsedHours.toString()
+    if (elapsedHours > 1) {
+      dateString += ' hours ago'
+    } else {
+      dateString += ' hour ago'
+    }
   } else if (elapsedDays < 7) {
-    dateString = `${elapsedDays} days ago`
+    dateString = elapsedDays.toString()
+    if (elapsedDays > 1) {
+      dateString += ' days ago'
+    } else {
+      dateString += ' day ago'
+    }
   } else if (elapsedDays < 30) {
     const elapsedWeeks = Math.round(elapsedDays / 7)
-    dateString = `${elapsedWeeks} weeks ago`
+    dateString = elapsedWeeks.toString()
+    if (elapsedWeeks > 1) {
+      dateString += ' weeks ago'
+    } else {
+      dateString += ' week ago'
+    }
   } else if (elapsedDays < 365) {
     const elapsedMonths = Math.round(elapsedDays / 30)
-    dateString = `${elapsedMonths} months ago`
+    dateString = elapsedMonths.toString()
+    if (elapsedMonths > 1) {
+      dateString += ' months ago'
+    } else {
+      dateString += ' month ago'
+    }
   } else {
     const elapsedYears = Math.round(elapsedDays / 365)
-    dateString = `${elapsedYears} years ago`
+    dateString = elapsedYears.toString()
+    if (elapsedYears === 1) {
+      dateString = dateString + ' year ago'
+    } else {
+      dateString = dateString + ' years ago'
+    }
   }
-  return dateString.toLocaleLowerCase()
+  return dateString
 }
 
 export function getPaymentTimeLimit (timeValue) {
@@ -169,4 +210,15 @@ export function makeid (length) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength))
   }
   return result
+}
+
+export function getCookie (name) {
+  const cookieArr = document.cookie.split('; ')
+  for (let i = 0; i < cookieArr.length; i++) {
+    const cookiePair = cookieArr[i].split('=')
+    if (name === cookiePair[0]) {
+      return decodeURIComponent(cookiePair[1])
+    }
+  }
+  return null
 }

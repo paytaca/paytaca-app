@@ -43,6 +43,11 @@
                         <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                           <div class="row q-mx-md">
                             <div class="col ib-text">
+                              <div
+                                :class="{'pt-dark-label': darkMode}"
+                                class="q-mb-none md-font-size">
+                                #{{ listing.id }}
+                              </div>
                               <span
                                 :class="{'pt-dark-label': darkMode}"
                                 class="q-mb-none md-font-size"
@@ -57,13 +62,12 @@
                                 {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
                               </div>
                               <div class="sm-font-size">
-                                <!-- &asymp; -->
-                                <!-- {{ listing.crypto_amount }} {{ listing.crypto_currency.abbrev }}</div> -->
                                 {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
                               <div class="xs-font-size">
                                 <span class="q-pr-sm">Price</span> {{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}
                               </div>
-                              <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div>
+                              <!-- <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div> -->
+                              <div v-if="listing.created_at" class="row xs-font-size" style="color: grey">{{ formattedDate(listing.created_at) }}</div>
                             </div>
                             <div class="text-right">
                               <span class="row subtext" v-if="listing.status && isCompleted(listing.status.label) == false && listing.expiration_date != null">
@@ -92,7 +96,6 @@
       </div>
       <div v-if="state === 'view-order'">
         <FiatProcessOrder
-          :init-wallet="wallet"
           :order-data="selectedOrder"
           @back="returnOrderList()"
         />
@@ -110,8 +113,7 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-import { loadP2PWalletInfo, formatCurrency, formatDate } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
+import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 
 export default {
@@ -139,8 +141,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      walletIndex: this.$store.getters['global/getWalletIndex'],
-      wallet: null,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       selectedOrder: null,
       selectedUser: null,
       statusType: this.initStatusType,
@@ -149,7 +150,7 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       viewProfile: false
     }
@@ -198,38 +199,25 @@ export default {
     if (!vm.listings || vm.listings.length === 0) {
       vm.loading = true
     }
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
-      vm.wallet = wallet
-      vm.resetAndRefetchListings()
-    })
+    vm.resetAndRefetchListings()
   },
   methods: {
     async fetchOrders (overwrite = false) {
       const vm = this
-      if (!vm.wallet) return
-      const timestamp = Date.now()
-      signMessage(this.wallet.privateKeyWif, 'ORDER_LIST', timestamp).then(signature => {
-        const headers = {
-          'wallet-hash': this.wallet.walletHash,
-          timestamp: timestamp,
-          signature: signature
-        }
-        const params = { state: vm.statusType }
-        vm.$store.dispatch('ramp/fetchOrders',
-          {
-            orderState: vm.statusType,
-            params: params,
-            headers: headers,
-            overwrite: overwrite
-          })
-          .then(response => {
-            vm.loading = false
-          })
-          .catch(error => {
-            console.error(error.response)
-          })
-      })
+      const params = { state: vm.statusType }
+      vm.$store.dispatch('ramp/fetchOrders',
+        {
+          orderState: vm.statusType,
+          params: params,
+          overwrite: overwrite
+        })
+        .then(response => {
+          console.log('response:', response)
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
     },
     async loadMoreData (_, done) {
       const vm = this
@@ -251,14 +239,12 @@ export default {
       console.log('resetAndRefetchListings')
       const vm = this
       // console.time('non-blocking-await')
-      vm.$store.dispatch('ramp/resetOrdersPagination')
-        .then(
-          vm.fetchOrders(true)
-            .then(function () {
-              vm.updatePaginationValues()
-              vm.loading = false
-            })
-        )
+      vm.$store.commit('ramp/resetOrdersPagination')
+      vm.fetchOrders(true)
+        .then(function () {
+          vm.updatePaginationValues()
+          vm.loading = false
+        })
       // console.timeEnd('non-blocking-await')
     },
     updatePaginationValues () {
@@ -317,18 +303,21 @@ export default {
       }
     },
     formatExpiration (expirationDate) {
-      let [days, hours, minutes] = this.getElapsedTime(expirationDate)
+      // eslint-disable-next-line no-unused-vars
+      let [_, hours, minutes] = this.getElapsedTime(expirationDate)
 
-      if (days < 0) days = days * -1
       if (hours < 0) hours = hours * -1
       if (minutes < 0) minutes = minutes * -1
       let formattedElapsedTime = ''
 
-      if (days > 0) {
-        formattedElapsedTime = `${days} days`
-      } else {
-        formattedElapsedTime = `${hours} hours ${minutes} minutes`
+      if (hours > 0) {
+        formattedElapsedTime += `${hours}h `
       }
+
+      if (minutes > 0) {
+        formattedElapsedTime += `${minutes}m `
+      }
+
       return formattedElapsedTime
     },
     isExpired (expirationDate, status) {
@@ -364,6 +353,7 @@ export default {
       // vm.loading = false
     },
     viewUserProfile (data) {
+      // console.log(data)
       this.selectedUser = {
         id: data.ad.owner.id,
         name: data.ad.owner.nickname,

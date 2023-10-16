@@ -9,35 +9,51 @@
         <span class="text-nowrap q-ml-xs">{{ price }}  {{ order.crypto_currency.symbol }}</span>
       </div>
       <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-        <span>Limit</span>
+        <span>Trade Limit</span>
         <span class="text-nowrap q-ml-xs">{{ $parent.getAdLimit }} </span>
       </div>
+      <div class="row justify-between no-wrap q-mx-lg" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <span>Time Limit</span>
+        <span class="text-nowrap q-ml-xs">{{ formattedPlt(order.ad.time_duration).label }} </span>
+      </div>
       <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-        <span>Payment Time Limit</span>
+        <span>Status</span>
         <span class="text-nowrap q-ml-xs" :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status.label }}</span>
       </div>
     </div>
 
-    <!-- Fiat Input -->
     <div class="q-mt-md q-mx-lg q-px-md">
-      <div class="xs-font-size subtext q-pb-xs q-pl-sm">Fiat Amount</div>
-      <q-input class="q-pb-xs" disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
-        <template v-slot:prepend>
-          <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+      <div class="sm-font-size q-pb-xs">Amount</div>
+      <q-input
+        class="q-pb-xs"
+        readonly
+        filled
+        :dark="darkMode"
+        v-model="amount"
+        :rules="[$parent.isValidInputAmount]">
+        <template v-slot:append>
+          <span class="lg-font-size">{{ byFiat ? order.fiat_currency.symbol : order.crypto_currency.symbol }}</span>
         </template>
       </q-input>
-      <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div>
-    </div>
-
-    <div>
-      <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-      <div class="row justify-between no-wrap q-mx-lg sm-font-size bold-text subtext q-pt-sm q-px-lg">
-        <span>Balance:</span>
+      <!-- <div class="text-right subtext sm-font-size"> {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div> -->
+      <q-btn
+        class="sm-font-size"
+        padding="none"
+        flat
+        no-caps
+        color="primary"
+        @click="byFiat = !byFiat">
+        View amount in {{ byFiat ? 'BCH' : order.fiat_currency.symbol }}
+      </q-btn>
+      <!-- <q-separator :dark="darkMode" class="q-mt-md"/> -->
+      <div class="no-wrap sm-font-size subtext q-pt-sm">
+        <span>Balance: </span>
         <span class="text-nowrap q-ml-xs">
           {{ $parent.bchBalance }} BCH
         </span>
       </div>
     </div>
+    <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/> -->
 
     <div class="row q-pt-md q-mx-lg q-px-md">
       <q-btn
@@ -64,6 +80,8 @@
 </template>
 <script>
 
+import { getPaymentTimeLimit } from 'src/wallet/ramp'
+
 export default {
   data () {
     return {
@@ -72,7 +90,9 @@ export default {
       ad: null,
       isloaded: false,
       test: '',
-      price: null
+      price: null,
+      byFiat: false,
+      amount: null
     }
   },
   props: {
@@ -80,12 +100,36 @@ export default {
     adData: Object
   },
   emits: ['confirm', 'cancel'],
+  computed: {
+    fiatAmount () {
+      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+    },
+    cryptoAmount () {
+      return (this.fiatAmount / this.order.locked_price).toFixed(8)
+    }
+  },
+  watch: {
+    byFiat () {
+      this.updateInput()
+    }
+  },
   async mounted () {
     this.order = this.orderData
-
     this.price = this.$parent.formattedCurrency(this.order.crypto_amount)
-
+    this.updateInput()
     this.isloaded = true
+  },
+  methods: {
+    formattedPlt (value) {
+      return getPaymentTimeLimit(value)
+    },
+    updateInput () {
+      if (this.byFiat) {
+        this.amount = parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+      } else {
+        this.amount = parseFloat(this.order.crypto_amount)
+      }
+    }
   }
 }
 </script>

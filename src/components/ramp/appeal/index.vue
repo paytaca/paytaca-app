@@ -4,7 +4,7 @@
     :style="`height: ${ minHeight }px;`"
     v-if="state === 'appeal-list'">
     <div class="q-pt-md">
-      <div class="q-pt-md">
+      <div class="q-mb-sm">
         <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
           <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'PENDING' }" @click="statusType='PENDING'">Pending</button>
           <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}" @click="statusType='RESOLVED'">Resolved</button>
@@ -12,17 +12,23 @@
       </div>
       <q-pull-to-refresh
         @refresh="refreshData">
-        <div v-if="loading">
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader/>
+        <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
+          <!-- Loading icon -->
+          <div class="row justify-center">
+            <q-spinner-dots
+              v-if="loading"
+              class="q-pb-sm"
+              color="primary"
+              size="3em"
+            />
           </div>
-        </div>
-        <div v-else-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">Nothing to display</p>
-        </div>
-        <div v-else>
-          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
+          <!-- Empty list display -->
+          <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
+            <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">Nothing to display</p>
+          </div>
+          <!-- List -->
+          <div v-else>
             <q-infinite-scroll
             ref="infiniteScroll"
             :items="appeals"
@@ -34,30 +40,33 @@
                   <q-spinner-dots color="primary" size="40px" />
                 </div>
               </template>
-              <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md q-pt-sm">
-                <!-- add scroller -->
+              <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
                 <q-item clickable @click="selectAppeal(index)">
-                  <q-item-section>
-                    <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <div class="row q-mx-md">
-                        <div class="col ib-text">
-                          <q-badge rounded size="sm" :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
-                          <div class="md-font-size bold-text">Order #{{ appeal.order.id }}</div>
-                          <div class="sm-font-size" :class="darkMode ? '' : 'subtext'">
-                            {{ formattedDate(appeal.created_at) }} by {{ appeal.owner.nickname}}
+                  <q-item-section class="q-py-sm">
+                    <div class="row q-mx-md">
+                      <div class="col ib-text">
+                        <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
+                        <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
+                        <div class="md-font-size bold-text">Order #{{ appeal.order.id }}</div>
+                        <div class="sm-font-size">
+                          <div class="row">
+                            Requested by {{ appeal.owner.nickname}}
                           </div>
-                          <div v-for="(reason, index) in appeal.reasons" :key="index">
-                            <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
-                          </div>
+                          <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
+                          <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
+                        </div>
+                        <div v-for="(reason, index) in appeal.reasons" :key="index">
+                          <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
                         </div>
                       </div>
                     </div>
                   </q-item-section>
                 </q-item>
+                <q-separator class="q-mx-lg" :dark="darkMode"/>
               </div>
             </q-infinite-scroll>
-          </q-list>
-        </div>
+          </div>
+        </q-list>
       </q-pull-to-refresh>
     </div>
   </q-card>
@@ -66,17 +75,15 @@
   <div v-if="state === 'appeal-process'">
     <AppealProcess
       :selectedAppeal="selectedAppeal"
-      :init-wallet="wallet"
       @back="state = 'appeal-list'"
     />
   </div>
 </template>
 <script>
-import ProgressLoader from '../../ProgressLoader.vue'
 import AppealProcess from './AppealProcess.vue'
-import { signMessage } from '../../../wallet/ramp/signature.js'
-import { loadP2PWalletInfo, formatDate } from 'src/wallet/ramp'
+import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
+import { signMessage } from 'src/wallet/ramp/signature'
 
 export default {
   setup () {
@@ -91,8 +98,10 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       walletIndex: this.$store.getters['global/getWalletIndex'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      apiURL: process.env.WATCHTOWER_BASE_URL,
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: null,
+      user: null,
       statusType: 'PENDING',
       state: 'appeal-list',
       selectedAppeal: null,
@@ -103,8 +112,7 @@ export default {
     }
   },
   components: {
-    AppealProcess,
-    ProgressLoader
+    AppealProcess
   },
   watch: {
     statusType () {
@@ -142,44 +150,60 @@ export default {
       return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
     }
   },
-  mounted () {
-    const vm = this
-    if (!vm.appeals || vm.appeals.length === 0) {
-      vm.loading = true
+  async mounted () {
+    this.loading = true
+    await this.$store.dispatch('ramp/loadWallet')
+    this.wallet = this.$store.getters['ramp/wallet']
+    // if (!vm.appeals || vm.appeals.length === 0) {
+    //   vm.loading = true
+    // }
+    await this.login()
+    if (this.user) {
+      this.resetAndRefetchListings()
     }
-    const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    loadP2PWalletInfo(walletInfo, vm.walletIndex).then(wallet => {
-      vm.wallet = wallet
-      vm.resetAndRefetchListings()
-    })
   },
   methods: {
-    async fetchAppeals (overwrite = false) {
-      console.log('fetching appeals')
-      const vm = this
-      if (!vm.wallet) return
-      const timestamp = Date.now()
-      signMessage(this.wallet.privateKeyWif, 'APPEAL_LIST', timestamp).then(signature => {
-        const headers = {
-          'wallet-hash': this.wallet.walletHash,
-          timestamp: timestamp,
-          signature: signature
+    async login () {
+      try {
+        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/arbiter`, { headers: { 'wallet-hash': this.wallet.walletHash } })
+        const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
+        const body = {
+          wallet_hash: this.wallet.walletHash,
+          signature: signature,
+          public_key: this.wallet.publicKey
         }
-        const params = { state: vm.statusType }
-        vm.$store.dispatch('ramp/fetchAppeals',
-          {
-            appealState: vm.statusType,
-            params: params,
-            headers: headers,
-            overwrite: overwrite
+        await this.$axios.post(`${this.apiURL}/auth/login/arbiter`, body)
+          .then(response => {
+            // save token as cookie and set to expire 1h later
+            document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
+            this.user = response.data.user
+            if (this.user) {
+              this.$store.commit('ramp/updateUser', response.data.user)
+              this.$store.dispatch('ramp/loadAuthHeaders')
+            }
           })
-          .then(
-            vm.loading = false
-          )
-          .catch(error => {
-            console.error(error.response)
-          })
-      })
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
+        this.$router.go(-2)
+      }
+    },
+    async fetchAppeals (overwrite = false) {
+      const vm = this
+      vm.loading = true
+      const params = { state: vm.statusType }
+      await vm.$store.dispatch('ramp/fetchAppeals',
+        {
+          appealState: vm.statusType,
+          params: params,
+          overwrite: overwrite
+        })
+        .then(() => {
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
     },
     async loadMoreData (_, done) {
       const vm = this
@@ -193,21 +217,15 @@ export default {
       }
     },
     async refreshData (done) {
+      this.loading = true
       await this.resetAndRefetchListings()
       if (done) done()
     },
     async resetAndRefetchListings () {
       const vm = this
-      // console.time('non-blocking-await')
-      vm.$store.dispatch('ramp/resetAppealsPagination')
-        .then(
-          vm.fetchAppeals(true)
-            .then(function () {
-              vm.updatePaginationValues()
-              vm.loading = false
-            })
-        )
-      // console.timeEnd('non-blocking-await')
+      vm.$store.commit('ramp/resetAppealsPagination')
+      await vm.fetchAppeals(true)
+      vm.updatePaginationValues()
     },
     updatePaginationValues () {
       const vm = this

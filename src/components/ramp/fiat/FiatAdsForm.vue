@@ -22,7 +22,7 @@
         </div>
       </div>
       <div class="q-pt-sm" v-else>
-        <q-scroll-area :style="`height: ${minHeight - 180}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - minHeight * 0.2}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm bold-text">
               Price Setting
@@ -107,12 +107,12 @@
             </div>
           </div>
 
-          <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+          <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
 
           <!-- Crypto Amount -->
-          <div class="q-mx-lg">
+          <div class="q-mx-lg q-mt-sm">
             <div class="q-mt-sm q-px-md">
-              <div class="q-pb-xs q-pl-sm bold-text">Crypto Amount</div>
+              <div class="q-pb-xs q-pl-sm bold-text">Trade Amount</div>
                 <q-input
                   dense
                   outlined
@@ -121,7 +121,7 @@
                   :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                   type="number"
                   :rules="numberValidation"
-                  v-model="adData.cryptoAmount">
+                  v-model="adData.tradeAmount">
                   <template v-slot:prepend>
                     <span class="bold-text xs-font-size">
                       BCH
@@ -145,7 +145,7 @@
                     v-model="adData.tradeFloor"
                   >
                     <template v-slot:append>
-                      <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
+                      <span class="xs-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
                       <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                     </template>
                   </q-input>
@@ -166,7 +166,7 @@
                     v-model="adData.tradeCeiling"
                   >
                     <template v-slot:append>
-                      <span class="xs-font-size">{{ selectedCurrency.symbol  }}</span>
+                      <span class="xs-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
                       <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
                     </template>
                   </q-input>
@@ -175,7 +175,7 @@
             </div>
           </div>
 
-          <q-separator :dark="darkMode" class="q-mx-md"/>
+          <!-- <q-separator :dark="darkMode" class="q-mx-md"/> -->
 
           <!-- Payment Time Limit -->
           <div class="q-mx-lg q-pt-xs">
@@ -183,48 +183,46 @@
               <div class="q-pt-sm bold-text">Payment Time Limit</div>
             </div>
             <div class="q-mx-md q-pt-sm">
-              <div>
-                <q-select
-                    dense
-                    outlined
-                    rounded
-                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                    :dark="darkMode"
-                    v-model="paymentTimeLimit"
-                    :options="ptlSelection"
-                    @update:modelValue="updatePaymentTimeLimit()">
-                  <template v-slot:option="scope">
-                    <q-item v-bind="scope.itemProps">
-                      <q-item-section>
-                        <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                          {{ scope.opt.label }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </template>
-                </q-select>
-                    <!-- <template v-slot:append>
-                      <q-icon size="xs" name="close" @click.stop.prevent="ptl = ''"/>&nbsp;
-                    </template> -->
-                  <!-- </q-select> -->
-              </div>
+              <q-select
+                  dense
+                  outlined
+                  rounded
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                  :dark="darkMode"
+                  v-model="paymentTimeLimit"
+                  :options="ptlSelection"
+                  @update:modelValue="updatePaymentTimeLimit()">
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section>
+                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                        {{ scope.opt.label }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+            </div>
+            <div class="q-mx-md q-pt-xs">
+              <q-checkbox
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                v-model="adData.isPublic"
+                label="Public"
+              />
             </div>
           </div>
-        </q-scroll-area>
-        <!-- NEXT STEP -->
-        <div class="q-mx-lg">
-          <div class="row q-mx-sm q-py-lg">
+          <div class="row q-mx-lg q-px-md q-mt-xs q-mb-md">
             <q-btn
               :disable="checkPostData()"
               rounded
               no-caps
               label="Next"
-              color="blue-6"
+              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               class="q-space"
               @click="checkSubmitOption()"
             />
           </div>
-        </div>
+        </q-scroll-area>
       </div>
     </div>
     <div v-if="step === 2">
@@ -238,7 +236,6 @@
       </div>
     </div>
     <div v-if="step === 3">
-      <!-- UPDATE LATER -->
       <DisplayConfirmation
         :post-data="adData"
         :ptl="paymentTimeLimit"
@@ -254,8 +251,7 @@ import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { debounce } from 'quasar'
-import { signMessage } from '../../../wallet/ramp/signature.js'
-import { formatCurrency, loadP2PWalletInfo, getPaymentTimeLimit } from 'src/wallet/ramp'
+import { formatCurrency, getPaymentTimeLimit, getCookie } from 'src/wallet/ramp'
 
 export default {
   props: {
@@ -274,12 +270,11 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
-      wallet: null,
       marketPrice: null,
       priceValue: null,
       step: 1,
@@ -291,7 +286,7 @@ export default {
       },
       adData: {
         tradeType: this.transactionType,
-        priceType: 'FIXED',
+        priceType: 'FLOATING',
         fiatCurrency: this.$store.getters['market/selectedCurrency'],
         cryptoCurrency: { // get crypro_currency ID
           name: 'Bitcoin Cash',
@@ -299,11 +294,12 @@ export default {
         },
         fixedPrice: 0,
         floatingPrice: 100,
-        tradeFloor: null,
-        tradeCeiling: null,
-        cryptoAmount: null,
+        tradeFloor: 0.02,
+        tradeCeiling: 100,
+        tradeAmount: 100,
         timeDurationChoice: 5,
-        paymentMethods: []
+        paymentMethods: [],
+        isPublic: true
       },
       ptlSelection: [
         {
@@ -344,14 +340,10 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
-
     if (vm.selectedAdId !== null) {
       await vm.fetchAdDetail()
     }
-
-    // Setup initial market price and subscription
     await vm.getInitialMarketPrice()
-
     vm.updatePriceValue(vm.adData.priceType)
     vm.loading = false
     vm.setupWebsocket()
@@ -383,37 +375,40 @@ export default {
           vm.adData.floatingPrice = value
       }
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
+    },
+    'adData.tradeAmount' (value) {
+      if (!this.loading) { this.adData.tradeCeiling = value }
+    },
+    'adData.tradeCeiling' (value) {
+      if (!this.loading) { this.adData.tradeAmount = value }
     }
   },
   methods: {
     async fetchAdDetail () {
       const vm = this
-      let timestamp = null
-      let signature = null
-      if (vm.wallet === null) {
-        const walletInfo = this.$store.getters['global/getWallet']('bch')
-        vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-        timestamp = Date.now()
-        signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
-      }
+      // let timestamp = null
+      // let signature = null
+      // if (vm.wallet === null) {
+      //   const walletInfo = this.$store.getters['global/getWallet']('bch')
+      //   vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      //   timestamp = Date.now()
+      //   signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
+      // }
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         const data = response.data
+        console.log(data)
         vm.adData.tradeType = data.trade_type
         vm.adData.priceType = data.price_type
-        vm.adData.fixedPrice = data.fixed_price
-        vm.adData.floatingPrice = data.floating_price
+        vm.adData.fixedPrice = parseFloat(data.fixed_price)
+        vm.adData.floatingPrice = parseFloat(data.floating_price)
         vm.adData.fiatCurrency = data.fiat_currency
-        vm.adData.tradeFloor = data.trade_floor
-        vm.adData.tradeCeiling = data.trade_ceiling
-        vm.adData.cryptoAmount = data.crypto_amount
+        vm.adData.tradeAmount = parseFloat(data.trade_amount)
+        vm.adData.tradeFloor = parseFloat(data.trade_floor)
+        vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
         vm.adData.paymentMethods = data.payment_methods
+        vm.adData.isPublic = data.is_public
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
         vm.selectedCurrency = data.fiat_currency
       } catch (error) {
@@ -423,28 +418,22 @@ export default {
     },
     async onSubmit () {
       const vm = this
-      if (vm.wallet === null) {
-        const walletInfo = this.$store.getters['global/getWallet']('bch')
-        vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      }
-      let url = vm.apiURL + '/ad/'
-      const timestamp = Date.now()
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp
-      }
+      // if (vm.wallet === null) {
+      //   const walletInfo = this.$store.getters['global/getWallet']('bch')
+      //   vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
+      // }
+      // const timestamp = Date.now()
+      const url = vm.apiURL + '/ad/'
       const body = vm.transformPostData()
       try {
         let response = null
-        if (vm.adsState === 'create') {
-          const signature = await signMessage(this.wallet.privateKeyWif, 'AD_CREATE', timestamp)
-          headers.signature = signature
-          response = await vm.$axios.post(url, body, { headers: headers })
-        } else if (vm.adsState === 'edit') {
-          url = url + vm.selectedAdId
-          const signature = await signMessage(this.wallet.privateKeyWif, 'AD_UPDATE', timestamp)
-          headers.signature = signature
-          response = await vm.$axios.put(url, body, { headers: headers })
+        switch (vm.adsState) {
+          case 'create':
+            response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
+            break
+          case 'edit':
+            response = await vm.$axios.put(url + vm.selectedAdId, body, { headers: vm.authHeaders })
+            break
         }
         console.log('response:', response)
         vm.swipeStatus = true
@@ -472,7 +461,7 @@ export default {
       const vm = this
       const url = vm.apiURL + '/currency/fiat'
       try {
-        const response = await vm.$axios.get(url)
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.fiatCurrencies = response.data
         if (!vm.selectedCurrency) {
           vm.selectedCurrency = vm.fiatCurrencies[0]
@@ -488,16 +477,10 @@ export default {
       }
     },
     async getPaymentMethods () {
-      const vm = this
-      const timestamp = Date.now()
-      const signature = await signMessage(this.wallet.privateKeyWif, 'PAYMENT_METHOD_LIST', timestamp)
-      const headers = {
-        'wallet-hash': this.wallet.walletHash,
-        timestamp: timestamp,
-        signature: signature
-      }
-      const response = await vm.$axios.get(vm.apiURL + '/payment-method/', { headers: headers })
-      return response.data
+      const url = this.apiURL + '/payment-method/'
+      const { data } = await this.$axios.get(url, { headers: this.authHeaders })
+      console.log('getPaymentMethods: ', data)
+      return data
     },
     async checkSubmitOption () {
       const vm = this
@@ -534,9 +517,10 @@ export default {
         floating_price: parseFloat(data.floatingPrice),
         trade_floor: parseFloat(data.tradeFloor),
         trade_ceiling: parseFloat(data.tradeCeiling),
-        crypto_amount: parseFloat(data.cryptoAmount),
+        trade_amount: parseFloat(data.tradeAmount),
         time_duration_choice: data.timeDurationChoice,
-        payment_methods: idList
+        payment_methods: idList,
+        is_public: data.isPublic
       }
     },
     updatePriceValue (priceType) {
@@ -619,7 +603,7 @@ export default {
     },
     checkPostData () {
       const vm = this
-      if (!vm.isAmountValid(vm.priceAmount) || !vm.isAmountValid(vm.adData.cryptoAmount) || !vm.isAmountValid(vm.adData.tradeCeiling) || !vm.isAmountValid(vm.adData.tradeFloor)) {
+      if (!vm.isAmountValid(vm.priceAmount) || !vm.isAmountValid(vm.adData.tradeAmount) || !vm.isAmountValid(vm.adData.tradeCeiling) || !vm.isAmountValid(vm.adData.tradeFloor)) {
         return true
       } else {
         return false

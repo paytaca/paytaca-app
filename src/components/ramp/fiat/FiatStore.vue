@@ -81,11 +81,12 @@
                             <span class="sm-font-size">/BCH</span><br>
                             <div class="row sm-font-size">
                                 <span class="q-mr-md">Quantity</span>
-                                <span>{{ formattedCurrency(listing.crypto_amount, false) }} BCH</span>
+                                <span>{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
                             </div>
                             <div class="row sm-font-size">
                                 <span class="q-mr-md">Limit</span>
-                                <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span>
+                                <span> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
+                                <!-- <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span> -->
                             </div>
                           </div>
                         </div>
@@ -145,9 +146,10 @@ import FiatOrderForm from './FiatOrderForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
-import { loadP2PWalletInfo, formatCurrency } from 'src/wallet/ramp'
+import { loadP2PWalletInfo, formatCurrency, getCookie } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { signMessage } from '../../../wallet/ramp/signature.js'
+import { SignatureTemplate } from 'cashscript'
 
 export default {
   setup () {
@@ -168,7 +170,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      walletIndex: this.$store.getters['global/getWalletIndex'],
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       viewProfile: false,
       transactionType: 'SELL',
       loading: false,
@@ -182,7 +184,7 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       adFilter: {}
       // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
@@ -233,10 +235,10 @@ export default {
   },
   async mounted () {
     const vm = this
-    // console.log('listings:', vm.listings)
     if (!vm.listings || vm.listings.length === 0) {
       vm.loading = true
     }
+    console.log('FiatStore authHeaders:', vm.authHeaders)
     await vm.fetchFiatCurrencies()
     await vm.resetAndRefetchListings()
     vm.loading = false
@@ -248,7 +250,8 @@ export default {
     },
     async fetchFiatCurrencies () {
       const vm = this
-      vm.$axios.get(vm.apiURL + '/currency/fiat')
+      console.log('FiatStore authHeaders:', vm.authHeaders)
+      vm.$axios.get(vm.apiURL + '/currency/fiat', { headers: vm.authHeaders })
         .then(response => {
           vm.fiatCurrencies = response.data
           if (!vm.selectedCurrency) {
@@ -272,19 +275,10 @@ export default {
           currency: vm.selectedCurrency.symbol,
           trade_type: vm.transactionType
         }
-        const walletInfo = vm.$store.getters['global/getWallet']('bch')
-        const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-        const timestamp = Date.now()
-        const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
-        const headers = {
-          'wallet-hash': wallet.walletHash,
-          signature: signature,
-          timestamp: timestamp
-        }
         try {
-          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers, overwrite: overwrite })
+          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
         } catch (error) {
-          console.error(error)
+          console.error(error.response)
         }
         vm.loading = false
       }
@@ -310,7 +304,7 @@ export default {
     async resetAndRefetchListings () {
       // reset pagination and reload ads list
       const vm = this
-      await vm.$store.dispatch('ramp/resetStorePagination')
+      await vm.$store.commit('ramp/resetStorePagination')
       await vm.fetchStoreListings(true)
       vm.updatePaginationValues()
     },
@@ -355,10 +349,6 @@ export default {
     formatCompletionRate (value) {
       return Math.floor(value).toString()
     },
-    updateNickname (info) {
-      this.$store.commit('global/editRampNickname', info.nickname)
-      // this.proceed = true
-    },
     viewUserProfile (user, data) {
       this.viewProfile = true
       this.selectedUser = {
@@ -367,7 +357,34 @@ export default {
       }
       // console.log(this.selectedUser)
     },
+    async filterAds () {
+      const vm = this
+      vm.loading = true
+      console.log('filtering ads')
+      const params = {
+        currency: 'PHP',
+        limit: 20
+      }
+      const url = `${vm.apiURL}/ad`
+      await this.$axios.get(url, {
+        headers: vm.authHeaders,
+        params: params
+      })
+        .then(response => {
+          console.log(response.data)
+        })
+        .catch(error => {
+          console.log(error)
+        })
+      // try {
+      //   await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers, overwrite: false })
+      // } catch (error) {
+      //   console.error(error)
+      // }
+      vm.loading = false
+    },
     openFilter () {
+      this.filterAds()
       this.openDialog = true
       this.dialogType = 'filterAd'
     }

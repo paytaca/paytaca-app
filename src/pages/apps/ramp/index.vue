@@ -80,11 +80,16 @@ export default {
 
       vm.selectedApp = app
       vm.pageName = 'ramp-' + app
-      if (app === 'fiat') {
-        vm.pageName += '-store'
-      }
+      // if (app === 'fiat') {
+      //   vm.pageName += '-store'
+      // }
       // console.log('pageName:', vm.pageName)
-      this.$router.push({ name: vm.pageName })
+      if (app === 'fiat') {
+        console.log('here')
+        this.$router.push({ name: 'ramp-fiat-login' })
+      } else {
+        this.$router.push({ name: vm.pageName })
+      }
 
       vm.appSelection = false
     }

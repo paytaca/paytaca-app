@@ -1,36 +1,34 @@
 <template>
   <div v-if="isloaded" class="q-mb-sm q-pb-sm">
-    <div class="q-mx-lg text-center bold-text">
-      <div class="lg-font-size">
-        <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
+    <q-scroll-area :style="`height: ${minHeight - minHeight*0.2}px`" style="overflow-y:auto;">
+      <div class="q-mx-lg text-center bold-text">
+        <div class="lg-font-size">
+          <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
+        </div>
+        <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
-      <div v-if="order.status.value !== 'APL' && $parent.isExpired" :class="statusColor">EXPIRED</div>
-    </div>
-    <div class="text-center subtext xs-font-size bold-text">( Order #{{ order.id }} )</div>
-    <div class="q-px-sm q-pt-sm">
-      <div class="sm-font-size q-pb-xs">Fiat Amount</div>
-      <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
-        <template v-slot:prepend>
-          <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
-        </template>
-      </q-input>
+      <div class="text-center subtext xs-font-size bold-text">( Order #{{ order.id }} )</div>
+      <div class="q-px-sm q-pt-sm">
+        <div class="sm-font-size q-pb-xs">Fiat Amount</div>
+        <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
+          <template v-slot:prepend>
+            <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+          </template>
+        </q-input>
 
-      <div class="text-center q-py-xs">
-        <q-icon size="md" name="mdi-swap-vertical" />
+        <div class="text-center q-py-xs">
+          <q-icon size="md" name="mdi-swap-vertical" />
+        </div>
+
+        <div class="sm-font-size q-pb-xs">Crypto Amount</div>
+        <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="cryptoAmount">
+          <template v-slot:prepend>
+            <span class="sm-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
+          </template>
+        </q-input>
       </div>
-
-      <div class="sm-font-size q-pb-xs">Crypto Amount</div>
-      <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="cryptoAmount">
-        <template v-slot:prepend>
-          <span class="sm-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
-        </template>
-      </q-input>
-    </div>
-    <div v-if="order.status.value !== 'APL'">
-      <!-- <q-separator :dark="darkMode" class="q-mt-md q-mx-md"/> -->
-
       <!-- Countdown Timer -->
-      <div class="q-mt-md q-px-md q-mb-lg">
+      <div v-if="order.status.value !== 'APL'" class="q-mt-md q-px-md q-mb-sm">
         <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
           <div v-if="hasLabel && !forRelease" class="row">
             <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
@@ -55,7 +53,7 @@
         </div>
 
         <!-- Appeal Button -->
-        <div v-if="$parent.isExpired">
+        <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired">
           <div class="row q-pt-md">
             <q-btn
               rounded
@@ -66,63 +64,54 @@
               @click="openDialog = true"
             />
           </div>
-          <!-- <div class="q-pt-md sm-font-size q-px-md">
-            <div class="bold-text">
-              Seller did not release the crypto?
-            </div>
-            <div class="subtext q-px-sm">
-              If the seller still has not release the crypto after the Payment Time Limit, please submit an appeal.
-            </div>
-          </div> -->
         </div>
       </div>
-    </div>
-    <div v-else>
-      <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
-        <q-card-section>
-          <div class="bold-text md-font-size">Appeal reasons</div>
-          <div v-if="appeal">
-            <q-badge
-              v-for="reason in appeal.reasons"
-              :key="reason"
-              rounded
-              size="sm"
-              outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-              :label="reason" />
-          </div>
-        </q-card-section>
-      </q-card>
-      <!-- <div class="row q-pt-md q-mx-lg">
-        <q-btn
-          rounded
-          no-caps
-          label='Chat'
-          class="q-space text-white"
-          color="blue-6"
-          @click="onChat"
-        />
-      </div> -->
-    </div>
-    <div>
+      <div v-else>
+        <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+          <q-card-section>
+            <div class="bold-text md-font-size">Appeal reasons</div>
+            <div v-if="appeal">
+              <q-badge
+                v-for="reason in appeal.reasons"
+                :key="reason"
+                rounded
+                size="sm"
+                outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                :label="reason" />
+            </div>
+          </q-card-section>
+        </q-card>
+        <!-- <div class="row q-pt-md q-mx-lg">
+          <q-btn
+            rounded
+            no-caps
+            label='Chat'
+            class="q-space text-white"
+            color="blue-6"
+            @click="onChat"
+          />
+        </div> -->
+      </div>
       <!-- Feedback -->
-      <div class="q-pt-md" v-if="order.status.value === 'RLS'">
-        <div class="text-center bold-text md-font-size subtext">
-          <span v-if="!feedback.is_posted">Rate your Experience</span>
+      <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
+        <div class="md-font-size">
+          <span v-if="!feedback.is_posted">Rate your experience</span>
           <span v-else>Your Review</span>
         </div>
-        <div class="lg-font-size bold-text text-center">{{ nickname }}</div>
-        <div class="text-center">
+        <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
+        <div>
           <div class="q-py-xs">
             <q-rating
               :readonly="feedback.is_posted"
               v-model="feedback.rating"
-              size="2.5em"
+              size="2em"
               color="yellow-9"
               icon="star"
             />
           </div>
           <div class="q-pt-sm q-px-xs">
             <q-input
+              v-if="!feedback.is_posted || (feedback.is_posted && feedback.comment)"
               v-model="feedback.comment"
               :dark="darkMode"
               :readonly="feedback.is_posted"
@@ -134,10 +123,10 @@
               maxlength="200"
             />
           </div>
-          <div class="row q-pt-xs q-px-xs q-py-sm">
+          <div class="row q-pt-xs q-px-xs">
             <q-btn
               v-if="!feedback.is_posted"
-              :disable="!feedback.comment || !feedback.rating"
+              :disable="!feedback.rating"
               rounded
               label='Post Review'
               class="q-space text-white"
@@ -152,10 +141,10 @@
               color="blue-8"
             /> -->
           </div>
-          <div class="text-center text-blue-6 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
+          <!-- <div class="text-right text-blue md-font-size q-mt-sm" @click="openReviews = true">See all reviews</div> -->
         </div>
       </div>
-    </div>
+    </q-scroll-area>
   </div>
 
   <!-- Dialogs -->
@@ -194,6 +183,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       nickname: this.$store.getters['ramp/getUser'].nickname,
       order: null,
       appeal: null,
@@ -214,7 +204,6 @@ export default {
   },
   props: {
     orderId: Number,
-    wallet: Object,
     feedbackData: Object
   },
   emits: ['sendFeedback', 'submitAppeal'],
@@ -223,6 +212,9 @@ export default {
     FeedbackDialog
   },
   computed: {
+    isCompletedOrder () {
+      return (this.order.status.value === 'RLS' || this.order.status.value === 'RFN')
+    },
     orderStatus () {
       return this.order.status.label.toUpperCase()
     },
@@ -296,13 +288,9 @@ export default {
     // },
     async fetchOrderDetail () {
       const vm = this
-      const headers = {
-        'wallet-hash': vm.wallet.walletHash
-      }
       const url = vm.apiURL + '/order/' + vm.orderId
-
       try {
-        const response = await vm.$axios.get(url, { headers: headers })
+        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         // console.log('response: ', response)
         vm.order = response.data.order
         vm.appeal = response.data.appeal

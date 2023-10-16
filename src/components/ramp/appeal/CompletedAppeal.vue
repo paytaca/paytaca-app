@@ -46,7 +46,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      appeal: null,
       isloaded: false,
       amount: {
         seller: 100,
@@ -55,12 +54,13 @@ export default {
     }
   },
   props: {
-    appealInfo: Object
+    appeal: Object,
+    order: Object
   },
   emits: ['back'],
   async mounted () {
-    this.appeal = this.appealInfo
     console.log('completed appeal:', this.appeal)
+    console.log('completed order:', this.order)
     this.isloaded = true
   }
 }
