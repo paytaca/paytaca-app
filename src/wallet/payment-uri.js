@@ -461,9 +461,13 @@ export class JSONPaymentProtocol {
     const txFee = Math.ceil(byteCount * feeRate)
 
     const senderRemainder = totalInput.minus(totalOutput.plus(txFee))
-    if (senderRemainder.isGreaterThanOrEqualTo(getWalletByNetwork(wallet, 'bch').watchtower.BCH.dustLimit)) {
+    console.log('REMAINDER:', senderRemainder)
+    const dustLimit = getWalletByNetwork(wallet, 'bch').watchtower.BCH.getDustLimit()
+    console.log('DUST LIMIT:', dustLimit)
+    if (senderRemainder.isGreaterThanOrEqualTo(dustLimit)) {
       // generate change address if no change address provided
       if (!changeAddress) changeAddress = (await getWalletByNetwork(wallet, 'bch').getAddressSetAt(0)).change
+      console.log(changeAddress)
       txBuilder.addOutput(
         bchjs.Address.toLegacyAddress(changeAddress),
         parseInt(senderRemainder)

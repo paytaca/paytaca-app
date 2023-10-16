@@ -1320,7 +1320,7 @@ export default {
 
     NativeAudio.preload({
       assetId: 'send-success',
-      assetPath: vm.$q.platform.is.ios ? 'public/assets/send-success.mp3' : 'send-success.mp3',
+      assetPath: vm.$q.platform.is.ios ? 'public/assets/sounds/send-success.mp3' : 'send-success.mp3',
       audioChannelNum: 1,
       volume: 1.0,
       isUrl: false
