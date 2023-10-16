@@ -42,7 +42,7 @@
                       {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
                     </span>
                     <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
-                      {{ parseAssetDenomination(denomination, getAssetData(index), 10) }}
+                      {{ parseAssetDenomination(denomination, getAssetData(index), false, 10) }}
                     </span>
                   </div>
                   <div :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
