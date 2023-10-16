@@ -314,8 +314,12 @@ export default {
   methods: {
     isDefaultTheme,
     playSound (success) {
+      let path = 'send-success.mp3'
+      if (this.$q.platform.is.ios) {
+        path = 'public/assets/send-success.mp3'
+      }
       if (success) {
-        const path = this.$q.platform.is.ios ? 'public/assets/send-success.mp3' : 'send-success.mp3'
+        const path = path
         const audio = new Audio(path)
         audio.play()
       }

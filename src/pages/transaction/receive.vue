@@ -422,9 +422,13 @@ export default {
     }
     this.updateLnsName()
 
+    let path = 'send-success.mp3'
+    if (this.$q.platform.is.ios) {
+      path = 'public/assets/send-success.mp3'
+    }
     NativeAudio.preload({
       assetId: 'send-success',
-      assetPath: vm.$q.platform.is.ios ? 'public/assets/sounds/send-success.mp3' : 'send-success.mp3',
+      assetPath: path,
       audioChannelNum: 1,
       volume: 1.0,
       isUrl: false
