@@ -1,7 +1,13 @@
 <template>
   <div>
+<<<<<<< Updated upstream
     <div v-if="isLoading" class="row justify-center q-ma-lg q-pa-lg">
       <ProgressLoader/>
+=======
+    <div class="q-mt-md" v-if="loggingIn">
+      <Login @login="login()"
+      />
+>>>>>>> Stashed changes
     </div>
     <div v-else>
       <div v-if="proceed">
@@ -37,6 +43,11 @@
 </template>
 <script>
 import footerMenu from './footerMenu.vue'
+<<<<<<< Updated upstream
+=======
+// import login from 'src/pages/apps/ramp/login.vue'
+import Login from './Login.vue'
+>>>>>>> Stashed changes
 import FiatStore from './FiatStore.vue'
 import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
@@ -64,6 +75,10 @@ export default {
   },
   components: {
     footerMenu,
+<<<<<<< Updated upstream
+=======
+    Login,
+>>>>>>> Stashed changes
     FiatStore,
     FiatOrders,
     FiatAds,
@@ -88,6 +103,52 @@ export default {
     }
   },
   methods: {
+<<<<<<< Updated upstream
+=======
+    // async login () {
+    //   this.loggingIn = false
+    //   this.proceed = true
+
+    //   this.switchMenu(this.menu)
+    //   this.$router.push({ name: 'ramp-fiat-' + this.menu })
+    // },
+    async login () {
+      try {
+        console.log('wallet:', this.wallet)
+        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/peer`, { headers: { 'wallet-hash': this.wallet.walletHash } })
+        console.log('data:', data)
+        const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
+        const body = {
+          wallet_hash: this.wallet.walletHash,
+          signature: signature,
+          public_key: this.wallet.publicKey
+        }
+        await this.$axios.post(`${this.apiURL}/auth/login/peer`, body)
+          .then(response => {
+            console.log('response:', response)
+            // save token as cookie and set to expire 1h later
+            document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
+            this.user = response.data.user
+            if (this.user) {
+              this.$store.commit('ramp/updateUser', response.data.user)
+              this.$store.dispatch('ramp/loadAuthHeaders')
+                .then(() => {
+                  this.hasAccount = true
+                  this.proceed = true
+                  this.isLoading = false
+                })
+            }
+          })
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
+        // setTimeout(function () {
+        //   console.log('hello')
+        this.isLoading = false
+        // }, 3000)
+      }
+    },
+>>>>>>> Stashed changes
     switchMenu (item) {
       this.menu = item
       this.$refs.footer.selectMenu(this.menu)
