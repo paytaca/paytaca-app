@@ -23,10 +23,10 @@
           <q-btn @click="selectApp('fiat')" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" icon="attach_money"/>
           <span class="text-capitalize">fiat</span>
         </div>
-        <div class="col column items-center">
+        <!-- <div class="col column items-center">
           <q-btn @click="selectApp('appeal')" class="q-mb-sm q-pa-md button-color" dense flat outline rounded size="2em" icon="gavel"/>
           <span class="text-capitalize">appeals</span>
-        </div>
+        </div> -->
       </div>
     </q-card>
   </q-dialog>

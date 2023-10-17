@@ -97,7 +97,7 @@ const routes = [
           {
             path: 'fiat/',
             name: 'ramp-fiat',
-            component: () => import('src/components/ramp/fiat/Index.vue'),
+            component: () => import('src/components/ramp/fiat/FiatIndex.vue'),
             children: [
               {
                 path: 'store/',
@@ -141,7 +141,7 @@ const routes = [
           {
             path: 'appeal/',
             name: 'ramp-appeal',
-            component: () => import('src/components/ramp/appeal/index.vue')
+            component: () => import('src/components/ramp/appeal/AppealIndex.vue')
           }
         ]
       }

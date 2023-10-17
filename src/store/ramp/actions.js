@@ -78,7 +78,7 @@ export async function createUser (context, data) {
       'public-key': wallet.publicKey
     }
     const body = {
-      nickname: nickname,
+      name: nickname,
       address: wallet.address
     }
     const response = await axiosInstance.post(url, body, { headers: headers })

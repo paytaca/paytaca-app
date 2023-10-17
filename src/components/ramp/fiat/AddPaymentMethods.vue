@@ -168,8 +168,6 @@
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
-import { signMessage } from '../../../wallet/ramp/signature.js'
 import ProgressLoader from '../../ProgressLoader.vue'
 
 export default {

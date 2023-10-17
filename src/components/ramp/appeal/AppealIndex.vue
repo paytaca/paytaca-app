@@ -50,7 +50,7 @@
                         <div class="md-font-size bold-text">Order #{{ appeal.order.id }}</div>
                         <div class="sm-font-size">
                           <div class="row">
-                            Requested by {{ appeal.owner.nickname}}
+                            Requested by {{ appeal.owner.name}}
                           </div>
                           <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
                           <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>

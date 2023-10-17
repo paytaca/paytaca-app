@@ -5,6 +5,8 @@ export function updateUser (state, user) {
 
 export function resetUser (state) {
   state.user = null
+  state.wallet = null
+  state.authHeaders = null
 }
 
 export function saveTxid (state, data) {
@@ -185,10 +187,10 @@ export function resetData (state) {
 
 export function updateWallet (state, wallet) {
   state.wallet = wallet
-  console.log('Updated wallet:', state.wallet)
+  // console.log('Updated wallet:', state.wallet)
 }
 
 export function updateAuthHeaders (state, headers) {
   state.authHeaders = headers
-  console.log('Updated authHeaders: ', state.authHeaders)
+  // console.log('Updated authHeaders: ', state.authHeaders)
 }

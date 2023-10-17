@@ -230,7 +230,7 @@ export default {
       return (this.pageNumber < this.totalPages)
     },
     isOwner () {
-      return this.selectedUser.name === this.$store.getters['ramp/getUser'].nickname
+      return this.selectedUser.name === this.$store.getters['ramp/getUser'].name
     }
   },
   async mounted () {

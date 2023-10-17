@@ -140,7 +140,7 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
-import ProgressLoader from '../../ProgressLoader.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { getCookie, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 
