@@ -74,7 +74,7 @@ export default {
       dialog: false,
       user: null,
       usernickname: '',
-      wallet: null,
+      wallet: this.$store.getters['ramp/wallet'],
       isLoading: true,
       register: false,
       isArbiter: false,
@@ -83,16 +83,15 @@ export default {
     }
   },
   emits: ['loggedIn'],
-  async mounted () {
-    this.wallet = this.$store.getters['ramp/wallet']
-    this.dialog = true
-    await this.getProfile()
-    this.isLoading = false
-  },
   computed: {
     isValidNickname () {
       return this.usernickname && this.usernickname.length > 0
     }
+  },
+  async mounted () {
+    this.dialog = true
+    await this.getProfile()
+    this.isLoading = false
   },
   methods: {
     onLoginClick () {

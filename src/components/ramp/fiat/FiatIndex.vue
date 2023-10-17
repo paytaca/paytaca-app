@@ -37,7 +37,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL,
-      wallet: null,
+      wallet: this.$store.getters['ramp/wallet'],
       network: 'BCH',
       menu: 'store',
       isLoading: true,
@@ -59,8 +59,6 @@ export default {
   },
   emits: ['loggedIn'],
   async mounted () {
-    await this.$store.dispatch('ramp/loadWallet')
-    this.wallet = this.$store.getters['ramp/wallet']
     this.isLoading = false
   },
   watch: {
