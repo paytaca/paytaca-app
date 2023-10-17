@@ -1,56 +1,34 @@
 <template>
   <div>
-    <div class="q-mt-md" v-if="loggingIn">
-      <Login @login="login()"
-      />
+    <div v-if="isLoading" class="row justify-center q-py-lg" style="margin-top: 50%">
+      <ProgressLoader/>
     </div>
     <div v-else>
-      <!-- <div v-if="isLoading">
-        <ProgressLoader/>
-      </div> -->
-      <!-- <div v-else> -->
-        <div v-if="proceed">
-          <div class="q-mt-md">
-            <FiatStore
-              v-if="menu === 'store'"
-              @order-canceled="onOrderCanceled"
-            />
-            <FiatOrders
-              v-if="menu === 'orders'"
-              :init-status-type="initStatusType"
-            />
-            <FiatAds v-if="menu === 'ads'"/>
-            <FiatProfileCard
-              v-if="menu === 'profile'"
-              v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
-            />
-          </div>
-          <footerMenu
-            v-on:clicked="switchMenu"
-            ref="footer"
-          />
-        </div>
-        <div v-else>
-          <!-- If user DNE -->
-          <MiscDialogs
-            :type="'editNickname'"
-            v-on:submit="createRampUser"
-            v-on:back="processDialog()"
-          />
-        </div>
-      <!-- </div> -->
+      <div class="q-mt-md">
+        <FiatStore
+          v-if="menu === 'store'"
+          @order-canceled="onOrderCanceled"
+        />
+        <FiatOrders
+          v-if="menu === 'orders'"
+          :init-status-type="initStatusType"
+        />
+        <FiatAds v-if="menu === 'ads'"/>
+        <FiatProfileCard
+          v-if="menu === 'profile'"
+          v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
+        />
+      </div>
+      <footerMenu v-on:clicked="switchMenu" ref="footer"/>
     </div>
   </div>
 </template>
 <script>
 import footerMenu from './footerMenu.vue'
-// import login from 'src/pages/apps/ramp/login.vue'
-import Login from './Login.vue'
 import FiatStore from './FiatStore.vue'
 import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { signMessage } from 'src/wallet/ramp/signature'
 
@@ -68,23 +46,22 @@ export default {
       createUser: false,
       initStatusType: 'ONGOING',
       hasAccount: false,
-      loggingIn: true
+      userType: null
     }
   },
   components: {
     footerMenu,
-    Login,
     FiatStore,
     FiatOrders,
     FiatAds,
     FiatProfileCard,
-    MiscDialogs,
     ProgressLoader
   },
+  emits: ['loggedIn'],
   async mounted () {
     await this.$store.dispatch('ramp/loadWallet')
     this.wallet = this.$store.getters['ramp/wallet']
-    // await this.login()
+    this.isLoading = false
   },
   watch: {
     menu (val) {
@@ -92,13 +69,11 @@ export default {
     }
   },
   methods: {
-    // async login () {
-    //   this.loggingIn = false
-    //   this.proceed = true
-
-    //   this.switchMenu(this.menu)
-    //   this.$router.push({ name: 'ramp-fiat-' + this.menu })
-    // },
+    loggedInAs (userType) {
+      this.loggingIn = false
+      this.userType = userType
+      this.$emit('loggedIn', userType)
+    },
     async login () {
       try {
         console.log('wallet:', this.wallet)

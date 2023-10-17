@@ -190,10 +190,10 @@ import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampDisplayConfirmation from './RampDisplayConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
 import RampHistoryDialog from './RampHistoryDialog.vue'
-import ProgressLoader from '../ProgressLoader.vue'
-import QrScanner from '../qr-scanner.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
-import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
+import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
 export default {

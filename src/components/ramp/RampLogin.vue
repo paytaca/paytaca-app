@@ -1,14 +1,14 @@
 <template>
     <q-card
-    class="br-15 q-pt-md q-mx-md q-mx-none q-mb-lg"
+    class="position-relative br-15 q-pt-md q-mx-md q-mx-none q-mb-lg"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`height: ${minHeight}px;`">
+    :style="`height: ${minHeight}px; position: relative;`">
 
-    <div v-if="!isLoading" class="row justify-center" style="margin-top: 30%">
+    <div v-if="!isLoading" class="row justify-center" style="margin-top: 5%">
         <div>
-            <div class="row justify-center q-mt-lg">
-                <div class="q-mx-lg q-mb-sm" style="font-weight: 200; font-size: 20px;">
-                    {{ register ? "Sign up" : "Sign in"}} as
+            <div class="q-mt-md">
+                <div class="row justify-center q-mx-lg q-mb-sm" style="margin-top: 30%; font-weight: 200; font-size: 20px;">
+                    {{ register ? "Sign up" : "Sign in"}} as {{ isArbiter ? "Arbiter" : "Peer"}}
                 </div>
                 <q-input
                     :dark="darkMode"
@@ -19,7 +19,7 @@
                     dense
                     placeholder="Enter nickname"
                     v-model="usernickname"
-                    class="row q-mx-md">
+                    class="row q-mx-lg q-px-lg">
                     <template v-slot:append>
                         <q-btn v-if="!register" round dense flat icon="swap_horiz" />
                         <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname && isArbiter" @click="createRampUser" />
@@ -53,13 +53,8 @@
                     Error: {{ errorMessage }}
                 </q-card>
             </div>
-            <div  class="row q-mx-lg q-px-md q-my-md">
-                <q-card flat v-if="isArbiter" class="col q-mx-md q-pa-md bg-blue-1 pp-text">
-                    <div class="row">
-                        <q-icon class="col-auto q-my-xs" name="info" left/>
-                        <span class="col">Arbiter accounts cannot sign up as Peer.</span>
-                    </div>
-                </q-card>
+            <div class="row justify-center align-center q-pb-md q-mb-lg" style="position:absolute; margin-bottom: 5%; font-weight: 300; font-size: 20px; left: 50%; bottom: 0; transform: translate(-50%, 0);">
+                <span>{{ isArbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
             </div>
         </div>
     </div>
@@ -82,19 +77,17 @@ export default {
       wallet: null,
       isLoading: true,
       register: false,
-      nickname: '',
       isArbiter: false,
       loggingIn: false,
       errorMessage: null
     }
   },
-  emits: ['login', 'createUser'],
+  emits: ['loggedIn'],
   async mounted () {
     this.wallet = this.$store.getters['ramp/wallet']
     this.dialog = true
     await this.getProfile()
     this.isLoading = false
-    // this.getOTP()
   },
   computed: {
     isValidNickname () {
@@ -103,7 +96,6 @@ export default {
   },
   methods: {
     onLoginClick () {
-      console.log('onLoginClick')
       this.showSecurityDialog()
     },
     showSecurityDialog () {
@@ -120,32 +112,44 @@ export default {
         })
     },
     async getProfile () {
-      const url = `${this.apiURL}/ramp-p2p/peer/profile`
+      const url = `${this.apiURL}/ramp-p2p/user`
       await this.$axios.get(url, { headers: { 'wallet-hash': this.wallet.walletHash } })
         .then(response => {
+          this.isArbiter = response.data.is_arbiter
           this.user = response.data.user
-          console.log('user:', this.user)
+          this.usernickname = this.user.name
+          console.log(response)
         })
         .catch(error => {
           console.error(error.response)
-          this.isArbiter = error.response.data.is_arbiter
-          if (error.response.status === 404) {
-            this.register = true
+          if (error.response) {
+            if (error.response.status === 404) {
+              this.register = true
+            }
           }
         })
     },
     async login () {
       try {
-        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/peer`, { headers: { 'wallet-hash': this.wallet.walletHash } })
+        let otpUrl = `${this.apiURL}/auth/otp/`
+        let loginUrl = `${this.apiURL}/auth/login/`
+        if (this.isArbiter) {
+          otpUrl += 'arbiter'
+          loginUrl += 'arbiter'
+        } else {
+          otpUrl += 'peer'
+          loginUrl += 'peer'
+        }
+
+        const { data } = await this.$axios.get(otpUrl, { headers: { 'wallet-hash': this.wallet.walletHash } })
         const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
         const body = {
           wallet_hash: this.wallet.walletHash,
           signature: signature,
           public_key: this.wallet.publicKey
         }
-        await this.$axios.post(`${this.apiURL}/auth/login/peer`, body)
+        await this.$axios.post(loginUrl, body)
           .then(response => {
-            // console.log('response:', response)
             // save token as cookie and set to expire 1h later
             document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
             this.user = response.data.user
@@ -154,25 +158,23 @@ export default {
               this.$store.dispatch('ramp/loadAuthHeaders')
             }
 
-            // this.$emit('login')
-            this.dialog = false
+            let userType
+            if (this.isArbiter) userType = 'arbiter'
+            else userType = 'peer'
+
+            this.$emit('loggedIn', userType)
           })
       } catch (error) {
         console.log(error)
         console.log(error.response)
-        if ('data' in error.response) {
-          if (error.response.data.error === 'Wallet not found') {
-            this.hasAccount = false
-          } else {
-            this.hasAccount = true
-          }
+        if (!('data' in error.response)) {
+          console.log('network error')
         }
       }
     },
     async createRampUser () {
       const timestamp = Date.now()
       const url = `${this.apiURL}/ramp-p2p/peer/create`
-      // this.$store.dispatch('ramp/createUser', this.nickname)
       try {
         const signature = await signMessage(this.wallet.privateKeyWif, 'PEER_CREATE', timestamp)
         const headers = {
@@ -182,7 +184,7 @@ export default {
           'public-key': this.wallet.publicKey
         }
         const body = {
-          nickname: this.nickname,
+          name: this.nickname,
           address: this.wallet.address
         }
         const { data: user } = await this.$axios.post(url, body, { headers: headers })
@@ -192,20 +194,8 @@ export default {
         console.error(error)
         console.error(error.response)
       }
-      // this.user = await this.$store.dispatch('ramp/createUser', { nickname: this.nickname, wallet: this.wallet })
-
-      if (this.user) {
-        this.state = 'login'
-        await this.fetchOTP()
-        this.login()
-      }
+      this.login()
     }
   }
 }
 </script>
-<style scoped>
-.scrollable {
-  max-height: 110px; /* Adjust as needed */
-  overflow-y: scroll;
-}
-</style>

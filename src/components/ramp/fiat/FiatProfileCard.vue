@@ -16,7 +16,7 @@
       <div class="text-center q-pt-none">
         <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
         <div class="bold-text lg-font-size q-pt-sm">
-          {{ user.nickname }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+          {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
         </div>
       </div>
 
@@ -70,7 +70,7 @@
           <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;">
             <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
               <div class="md-font-size bold-text">
-                {{  review.from_peer.nickname }}
+                {{  review.from_peer.name }}
               </div>
               <div class="sm-font-text">
                 <q-rating
@@ -173,7 +173,7 @@ export default {
     async updateUserName (info) {
       const vm = this
       console.log('authHeaders:', this.authHeaders)
-      vm.$axios.put(vm.apiURL + '/peer/detail', { nickname: info.nickname }, { headers: vm.authHeaders })
+      vm.$axios.put(vm.apiURL + '/peer/detail', { name: info.nickname }, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response.data)
           vm.$store.commit('ramp/updateUser', response.data)

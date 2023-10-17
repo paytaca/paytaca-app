@@ -19,7 +19,7 @@
           <q-scroll-area :style="`height: ${maxHeight - (maxHeight*.2)}px`" style="overflow:auto;">
 
             <div class="q-pt-md q-mx-lg q-pb-lg q-px-md" v-for="(review, index) in reviewList" :key="index">
-              <div class="bold-text">{{  review.from_peer.nickname }}</div>
+              <div class="bold-text">{{  review.from_peer.name }}</div>
               <div class="q-py-xs q-pb-sm">
                   <q-rating
                     readonly
