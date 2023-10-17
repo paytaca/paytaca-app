@@ -102,9 +102,9 @@
   </q-dialog>
 </template>
 <script>
-import { getMnemonic, Wallet } from '../../wallet'
-import RampShiftInfo from './RampShiftInfo.vue'
+import { getMnemonic, Wallet } from 'src/wallet'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import RampShiftInfo from './RampShiftInfo.vue'
 
 export default {
   components: {

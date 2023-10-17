@@ -125,18 +125,13 @@ const routes = [
                 path: 'profile/',
                 name: 'ramp-fiat-profile',
                 component: () => import('src/components/ramp/fiat/FiatProfileCard.vue')
-              },
-              {
-                path: 'login/',
-                name: 'ramp-fiat-login',
-                component: () => import('src/pages/apps/ramp/login.vue')
               }
             ]
           },
           {
             path: 'crypto/',
             name: 'ramp-crypto',
-            component: () => import('src/components/ramp/RampShiftForm.vue')
+            component: () => import('src/components/ramp/crypto/RampShiftForm.vue')
           },
           {
             path: 'appeal/',
