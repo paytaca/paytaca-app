@@ -238,7 +238,6 @@ export default {
     if (!vm.listings || vm.listings.length === 0) {
       vm.loading = true
     }
-    console.log('FiatStore authHeaders:', vm.authHeaders)
     await vm.fetchFiatCurrencies()
     await vm.resetAndRefetchListings()
     vm.loading = false

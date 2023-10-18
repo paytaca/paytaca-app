@@ -4,7 +4,12 @@
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     :style="`height: ${minHeight}px; position: relative;`">
 
-    <div v-if="!isLoading" class="row justify-center" style="margin-top: 5%">
+    <div v-if="isLoading">
+      <div class="row justify-center q-py-lg" style="margin-top: 50%">
+        <ProgressLoader/>
+      </div>
+    </div>
+    <div v-else class="row justify-center" style="margin-top: 5%">
         <div>
             <div class="q-mt-md">
                 <div class="row justify-center q-mx-lg q-mb-sm" style="margin-top: 30%; font-weight: 200; font-size: 20px;">
@@ -12,7 +17,6 @@
                 </div>
                 <q-input
                     :dark="darkMode"
-                    :disable="!register || isArbiter"
                     :readonly="!register || isArbiter"
                     rounded
                     standout
@@ -21,6 +25,7 @@
                     v-model="usernickname"
                     class="row q-mx-lg q-px-lg">
                     <template v-slot:append>
+                        <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
                         <q-btn v-if="!register" round dense flat icon="swap_horiz" />
                         <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname && isArbiter" @click="createRampUser" />
                     </template>
@@ -63,9 +68,14 @@
 <script>
 import { signMessage } from 'src/wallet/ramp/signature'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { Dialog } from 'quasar'
+import { getCookie } from 'src/wallet/ramp'
 
 export default {
+  components: {
+    ProgressLoader
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -117,7 +127,14 @@ export default {
           this.isArbiter = response.data.is_arbiter
           this.user = response.data.user
           this.usernickname = this.user.name
-          console.log(response)
+          if (this.user) {
+            this.$store.commit('ramp/updateUser', this.user)
+            this.$store.dispatch('ramp/loadAuthHeaders')
+          }
+          const token = getCookie('token')
+          if (token) {
+            this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
+          }
         })
         .catch(error => {
           console.error(error.response)
@@ -150,10 +167,10 @@ export default {
         await this.$axios.post(loginUrl, body)
           .then(response => {
             // save token as cookie and set to expire 1h later
-            document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
+            document.cookie = `token=${response.data.token}; expires=${new Date(response.data.expires_at).toUTCString()}; path=/`
             this.user = response.data.user
             if (this.user) {
-              this.$store.commit('ramp/updateUser', response.data.user)
+              this.$store.commit('ramp/updateUser', this.user)
               this.$store.dispatch('ramp/loadAuthHeaders')
             }
 
@@ -194,6 +211,17 @@ export default {
         console.error(error.response)
       }
       this.login()
+    },
+    async revokeAuth () {
+      const url = `${this.apiURL}/auth/revoke`
+      const authHeaders = this.$store.getters['ramp/authHeaders']
+      try {
+        const response = await this.$axios.post(url, null, { headers: authHeaders })
+        console.log('response:', response)
+      } catch (error) {
+        console.error(error)
+        console.error(error.response)
+      }
     }
   }
 }

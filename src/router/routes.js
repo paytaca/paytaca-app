@@ -95,6 +95,11 @@ const routes = [
         component: () => import('src/pages/apps/ramp/index.vue'),
         children: [
           {
+            path: 'login/',
+            name: 'ramp-login',
+            component: () => import('src/components/ramp/RampLogin.vue')
+          },
+          {
             path: 'fiat/',
             name: 'ramp-fiat',
             component: () => import('src/components/ramp/fiat/FiatIndex.vue'),
