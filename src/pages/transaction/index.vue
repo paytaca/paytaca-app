@@ -62,7 +62,7 @@
                               balance: bchAsset.balance,
                               symbol: 'BCH',
                               decimals: 0
-                            }, 10)
+                            }, false, 10)
                         }}
                       </p>
                       <div style="padding: 0; margin-top: -15px;">

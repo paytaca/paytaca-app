@@ -155,7 +155,7 @@
                       @focus="readonlyState(true)"
                       @blur="readonlyState(false)"
                       filled
-                      v-model="sendData.amount"
+                      v-model="amountFormatted"
                       :label="$t('Amount')"
                       :loading="computingMax"
                       :disabled="disableAmountInput || setAmountInFiat"
@@ -222,7 +222,7 @@
                     href="#"
                     class="button button-text-primary"
                     :class="getDarkModeClass(darkMode)"
-                    @click.prevent="() => {sendData.amount = 0; setAmountInFiat = true}"
+                    @click.prevent="() => {sendData.amount = 0; amountFormatted = 0; setAmountInFiat = true}"
                   >
                     Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
                   </a>
@@ -391,7 +391,12 @@ import {
   getWalletByNetwork,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
-import { parseAssetDenomination, getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import {
+  parseAssetDenomination,
+  getAssetDenomination,
+  parseFiatCurrency,
+  convertToBCH
+} from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
@@ -533,7 +538,8 @@ export default {
       sendAmountInFiat: null,
       balanceExceeded: false,
       setMax: false,
-      computingMax: false
+      computingMax: false,
+      amountFormatted: null
     }
   },
 
@@ -659,7 +665,10 @@ export default {
     },
     sendAmountInFiat: function (amount) {
       if (!this.setMax) {
-        this.sendData.amount = this.convertFiatToSelectedAsset(amount)
+        let fiatToAsset = this.convertFiatToSelectedAsset(amount)
+        fiatToAsset = fiatToAsset || 0
+        this.sendData.amount = fiatToAsset
+        this.amountFormatted = parseFloat(getAssetDenomination(this.denomination, fiatToAsset, true))
       }
     }
   },
@@ -669,6 +678,7 @@ export default {
     parseAssetDenomination,
     getAssetDenomination,
     parseFiatCurrency,
+    convertToBCH,
     getDarkModeClass,
     isDefaultTheme,
     getExplorerLink (txid) {
@@ -869,38 +879,45 @@ export default {
       return computedBalance.toFixed(8)
     },
     setAmount (key) {
-      let sendAmount, amount
+      let sendAmount, amount, tempAmountFormatted = ''
       if (this.setAmountInFiat) {
         sendAmount = this.sendAmountInFiat
       } else {
         sendAmount = this.sendData.amount
+        tempAmountFormatted = this.amountFormatted === null ? '' : this.amountFormatted
       }
       sendAmount = sendAmount === null ? '' : sendAmount
       if (key === '.' && sendAmount === '') {
         amount = '0.'
+        tempAmountFormatted = '0.'
       } else {
-        amount = sendAmount.toString()
+        amount = this.setAmountInFiat ? sendAmount.toString() : tempAmountFormatted.toString()
         const hasPeriod = amount.indexOf('.')
         if (hasPeriod < 1) {
           if (Number(amount) === 0 && Number(key) > 0) {
             amount = key
+            tempAmountFormatted = key
           } else {
             // Check amount if still zero
             if (Number(amount) === 0 && Number(amount) === Number(key)) {
               amount = 0
+              tempAmountFormatted = 0
             } else {
               amount += key.toString()
+              tempAmountFormatted += key.toString()
             }
           }
         } else {
           amount += key !== '.' ? key.toString() : ''
+          tempAmountFormatted += key !== '.' ? key.toString() : ''
         }
       }
       // Set the new amount
       if (this.setAmountInFiat) {
         this.sendAmountInFiat = amount
       } else {
-        this.sendData.amount = amount
+        this.sendData.amount = convertToBCH(this.denomination, amount)
+        this.amountFormatted = tempAmountFormatted
       }
     },
     makeKeyAction (action) {
@@ -910,6 +927,7 @@ export default {
           this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
         } else {
           this.sendData.amount = String(this.sendData.amount).slice(0, -1)
+          this.amountFormatted = String(this.amountFormatted).slice(0, -1)
         }
       } else if (action === 'delete') {
         // Delete
@@ -917,6 +935,7 @@ export default {
           this.sendAmountInFiat = ''
         } else {
           this.sendData.amount = ''
+          this.amountFormatted = ''
         }
       } else {
         // Enabled submit slider
@@ -1027,7 +1046,7 @@ export default {
             this.sendErrors.push('Not enough balance to cover the gas fee')
           }
         } else {
-          // this.sendData.amount = getAssetDenomination(this.denomination, this.asset.spendable)
+          this.amountFormatted = parseFloat(getAssetDenomination(this.denomination, this.asset.spendable, true))
           this.sendData.amount = this.asset.spendable
         }
         if (this.setAmountInFiat) {
