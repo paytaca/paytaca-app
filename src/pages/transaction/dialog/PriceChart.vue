@@ -5,7 +5,7 @@
       class="br-15"
       style="padding-bottom: 10px; background-color: #ECF3F3"
     >
-      <q-card-section class="row items-center q-pb-none" style="float: right;">
+      <q-card-section v-if="isloaded" class="row items-center q-pb-none" style="float: right;">
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -17,7 +17,7 @@
           </span>
         </div>
       </div>
-      <div class="row justify-center q-pb-lg" v-if="!isloaded">
+      <div class="row justify-center q-pb-lg q-pt-lg" v-if="!isloaded">
         <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div class="text-center col pt-internet-required" v-if="networkError && isloaded">
