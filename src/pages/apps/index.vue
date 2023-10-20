@@ -1,11 +1,12 @@
 <template>
-  <div id="apps-page-container" :class="getDarkModeClass(darkMode, 'pt-dark', '')">
+  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode, 'pt-dark', '')">
     <div id="apps" ref="apps" class="text-center">
-      <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
-        <div :class="{'pt-header apps-header': isDefaultTheme(theme)}">
+      <div>
+        <div :class="{'pt-header apps-header': isDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
           <p
             class="section-title"
             :class="{'text-blue-5': darkMode, 'text-grad': isDefaultTheme(theme)}"
+            :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
           >
             {{ $t('Applications') }}
           </p>
