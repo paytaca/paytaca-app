@@ -6,12 +6,12 @@
         backnavpath="/apps/gifts"
         class="q-px-sm apps-header gift-app-header"
       />
-      <div class="q-pa-lg" style="width: 100%; color: black;" :style="{ 'padding-top': $q.platform.is.ios ? '145px' : '80px'}">
+      <div class="q-pa-lg" style="width: 100%; color: black;">
         <div class="text-center" v-if="processing">
           <p :class="{'text-white': darkMode}" >Creating gift...</p>
           <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
         </div>
-        <div :class="{'text-white': darkMode}" v-if="!processing && !completed">
+        <div class="q-mt-md" :class="{'text-white': darkMode}" v-if="!processing && !completed">
           <div class="text-h5 q-mb-md">Create Gift</div>
           <div class="q-mb-lg">
             Balance: {{ getAssetDenomination(denomination, spendableBch) }}
