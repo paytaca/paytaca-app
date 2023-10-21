@@ -16,12 +16,7 @@
           >
             <div>
               {{
-                parseAssetDenomination(denomination, {
-                  id: asset?.id,
-                  balance: transaction?.amount,
-                  symbol: asset?.symbol,
-                  decimals: asset?.decimals
-                })
+                parseAssetDenomination(denomination, asset, amount=transaction?.amount)
               }}
             </div>
             <div
