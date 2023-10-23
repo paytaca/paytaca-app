@@ -7,13 +7,8 @@ const denomDecimalPlaces = {
   DEEM: { convert: 10 ** 4, decimal: 0 }
 }
 
-export function parseAssetDenomination (denomination, asset, amount=null, isInput = false, subStringMax = 0) {
-  let balanceCheck
-  if (amount) {
-    balanceCheck = amount
-  } else {
-    balanceCheck = asset.balance ?? 0
-  }
+export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0) {
+  const balanceCheck = asset.balance ?? 0
   const isBCH = asset.symbol === 'BCH'
   const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
   let completeAsset = ''
