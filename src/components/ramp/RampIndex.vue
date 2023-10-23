@@ -26,7 +26,7 @@
         <!-- FIAT Tab Content-->
         <div v-if="selectedApp === 'fiat'">
           <div v-if="!loggedIn" class="q-mt-md">
-              <RampLogin @loggedIn="loggedInAs"/>
+              <RampLogin @loggedIn="loggedInAs" :error="errorMessage"/>
           </div>
           <div v-else>
               <FiatIndex v-if="userType === 'peer'"/>
@@ -51,6 +51,7 @@ import RampShiftForm from './crypto/RampShiftForm.vue'
 import AppealIndex from './appeal/AppealIndex.vue'
 import FiatIndex from './fiat/FiatIndex.vue'
 import RampLogin from './RampLogin.vue'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   components: {
@@ -72,7 +73,8 @@ export default {
       isAllowed: true,
       isloaded: false,
       loggedIn: false,
-      userType: null
+      userType: null,
+      errorMessage: null
     }
   },
   computed: {
@@ -81,7 +83,24 @@ export default {
       return 'fiat'
     }
   },
+  created () {
+    bus.on('session-expired', this.handleSessionEvent)
+  },
+  async mounted () {
+    const vm = this
+    // check permission first
+    const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
+    if (!permission.data.createShift) {
+      vm.isAllowed = false
+    }
+    await vm.$store.dispatch('ramp/loadWallet')
+    vm.isloaded = true
+  },
   methods: {
+    handleSessionEvent (data) {
+      this.loggedIn = false
+      this.errorMessage = 'Session expired'
+    },
     loggedInAs (userType) {
       this.loggedIn = true
       this.userType = userType
@@ -98,16 +117,6 @@ export default {
       // }
       vm.appSelection = false
     }
-  },
-  async mounted () {
-    const vm = this
-    // check permission first
-    const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
-    if (!permission.data.createShift) {
-      vm.isAllowed = false
-    }
-    await vm.$store.dispatch('ramp/loadWallet')
-    vm.isloaded = true
   }
 }
 </script>

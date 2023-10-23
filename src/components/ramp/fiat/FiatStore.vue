@@ -146,10 +146,9 @@ import FiatOrderForm from './FiatOrderForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
-import { loadP2PWalletInfo, formatCurrency, getCookie } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
-import { signMessage } from '../../../wallet/ramp/signature.js'
-import { SignatureTemplate } from 'cashscript'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   setup () {
@@ -265,6 +264,10 @@ export default {
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
+
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async fetchStoreListings (overwrite = false) {
@@ -374,6 +377,9 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
       // try {
       //   await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers, overwrite: false })

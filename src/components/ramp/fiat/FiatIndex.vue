@@ -30,7 +30,7 @@ import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { signMessage } from 'src/wallet/ramp/signature'
+// import { signMessage } from 'src/wallet/ramp/signature'
 
 export default {
   data () {
@@ -57,7 +57,7 @@ export default {
     FiatProfileCard,
     ProgressLoader
   },
-  emits: ['loggedIn'],
+  // emits: ['loggedIn'],
   async mounted () {
     this.isLoading = false
   },
@@ -67,47 +67,47 @@ export default {
     }
   },
   methods: {
-    loggedInAs (userType) {
-      this.loggingIn = false
-      this.userType = userType
-      this.$emit('loggedIn', userType)
-    },
-    async login () {
-      try {
-        console.log('wallet:', this.wallet)
-        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/peer`, { headers: { 'wallet-hash': this.wallet.walletHash } })
-        console.log('data:', data)
-        const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
-        const body = {
-          wallet_hash: this.wallet.walletHash,
-          signature: signature,
-          public_key: this.wallet.publicKey
-        }
-        await this.$axios.post(`${this.apiURL}/auth/login/peer`, body)
-          .then(response => {
-            console.log('response:', response)
-            // save token as cookie and set to expire 1h later
-            document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
-            this.user = response.data.user
-            if (this.user) {
-              this.$store.commit('ramp/updateUser', response.data.user)
-              this.$store.dispatch('ramp/loadAuthHeaders')
-                .then(() => {
-                  this.hasAccount = true
-                  this.proceed = true
-                  this.isLoading = false
-                })
-            }
-          })
-      } catch (error) {
-        console.error(error)
-        console.error(error.response)
-        // setTimeout(function () {
-        //   console.log('hello')
-        this.isLoading = false
-        // }, 3000)
-      }
-    },
+    // loggedInAs (userType) {
+    //   this.loggingIn = false
+    //   this.userType = userType
+    //   this.$emit('loggedIn', userType)
+    // },
+    // async login () {
+    //   try {
+    //     // console.log('wallet:', this.wallet)
+    //     const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/peer`, { headers: { 'wallet-hash': this.wallet.walletHash } })
+    //     // console.log('data:', data)
+    //     const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
+    //     const body = {
+    //       wallet_hash: this.wallet.walletHash,
+    //       signature: signature,
+    //       public_key: this.wallet.publicKey
+    //     }
+    //     await this.$axios.post(`${this.apiURL}/auth/login/peer`, body)
+    //       .then(response => {
+    //         console.log('response:', response)
+    //         // save token as cookie and set to expire 1h later
+    //         document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
+    //         this.user = response.data.user
+    //         if (this.user) {
+    //           this.$store.commit('ramp/updateUser', response.data.user)
+    //           this.$store.dispatch('ramp/loadAuthHeaders')
+    //             .then(() => {
+    //               this.hasAccount = true
+    //               this.proceed = true
+    //               this.isLoading = false
+    //             })
+    //         }
+    //       })
+    //   } catch (error) {
+    //     console.error(error)
+    //     console.error(error.response)
+    //     // setTimeout(function () {
+    //     //   console.log('hello')
+    //     this.isLoading = false
+    //     // }, 3000)
+    //   }
+    // },
     switchMenu (item) {
       this.menu = item
       this.$refs.footer.selectMenu(this.menu)

@@ -190,6 +190,7 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -254,7 +255,9 @@ export default {
   async mounted () {
     const vm = this
     await vm.fetchAd()
-    this.amount = (parseFloat(this.ad.trade_floor) * parseFloat(this.ad.price)).toFixed(2)
+    if (this.ad) {
+      this.amount = parseFloat(this.ad.trade_floor) * parseFloat(this.ad.price)
+    }
     vm.isloaded = true
   },
   methods: {
@@ -269,11 +272,14 @@ export default {
       try {
         const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.ad = response.data
-        console.log('ad:', vm.ad)
+        // console.log('ad:', vm.ad)
         // set the minimum trade amount in form
-        this.fiatAmount = this.ad.trade_floor // remove later
+        this.amount = this.ad.trade_floor // remove later
       } catch (error) {
         console.log(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async createOrder () {
@@ -298,6 +304,9 @@ export default {
         vm.state = 'order-process'
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     formattedCurrency (value, currency = null) {
@@ -335,7 +344,7 @@ export default {
       if (!this.byFiat) {
         if (!max) this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
       } else {
-        this.amount = (parseFloat(this.amount) * parseFloat(this.ad.price)).toFixed(2)
+        this.amount = parseFloat(this.amount) * parseFloat(this.ad.price)
       }
     },
     // orderConfirm () {

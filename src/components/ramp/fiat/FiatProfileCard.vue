@@ -120,7 +120,7 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadP2PWalletInfo } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -181,6 +181,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
 
       this.editNickname = false
@@ -203,6 +206,9 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
       // top 5 reviews
       //   async fetchUserAds () {

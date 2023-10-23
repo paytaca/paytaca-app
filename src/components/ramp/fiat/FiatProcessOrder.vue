@@ -93,6 +93,7 @@ import VerifyEscrowTx from './VerifyEscrowTx.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import StandByDisplay from './StandByDisplay.vue'
 import PaymentConfirmation from './PaymentConfirmation.vue'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -308,6 +309,9 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async fetchAdData () {
@@ -322,6 +326,9 @@ export default {
         .catch(error => {
           console.error(error)
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async confirmOrder () {
@@ -336,6 +343,9 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async cancelOrder () {
@@ -351,6 +361,9 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async sendConfirmPayment (type) {
@@ -369,6 +382,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
 
       // await this.fetchOrderData()
@@ -417,6 +433,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
 
       // await this.fetchOrderData()
@@ -433,6 +452,9 @@ export default {
         console.log('verifyEscrow response:', response)
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
         const errorMsg = error.response.data.error
         vm.errorMessages.push(errorMsg)
         vm.verifyEscrowTxKey++
@@ -475,6 +497,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async sendFeedback (feedback) {
@@ -499,6 +524,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
 
       vm.isloaded = true
@@ -528,6 +556,9 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
 

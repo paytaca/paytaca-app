@@ -143,6 +143,7 @@ import FiatAdsForm from './FiatAdsForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { getCookie, formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   setup () {
@@ -237,6 +238,9 @@ export default {
         })
         .catch(error => {
           console.error(error)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
           vm.loading = false
         })
     },
@@ -263,6 +267,9 @@ export default {
         }, 50)
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
       vm.loading = false
     },

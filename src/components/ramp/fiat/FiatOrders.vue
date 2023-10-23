@@ -115,6 +115,7 @@ import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   setup () {
@@ -212,11 +213,14 @@ export default {
           overwrite: overwrite
         })
         .then(response => {
-          console.log('response:', response)
+          // console.log('response:', response)
           vm.loading = false
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async loadMoreData (_, done) {

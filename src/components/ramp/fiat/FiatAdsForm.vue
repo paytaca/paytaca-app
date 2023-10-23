@@ -252,6 +252,7 @@ import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { debounce } from 'quasar'
 import { formatCurrency, getPaymentTimeLimit, getCookie } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   props: {
@@ -414,6 +415,9 @@ export default {
       } catch (error) {
         console.error(error.response)
         vm.swipeStatus = false
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async onSubmit () {
@@ -440,6 +444,9 @@ export default {
         vm.$emit('submit')
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
         vm.swipeStatus = false
       }
     },
@@ -455,6 +462,9 @@ export default {
         console.log(response)
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async getFiatCurrencies () {
@@ -474,13 +484,24 @@ export default {
         if (!vm.selectedCurrency) {
           vm.selectedCurrency = vm.fiatCurrencies[0]
         }
+
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async getPaymentMethods () {
-      const url = this.apiURL + '/payment-method/'
-      const { data } = await this.$axios.get(url, { headers: this.authHeaders })
-      console.log('getPaymentMethods: ', data)
-      return data
+      try {
+        const url = this.apiURL + '/payment-method/'
+        const { data } = await this.$axios.get(url, { headers: this.authHeaders })
+        // console.log('getPaymentMethods: ', data)
+        return data
+      } catch (error) {
+        console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
+      }
     },
     async checkSubmitOption () {
       const vm = this

@@ -106,6 +106,7 @@
 import DragSlide from '../../drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { Dialog } from 'quasar'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -231,6 +232,9 @@ export default {
         vm.$emit('success', result)
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async fetchOrderDetail () {
@@ -242,6 +246,9 @@ export default {
         vm.fees = response.data.fees
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async fetchArbiters () {
@@ -263,6 +270,9 @@ export default {
         }
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async generateContractAddress () {
@@ -277,13 +287,15 @@ export default {
         const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
         if (response.data.data) {
           const data = response.data.data
-          // console.log('>>data:', data)
           if (data.contract_address) {
             vm.contractAddress = data.contract_address
           }
         }
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     checkSufficientBalance () {

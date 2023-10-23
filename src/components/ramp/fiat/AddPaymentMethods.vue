@@ -169,6 +169,7 @@
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   components: {
@@ -379,6 +380,9 @@ export default {
         .catch(error => {
           console.error(error)
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     // processes
@@ -398,6 +402,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async deletePaymentMethod (index) {
@@ -407,6 +414,9 @@ export default {
         .catch(error => {
           console.error(error)
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
       await vm.fetchPaymentMethod()
       this.openDialog = false
@@ -440,6 +450,9 @@ export default {
               console.error(error)
               console.error(error.response)
               vm.openDialog = false
+              if (error.response && error.response.status === 403) {
+                bus.emit('session-expired')
+              }
             })
 
           break
@@ -455,6 +468,9 @@ export default {
             .catch(error => {
               console.error(error.response)
               vm.savingPaymentMethod = false
+              if (error.response && error.response.status === 403) {
+                bus.emit('session-expired')
+              }
             })
           break
         }

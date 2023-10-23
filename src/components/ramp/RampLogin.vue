@@ -73,9 +73,6 @@ import { Dialog } from 'quasar'
 import { getCookie } from 'src/wallet/ramp'
 
 export default {
-  components: {
-    ProgressLoader
-  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -92,7 +89,13 @@ export default {
       errorMessage: null
     }
   },
+  components: {
+    ProgressLoader
+  },
   emits: ['loggedIn'],
+  props: {
+    error: String
+  },
   computed: {
     isValidNickname () {
       return this.usernickname && this.usernickname.length > 0
@@ -102,6 +105,9 @@ export default {
     this.dialog = true
     await this.getProfile()
     this.isLoading = false
+    if (this.error) {
+      this.errorMessage = this.error
+    }
   },
   methods: {
     onLoginClick () {

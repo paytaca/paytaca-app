@@ -177,6 +177,7 @@
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -298,6 +299,9 @@ export default {
         console.log('appeal: ', vm.appeal)
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     checkStatus () {
