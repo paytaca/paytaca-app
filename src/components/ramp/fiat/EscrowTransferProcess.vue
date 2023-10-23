@@ -263,7 +263,7 @@ export default {
           if (!vm.selectedArbiter) {
             vm.selectedArbiter = vm.arbiterOptions[0]
           } else {
-            vm.selectedArbiter = vm.arbiterOptions.find(function(obj) {
+            vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
               return obj.id === vm.selectedArbiter.id
             })
           }

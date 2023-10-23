@@ -21,7 +21,7 @@
       <div v-else>
         <q-card-section :style="`max-height: ${minHeight - 230}px`" style="overflow-y:auto;">
           <q-virtual-scroll :items="paymentMethods">
-            <template v-slot="{ item: method, index }">
+            <template v-slot="{ item: method }">
               <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                 <q-item-section>
                   <div class="row">

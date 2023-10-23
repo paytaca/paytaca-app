@@ -683,7 +683,7 @@ export default {
           } else if (data.errors) {
             this.errorMessages.push(...data.errors)
             this.verifyEscrowTxKey++
-          } //else {
+          }
           if (data.txid) {
             this.txid = data.txid
           }
@@ -699,10 +699,8 @@ export default {
                 address: data.contract_address
               }
             }
-            // console.log('contract:', this.contract)
             this.escrowTransferProcessKey++
           }
-          // }
         }
       }
       this.websocket.onclose = () => {

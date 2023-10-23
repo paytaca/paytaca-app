@@ -251,7 +251,7 @@ import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { debounce } from 'quasar'
-import { formatCurrency, getPaymentTimeLimit, getCookie } from 'src/wallet/ramp'
+import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
