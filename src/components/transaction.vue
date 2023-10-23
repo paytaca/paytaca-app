@@ -25,10 +25,16 @@
             <q-item-section :class="darkMode ? 'text-white' : 'pp-text'">
               <q-item-label>
                 <template v-if="transaction.record_type === 'outgoing'">
-                  {{ `-${parseAssetDenomination(denomination, transaction.asset, amount=transaction.amount)}` }}
+                  {{ `-${parseAssetDenomination(denomination, {
+                    ...transaction.asset,
+                    balance: transaction.amount
+                  })}` }}
                 </template>
                 <template v-else>
-                  {{  `${parseAssetDenomination(denomination, transaction.asset, amount=transaction.amount)}` }}
+                  {{ `${parseAssetDenomination(denomination, {
+                    ...transaction.asset,
+                    balance: transaction.amount
+                  })}` }}
                 </template>
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
