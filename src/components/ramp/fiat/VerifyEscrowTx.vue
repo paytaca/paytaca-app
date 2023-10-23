@@ -228,8 +228,7 @@ export default {
         txid: vm.transactionId
       }
       try {
-        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
-        // console.log('response:', response)
+        await vm.$axios.post(url, body, { headers: vm.authHeaders })
       } catch (error) {
         console.error(error.response)
         if (error.response && error.response.status === 403) {

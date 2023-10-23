@@ -1,5 +1,5 @@
 <template>
-  <q-card class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg"
+  <q-card class="br-15 q-pt-sm q-mx-md q-mx-none"
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     :style="`height: ${ minHeight }px;`" v-if="state === 'form'">
     <q-pull-to-refresh
@@ -11,7 +11,7 @@
         </div>
       </div>
       <div v-else class="q-pt-sm">
-        <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs q-px-sm">
+        <div class="row items-center justify-between q-mt-sm q-mr-lg q-pb-xs q-px-sm">
           <q-btn
             flat
             padding="md"
@@ -20,12 +20,12 @@
           />
           <q-icon v-if="!appeal.resolved_at" class="q-pl-lg" size="sm" name='o_question_answer'/>
         </div>
-        <div class="text-center">
-          <div v-if="appeal.resolved_at" class="bold-text lg-font-size" >{{ appeal.order.status.label.toUpperCase() }} </div>
-          <div v-if="!appeal.resolved_at" class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
-          <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
-        </div>
-        <q-scroll-area :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - minHeight * .2}px`" style="overflow-y:auto;">
+          <div class="text-center">
+            <div v-if="appeal.resolved_at" class="bold-text lg-font-size" >{{ appeal.order.status.label.toUpperCase() }} </div>
+            <div v-if="!appeal.resolved_at" class="bold-text lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
+            <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
+          </div>
           <div class="q-mx-lg">
             <q-card class="br-15 q-mt-xs" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
               <q-card-section>
@@ -168,7 +168,7 @@
             <div v-if="!appeal.resolved_at" class="q-pb-md q-mb-lg">
               <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
                 <div class="text-center q-py-xs bold-text text-uppercase">
-                  Select Options
+                  Select Action
                 </div>
                 <q-separator class="q-my-sm" :dark="darkMode"/>
                 <div>
@@ -266,7 +266,7 @@ export default {
         seller: 105500
       },
       selectedAction: null,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.22
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.14
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
     }
   },

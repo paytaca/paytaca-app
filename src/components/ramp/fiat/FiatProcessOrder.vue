@@ -275,7 +275,8 @@ export default {
           }
           break
         case 'RFN': // Refunded
-          this.status = 'refund'
+          vm.state = 'standby-view'
+          vm.standByDisplayKey++
           vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
           break
         case 'RLS': // Released
@@ -300,11 +301,11 @@ export default {
       const url = `${vm.apiURL}/order/${vm.orderData.id}`
       await vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
-          console.log('fetchOrderData:', response.data)
+          // console.log('fetchOrderData:', response.data)
           vm.order = response.data.order
           vm.contract = response.data.contract
           vm.fees = response.data.fees
-          console.log('contract:', vm.contract)
+          // console.log('contract:', vm.contract)
           vm.updateStatus(vm.order.status)
         })
         .catch(error => {
@@ -676,31 +677,32 @@ export default {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         if (data) {
-          if (data.success) {
-            if (data.txid) {
-              this.txid = data.txid
-            }
-            if (data.status) {
-              this.updateStatus(data.status.status)
-            }
-            if (data.contract_address) {
-              if (this.contract) {
-                this.contract.address = data.contract_address
-              } else {
-                this.contract = {
-                  address: data.contract_address
-                }
-              }
-              // console.log('contract:', this.contract)
-              this.escrowTransferProcessKey++
-            }
-          } else if (data.error) {
+          if (data.error) {
             this.errorMessages.push(data.error)
             this.verifyEscrowTxKey++
           } else if (data.errors) {
             this.errorMessages.push(...data.errors)
             this.verifyEscrowTxKey++
+          } //else {
+          if (data.txid) {
+            this.txid = data.txid
           }
+          console.log('data.status:', data.status)
+          if (data.status) {
+            this.updateStatus(data.status.status)
+          }
+          if (data.contract_address) {
+            if (this.contract) {
+              this.contract.address = data.contract_address
+            } else {
+              this.contract = {
+                address: data.contract_address
+              }
+            }
+            // console.log('contract:', this.contract)
+            this.escrowTransferProcessKey++
+          }
+          // }
         }
       }
       this.websocket.onclose = () => {
