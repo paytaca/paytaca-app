@@ -9,8 +9,7 @@ export async function loadAuthHeaders (context) {
   }
   const wallet = context.state.wallet // await loadWallet(context)
   const headers = {
-    'wallet-hash': wallet.walletHash,
-    Authorization: `Token ${getCookie('token')}`
+    'wallet-hash': wallet.walletHash
   }
   context.commit('updateAuthHeaders', headers)
 }
@@ -31,8 +30,10 @@ export async function fetchArbiter (context) {
   const wallet = context.state.wallet
   const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/arbiter/detail'
   const params = { public_key: wallet.publicKey }
+  const headers = { ...state.authHeaders }
+  headers.Authorization = `Token ${getCookie('token')}`
   try {
-    const response = await axiosInstance.get(url, { headers: state.authHeaders, params: params })
+    const response = await axiosInstance.get(url, { headers: headers, params: params })
     console.log('response:', response)
     context.commit('updateArbiter', response.data.arbiter)
     return response.data.arbiter
@@ -139,7 +140,9 @@ export async function fetchAds (context, { component = null, params = null, over
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
     params.page = pageNumber
     params.limit = state.itemsPerPage
-    const response = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
+    const headers = { ...state.authHeaders }
+    headers.Authorization = `Token ${getCookie('token')}`
+    const response = await axiosInstance.get(apiURL, { params: params, headers: headers })
 
     switch (params.trade_type) {
       case 'BUY':
@@ -198,8 +201,10 @@ export async function fetchOrders (context, { orderState = null, params = null, 
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
     params.page = pageNumber
     params.limit = state.itemsPerPage
+    const headers = { ...state.authHeaders }
+    headers.Authorization = `Token ${getCookie('token')}`
     try {
-      const data = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
+      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
       switch (orderState) {
         case 'ONGOING':
           context.commit('updateOngoingOrders', { overwrite: overwrite, data: data.data })
@@ -246,8 +251,10 @@ export async function fetchAppeals (context, { appealState = null, params = null
     const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/appeal'
     params.page = pageNumber
     params.limit = state.itemsPerPage
+    const headers = { ...state.authHeaders }
+    headers.Authorization = `Token ${getCookie('token')}`
     try {
-      const data = await axiosInstance.get(apiURL, { params: params, headers: state.authHeaders })
+      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
       console.log('data:', data)
       switch (appealState) {
         case 'PENDING':

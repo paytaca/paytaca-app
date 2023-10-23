@@ -241,6 +241,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import AdSnapshot from './AdSnapshot.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -300,7 +301,7 @@ export default {
       const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
       vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
-          console.log('response:', response)
+          // console.log('response:', response)
           vm.appeal = response.data.appeal
           vm.order = response.data.order
           vm.ad_snapshot = response.data.ad_snapshot
@@ -313,6 +314,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
           this.loading = false
           if (done) done()
         })

@@ -34,9 +34,9 @@
 </template>
 <script>
 import RampContract from 'src/wallet/ramp/contract'
-import CompletedAppeal from './CompletedAppeal.vue'
-import ReleaseForm from './ReleaseForm.vue'
+import ReleaseForm from './AppealDetail.vue'
 import VerifyTransfer from './VerifyTransfer.vue'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -68,8 +68,7 @@ export default {
   emits: ['back'],
   components: {
     ReleaseForm,
-    VerifyTransfer,
-    CompletedAppeal
+    VerifyTransfer
   },
   async mounted () {
     const vm = this
@@ -153,6 +152,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     saveTxid (result) {
@@ -200,6 +202,9 @@ export default {
       await vm.$axios.post(url, { txid: this.txid }, { headers: vm.authHeaders })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
           const errorMsg = error.response.data.error
           vm.errorMessages.push(errorMsg)
         })
@@ -214,6 +219,9 @@ export default {
         vm.fees = response.data.fees
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async generateContract () {

@@ -1,3 +1,5 @@
+import { getCookie } from 'src/wallet/ramp'
+
 export function getArbiter (state) {
   return state.arbiter
 }
@@ -203,5 +205,8 @@ export function wallet (state) {
 }
 
 export function authHeaders (state) {
-  return state.authHeaders
+  const headers = { ...state.authHeaders }
+  headers.Authorization = `Token ${getCookie('token')}`
+  console.log('headers:', headers)
+  return headers
 }

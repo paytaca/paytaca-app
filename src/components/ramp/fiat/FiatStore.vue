@@ -281,6 +281,9 @@ export default {
           await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
         } catch (error) {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         }
         vm.loading = false
       }

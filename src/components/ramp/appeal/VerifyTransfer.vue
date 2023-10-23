@@ -73,6 +73,7 @@
   </q-card>
 </template>
 <script>
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -166,6 +167,9 @@ export default {
         }, 1000)
       } catch (error) {
         console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
     },
     async verifyTxn () {
@@ -183,6 +187,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
           const errorMsg = error.response.data.error
           vm.errorMessages.push(errorMsg)
           vm.hideBtn = false

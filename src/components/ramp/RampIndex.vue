@@ -98,8 +98,10 @@ export default {
   },
   methods: {
     handleSessionEvent (data) {
+      // console.log('handleSessionEvent:', data)
       this.loggedIn = false
       this.errorMessage = 'Session expired'
+      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     },
     loggedInAs (userType) {
       this.loggedIn = true

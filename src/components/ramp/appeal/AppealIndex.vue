@@ -84,6 +84,7 @@ import AppealProcess from './AppealProcess.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { signMessage } from 'src/wallet/ramp/signature'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   setup () {
@@ -157,7 +158,7 @@ export default {
     // if (!vm.appeals || vm.appeals.length === 0) {
     //   vm.loading = true
     // }
-    await this.login()
+    // await this.login()
     if (this.user) {
       this.resetAndRefetchListings()
     }
@@ -202,7 +203,11 @@ export default {
           vm.loading = false
         })
         .catch(error => {
+          console.error(error)
           console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         })
     },
     async loadMoreData (_, done) {
