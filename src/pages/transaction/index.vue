@@ -10,14 +10,7 @@
         <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <div :class="{'pt-header home-header' : isDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
-            <v-offline @detected-condition="onConnectivityChange">
-              <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
-                <template v-slot:avatar>
-                  <q-icon name="signal_wifi_off" color="primary" />
-                </template>
-                {{ $t('NoInternetConnectionNotice') }}
-              </q-banner>
-            </v-offline>
+            <v-offline @detected-condition="onConnectivityChange" />
             <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
               <template v-if="enableSmartBCH">
                 <q-tabs
@@ -992,6 +985,14 @@ export default {
     async onConnectivityChange (online) {
       const vm = this
       vm.$store.dispatch('global/updateConnectivityStatus', online)
+      const offlineNotif = vm.$q.notify({
+        type: 'negative',
+        icon: 'signal_wifi_off',
+        iconColor: 'primary',
+        color: 'red-4',
+        timeout: 0,
+        message: this.$t('NoInternetConnectionNotice')
+      })
       if (online === true) {
         if (!vm.wallet) await vm.loadWallets()
         vm.assets.map((asset) => vm.getBalance(asset.id))
@@ -1005,6 +1006,7 @@ export default {
 
         vm.$store.dispatch('assets/updateTokenIcons', { all: false })
         vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+        offlineNotif()
       } else {
         vm.balanceLoaded = true
         vm.transactionsLoaded = true
@@ -1224,4 +1226,10 @@ export default {
     padding-left: 2px;
     padding-right: 2px;
   }
+</style>
+
+<style>
+.q-notifications__list--bottom {
+  margin-bottom: 70px;
+}
 </style>
