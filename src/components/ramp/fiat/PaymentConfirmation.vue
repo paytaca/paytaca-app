@@ -34,21 +34,21 @@
           <div class="full-width">
               <div v-for="(method, index) in paymentMethods" :key="index">
                 <div class="q-px-sm">
-                  <q-card flat bordered>
+                  <q-card flat bordered :dark="darkMode">
                     <q-expansion-item
-                      class="bg-grey-2"
+                      :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black bg-grey-2',]"
                       :default-opened=true
                       :label="method.payment_type"
-                      expand-separator>
+                      expand-separator >
                       <q-card>
-                        <q-card-section class="text-left">
+                        <q-card-section  :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">
                           <div class="row">
                             <div class="col">
                               <div>{{ method.account_name }}</div>
                               <div>{{ method.account_number }}</div>
                             </div>
                             <div>
-                              <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)"/>
+                              <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
                             </div>
                           </div>
                         </q-card-section>
@@ -70,19 +70,24 @@
       <div class="q-mb-lg q-pb-lg">
         <div class="q-mx-lg q-px-md">
           <div v-if="type === 'seller'">
-            <q-checkbox size="sm" v-model="confirmRelease"/>
+            <q-checkbox size="sm" v-model="confirmRelease" :dark="darkMode"/>
             <span class="xs-font-size text-center">I confirm that I have received payment.</span>
           </div>
 
           <div v-if="type === 'buyer'">
-            <q-checkbox size="sm" v-model="confirmPayment"/>
+            <q-checkbox size="sm" v-model="confirmPayment" :dark="darkMode"/>
             <span class="xs-font-size text-center"> I confirm that I already sent my payment</span>
           </div>
         </div>
 
         <!-- Confirm  -->
         <div class="row q-pt-sm q-mx-lg q-px-md">
-          <q-btn
+          <DragSlide
+            @swiped="onConfirm"
+            text="Release Crypto"
+            v-if="confirmRelease && type === 'seller'"
+          />
+          <!-- <q-btn
             v-if="type === 'seller'"
             :disable="!confirmRelease"
             rounded
@@ -90,9 +95,9 @@
             class="q-space text-white"
             color="blue-6"
             @click="onConfirm"
-          />
+          /> -->
           <q-btn
-            v-else
+            v-if="type !== 'seller'"
             :disable="!confirmPayment || selectedPaymentMethods.length === 0"
             rounded
             label='Confirm Payment'
@@ -107,6 +112,7 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
+import DragSlide from 'src/components/drag-slide.vue'
 
 export default {
   data () {
@@ -128,6 +134,9 @@ export default {
   props: {
     orderId: Number,
     type: String
+  },
+  components: {
+    DragSlide
   },
   emits: ['confirm'],
   async mounted () {
