@@ -369,6 +369,9 @@
         </template>
       </div>
     </div>
+    <div class="fixed-bottom q-pl-sm q-pb-sm">
+      <OrderChatButton ref="chatButton" :order-id="orderId"/>
+    </div>
     <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
     <q-dialog v-model="showPaymentDialog" position="bottom">
       <q-card :class="[darkMode ? 'text-white pt-dark-card' : 'text-black']">
@@ -454,6 +457,7 @@ import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dia
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import OrderCallDialog from 'src/components/marketplace/OrderCallDialog.vue'
+import OrderChatButton from 'src/components/marketplace/OrderChatButton.vue'
 import { loadWallet, Wallet } from 'src/wallet'
 import { TransactionListener } from 'src/wallet/transaction-listener'
 
@@ -477,6 +481,7 @@ function resetPage() {
   delivery.value = Delivery.parse()
   payments.value = []
   orderCallSession.value.raw = null
+  chatButton.value?.reset?.()
 }
 watch(
   () => [props.orderId],
@@ -485,6 +490,8 @@ watch(
     refreshPage()
   }
 )
+
+const chatButton = ref()
 
 const showOrderCallDialog = ref(false)
 watch(showOrderCallDialog, () => fetchOrderCallSession())
@@ -1137,6 +1144,7 @@ async function refreshPage(done=() => {}) {
       fetchDelivery(),
       fetchPayments(),
       fetchOrderCallSession(),
+      chatButton.value?.refresh?.()
     ])
   } finally {
     initialized.value = true
