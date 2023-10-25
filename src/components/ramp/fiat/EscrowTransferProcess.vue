@@ -47,6 +47,11 @@
           dense
           v-model="contractAddress"
           :loading="!contractAddress">
+          <template v-slot:append v-if="contractAddress">
+            <div @click="copyToClipboard(contractAddress)">
+              <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+            </div>
+          </template>
         </q-input>
 
         <div class="sm-font-size q-pl-sm q-pb-xs">Transfer Amount</div>
@@ -327,6 +332,15 @@ export default {
         return address
       }
       return address.slice(0, startLength) + '...' + address.slice(-endLength)
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
     }
   }
 }
