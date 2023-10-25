@@ -115,18 +115,6 @@
           </div>
           <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
             <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
-              <div
-                v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0"
-                :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
-              >
-                POS:
-                {{ sendData.posDevice.walletHash.substring(0, 5) }}
-                ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
-                <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
-                <div v-if="sendData.posDevice?.paymentTimestamp" class="text-caption text-grey">
-                  {{ formatTimestampToText(sendData.posDevice?.paymentTimestamp * 1000) }}
-                </div>
-              </div>
               <div class="row">
                 <div class="col q-mt-sm se">
                   <q-input
@@ -301,12 +289,7 @@
               <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
                 {{ this.sendData.recipientAddress }}
               </div>
-              <div v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0">
-                POS:
-                {{ sendData.posDevice.walletHash.substring(0, 5) }}
-                ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
-                <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
-
+              <div v-if="sendData?.posDevice?.posId >= 0">
                 <div v-if="paymentOTP" class="text-center q-mt-md">
                   <div class="text-grey">{{ $t('PaymentOTP', {}, 'Payment OTP')}}</div>
                   <div class="text-h3" style="letter-spacing:1rem;">{{ paymentOTP }}</div>
@@ -502,7 +485,7 @@ export default {
         recipientAddress: '',
         lnsName: '',
         _lnsAddress: '', // in case recipient address is edited in form will check if name still matches the address
-        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
+        posDevice: { posId: -1, paymentTimestamp: -1 },
         rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
         paymentAckMemo: '',
@@ -696,7 +679,7 @@ export default {
       let address = content
       let amount = null
       let rawPaymentUri = ''
-      let posDevice = { walletHash: '', posId: -1, paymentTimestamp: -1 }
+      let posDevice = { posId: -1, paymentTimestamp: -1 }
       let currency = null
 
       let paymentUriData
@@ -721,9 +704,8 @@ export default {
         amount = paymentUriData.outputs[0].amount?.value
         currency = paymentUriData.outputs[0].amount?.currency
       }
-      if (paymentUriData?.pos) {
-        posDevice.walletHash = paymentUriData.pos.walletHash
-        posDevice.posId = paymentUriData.pos.posId
+      if (paymentUriData?.posId) {
+        posDevice.posId = paymentUriData.posId
         if (paymentUriData.timestamp) posDevice.paymentTimestamp = paymentUriData.timestamp
       }
 
@@ -760,7 +742,7 @@ export default {
           }
         }
 
-        if (posDevice.walletHash && posDevice.posId >= 0) {
+        if (posDevice.posId >= 0) {
           this.sendData.posDevice = posDevice
           if (amount) {
             this.sendData.fixedAmount = true
@@ -1219,7 +1201,7 @@ export default {
           const tokenId = vm.assetId.split('ct/')[1]
           const changeAddress = vm.getChangeAddress('bch')
           let sendPromise
-          if (vm.sendData?.posDevice?.walletHash && vm.sendData?.posDevice?.posId >= 0) {
+          if (vm.sendData?.posDevice?.posId >= 0) {
             sendPromise = vm.wallet.BCH.sendBchToPOS(
               vm.sendData.amount,address, changeAddress,
               vm.sendData.posDevice,
