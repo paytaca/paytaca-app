@@ -570,7 +570,7 @@ export default {
       switch (vm.dialogType) {
         case 'confirmReleaseCrypto':
           await this.releaseCrypto()
-          await vm.verifyRelease()
+          // await vm.verifyRelease()
           break
         case 'confirmCancelOrder':
           await vm.cancelOrder()
@@ -588,7 +588,7 @@ export default {
           }
           if (this.confirmType === 'seller') {
             await this.releaseCrypto() // this will generate the txid
-            await this.verifyRelease() // this needs the txid
+            // await this.verifyRelease() // this needs the txid
           }
           break
       }
