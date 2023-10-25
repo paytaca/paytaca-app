@@ -94,13 +94,13 @@
       </div>
       <!-- Feedback -->
       <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
-        <div class="md-font-size">
+        <div class="md-font-size text-center">
           <span v-if="!feedback.is_posted">Rate your experience</span>
           <span v-else>Your Review</span>
         </div>
         <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
         <div>
-          <div class="q-py-xs">
+          <div class="q-py-xs text-center">
             <q-rating
               :readonly="feedback.is_posted"
               v-model="feedback.rating"

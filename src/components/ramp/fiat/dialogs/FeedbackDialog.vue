@@ -48,11 +48,13 @@
   </q-dialog>
 </template>
 <script>
+import { getCookie } from 'src/wallet/ramp'
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
       openDialog: this.openReviews,
       isloaded: false,
       feedback: {
@@ -70,6 +72,8 @@ export default {
   },
   emits: ['back'],
   async mounted () {
+    console.log(this.authHeaders)
+    // console.log('token', getCookie('token'))
     await this.fetchReviews()
     this.isloaded = true
   },
@@ -86,7 +90,8 @@ export default {
       await vm.$axios.get(url, {
         params: {
           ad_id: vm.adID
-        }
+        },
+        headers: this.authHeaders
       })
         .then(response => {
           if (response.data) {

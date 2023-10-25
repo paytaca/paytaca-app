@@ -175,6 +175,7 @@ export async function fetchAds (context, { component = null, params = null, over
 
 export async function fetchOrders (context, { orderState = null, params = null, overwrite = false }) {
   const state = context.state
+
   if (!state.authHeaders) {
     throw new Error('Ramp authentication headers not initialized')
   }
