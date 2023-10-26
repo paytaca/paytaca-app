@@ -1,22 +1,36 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('Send')" backnavpath="/"></header-nav>
     <q-tabs
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
+      :indicator-color="isDefaultTheme(theme) && 'transparent'"
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
-      <q-tab name="BCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}" :label="networks.sBCH.name" :disable="isChipnet"/>
+      <q-tab
+        name="BCH"
+        class="network-selection-tab"
+        :class="getDarkModeClass(darkMode)"
+        :label="networks.BCH.name"
+      />
+      <q-tab
+        name="sBCH"
+        class="network-selection-tab"
+        :class="getDarkModeClass(darkMode)"
+        :label="networks.sBCH.name"
+        :disable="isChipnet"
+      />
     </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
-        <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ $t('SelectAssetToSend') }}</p>
+        <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
+          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
+            {{ $t('SelectAssetToSend') }}
+          </p>
         </div>
         <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
@@ -30,18 +44,18 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="$store.getters['darkmode/getStatus'] ? 'pt-dark-card' : 'bg-white'">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode, '', 'bg-white')">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50" /></div>
               <div class="col q-pl-sm q-pr-sm">
-                <p class="q-ma-none text-token text-weight-regular" :class="$store.getters['darkmode/getStatus'] ? 'text-pink-5' : 'text-dark'" style="font-size: 18px;">
-                  {{ asset.name }}
+                <p
+                  class="q-ma-none text-token text-weight-regular"
+                  :class="darkMode ? isDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
+                >
+                  {{ isHongKong(currentCountry) ? asset.name.replace('Token', 'Point') : asset.name }}
                 </p>
-                <p class="q-ma-none" :class="$store.getters['darkmode/getStatus'] ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  {{ asset.id.startsWith('bch') ? String(asset.balance) : String(convertTokenAmount(asset.balance, asset.decimals)) }}
-                  <span>
-                    {{ asset.symbol }}
-                  </span>
+                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
+                  {{ parseAssetDenomination(denomination, asset) }}
                 </p>
               </div>
             </div>
@@ -64,6 +78,8 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { convertTokenAmount } from 'src/wallet/chipnet'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Send-select-asset',
@@ -83,18 +99,27 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: true,
+      isCashToken: true
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
-    },
-    darkMode () {
-      return this.$store.getters['darkMode/getStatus']
     },
     selectedNetwork: {
       get () {
@@ -131,10 +156,14 @@ export default {
           return tokenType === 'slp' || isBch
         }
       })
-    },
+    }
   },
   methods: {
     convertTokenAmount,
+    getDarkModeClass,
+    isDefaultTheme,
+    isHongKong,
+    parseAssetDenomination,
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
@@ -170,7 +199,14 @@ export default {
     margin-top: 5px;
     margin-bottom: 5px;
   }
+  .text-token {
+    font-size: 18px;
+  }
   .pp-fcolor {
     color: #000 !important;
+  }
+  .pt-label {
+    font-size: 16px;
+    font-weight: 300;
   }
 </style>

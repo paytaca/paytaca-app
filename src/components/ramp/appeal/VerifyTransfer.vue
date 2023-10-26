@@ -147,7 +147,9 @@ export default {
             verifying = tx.verifying
             if (tx.action === vm.action) {
               vm.txExists = true
-              vm.transactionId = tx.txid
+              if (tx.txid) {
+                vm.transactionId = tx.txid
+              }
               verifying = tx.verifying
               valid = tx.valid
               break
@@ -157,7 +159,7 @@ export default {
         if (vm.txExists && !valid && !verifying) {
           vm.hideBtn = false
         }
-        vm.waitSeconds = 60
+        vm.waitSeconds = 30
         vm.timer = setInterval(function () {
           vm.waitSeconds--
           if (vm.waitSeconds === 0) {

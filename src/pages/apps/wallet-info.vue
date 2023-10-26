@@ -1,10 +1,10 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
-    <header-nav :title="$t('WalletInfo')" backnavpath="/apps" />
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <header-nav :title="$t('WalletInfo')" backnavpath="/apps" class="apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <div class="col-12 q-px-lg q-mt-lg">
         <p class="section-title">{{ $t('BchAddresses') }}</p>
-        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -30,7 +30,7 @@
                 v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
                 dense
                 :class="[
-                  darkMode ? 'pt-dark text-white' : 'bg-grey-2',
+                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2 text-dark',
                   'rounded-borders q-mt-sm q-mb-md',
                 ]"
               >
@@ -38,7 +38,9 @@
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
-                    color="blue-9" :label="$t('Dismiss')"
+                    color="blue-9"
+                    class="dismiss-text"
+                    :label="$t('Dismiss')"
                     @click="$store.commit('global/removeUtxoScanTask', bchUtxoScanTaskInfo?.walletHash)"
                   />
                 </template>
@@ -55,6 +57,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
+                    class="button"
                     :disable="bchUtxoScanOngoing"
                     :loading="bchUtxoScanOngoing"
                     :label="$t('UtxoScan')"
@@ -64,6 +67,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
+                    class="button"
                     :disable="scanningBchAddresses"
                     :loading="scanningBchAddresses"
                     :label="$t('AddressScan')"
@@ -93,7 +97,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('SlpAddresses') }}</p>
-        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -119,7 +123,7 @@
                 v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.completedAt"
                 dense
                 :class="[
-                  darkMode ? 'pt-dark text-white' : 'bg-grey-2',
+                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2 text-dark',
                   'rounded-borders q-mt-sm q-mb-md',
                 ]"
               >
@@ -127,7 +131,9 @@
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
-                    color="blue-9" :label="$t('Dismiss')"
+                    color="blue-9"
+                    class="dismiss-text"
+                    :label="$t('Dismiss')"
                     @click="$store.commit('global/removeUtxoScanTask', slpUtxoScanTaskInfo?.walletHash)"
                   />
                 </template>
@@ -144,6 +150,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
+                    class="button"
                     :disable="slpUtxoScanOngoing"
                     :loading="slpUtxoScanOngoing"
                     :label="$t('UtxoScan')"
@@ -153,6 +160,7 @@
                     no-caps
                     color="blue-9"
                     padding="xs sm"
+                    class="button"
                     :disable="scanningSlpAddresses"
                     :loading="scanningSlpAddresses"
                     :label="$t('AddressScan')"
@@ -182,7 +190,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('SmartBchAddresses') }}</p>
-        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -216,7 +224,7 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
-        <q-list bordered separator class="list" :class="{'pt-dark-card': darkMode}">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
           <q-item clickable @click="executeSecurityChecking">
             <q-item-section class="text-black">
               <q-item-label :class="{'text-white': darkMode}" v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
@@ -253,6 +261,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { Plugins } from '@capacitor/core'
 import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -287,7 +296,7 @@ export default {
     }
   },
   computed: {
-    darkMode() {
+    darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
     bchUtxoScanTaskInfo() {
@@ -359,6 +368,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     formatTimestampToText(timestamp) {
       const dateObj = new Date(timestamp)
       return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
@@ -480,6 +490,7 @@ export default {
                   lastAddressFromStore ? `<br/><br/>Previous:<br/>${lastAddressFromStore}` : '',
                 ].join(''),
                 ok: true,
+                seamless: true,
                 class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
                 style: 'word-break:break-word;',
               })
@@ -547,6 +558,7 @@ export default {
                   lastAddressFromStore ? `<br/><br/>Previous:<br/>${lastAddressFromStore}` : '',
                 ].join(''),
                 ok: true,
+                seamless: true,
                 class: this.darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
                 style: 'word-break:break-word;',
               })
@@ -661,10 +673,8 @@ export default {
         seamless: true,
         ok: 'Yes',
       }).onOk(() => {
-        console.log('Proceed to delete wallet')
         vm.deleteWallet()
       }).onCancel(() => {
-        console.log('Cancelled')
         vm.disableDeleteButton = false
       })
     },

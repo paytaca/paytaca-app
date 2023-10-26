@@ -1,12 +1,14 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('AssetSwap')"
       backnavpath="/apps"
+      class="apps-header"
     />
 
     <q-tabs
-      active-color="brandblue"
+      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme(theme) && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedNetwork"
       style="padding-bottom: 16px;"
@@ -14,25 +16,32 @@
     >
       <q-tab
         name="BCH"
-        :class="{'text-blue-5': darkMode}"
+        class="network-selection-tab"
+        :class="getDarkModeClass(darkMode)"
         disable
         label="BCH"
       >
         <q-popup-proxy>
-          <q-banner :class="darkMode ? 'pt-dark text-white' : 'text-black'" class="q-pa-md br-15 text-center">
-            {{ $t('SmartSwapBchSoon') }}
+          <q-banner
+            :class="getDarkModeClass(darkMode,'pt-dark info-banner text-white', 'text-black')"
+            class="q-pa-md br-15 text-center"
+          >
+            {{ $t(isHongKong(currentCountry) ? 'SmartSwapBchSoonPoints' : 'SmartSwapBchSoonTokens') }}
           </q-banner>
         </q-popup-proxy>
       </q-tab>
       <q-tab
         name="sBCH"
-        :class="{'text-blue-5': darkMode}"
+        class="network-selection-tab"
+        :class="getDarkModeClass(darkMode)"
         label="SmartBCH"
       />
     </q-tabs>
 
     <SmartSwapForm
       :darkMode="darkMode"
+      :currentCountry="currentCountry"
+      :denomination="denomination"
       class="q-mx-md"
     />
 
@@ -47,6 +56,7 @@
 <script>
 import SmartSwapForm from '../../components/asset-swap/SmartSwapForm.vue'
 import HeaderNav from '../../components/header-nav'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'AssetSwap',
@@ -56,9 +66,27 @@ export default {
   },
   data () {
     return {
-      selectedNetwork: 'sBCH',
-      darkMode: this.$store.getters['darkmode/getStatus']
+      selectedNetwork: 'sBCH'
     }
+  },
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    }
+  },
+  methods: {
+    getDarkModeClass,
+    isDefaultTheme,
+    isHongKong
   }
 }
 </script>

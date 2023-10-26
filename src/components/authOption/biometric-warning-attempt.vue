@@ -3,6 +3,7 @@
       <q-dialog
       v-model="dialog"
       persistent
+      seamless
       >
         <q-card>
             <q-card-section>

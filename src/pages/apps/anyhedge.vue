@@ -1,25 +1,35 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       title="AnyHedge"
       backnavpath="/apps"
+      class="apps-header"
     />
     <q-tabs
-      active-color="brandblue"
+      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isDefaultTheme(theme) && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"
       :style="{ 'margin-top': $q.platform.is.ios ? '-10px' : '-35px'}"
     >
-      <q-tab name="hedge" :class="{'text-blue-5': darkMode}" :label="$t('Hedge')"/>
-      <q-tab name="long" :class="{'text-blue-5': darkMode}" :label="$t('Long')" />
+      <q-tab
+        name="hedge"
+        class="network-selection-tab"
+        :class="getDarkModeClass(darkMode)"
+        :label="$t('Hedge')"
+      />
+      <q-tab
+        name="long"
+        class="network-selection-tab"
+        :class="getDarkModeClass(darkMode)"
+        :label="$t('Long')"
+      />
     </q-tabs>
 
     <q-card
-      class="br-15 q-mx-md q-mb-md q-mt-sm"
-      :class="[
-       darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
+      class="br-15 q-mx-md q-mb-md q-mt-sm pt-card"
+      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
       style="transition: height 0.5s"
     >
       <template v-if="selectedAccountType === 'hedge'">
@@ -60,7 +70,7 @@
                       class="text-caption q-ml-xs text-grey-7"
                       style="margin-top:-0.5em;"
                     >
-                      {{ summary?.totalHedgeMarketValue }} {{ selectedMarketCurrency }}
+                      {{ parseFiatCurrency(summary?.totalHedgeMarketValue, selectedMarketCurrency) }}
                     </div>
                   </div>
                 </template>
@@ -70,6 +80,7 @@
                 icon="add"
                 padding="xs"
                 round
+                class="button"
                 :color="darkMode ? 'grad' : 'brandblue'"
                 @click="showCreateHedgeForm = !showCreateHedgeForm"
               />
@@ -80,9 +91,14 @@
         <q-slide-transition>
           <q-card-section v-if="showCreateHedgeForm" style="border-top: 1px solid gray">
             <CreateHedgeForm
+              ref="createHedgeFormRef"
               :wallet="wallet"
               @created="emitData => onHedgeFormCreate(emitData)"
               @cancel="() => showCreateHedgeForm = false"
+              @showKeyboard="input => {
+                showCustomKeyboard = true
+                activeInput = input
+              }"
             />
           </q-card-section>
         </q-slide-transition>
@@ -95,9 +111,9 @@
               <div class="q-space">
                 <q-skeleton v-if="fetchingLongPositions" class="q-mr-sm"/>
                 <div v-else>
-                  <div>{{ totalLongSats / 10 ** 8 }} BCH</div>
+                  <div>{{ getAssetDenomination(denomination, totalLongSats / 10 ** 8) }}</div>
                   <div v-if="totalLongMarketValue" class="text-caption text-grey-7" style="margin-top:-0.5em;">
-                    {{ totalLongMarketValue }} {{ selectedMarketCurrency }}
+                    {{ parseFiatCurrency(totalLongMarketValue, selectedMarketCurrency) }}
                   </div>
                 </div>
               </div>
@@ -106,6 +122,7 @@
                 icon="add"
                 padding="xs"
                 round
+                class="button"
                 :color="darkMode ? 'grad' : 'brandblue'"
                 @click="showCreateLongForm = !showCreateLongForm"
               />
@@ -115,10 +132,12 @@
         <q-slide-transition>
           <q-card-section v-if="showCreateLongForm" style="border-top: 1px solid gray">
             <CreateHedgeForm
+              ref="createHedgeFormRef"
               position="long"
               :wallet="wallet"
               @created="emitData => onHedgeFormCreate(emitData)"
               @cancel="() => showCreateLongForm = false"
+              @showKeyboard="() => showCustomKeyboard = true"
             />
           </q-card-section>
         </q-slide-transition>
@@ -159,10 +178,8 @@
     </q-card>
 
     <q-card
-      class="br-15 q-mx-md q-mb-md"
-      :class="[
-        darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
+      class="br-15 q-mx-md q-mb-md pt-card"
+      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
     >
       <template v-if="selectedAccountType === 'hedge'">
         <q-expansion-item ref="offersDrawerRef" :label="$t('HedgeOffers')">
@@ -337,6 +354,13 @@
         </q-expansion-item>
       </template>
     </q-card>
+    <div v-if="showCustomKeyboard" style="padding-top: 50px;">
+      <CustomKeyboard
+      :custom-keyboard-state="'show'"
+      @addKey="setAmount"
+      @makeKeyAction="makeKeyAction"
+    />
+    </div>
   </div>
 </template>
 <script setup>
@@ -353,6 +377,9 @@ import CreateHedgeForm from 'src/components/anyhedge/CreateHedgeForm.vue'
 import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
+import CustomKeyboard from '../transaction/dialog/CustomKeyboard.vue'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll
 
@@ -362,12 +389,31 @@ const $copyText = inject('$copyText')
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
+const theme = computed(() => $store.getters['global/theme'])
 const selectedAccountType = ref('hedge')
 
 const hedgesDrawerRef = ref()
 const hedgesListRef = ref()
 const offersDrawerRef = ref()
 const offersListRef = ref()
+
+// Custom Keyboard
+const createHedgeFormRef = ref()
+const showCustomKeyboard = ref(false)
+const activeInput = ref()
+
+function setAmount (key) {
+  createHedgeFormRef?.value?.setAmount?.(key)
+}
+
+function makeKeyAction (action) {
+  if (action === 'backspace' || action === 'delete') {
+    createHedgeFormRef?.value?.makeKeyAction(action)
+  } else {
+    showCustomKeyboard.value = false
+  }
+}
 
 const wallet = ref(null)
 async function initWallet() {
@@ -736,6 +782,7 @@ function onHedgeFormCreate(data) {
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position Offer`,
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position offer created`,
       class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      seamless: true,
       style: 'word-break:break-all;',
     })
       .onDismiss(() => {
@@ -752,6 +799,7 @@ function onHedgeFormCreate(data) {
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position`,
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position created.<br/>Address: ` + contractAddress,
       html: true,
+      seamless: true,
       class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
       style: 'word-break:break-all;',
     }).onDismiss(() => {
@@ -1089,6 +1137,8 @@ async function displayContractFromNotification(data={address: '', position: '' }
   } else {
     $q.dialog({
       message: 'Unable to find contract',
+      seamless: true,
+      ok: true,
       class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
     })
   }

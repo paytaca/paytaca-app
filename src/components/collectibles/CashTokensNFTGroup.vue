@@ -1,12 +1,12 @@
 <template>
   <div>
     <div v-if="fetchingNfts" class="row items-center justify-center">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div class="row items-start q-pa-md">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
-        :class="darkMode ? 'text-white pt-dark-card' : 'text-black'"
+        :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
         class="q-ma-sm"
         style="max-width:130px;width:100%;"
         @click.stop="() => $emit('openNft', nft)"
@@ -53,9 +53,10 @@
 import { CashNonFungibleToken } from "src/wallet/cashtokens";
 import { Wallet } from "src/wallet"
 import { useStore } from "vuex";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import ProgressLoader from 'components/ProgressLoader'
 import LimitOffsetPagination from 'components/LimitOffsetPagination.vue';
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 defineExpose({
   fetchNfts,
@@ -65,6 +66,10 @@ const $store = useStore()
 const $emit = defineEmits([
   'openNft',
 ])
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const theme = computed(() => $store.getters['global/theme'])
+
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const props = defineProps({
   wallet: Wallet,
@@ -81,6 +86,12 @@ const nftsPagination = ref({count: 0, limit: 0, offset: 0})
 const nfts = ref([].map(CashNonFungibleToken.parse))
 function fetchNfts(opts={limit: 0, offset: 0}) {
   if (props.wallet) {
+    let watchtower
+    if (isChipnet.value) {
+      watchtower = props.wallet.BCH_CHIP.watchtower
+    } else {
+      watchtower = props.wallet.BCH.watchtower
+    }
     const params = {
       wallet_hash: props.wallet.BCH.walletHash,
       category: props.category || undefined,
@@ -92,7 +103,7 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
     }
 
     fetchingNfts.value = true
-    props.wallet.BCH.watchtower.BCH._api.get('/cashtokens/nft/', { params })
+    watchtower.BCH._api.get('/cashtokens/nft/', { params })
       .then(response => {
         if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
         nfts.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)

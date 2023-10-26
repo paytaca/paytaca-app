@@ -1,6 +1,6 @@
 <template>
-	<q-dialog ref="dialog" @hide="onDialogHide" full-width>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
+	<q-dialog ref="dialog" @hide="onDialogHide" full-width seamless>
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space q-mt-sm">{{ title }}</div>
         <q-btn
@@ -10,7 +10,7 @@
           v-close-popup
         />
       </div>
-      <q-tab-panels v-model="panel" animated :class="darkMode ? 'pt-dark' : 'text-black'">
+      <q-tab-panels v-model="panel" animated :class="darkMode ? 'pt-dark info-banner' : 'text-black'">
         <q-tab-panel name="list" class="q-pa-none">
           <q-card-section>
             <div class="row items-center justify-end q-mb-sm">
@@ -18,8 +18,8 @@
                 no-caps
                 flat
                 icon-right="mdi-arrow-right"
-                :label="$t('SelectCustomToken')"
-                color="blue-9"
+                :label="$t(isHongKong(currentCountry) ? 'SelectCustomPoint' : 'SelectCustomToken')"
+                class="button button-text-secondary"
                 padding="none xs"
                 @click="panel='custom'"
               />
@@ -74,7 +74,7 @@
                 no-caps
                 icon="mdi-arrow-left"
                 :label="$t('SelectFromList')"
-                color="blue-9"
+                class="button button-text-secondary"
                 padding="none xs"
                 flat
                 @click="panel='list'"
@@ -92,7 +92,7 @@
           </q-card-section>
           <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
             <div v-if="customToken.fetchingInfo" class="row items-center justify-center">
-              <ProgressLoader/>
+              <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
             </div>
 
             <q-item
@@ -132,6 +132,7 @@ import { debounce } from 'quasar'
 import { inject } from 'vue'
 import { getSep20ContractDetails } from '../../wallet/sbch/utils'
 import ProgressLoader from '../ProgressLoader.vue'
+import { isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 const _customTokenInfoCache = {}
 
@@ -158,7 +159,8 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
-    }
+    },
+    currentCountry: { type: String }
   },
   data () {
     return {
@@ -179,6 +181,9 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     filteredTokensList () {
       if (!Array.isArray(this.tokensList)) return []
       if (!this.searchText && !this.showHasBalance) return this.tokensList
@@ -208,6 +213,8 @@ export default {
     }
   },
   methods: {
+    isDefaultTheme,
+    isHongKong,
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },

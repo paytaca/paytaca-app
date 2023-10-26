@@ -512,7 +512,6 @@ export default {
         rating: feedback.rating,
         comment: feedback.comment
       }
-      console.log('HERRRREE', vm.authHeaders)
       await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response)
@@ -570,7 +569,7 @@ export default {
       switch (vm.dialogType) {
         case 'confirmReleaseCrypto':
           await this.releaseCrypto()
-          await vm.verifyRelease()
+          // await vm.verifyRelease()
           break
         case 'confirmCancelOrder':
           await vm.cancelOrder()
@@ -622,7 +621,7 @@ export default {
       console.log('handleConfirmPayment:', data)
       if (this.confirmType === 'seller') {
         await this.releaseCrypto() // this will generate the txid
-        await this.verifyRelease() // this needs the txid
+        // await this.verifyRelease() // this needs the txid
       } else {
         this.selectedPaymentMethods = data
         this.dialogType = 'confirmPayment'

@@ -1,7 +1,7 @@
 <template>
-  <q-dialog ref="dialog" persistent full-width>
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" class="br-15">
-      <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg" v-if="!showInfo">
+  <q-dialog ref="dialog" persistent full-width seamless>
+    <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">
+      <div class="row no-wrap items-center justify-center q-px-lg q-pt-sm" v-if="!showInfo">
         <div class="text-subtitle1 q-space q-mt-sm">
           {{ $t('TransactionHistory') }}
         </div>
@@ -86,7 +86,7 @@
                 <div class="q-pt-sm" v-if="has_next" style="width: 100%; text-align: center; color: #3b7bf6;">
                   <p v-if="!loadingNextPage" @click="loadingNextPage = true; getTransactions();">{{ $t('ShowMore') }}</p>
                   <div class="row justify-center q-pt-sm" v-if="loadingNextPage">
-                    <ProgressLoader/>
+                    <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
                   </div>
                 </div>
               </div>
@@ -96,7 +96,7 @@
         </q-card-section>
       </div>
       <div class="row justify-center q-py-lg" style="margin-top: 50px" v-if="!isloaded">
-        <ProgressLoader/>
+        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </q-card>
   </q-dialog>
@@ -105,6 +105,7 @@
 import { getMnemonic, Wallet } from 'src/wallet'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -113,7 +114,6 @@ export default {
   },
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       selectedData: {},
       transactions: [],
       networkError: false,
@@ -127,7 +127,17 @@ export default {
       bchAddress: this.$store.getters['global/getAddress']('bch')
     }
   },
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+  },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     onOKClick () {
       this.$emit('ok', this.selectedData)
       this.$refs.dialog.hide()

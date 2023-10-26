@@ -1,6 +1,6 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" full-width>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
+  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" full-width seamless>
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="newDevice">
@@ -14,6 +14,7 @@
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -59,7 +60,8 @@
             <q-btn
               flat
               :disable="loading"
-              color="brandblue"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               :label="$t('Cancel', {}, 'Cancel')"
               @click="onDialogCancel"
             />
@@ -67,7 +69,8 @@
               flat
               type="submit"
               :disable="loading"
-              color="brandblue"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               :label="newDevice ? $t('Create', {}, 'Create') : $t('Update', {}, 'Update')"
             />
           </div>
@@ -82,6 +85,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 const emit = defineEmits([

@@ -192,7 +192,6 @@ export class SlpWallet {
   }
 
   async sendSlp (amount, tokenId, tokenType, recipient, feeFunder, changeAddresses) {
-    console.log(`Sending ${amount} of SLP token ${tokenId} to ${recipient}`)
     let data = {
       sender: {
         walletHash: this.walletHash,

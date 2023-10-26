@@ -2,7 +2,7 @@
   <div>
     <div
       class="pt-dark q-pa-sm rounded-borders q-ma-sm"
-      style="min-height:10rem;"
+      style="min-height:9rem;"
     >
       <q-btn
         v-if="rearrangedSeedphrase.length"

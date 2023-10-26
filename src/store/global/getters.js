@@ -11,6 +11,10 @@ function getWalletData (state, walletType) {
   return state.wallets[walletType]
 }
 
+export function theme (state) {
+  return state.theme
+}
+
 export function language (state) {
   return state.language
 }
@@ -217,4 +221,8 @@ export function getConnectedSites (state) {
     const walletData = getWalletData(state, walletType)
     return walletData.connectedSites
   }
+}
+
+export function denomination (state) {
+  return state.denomination
 }

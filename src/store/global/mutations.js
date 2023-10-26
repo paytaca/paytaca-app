@@ -104,6 +104,7 @@ export function updateWallet (state, details) {
   wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
   wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
   wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
+  wallet.purelypeerVaultSigner = details.purelypeerVaultSigner ?? wallet.purelypeerVaultSigner
 }
 
 export function setLanguage (state, language) {
@@ -113,6 +114,13 @@ export function setLanguage (state, language) {
 export function setCountry (state, country) {
   state.country.name = country.name
   state.country.code = country.code
+  if (country.code === 'HK') {
+    state.theme = 'payhero'
+    state.denomination = 'DEEM'
+  } else {
+    state.theme = 'default'
+    state.denomination = 'BCH'
+  }
 }
 
 export function setConnectedAddress (state, details) {
@@ -210,3 +218,6 @@ export function updateConnectivityStatus (state, online) {
   state.online = online
 }
 
+export function setDenomination (state, denomination) {
+  state.denomination = denomination
+}

@@ -1,19 +1,28 @@
 <template>
-  <q-dialog  ref="dialog" position="bottom" full-width>
-    <q-card style="height: 525px;" class="br-15" :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
+  <q-dialog  ref="dialog" position="bottom" full-width seamless>
+    <q-card class="br-15 wallet-card" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
-        <div class="text-h5 q-space q-mt-sm text-blue-9" style="font-size: 18px;">{{ $t('Wallets') }}</div>
+        <div class="text-h5 q-space q-mt-sm title">
+          {{ $t('Wallets') }}
+        </div>
         <q-btn
           flat
           padding="sm"
           icon="close"
           v-close-popup
           color="red-9"
+          class="close-button"
         />
       </div>
       <div class="row no-wrap items-center justify-center q-px-md">
         <div class="text-h5 q-space q-mt-sm"></div>
-        <div clickable class="q-pr-md text-blue-9" style="margin-top: 10px;" @click="$router.push('/accounts')">
+        <div
+          clickable
+          class="q-pr-md text-blue-9"
+          :class="{'text-grad': isDefaultTheme(theme)}"
+          style="margin-top: 10px;"
+          @click="$router.push('/accounts')"
+        >
           {{ $t('CreateOrImportWallet') }}
         </div>
       </div>
@@ -21,24 +30,31 @@
         <q-virtual-scroll :items="vault">
           <template v-slot="{ item: wallet, index }">
             <template v-if="wallet.deleted !== true">
-              <q-item class="q-pb-sm" clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" @click="selectedIndex = index">
+              <q-item
+                clickable
+                class="q-pb-sm bottom-border"
+                :class="getDarkModeClass(darkMode)"
+                @click="selectedIndex = index"
+              >
                 <q-item-section style="overflow-wrap: break-word;">
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                    <span class="text-h5" style="font-size: 15px;">{{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></span>
-                    <span  class="text-nowrap q-ml-xs q-mt-sm" :class="{'text-grey': darkMode}">
-                      {{ String(getAssetData(index).balance).substring(0, 10) }} {{ getAssetData(index).symbol }}
+                  <div :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
+                    <span class="text-h5" :class="{'text-grad' : isDefaultTheme(theme)}" style="font-size: 15px;">
+                      {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
+                    </span>
+                    <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
+                      {{ parseAssetDenomination(denomination, getAssetData(index), false, 10) }}
                     </span>
                   </div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
-                    <span style="font-size: 12px; color: gray;">
+                  <div :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
+                    <span class="address" :class="getDarkModeClass(darkMode)">
                       {{ arrangeAddressText(wallet) }}
                     </span>
-                    <span style="font-size: 12px; color: gray;" class="text-nowrap q-ml-xs">
-                      {{ getAssetMarketBalance(getAssetData(index)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                    <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass(darkMode)">
+                      {{ parseFiatCurrency(getAssetMarketBalance(getAssetData(index)), selectedMarketCurrency) }}
                     </span>
                   </div>
                   <q-menu anchor="bottom right" self="top end" >
-                    <q-list class="text-h5" :class="{'pt-dark-card': darkMode}" style="min-width: 150px; font-size: 15px;">
+                    <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
                       <q-item clickable v-close-popup>
                         <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">{{ $t('SwitchWallet') }}</q-item-section>
                       </q-item>
@@ -58,11 +74,12 @@
 </template>
 <script>
 import renameDialog from './renameDialog.vue'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       currentIndex: this.$store.getters['global/getWalletIndex'],
       isChipnet: this.$store.getters['global/isChipnet'],
       vault: [],
@@ -75,6 +92,10 @@ export default {
     renameDialog
   },
   methods: {
+    parseAssetDenomination,
+    parseFiatCurrency,
+    getDarkModeClass,
+    isDefaultTheme,
     processVaultName () {
       const vm = this
       let count = 1
@@ -167,6 +188,15 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     bchAsset () {
       return this.$store.getters['assets/getAssets'][0]
     },
@@ -189,10 +219,29 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.wallet-card {
+  height: 525px;
+  .title {
+    font-size: 18px;
+  }
+  .bottom-border {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+  }
+  .address, .market-currency {
+    font-size: 12px;
+  }
+}
 .inactive-color {
   color: #ed5e59;
+  -webkit-text-fill-color: #ed5e59;
 }
 .active-color {
-  color: #8ec351
+  color: #8ec351;
+  -webkit-text-fill-color: #8ec351;
+}
+.pt-card {
+  min-width: 150px;
+  font-size: 15px;
 }
 </style>

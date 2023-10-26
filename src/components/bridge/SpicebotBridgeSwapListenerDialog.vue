@@ -7,6 +7,7 @@
       updateSwapRequest()
     }"
     full-width
+    seamless
     persistent>
     <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
       <div class="row no-wrap items-center justify-center q-pl-md">
@@ -38,7 +39,7 @@
           </q-item-section>
         </q-item>
         <div v-if="waiting" class="row items-center justify-center">
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-else-if="fulfillmentTxDetails.hash" class="q-mt-md">
           <div class="ellipsis">
@@ -68,6 +69,7 @@
 <script>
 import { getSwapRequestDetails } from '../../wallet/spicebot-bridge'
 import ProgressLoader from '../ProgressLoader.vue'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SpicebotBridgeSwapListenerDialog',
@@ -101,6 +103,9 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     waiting () {
       return Boolean(this.pollerId)
     },
@@ -113,6 +118,7 @@ export default {
     }
   },
   methods: {
+    isDefaultTheme,
     async updateTokenImgUrl () {
       if (this.tokenImagesMap?.[this.swapRequest?.token?.slp_token_id]) {
         this.tokenImgUrl = this.tokenImagesMap?.[this.swapRequest?.token?.slp_token_id]

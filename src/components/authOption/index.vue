@@ -2,24 +2,39 @@
   <div>
     <q-dialog
       v-model="dialog"
+      seamless
       persistent
     >
-      <q-card :class="{ 'pt-dark-card': darkMode }">
+      <q-card class="pt-card" :class="getDarkModeClass()">
           <q-card-section>
-            <p class="q-my-none" :class="darkMode ? 'text-white' : 'text-black'">{{ $t('ChoosePreferredSecAuth') }}</p>
+            <p class="q-my-none pt-label" :class="getDarkModeClass('text-white', 'text-black')">{{ $t('ChoosePreferredSecAuth') }}</p>
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row q-mb-sm">
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="pin" :label="$t('Pin')" color="pt-radio" class="full-width" :class="darkMode ? 'text-white' : 'text-black'" />
+                <q-radio
+                  v-model="preferredSecurity"
+                  val="pin"
+                  :label="$t('Pin')"
+                  color="pt-radio"
+                  class="full-width pt-label"
+                  :class="getDarkModeClass('text-white', 'text-black')"
+                />
               </div>
               <div class="col-12">
-                <q-radio v-model="preferredSecurity" val="biometric" :label="$t('Biometric')" color="pt-radio" class="full-width" :class="darkMode ? 'text-white' : 'text-black'" />
+                <q-radio
+                  v-model="preferredSecurity"
+                  val="biometric"
+                  :label="$t('Biometric')"
+                  color="pt-radio"
+                  class="full-width pt-label"
+                  :class="getDarkModeClass('text-white', 'text-black')"
+                />
               </div>
             </div>
             <q-separator />
             <div class="text-right q-mt-md">
-              <q-btn :label="btnLabel" class="pt-btn-closeDialog q-px-md" push rounded @click="donePicking" />
+              <q-btn :label="btnLabel" class="pt-btn-closeDialog q-px-md button" push rounded @click="donePicking" />
             </div>
           </q-card-section>
       </q-card>
@@ -34,12 +49,12 @@ export default {
     return {
       dialog: false,
       preferredSecurity: 'pin',
-      btnLabel: this.$t('Setup')
+      btnLabel: this.$t('Setup'),
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   props: [
-    'securityOptionDialogStatus',
-    'darkMode'
+    'securityOptionDialogStatus'
   ],
   watch: {
     securityOptionDialogStatus () {
@@ -63,6 +78,9 @@ export default {
   methods: {
     donePicking () {
       this.$emit('preferredSecurity', this.preferredSecurity)
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   created () {
@@ -82,5 +100,8 @@ export default {
 }
 .pp-text {
   color: #000 !important;
+}
+.q-radio .q-radio__inner--falsy {
+  color: white !important;
 }
 </style>

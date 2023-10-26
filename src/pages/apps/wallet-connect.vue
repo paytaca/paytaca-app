@@ -4,7 +4,7 @@
       v-model="scanner.show"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         :title="$t('WalletConnect')"
         backnavpath="/apps"
@@ -24,7 +24,7 @@
               <q-btn
                 no-caps
                 rounded
-                color="blue-9"
+                class="button"
                 :label="$t('Connect')"
                 @click="handShakeFormSubmit()"
                 :disable="handshakeOnProgress"
@@ -40,13 +40,14 @@
               icon="mdi-qrcode"
               color="grad"
               size="lg"
+              class="button"
               @click="scanner.show = true"
               :disable="handshakeOnProgress"
             />
           </div>
           <template v-if="handshakeOnProgress">
             <div class="row items-center justify-center">
-              <ProgressLoader/>
+              <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
             </div>
             <div v-if="pendingConnector" class="row items-center justify-center">
               <q-btn
@@ -197,6 +198,7 @@ import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader.vue'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
 import WalletConnectCallRequestDialog from '../../components/walletconnect/WalletConnectCallRequestDialog.vue'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 const ago = require('s-ago')
 
 export default {
@@ -228,8 +230,7 @@ export default {
       },
 
       onDisconnectListener: null,
-      onCallRequestListener: null,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      onCallRequestListener: null
     }
   },
   computed: {
@@ -239,7 +240,13 @@ export default {
       },
       set (value) {
         this.walletConnect.connector = value
-      }
+      },
+    },
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     },
     parsedPeerMeta () {
       const meta = {
@@ -266,6 +273,8 @@ export default {
   },
 
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value
@@ -404,6 +413,8 @@ export default {
         this.$q.dialog({
           title: this.$t('WalletConnect'),
           message: this.$t('Disconnected') + '!',
+          seamless: true,
+          ok: true,
           class: 'text-black'
         })
 
@@ -514,6 +525,7 @@ export default {
           rounded: true,
           flat: true
         },
+        seamless: true,
         class: this.darkMode ? 'br-15 text-white pt-dark' : 'text-black br-15'
       })
         .onOk(() => {

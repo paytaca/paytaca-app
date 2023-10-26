@@ -143,7 +143,6 @@ export async function fetchAds (context, { component = null, params = null, over
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
     const response = await axiosInstance.get(apiURL, { params: params, headers: headers })
-
     switch (params.trade_type) {
       case 'BUY':
         switch (component) {

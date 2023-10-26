@@ -1,15 +1,14 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
-      title="POS Admin"
+      :title="$t('POSAdmin')"
       backnavpath="/apps"
+      class="apps-header"
     />
     <q-card
-      class="br-15 q-mx-md q-mt-lg q-mb-md"
+      class="br-15 q-mx-md q-mt-lg q-mb-md pt-card"
       :style="{ 'margin-top': $q.platform.is.ios ? '35px' : '0'}"
-      :class="[
-        darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
+      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
     >
       <q-card-section>
         <q-item
@@ -44,7 +43,12 @@
                   <q-space/>
                   <q-icon name="more_horiz" size="1.5em" class="q-px-sm"/>
                 </div>
-                <q-menu anchor="bottom right" self="top right" :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-pa-sm']">
+                <q-menu
+                  anchor="bottom right"
+                  self="top right"
+                  class="q-pa-sm pt-card"
+                  :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+                >
                   <q-list separator :dark="darkMode">
                     <q-item
                       v-for="branch in merchantBranches" :key="branch.id"
@@ -102,11 +106,9 @@
     </q-card>
 
     <q-card
-      class="br-15 q-pt-sm q-mx-md"
+      class="br-15 q-pt-sm q-mx-md pt-card"
       :style="{ 'margin-top': $q.platform.is.ios ? '55px' : '0'}"
-      :class="[
-        darkMode ? 'text-white pt-dark-card' : 'text-black',
-      ]"
+      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
     >
       <q-card-section>
         <div class="row items-center">
@@ -118,13 +120,14 @@
             padding="xs"
             round
             :color="darkMode ? 'grad' : 'brandblue'"
-            class="q-mr-sm"
+            class="q-mr-sm button"
             @click="displaySalesReportDialog()"
           />
           <q-btn
             icon="add"
             padding="xs"
             round
+            class="button"
             :color="darkMode ? 'grad' : 'brandblue'"
             @click="addNewPosDevice()"
           />
@@ -174,7 +177,7 @@
             <q-item-section side>
               <q-btn icon="more_vert" flat>
                 <q-menu>
-                  <q-list :class="{'pt-dark-card': darkMode, 'text-black': !darkMode }" style="min-width: 100px">
+                  <q-list style="min-width: 100px" class="pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
                     <q-item
                       clickable
                       v-close-popup
@@ -293,6 +296,7 @@ import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.v
 import SalesReportDialog from 'src/components/paytacapos/SalesReportDialog.vue'
 import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
 
@@ -476,6 +480,7 @@ async function deviceUnlinkRequest(posDevice) {
     message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request'),
     persistent: true,
     progress: true,
+    seamless: true,
     ok: false,
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -526,6 +531,7 @@ function confirmCancelUnlinkPosDevice(posDevice) {
     message: $t('CancellingUnlinkRequest', {}, 'Cancelling unlink request'),
     persistent: true,
     progress: true,
+    seamless: true,
     ok: false,
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -555,6 +561,7 @@ function updateDeviceSuspension(posDevice, isSuspended) {
     ok: false,
     cancel: false,
     persistent: true,
+    seamless: true,
     progress: true,
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -652,6 +659,7 @@ function confirmUnlinkPosDevice(posDevice) {
       label: $t('UnlinkDevice', {}, 'Unlink device'),
       color: 'red-5',
     },
+    seamless: true,
     cancel: { noCaps: true, flat: true, padding: 'xs md' },
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -674,6 +682,7 @@ function addNewPosDevice() {
         message: $t('AddingNewDevice', {}, 'Adding new device'),
         persistent: true,
         progress: true,
+        seamless: true,
         class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
       })
       apiCall
@@ -726,6 +735,7 @@ function updatePosDevice(posDevice) {
         message: updateDialogMsg,
         persistent: true,
         progress: true,
+        seamless: true,
         class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
       })
       apiCall
@@ -781,6 +791,7 @@ function confirmRemovePosDevice(posDevice) {
       label: $t('RemoveDevice', {}, 'Remove device'),
       color: 'red-5',
     },
+    seamless: true,
     cancel: { noCaps: true, flat: true, padding: 'xs md' },
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -792,6 +803,7 @@ function confirmRemovePosDevice(posDevice) {
       const dialog = $q.dialog({
         message: updateDialogMsg,
         persistent: true,
+        seamless: true,
         progress: true,
         class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
       })
@@ -926,7 +938,6 @@ function connectRpcClient(opts) {
       }
     })
 }
-
 </script>
 <style scoped>
 .device-tooltip > div::before {

@@ -1,14 +1,29 @@
 <template>
-  <div style="background-color: #ECF3F3; min-height: 100vh;" :class="{'pt-dark': $store.getters['darkmode/getStatus']}">
+  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode, 'pt-dark', '')">
     <div id="apps" ref="apps" class="text-center">
-      <div :style="{ 'margin-top': $q.platform.is.ios ? '40px' : '0px'}">
-        <p class="section-title" :class="{'text-blue-5': $store.getters['darkmode/getStatus']}">{{ $t('Applications') }}</p>
-        <div class="row q-px-xs">
+      <div>
+        <div :class="{'pt-header apps-header': isDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
+          <p
+            class="section-title"
+            :class="{'text-blue-5': darkMode, 'text-grad': isDefaultTheme(theme)}"
+            :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
+          >
+            {{ $t('Applications') }}
+          </p>
+        </div>
+        <div class="row" :class="isDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
-            <div class="pt-app bg-grad" :class="buttonClassByState(app.active)" @click="openApp(app)">
+            <div
+              class="pt-app bg-grad"
+              :class="[
+                buttonClassByState(app.active),
+                {'apps-border' : isDefaultTheme(theme)}
+              ]"
+              @click="openApp(app)"
+            >
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
-            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">{{ app.name }}</p>
+            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
           </div>
         </div>
       </div>
@@ -19,6 +34,8 @@
 </template>
 
 <script>
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+
 export default {
   name: 'apps',
   data () {
@@ -59,13 +76,13 @@ export default {
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
           active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: true
+          smartBCHOnly: false
         },
         {
           name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',
-          active: !this.$store.getters['global/isChipnet'],
+          active: true,
           smartBCHOnly: false
         },
         {
@@ -88,6 +105,13 @@ export default {
         //   path: '/apps/chat/',
         //   active: true
         // },
+        {
+          name: this.$t('Map'),
+          iconName: 'mdi-map',
+          path: '/apps/map/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
         {
           name: this.$t('POSAdmin'),
           iconName: 'point_of_sale',
@@ -115,6 +139,12 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
     },
@@ -123,6 +153,8 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     buttonClassByState (active) {
       return active ? '' : 'disabled'
     },
@@ -132,8 +164,18 @@ export default {
       }
     }
   },
-  created() {
+  created () {
     this.filteredApps = this.apps
+    const currentTheme = this.$store.getters['global/theme']
+    const themedIconPath = isDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
+    this.filteredApps.forEach(app => {
+      if (isDefaultTheme(this.theme)) {
+        const iconFileName = app.path.split('/')[2]
+        const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
+        app.iconName = themedIconLoc
+      }
+    })
+
     if (!this.enableSmartBCH) {
       this.filteredApps = this.apps.filter((app) => {
         if (!app.smartBCHOnly) {
@@ -171,10 +213,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
-  #apps {
-    padding: 20px 20px 80px 20px;
-    color: #3B7BF6;
+  #apps-page-container {
+    background-color: #ECF3F3;
+    min-height: 100vh;
   }
+
   .section-title {
     font-size: 22px;
     margin-left: 14px;
@@ -185,12 +228,6 @@ export default {
   }
 
   /* New */
-  .pt-app {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 10px;
-  }
   .pt-light-app {
      background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
   }
@@ -204,7 +241,8 @@ export default {
   .app-icon {
     vertical-align: middle;
     align-content: center;
-    width: 100%;
+    width: 50%;
+    height: 50%;
   }
   .pt-black {
     color: #212F3C !important;

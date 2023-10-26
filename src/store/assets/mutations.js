@@ -76,7 +76,6 @@ export function addIgnoredAsset (state, asset) {
   const index = _ignoredAssets.map(assetInfo => assetInfo.id).indexOf(asset.id)
   if (index >= 0) _ignoredAssets[index] = asset
   else _ignoredAssets.push(asset)
-  console.log('X', _ignoredAssets)
 }
 
 /**
@@ -133,7 +132,6 @@ export function updateVault (state, details) {
 }
 
 export function updateVaultSnapshot (state, details) {
-  // console.log('saving asset snapshot')
   let snapshot = details.snapshot
   snapshot = JSON.stringify(snapshot)
   snapshot = JSON.parse(snapshot)
@@ -142,7 +140,6 @@ export function updateVaultSnapshot (state, details) {
 }
 
 export function clearVault (state) {
-  // console.log('clearing vault')
   state.vault = []
 }
 

@@ -19,7 +19,7 @@
         </q-list>
       </q-menu>
     </q-icon>
-    <q-dialog class="text-black" v-model="confirmDeletion" persistent>
+    <q-dialog class="text-black" v-model="confirmDeletion" persistent seamless>
       <q-card :dark="darkMode">
         <q-card-section class="row items-center">
           <span class="q-ml-sm">This will delete your local copy of this conversation except the last message. Do you want to proceed?</span>
@@ -82,7 +82,7 @@
         </div>
       </template>
       <div v-if="connecting">
-        <ProgressLoader />
+        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
     <div v-if="connected" id="messages-container" ref="messagesContainer" style="width: 100%;">
@@ -129,6 +129,7 @@ import * as mqtt from 'mqtt'
 import axios from 'axios'
 import sha256 from 'js-sha256'
 import BCHJS from '@psf/bch-js'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
 const ago = require('s-ago')
@@ -158,11 +159,16 @@ export default {
       connected: false,
       topic: null,
       connecting: false,
-      confirmDeletion: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      confirmDeletion: false
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     messages () {
       const history = this.$store.getters['chat/getHistory'](this.topic)
       return history.filter((msg) => {
@@ -209,6 +215,7 @@ export default {
     }
   },
   methods: {
+    isDefaultTheme,
     onScannerDecode (content) {
       this.showQrScanner = false
       this.recipientAddress = content

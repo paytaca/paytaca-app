@@ -62,7 +62,7 @@
           Sending <b>{{ shiftInfo.shift_info.deposit.amount }}</b> BCH to <b>{{ shiftInfo.shift_info.settle.address }}</b>
         </div>
         <div class="row justify-center q-py-lg">
-          <ProgressLoader/>
+          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
       </div>
       <div v-if="!sendFailed && !processing">
@@ -90,11 +90,11 @@ import { getMnemonic, Wallet } from 'src/wallet'
 // import { getMnemonic, Wallet } from '../../../wallet'
 // import { getMemoedVNodeCall } from '@vue/compiler-core'
 // import { getNetwork } from '@ethersproject/networks'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       shiftInfo: {},
       countDown: '',
       shiftExpired: false,
@@ -123,7 +123,16 @@ export default {
   components: {
     ProgressLoader
   },
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+  },
   methods: {
+    isDefaultTheme,
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
@@ -219,11 +228,9 @@ export default {
     vm.state = vm.type
     if (vm.state === 'created') {
       if (vm.shiftInfo.shift_info.deposit.coin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
-        // console.log('this wallet')
         vm.sendBCH = true
         await vm.sendingBCH()
       } else {
-        // console.log('others')
         vm.countingDown()
       }
     } else if (vm.state === 'history') {

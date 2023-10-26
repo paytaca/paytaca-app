@@ -138,9 +138,8 @@
       <q-btn
         no-caps
         :disable="loading"
-        color="brandblue"
         :label="merchantInfo?.id ? $t('Update', {}, 'Update') : $t('Set', {}, 'Set')"
-        class="col"
+        class="col button"
         type="submit"
       />
     </div>
@@ -274,7 +273,7 @@ function updateMerchantInfo() {
       })
     })
     .then(() => {
-      if (!$store.getters['paytacapos/merchantBranchs']?.length) {
+      if (!$store.getters['paytacapos/merchantBranches']?.length) {
         $store.dispatch('paytacapos/refetchBranches', {
           walletHash: $store.getters['paytacapos/merchantInfo']?.walletHash,
         })

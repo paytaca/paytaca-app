@@ -1,13 +1,14 @@
 <template>
   <div
     class="row justify-center fixed-footer"
-    :class="{'pt-dark-card': darkMode}"
-    :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
+    :class="getDarkModeClass()"
+    :style="{width: $q.platform.is.bex ? '375px' : '100%', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ path: '/' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-home.png" size="30px" />
+          <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-home.svg#icon"></use>
             </svg>
@@ -16,9 +17,10 @@
         <br>
         <span @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
-      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-send.png" size="30px" />
+          <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-send.svg#icon"></use>
             </svg>
@@ -27,9 +29,10 @@
         <br>
         <span @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
       </button>
-      <button class="footer-icon-btn" :class="{'text-white': darkMode}">
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'transaction-receive-select-asset' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-receive.png" size="30px" />
+          <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-receive.svg#icon"></use>
             </svg>
@@ -38,9 +41,10 @@
         <br>
         <span @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}">
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'apps-dashboard' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-apps.png" size="30px" />
+          <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="apps.svg#icon"></use>
             </svg>
@@ -49,11 +53,12 @@
         <br>
         <span @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="openWalletDialog">
-        <q-icon class="default-text-color mb-2" size="30px">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="getDarkModeClass()" @click="openWalletDialog">
+        <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-wallet.png" size="30px" />
+        <q-icon v-else class="default-text-color mb-2" size="30px">
           <svg>
             <use xlink:href="wallet.svg#icon"></use>
-          </svg>    
+          </svg>
         </q-icon>
         <br>
         <span>{{ $t('Wallets') }}</span>
@@ -77,6 +82,11 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
+  computed: {
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    }
+  },
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')
@@ -85,6 +95,9 @@ export default {
       this.$q.dialog({
         component: MultiWallet
       })
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }
@@ -100,11 +113,9 @@ export default {
     padding-top: 5px;
     width: 100%;
     bottom: 0;
-    background-color: #fff;
-    border-top-right-radius: 20px;
-    border-top-left-radius: 20px;
     box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
     z-index: 6;
+    margin: 0 auto;
 
     .footer-icon {
       font-size: 30px !important;

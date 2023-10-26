@@ -1,6 +1,6 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" full-width>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15">
+  <q-dialog ref="dialogRef" @hide="onDialogHide" full-width seamless>
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">{{ title }}</div>
         <q-btn
@@ -39,19 +39,19 @@
               <div class="row items-center">
                 <div class="q-space">
                   ~ {{
-                    estimateCounterPartySats({
+                    getAssetDenomination(denomination, estimateCounterPartySats({
                       satoshis: hedgePositionOffer?.satoshis,
                       position: hedgePositionOffer?.position,
                       lowLiquidationPriceMultiplier: hedgePositionOffer?.lowLiquidationPriceMultiplier,
-                    }) / 10 ** 8 
-                  }} BCH
+                    }) / 10 ** 8)
+                  }}
                 </div>
                 <div>{{ formatDuration(hedgePositionOffer.durationSeconds) }}</div>
               </div>
               <div class="text-grey text-caption">
                 <div class="q-space">
                   ({{ hedgePositionOffer.position === 'hedge' ? 'Hedge' : 'Long' }})
-                  {{ hedgePositionOffer.satoshis / 10 ** 8 }} BCH
+                  {{ getAssetDenomination(denomination, hedgePositionOffer.satoshis / 10 ** 8) }}
                 </div>
                 <div>
                   {{ hedgePositionOffer.lowLiquidationPriceMultiplier * 100 }}%
@@ -90,6 +90,7 @@ import { estimateCounterPartySats } from 'src/wallet/anyhedge/utils'
 import { computed, ref } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 // dialog plugins requirement
 defineEmits([
@@ -102,6 +103,7 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginC
 // misc
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
+const denomination = computed(() => store.getters['global/denomination'])
 const $q = useQuasar()
 
 const props = defineProps({

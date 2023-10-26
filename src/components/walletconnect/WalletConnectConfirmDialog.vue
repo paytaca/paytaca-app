@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" persistent>
+  <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
     <q-card class="q-dialog-plugin br-15 q-pb-xs" :class="{'pt-dark-card': darkMode }">
       <q-card-section class="text-black">
         <div class="text-grad">Connect to this site?</div>
