@@ -44,6 +44,7 @@
               </template>
               <template v-if="isDenominationTabEnabled">
                 <q-tabs
+                  inline-label
                   class="col-12 q-px-sm q-pb-md"
                   :model-value="denominationTabSelected"
                   @update:model-value="onDenominationTabSelected"
@@ -54,8 +55,18 @@
                     :name="$t('DEEM')"
                     class="network-selection-tab denominations-tab"
                     :class="getDarkModeClass(darkMode)"
-                    :label="$t('DEEM')"
-                  />
+                  >
+                    <template v-slot:default>
+                      <div class="q-tab__content">
+                        <div class="q-tab__label">
+                          <span>{{ `${$t('DEEM')}` }}</span>
+                        </div>
+                        <div class="q-tab__icon">
+                          <q-icon name="img:assets/img/theme/payhero/hk-flag.png" />
+                        </div>
+                      </div>
+                    </template>
+                  </q-tab>
                   <q-icon
                     name="sync_alt"
                     size="sm"
@@ -67,7 +78,7 @@
                     name="BCH"
                     class="network-selection-tab denominations-tab"
                     :class="getDarkModeClass(darkMode)"
-                    label="BCH"
+                    label="BCH &#x1F30F;"
                   />
                 </q-tabs>
               </template>
@@ -80,7 +91,7 @@
                       ? 'sep20-logo.png'
                       : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
                         ? 'assets/img/theme/payhero/deem-logo.png'
-                        : 'bch-logo2.png'
+                        : 'bch-logo.png'
                   "
                   style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"
                 />
@@ -1278,5 +1289,12 @@ export default {
     padding: 4px;
     padding-left: 2px;
     padding-right: 2px;
+  }
+  .q-tab__content {
+    display: flex;
+    align-items: center;
+  }
+  .q-tab__icon {
+    font-size: 14px !important;
   }
 </style>
