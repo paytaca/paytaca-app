@@ -35,7 +35,7 @@
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}  - {{ parseFloat(ad.trade_ceiling) }} {{ ad.crypto_currency.symbol }}
+                {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}  - {{ maxAmount(ad.trade_amount, ad.trade_ceiling) }} {{ ad.crypto_currency.symbol }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
@@ -120,9 +120,21 @@
               @click="state = 'edit-ad'">
             </q-btn>
           </div>
-        </div>
 
-        <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
+          <div class="text-center q-pt-sm">
+          <div class="bold-text md-font-size">{{ ad.owner }}</div>
+            <div class="q-py-xs q-pb-sm">
+              <q-rating
+                readonly
+                v-model="feedback.rating"
+                size="2.5em"
+                color="yellow-9"
+                icon="star"
+              />
+            </div>
+          <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
+        </div>
+        </div>
       </div>
 
       <!-- Progress Loader -->
@@ -212,7 +224,13 @@ export default {
       dialogType: '',
       paymentMethods: null,
 
-      title: ''
+      title: '',
+
+      feedback: {
+        rating: 3,
+        comment: '',
+        is_posted: false
+      }
     }
   },
   props: {
@@ -261,6 +279,13 @@ export default {
     vm.isloaded = true
   },
   methods: {
+    maxAmount (tradeAmount, tradeCeiling) {
+      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
+        return parseFloat(tradeAmount)
+      } else {
+        return parseFloat(tradeCeiling)
+      }
+    },
     orderConfirm () {
       this.dialogType = 'confirmOrderCreate'
       this.openDialog = true

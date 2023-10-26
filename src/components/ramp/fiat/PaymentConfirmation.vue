@@ -82,11 +82,6 @@
 
         <!-- Confirm  -->
         <div class="row q-pt-sm q-mx-lg q-px-md">
-          <DragSlide
-            @swiped="onConfirm"
-            text="Release Crypto"
-            v-if="confirmRelease && type === 'seller'"
-          />
           <!-- <q-btn
             v-if="type === 'seller'"
             :disable="!confirmRelease"
@@ -109,6 +104,18 @@
       </div>
     </q-scroll-area>
   </div>
+  <DragSlide
+    :style="{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1500,
+    }"
+    @swiped="onConfirm"
+    text="Release Crypto"
+    v-if="confirmRelease && type === 'seller'"
+  />
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'

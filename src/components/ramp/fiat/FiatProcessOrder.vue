@@ -586,10 +586,10 @@ export default {
           if (this.confirmType === 'buyer') {
             await this.fetchOrderData()
           }
-          if (this.confirmType === 'seller') {
-            await this.releaseCrypto() // this will generate the txid
-            await this.verifyRelease() // this needs the txid
-          }
+          // if (this.confirmType === 'seller') {
+          //   await this.releaseCrypto() // this will generate the txid
+          //   await this.verifyRelease() // this needs the txid
+          // }
           break
       }
       vm.title = ''
@@ -618,14 +618,19 @@ export default {
       this.openDialog = true
       this.title = 'Release crypto?'
     },
-    handleConfirmPayment (data) {
+    async handleConfirmPayment (data) {
       console.log('handleConfirmPayment:', data)
-      this.selectedPaymentMethods = data
-      this.dialogType = 'confirmPayment'
-      this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
+      if (this.confirmType === 'seller') {
+        await this.releaseCrypto() // this will generate the txid
+        await this.verifyRelease() // this needs the txid
+      } else {
+        this.selectedPaymentMethods = data
+        this.dialogType = 'confirmPayment'
+        this.title = 'Confirm Payment?'
 
-      this.text = this.confirmType === 'buyer' ? 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.' : 'This will release the crypto held by the escrow account to the buyer.'
-      this.openDialog = true
+        this.text = 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.'
+        this.openDialog = true
+      }
     },
 
     // Others

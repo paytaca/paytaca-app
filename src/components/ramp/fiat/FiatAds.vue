@@ -81,7 +81,7 @@
                             </div>
                             <div class="row sm-font-size">
                               <span class="q-mr-md">Limit</span>
-                              <span> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
+                              <span> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
                               <!-- <span> {{ formattedCurrency(listing.trade_floor, listing.fiat_currency.symbol) }} - {{ formattedCurrency(listing.trade_ceiling, listing.fiat_currency.symbol) }} </span> -->
                             </div>
                             <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
@@ -216,6 +216,7 @@ export default {
     sellListings () {
       return this.$store.getters['ramp/getAdsSellListings']
     },
+
     hasMoreData () {
       const vm = this
       vm.updatePaginationValues()
@@ -228,6 +229,13 @@ export default {
     this.loading = false
   },
   methods: {
+    maxAmount (tradeAmount, tradeCeiling) {
+      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
+        return parseFloat(tradeAmount)
+      } else {
+        return parseFloat(tradeCeiling)
+      }
+    },
     async fetchAds (overwrite = false) {
       const vm = this
       vm.loading = true
