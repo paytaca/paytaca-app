@@ -143,7 +143,7 @@
             {{ paymentRequest.paymentDetails.getTotalAmountBCHString() }}
           </div>
           <div v-if="paymentRequestStatus.executing" class="q-mt-md row justify-center">
-            <ProgressLoader/>
+            <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
           </div>
           <div v-else class="q-mt-md row justify-end">
             <q-btn
@@ -198,7 +198,7 @@
       </div>
     </div>
 
-    <q-dialog v-model="paymentRequestStatus.showSuccessDialog">
+    <q-dialog v-model="paymentRequestStatus.showSuccessDialog" seamless>
       <q-card
         flat
         bordered
@@ -233,6 +233,7 @@ import { Plugins } from '@capacitor/core'
 const { SecureStoragePlugin } = Plugins
 
 import { PaymentRequest } from './payment-request'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'connecta',
@@ -278,6 +279,9 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     paymentRequest () {
       if (!this.rawPaymentRequest) return
 
@@ -308,9 +312,15 @@ export default {
     }
   },
   methods: {
+    isDefaultTheme,
     playSound (success) {
+      let path = 'send-success.mp3'
+      if (this.$q.platform.is.ios) {
+        path = 'public/assets/send-success.mp3'
+      }
       if (success) {
-        const audio = new Audio('/audio/send-success.wav')
+        const path = path
+        const audio = new Audio(path)
         audio.play()
       }
     },
@@ -357,7 +367,6 @@ export default {
           return Promise.resolve(result)
         })
         .catch(err => {
-          console.log(err)
           const errors = []
 
           if (err.error) {

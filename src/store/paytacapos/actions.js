@@ -1,4 +1,5 @@
 import { backend as posBackend } from "src/wallet/pos"
+import { loadWallet } from "src/wallet"
 
 /**
  * 
@@ -41,14 +42,28 @@ export function refetchMerchantInfo(context, data) {
  * @param {String} data.location.longitude
  * @param {String} data.location.latitude
  */
-export function updateMerchantInfo(context, data) {
+export async function updateMerchantInfo(context, data) {
   if (!data?.walletHash) return Promise.reject(new Error('wallet hash required'))
 
   const payload = {
     wallet_hash: data?.walletHash,
     primary_contact_number: data?.primaryContactNumber,
   }
-  Object.assign(payload, data)
+
+  let receiving_pubkey = context.state.merchantInfo?.receivingPubkey
+  let signer_pubkey = context.state.merchantInfo?.signerPubkey
+
+  const wallet = await loadWallet('BCH')
+  const receivingPubkeys = await wallet.BCH.getPublicKey("0/0", "m/44'/145'/0'", true)
+  const signerPubkeys = await wallet.BCH.getPublicKey("0/0", "m/44'/145'/1'", true)
+  receiving_pubkey = receivingPubkeys.receiving
+  signer_pubkey = signerPubkeys.receiving
+
+  Object.assign(payload, {
+    ...data,
+    receiving_pubkey,
+    signer_pubkey,
+  })
 
   return posBackend.post(`paytacapos/merchants/`, payload)
     .then(response => {
@@ -179,7 +194,7 @@ export function deleteBranch(context, data) {
  * @param {Object} data
  * @param {String} data.walletHash
  * @param {String} data.posid
- * @param {String} data.encryptedXpubkey
+ * @param {String} data.encryptedData = xpubkey + @ + ppvsPrivKey
  * @param {String} data.decryptKey
  * @param {Number} data.nonce
  * @param {String} data.signature
@@ -189,7 +204,7 @@ export function deleteBranch(context, data) {
  */
 export function generateLinkCode(context, data) {
   if (!data?.walletHash || !Number.isSafeInteger(data?.posid) ||
-      !data?.encryptedXpubkey || !data?.decryptKey ||
+      !data?.encryptedData || !data?.decryptKey ||
       !Number.isSafeInteger(data?.nonce) || !data?.signature
   ) return Promise.reject()
 
@@ -205,7 +220,7 @@ export function generateLinkCode(context, data) {
   const _data = {
     wallet_hash: data?.walletHash,
     posid: data?.posid,
-    encrypted_xpubkey: data?.encryptedXpubkey,
+    encrypted_xpubkey: data?.encryptedData,
     signature: data?.signature,
   }
   return posBackend.post('paytacapos/devices/generate_link_device_code/', _data)

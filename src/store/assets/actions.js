@@ -9,9 +9,19 @@ import {
   getWalletByNetwork
 } from 'src/wallet/chipnet'
 
-const bcmrBackend = setupCache(axios.create({
-  baseURL: 'https://bcmr.paytaca.com/api',
-}))
+
+function getBcmrBackend() {
+  const network = getBlockChainNetwork()
+  if (network === 'chipnet') {
+    return setupCache(axios.create({
+      baseURL: 'https://bcmr-chipnet.paytaca.com/api',
+    }))
+  } else {
+    return setupCache(axios.create({
+      baseURL: 'https://bcmr.paytaca.com/api',
+    }))
+  }
+}
 
 function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^slp\/([0-9a-fA-F]+)$/)
@@ -200,7 +210,7 @@ export async function getAssetMetadata (context, assetId) {
   if (tokenType !== 'ct') return
 
   const url = 'tokens/' + tokenId
-  const response = await bcmrBackend.get(url)
+  const response = await getBcmrBackend().get(url)
   const _metadata = response.data
   let data
 

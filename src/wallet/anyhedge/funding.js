@@ -269,9 +269,8 @@ async function createUtxo(amount, recipient, changeAddress, wallet) {
   }
 
   
-  console.log(result)
   const decodedTx = decodeTransactionBCH(hexToBin(result.transaction));
-  console.log(decodedTx)
+  
   if(!Array.isArray(decodedTx?.inputs)) {
     response.success = false
     response.error = 'Transaction error reading transaction'

@@ -1,7 +1,13 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark-card-2': darkMode}">
-        <q-card-section class="pt-label text-weight-medium" :class="darkMode ? 'pt-dark-label' : 'pp-text'">
+    <q-card
+      class="q-dialog-plugin br-15 q-pb-sm add-asset-card"
+      :class="getDarkModeClass(darkMode, 'pt-dark-card-2', '')"
+    >
+        <q-card-section
+          class="pt-label text-weight-medium"
+          :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')"
+        >
           <span>{{ addTokenTitle }}</span>
         </q-card-section>
 
@@ -24,7 +30,7 @@
           </q-card-section>
 
           <div v-if="loading" class="flex justify-center">
-            <ProgressLoader/>
+            <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
           </div>
           <div class="col-12 q-mx-md q-mb-md overflow-hidden" v-if="asset !== null">
             <div class="row" v-for="val, key in asset" :key="key">
@@ -53,7 +59,7 @@
               flat
               :label="$t('Close')"
               padding="0.5em 2em 0.5em 2em"
-              :class="[darkMode ? 'text-white' : 'pp-text']"
+              :class="getDarkModeClass(darkMode, 'text-white', 'pp-text')"
               @click="onCancelClick"
             />
             <template v-if="asset">
@@ -88,6 +94,7 @@
 <script>
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import ProgressLoader from '../../../components/ProgressLoader.vue'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -110,7 +117,8 @@ export default {
       type: Object,
       required: true
     },
-    darkMode: Boolean
+    darkMode: Boolean,
+    currentCountry: String
   },
 
   data () {
@@ -118,7 +126,7 @@ export default {
       tokenId: '',
       addBtnDisabled: true,
       asset: null,
-      loading: false,
+      loading: false
     }
   },
   watch: {
@@ -139,21 +147,28 @@ export default {
     },
     addTokenTitle () {
       if (this.isSep20)
-        return this.$t('Add_SEP20_Token')
-      if (this.isCashToken)
-        return this.$t('AddFungibleCashToken')
-      return this.$t('Add_Type1_Token')
+        return this.$t(this.isHongKong(this.currentCountry) ? 'Add_SEP20_Point' : 'Add_SEP20_Token')
+      if (this.isCashToken) {
+        return this.$t(this.isHongKong(this.currentCountry) ? 'AddFungibleCashPoint' : 'AddFungibleCashToken')
+      }
+      return this.$t(this.isHongKong(this.currentCountry) ? 'Add_Type1_Point' : 'Add_Type1_Token')
     },
     inputPlaceholder () {
       if (this.isSep20)
         this.$t('Enter_SEP20_ContractAddress')
       if (this.isCashToken)
-        return this.$t('EnterCashTokenCategoryID')
-      return this.$t('Enter_SLP_TokenId')
+        return this.$t(this.isHongKong(this.currentCountry) ? 'EnterCashPointCategoryID' : 'EnterCashTokenCategoryID')
+      return this.$t(this.isHongKong(this.currentCountry) ? 'Enter_SLP_PointId' : 'Enter_SLP_TokenId')
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
+    isHongKong,
     show () {
       this.$refs.dialog.show()
     },

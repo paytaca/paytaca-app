@@ -35,7 +35,7 @@
         :disable="!openLiquidityPoolOptsForm.selected"
         :label="$t('Select')"
         color="brandblue"
-        class="full-width"
+        class="full-width button"
         @click="() => {
           createHedgeForm.autoMatchPoolTarget = openLiquidityPoolOptsForm.selected
           openLiquidityPoolOptsForm.show = false
@@ -79,12 +79,12 @@
           Current price:
           {{ createHedgeForm.selectedAsset.latestPrice.priceValue / 10 ** (createHedgeForm.selectedAsset.assetDecimals || 0) }}
           <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
-            {{ createHedgeForm.selectedAsset.assetCurrency }} / BCH
+            {{ `${createHedgeForm.selectedAsset.assetCurrency} / ${denomination} ` }}
           </template>
           <q-icon :color="darkMode ? 'grey-7' : 'black'" size="sm" name="info">
           </q-icon>
           <q-popup-proxy :breakpoint="0">
-            <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+            <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
               <div class="q-py-xs">
                 <div class="text-caption text-grey" style="margin-bottom:-0.5em">Asset Name</div>
                 <span>
@@ -116,10 +116,11 @@
           {{ $t('Balance') }}:
           <q-btn
             flat padding="xs"
+            class="text-section"
             :text-color="darkMode ? 'blue' : 'brandblue'"
-            :label="`${spendableBch} BCH`"
+            :label="getAssetDenomination(denomination, spendableBch)"
             :disable="loading"
-            @click="createHedgeForm.amount = spendableBch"
+            @click="onBalanceClick"
           />
         </div>
       </div>
@@ -127,20 +128,20 @@
         round
         color="brandblue"
         icon="refresh"
-        class="q-mx-xs"
+        class="q-mx-xs button"
         padding="xs"
         @click="clearCreateHedgeForm({ clearErrors: true })"
       />
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
-      <span>Approx hedge amount: {{ createHedgeFormMetadata.intentAmountBCH }} BCH</span>
+      <span>Approx hedge amount: {{ getAssetDenomination(denomination, createHedgeFormMetadata.intentAmountBCH) }}</span>
       <q-icon
         :color="darkMode ? 'grey-7' : 'black'"
         size="sm"
         name="help"
       >
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
             Hedge amount is calculated from long amount below & low liquidation percentage below
           </div>
         </q-popup-proxy>
@@ -148,20 +149,21 @@
     </div>
     <div class="row no-wrap q-gutter-x-sm">
       <q-input
+        type="text"
+        inputmode="none"
+        @focus="readonlyState(true, 'amount')"
+        @blur="readonlyState(false, 'amount')"
         :dark="darkMode"
         outlined
         dense
         :label="$t('Amount')"
-        suffix="BCH"
+        :suffix="denomination"
         :disable="loading"
-        inputmode="decimal"
-        v-model="createHedgeForm.amount"
+        :readonly="inputState.amount"
+        v-model="amountInputFormatted"
         reactive-rules
         :rules="[
-          val => val > 0 || 'Invalid amount',
-          val => spendableBch === null || val <= spendableBch || `Exceeding balance ${spendableBch} BCH`,
-          val => val >= createHedgeFormConstraints.minimumAmount || `Liquidity requires at least ${createHedgeFormConstraints.minimumAmount} BCH`,
-          val => val <= createHedgeFormConstraints.maximumAmount || `Liquidity requires at most ${createHedgeFormConstraints.maximumAmount} BCH`,
+          val => amountRules(val) || createHedgeForm.amount > 0 || 'Invalid amount'
         ]"
         class="q-space"
       >
@@ -190,6 +192,7 @@
       />
     </div>
     <DurationField
+      ref="durationRef"
       :dark="darkMode"
       outlined
       dense
@@ -202,46 +205,68 @@
         (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must at least be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
         (val, units, formatValue) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`,
       ]"
+      @focus="readonlyState(true, 'duration')"
+      @blur="readonlyState(false, 'duration')"
+      :readonly="inputState.duration"
+
     />
     <div class="row no-wrap q-gutter-x-sm">
       <q-input
+        type="text"
+        inputmode="none"
+        @focus="readonlyState(true, 'lowLiquidationMultiplierPctg')"
+        @blur="readonlyState(false, 'lowLiquidationMultiplierPctg')"
         :dark="darkMode"
         outlined
         dense
         :label="$t('Low')"
         suffix="%"
         :disable="loading"
-        inputmode="numeric"
         v-model="createHedgeForm.lowLiquidationMultiplierPctg"
         reactive-rules
         :rules="[
           val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must be at least ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
           val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must be at most ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
         ]"
+        :readonly="inputState.lowLiquidationMultiplierPctg"
       >
         <template v-slot:hint>
           <div v-if="createHedgeFormMetadata.lowLiquidationPrice" class="text-caption text-grey">
-            {{ createHedgeFormMetadata.lowLiquidationPrice }} {{ createHedgeForm.selectedAsset?.assetCurrency }} / BCH
+            {{
+              `${parseFiatCurrency(
+                  createHedgeFormMetadata.lowLiquidationPrice,
+                  createHedgeForm.selectedAsset?.assetCurrency
+                )} / ${denomination}`
+            }}
           </div>
         </template>
       </q-input>
       <q-input
+        type="text"
+        inputmode="none"
+        @focus="readonlyState(true, 'highLiquidationMultiplierPctg')"
+        @blur="readonlyState(false, 'highLiquidationMultiplierPctg')"
         :dark="darkMode"
         outlined
         dense
         :label="$t('High')"
         suffix="%"
         :disable="loading"
-        inputmode="numeric"
         v-model="createHedgeForm.highLiquidationMultiplierPctg"
         :rules="[
           val => (val > 100) || 'Must be greater than 100%',
           val => (val <= 1000) || 'Must not be higher than 1000%'
         ]"
+        :readonly="inputState.highLiquidationMultiplierPctg"
       >
         <template v-slot:hint>
           <div v-if="createHedgeFormMetadata.highLiquidationPrice" class="text-caption text-grey">
-            {{ createHedgeFormMetadata.highLiquidationPrice }} {{ createHedgeForm.selectedAsset?.assetCurrency }} / BCH
+            {{
+              `${parseFiatCurrency(
+                  createHedgeFormMetadata.highLiquidationPrice,
+                  createHedgeForm.selectedAsset?.assetCurrency
+                )} / ${denomination}`
+            }}
           </div>
         </template>
       </q-input>
@@ -275,6 +300,7 @@
             no-caps
             spread
             class="full-width"
+            :toggle-color="'button-toggle'"
             :label="$t('Liquidity')"
             :disable="loading"
             v-model="createHedgeForm.autoMatchPoolTarget"
@@ -286,23 +312,27 @@
     <q-slide-transition>
       <div v-if="createHedgeForm.autoMatchPoolTarget === 'watchtower_P2P'">
         <q-input
+          type="text"
+          inputmode="none"
+          @focus="readonlyState(true, 'match')"
+          @blur="readonlyState(false, 'match')"
           :dark="darkMode"
           outlined
           dense
           :label="$t('MatchSimilarity')"
           suffix="%"
           :disable="loading"
-          inputmode="numeric"
           v-model="createHedgeForm.p2pMatch.similarity"
           :rules="[
             val => (val >= 1) || 'Must be greater than 1%',
             val => (val <= 100) || 'Must not be higher than 100%'
           ]"
+          :readonly="inputState.match"
         >
           <template v-slot:append>
             <q-icon name="help" :color="darkMode ? 'grey-7' : 'black'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
                   {{ $t('AnyHedgeNoExactMatchInfo') }}
                 </div>
               </q-popup-proxy>
@@ -322,7 +352,7 @@
         :disable="loading"
         :label="$t('Calculate')"
         type="submit"
-        color="brandblue"
+        color="brandblue button"
         class="full-width"
       />
       <q-btn
@@ -352,6 +382,8 @@ import HedgePositionOfferSelectionDialog from './HedgePositionOfferSelectionDial
 import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
+import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
+
 
 function alertError(...args) {
   console.error('form error', args)
@@ -361,8 +393,122 @@ function alertError(...args) {
 const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 
-const $emit = defineEmits(['created', 'cancel'])
+// custom keyboard
+let inputState = ref({
+  amount: false,
+  duration: false,
+  lowLiquidationMultiplierPctg: false,
+  highLiquidationMultiplierPctg: false,
+  match: false
+})
+let activeInput = ref()
+let durationRef = ref()
+const amountInputFormatted = ref(0)
+const isBalanceClicked = ref(false)
+
+function readonlyState (state, type) {
+  inputState[type] = state
+
+  if (inputState[type]) {
+    activeInput.value = type
+    $emit('showKeyboard', activeInput)
+  }
+}
+
+function setAmount (key) {
+  let tempAmount, amount, tempAmountInput = '', amountInput
+
+  // Set Initial Input
+  if (activeInput.value === 'match') {
+    tempAmount = createHedgeForm.value.p2pMatch.similarity
+  } else if (activeInput.value === 'duration') {
+    tempAmount = durationRef?.value?.getAmountValue()
+  } else {
+    tempAmount = createHedgeForm.value[activeInput.value]
+    tempAmountInput = amountInputFormatted.value === 0 ? '' : amountInputFormatted.value
+  }
+
+  // Add new Key
+  tempAmount = tempAmount === 0 ? '' : tempAmount
+  if (key === '.' && tempAmount === '') {
+    amount = '0.'
+    amountInput = '0.'
+  } else {
+    amount = activeInput.value === 'amount' ? tempAmountInput.toString() : tempAmount.toString()
+    amountInput = tempAmountInput.toString()
+    const hasPeriod = amount.indexOf('.')
+    if (hasPeriod < 1) {
+      if (Number(amount) === 0 && Number(key) > 0) {
+        amount = key
+        amountInput = key
+      } else {
+        // Check amount if still zero
+        if (Number(amount) === 0 && Number(amount) === Number(key)) {
+          amount = 0
+          amountInput = 0
+        } else {
+          amount += key.toString()
+          amountInput += key.toString()
+        }
+      }
+    } else {
+      amount += key !== '.' ? key.toString() : ''
+      amountInput += key !== '.' ? key.toString() : ''
+    }
+  }
+
+  // Set the new amount
+  if (activeInput.value === 'match') {
+    createHedgeForm.value.p2pMatch.similarity = amount
+  } else if (activeInput.value === 'duration') {
+    durationRef?.value?.updateAmountValue(amount)
+  } else {
+    createHedgeForm.value[activeInput.value] = amount
+    if (activeInput.value === 'amount') {
+      amountInputFormatted.value = amountInput
+      createHedgeForm.value[activeInput.value] = convertToBCH(denomination.value, amountInput)
+    }
+  }
+}
+
+function makeKeyAction (action) {
+  if (action === 'backspace') {
+    // Backspace
+    this.shiftAmount = String(this.shiftAmount).slice(0, -1)
+    if (activeInput.value === 'match') {
+      createHedgeForm.value.p2pMatch.similarity = String(createHedgeForm.value.p2pMatch.similarity).slice(0, -1)
+    } else if (activeInput.value === 'duration') {
+      const temp = durationRef?.value?.getAmountValue()
+      durationRef?.value?.updateAmountValue(String(temp).slice(0, -1))
+    } else {
+      createHedgeForm.value[activeInput.value] = String(createHedgeForm.value[activeInput.value]).slice(0, -1)
+      if (activeInput.value === 'amount') {
+        amountInputFormatted.value = String(amountInputFormatted.value).slice(0, -1)
+      }
+    }
+  } else if (action === 'delete') {
+    // Delete
+    if (activeInput.value === 'match') {
+      createHedgeForm.value.p2pMatch.similarity = ''
+    } else if (activeInput.value === 'duration') {
+      durationRef?.value?.updateAmountValue('')
+    } else {
+      createHedgeForm.value[activeInput.value] = ''
+      if (activeInput.value === 'amount') {
+        amountInputFormatted.value = ''
+      }
+    }
+  }
+}
+
+defineExpose({
+  setAmount,
+  makeKeyAction
+})
+
+const $emit = defineEmits(['created', 'cancel', 'showKeyboard'])
 
 const $copyText = inject('$copyText')
 function copyText(value, message='') {
@@ -384,7 +530,8 @@ const props = defineProps({
       // The value must match one of these strings
       return ['hedge', 'long'].includes(value)
     }
-  }
+  },
+  keyBoardData: Object
 })
 
 async function dialogPromise(qDialogOptions) {
@@ -459,7 +606,7 @@ const createHedgeFormMetadata = computed(() => {
     data.nominalAmount = Math.round(priceValue * createHedgeForm.value.amount) / decimalsMultiplier
     data.lowLiquidationPrice = Math.round(assetPrice * createHedgeForm.value.lowLiquidationMultiplierPctg) / 100
     data.highLiquidationPrice = Math.round(assetPrice * createHedgeForm.value.highLiquidationMultiplierPctg) / 100
-    
+
     const totalBch = data.nominalAmount / data.lowLiquidationPrice
     const longBch = totalBch - createHedgeForm.value.amount
     const longNominalUnits = Math.round(longBch * priceValue) / decimalsMultiplier
@@ -519,6 +666,7 @@ async function clearCreateHedgeForm(opts) {
   createHedgeForm.value.p2pMatch = {
     similarity: 50,
   }
+  amountInputFormatted.value = 0
 
   if (opts?.clearErrors) {
     mainError.value = ''
@@ -634,7 +782,7 @@ async function createHedgePosition() {
 
   // hold data in case the source value changes while the whole process ingoing
   const position = props.position
-   
+
   // grouping data
   const intent = {
     amount: createHedgeFormMetadata.value.intentAmountBCH,
@@ -698,7 +846,7 @@ async function createHedgePosition() {
     positionTaker: position,
     contractCreationParams: {
       address: '',
-      version: '',  
+      version: '',
     },
     liquidityFee: 0,
     fees: [{ satoshis: 0, address: '', name: '', description: '' }],
@@ -813,8 +961,8 @@ async function createHedgePosition() {
       const findMatchData = {
         wallet_hash: misc.walletHash,
         position: position,
-        satoshis: position === 'hedge' ? 
-          Math.round(intent.amount * 10 ** 8) : 
+        satoshis: position === 'hedge' ?
+          Math.round(intent.amount * 10 ** 8) :
           Math.round(intent.longAmountBCH * 10 ** 8),
         duration_seconds: intent.duration,
         low_liquidation_multiplier: intent.lowPriceMult,
@@ -846,6 +994,7 @@ async function createHedgePosition() {
           title: 'No matching offer',
           message: `No matching offers found but found similar offers. Select one instead?`,
           ok: true,
+          seamless: true,
           cancel: true,
           class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
         })
@@ -883,6 +1032,7 @@ async function createHedgePosition() {
           title: 'No matching offer',
           message: `No matching offers found, create one instead?`,
           ok: true,
+          seamless: true,
           cancel: true,
           class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
         })
@@ -1182,7 +1332,7 @@ async function createHedgePosition() {
     if (position === 'long') loadingMsg.value = 'Finalizing long position'
   }
 
-  anyhedgeBackend.post(path, data)  
+  anyhedgeBackend.post(path, data)
     .then(response => {
       // console.log(response)
       if(response?.data?.id || response?.data?.hedge_position?.id) {
@@ -1233,6 +1383,35 @@ function updateSelectedAssetPrice() {
   if (!createHedgeForm.value?.selectedAsset?.oraclePubkey) return
   const dispatchPayload = { oraclePubkey: createHedgeForm.value?.selectedAsset?.oraclePubkey, checkTimestampAge: true }
   $store.dispatch('anyhedge/updateOracleLatestPrice', dispatchPayload)
+}
+
+function onBalanceClick () {
+  amountInputFormatted.value = parseFloat(getAssetDenomination(denomination.value, spendableBch.value, true))
+  createHedgeForm.value.amount = spendableBch.value
+  isBalanceClicked.value = true
+}
+
+function amountRules (val) {
+  const denominationValue = denomination.value
+  const spendableBchValue = spendableBch.value !== null
+    ? getAssetDenomination(denominationValue, spendableBch.value, true)
+    : null
+  const minimumAmount = createHedgeFormConstraints.value.minimumAmount
+  const maximumAmount = createHedgeFormConstraints.value.maximumAmount
+  const convertedMinimumAmount = getAssetDenomination(denominationValue, minimumAmount)
+  const convertedMaximumAmount = getAssetDenomination(denominationValue, maximumAmount)
+
+  if (spendableBchValue !== null && val > parseFloat(spendableBchValue)) {
+    return `Exceeding balance ${spendableBchValue}`
+  }
+  if (val < parseFloat(convertedMinimumAmount)) {
+    return `Liquidity requires at least ${convertedMinimumAmount}`
+  }
+  if (val > parseFloat(convertedMaximumAmount)) {
+    return `Liquidity requires at most ${convertedMaximumAmount}`
+  }
+
+  return true
 }
 </script>
 <style scoped>

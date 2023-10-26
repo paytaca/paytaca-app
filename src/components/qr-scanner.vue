@@ -77,6 +77,7 @@ export default {
   watch: {
     val () {
       this.$emit('input', this.val)
+      this.$emit('update:model-value', this.val)
     },
     modelValue (bool) {
       if (this.isMobile) {
@@ -101,7 +102,7 @@ export default {
         // console.log(err)
       }
 
-      this.$router.push({ path: '/send/select-asset' })
+      if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     },
     async prepareScanner () {
       const status = await this.checkPermission()

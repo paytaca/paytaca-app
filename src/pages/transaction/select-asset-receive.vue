@@ -1,22 +1,36 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
+      :indicator-color="isDefaultTheme(theme) && 'transparent'"
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
-      <q-tab name="BCH" :class="{'text-blue-5': darkMode}" :label="networks.BCH.name"/>
-      <q-tab name="sBCH" :class="{'text-blue-5': darkMode}" :label="networks.sBCH.name" :disable="isChipnet"/>
+      <q-tab
+        name="BCH"
+        class="network-selection-tab"
+        :class="getDarkModeClass(darkMode)"
+        :label="networks.BCH.name"
+      />
+      <q-tab
+        name="sBCH"
+        class="network-selection-tab"
+        :class="getDarkModeClass(darkMode)"
+        :label="networks.sBCH.name"
+        :disable="isChipnet"
+      />
     </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
-        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none" style="font-size: 16px; color: #444655;">
-          <p class="slp_tokens q-mb-sm" :class="{'pt-dark-label': darkMode}">{{ $t('SelectAssetToBeReceived') }}</p>
+        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
+          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
+            {{ $t('SelectAssetToBeReceived') }}
+          </p>
         </div>
         <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
@@ -30,23 +44,32 @@
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
-          <div class="col row group-currency q-mb-sm" :class="darkMode ? 'pt-dark-card' : 'bg-white'" v-if="isCashToken">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode, '', 'bg-white')" v-if="isCashToken">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
               <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
               <div class="col q-pl-sm q-pr-sm">
-                <p class="q-ma-none text-token text-weight-regular" :class="darkMode ? 'text-pink-5' : 'text-dark'" style="font-size: 18px;">
-                  {{ asset.name }}
+                <p
+                  class="q-ma-none text-token text-weight-regular"
+                  :class="darkMode ? isDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
+                >
+                  {{ isHongKong(currentCountry) ? asset.name.replace('Token', 'Point') : asset.name }}
                 </p>
-                <p class="q-ma-none" :class="darkMode ? 'text-grey' : 'text-grad'" style="font-size: 18px;">
-                  <span v-if="asset.balance">{{ String(convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/'))).substring(0, 16) }}</span>
-                  {{ asset.symbol }}
+                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
+                  <span v-if="asset.balance">{{ parseAssetDenomination(denomination, asset, false, 16) }}</span>
+                  {{
+                      asset.name.includes('New')
+                        ? isHongKong(currentCountry)
+                          ? asset.symbol.replace('Token', 'Point')
+                          : asset.symbol
+                        : ''
+                  }}
                 </p>
               </div>
             </div>
           </div>
         </div>
         <q-banner v-if="!isCashToken" inline-actions class="text-white bg-red text-center q-mt-lg" :class="darkMode ? 'text-white' : 'text-black'" style="width: 90%; margin-left: auto; margin-right: auto;">
-          Receiving SLP tokens is temporarily disabled until further notice.
+          {{ `Receiving SLP ${isHongKong(currentCountry) ? 'points' : 'tokens'} is temporarily disabled until further notice.` }}
         </q-banner>
       </div>
       <div style="height: 90px;" v-if="assets.length > 5"></div>
@@ -66,6 +89,8 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { convertTokenAmount } from 'src/wallet/chipnet'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Receive-page',
@@ -85,11 +110,22 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: true,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      isCashToken: true
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -106,6 +142,9 @@ export default {
     },
     assets () {
       let _assets
+      const themedIconPath = isDefaultTheme(this.theme) ? `assets/img/theme/${this.$store.getters['global/theme']}/` : ''
+      const themedNewTokenIcon = `${themedIconPath}new-token.png`
+
       if (this.selectedNetwork === 'sBCH') {
         _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
         _assets = _assets.map((item) => {
@@ -119,8 +158,8 @@ export default {
         const unlistedAsset = {
           id: 'sep20/unlisted',
           name: this.$t('NewUnlisted'),
-          symbol: 'SEP20 token',
-          logo: 'new-token.png'
+          symbol: `SEP20 ${isHongKong(this.currentCountry) ? 'point' : 'token'}`,
+          logo: themedNewTokenIcon
         }
         _assets.push(unlistedAsset)
         return _assets
@@ -141,14 +180,14 @@ export default {
         id: 'slp/unlisted',
         name: this.$t('NewUnlisted'),
         symbol: 'SLP token',
-        logo: 'new-token.png'
+        logo: themedNewTokenIcon
       }
       if (vm.isCashToken) {
         unlistedAsset = {
           id: 'ct/unlisted',
           name: this.$t('NewUnlisted'),
           symbol: 'CashToken',
-          logo: 'new-token.png'
+          logo: themedNewTokenIcon
         } 
       }
       _assets.push(unlistedAsset)
@@ -157,6 +196,10 @@ export default {
   },
   methods: {
     convertTokenAmount,
+    parseAssetDenomination,
+    getDarkModeClass,
+    isDefaultTheme,
+    isHongKong,
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
@@ -180,7 +223,14 @@ export default {
     margin-top: 5px;
     margin-bottom: 5px;
   }
+  .text-token {
+    font-size: 18px;
+  }
   .pp-fcolor {
     color: #000 !important;
+  }
+  .pt-label {
+    font-size: 16px;
+    font-weight: 300;
   }
 </style>

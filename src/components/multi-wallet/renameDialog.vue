@@ -1,6 +1,6 @@
 <template>
-  <q-dialog ref="rename" persistent>
-      <q-card style="min-width: 350px" class="br-15" :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
+  <q-dialog ref="rename" seamless persistent>
+      <q-card style="min-width: 350px" class="br-15 pt-card" :class="getDarkModeClass('text-white', 'text-black')">
         <div v-if="isLoaded">
           <q-card-section>
             <div class="text-h5" style="font-size: 18px;">{{ $t('RenameWallet') }}</div>
@@ -45,6 +45,9 @@ export default {
     },
     hide () {
       this.$refs.rename.hide()
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }

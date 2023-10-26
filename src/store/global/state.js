@@ -6,6 +6,7 @@ export default function () {
       name: 'United States',
       code: 'US'
     },
+    theme: 'default', // [default, payhero]
     isChipnet: false,
     showTokens: true,
     enableSmartBCH: false,
@@ -19,7 +20,12 @@ export default function () {
         lastAddressIndex: 0,
         connectedAddress: '',
         connectedAddressIndex: '0/0',
-        connectedSites: {}
+        connectedSites: {},
+        purelypeerVaultSigner: {
+          receiving: '',
+          change: '',
+          derivationPath: 'm/44\'/145\'/1\''
+        } 
       },
       slp: {
         walletHash: '',
@@ -52,7 +58,12 @@ export default function () {
         lastAddressIndex: 0,
         connectedAddress: '',
         connectedAddressIndex: '0/0',
-        connectedSites: {}
+        connectedSites: {},
+        purelypeerVaultSigner: {
+          receiving: '',
+          change: '',
+          derivationPath: 'm/44\'/145\'/1\''
+        }
       },
       slp: {
         walletHash: '',
@@ -86,6 +97,7 @@ export default function () {
     },
     online: null,
     walletIndex: 0,
-    vault: []
+    vault: [],
+    denomination: 'BCH'
   }
 }
