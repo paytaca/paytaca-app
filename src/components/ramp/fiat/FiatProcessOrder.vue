@@ -512,7 +512,6 @@ export default {
         rating: feedback.rating,
         comment: feedback.comment
       }
-      // console.log(body)
       await vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response)
