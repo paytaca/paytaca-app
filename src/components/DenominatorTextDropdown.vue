@@ -5,12 +5,6 @@
     v-if="selectedNetwork !== 'sBCH'"
     :text-color="darkMode ? white : black"
   >
-    <template v-slot:label>
-      <div style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
-        {{ denomination }}
-      </div>
-    </template>
-
     <q-list v-for="denom in denominationOptions" :key="denom.id">
       <q-item clickable v-close-popup @click="selectDenomination(denom.value)">
         <q-item-section>
@@ -48,14 +42,6 @@ export default {
       this.denominationOptions.push({ value: this.$t('DEEM'), label: this.$t('DEEM') })
     } else if (this.currentCountry !== 'HK' && this.denominationOptions.some((a) => a.value === this.$t('DEEM'))) {
       this.denominationOptions.pop()
-    }
-  },
-  computed: {
-    denomination () {
-      return this.$store.getters['global/denomination']
-    },
-    language () {
-      return this.$store.getters['global/language'].value
     }
   },
   methods: {

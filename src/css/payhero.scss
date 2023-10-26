@@ -443,6 +443,19 @@ body.theme-payhero {
         color: #333333 !important;
       }
     }
+
+    &.transactions-page.q-tab--active {
+      background-color: transparent !important;
+    }
+
+    &.denominations-tab {
+      &.q-tab--active {
+        border: 2px solid $black_opaque_50;
+      }
+      &.q-tab--inactive {
+        border: 2px solid $transactions-text;
+      }
+    }
   }
 
   .bg-payhero,

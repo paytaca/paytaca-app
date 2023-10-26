@@ -25,27 +25,65 @@
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
-                  :indicator-color="isDefaultTheme(theme) && 'transparent'"
+                  :indicator-color="(isDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
                 >
                   <q-tab
                     name="BCH"
                     class="network-selection-tab"
-                    :class="getDarkModeClass(darkMode)"
+                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
                     :label="networks.BCH.name"
                   />
                   <q-tab
                     name="sBCH"
                     class="network-selection-tab"
-                    :class="getDarkModeClass(darkMode)"
+                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
                     :label="networks.sBCH.name"
                     :disable="isChipnet"
                   />
                 </q-tabs>
               </template>
+              <template v-if="isDenominationTabEnabled">
+                <q-tabs
+                  class="col-12 q-px-sm q-pb-md"
+                  :model-value="denominationTabSelected"
+                  @update:model-value="onDenominationTabSelected"
+                  style="margin-top: -15px;"
+                  :indicator-color="isDefaultTheme(theme) && 'transparent'"
+                >
+                  <q-tab
+                    :name="$t('DEEM')"
+                    class="network-selection-tab denominations-tab"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('DEEM')"
+                  />
+                  <q-icon
+                    name="sync_alt"
+                    size="sm"
+                    style="margin: 10px 10px 0px 10px;"
+                    class="button button-icon"
+                    :class="getDarkModeClass(darkMode)"
+                  />
+                  <q-tab
+                    name="BCH"
+                    class="network-selection-tab denominations-tab"
+                    :class="getDarkModeClass(darkMode)"
+                    label="BCH"
+                  />
+                </q-tabs>
+              </template>
             </div>
             <div class="row q-mt-sm">
-              <div class="col text-white" :class="{'text-white': darkMode}">
-                <img :src="selectedNetwork === 'sBCH' ? 'sep20-logo.png' : 'bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+              <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
+                <img
+                  :src="
+                    selectedNetwork === 'sBCH'
+                      ? 'sep20-logo.png'
+                      : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
+                        ? 'assets/img/theme/payhero/deem-logo.png'
+                        : 'bch-logo2.png'
+                  "
+                  style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"
+                />
                 <q-card id="bch-card">
                   <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
                     <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
@@ -54,25 +92,13 @@
                     </div>
                     <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
                       <p>
-                        <span @click="selectBch" style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
+                        <span style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
                           {{
                             selectedNetwork === 'sBCH'
                               ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
-                              : parseFloat(parseAssetDenomination(denomination, {
-                                id: '',
-                                balance: bchAsset.balance,
-                                symbol: 'BCH',
-                                decimals: 0
-                              }, false, 10))
+                              : parsedBCHBalance
                           }}
                         </span>
-                        &nbsp;
-                        <DenominatorTextDropdown
-                          :selectedNetwork="selectedNetwork"
-                          :darkMode="darkMode"
-                          :theme="theme"
-                          :currentCountry="currentCountry"
-                        />
                       </p>
                       <div style="padding: 0; margin-top: -15px;">
                         {{ parseFiatCurrency(getAssetMarketBalance(bchAsset), selectedMarketCurrency) }}
@@ -303,7 +329,6 @@ import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
-import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -325,8 +350,7 @@ export default {
     VOffline,
     connectedDialog,
     PriceChart,
-    AssetFilter,
-    DenominatorTextDropdown
+    AssetFilter
   },
   directives: {
     dragscroll
@@ -366,10 +390,11 @@ export default {
       showTokens: this.$store.getters['global/showTokens'],
       isCashToken: true,
       settingsButtonIcon: 'settings',
-      assetsCloseButtonColor: 'color: #3B7BF6;'
+      assetsCloseButtonColor: 'color: #3B7BF6;',
+      denominationTabSelected: this.$t('DEEM'),
+      parsedBCHBalance: '0'
     }
   },
-
 
   watch: {
     showTokens (n, o) {
@@ -421,6 +446,11 @@ export default {
     },
     openedNotification() {
       return this.$store.getters['notification/openedNotification']
+    },
+    isDenominationTabEnabled () {
+      return (isDefaultTheme(this.theme) &&
+        this.denomination === this.$t('DEEM') &&
+        this.selectedNetwork !== 'sBCH')
     },
     selectedNetwork: {
       get () {
@@ -1107,6 +1137,18 @@ export default {
             return response?.data?.history?.find?.(tx => tx?.txid === txid)
           })
       }
+    },
+    formatBCHCardBalance (currentDenomination) {
+      this.parsedBCHBalance = parseAssetDenomination(currentDenomination, {
+        id: '',
+        balance: this.bchAsset.balance,
+        symbol: 'BCH',
+        decimals: 0
+      }, false, 10)
+    },
+    onDenominationTabSelected (value) {
+      this.denominationTabSelected = value
+      this.formatBCHCardBalance(value)
     }
   },
 
@@ -1169,6 +1211,8 @@ export default {
       vm.balanceLoaded = true
       vm.transactionsLoaded = true
     })
+
+    this.formatBCHCardBalance(this.denomination)
   }
 }
 </script>
