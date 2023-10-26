@@ -20,7 +20,13 @@
         <q-card-section class="amount q-pb-none">
           <q-item class="q-px-none">
             <q-item-section side top>
-              <img :src="transaction.asset.logo || fallbackAssetLogo" height="30" />
+              <img
+                :src="denomination === $t('DEEM') && transaction.asset.symbol === 'BCH'
+                  ? 'assets/img/theme/payhero/deem-logo.png'
+                  : transaction.asset.logo || fallbackAssetLogo
+                "
+                height="30"
+              />
             </q-item-section>
             <q-item-section :class="darkMode ? 'text-white' : 'pp-text'">
               <q-item-label>
