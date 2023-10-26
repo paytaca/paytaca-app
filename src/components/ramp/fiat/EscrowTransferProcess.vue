@@ -191,6 +191,7 @@ export default {
     async completePayment () {
       // Send crypto to smart contract
       const vm = this
+      await vm.escrowPendingOrder()
       try {
         vm.sendingBch = true
         const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
@@ -205,7 +206,6 @@ export default {
             }
           }
           vm.$store.commit('ramp/saveTxid', txidData)
-          await vm.escrowPendingOrder()
         } else {
           vm.sendErrors = []
           if (result.error.indexOf('not enough balance in sender') > -1) {
@@ -227,14 +227,9 @@ export default {
       const vm = this
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
-      const body = { txid: vm.txid }
       try {
-        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
-        const result = {
-          txid: vm.txid,
-          status: response.data.status
-        }
-        vm.$emit('success', result)
+        const response = await vm.$axios.post(url, null, { headers: vm.authHeaders })
+        console.log('response:', response)
       } catch (error) {
         console.error(error.response)
         if (error.response && error.response.status === 403) {

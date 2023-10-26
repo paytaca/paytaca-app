@@ -178,7 +178,7 @@ export default {
       this.saveTxid(result)
       this.actionState = 'verifying'
       this.verifyTransferKey++
-      this.verifyTxn('RELEASE')
+      // this.verifyTxn('RELEASE')
     },
     async refundBch (contract, amount) {
       this.state = 'verify-transfer'
@@ -188,7 +188,7 @@ export default {
       this.saveTxid(result)
       this.actionState = 'verifying'
       this.verifyTransferKey++
-      this.verifyTxn('REFUND')
+      // this.verifyTxn('REFUND')
     },
     async verifyTxn (action) {
       const vm = this
