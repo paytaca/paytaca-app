@@ -449,9 +449,14 @@ body.theme-payhero {
     }
 
     &.denominations-tab {
+      &.main-tab {
+        margin-top: 20px;
+      }
+
       &.q-tab--active {
         border: 2px solid $black_opaque_50;
       }
+
       &.q-tab--inactive {
         border: 2px solid $transactions-text;
       }

@@ -54,7 +54,7 @@
                   <q-tab
                     :name="$t('DEEM')"
                     class="network-selection-tab denominations-tab"
-                    :class="getDarkModeClass(darkMode)"
+                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
                   >
                     <template v-slot:default>
                       <div class="q-tab__content">
@@ -77,7 +77,7 @@
                   <q-tab
                     name="BCH"
                     class="network-selection-tab denominations-tab"
-                    :class="getDarkModeClass(darkMode)"
+                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
                     label="BCH &#x1F30F;"
                   />
                 </q-tabs>
