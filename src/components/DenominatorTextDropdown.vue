@@ -2,10 +2,10 @@
   <q-btn-dropdown
     unelevated
     class="denomination-text-dropdown"
-    v-if="selectedNetwork !== 'sBCH'"
-    :text-color="darkMode ? white : black"
+    v-if="selectedNetwork === 'BCH'"
+    :style="{color: darkMode ? 'white' : 'black'}"
   >
-    <q-list v-for="denom in denominationOptions" :key="denom.id">
+    <q-list v-for="denom in denominationOptions" :key="denom.id" :style="{color: darkMode ? 'white' : 'black'}">
       <q-item clickable v-close-popup @click="selectDenomination(denom.value)">
         <q-item-section>
           <q-item-label>{{denom.label}}</q-item-label>
@@ -25,6 +25,7 @@ export default {
     theme: { type: String },
     currentCountry: { type: String }
   },
+  emits: ['on-selected-denomination'],
   data () {
     return {
       denominationOptions: [
@@ -47,7 +48,7 @@ export default {
   methods: {
     isDefaultTheme,
     selectDenomination (value) {
-      console.log('denomination click yey', value)
+      this.$emit('on-selected-denomination', value)
     }
   }
 }
