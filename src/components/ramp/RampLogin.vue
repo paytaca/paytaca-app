@@ -33,7 +33,7 @@
             </div>
 
             <div v-if="!register" class="row justify-center q-mt-lg q-px-lg q-mx-lg">
-                <q-btn dense stack class="col q-mx-sm" :disable="loggingIn" @click="onLoginClick">
+                <q-btn dense stack class="col q-mx-sm" :disable="loggingIn" @click="onLoginClick('biometric')" v-if="hasBiometric">
                     <div class="q-ma-sm text-center">
                         <div class="row justify-center">
                             <q-icon size="50px" name="fingerprint" />
@@ -43,7 +43,7 @@
                         </div>
                     </div>
                 </q-btn>
-                <q-btn dense stack class="col q-mx-sm" :disable="loggingIn" @click="onLoginClick">
+                <q-btn dense stack :class="hasBiometric ? 'col q-mx-sm' : 'col q-mx-lg'" :disable="loggingIn" @click="onLoginClick('pin')">
                     <div class="q-ma-xs">
                         <div class="row justify-center">
                             <q-icon size="50px" name="apps" />
@@ -69,6 +69,7 @@
 import { signMessage } from 'src/wallet/ramp/signature'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
 import { getCookie } from 'src/wallet/ramp'
 
@@ -86,7 +87,8 @@ export default {
       register: false,
       isArbiter: false,
       loggingIn: false,
-      errorMessage: null
+      errorMessage: null,
+      hasBiometric: false
     }
   },
   components: {
@@ -102,6 +104,16 @@ export default {
     }
   },
   async mounted () {
+    // check if has Biometric
+    await NativeBiometric.isAvailable()
+      .then(result => {
+        // console.log(result)
+        this.hasBiometric = true
+      },
+      (error) => {
+        console.log('Implementation error: ', error)
+      })
+
     this.dialog = true
     await this.getProfile()
     this.isLoading = false
@@ -110,8 +122,12 @@ export default {
     }
   },
   methods: {
-    onLoginClick () {
-      this.showSecurityDialog()
+    onLoginClick (type) {
+      if (type === 'pin') {
+        this.showSecurityDialog()
+      } else if (type === 'biometric') {
+        this.verifyBiometric()
+      }
     },
     showSecurityDialog () {
       const securityDialog = Dialog.create({
@@ -125,6 +141,29 @@ export default {
         .onCancel(() => {
           this.loggingIn = false
         })
+    },
+    verifyBiometric () {
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For ownership verification',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          setTimeout(() => {
+            this.loggingIn = true
+            this.login()
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          this.loggingIn = false
+          this.errorMessage = 'Failed to Authenticate'
+          console.log(error)
+        }
+        )
     },
     async getProfile () {
       const url = `${this.apiURL}/ramp-p2p/user`
