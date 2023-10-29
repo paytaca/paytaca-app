@@ -62,49 +62,58 @@
       <div class="pt-get-started q-mt-sm" :class="{ 'pt-dark': darkMode, 'registration' : theme }">
         <div :class="{'logo-splash-bg' : isDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
-            <div class="row justify-center" v-if="openSettings">
-              <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5>
-              <p class="dim-text" style="margin-top: 10px;">
-                {{ $t('OnBoardSettingDescription') }}
-              </p>
-
-              <q-list bordered separator style="border-radius: 14px;" :class="{'pt-dark-card': darkMode, 'registration-card' : theme}">
-                <q-item :class="{'divider' : theme}">
-                  <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <CountrySelector :darkMode="darkMode" />
-                  </q-item-section>
-                </q-item>
-
-                <q-item :class="{'divider' : theme}">
-                  <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <LanguageSelector :darkMode="darkMode" />
-                  </q-item-section>
-                </q-item>
-
-                <q-item>
-                  <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <CurrencySelector :darkMode="darkMode" />
-                  </q-item-section>
-                </q-item>
-              </q-list>
-
-              <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width bg-blue-9 text-white" @click="choosePreferedSecurity"/>
-              
-              <transition appear enter-active-class="animated fadeIn">
-                <div v-if="theme === 'payhero'" class="q-mt-lg q-pt-sm text-center">
-                  <p style="font-size: 16px;">in partnership with</p>
-                  <img src="~/assets/themes/payhero/payhero_logo.png" width="130">
+            <div class="row" v-if="openSettings">
+              <div class="col">
+                <div class="row justify-center">
+                  <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5><br />
                 </div>
-              </transition>
+                <div class="row justify-center">
+                  <p class="dim-text" style="margin-top: 10px;">
+                    {{ $t('OnBoardSettingDescription') }}
+                  </p>
+                </div>
+                <div class="row justify-center q-mt-md">
+                  <q-list bordered separator style="border-radius: 14px;" :class="{'pt-dark-card': darkMode, 'registration-card' : theme}">
+                    <q-item :class="{'divider' : theme}">
+                      <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <CountrySelector :darkMode="darkMode" />
+                      </q-item-section>
+                    </q-item>
+
+                    <q-item :class="{'divider' : theme}">
+                      <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <LanguageSelector :darkMode="darkMode" />
+                      </q-item-section>
+                    </q-item>
+
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <CurrencySelector :darkMode="darkMode" />
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </div>
+                <div class="row justify-center">
+                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width bg-blue-9 text-white" @click="choosePreferedSecurity"/>
+                </div>
+                <div class="row justify-center">
+                  <transition appear enter-active-class="animated fadeIn">
+                    <div v-if="theme === 'payhero'" class="q-mt-lg q-pt-sm text-center">
+                      <p style="font-size: 16px;">in partnership with</p>
+                      <img src="~/assets/themes/payhero/payhero_logo.png" width="130">
+                    </div>
+                  </transition>
+                </div>
+              </div>
             </div>
 
             <div v-else>
