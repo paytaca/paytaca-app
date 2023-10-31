@@ -165,7 +165,14 @@
                       :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
                     >
                       <template v-slot:append>
-                        {{ asset.symbol === 'BCH' ? denomination : asset.symbol }}
+                        {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
+                        <DenominatorTextDropdown
+                          @on-selected-denomination="onSelectedDenomination"
+                          :selectedNetwork="asset.symbol"
+                          :darkMode="darkMode"
+                          :theme="theme"
+                          :currentCountry="currentCountry"
+                        />
                       </template>
                     </q-input>
                     <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
@@ -199,7 +206,7 @@
               </template>
               <div class="row" v-if="!isNFT">
                 <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                  {{ parseAssetDenomination(denomination, asset) }}
+                  {{ parseAssetDenomination(selectedDenomination, asset) }}
                   <template v-if="asset.id === 'bch' && setAmountInFiat">
                     {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), selectedMarketCurrency)}` }}
                   </template>
@@ -398,6 +405,7 @@ import {
   convertToBCH
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -415,7 +423,8 @@ export default {
     biometricWarningAttmepts,
     customKeyboard,
     QrScanner,
-    VOffline
+    VOffline,
+    DenominatorTextDropdown
   },
   props: {
     network: {
@@ -539,7 +548,8 @@ export default {
       balanceExceeded: false,
       setMax: false,
       computingMax: false,
-      amountFormatted: null
+      amountFormatted: null,
+      selectedDenomination: 'BCH'
     }
   },
 
@@ -552,6 +562,9 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
@@ -668,7 +681,7 @@ export default {
         let fiatToAsset = this.convertFiatToSelectedAsset(amount)
         fiatToAsset = fiatToAsset || 0
         this.sendData.amount = fiatToAsset
-        this.amountFormatted = parseFloat(getAssetDenomination(this.denomination, fiatToAsset, true))
+        this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
       }
     }
   },
@@ -1046,7 +1059,7 @@ export default {
             this.sendErrors.push('Not enough balance to cover the gas fee')
           }
         } else {
-          this.amountFormatted = parseFloat(getAssetDenomination(this.denomination, this.asset.spendable, true))
+          this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
           this.sendData.amount = this.asset.spendable
         }
         if (this.setAmountInFiat) {
@@ -1320,6 +1333,10 @@ export default {
     },
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
+    },
+    onSelectedDenomination (value) {
+      this.selectedDenomination = value
+      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount, true))
     }
   },
 
@@ -1361,6 +1378,8 @@ export default {
     }
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+
+    this.selectedDenomination = this.denomination
   },
 
   unmounted () {

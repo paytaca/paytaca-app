@@ -18,27 +18,76 @@
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
-                  :indicator-color="isDefaultTheme(theme) && 'transparent'"
+                  :indicator-color="(isDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
                 >
                   <q-tab
                     name="BCH"
                     class="network-selection-tab"
-                    :class="getDarkModeClass(darkMode)"
+                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
                     :label="networks.BCH.name"
                   />
                   <q-tab
                     name="sBCH"
                     class="network-selection-tab"
-                    :class="getDarkModeClass(darkMode)"
+                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
                     :label="networks.sBCH.name"
                     :disable="isChipnet"
+                  />
+                </q-tabs>
+              </template>
+              <template v-if="isDenominationTabEnabled">
+                <q-tabs
+                  inline-label
+                  class="col-12 q-px-sm q-pb-md"
+                  :model-value="denominationTabSelected"
+                  @update:model-value="onDenominationTabSelected"
+                  style="margin-top: -15px;"
+                  :indicator-color="isDefaultTheme(theme) && 'transparent'"
+                >
+                  <q-tab
+                    :name="$t('DEEM')"
+                    class="network-selection-tab denominations-tab"
+                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
+                  >
+                    <template v-slot:default>
+                      <div class="q-tab__content">
+                        <div class="q-tab__label">
+                          <span>{{ `${$t('DEEM')}` }}</span>
+                        </div>
+                        <div class="q-tab__icon">
+                          <q-icon name="img:assets/img/theme/payhero/hk-flag.png" />
+                        </div>
+                      </div>
+                    </template>
+                  </q-tab>
+                  <q-icon
+                    name="sync_alt"
+                    size="sm"
+                    style="margin: 10px 10px 0px 10px;"
+                    class="button button-icon"
+                    :class="getDarkModeClass(darkMode)"
+                  />
+                  <q-tab
+                    name="BCH"
+                    class="network-selection-tab denominations-tab"
+                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
+                    label="BCH &#x1F30F;"
                   />
                 </q-tabs>
               </template>
             </div>
             <div class="row q-mt-sm">
               <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-                <img :src="selectedNetwork === 'sBCH' ? 'sep20-logo.png' : 'bch-logo.png'" style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"/>
+                <img
+                  :src="
+                    selectedNetwork === 'sBCH'
+                      ? 'sep20-logo.png'
+                      : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
+                        ? 'assets/img/theme/payhero/deem-logo.png'
+                        : 'bch-logo.png'
+                  "
+                  style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"
+                />
                 <q-card id="bch-card">
                   <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
                     <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
@@ -46,17 +95,14 @@
                       <q-skeleton style="font-size: 22px;" type="rect"/>
                     </div>
                     <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                      <p style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
-                        {{
-                          selectedNetwork === 'sBCH'
-                            ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
-                            : parseAssetDenomination(denomination, {
-                              id: '',
-                              balance: bchAsset.balance,
-                              symbol: 'BCH',
-                              decimals: 0
-                            }, false, 10)
-                        }}
+                      <p>
+                        <span style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
+                          {{
+                            selectedNetwork === 'sBCH'
+                              ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
+                              : parsedBCHBalance
+                          }}
+                        </span>
                       </p>
                       <div style="padding: 0; margin-top: -15px;">
                         {{ parseFiatCurrency(getAssetMarketBalance(bchAsset), selectedMarketCurrency) }}
@@ -170,7 +216,11 @@
         </div>
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
-        <transaction ref="transaction" :wallet="wallet"></transaction>
+        <transaction
+          ref="transaction"
+          :wallet="wallet"
+          :denominationTabSelected="denominationTabSelected"
+        />
         <div class="col transaction-container" :class="getDarkModeClass(darkMode)">
           <div class="row no-wrap justify-between">
             <p
@@ -228,6 +278,7 @@
                 :key="'tx-' + index"
                 :transaction="transaction"
                 :selected-asset="selectedAsset"
+                :denominationTabSelected="denominationTabSelected"
                 @click="showTransactionDetails(transaction)"
               />
               <div ref="bottom-transactions-list"></div>
@@ -348,10 +399,11 @@ export default {
       showTokens: this.$store.getters['global/showTokens'],
       isCashToken: true,
       settingsButtonIcon: 'settings',
-      assetsCloseButtonColor: 'color: #3B7BF6;'
+      assetsCloseButtonColor: 'color: #3B7BF6;',
+      denominationTabSelected: this.$t('DEEM'),
+      parsedBCHBalance: '0'
     }
   },
-
 
   watch: {
     showTokens (n, o) {
@@ -403,6 +455,11 @@ export default {
     },
     openedNotification() {
       return this.$store.getters['notification/openedNotification']
+    },
+    isDenominationTabEnabled () {
+      return (isDefaultTheme(this.theme) &&
+        this.denomination === this.$t('DEEM') &&
+        this.selectedNetwork !== 'sBCH')
     },
     selectedNetwork: {
       get () {
@@ -1098,6 +1155,18 @@ export default {
             return response?.data?.history?.find?.(tx => tx?.txid === txid)
           })
       }
+    },
+    formatBCHCardBalance (currentDenomination) {
+      this.parsedBCHBalance = parseAssetDenomination(currentDenomination, {
+        id: '',
+        balance: this.bchAsset.balance,
+        symbol: 'BCH',
+        decimals: 0
+      }, false, 10)
+    },
+    onDenominationTabSelected (value) {
+      this.denominationTabSelected = value
+      this.formatBCHCardBalance(value)
     }
   },
 
@@ -1160,6 +1229,8 @@ export default {
       vm.balanceLoaded = true
       vm.transactionsLoaded = true
     })
+
+    this.formatBCHCardBalance(this.denomination)
   }
 }
 </script>
@@ -1225,6 +1296,13 @@ export default {
     padding: 4px;
     padding-left: 2px;
     padding-right: 2px;
+  }
+  .q-tab__content {
+    display: flex;
+    align-items: center;
+  }
+  .q-tab__icon {
+    font-size: 14px !important;
   }
 </style>
 
