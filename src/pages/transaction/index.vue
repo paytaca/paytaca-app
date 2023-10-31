@@ -458,7 +458,7 @@ export default {
     },
     isDenominationTabEnabled () {
       return (isDefaultTheme(this.theme) &&
-        this.denomination === this.$t('DEEM') &&
+        !['BCH', 'mBCH', 'Satoshis'].includes(this.denomination) &&
         this.selectedNetwork !== 'sBCH')
     },
     selectedNetwork: {
