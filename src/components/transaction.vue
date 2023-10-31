@@ -31,13 +31,15 @@
             <q-item-section :class="darkMode ? 'text-white' : 'pp-text'">
               <q-item-label>
                 <template v-if="transaction.record_type === 'outgoing'">
-                  {{ `-${parseAssetDenomination(denomination, {
+                  {{ `-${parseAssetDenomination(
+                    denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                     ...transaction.asset,
                     balance: transaction.amount
                   })}` }}
                 </template>
                 <template v-else>
-                  {{ `${parseAssetDenomination(denomination, {
+                  {{ `${parseAssetDenomination(
+                    denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                     ...transaction.asset,
                     balance: transaction.amount
                   })}` }}
@@ -124,7 +126,9 @@
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>{{ $t('GasFee') }}</q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
-                  {{ getAssetDenomination(denomination, transaction.gas) }}
+                  {{ getAssetDenomination(
+                    denomination === $t('DEEM') ? denominationTabSelected : denomination,
+                    transaction.gas) }}
                 </q-item-label>
                 <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
                   {{ parseFiatCurrency(txFeeMarketValue, selectedMarketCurrency) }}
@@ -133,7 +137,9 @@
               <q-item-section v-else>
                 <q-item-label class="text-gray" caption>{{ $t('MinerFee') }}</q-item-label>
                 <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
-                  {{ getAssetDenomination(denomination, transaction.tx_fee / (10**8)) }}
+                  {{ getAssetDenomination(
+                    denomination === $t('DEEM') ? denominationTabSelected : denomination,
+                    transaction.tx_fee / (10**8)) }}
                 </q-item-label>
                 <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
                   {{ parseFiatCurrency(txFeeMarketValue, selectedMarketCurrency) }}
@@ -222,6 +228,7 @@ export default {
   name: 'transaction',
   props: {
     wallet: Object,
+    denominationTabSelected: String,
     hideCallback: {
       type: Function
     }

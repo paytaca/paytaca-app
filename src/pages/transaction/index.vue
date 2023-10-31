@@ -216,7 +216,11 @@
         </div>
       </q-pull-to-refresh>
       <div ref="transactionSection" class="row transaction-row">
-        <transaction ref="transaction" :wallet="wallet"></transaction>
+        <transaction
+          ref="transaction"
+          :wallet="wallet"
+          :denominationTabSelected="denominationTabSelected"
+        />
         <div class="col transaction-container" :class="getDarkModeClass(darkMode)">
           <div class="row no-wrap justify-between">
             <p
@@ -274,6 +278,7 @@
                 :key="'tx-' + index"
                 :transaction="transaction"
                 :selected-asset="selectedAsset"
+                :denominationTabSelected="denominationTabSelected"
                 @click="showTransactionDetails(transaction)"
               />
               <div ref="bottom-transactions-list"></div>
