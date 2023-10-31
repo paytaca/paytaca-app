@@ -260,7 +260,7 @@
                   <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
                 </q-item-section>
                 <q-item-section class="text-right">
-                  <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
+                  <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ $t('SwipeToSend') }}</h5>
                 </q-item-section>
               </q-item>
             </q-slide-item>
