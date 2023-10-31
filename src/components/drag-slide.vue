@@ -16,7 +16,7 @@
             <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
           </q-item-section>
           <q-item-section class="text-right">
-            <h5 class="q-my-sm text-grey-4 text-uppercase">{{ sliderText }}</h5>
+            <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ sliderText }}</h5>
           </q-item-section>
         </q-item>
       </q-slide-item>
