@@ -31,7 +31,7 @@
             <q-item-section :class="darkMode ? 'text-white' : 'pp-text'">
               <q-item-label>
                 <template v-if="transaction.record_type === 'outgoing'">
-                  {{ `-${parseAssetDenomination(
+                  {{ `${parseAssetDenomination(
                     denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                     ...transaction.asset,
                     balance: transaction.amount
@@ -47,7 +47,7 @@
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
                 <template v-if="transaction.record_type === 'outgoing'">
-                  {{ `-${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                  {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
                 </template>
                 <template v-else>
                   {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
