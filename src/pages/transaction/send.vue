@@ -28,7 +28,7 @@
           />
         </div>
         <div v-else class="q-mt-xl">
-          <div class="q-pa-md" style="padding-top: 70px;">
+          <div class="q-pa-md" style="padding-top: 20px;">
             <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
               <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
                 <template v-slot:avatar>
@@ -98,6 +98,7 @@
                   {{ formatTimestampToText(sendData.posDevice?.paymentTimestamp * 1000) }}
                 </div>
               </div>
+              <SendBCHAmountTabs />
               <div class="row">
                 <div class="col q-mt-sm se">
                   <q-input
@@ -372,6 +373,7 @@ import {
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
+import SendBCHAmountTabs from 'src/components/transactions/SendBCHAmountTabs'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -390,7 +392,8 @@ export default {
     customKeyboard,
     QrScanner,
     VOffline,
-    DenominatorTextDropdown
+    DenominatorTextDropdown,
+    SendBCHAmountTabs
   },
   props: {
     network: {
@@ -1116,6 +1119,7 @@ export default {
             const tokenId = vm.assetId.match(erc721IdRegexp)[2]
             promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
           } else {
+            // change to recipients array
             promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
           }
           if (promise) {
@@ -1180,12 +1184,14 @@ export default {
           } else {
             if (tokenId) {
               vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
+              // change to recipients array
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: vm.commitment || undefined,
                 capability: vm.capability || undefined
               }, (vm.ctTokenAmount * (10 ** vm.asset.decimals)))
             } else {
+              // change to recipients array
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: undefined,
