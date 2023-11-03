@@ -68,7 +68,7 @@
                       style="color: #3b7bf6;"
                       class="button button-icon"
                       :class="getDarkModeClass(darkMode)"
-                      @click="checkAddress(manualAddress)"
+                      @click="onScannerDecode(manualAddress)"
                     />
                   </template>
                 </q-input>
