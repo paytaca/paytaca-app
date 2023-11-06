@@ -171,14 +171,13 @@
                   Select Action
                 </div>
                 <q-separator class="q-my-sm" :dark="darkMode"/>
-                <div>
-                  <div class="row justify-between no-wrap q-mx-lg q-pt-sm">
+                <!-- <div> -->
+                  <div class="row justify-between no-wrap q-mx-lg">
                     <span class="sm-font-size">Release</span>
                     <span class="text-nowrap q-ml-xs">
                       <q-btn
                         :outline="selectedAction !== 'release'"
                         rounded
-                        padding="xs"
                         size="sm"
                         icon="done"
                         :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
@@ -187,16 +186,13 @@
                       />
                     </span>
                   </div>
-
-                  <q-separator class="q-my-sm q-mt-md" :dark="darkMode"/>
-
-                  <div class="row justify-between no-wrap q-mx-lg q-py-sm">
+                  <q-separator class="q-my-sm" :dark="darkMode"/>
+                  <div class="row justify-between no-wrap q-mx-lg">
                     <span class="sm-font-size">Refund</span>
                     <span class="text-nowrap q-ml-xs">
                       <q-btn
                         :outline="selectedAction !== 'refund'"
                         rounded
-                        padding="xs"
                         size="sm"
                         icon="done"
                         :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
@@ -205,7 +201,7 @@
                       />
                     </span>
                   </div>
-                </div>
+                <!-- </div> -->
               </q-card>
             </div>
           </div>
@@ -223,7 +219,10 @@
   />
 
   <!-- Add DragSlide -->
-  <DragSlide
+  <RampDragSlide
+    :key="dragSlideKey"
+    v-if="showDragSlide && state === 'form'"
+    :locked="!selectedAction"
     :style="{
       position: 'fixed',
       bottom: 0,
@@ -231,14 +230,14 @@
       right: 0,
       zIndex: 1500,
     }"
-    @swiped="confirmAction"
+    @ok="confirmAction"
+    @cancel="onSecurityCancel"
     text="Swipe To Confirm"
-    v-if="selectedAction && state === 'form'"
   />
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
-import DragSlide from 'src/components/drag-slide.vue'
+import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import AdSnapshot from './AdSnapshot.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -266,7 +265,9 @@ export default {
         seller: 105500
       },
       selectedAction: null,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.14
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      showDragSlide: false,
+      dragSlideKey: 0
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
     }
   },
@@ -276,7 +277,7 @@ export default {
   },
   emits: ['back', 'submit'],
   components: {
-    DragSlide,
+    RampDragSlide,
     AdSnapshot,
     ProgressLoader
   },
@@ -301,7 +302,6 @@ export default {
       const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
       vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
-          // console.log('response:', response)
           vm.appeal = response.data.appeal
           vm.order = response.data.order
           vm.ad_snapshot = response.data.ad_snapshot
@@ -309,7 +309,10 @@ export default {
           vm.transactionHistory = response.data.transactions
           vm.contract = response.data.contract
           vm.fees = response.data.fees
-          this.loading = false
+          if (!vm.appeal.resolved_at) {
+            vm.showDragSlide = true
+          }
+          vm.loading = false
           if (done) done()
         })
         .catch(error => {
@@ -322,7 +325,13 @@ export default {
         })
     },
     async confirmAction () {
+      this.showDragSlide = false
+      this.dragSlideKey++
       this.$emit('submit', this.selectedAction, this.order.crypto_amount)
+    },
+    onSecurityCancel () {
+      this.showDragSlide = true
+      this.dragSlideKey++
     },
     selectReleaseType (type) {
       if (this.selectedAction === type) {
