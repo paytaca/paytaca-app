@@ -28,7 +28,7 @@
           />
         </div>
         <div v-else class="q-mt-xl">
-          <div class="q-pa-md" style="padding-top: 70px;">
+          <div class="q-pa-md" style="padding-top: 20px;">
             <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
               <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
                 <template v-slot:avatar>
@@ -60,8 +60,7 @@
                   filled
                   :dark="darkMode"
                   v-model="manualAddress"
-                  :label="canUseLNS ? $t('PasteAddressOrLnsHere') : $t('PasteAddressHere')"
-                  @update:model-value="resolveLnsName"
+                  :label="$t('PasteAddressHere')"
                 >
                   <template v-slot:append>
                     <q-icon
@@ -69,37 +68,9 @@
                       style="color: #3b7bf6;"
                       class="button button-icon"
                       :class="getDarkModeClass(darkMode)"
-                      @click="!lns.loading ? checkAddress(manualAddress) : null"
+                      @click="onScannerDecode(manualAddress)"
                     />
                   </template>
-                  <q-menu v-model="lns.show" fit :no-parent-event="!isValidLNSName(manualAddress) && (!lns.name || lns.name !== manualAddress) && !lns.loading" no-focus>
-                    <q-item v-if="lns.loading">
-                      <q-item-section class="items-center">
-                        <q-spinner color="black"/>
-                        <q-item-label caption>{{ $t('ResolvingLnsAddress') }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
-                      <q-item-section>
-                        <q-item-label :class="getDarkModeClass(darkMode, '', 'text-black')" caption>
-                          {{ lns.name }}
-                        </q-item-label>
-                        <q-item-label style="word-break:break-all;" :class="getDarkModeClass(darkMode, '', 'text-black')">
-                          {{ lns.address }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item v-else :class="getDarkModeClass(darkMode, 'pt-dark-label', 'text-grey')">
-                      <q-item-section side>
-                        <q-icon name="error"/>
-                      </q-item-section>
-                      <q-item-section>
-                        <q-item-label caption>
-                          {{ $t('UnableToResolveLnsAddress') }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-menu>
                 </q-input>
               </div>
               <div class="col-12 text-uppercase" style="text-align: center; font-size: 15px; color: grey;">
@@ -127,9 +98,6 @@
                   >
                     <template v-slot:label>
                       {{ $t('Recipient') }}
-                      <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
-                        ({{ sendData.lnsName }})
-                      </template>
                     </template>
                   </q-input>
                 </div>
@@ -360,8 +328,6 @@
 
 <script>
 import { markRaw } from '@vue/reactivity'
-import { debounce } from 'quasar'
-import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
 import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
@@ -497,19 +463,11 @@ export default {
         amount: null,
         fixedAmount: false,
         recipientAddress: '',
-        lnsName: '',
-        _lnsAddress: '', // in case recipient address is edited in form will check if name still matches the address
-        posDevice: { posId: -1, paymentTimestamp: -1 },
+        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
         rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
         paymentAckMemo: '',
         fixedRecipientAddress: false
-      },
-      lns: {
-        show: false,
-        loading: false,
-        name: '',
-        address: ''
       },
       sendErrors: [],
       pinDialogAction: '',
@@ -603,12 +561,6 @@ export default {
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
-    },
-    canUseLNS () {
-      if (this.isSep20) return true // if smartchain
-      if (this.assetId === 'bch') return true // if not smartchain but BCH only (EIP2304 doesnt seem to support SLP addresses)
-
-      return false
     },
     disableRecipientInput () {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
@@ -816,42 +768,11 @@ export default {
       this.sendData.sending = false
       this.sendData.sent = true
     },
-    isValidLNSName: isNameLike,
     readonlyState (state) {
       this.amountInputState = state
       if (this.amountInputState && this.$store.getters['global/getConnectivityStatus']) {
         this.customKeyboardState = 'show'
       }
-    },
-    resolveLnsName: debounce(function (name) {
-      if (!name) return
-      if (!this.canUseLNS) return
-      if (!this.isValidLNSName(name)) return
-
-      this.lns.loading = true
-      this.lns.show = true
-      this.clearLnsName()
-      this.$store.dispatch('lns/resolveName', { name: name, coinType: this.isSep20 ? 60 : 145 })
-        .then(response => {
-          if (response && response.address) {
-            this.lns.name = name
-            this.lns.address = response.address
-            this.lns.show = true
-          }
-        })
-        .finally(() => {
-          this.lns.loading = false
-        })
-    }, 500),
-    useResolvedLnsName () {
-      if (!this.lns.address) return
-      this.sendData.lnsName = this.lns.name
-      this.sendData.recipientAddress = this.lns.address
-      this.sendData._lnsAddress = this.lns.address
-    },
-    clearLnsName () {
-      this.lns.name = ''
-      this.lns.address = ''
     },
     convertToFiatAmount (amount) {
       const parsedAmount = Number(amount)
@@ -1177,6 +1098,7 @@ export default {
             const tokenId = vm.assetId.match(erc721IdRegexp)[2]
             promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
           } else {
+            // change to recipients array
             promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
           }
           if (promise) {
@@ -1241,12 +1163,14 @@ export default {
           } else {
             if (tokenId) {
               vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
+              // change to recipients array
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: vm.commitment || undefined,
                 capability: vm.capability || undefined
               }, (vm.ctTokenAmount * (10 ** vm.asset.decimals)))
             } else {
+              // change to recipients array
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: undefined,

@@ -63,7 +63,7 @@
                   {{ isHongKong(currentCountry) ? asset.name.replace('Token', 'Point') : asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
-                  <span v-if="asset.balance">{{ parseAssetDenomination(denomination, asset, false, 16) }}</span>
+                  <span v-if="!asset.name.includes('New')">{{ parseAssetDenomination(denomination, asset, false, 16) }}</span>
                   {{
                       asset.name.includes('New')
                         ? isHongKong(currentCountry)
