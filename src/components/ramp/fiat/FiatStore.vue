@@ -242,6 +242,13 @@ export default {
     vm.loading = false
   },
   methods: {
+    maxAmount (tradeAmount, tradeCeiling) {
+      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
+        return parseFloat(tradeAmount)
+      } else {
+        return parseFloat(tradeCeiling)
+      }
+    },
     receiveDialog (data) {
       // console.log(data)
       this.openDialog = false
