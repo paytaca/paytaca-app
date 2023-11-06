@@ -390,8 +390,7 @@ export default {
     customKeyboard,
     QrScanner,
     VOffline,
-    DenominatorTextDropdown,
-    SendBCHAmountTabs
+    DenominatorTextDropdown
   },
   props: {
     network: {
