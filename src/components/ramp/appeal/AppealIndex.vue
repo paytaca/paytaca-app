@@ -159,9 +159,7 @@ export default {
     //   vm.loading = true
     // }
     // await this.login()
-    if (this.user) {
-      this.resetAndRefetchListings()
-    }
+    this.resetAndRefetchListings()
   },
   methods: {
     async login () {
@@ -227,6 +225,7 @@ export default {
       if (done) done()
     },
     async resetAndRefetchListings () {
+      console.log('resetAndRefetchListings')
       const vm = this
       vm.$store.commit('ramp/resetAppealsPagination')
       await vm.fetchAppeals(true)
