@@ -7,11 +7,11 @@
     <div class="q-mb-lg q-pb-lg">
       <div class="row no-wrap items-center q-pa-sm q-pt-md">
         <div>
-          <div v-if="selectedCurrency" class="q-ml-md text-h5 md-font-size">
+          <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
             {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
           </div>
           <q-menu anchor="bottom left" self="top left" >
-            <q-list class="text-h5 subtext md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px;">
+            <q-list class="text-h5 subtext" :class="{'pt-dark-card': darkMode}" style="min-width: 150px; font-size: medium;">
               <q-item
                 v-for="(currency, index) in fiatCurrencies"
                 :key="index"
@@ -62,29 +62,39 @@
                           <div class="col ib-text">
                             <span
                               :class="{'pt-dark-label': darkMode}"
-                              class="q-mb-none md-font-size"
-                              style="font-weight: 400;"
+                              class="q-mb-none"
+                              style="font-weight: 400; font-size: medium;"
                               @click.stop.prevent="viewUserProfile(listing.owner, listing)">
-                              <!-- <q-icon size="sm" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>&nbsp;{{ listing.owner }} -->
-
                               {{ listing.owner.name }} &nbsp; <q-badge v-if="listing.is_owned" rounded size="sm" color="blue-6" label="You" />
                             </span><br>
-                            <div class="row sm-font-size">
+                            <div>
+                              <q-rating
+                                readonly
+                                :model-value="listing.owner.rating"
+                                :v-model="listing.owner.rating"
+                                size="1em"
+                                color="yellow-9"
+                                icon="star"
+                              />
+                              <span class="q-mx-sm" style="font-size: small;">({{ listing.owner.rating.toFixed(1) }})</span>
+                            </div>
+                            <div class="row subtext">
                               <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
                               <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                             </div>
                             <span
                               :class="{'pt-dark-label': darkMode}"
-                              class="col-transaction text-uppercase lg-font-size">
+                              class="col-transaction text-uppercase lg-font-size"
+                              style="font-size: x-large;">
                               {{ formattedCurrency(listing.price) }}
                             </span>
-                            <span class="sm-font-size">/BCH</span><br>
-                            <div class="row sm-font-size">
+                            <span class="sm-font-size"> / BCH</span><br>
+                            <div class="row sm-font-size subtext">
                                 <span class="q-mr-md">Quantity</span>
                                 <span>{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
                             </div>
-                            <div class="row sm-font-size">
-                                <span class="q-mr-md">Limit</span>
+                            <div class="row sm-font-size subtext">
+                                <span class="q-mr-md">Limits</span>
                                 <span> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_amount) }} {{ listing.crypto_currency.symbol }}</span>
                                 <!-- <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span> -->
                             </div>
@@ -119,13 +129,7 @@
       v-on:back="state = 'SELECT'"
       @order-canceled="onOrderCanceled"
     />
-    <!-- <FiatStoreForm
-      v-on:back="state = 'SELECT'"
-      :listingData="selectedListing"
-      :transactionType="state"
-    /> -->
   </div>
-
   <div v-if="openDialog">
     <MiscDialogs
       :type="dialogType"
@@ -183,7 +187,7 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       adFilter: {}
       // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter

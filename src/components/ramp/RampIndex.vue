@@ -11,7 +11,7 @@
           <ProgressLoader/>
         </div>
       </div>
-      <div v-else class="q-pt-xs">
+      <div v-else>
         <!-- CRYPTO Tab Content -->
         <div v-if="selectedApp === 'crypto'">
           <!-- Shift form -->

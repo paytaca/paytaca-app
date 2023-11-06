@@ -53,6 +53,17 @@
           <span>|</span>&nbsp;&nbsp;
           <span> {{ user.completion_rate }}% completion</span>
       </div>
+      <div class="row justify-center q-px-sm q-pt-sm">
+        <q-rating
+          readonly
+          :model-value="user.rating"
+          :v-model="user.rating"
+          size="1.5em"
+          color="yellow-9"
+          icon="star"
+        />
+        <span class="q-mx-sm">({{ user.rating.toFixed(1) }} rating)</span>
+      </div>
 
       <div class="q-px-sm q-pt-sm">
         <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
@@ -130,6 +141,7 @@ export default {
       authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
       user: null,
+      userId: null,
       editNickname: false,
       state: 'initial',
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
@@ -163,12 +175,27 @@ export default {
   methods: {
     processUserData () {
       if (this.type === 'self') {
-        // get this user's info
-        this.user = this.$store.getters['ramp/getUser']
+        this.userId = this.$store.getters['ramp/getUser'].id
       } else {
-        this.user = this.userInfo
+        this.userId = this.userInfo.id
       }
-      console.log('user', this.user)
+      this.getUserInfo()
+    },
+    getUserInfo () {
+      const vm = this
+      console.log('authHeaders:', this.authHeaders)
+      console.log('userId:', this.userId)
+      vm.$axios.get(vm.apiURL + '/peer/detail', { headers: vm.authHeaders, params: { id: vm.userId } })
+        .then(response => {
+          console.log(response.data)
+          vm.user = response.data
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        })
     },
     async updateUserName (info) {
       const vm = this

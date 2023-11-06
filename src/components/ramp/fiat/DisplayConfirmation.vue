@@ -128,7 +128,8 @@
     </div>
 
     <RampDragSlide
-      v-if="!swipeStatus"
+      :key="dragSlideKey"
+      v-if="showDragSlide"
       :style="{
         position: 'fixed',
         bottom: 0,
@@ -136,7 +137,8 @@
         right: 0,
         zIndex: 1500,
       }"
-      @swiped="$emit('submit')"
+      @ok="$emit('submit')"
+      @cancel="showDragSlide=true; dragSlideKey++"
       text="Swipe To Confirm"
     />
   </div>
@@ -154,7 +156,8 @@ export default {
       isLoaded: false,
       paymentTimeLimit: null,
       wallet: null,
-      swipeStatus: false
+      showDragSlide: true,
+      dragSlideKey: 0
     }
   },
   emits: ['back', 'submit'],

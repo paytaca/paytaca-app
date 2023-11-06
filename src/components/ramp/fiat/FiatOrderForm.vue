@@ -128,15 +128,16 @@
           </div>
 
           <div class="text-center q-pt-sm">
-          <div class="bold-text md-font-size">{{ ad.owner }}</div>
-            <div class="q-py-xs q-pb-sm">
+          <div class="bold-text" style="font-size: medium;">Average Rating</div>
+            <div class="row justify-center q-py-xs q-pb-sm">
               <q-rating
                 readonly
                 v-model="feedback.rating"
-                size="2.5em"
+                size="1.5em"
                 color="yellow-9"
                 icon="star"
               />
+              <span class="q-mx-sm" style="font-size: medium;">({{ ad.owner.rating }})</span>
             </div>
           <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
         </div>

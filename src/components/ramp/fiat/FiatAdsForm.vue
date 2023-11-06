@@ -422,11 +422,6 @@ export default {
     },
     async onSubmit () {
       const vm = this
-      // if (vm.wallet === null) {
-      //   const walletInfo = this.$store.getters['global/getWallet']('bch')
-      //   vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      // }
-      // const timestamp = Date.now()
       const url = vm.apiURL + '/ad/'
       const body = vm.transformPostData()
       try {
