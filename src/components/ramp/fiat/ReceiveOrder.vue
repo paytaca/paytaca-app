@@ -9,8 +9,16 @@
         <span class="text-nowrap q-ml-xs">{{ price }}  {{ order.crypto_currency.symbol }}</span>
       </div>
       <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-        <span>Trade Limit</span>
-        <span class="text-nowrap q-ml-xs">{{ $parent.getAdLimit }} </span>
+        <span>Min Trade Limit</span>
+        <span class="text-nowrap q-ml-xs">
+          {{ parseFloat($parent.getAdLimits.floor) }} BCH
+        </span>
+      </div>
+      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+        <span>Max Trade Limit</span>
+        <span class="text-nowrap q-ml-xs">
+          {{ parseFloat($parent.getAdLimits.ceiling) }} BCH
+        </span>
       </div>
       <div class="row justify-between no-wrap q-mx-lg" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
         <span>Time Limit</span>

@@ -151,10 +151,13 @@ export default {
     transferAmount () {
       return Number(this.order.crypto_amount)
     },
-    getAdLimit () {
+    getAdLimits () {
       const floor = formatCurrency(this.ad.trade_floor)
-      const ceiling = formatCurrency(this.ad.trade_ceiling)
-      return `${floor} BCH - ${ceiling} BCH`
+      const ceiling = formatCurrency(this.ad.trade_amount)
+      return {
+        floor: floor,
+        ceiling: ceiling
+      }
     },
     fiatAmount () {
       return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
@@ -585,10 +588,6 @@ export default {
           if (this.confirmType === 'buyer') {
             await this.fetchOrderData()
           }
-          if (this.confirmType === 'seller') {
-            await this.releaseCrypto() // this will generate the txid
-            // await this.verifyRelease() // this needs the txid
-          }
           break
       }
       vm.title = ''
@@ -617,14 +616,20 @@ export default {
       this.openDialog = true
       this.title = 'Release crypto?'
     },
-    handleConfirmPayment (data) {
+    async handleConfirmPayment (data) {
       console.log('handleConfirmPayment:', data)
       this.selectedPaymentMethods = data
-      this.dialogType = 'confirmPayment'
-      this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
 
-      this.text = this.confirmType === 'buyer' ? 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.' : 'This will release the crypto held by the escrow account to the buyer.'
-      this.openDialog = true
+      if (this.confirmType === 'buyer') {
+        this.dialogType = 'confirmPayment'
+        this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
+
+        this.text = this.confirmType === 'buyer' ? 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.' : 'This will release the crypto held by the escrow account to the buyer.'
+        this.openDialog = true
+      } else {
+        await this.sendConfirmPayment(this.confirmType)
+        await this.releaseCrypto()
+      }
     },
 
     // Others

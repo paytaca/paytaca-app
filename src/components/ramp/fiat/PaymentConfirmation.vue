@@ -71,7 +71,7 @@
         <div class="q-mx-lg q-px-md">
           <div v-if="type === 'seller'">
             <q-checkbox size="sm" v-model="confirmRelease" :dark="darkMode"/>
-            <span class="xs-font-size text-center">I confirm that I have received payment.</span>
+            <span class="xs-font-size text-center">I confirm that I received payment</span>
           </div>
 
           <div v-if="type === 'buyer'">
@@ -82,11 +82,6 @@
 
         <!-- Confirm  -->
         <div class="row q-pt-sm q-mx-lg q-px-md">
-          <DragSlide
-            @swiped="onConfirm"
-            text="Release Crypto"
-            v-if="confirmRelease && type === 'seller'"
-          />
           <!-- <q-btn
             v-if="type === 'seller'"
             :disable="!confirmRelease"
@@ -109,10 +104,24 @@
       </div>
     </q-scroll-area>
   </div>
+  <RampDragSlide
+    :key="dragSlideKey"
+    v-if="showDragSlide && type === 'seller'"
+    :locked="!confirmRelease"
+    :style="{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1500,
+    }"
+    @ok="onSecurityOk"
+    @cancel="onSecurityCancel"
+    text="Release Crypto"/>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import DragSlide from 'src/components/drag-slide.vue'
+import RampDragSlide from './dialogs/RampDragSlide.vue'
 
 export default {
   data () {
@@ -128,7 +137,9 @@ export default {
       confirmRelease: false,
       paymentMethods: [],
       selectedPaymentMethods: [],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      showDragSlide: true,
+      dragSlideKey: 0
     }
   },
   props: {
@@ -136,7 +147,7 @@ export default {
     type: String
   },
   components: {
-    DragSlide
+    RampDragSlide
   },
   emits: ['confirm'],
   async mounted () {
@@ -185,6 +196,15 @@ export default {
     },
     onConfirm () {
       this.$emit('confirm', this.selectedPaymentMethods)
+    },
+    onSecurityOk () {
+      this.showDragSlide = false
+      this.dragSlideKey++
+      this.$emit('confirm', this.selectedPaymentMethods)
+    },
+    onSecurityCancel () {
+      this.showDragSlide = true
+      this.dragSlideKey++
     },
     paymentCountdown () {
       const vm = this

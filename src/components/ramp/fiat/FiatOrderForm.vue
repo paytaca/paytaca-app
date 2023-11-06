@@ -33,9 +33,15 @@
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Trade Limit</span>
+              <span>Min Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}  - {{ parseFloat(ad.trade_ceiling) }} {{ ad.crypto_currency.symbol }}
+                {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}
+              </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Max Trade Limit</span>
+              <span class="text-nowrap q-ml-xs">
+                {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency.symbol }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
@@ -204,7 +210,7 @@ export default {
 
       ad: null,
       state: 'initial',
-      byFiat: true,
+      byFiat: false,
       amount: 0,
       order: null,
       openDialog: false,
@@ -325,7 +331,7 @@ export default {
       if (value === undefined) return false
       const parsedValue = parseFloat(value)
       const tradeFloor = parseFloat(this.ad.trade_floor)
-      const tradeCeiling = parseFloat(this.ad.trade_ceiling)
+      const tradeCeiling = parseFloat(this.ad.trade_amount)
       if (isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling) {
         return false
       }
@@ -340,7 +346,7 @@ export default {
       }
     },
     updateInput (max = false) {
-      if (max) this.amount = parseFloat(this.ad.trade_ceiling)
+      if (max) this.amount = parseFloat(this.ad.trade_amount)
       if (!this.byFiat) {
         if (!max) this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
       } else {

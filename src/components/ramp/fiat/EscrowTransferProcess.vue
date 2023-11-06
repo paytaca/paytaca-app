@@ -92,7 +92,8 @@
       </div>
     </q-scroll-area>
 
-    <DragSlide
+    <RampDragSlide
+      :key="dragSlideKey"
       v-if="showDragSlide && (!loading && contractAddress)"
       :style="{
         position: 'fixed',
@@ -101,17 +102,16 @@
         right: 0,
         zIndex: 1500,
       }"
-      @swiped="onSwipe"
+      @ok="onSecurityOk"
+      @cancel="onSecurityCancel"
       text="Swipe To Escrow"
     />
   </div>
   <!-- else progress loader -->
 </template>
 <script>
-import DragSlide from '../../drag-slide.vue'
-import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
-import { Dialog } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
+import RampDragSlide from './dialogs/RampDragSlide.vue'
 
 export default {
   data () {
@@ -132,12 +132,13 @@ export default {
       showDragSlide: true,
       sendErrors: [],
       sendingBch: false,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      dragSlideKey: 0
     }
   },
   emits: ['back', 'success'],
   components: {
-    DragSlide
+    RampDragSlide
   },
   props: {
     order: {
@@ -305,20 +306,14 @@ export default {
         this.balanceExceeded = false
       }
     },
-    onSwipe () {
+    onSecurityOk () {
       this.showDragSlide = false
-      this.showSecurityDialog()
+      this.dragSlideKey++
+      this.completePayment()
     },
-    showSecurityDialog () {
-      Dialog.create({
-        component: SecurityCheckDialog
-      })
-        .onOk(() => {
-          this.completePayment()
-        })
-        .onCancel(() => {
-          this.showDragSlide = true
-        })
+    onSecurityCancel () {
+      this.showDragSlide = true
+      this.dragSlideKey++
     },
     formattedAddress (address) {
       const startLength = 35

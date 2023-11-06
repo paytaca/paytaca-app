@@ -127,7 +127,7 @@
       </div>
     </div>
 
-    <DragSlide
+    <RampDragSlide
       v-if="!swipeStatus"
       :style="{
         position: 'fixed',
@@ -143,7 +143,7 @@
   <!-- else progress loader -->
 </template>
 <script>
-import DragSlide from '../../drag-slide.vue'
+import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { formatCurrency } from 'src/wallet/ramp'
 export default {
   data () {
@@ -159,7 +159,7 @@ export default {
   },
   emits: ['back', 'submit'],
   components: {
-    DragSlide
+    RampDragSlide
   },
   props: {
     type: {

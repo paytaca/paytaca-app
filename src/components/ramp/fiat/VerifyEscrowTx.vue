@@ -70,7 +70,7 @@
           </q-btn>
           <div v-if="hideBtn" class="q-mt-md">
             <span v-if="state === 'verifying'">
-              Verifying transaction, please wait... <span v-if="waitSeconds">({{ waitSeconds }}s)</span>
+              Verifying transaction, please wait... <!--<span v-if="waitSeconds">({{ waitSeconds }}s)</span>-->
             </span>
             <span v-if="state === 'sending'">Sending bch, please wait...</span>
           </div>
@@ -180,12 +180,11 @@ export default {
           vm.hideBtn = false
         }
         // if (!vm.txExists) {
-        vm.waitSeconds = 30
+        vm.waitSeconds = 60
         vm.timer = setInterval(function () {
           vm.waitSeconds--
           if (vm.waitSeconds === 0) {
             vm.hideBtn = false
-            // vm.errorMessages.push('Server took too long to respond')
             clearInterval(vm.timer)
           }
         }, 1000)
