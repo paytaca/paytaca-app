@@ -87,7 +87,7 @@
           <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
             <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
               <div class="row">
-                <div class="col q-mt-sm se">
+                <div class="col q-mt-sm se recipient-input-qr">
                   <q-input
                     filled
                     v-model="sendData.recipientAddress"
@@ -95,11 +95,19 @@
                     :disabled="disableRecipientInput"
                     :readonly="disableRecipientInput"
                     :dark="darkMode"
+                    class="recipient-input"
                   >
                     <template v-slot:label>
                       {{ $t('Recipient') }}
                     </template>
                   </q-input>
+                  <q-btn
+                    round
+                    size="lg"
+                    class="btn-scan button text-white bg-grad"
+                    icon="mdi-qrcode"
+                    @click="showQrScanner = true"
+                  />
                 </div>
               </div>
               <template v-if="$store.state.global.online !== false">
@@ -190,6 +198,9 @@
                     Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
                   </a>
                 </div>
+              </div>
+              <div class="add-recipient-button">
+                <q-btn label="Add another recipient" class="button" />
               </div>
               <div class="row" v-if="sendData.sending">
                 <div class="col-12 text-center">
@@ -1509,5 +1520,21 @@ export default {
   }
   .pt-invisible {
     opacity: 0;
+  }
+  .recipient-input-qr {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+
+    .recipient-input {
+      flex: 1;
+      margin-right: 10px;
+    }
+  }
+  .add-recipient-button {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px
   }
 </style>
