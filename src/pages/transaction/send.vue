@@ -98,7 +98,6 @@
                   {{ formatTimestampToText(sendData.posDevice?.paymentTimestamp * 1000) }}
                 </div>
               </div>
-              <SendBCHAmountTabs />
               <div class="row">
                 <div class="col q-mt-sm se">
                   <q-input
@@ -373,7 +372,6 @@ import {
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
-import SendBCHAmountTabs from 'src/components/transactions/SendBCHAmountTabs'
 
 const { SecureStoragePlugin } = Plugins
 
