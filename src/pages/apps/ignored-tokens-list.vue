@@ -116,8 +116,8 @@ export default {
       return this.$store.getters['global/theme']
     },
     ignoredAssets () {
-      if (this.selectedNetwork === 'BCH') return this.parseTokenName(this.ignoredMainchainAssets)
-      if (this.selectedNetwork === 'sBCH') return this.parseTokenName(this.ignoredSmartchainAssets)
+      if (this.selectedNetwork === 'BCH') return this.ignoredMainchainAssets
+      if (this.selectedNetwork === 'sBCH') return this.ignoredSmartchainAssets
 
       return []
     },
@@ -198,16 +198,6 @@ export default {
           if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
           else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
         })
-    },
-    parseTokenName (ignoredList) {
-      // copy to remove binding from state
-      const ignoredListCopy = JSON.parse(JSON.stringify(ignoredList))
-      if (ignoredListCopy.length > 0 && this.isHongKong(this.currentCountry)) {
-        ignoredListCopy.forEach(token => {
-          token.name = token.name.replace('Token', 'Point')
-        })
-      }
-      return ignoredListCopy
     }
   },
   beforeRouteLeave (to, from, next) {
