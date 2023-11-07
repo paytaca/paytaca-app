@@ -85,6 +85,20 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
+            <q-item
+              clickable
+              v-ripple
+              style="overflow-wrap: anywhere;"
+              v-if="!isSep20Tx && transaction.asset.id.startsWith('bch')"
+              @click="copyToClipboard(isSep20Tx ? transaction.hash : transaction.txid)"
+            >
+              <q-item-section>
+                <q-item-label class="text-gray" caption>{{ $t('ReferenceId') }}</q-item-label>
+                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                  {{ transaction.txid.substring(0, 6).toUpperCase() }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
             <q-item clickable v-ripple @click="copyToClipboard(isSep20Tx ? transaction.hash : transaction.txid)" style="overflow-wrap: anywhere;">
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('TransactionId') }}</q-item-label>

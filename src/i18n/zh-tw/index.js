@@ -268,6 +268,7 @@ export default {
   ReceivingAddress: "接收地址",
   Recipient: "接受者",
   Recipients: "收件人",
+  ReferenceId: "參考ID",
   Refetch: "取回",
   RefreshList: "刷新列表",
   RefundAddress: "退款地址",

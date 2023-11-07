@@ -14,8 +14,7 @@ export default {
     abbreviate: {
       type: Boolean,
       default: false
-    },
-    currentCountry: { type: String }
+    }
   },
   computed: {
     labelStyle () {
@@ -27,25 +26,20 @@ export default {
     tokenType () {
       const assetId = this.assetId.split('/')[0].toUpperCase()
       if (assetId === 'CT') {
-        if (!this.abbreviate) return this.$t(this.isHongKong() ? 'CashPoints' : 'CashTokens')
+        if (!this.abbreviate) return this.$t('CashTokens')
       }
       if (assetId === 'SLP') {
         if (this.abbreviate) return 'SLP'
-        return this.$t(this.isHongKong() ? 'SLPPoints' : 'SLPTokens')
+        return this.$t('SLPTokens')
       }
       return assetId
     },
     color () {
       const type = this.tokenType
-      if ([this.$t(this.isHongKong() ? 'CashPoints' : 'CashTokens'), 'CT'].includes(type))
+      if ([this.$t('CashTokens'), 'CT'].includes(type))
         return 'teal-5'
       return 'blue-5'
     },
-  },
-  methods: {
-    isHongKong () {
-      return this.currentCountry === 'HK'
-    }
   }
 }
 </script>

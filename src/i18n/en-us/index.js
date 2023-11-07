@@ -268,6 +268,7 @@ export default {
   ReceivingAddress: "Receiving address",
   Recipient: "Recipient",
   Recipients: "Recipients",
+  ReferenceId: "Reference ID",
   Refetch: "Refetch",
   RefreshList: "Refresh List",
   RefundAddress: "Refund Address",
