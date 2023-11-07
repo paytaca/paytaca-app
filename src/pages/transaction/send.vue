@@ -507,6 +507,9 @@ export default {
     currentCountry () {
       return this.$store.getters['global/country'].code
     },
+    currentCurrency () {
+      return this.$store.getters['market/selectedCurrency'].symbol
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -675,9 +678,12 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0]) {
+        const amountValue = paymentUriData.outputs[0].amount?.value
+        const amountCurrency = paymentUriData.outputs[0].amount?.currency
+
         address = paymentUriData.outputs[0].address
-        amount = paymentUriData.outputs[0].amount?.value
-        currency = paymentUriData.outputs[0].amount?.currency
+        currency = amountCurrency ?? this.currentCurrency
+        amount = amountCurrency === null ? this.convertToFiatAmount(amountValue) : amountValue
       }
       if (paymentUriData?.posId) {
         posDevice.posId = paymentUriData.posId
