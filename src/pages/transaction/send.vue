@@ -266,8 +266,8 @@
               </div>
               <div v-if="sendData?.posDevice?.posId >= 0">
                 <div v-if="paymentOTP" class="text-center q-mt-md">
-                  <div class="text-grey">{{ $t('PaymentOTP', {}, 'Payment OTP')}}</div>
-                  <div class="text-h3" style="letter-spacing:1rem;">{{ paymentOTP }}</div>
+                  <div class="text-grey">{{ $t('ReferenceId')}}</div>
+                  <div class="text-h3" style="letter-spacing:1rem;">{{ sendData.txid.substring(0, 6).toUpperCase() }}</div>
                   <q-separator color="grey"/>
                 </div>
               </div>

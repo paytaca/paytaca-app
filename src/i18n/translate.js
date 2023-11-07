@@ -481,7 +481,8 @@ const hongKongSpecific = [
     Add_SEP721_Point: "Add SEP721 Point",
     DEEM: "DEEM",
     Theme: "Theme",
-    Default: "Default"
+    Default: "Default",
+    ReferenceId: "Reference ID"
   }
 ]
 

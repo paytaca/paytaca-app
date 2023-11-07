@@ -246,6 +246,7 @@ export default {
   ReceivingAddress: "Empfangsadresse",
   Recipient: "Empfänger",
   Recipients: "Empfänger",
+  ReferenceId: "Referenz ID",
   Refetch: "Refetch",
   RefreshList: "Liste aktualisieren",
   RefundAddress: "Rückerstattungsadresse",
