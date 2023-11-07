@@ -2,7 +2,7 @@
   <div class="q-pb-md">
     <q-scroll-area :style="`height: ${minHeight - minHeight*0.2}px`" style="overflow-y:auto;">
       <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
-      <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">( Order #{{ order.id }} )</div>
+      <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">(ORDER #{{ order.id }})</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
       <div class="q-mx-lg q-px-lg q-pt-md">
         <div class="sm-font-size q-pl-sm q-pb-xs">Arbiter</div>
@@ -335,3 +335,19 @@ export default {
   }
 }
 </script>
+<style scoped>
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
+</style>

@@ -499,6 +499,14 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.md-font-size {
+  font-size: medium;
+}
+
+.bold-text {
+  font-weight: bold;
+}
+
 .subtext {
   opacity: .5;
 }

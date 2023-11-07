@@ -51,18 +51,18 @@
       <div class="text-center md-font-size subtext bold-text q-pt-md">
           <span>{{ user.trade_count }} total trades</span>&nbsp;&nbsp;
           <span>|</span>&nbsp;&nbsp;
-          <span> {{ user.completion_rate }}% completion</span>
+          <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
       </div>
       <div class="row justify-center q-px-sm q-pt-sm">
         <q-rating
           readonly
-          :model-value="user.rating"
+          :model-value="user.rating ? user.rating : 0"
           :v-model="user.rating"
           size="1.5em"
           color="yellow-9"
           icon="star"
         />
-        <span class="q-mx-sm">({{ user.rating.toFixed(1) }} rating)</span>
+        <span class="q-mx-sm">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
       </div>
 
       <div class="q-px-sm q-pt-sm">
@@ -282,6 +282,23 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.xs-font-size {
+  font-size: x-small;
+}
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
 .subtext {
   opacity: .5;
 }

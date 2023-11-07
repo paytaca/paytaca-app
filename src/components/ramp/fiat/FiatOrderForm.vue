@@ -50,7 +50,7 @@
             </div>
           </div>
 
-          <!-- Fiat Input -->
+          <!-- Input -->
           <div class="q-mt-md q-mx-md" v-if="!isOwner">
             <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
             <q-input
@@ -70,14 +70,22 @@
               <div class="col text-left bold-text subtext sm-font-size q-pl-sm">
                 = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad.fiat_currency.symbol : 'BCH' }}
               </div>
-              <div class="row justify-end q-pr-sm">
+              <div class="justify-end q-gutter-sm q-pr-sm">
+                <q-btn
+                  class="sm-font-size"
+                  padding="none"
+                  flat
+                  dense
+                  color="primary"
+                  label="MIN"
+                  @click="updateInput(max=false, min=true)"/>
                 <q-btn
                   class="sm-font-size"
                   padding="none"
                   flat
                   color="primary"
                   label="MAX"
-                  @click="updateInput(true)"/>
+                  @click="updateInput(max=true, min=false)"/>
               </div>
             </div>
             <div class="q-pl-sm">
@@ -128,19 +136,20 @@
           </div>
 
           <div class="text-center q-pt-sm">
-          <div class="bold-text" style="font-size: medium;">Average Rating</div>
+            <!-- <div class="bold-text" style="font-size: medium;">Average Rating</div>
             <div class="row justify-center q-py-xs q-pb-sm">
               <q-rating
                 readonly
-                v-model="feedback.rating"
+                :model-value="feedback.rating"
+                :v-model="feedback.rating"
                 size="1.5em"
                 color="yellow-9"
                 icon="star"
               />
               <span class="q-mx-sm" style="font-size: medium;">({{ ad.owner.rating }})</span>
-            </div>
-          <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
-        </div>
+            </div> -->
+            <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
+          </div>
         </div>
       </div>
 
@@ -281,7 +290,7 @@ export default {
     const vm = this
     await vm.fetchAd()
     if (this.ad) {
-      this.amount = parseFloat(this.ad.trade_floor) * parseFloat(this.ad.price)
+      this.amount = parseFloat(this.ad.trade_floor)
     }
     vm.isloaded = true
   },
@@ -371,18 +380,15 @@ export default {
         this.amount = parseFloat(this.ad.trade_floor) / parseFloat(this.ad.price)
       }
     },
-    updateInput (max = false) {
-      if (max) this.amount = parseFloat(this.ad.trade_amount)
+    updateInput (max = false, min = false) {
+      if (min) this.amount = parseFloat(this.ad.trade_floor)
+      if (max) this.amount = parseFloat(this.ad.trade_ceiling)
       if (!this.byFiat) {
-        if (!max) this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
+        if (!max && !min) this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
       } else {
         this.amount = parseFloat(this.amount) * parseFloat(this.ad.price)
       }
     },
-    // orderConfirm () {
-    //   this.dialogType = 'confirmOrderCreate'
-    //   this.openDialog = true
-    // },
     getCryptoAmount () {
       if (!this.byFiat) {
         return parseFloat(this.amount)
@@ -420,7 +426,22 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
- .buy-color {
+
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
+.buy-color {
   color: rgb(60, 100, 246);
 }
 .sell-color {

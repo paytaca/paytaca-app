@@ -7,7 +7,7 @@
         </div>
         <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
-      <div class="text-center subtext xs-font-size bold-text">( Order #{{ order.id }} )</div>
+      <div class="text-center subtext xs-font-size bold-text">(ORDER ID: {{ order.id }})</div>
       <div class="q-px-sm q-pt-sm">
         <div class="sm-font-size q-pb-xs">Fiat Amount</div>
         <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
@@ -354,6 +354,20 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
 .subtext {
   opacity: .5;
 }

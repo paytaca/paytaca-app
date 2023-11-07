@@ -4,7 +4,7 @@
       <span v-if="type === 'buyer'">PAY BY FIAT</span>
       <span v-else>RECEIVE FIAT</span>
     </div>
-    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">( Order #{{ order.id }} )</div>
+    <div style="opacity: .5;" class="text-center q-pb-sm sm-font-size bold-text">(ORDER ID: {{ order.id }})</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
     <q-scroll-area :style="`height: ${minHeight - minHeight * 0.2}px`" style="overflow-y:auto;">
       <div class="q-mt-md q-mx-lg q-px-md">
@@ -71,12 +71,12 @@
         <div class="q-mx-lg q-px-md">
           <div v-if="type === 'seller'">
             <q-checkbox size="sm" v-model="confirmRelease" :dark="darkMode"/>
-            <span class="xs-font-size text-center">I confirm that I received payment</span>
+            <span class="sm-font-size text-center">I confirm that I received payment</span>
           </div>
 
           <div v-if="type === 'buyer'">
             <q-checkbox size="sm" v-model="confirmPayment" :dark="darkMode"/>
-            <span class="xs-font-size text-center"> I confirm that I already sent my payment</span>
+            <span class="sm-font-size text-left"> I confirm that I already sent payment</span>
           </div>
         </div>
 
@@ -239,6 +239,23 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.xs-font-size {
+  font-size: x-small;
+}
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
 .subtext {
   opacity: .5;
 }

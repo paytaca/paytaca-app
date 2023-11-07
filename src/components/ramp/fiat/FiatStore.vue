@@ -11,15 +11,13 @@
             {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
           </div>
           <q-menu anchor="bottom left" self="top left" >
-            <q-list class="text-h5 subtext" :class="{'pt-dark-card': darkMode}" style="min-width: 150px; font-size: medium;">
+            <q-list class="md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px">
               <q-item
                 v-for="(currency, index) in fiatCurrencies"
                 :key="index"
                 clickable
                 v-close-popup
-                @click="selectCurrency(index)"
-              >
-                <!-- <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']">{{ currency }} ({{ index }})</q-item-section> -->
+                @click="selectCurrency(index)">
                 <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.symbol }})</q-item-section>
               </q-item>
             </q-list>
@@ -60,47 +58,46 @@
                       <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                         <div class="row">
                           <div class="col ib-text">
-                            <span
-                              :class="{'pt-dark-label': darkMode}"
-                              class="q-mb-none"
-                              style="font-weight: 400; font-size: medium;"
-                              @click.stop.prevent="viewUserProfile(listing.owner, listing)">
-                              {{ listing.owner.name }} &nbsp; <q-badge v-if="listing.is_owned" rounded size="sm" color="blue-6" label="You" />
-                            </span><br>
-                            <div>
+                            <div class="">
+                              <span
+                                :class="{'pt-dark-label': darkMode}"
+                                class="md-font-size"
+                                @click.stop.prevent="viewUserProfile(listing.owner, listing)">
+                                {{ listing.owner.name }}
+                              </span>
+                              <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
+                            </div>
+                            <div class="row">
                               <q-rating
                                 readonly
                                 :model-value="listing.owner.rating"
                                 :v-model="listing.owner.rating"
-                                size="1em"
+                                size="1.1em"
                                 color="yellow-9"
-                                icon="star"
-                              />
-                              <span class="q-mx-sm" style="font-size: small;">({{ listing.owner.rating.toFixed(1) }})</span>
+                                icon="star"/>
+                              <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : listing.owner.rating }})</span>
                             </div>
-                            <div class="row subtext">
+                            <div class="sm-font-size">
                               <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
                               <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                             </div>
-                            <span
-                              :class="{'pt-dark-label': darkMode}"
-                              class="col-transaction text-uppercase lg-font-size"
-                              style="font-size: x-large;">
+                            <span :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase bold-text lg-font-size">
                               {{ formattedCurrency(listing.price) }}
                             </span>
-                            <span class="sm-font-size"> / BCH</span><br>
-                            <div class="row sm-font-size subtext">
-                                <span class="q-mr-md">Quantity</span>
-                                <span>{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
-                            </div>
-                            <div class="row sm-font-size subtext">
-                                <span class="q-mr-md">Limits</span>
-                                <span> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_amount) }} {{ listing.crypto_currency.symbol }}</span>
-                                <!-- <span> {{ formattedCurrency(listing.trade_floor) }} - {{ formattedCurrency(listing.trade_ceiling) }}</span> -->
+                            <span class="sm-font-size">/BCH</span><br>
+                            <div class="sm-font-size">
+                              <div class="row">
+                                <span class="col-3">Quantity</span>
+                                <span class="col">{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
+                              </div>
+                              <div class="row">
+                                <span class="col-3">Limit</span>
+                                <span class="col"> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_amount) }} {{ listing.crypto_currency.symbol }}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <div class="q-gutter-sm q-pt-sm">
+                        <div class="q-gutter-sm q-pt-xs">
                           <q-badge v-for="method in listing.payment_methods" :key="method.id"
                           rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
                           {{ method.payment_type }}
@@ -411,6 +408,22 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
+
 .btn-custom {
   height: 40px;
   width: 40%;

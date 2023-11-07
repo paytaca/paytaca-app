@@ -66,25 +66,19 @@
                               style="font-size: 13px;">
                               {{ listing.price_type }}
                             </span><br>
-                            <span
-                              :class="{'pt-dark-label': darkMode}"
-                              class="col-transaction text-uppercase"
-                              style="font-size: 16px;">
+                            <span :class="{'pt-dark-label': darkMode}" class="col-transaction lg-font-size bold-text">
                               {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
                             </span>
-                            <span style="font-size: 12px;">
-                              /BCH
-                            </span>
+                            <span class="sm-font-size">/BCH</span>
                             <div class="row sm-font-size">
-                              <span class="q-mr-md">Quantity</span>
-                              <span>{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
+                              <span class="col-3 q-mr-md">Quantity</span>
+                              <span class="col">{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
                             </div>
-                            <div class="row sm-font-size">
-                              <span class="q-mr-md">Limit</span>
-                              <span> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
-                              <!-- <span> {{ formattedCurrency(listing.trade_floor, listing.fiat_currency.symbol) }} - {{ formattedCurrency(listing.trade_ceiling, listing.fiat_currency.symbol) }} </span> -->
+                            <div class="sm-font-size">
+                              <span class="col-3 q-mr-md q-pr-md">Limits</span>
+                              <span class="col-auto">{{ parseFloat(listing.trade_floor) }} - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
                             </div>
-                            <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div>
+                            <!-- <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div> -->
                           </div>
                           <div class="text-right">
                             <q-btn
@@ -108,8 +102,8 @@
                             />
                           </div>
                         </div>
-                        <div class="q-gutter-sm q-pt-sm">
-                          <!-- <q-badge v-for="method in listing.payment_methods" rounded outline :color="transactionType === 'buy'? 'blue': 'red'" :label="method.payment_type" /> -->
+                        <div class="q-gutter-sm q-pt-xs">
+                          <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method.payment_type" />
                         </div>
                       </div>
                     </q-item-section>
@@ -372,6 +366,22 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.sm-font-size {
+  font-size: small;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.md-font-size {
+  font-size: medium;
+}
+
+.bold-text {
+  font-weight: bold;
+}
+
 .btn-transaction {
 font-size: 16px;
 background-color: rgb(242, 243, 252);

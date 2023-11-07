@@ -5,8 +5,8 @@
     </div>
     <div class="q-pt-md sm-font-size q-px-md  ">
       <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-        <span>Price</span>
-        <span class="text-nowrap q-ml-xs">{{ price }}  {{ order.crypto_currency.symbol }}</span>
+        <span>Locked Price</span>
+        <span class="text-nowrap q-ml-xs">{{ price }}/{{ order.crypto_currency.symbol }}</span>
       </div>
       <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
         <span>Min Trade Limit</span>
@@ -37,8 +37,7 @@
         readonly
         filled
         :dark="darkMode"
-        v-model="amount"
-        :rules="[$parent.isValidInputAmount]">
+        v-model="amount">
         <template v-slot:append>
           <span class="lg-font-size">{{ byFiat ? order.fiat_currency.symbol : order.crypto_currency.symbol }}</span>
         </template>
@@ -97,10 +96,9 @@ export default {
       order: null,
       ad: null,
       isloaded: false,
-      test: '',
-      price: null,
       byFiat: false,
-      amount: null
+      amount: null,
+      price: null,
     }
   },
   props: {
@@ -123,7 +121,7 @@ export default {
   },
   async mounted () {
     this.order = this.orderData
-    this.price = this.$parent.formattedCurrency(this.order.crypto_amount)
+    this.price = this.$parent.formattedCurrency(this.order.locked_price, this.order.fiat_currency.symbol)
     this.updateInput()
     this.isloaded = true
   },
@@ -141,3 +139,20 @@ export default {
   }
 }
 </script>
+<style scoped>
+
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
+</style>

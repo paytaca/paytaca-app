@@ -69,7 +69,6 @@
                 </q-select>
               </div>
               <div class="col">
-                <!-- <q-select :dark="darkMode" rounded outlined v-model="selectedCurrency" :options="Object.keys(availableFiat)" label="Fiat Currency" /> -->
                 <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price Margin' }}</div>
                 <q-input
                   dense
@@ -92,70 +91,68 @@
                 </q-input>
               </div>
             </div>
-            <div class="sm-font-size">
-              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-                <div>
-                  <span>Your Price</span><br>
-                  <span class="bold-text xm-font-size">{{ formattedCurrency(priceAmount) }}</span>
-                  <!-- <span v-else class="bold-text lg-font-size">{{ (lowestOrderPrice * (priceAmount/100)).toFixed(2) }} {{ selectedCurrency.symbol }}</span> -->
-                </div>
-                <div >
-                  <span>Current Market Price</span><br>
-                  <span class="md-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
-                </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mx-lg sm-font-size">
+              <div class="row justify-between">
+                <span class="col text-left">Your Price</span>
+                <span class="col text-right">Current Market Price</span>
+              </div>
+              <div class="row justify-between">
+                <span class="col text-left bold-text md-font-size">{{ formattedCurrency(priceAmount) }}</span>
+                <span class="col text-right md-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
               </div>
             </div>
           </div>
 
-          <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/> -->
-
-          <!-- Crypto Amount -->
-          <div class="q-mx-lg q-mt-sm">
+          <!-- Trade Amount -->
+          <div class="q-mx-lg q-mt-md">
             <div class="q-mt-sm q-px-md">
               <div class="q-pb-xs q-pl-sm bold-text">Trade Amount</div>
                 <q-input
+                  ref="tradeAmountRef"
                   dense
                   outlined
                   rounded
                   :dark="darkMode"
                   :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                   type="number"
-                  :rules="numberValidation"
-                  v-model="adData.tradeAmount">
+                  :rules="tradeAmountValidation"
+                  v-model="adData.tradeAmount"
+                  @blur="$refs.tradeFloorRef.validate(); $refs.tradeCeilingRef.validate()">
                   <template v-slot:prepend>
-                    <span class="bold-text xs-font-size">
+                    <span class="bold-text sm-font-size">
                       BCH
                     </span>
                   </template>
                 </q-input>
               </div>
-            <div class="q-px-md">
+            <div class="q-px-md q-mt-sm">
               <div class="q-pb-xs q-pl-sm bold-text">Trade Limit</div>
               <div class="row">
-                <div class="col-5">
+                <div class="col">
                   <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
                   <q-input
+                    ref="tradeFloorRef"
                     dense
                     outlined
                     rounded=""
+                    type="number"
                     :dark="darkMode"
                     :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                    type="number"
                     :rules="tradeLimitValidation"
                     v-model="adData.tradeFloor"
-                  >
+                    @blur="$refs.tradeCeilingRef.validate(); $refs.tradeAmountRef.validate()">
                     <template v-slot:append>
-                      <span class="xs-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
-                      <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
+                      <span class="sm-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
                     </template>
                   </q-input>
                 </div>
-                <div class="col text-center">
+                <div class="col-1 text-center">
                   <q-icon class="q-pt-md q-mt-lg" name="remove"/>
                 </div>
-                <div class="col-5">
+                <div class="col">
                   <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
                   <q-input
+                    ref="tradeCeilingRef"
                     dense
                     outlined
                     rounded=""
@@ -163,11 +160,12 @@
                     :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                     type="number"
                     :rules="tradeLimitValidation"
+                    lazy-rules
                     v-model="adData.tradeCeiling"
+                    @blur="$refs.tradeFloorRef.validate(); $refs.tradeAmountRef.validate()"
                   >
                     <template v-slot:append>
-                      <span class="xs-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
-                      <!-- <q-btn padding="none" style="font-size: 12px;" flat color="primary" label="MAX" /> -->
+                      <span class="sm-font-size">{{ adData.cryptoCurrency.symbol }}</span>
                     </template>
                   </q-input>
                 </div>
@@ -175,10 +173,8 @@
             </div>
           </div>
 
-          <!-- <q-separator :dark="darkMode" class="q-mx-md"/> -->
-
           <!-- Payment Time Limit -->
-          <div class="q-mx-lg q-pt-xs">
+          <div class="q-mx-lg q-pt-sm">
             <div class="q-px-lg">
               <div class="q-pt-sm bold-text">Payment Time Limit</div>
             </div>
@@ -253,8 +249,19 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import { debounce } from 'quasar'
 import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const tradeAmountRef = ref(null)
+    const tradeFloorRef = ref(null)
+    const tradeCeilingRef = ref(null)
+    return {
+      tradeAmountRef,
+      tradeFloorRef,
+      tradeCeilingRef
+    }
+  },
   props: {
     transactionType: String,
     adsState: String,
@@ -334,7 +341,13 @@ export default {
       tradeLimitValidation: [
         (val) => !!val || 'This field is required',
         (val) => val > 0 || 'Value must be greater than 0',
-        (val) => this.checkTradeLimitComparison(val) || 'Min must be less than max trade limit'
+        (val) => Number(val) <= Number(this.adData.tradeAmount) || 'Value exceeds trade amount',
+        () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || 'Min exceeds max'
+      ],
+      tradeAmountValidation: [
+        (val) => !!val || 'This field is required',
+        (val) => val > 0 || 'Value must be greater than 0',
+        (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Value less than minimum trade limit'
       ]
     }
   },
@@ -366,7 +379,7 @@ export default {
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
       vm.updatePriceValue(value)
     },
-    'priceValue' (value) {
+    'priceValue' (value, oldValue) {
       const vm = this
       switch (vm.adData.priceType) {
         case 'FIXED':
@@ -376,25 +389,16 @@ export default {
           vm.adData.floatingPrice = value
       }
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
-    },
-    'adData.tradeAmount' (value) {
-      if (!this.loading) { this.adData.tradeCeiling = value }
-    },
-    'adData.tradeCeiling' (value) {
-      if (!this.loading) { this.adData.tradeAmount = value }
+      const numDigits = '00000000'.length
+      const isMaxDigits = (String(value)).length > numDigits
+      if (isMaxDigits) {
+        vm.priceValue = oldValue
+      }
     }
   },
   methods: {
     async fetchAdDetail () {
       const vm = this
-      // let timestamp = null
-      // let signature = null
-      // if (vm.wallet === null) {
-      //   const walletInfo = this.$store.getters['global/getWallet']('bch')
-      //   vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      //   timestamp = Date.now()
-      //   signature = await signMessage(vm.wallet.privateKeyWif, 'AD_GET', timestamp)
-      // }
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
       try {
         const response = await vm.$axios.get(url, { headers: vm.authHeaders })
@@ -407,7 +411,7 @@ export default {
         vm.adData.fiatCurrency = data.fiat_currency
         vm.adData.tradeAmount = parseFloat(data.trade_amount)
         vm.adData.tradeFloor = parseFloat(data.trade_floor)
-        vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
+        vm.adData.tradeCeiling = parseFloat(data.trade_ceiling) ? parseFloat(data.trade_ceiling) : parseFloat(data.trade_amount)
         vm.adData.paymentMethods = data.payment_methods
         vm.adData.isPublic = data.is_public
         vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
@@ -625,10 +629,6 @@ export default {
         return false
       }
     },
-    checkTradeLimitComparison () {
-      if (!this.adData.tradeFloor || !this.adData.tradeCeiling) return true
-      return Number(this.adData.tradeFloor) < Number(this.adData.tradeCeiling)
-    },
     isAmountValid (value) {
       // amount with comma and decimal regex
       const regex = /^(\d*[.]\d+)$|^(\d+)$|^((\d{1,3}[,]\d{3})+(\.\d+)?)$/
@@ -676,5 +676,17 @@ export default {
 }
 .sell-color {
   color: #ed5f59;
+}
+
+.sm-font-size {
+  font-size: small;
+}
+
+.md-font-size {
+  font-size: medium;
+}
+
+.bold-text {
+  font-weight: bold;
 }
 </style>

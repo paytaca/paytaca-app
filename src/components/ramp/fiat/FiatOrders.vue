@@ -45,29 +45,26 @@
                             <div class="col ib-text">
                               <div
                                 :class="{'pt-dark-label': darkMode}"
-                                class="q-mb-none md-font-size">
-                                #{{ listing.id }}
+                                class="q-mb-none xs-font-size">
+                                ORDER ID: {{ listing.id }}
                               </div>
                               <span
                                 :class="{'pt-dark-label': darkMode}"
-                                class="q-mb-none md-font-size"
+                                class="md-font-size"
                                 @click.stop.prevent="viewUserProfile(listing)">
-                                {{ listing.ad.owner.nickname }} &nbsp; <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
+                                {{ listing.ad.owner.name }} <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
                               </span>
-                              <div
-                                :class="{'pt-dark-label': darkMode}"
-                                class="col-transaction text-uppercase lg-font-size"
-                                style="font-size: 20px;"
-                                :style="amountColor(listing.trade_type)">
+                              <div :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase lg-font-size" :style="amountColor(listing.trade_type)">
                                 {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
                               </div>
                               <div class="sm-font-size">
                                 {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                              <div class="xs-font-size">
-                                <span class="q-pr-sm">Price</span> {{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}
+                              <div class="row sm-font-size">
+                                <span class="col-3 q-pr-sm">Price</span>
+                                <span class="col">{{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}/BCH</span>
                               </div>
                               <!-- <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div> -->
-                              <div v-if="listing.created_at" class="row xs-font-size" style="color: grey">{{ formattedDate(listing.created_at) }}</div>
+                              <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
                             </div>
                             <div class="text-right">
                               <span class="row subtext" v-if="listing.status && isCompleted(listing.status.label) == false && listing.expiration_date != null">
@@ -76,7 +73,7 @@
                               <div
                                 v-if="listing.expiration_date && isExpired(listing.expiration_date) && statusType === 'ONGOING'"
                                 class="bold-text subtext md-font-size" style="color: red">
-                                Expired
+                                EXPIRED
                               </div>
                               <div class="bold-text subtext md-font-size" style=";">{{ listing.status ? listing.status.label : '' }}</div>
                             </div>
@@ -369,6 +366,25 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+
+.xs-font-size {
+  font-size: x-small;
+}
+
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
 .btn-transaction {
   font-size: 16px;
   background-color: rgb(242, 243, 252);
