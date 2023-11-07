@@ -123,6 +123,7 @@
                       <template v-slot:append>
                         {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
                         <DenominatorTextDropdown
+                          v-if="!sendData.fixedAmount"
                           @on-selected-denomination="onSelectedDenomination"
                           :selectedNetwork="asset.symbol"
                           :darkMode="darkMode"
@@ -160,7 +161,7 @@
                   </div>
                 </div>
               </template>
-              <div class="row" v-if="!isNFT">
+              <div class="row" v-if="!isNFT && !sendData.fixedAmount">
                 <div class="col q-mt-md" style="font-size: 18px; color: gray;">
                   {{ parseAssetDenomination(selectedDenomination, asset) }}
                   <template v-if="asset.id === 'bch' && setAmountInFiat">
@@ -178,7 +179,7 @@
                   </a>
                 </div>
               </div>
-              <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+              <div class="row" v-if="!sendData.fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
                 <div class="col q-mt-md">
                   <a
                     style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
@@ -264,12 +265,10 @@
               <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
                 {{ this.sendData.recipientAddress }}
               </div>
-              <div v-if="sendData?.posDevice?.posId >= 0">
-                <div v-if="paymentOTP" class="text-center q-mt-md">
-                  <div class="text-grey">{{ $t('ReferenceId')}}</div>
-                  <div class="text-h3" style="letter-spacing:1rem;">{{ sendData.txid.substring(0, 6).toUpperCase() }}</div>
-                  <q-separator color="grey"/>
-                </div>
+              <div class="text-center q-mt-lg">
+                <div class="text-grey">{{ $t('ReferenceId')}}</div>
+                <div class="text-h4" style="letter-spacing: 6px;">{{ sendData.txid.substring(0, 6).toUpperCase() }}</div>
+                <q-separator color="grey"/>
               </div>
               <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
                 txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
@@ -658,6 +657,7 @@ export default {
       let amount = null
       let rawPaymentUri = ''
       let posDevice = { posId: -1, paymentTimestamp: -1 }
+      let amountValue = null
       let currency = null
 
       let paymentUriData
@@ -676,18 +676,12 @@ export default {
           return
         }
       }
-
       if (paymentUriData?.outputs?.[0]) {
-        const amountValue = paymentUriData.outputs[0].amount?.value
-        const amountCurrency = paymentUriData.outputs[0].amount?.currency
+        amountValue = paymentUriData.outputs[0].amount?.value
+        currency = paymentUriData.outputs[0].amount?.currency
 
         address = paymentUriData.outputs[0].address
-        currency = amountCurrency ?? this.currentCurrency
-        amount = amountCurrency === null ? this.convertToFiatAmount(amountValue) : amountValue
-      }
-      if (paymentUriData?.posId) {
-        posDevice.posId = paymentUriData.posId
-        if (paymentUriData.timestamp) posDevice.paymentTimestamp = paymentUriData.timestamp
+        this.sendData.fixedRecipientAddress = true
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -698,13 +692,12 @@ export default {
         this.sendData.recipientAddress = address
         this.sendData.rawPaymentUri = rawPaymentUri
         this.scannedRecipientAddress = true
-
-        if (currency) this.setAmountInFiat = true
-        if (typeof currency === 'string' && this.selectedMarketCurrency !== currency) {
+        if (typeof currency === 'string') {
           const newSelectedCurrency = this.currencyOptions
             .find(_currency => _currency?.symbol === currency)
           if (newSelectedCurrency?.symbol) {
             this.$store.commit('market/updateSelectedCurrency', newSelectedCurrency)
+            amount = (amountValue / this.selectedAssetMarketPrice).toFixed(8)
           } else if (!newSelectedCurrency?.symbol && amount) {
             this.sendErrors.push(`Detected unknown currency: ${currency}`)
             // reset some data updated above on error
@@ -712,23 +705,18 @@ export default {
             this.sendData.rawPaymentUri = ''
             return
           }
+        } else {
+          amount = amountValue
         }
-
-        if (amount !== null) {
+        if (amountValue !== null) {
           this.sliderStatus = true
+          this.amountFormatted = amount
           if (this.setAmountInFiat) {
             this.sendAmountInFiat = amount
           } else {
             this.sendData.amount = amount
           }
-        }
-
-        if (posDevice.posId >= 0) {
-          this.sendData.posDevice = posDevice
-          if (amount) {
-            this.sendData.fixedAmount = true
-            this.sliderStatus = true
-          }
+          this.sendData.fixedAmount = true
         }
       }
     },
