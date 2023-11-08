@@ -277,7 +277,7 @@ export default {
   Route: "Ruta",
   Routing: "Enrutamiento",
   SEP20_VaultBalance: "SEP20 Balance de bóveda",
-  SLPTokens: "Tokens SLP",
+  SLPTokens: "SLP",
   SLP_to_SEP20: "SLP a sep20",
   SalesReport: "Reporte de ventas",
   SavingYourPin: "Guardar tu pin",

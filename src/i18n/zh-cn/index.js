@@ -277,7 +277,7 @@ export default {
   Route: "路线",
   Routing: "路由",
   SEP20_VaultBalance: "Sep20保险库余额",
-  SLPTokens: "SLP令牌",
+  SLPTokens: "SLP",
   SLP_to_SEP20: "SLP至Sep20",
   SalesReport: "销售报告",
   SavingYourPin: "保存您的别针",

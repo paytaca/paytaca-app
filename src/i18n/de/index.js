@@ -277,7 +277,7 @@ export default {
   Route: "Route",
   Routing: "Routing",
   SEP20_VaultBalance: "SEP20 Gewölbeguthaben",
-  SLPTokens: "SLP -Token",
+  SLPTokens: "SLP",
   SLP_to_SEP20: "SLP bis Sep20",
   SalesReport: "Verkaufsbericht",
   SavingYourPin: "Speichern Sie Ihren Stift",

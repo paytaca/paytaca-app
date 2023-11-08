@@ -301,7 +301,7 @@ export default {
   Routing: "Routing",
   SEP20_VaultBalance: "SEP20 vault balance",
   SLPPoints: "SLP Points",
-  SLPTokens: "SLP Tokens",
+  SLPTokens: "SLP",
   SLP_to_SEP20: "SLP to SEP20",
   SalesReport: "Sales Report",
   SavingYourPin: "Saving your PIN",

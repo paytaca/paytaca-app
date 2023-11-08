@@ -369,7 +369,7 @@ const phrases = {
       UtxoScan: "UTXO Scan",
       BackendDown: "Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down",
       ClickToReveal: "Click to Reveal",
-      SLPTokens: "SLP Tokens",
+      SLPTokens: "SLP",
       AddFungibleCashToken: "Add Fungible CashToken",
       AssetValueNote: "Asset value is based on prices at the time of transaction",
       CreateOrImportWallet: "Create/Import Wallet",
