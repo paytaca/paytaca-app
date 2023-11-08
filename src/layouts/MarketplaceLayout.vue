@@ -143,6 +143,7 @@
 import { backend, getSignerData } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
+import { updateOrCreateKeypair } from 'src/marketplace/chat'
 import { Cart } from 'src/marketplace/objects'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
@@ -240,6 +241,9 @@ export default {
     function saveCart(cart=Cart.parse()) {
       $store.dispatch('marketplace/saveCart', cart)
     }
+
+    onMounted(() => updateOrCreateKeypair())
+    watch(() => [customer?.id], () => updateOrCreateKeypair())
 
     return {
       darkMode,

@@ -37,11 +37,25 @@
                 :bg-color="customer?.id && customer?.id !== message?.customer?.id ? 'grey-7' : 'brandblue'"
                 text-color="white"
                 :name="message?.name"
-                :text="[message?.message]"
+                :text="[message?.decryptedMessage]"
                 :sent="customer?.id && customer?.id !== message?.customer?.id"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
-              />
+              >
+                <template v-slot:stamp>
+                  {{ formatDateRelative(message?.createdAt) }}
+                  <q-icon v-if="message?.encrypted" name="lock"/>
+                </template>
+                <span
+                  v-if="message?.encrypted && !message?.decryptedMessage"
+                  @click="() => decryptMessage(message)"
+                >
+                  Message is decrypted
+                </span>
+                <span v-else>
+                  {{ message?.decryptedMessage }}
+                </span>
+              </q-chat-message>
             </q-virtual-scroll>
           </div>
           <q-input
@@ -74,6 +88,8 @@ import { backend } from 'src/marketplace/backend'
 import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
 import { formatDateRelative } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
+import { compressEncryptedMessage, encryptMessage } from 'src/marketplace/chat/encryption'
+import { updateOrCreateKeypair } from 'src/marketplace/chat'
 import { useDialogPluginComponent, debounce } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -122,6 +138,19 @@ export default defineComponent({
       return parsedMessages.value[0]?.createdAt > chatSession.value.firstMessageAt
     })
 
+    const membersPubkeys = ref([].map(String))
+    onMounted(() => fetchMembersPubkeys())
+    watch(() => [props.chatRef], () => fetchMembersPubkeys())
+    function fetchMembersPubkeys() {
+      if (!props.chatRef) return Promise.reject()
+      backend.get(`chat/sessions/${props.chatRef}/pubkeys/`)
+        .then(response => {
+          if (!Array.isArray(response?.data)) return Promise.reject({ response })
+          membersPubkeys.value = response?.data
+          return response
+        })
+    }
+
     const fetchingMessages = ref(false)
     const messages = ref([].map(ChatMessage.parse))
     const parsedMessages = computed(() => {
@@ -162,6 +191,7 @@ export default defineComponent({
           messages.value = messages.value.filter((msg, index, list) => {
             return list.findIndex(_msg => msg?.id === _msg?.id) === index
           })
+          decryptMessages()
           const newLength = messages.value?.length 
 
           if (!opts?.append && prevLength !== newLength) {
@@ -175,11 +205,30 @@ export default defineComponent({
         })
     }, 250)
 
+    const keypair = ref({ privkey: '', pubkey: '' })
+    onMounted(() => loadKeypair())
+    async function loadKeypair() {
+      keypair.value = await updateOrCreateKeypair().catch(console.error)
+    }
+    async function decryptMessages() {
+      if (!keypair.value?.privkey) await loadKeypair()
+      if (!keypair.value?.privkey) return
+      await Promise.all(messages.value.map(decryptMessage))
+    }
+
+    async function decryptMessage(message=ChatMessage.parse()) {
+      if (!keypair.value?.privkey) await loadKeypair()
+      if (!keypair.value?.privkey) return
+      if (message.decryptedMessage) return
+      return message.decryptMessage(keypair.value?.privkey)
+    }
+
     function onNewMessage(newMessage=ChatMessage.parse()) {
       $emit('new-message', newMessage)
       const index = messages.value.findIndex(msg => msg?.id === newMessage?.id)
       if (index < 0) {
         messages.value.unshift(newMessage)
+        decryptMessages()
         setTimeout(() => moveMessagesToBottom(), 250)
       }
 
@@ -205,12 +254,23 @@ export default defineComponent({
 
     const sendingMessage = ref(false)
     const message = ref('')
-    const sendMessage = debounce(function() {
+    const sendMessage = debounce(async function() {
       if (!message.value) return
       const data = {
         chat_session_ref: props.chatRef,
         encrypted: false,
         message: message.value,
+      }
+      
+      if (!keypair.value?.privkey) await loadKeypair()
+      if (keypair.value?.privkey) {
+        const encryptedMessage = encryptMessage({
+          data: data.message,
+          privkey: keypair.value.privkey,
+          pubkeys: membersPubkeys.value,
+        })
+        data.message = compressEncryptedMessage(encryptedMessage)
+        data.encrypted = true
       }
 
       sendingMessage.value = true
@@ -220,7 +280,10 @@ export default defineComponent({
           message.value = ''
           const newMessage = ChatMessage.parse(response?.data)
           const index = messages.value.findIndex(msg => msg?.id === newMessage?.id)
-          if (index < 0) messages.value.unshift(newMessage)
+          if (index < 0) {
+            messages.value.unshift(newMessage)
+            decryptMessages()
+          }
           return response
         })
         .finally(() => {
@@ -331,6 +394,7 @@ export default defineComponent({
       messages,
       parsedMessages,
       getMessages,
+      decryptMessage,
 
       messagesPanel,
       moveMessagesToBottom,

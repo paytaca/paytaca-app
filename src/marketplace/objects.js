@@ -1,4 +1,5 @@
 import { backend } from "./backend"
+import { decompressEncryptedMessage, decryptMessage } from "./chat/encryption"
 import { formatOrderStatus, parseOrderStatusColor } from './utils'
 
 export class Location {
@@ -1389,6 +1390,25 @@ export class ChatMessage {
       return [this.user.firstName, this.user.lastName].filter(Boolean).join(' ')
     }
     return this?.customer?.fullName
+  }
+
+  get decryptedMessage() {
+    if (!this.encrypted) return this.message
+    return this._decryptedMessage
+  }
+
+  /**
+   * @param {String} value
+   */
+  set decryptedMessage(value) {
+    this._decryptedMessage = value
+  }
+
+  async decryptMessage(privkey) {
+    if (!this.encrypted) return
+    const parsedEncryptedMessage = decompressEncryptedMessage(this.message)
+    const opts = { privkey, ...parsedEncryptedMessage}
+    this.decryptedMessage = decryptMessage(opts)
   }
 }
 
