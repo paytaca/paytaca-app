@@ -1323,7 +1323,8 @@ export class ChatSession {
 
   /**
    * @param {Object} data
-   * @param {String} data.chatSessionRef
+   * @param {String} data.ref
+   * @param {String} data.title
    * @param {String} data.first_message_at
    * @param {String} data.last_message_at
    * @param {String} data.created_at
@@ -1331,6 +1332,7 @@ export class ChatSession {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.ref = data?.ref
+    this.title = data?.title
     if (data?.first_message_at) this.firstMessageAt = new Date(data?.first_message_at)
     else if (this.firstMessageAt) delete this.firstMessageAt
 

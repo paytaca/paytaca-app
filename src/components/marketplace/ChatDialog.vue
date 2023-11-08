@@ -15,9 +15,16 @@
             <div class="row justify-center">
               <q-btn
                 v-if="hasMoreMessages"
+                :loading="fetchingMessages"
+                :disable="fetchingMessages"
                 flat
                 no-caps label="Load more"
                 @click="() => getMessages({ append: true })"
+              />
+              <q-spinner
+                v-else-if="fetchingMessages && !messages?.length"
+                size="3rem"
+                class="q-my-sm"
               />
             </div>
             <q-virtual-scroll
@@ -115,6 +122,7 @@ export default defineComponent({
       return parsedMessages.value[0]?.createdAt > chatSession.value.firstMessageAt
     })
 
+    const fetchingMessages = ref(false)
     const messages = ref([].map(ChatMessage.parse))
     const parsedMessages = computed(() => {
       const sortedMessages = [...messages.value]
@@ -139,6 +147,7 @@ export default defineComponent({
 
       if (!params.chat_ref) return Promise.resolve('Missing chat ref')
 
+      fetchingMessages.value = true
       return backend.get(`chat/messages/`, { params, forceSign: true })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
@@ -160,6 +169,9 @@ export default defineComponent({
             fetchChatMember()
           }
           return response
+        })
+        .finally(() => {
+          fetchingMessages.value = false
         })
     }, 250)
 
@@ -315,6 +327,7 @@ export default defineComponent({
       customer,
 
       hasMoreMessages,
+      fetchingMessages,
       messages,
       parsedMessages,
       getMessages,
