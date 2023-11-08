@@ -56,6 +56,10 @@
                   {{ message?.decryptedMessage }}
                 </span>
               </q-chat-message>
+              <img
+                v-if="message?.attachmentUrl" :src="message?.attachmentUrl"
+                style="max-width:75%;border-radius:4px;"
+              />
             </q-virtual-scroll>
           </div>
           <q-input
@@ -65,7 +69,7 @@
             :dark="darkMode"
             v-model="message"
             autogrow
-            bottom-slots
+            :bottom-slots="!attachmentUrl"
           >
             <template v-slot:after>
               <q-btn
@@ -77,7 +81,40 @@
                 @click="() => sendMessage()"
               />
             </template>
+            <template v-slot:append>
+              <q-btn
+                flat
+                icon="attach_file"
+                padding="sm"
+                @click="openFileAttachementField"
+              />
+            </template>
           </q-input>
+          <q-file
+            v-show="false"
+            ref="fileAttachmentField"
+            :dark="darkMode"
+            borderless
+            v-model="attachment"
+            :filter="files => files.filter(file => file.type?.match(/image\/.*/))"
+          />
+          <div v-if="attachmentUrl" class="row items-start no-wrap q-my-sm">
+            <img
+              :src="attachmentUrl"
+              :style="{
+                'cursor': 'pointer',
+                'border-radius': '10px',
+                'max-height': 'min(10rem, 50vh)',
+                'max-width': 'calc(100% - 5rem)',
+              }"
+              @click="openFileAttachementField"
+            >
+            <q-btn
+              flat icon="cancel"
+              padding="sm"
+              @click.stop="() => attachment = null"
+            />
+          </div>
         </div>
       </q-card-section>
     </q-card>
@@ -89,7 +126,7 @@ import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
 import { formatDateRelative } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
 import { compressEncryptedMessage, encryptMessage } from 'src/marketplace/chat/encryption'
-import { updateOrCreateKeypair } from 'src/marketplace/chat'
+import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
 import { useDialogPluginComponent, debounce } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -254,9 +291,37 @@ export default defineComponent({
 
     const sendingMessage = ref(false)
     const message = ref('')
+    const attachment = ref(null)
+    window.a = attachment
+    function fileToJson(file) {
+      console.log(file)
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = (...args) => reject(...args)
+        reader.onload = event => resolve({
+          fileName: file.name,
+          fileType: file.type,
+          data: String(event.target.result),
+        })
+        reader.readAsArrayBuffer(file)
+      })
+    }
+    watch(attachment, (newVal, oldVal) => {
+      console.log(newVal)
+      if (newVal) attachmentUrl.value = URL.createObjectURL(newVal)
+      else attachmentUrl.value = ''
+      if (oldVal) URL.revokeObjectURL(oldVal)
+    })
+    const attachmentUrl = ref('')
+    const fileAttachmentField = ref()
+    function openFileAttachementField(evt) {
+      fileAttachmentField.value?.pickFiles?.(evt)
+    }
+
     const sendMessage = debounce(async function() {
       if (!message.value) return
-      const data = {
+      let signData = undefined
+      let data = {
         chat_session_ref: props.chatRef,
         encrypted: false,
         message: message.value,
@@ -273,11 +338,24 @@ export default defineComponent({
         data.encrypted = true
       }
 
+      if (attachment.value) {
+        // data.attachment = await fileToJson(attachment.value)
+        // console.log('Request data', data)
+        const formData = new FormData()
+        formData.set('chat_session_ref', data.chat_session_ref)
+        formData.set('encrypted', data.encrypted)
+        formData.set('message', data.message)
+        formData.set('attachment', attachment.value)
+        signData = sha256(data.message)
+        data = formData
+      }
+
       sendingMessage.value = true
-      return backend.post(`chat/messages/`, data)
+      return backend.post(`chat/messages/`, data, { signData })
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           message.value = ''
+          attachment.value = null
           const newMessage = ChatMessage.parse(response?.data)
           const index = messages.value.findIndex(msg => msg?.id === newMessage?.id)
           if (index < 0) {
@@ -401,6 +479,10 @@ export default defineComponent({
 
       sendingMessage,
       message,
+      attachment,
+      attachmentUrl,
+      fileAttachmentField,
+      openFileAttachementField,
       sendMessage,
 
       chatMember,

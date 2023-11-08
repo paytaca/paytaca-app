@@ -17,6 +17,12 @@ backend.interceptors.request.use(async (config) => {
   try {
     data = JSON.stringify(data)
   } catch(error) {}
+
+  if (config.signData) {
+    data = config.signData
+    config.headers['X-Paytaca-Signdata'] = data
+  }
+
   if (data === null || data === undefined) data = ''
   data = Buffer.from(`${data}${timestamp}`).toString('hex')
 

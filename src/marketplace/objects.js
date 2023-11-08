@@ -1365,6 +1365,7 @@ export class ChatMessage {
    * @param {String} data.chat_session_ref
    * @param {Boolean} data.encrypted
    * @param {String} data.message
+   * @param {String} data.attachment_url
    * @param {String} data.created_at
    * @param {{ id:Number, first_name: String, last_name:String }} [data.user]
    * @param {{ id:Number, first_name: String, last_name:String }} [data.customer]
@@ -1375,6 +1376,7 @@ export class ChatMessage {
     this.chatSessionRef = data?.chat_session_ref
     this.encrypted = data?.encrypted
     this.message = data?.message
+    this.attachmentUrl = data?.attachment_url
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
     this.user = {

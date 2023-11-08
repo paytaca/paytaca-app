@@ -25,3 +25,12 @@ export async function updateOrCreateKeypair() {
 
   return keypair
 }
+
+/**
+ * @param {String} data 
+ */
+export function sha256(data) {
+  const _sha256 = crypto.createHash('sha256')
+  _sha256.update(Buffer.from(data, 'utf8'))
+  return _sha256.digest().toString('hex')
+}
