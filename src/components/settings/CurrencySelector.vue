@@ -72,6 +72,7 @@ export default {
     },
     selectedCurrency: {
       get () {
+        console.log('CurrencySelector', this.$store.getters['market/selectedCurrency'])
         return this.$store.getters['market/selectedCurrency']
       },
       set (value) {
@@ -86,6 +87,7 @@ export default {
     }
   },
   mounted () {
+    console.log('CurrencySelector', this.$store.getters['market/selectedCurrency'])
     this.$store.dispatch('market/updateSupportedCurrencies', {})
     this.$store.dispatch('global/refetchWalletPreferences')
   }

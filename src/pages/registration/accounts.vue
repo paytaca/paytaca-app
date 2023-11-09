@@ -97,7 +97,7 @@
                         <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side>
-                        <CurrencySelector :darkMode="darkMode" />
+                        <CurrencySelector :darkMode="darkMode" :key="currencySelectorRerender" />
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -239,7 +239,8 @@ export default {
       pinDialogAction: '',
       pin: '',
       securityOptionDialogStatus: 'dismiss',
-      walletIndex: 0
+      walletIndex: 0,
+      currencySelectorRerender: false
     }
   },
   watch: {
@@ -258,7 +259,7 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
-    },
+    }
   },
   methods: {
     isDefaultTheme,
@@ -497,6 +498,42 @@ export default {
     if (this.$store.getters['global/isVaultEmpty']) {
       this.walletIndex = 0
     }
+
+    // auto-detect country
+    const apiKey = process.env.IPGEO_API_KEY
+    const [countryFromIP, currencyFromIP] = await this.$axios.get(`https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`)
+      .then(response => {
+        console.log(response.data)
+        return [
+          {
+            name: response.data?.country_name,
+            code: response.data?.country_code2
+          },
+          {
+            symbol: response.data?.currency.code,
+            name: response.data?.currency?.name
+          }
+        ]
+      }).catch((error) => console.error(error))
+    // console.log('currencyFromIP', currencyFromIP)
+    this.$store.commit('global/setCountry', countryFromIP)
+    // this.$store.commit('market/updateSelectedCurrency', currencyFromIP)
+    // this.$store.dispatch('global/saveWalletPreferences')
+
+    const currencyOptions = this.$store.getters['market/currencyOptions']
+    let currency = currencyOptions.filter(o => o.symbol === currencyFromIP.symbol)
+    console.log('currencyOptions', currencyOptions)
+    console.log('currency', currency)
+
+    if (currency.length !== 0) {
+      console.log('entered hereeee')
+      currency = currency[0]
+      await this.$store.commit('market/updateSelectedCurrency', currency)
+      await this.$store.dispatch('global/saveWalletPreferences')
+    }
+
+    console.log('now currency', this.$store.getters['market/selectedCurrency'])
+    this.currencySelectorRerender = true
 
     const vm = this
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(response => {
