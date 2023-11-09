@@ -1501,12 +1501,7 @@ export class ChatMember {
    * @param {Number} data.unread_count
    * @param {String} data.last_read_timestamp
    * @param {String} data.created_at
-   * @param {Object} data.open_pgp_identity
-   * @param {String} data.open_pgp_identity.pubkey
-   * @param {String} [data.open_pgp_identity.name]
-   * @param {String} [data.open_pgp_identity.email]
-   * @param {{ id:Number, first_name: String, last_name:String }} [data.user]
-   * @param {{ id:Number, first_name: String, last_name:String }} [data.customer]
+   * @param {Object} data.chat_identity
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1519,24 +1514,51 @@ export class ChatMember {
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
 
-    this.openPgpIdentity = {
-      pubkey: data?.open_pgp_identity?.pubkey,
-      name: data?.open_pgp_identity?.name,
-      email: data?.open_pgp_identity?.email,
-    }
+    this.chatIdentity = ChatIdentity.parse(data?.chat_identity)
+  }
 
+  get name() {
+    if (this?.chatIdentity?.user?.id) {
+      return [this.chatIdentity.user.firstName, this.chatIdentity.user.lastName].filter(Boolean).join(' ')
+    }
+    return this?.chatIdentity?.customer?.fullName
+  }
+}
+
+
+export class ChatIdentity {
+  static parse(data) {
+    return new ChatIdentity(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {{ pubkey:String, device_id:String }[]} data.pubkeys
+   * @param {{ id:Number, first_name: String, last_name:String }} [data.user]
+   * @param {{ id:Number, first_name: String, last_name:String }} [data.customer]
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.pubkeys = (Array.isArray(data?.pubkeys) ? data?.pubkeys : [])
+      .map(pubkeyData => {
+        return { pubkey: pubkeyData?.pubkey, deviceId: pubkeyData?.device_id }
+      })
+ 
     this.user = {
       id: data?.user?.id,
       firstName: data?.user?.first_name,
       lastName: data?.user?.last_name,
     }
-    this.customer = Customer.parse(data?.customer)
-  }
-
-  get name() {
-    if (this?.user?.id) {
-      return [this.user.firstName, this.user.lastName].filter(Boolean).join(' ')
-    }
-    return this?.customer?.fullName
+    this.customer = Customer.parse(data?.customer)   
   }
 }

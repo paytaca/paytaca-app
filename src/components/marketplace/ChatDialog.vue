@@ -310,7 +310,9 @@ export default defineComponent({
         }
       }
 
-      if (newMessage.user?.id != chatMember.value?.user?.id && newMessage.customer?.id != chatMember.value?.customer?.id) {
+      const userId = chatMember.value?.chatIdentity?.user?.id
+      const customerId = chatMember.value?.chatIdentity?.customer?.id
+      if (newMessage.user?.id != userId && newMessage.customer?.id != customerId) {
         chatMember.value.unreadCount = (chatMember.value.unreadCount || 0) + 1
       }
     }
