@@ -37,7 +37,6 @@
                 :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
                 :name="message?.name"
-                :text="[message?.decryptedMessage]"
                 :sent="isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
@@ -52,9 +51,12 @@
                 >
                   Message is decrypted
                 </span>
-                <span v-else>
+                <span v-else-if="message?.decryptedMessage">
                   {{ message?.decryptedMessage }}
                 </span>
+                <i v-else-if="message?.hasAttachment">
+                  Attachment
+                </i>
               </q-chat-message>
               <div
                 :class="[
@@ -338,7 +340,7 @@ export default defineComponent({
     }
 
     const sendMessage = debounce(async function() {
-      if (!message.value) return
+      if (!message.value && !attachment.value) return
       let signData = undefined
       let data = {
         chat_session_ref: props.chatRef,
@@ -347,7 +349,7 @@ export default defineComponent({
       }
       
       if (!keypair.value?.privkey) await loadKeypair()
-      if (keypair.value?.privkey) {
+      if (keypair.value?.privkey && data?.message) {
         const encryptedMessage = encryptMessage({
           data: data.message,
           privkey: keypair.value.privkey,

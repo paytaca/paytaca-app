@@ -1405,6 +1405,10 @@ export class ChatMessage {
     return this._decryptedMessage
   }
 
+  get hasAttachment() {
+    return Boolean(this.attachmentUrl || this.encryptedAttachmentUrl)
+  }
+
   get decryptedAttachmentFile() {
     return this._decryptedAttachmentFile
   }
