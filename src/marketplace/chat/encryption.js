@@ -119,18 +119,24 @@ function encryptData(data, key, iv) {
  * @param {Buffer | Uint8Array} key 
  * @param {Buffer | Uint8Array} iv 
  */
-function decryptData(data, key, iv) {
-  const dataHex = Buffer.from(data, 'base64').toString('hex')
-  let decryptedData = ''
-  const HEX_CHUNK_SIZE = CHUNK_SIZE*2+2
+function decryptData(data, key, iv, opts={ inputEncoding: 'base64', outputEncoding: 'utf8' }) {
+  const inputEncoding = opts?.inputEncoding || 'base64'
+  const outputEncoding = opts?.outputEncoding || 'utf8'
+  const dataBytes = Buffer.from(data, inputEncoding === 'binary' ? undefined : inputEncoding)
+  let decryptedData = Buffer.from([])
+  const HEX_CHUNK_SIZE = CHUNK_SIZE+1
 
-  for(var i = 0; i < dataHex.length; i += HEX_CHUNK_SIZE) {
-    const chunk = dataHex.substring(i, i + HEX_CHUNK_SIZE)
+  for(var i = 0; i < dataBytes.length; i += HEX_CHUNK_SIZE) {
+    const chunk = dataBytes.toString('hex', i, i + HEX_CHUNK_SIZE)
     const decipheriv = crypto.createDecipheriv('aes-256-cbc', key, iv)
-    decipheriv.update(chunk, 'hex', 'utf8')
-    decryptedData += decipheriv.final('utf8')
+    decipheriv.update(chunk, 'hex', 'hex')
+    decryptedData += decipheriv.final('hex')
   }
 
+  if (outputEncoding !== 'hex') {
+    if (outputEncoding === 'binary') decryptedData = Buffer.from(decryptedData, 'hex')
+    else decryptedData = Buffer.from(decryptedData, 'hex').toString(outputEncoding)
+  }
   return decryptedData
 }
 
@@ -161,5 +167,140 @@ export function decompressEncryptedMessage(data='') {
   response.iv = deserialized?.iv
   response.authorPubkey = deserialized?.pk
   response.pubkeys = deserialized?.pks
+  return response
+}
+
+
+/**
+ * @param {Object} opts
+ * @param {File} opts.file
+ * @param {String} opts.privkey 32bit hex string
+ * @param {String[] | String} opts.pubkeys 33bit secp256k1 pubkey/s
+ */
+export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) {
+  const file = opts?.file
+  const privkey = opts?.privkey
+  const pubkeysOpt = opts?.pubkeys
+  
+  const ourPubkey = privToPub(privkey)
+  const pks = Array.isArray(pubkeysOpt) ? [...pubkeysOpt] : [pubkeysOpt]
+
+  const globalKey = Buffer.from(crypto.randomFillSync(new Uint8Array(32)))
+  const iv = crypto.randomFillSync(new Uint8Array(16))  
+
+  const arrayBuffer = await file.arrayBuffer()
+  const encrypted = encryptData(arrayBuffer, globalKey, iv)
+
+  const pubkeys = pks.map(pubkey => {
+    const ourPriv = secp.etc.hexToBytes(privkey)
+    const otherPub = secp.etc.hexToBytes(pubkey)
+    const sharedPoint = secp.getSharedSecret(ourPriv, otherPub)
+    const sharedX = sharedPoint.slice(1, 33)
+    const sharedSecret = encryptData(globalKey.toString('hex'), Buffer.from(sharedX), iv)
+    return `${pubkey}|${sharedSecret}`
+  })
+
+  const encryptedBytes = Buffer.from(encrypted, 'base64')
+  const encryptedBlob = new Blob([encryptedBytes])
+  const newFile = new File([encryptedBlob], file?.name, { type: 'application/octet-stream' })
+  return { file: newFile, authorPubkey: ourPubkey, pubkeys, iv: Buffer.from(iv).toString('base64') }
+}
+
+/**
+ * @param {Object} opts
+ * @param {File} opts.file
+ * @param {String} opts.iv base64 encoded initialization vector(IV)
+ * @param {String} opts.privkey 32bit hex encoded privkey
+ * @param {String} opts.authorPubkey 33bit hex encoded pubkey of the author
+ * @param {String[]} opts.pubkeys combined pubkey & sharedSecret delimited by a bar '|'. Use pubkey directly if no sharedSecret is provided
+ */
+export async function decryptImage(opts={ file: null, privkey: '', pubkeys: '' }) {
+  const file = opts?.file
+  const iv = opts?.iv
+  const privkey = opts?.privkey
+  const authorPubkey =  opts?.authorPubkey
+  const pubkeys = opts?.pubkeys
+
+  const ourPubkey = privToPub(privkey)
+  const ivBytes = Buffer.from(iv, 'base64')
+
+  const arrayBuffer = await file?.arrayBuffer()
+
+  for(var i = 0; i < pubkeys.length; i++) {
+    try {
+      const pubkeyData = pubkeys[i]
+      let [pubkey, sharedSecret, ..._] = pubkeyData.split('|', 2)
+
+      if (pubkey == ourPubkey) {
+        pubkey = authorPubkey
+      }
+      const ourPriv = secp.etc.hexToBytes(privkey)
+      const otherPub = secp.etc.hexToBytes(pubkey)
+      const sharedPoint = secp.getSharedSecret(ourPriv, otherPub)
+      const sharedX = sharedPoint.slice(1, 33)
+    
+      let key
+      if (sharedSecret) {
+        const globalKey = decryptData(sharedSecret, Buffer.from(sharedX), ivBytes)
+        key = Buffer.from(globalKey, 'hex')
+      } else {
+        key = Buffer.from(sharedX)
+      }
+      const decryptedData = decryptData(arrayBuffer, key, ivBytes, { inputEncoding: 'binary', outputEncoding: 'binary' })
+      const decryptedBlob = new Blob([decryptedData])
+      const decryptedFile = new File([decryptedBlob], file?.name)
+      return decryptedFile
+    } catch (error) {
+      console.error(error)
+      continue
+    }
+  }
+}
+
+
+/**
+ * @param {Object} messagePayload
+ * @param {File} messagePayload.file
+ * @param {String} messagePayload.iv base64 encoded initialization vector(IV)
+ * @param {String} messagePayload.authorPubkey 33bit hex encoded pubkey of the author
+ * @param {String[]} messagePayload.pubkeys combined pubkey & sharedSecret delimited by a bar '|'. Use pubkey directly if no sharedSecret is provided
+ */
+export async function compressEncryptedImage(messagePayload) {
+  const file = messagePayload?.file
+  const fileBuffer = Buffer.from(await file.arrayBuffer())
+  const fileB64 = fileBuffer.toString('base64')
+  const serializedPayload = {
+    data: fileB64,
+    iv: messagePayload?.iv,
+    pk: messagePayload?.authorPubkey,
+    pks: messagePayload?.pubkeys,
+  }
+  const bytes = Buffer.from(JSON.stringify(serializedPayload))
+  const blob = new Blob([bytes])
+  const newFile = new File([blob], file?.name, { type: 'application/octet-stream' })
+  return newFile
+}
+
+/**
+ * @param {File} file 
+ */
+export async function decompressEncryptedImage(file) {
+  const arrayBuffer = await file.arrayBuffer()
+  const payload = Buffer.from(arrayBuffer).toString('utf8')
+  const parsedPayload = JSON.parse(payload)
+  const encryptedFileBytes = Buffer.from(parsedPayload?.data, 'base64')
+  const encryptedFileBlob = new Blob([encryptedFileBytes])
+  const encryptedFile = new File([encryptedFileBlob], file?.name)
+
+  const response = {
+    file: [].map(() => new File())[0],
+    authorPubkey: '',
+    pubkeys: [].map(String),
+  }
+  response.file = encryptedFile
+  response.iv = parsedPayload?.iv
+  response.authorPubkey = parsedPayload?.pk
+  response.pubkeys = parsedPayload?.pks
+
   return response
 }

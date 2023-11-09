@@ -34,11 +34,11 @@
               v-slot="{ item: message }"
             >
               <q-chat-message
-                :bg-color="customer?.id && customer?.id !== message?.customer?.id ? 'grey-7' : 'brandblue'"
+                :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
                 :name="message?.name"
                 :text="[message?.decryptedMessage]"
-                :sent="customer?.id && customer?.id !== message?.customer?.id"
+                :sent="isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
               >
@@ -56,10 +56,33 @@
                   {{ message?.decryptedMessage }}
                 </span>
               </q-chat-message>
-              <img
-                v-if="message?.attachmentUrl" :src="message?.attachmentUrl"
-                style="max-width:75%;border-radius:4px;"
-              />
+              <div
+                :class="[
+                  'row q-mb-xs',
+                  isOwnMessage(message) ? 'justify-end' : 'justify-start'
+                ]"
+              >
+                <img
+                  v-if="message?.attachmentUrl" :src="message?.attachmentUrl"
+                  style="max-width:75%;border-radius:4px;"
+                />
+                <template v-else-if="message?.encryptedAttachmentUrl">
+                  <img
+                    v-if="message?.decryptedAttachmentFile?.url"
+                    :src="message?.decryptedAttachmentFile?.url"
+                    style="max-width:75%;border-radius:4px;"
+                  />
+                  <div v-else class="row items-center">
+                    <div
+                      class="text-grey encrypted-attachment-text"
+                      @click="() => decryptMessageAttachment(message)"
+                    >
+                      Attachment encrypted
+                      <q-spinner v-if="message?.$state?.decryptingAttachment"/>
+                    </div>
+                  </div>
+                </template>
+              </div>
             </q-virtual-scroll>
           </div>
           <q-input
@@ -125,7 +148,7 @@ import { backend } from 'src/marketplace/backend'
 import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
 import { formatDateRelative } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
-import { compressEncryptedMessage, encryptMessage } from 'src/marketplace/chat/encryption'
+import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
 import { useDialogPluginComponent, debounce } from 'quasar'
 import { useStore } from 'vuex'
@@ -159,6 +182,9 @@ export default defineComponent({
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
     const customer = computed(() => $store.getters['marketplace/customer'])
+    function isOwnMessage(message=ChatMessage.parse()) {
+      return customer.value?.id && customer.value?.id !== message?.customer?.id
+    }
 
     onMounted(() => fetchChatSession())
     watch(() => [props.chatRef], () => fetchChatSession())
@@ -260,6 +286,13 @@ export default defineComponent({
       return message.decryptMessage(keypair.value?.privkey)
     }
 
+    async function decryptMessageAttachment(chatMessage = ChatMessage.parse()) {
+      if (!keypair.value?.privkey) await loadKeypair()
+      if (!keypair.value?.privkey) return
+      if (chatMessage?.decryptedAttachmentFile?.url) return
+      return chatMessage.decryptAttachment(keypair.value?.privkey)
+    }
+
     function onNewMessage(newMessage=ChatMessage.parse()) {
       $emit('new-message', newMessage)
       const index = messages.value.findIndex(msg => msg?.id === newMessage?.id)
@@ -292,20 +325,6 @@ export default defineComponent({
     const sendingMessage = ref(false)
     const message = ref('')
     const attachment = ref(null)
-    window.a = attachment
-    function fileToJson(file) {
-      console.log(file)
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = (...args) => reject(...args)
-        reader.onload = event => resolve({
-          fileName: file.name,
-          fileType: file.type,
-          data: String(event.target.result),
-        })
-        reader.readAsArrayBuffer(file)
-      })
-    }
     watch(attachment, (newVal, oldVal) => {
       console.log(newVal)
       if (newVal) attachmentUrl.value = URL.createObjectURL(newVal)
@@ -339,13 +358,20 @@ export default defineComponent({
       }
 
       if (attachment.value) {
+        const encryptedAttachment = await encryptImage({
+          file: attachment.value,
+          privkey: keypair.value.privkey,
+          pubkeys: membersPubkeys.value,
+        })
+        const compressedEncryptedAttachment = await compressEncryptedImage(encryptedAttachment)
         // data.attachment = await fileToJson(attachment.value)
         // console.log('Request data', data)
         const formData = new FormData()
         formData.set('chat_session_ref', data.chat_session_ref)
         formData.set('encrypted', data.encrypted)
         formData.set('message', data.message)
-        formData.set('attachment', attachment.value)
+        formData.set('attachment', compressedEncryptedAttachment)
+        formData.set('attachment_encrypted', true)
         signData = sha256(data.message)
         data = formData
       }
@@ -399,6 +425,8 @@ export default defineComponent({
     }
     function onMessageVisibility(chatMessage=ChatMessage.parse(), visible) {
       if (!visible) return
+      decryptMessageAttachment(chatMessage) // lazy loading
+
       if (chatMessage !== parsedMessages.value.at(-1)) return
 
       const laterThanLastRead = chatMessage.createdAt > chatMember.value?.lastReadTimestamp
@@ -466,6 +494,7 @@ export default defineComponent({
       innerVal,
 
       customer,
+      isOwnMessage,
 
       hasMoreMessages,
       fetchingMessages,
@@ -473,6 +502,7 @@ export default defineComponent({
       parsedMessages,
       getMessages,
       decryptMessage,
+      decryptMessageAttachment,
 
       messagesPanel,
       moveMessagesToBottom,
@@ -495,3 +525,12 @@ export default defineComponent({
   },
 })
 </script>
+<style lang="scss" scoped>
+.encrypted-attachment-text {
+  max-width: 75%;
+  text-decoration: underline;
+  border: 0.5px solid $grey;
+  border-radius: map-get($space-xs, 'x');
+  padding: map-get($space-xs, 'y') map-get($space-sm, 'x');
+}
+</style>
