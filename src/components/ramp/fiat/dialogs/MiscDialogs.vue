@@ -317,58 +317,76 @@
   </q-dialog>
 
   <!-- Filter Ads -->
-  <q-dialog v-model="filterAd" persistent>
+  <q-dialog v-model="filterAd" @before-hide="$emit('back')">
     <q-card class="br-15" style="width: 90%;">
       <div class="q-mt-md q-pl-md">
         <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
       </div>
-      <div class="text-center bold-text lg-font-size">Filter Ads</div>
+      <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="text-center bold-text lg-font-size">Filter Ads</div>
       <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
-      <div class="q-px-lg q-mx-sm">
+      <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
         <div class="q-pt-md">
-          <div class="sm-font-size bold-text">Price Setting</div>
-          <div @click="isFixed = !isFixed" class="q-gutter-sm q-pt-sm">
-            <q-badge rounded outline color="blue-grey-6">
-              <span>{{ isFixed ? 'Fixed': 'Floating' }}</span><q-icon size="sm" :name="isFixed ? 'mdi-menu-up':'mdi-menu-down'"/>
-            </q-badge>
+          <div class="sm-font-size bold-text">Price Type</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceType !== 'all'" @click="priceType='all'">All</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceType !== 'fixed' && priceType !== 'all'" @click="priceType='fixed'">Fixed</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceType !== 'floating' && priceType !== 'all'" @click="priceType='floating'">Floating</q-badge>
           </div>
         </div>
         <div class="q-pt-md">
-          <div class="sm-font-size bold-text">Payment Types</div>
+          <div class="sm-font-size bold-text">Payment Method</div>
           <div class="q-gutter-sm q-pt-sm">
-            <q-badge class="q-pa-sm" @click="addFilterInfo(method, 'payment-type')"
-              v-for="method in paymentTypes" :key="method.id" rounded :outline="isOutlined(method,'payment-type')" color="blue-grey-6">
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="selectedPaymentTypes.length < paymentTypes.length"
+              @click="addFilterInfo('all', 'all-payment-type')">
+              All
+            </q-badge>
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="isOutlined(method,'payment-type')"
+              @click="addFilterInfo(method, 'payment-type')"
+              v-for="method in paymentTypes"
+              :key="method.id">
               {{ method.name }}
             </q-badge>
-
-            <q-badge class="q-pa-sm" @click="addFilterInfo('all', 'all-payment-type')"
-              rounded outline color="blue-grey-6">
-              {{ selectedPaymentTypes.length === paymentTypes.length ? 'Clear' : 'All' }}
-            </q-badge>
           </div>
         </div>
 
         <div class="q-pt-md">
-          <div class="sm-font-size bold-text">Payment Time Limits</div>
+          <div class="sm-font-size bold-text">Time Limit</div>
           <div class="q-gutter-sm q-pt-sm">
-            <q-badge class="q-pa-sm"
-              v-for="(method, index) in ptl" @click="addFilterInfo(method)" :key="index" rounded :outline="isOutlined(method)" color="blue-grey-6">
-              {{ paymentTimeLimit(method) }}
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="selectedPTL.length < ptl.length"
+              @click="addFilterInfo('all')">
+              All
             </q-badge>
-            <q-badge class="q-pa-sm" @click="addFilterInfo('all')"
-              rounded outline color="blue-grey-6">
-              {{ selectedPTL.length === ptl.length ? 'Clear' : 'All' }}
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="isOutlined(method)"
+              @click="addFilterInfo(method)"
+              v-for="(method, index) in ptl"
+              :key="index">
+              {{ paymentTimeLimit(method) }}
             </q-badge>
           </div>
         </div>
 
         <div class="q-pt-md">
           <div class="sm-font-size bold-text">Price Order</div>
-          <div @click="isAscending = !isAscending" class="q-pt-xs">
-            <q-badge rounded outline color="blue-grey-6">
-              <span>{{ isAscending ? 'Ascending ': 'Descending' }}</span><q-icon size="sm" :name="isAscending ? 'mdi-menu-up':'mdi-menu-down'"/>
-            </q-badge>
+          <div class="q-pt-xs q-gutter-sm">
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceOrder !== 'ascending'" @click="priceOrder = 'ascending'">Ascending</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceOrder !== 'descending'" @click="priceOrder = 'descending'">Descending</q-badge>
           </div>
         </div>
 
@@ -457,8 +475,7 @@
 
 <script>
 import { debounce } from 'quasar'
-import { loadP2PWalletInfo, getPaymentTimeLimit } from 'src/wallet/ramp'
-import { signMessage } from '../../../../wallet/ramp/signature.js'
+import { getPaymentTimeLimit } from 'src/wallet/ramp'
 
 export default {
   emits: ['back', 'submit'],
@@ -520,9 +537,9 @@ export default {
       paymentMethodOpts: [],
       selectedPaymentMethods: [],
       selectedPaymentTypes: [],
-      selectedPTL: [],
-      isAscending: false,
-      isFixed: true,
+      selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
+      priceOrder: null,
+      priceType: 'all',
       appealTypeOpts: [
         {
           label: 'Release',
@@ -554,9 +571,8 @@ export default {
   },
   async mounted () {
     const vm = this
-
+    vm.priceOrder = this.$parent.transactionType === 'SELL' ? 'ascending' : 'descending'
     await vm.fetchPaymentTypes()
-
     vm.checkDialogType()
     if (vm.addPaymentMethod) {
       vm.selectedPaymentMethods = vm.currentPaymentMethods.map((element) => {
@@ -577,21 +593,9 @@ export default {
 
       if (data === 'all') {
         if (type === 'all-payment-type') {
-          if (this.selectedPaymentTypes.length === this.paymentTypes.length) {
-            this.selectedPaymentTypes = []
-          } else {
-            this.selectedPaymentTypes = this.paymentTypes
-          }
+          this.selectedPaymentTypes = this.paymentTypes
         } else {
-          if (this.selectedPTL.length === this.ptl.length) {
-            this.selectedPTL = []
-          } else {
-            this.selectedPTL = []
-
-            for (const p in this.ptl) {
-              this.selectedPTL.push(getPaymentTimeLimit(this.ptl[p]))
-            }
-          }
+          this.selectedPTL = this.ptl
         }
       } else {
         if (type === 'payment-type') {
@@ -602,11 +606,11 @@ export default {
             this.selectedPaymentTypes.push(data)
           }
         } else {
-          temp = this.selectedPTL.map(p => p.value)
+          temp = this.selectedPTL
           if (temp.includes(data)) {
-            this.selectedPTL = this.selectedPTL.filter(p => p.value !== data)
+            this.selectedPTL = this.selectedPTL.filter(p => p !== data)
           } else {
-            this.selectedPTL.push(getPaymentTimeLimit(data))
+            this.selectedPTL.push(data)
           }
         }
       }
@@ -618,8 +622,7 @@ export default {
         temp = this.selectedPaymentTypes.map(p => p.name)
         return !temp.includes(data.name)
       } else {
-        temp = this.selectedPTL.map(p => p.value)
-        return !temp.includes(data)
+        return !this.selectedPTL.includes(data)
       }
     },
     paymentTimeLimit (timeValue) {
@@ -771,9 +774,16 @@ export default {
           return 'submit'
         case 'filterAd':
           vm.info = {
-            paymentTypes: vm.selectedPaymentTypes,
-            paymentTimeLimit: vm.selectedPTL,
-            sortOrder: vm.isAscending ? 'Ascending' : 'Descending'
+            price_order: vm.priceOrder
+          }
+          if (vm.selectedPaymentTypes) {
+            vm.info.payment_methods = vm.selectedPaymentTypes.map(e => e.id)
+          }
+          if (vm.selectedPTL) {
+            vm.info.time_limits = vm.selectedPTL
+          }
+          if (vm.priceType && vm.priceType !== 'all') {
+            vm.info.price_type = vm.priceType.toUpperCase()
           }
           return 'submit'
         case 'confirmCancelOrder':
@@ -822,6 +832,7 @@ export default {
       await vm.$axios.get(vm.apiURL + '/payment-type', { headers: vm.authHeaders })
         .then(response => {
           vm.paymentTypes = response.data
+          vm.selectedPaymentTypes = vm.paymentTypes
         })
         .catch(error => {
           console.error(error)
@@ -847,6 +858,15 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+.lg-font-size {
+  font-size: large;
+}
 .subtext {
   opacity: .5;
 }

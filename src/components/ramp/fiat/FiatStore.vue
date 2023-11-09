@@ -187,7 +187,6 @@ export default {
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       adFilter: {}
-      // adFilter: null, //add set adFilter default // clear filter // horizontal scroll area for selected  filter
     }
   },
   watch: {
@@ -251,8 +250,8 @@ export default {
       }
     },
     receiveDialog (data) {
-      // console.log(data)
       this.openDialog = false
+      this.filterAds(data)
     },
     async fetchFiatCurrencies () {
       const vm = this
@@ -297,7 +296,6 @@ export default {
       }
     },
     async loadMoreData (_, done) {
-      // console.log('loadMoreData')
       const vm = this
       if (!vm.hasMoreData) {
         done(true)
@@ -310,12 +308,10 @@ export default {
       done()
     },
     async refreshData (done) {
-      // console.log('refreshing store')
       await this.resetAndRefetchListings()
       done()
     },
     async resetAndRefetchListings () {
-      // reset pagination and reload ads list
       const vm = this
       await vm.$store.commit('ramp/resetStorePagination')
       await vm.fetchStoreListings(true)
@@ -370,37 +366,27 @@ export default {
       }
       // console.log(this.selectedUser)
     },
-    async filterAds () {
+    async filterAds (params) {
       const vm = this
       vm.loading = true
       console.log('filtering ads')
-      const params = {
-        currency: 'PHP',
-        limit: 20
+      params.currency = vm.selectedCurrency.symbol
+      params.trade_type = vm.transactionType
+      console.log('params:', params)
+      vm.loading = true
+      await vm.$store.commit('ramp/resetStorePagination')
+      try {
+        await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: true })
+      } catch (error) {
+        console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
       }
-      const url = `${vm.apiURL}/ad`
-      await this.$axios.get(url, {
-        headers: vm.authHeaders,
-        params: params
-      })
-        .then(response => {
-          console.log(response.data)
-        })
-        .catch(error => {
-          console.log(error)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
-      // try {
-      //   await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, headers: headers, overwrite: false })
-      // } catch (error) {
-      //   console.error(error)
-      // }
+      vm.updatePaginationValues()
       vm.loading = false
     },
     openFilter () {
-      this.filterAds()
       this.openDialog = true
       this.dialogType = 'filterAd'
     }

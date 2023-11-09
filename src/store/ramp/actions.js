@@ -137,11 +137,23 @@ export async function fetchAds (context, { component = null, params = null, over
     // Increment page by 1 if not fetching data for the first time
     if (pageNumber !== null) pageNumber++
 
-    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
+    let apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad/'
     params.page = pageNumber
     params.limit = state.itemsPerPage
+    let paymentMethodFilter = false
+    if (params.payment_methods.length > 0) {
+      const paymentMethods = params.payment_methods.join('&payment_methods=')
+      apiURL = `${apiURL}?payment_methods=${paymentMethods}`
+      paymentMethodFilter = true
+    }
+    if (params.time_limits.length > 0) {
+      const timeLimits = params.time_limits.join('&time_limits=')
+      const prefix = paymentMethodFilter ? '&' : '?'
+      apiURL = `${apiURL}${prefix}time_limits=${timeLimits}`
+    }
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
+    console.log('params: ', params)
     const response = await axiosInstance.get(apiURL, { params: params, headers: headers })
     switch (params.trade_type) {
       case 'BUY':
