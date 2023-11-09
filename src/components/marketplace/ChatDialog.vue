@@ -472,9 +472,20 @@ export default defineComponent({
     function onWebsocketMessage(evt) {
       const parsedData = JSON.parse(evt.data)
       console.log('Websocket message', parsedData)
-      if (parsedData?.type !== 'new_message') return
-      const newMessage = ChatMessage.parse(parsedData.data)
-      onNewMessage(newMessage)
+      if (parsedData?.type == 'new_message') {
+        const newMessage = ChatMessage.parse(parsedData.data)
+        onNewMessage(newMessage)
+      } else if (parsedData?.type == 'new_member') {
+        parsedData?.data?.pubkeys?.forEach?.(pubkey => {
+          if (typeof pubkey !== 'string') return
+          if (membersPubkeys.value?.includes(pubkey)) return
+          membersPubkeys.value.push(pubkey)
+        })
+      } else if (parsedData?.type == 'pubkey') {
+        if (typeof parsedData?.data === 'string' && !membersPubkeys.value?.includes(parsedData?.data)) {
+          membersPubkeys.value.push(pubkey)
+        }
+      }
     }
 
     /**
@@ -486,6 +497,7 @@ export default defineComponent({
       removeWebsocketEvents()
       websocket.value = undefined
       initWebsocket()
+        .then(() => fetchMembersPubkeys())
     }
 
     return {
