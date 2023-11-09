@@ -1,5 +1,5 @@
 <template>
-  <q-dialog persistent position="bottom" v-model="openDialog" full-width>
+  <q-dialog position="bottom" v-model="openDialog" full-width :class="darkMode ? 'text-white' : 'text-black'">
     <q-card class="br-15" :style="`max-height: ${maxHeight}px;`">
       <q-btn
         flat
@@ -72,6 +72,7 @@ export default {
   },
   emits: ['back'],
   async mounted () {
+    console.log(this.darkMode)
     console.log(this.authHeaders)
     // console.log('token', getCookie('token'))
     await this.fetchReviews()

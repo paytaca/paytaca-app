@@ -75,7 +75,7 @@
                                 size="1.1em"
                                 color="yellow-9"
                                 icon="star"/>
-                              <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : listing.owner.rating }})</span>
+                              <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
                             </div>
                             <div class="sm-font-size">
                               <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
@@ -184,8 +184,8 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      // minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       adFilter: {}
     }
   },
@@ -364,7 +364,7 @@ export default {
         name: user,
         is_owner: data.is_owned
       }
-      // console.log(this.selectedUser)
+      console.log('selected user: ', this.selectedUser)
     },
     async filterAds (params) {
       const vm = this

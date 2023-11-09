@@ -34,7 +34,7 @@
         </q-btn>
       </div>
 
-      <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
+      <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
         <q-btn
           rounded
           no-caps
@@ -45,7 +45,7 @@
           @click="fetchUserAds()"
           >
         </q-btn>
-      </div>
+      </div> -->
 
       <!-- User Stats -->
       <div class="text-center md-font-size subtext bold-text q-pt-md">
@@ -71,6 +71,12 @@
 
       <!-- Comments -->
       <div>
+        <div>
+          <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
+            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'ad' }" @click="reviewType='ad'">Ad Review</button>
+            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'user'}" @click="reviewType='user'">User Review</button>
+          </div>
+        </div>
         <div v-if="reviewList.length !== 0"  class="text-center q-py-lg xm-font-size bold-text">
           Reviews
         </div>
@@ -148,7 +154,9 @@ export default {
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-      reviewList: []
+      reviewList: [],
+      reviewType: 'ad', // 'user'
+      statusType: 'ONGOING'
     }
   },
   props: {
@@ -301,5 +309,38 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+.btn-transaction {
+  font-size: 14px;
+  background-color: rgb(242, 243, 252);
+  border-radius: 24px;
+  padding: 4px;
+  margin-left: 12%;
+  margin-right: 12%;
+  margin-top: 10px;
+}
+.btn-custom {
+  height: 35px;
+  width: 47%;
+  border-radius: 20px;
+  border: none;
+  color: #4C4F4F;
+  background-color: transparent;
+  outline:0;
+  cursor: pointer;
+  transition: .2s;
+  font-weight: 500;
+}
+.btn-custom:hover {
+  background-color: rgb(242, 243, 252);
+  color: #4C4F4F;
+}
+.btn-custom.active-btn {
+  background-color: rgb(172, 177, 180) !important;
+  color: #ffffff;
+}
+.col-transaction {
+  padding-top: 2px;
+  font-weight: 500;
 }
 </style>
