@@ -131,6 +131,7 @@
                       <template v-slot:append>
                         {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
                         <DenominatorTextDropdown
+                          v-if="!sendData.fixedAmount"
                           @on-selected-denomination="onSelectedDenomination"
                           :selectedNetwork="asset.symbol"
                           :darkMode="darkMode"
@@ -140,7 +141,7 @@
                       </template>
                     </q-input>
                     <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
+                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
                     </div>
                   </div>
                 </div>
@@ -159,20 +160,20 @@
                       :dark="darkMode"
                     >
                       <template v-slot:append>
-                        {{ String(selectedMarketCurrency).toUpperCase() }}
+                        {{ String(currentSendPageCurrency()).toUpperCase() }}
                       </template>
                     </q-input>
                     <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
+                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
                     </div>
                   </div>
                 </div>
               </template>
-              <div class="row" v-if="!isNFT">
+              <div class="row" v-if="!isNFT && !sendData.fixedAmount">
                 <div class="col q-mt-md" style="font-size: 18px; color: gray;">
                   {{ parseAssetDenomination(selectedDenomination, asset) }}
                   <template v-if="asset.id === 'bch' && setAmountInFiat">
-                    {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), selectedMarketCurrency)}` }}
+                    {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), currentSendPageCurrency())}` }}
                   </template>
                   <a
                     href="#"
@@ -186,7 +187,7 @@
                   </a>
                 </div>
               </div>
-              <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+              <div class="row" v-if="!sendData.fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
                 <div class="col q-mt-md">
                   <a
                     style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
@@ -195,7 +196,7 @@
                     :class="getDarkModeClass(darkMode)"
                     @click.prevent="() => {sendData.amount = 0; amountFormatted = 0; setAmountInFiat = true}"
                   >
-                    Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
+                    Set amount in {{ String(currentSendPageCurrency()).toUpperCase() }}
                   </a>
                 </div>
               </div>
@@ -267,7 +268,7 @@
               <template v-else>
                 <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
                 <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
-                  ({{ parseFiatCurrency(sendAmountInFiat, selectedMarketCurrency) }})
+                  ({{ parseFiatCurrency(sendAmountInFiat, currentSendPageCurrency()) }})
                 </p>
               </template>
 
@@ -275,12 +276,10 @@
               <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
                 {{ this.sendData.recipientAddress }}
               </div>
-              <div v-if="sendData?.posDevice?.posId >= 0">
-                <div v-if="paymentOTP" class="text-center q-mt-md">
-                  <div class="text-grey">{{ $t('PaymentOTP', {}, 'Payment OTP')}}</div>
-                  <div class="text-h3" style="letter-spacing:1rem;">{{ paymentOTP }}</div>
-                  <q-separator color="grey"/>
-                </div>
+              <div class="text-center q-mt-lg">
+                <div class="text-grey">{{ $t('ReferenceId')}}</div>
+                <div class="text-h4" style="letter-spacing: 6px;">{{ sendData.txid.substring(0, 6).toUpperCase() }}</div>
+                <q-separator color="grey"/>
               </div>
               <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
                 txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
@@ -501,7 +500,9 @@ export default {
       setMax: false,
       computingMax: false,
       amountFormatted: null,
-      selectedDenomination: 'BCH'
+      selectedDenomination: 'BCH',
+      paymentCurrency: null,
+      payloadAmount: 0
     }
   },
 
@@ -555,7 +556,7 @@ export default {
     selectedAssetMarketPrice () {
       if (!this.assetId) return
 
-      return this.$store.getters['market/getAssetPrice'](this.assetId, this.selectedMarketCurrency)
+      return this.$store.getters['market/getAssetPrice'](this.assetId, this.currentSendPageCurrency())
     },
     currencyOptions () {
       return this.$store.getters['market/currencyOptions']
@@ -629,6 +630,16 @@ export default {
         this.sendData.amount = fiatToAsset
         this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
       }
+    },
+    selectedAssetMarketPrice () {
+      if (!this.selectedAssetMarketPrice) {
+        this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
+      }
+      if (this.payloadAmount && this.payloadAmount > 0) {
+        this.sendAmountInFiat = this.payloadAmount
+        this.sendData.amount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
+        this.amountFormatted = this.sendData.amount
+      }
     }
   },
 
@@ -666,6 +677,7 @@ export default {
       let amount = null
       let rawPaymentUri = ''
       let posDevice = { posId: -1, paymentTimestamp: -1 }
+      let amountValue = null
       let currency = null
 
       let paymentUriData
@@ -686,13 +698,19 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0]) {
+        const payloadAmountValue = paymentUriData.outputs[0].amount?.value
+        const payloadAmountCurrency = paymentUriData.outputs[0].amount?.currency
+
+        currency = payloadAmountCurrency ?? this.selectedMarketCurrency
+        this.paymentCurrency = currency
+        this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
+
+        amountValue = payloadAmountCurrency === null && payloadAmountValue !== null
+          ? this.convertToFiatAmount(payloadAmountValue)
+          : payloadAmountValue
+        this.payloadAmount = payloadAmountValue
         address = paymentUriData.outputs[0].address
-        amount = paymentUriData.outputs[0].amount?.value
-        currency = paymentUriData.outputs[0].amount?.currency
-      }
-      if (paymentUriData?.posId) {
-        posDevice.posId = paymentUriData.posId
-        if (paymentUriData.timestamp) posDevice.paymentTimestamp = paymentUriData.timestamp
+        this.sendData.fixedRecipientAddress = true
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -703,13 +721,11 @@ export default {
         this.sendData.recipientAddress = address
         this.sendData.rawPaymentUri = rawPaymentUri
         this.scannedRecipientAddress = true
-
-        if (currency) this.setAmountInFiat = true
-        if (typeof currency === 'string' && this.selectedMarketCurrency !== currency) {
+        if (typeof currency === 'string') {
           const newSelectedCurrency = this.currencyOptions
             .find(_currency => _currency?.symbol === currency)
           if (newSelectedCurrency?.symbol) {
-            this.$store.commit('market/updateSelectedCurrency', newSelectedCurrency)
+            amount = (amountValue / this.selectedAssetMarketPrice).toFixed(8)
           } else if (!newSelectedCurrency?.symbol && amount) {
             this.sendErrors.push(`Detected unknown currency: ${currency}`)
             // reset some data updated above on error
@@ -717,23 +733,18 @@ export default {
             this.sendData.rawPaymentUri = ''
             return
           }
+        } else {
+          amount = amountValue
         }
-
-        if (amount !== null) {
+        if (amountValue !== null) {
           this.sliderStatus = true
+          this.amountFormatted = amount
           if (this.setAmountInFiat) {
             this.sendAmountInFiat = amount
           } else {
             this.sendData.amount = amount
           }
-        }
-
-        if (posDevice.posId >= 0) {
-          this.sendData.posDevice = posDevice
-          if (amount) {
-            this.sendData.fixedAmount = true
-            this.sliderStatus = true
-          }
+          this.sendData.fixedAmount = true
         }
       }
     },
@@ -1254,6 +1265,9 @@ export default {
     onSelectedDenomination (value) {
       this.selectedDenomination = value
       this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount, true))
+    },
+    currentSendPageCurrency () {
+      return this.paymentCurrency ?? this.selectedMarketCurrency
     }
   },
 

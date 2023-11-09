@@ -60,7 +60,7 @@
                   class="q-ma-none text-token text-weight-regular"
                   :class="darkMode ? isDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
                 >
-                  {{ isHongKong(currentCountry) ? asset.name.replace('Token', 'Point') : asset.name }}
+                  {{ asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
                   {{ parseAssetDenomination(denomination, asset) }}
