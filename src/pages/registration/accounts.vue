@@ -315,7 +315,8 @@ export default {
     },
     continueToDashboard () {
       const vm = this
-      this.$store.dispatch('global/updateOnboardingStep', this.steps).then(function () {
+      vm.$store.dispatch('global/saveWalletPreferences')
+      vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
         vm.saveToVault()
         vm.$router.push('/')
       })
@@ -500,6 +501,8 @@ export default {
       this.walletIndex = 0
     }
 
+    const vm = this
+    await vm.$store.dispatch('market/updateSupportedCurrencies', {})
     // auto-detect country
     const apiKey = process.env.IPGEO_API_KEY
     const [countryFromIP, currencyFromIP, langsFromIP] = await this.$axios
@@ -531,17 +534,19 @@ export default {
           'en-us'
         ]
       })
-    // set country
-    this.$store.commit('global/setCountry', countryFromIP)
+    
+    setTimeout(function () {
+      // set country
+      vm.$store.commit('global/setCountry', countryFromIP)
 
-    // set currency
-    const currencyOptions = this.$store.getters['market/currencyOptions']
-    const currency = currencyOptions.filter(o => o.symbol === currencyFromIP.symbol)
+      // set currency
+      const currencyOptions = vm.$store.getters['market/currencyOptions']
+      const currency = currencyOptions.filter(o => o.symbol === currencyFromIP.symbol)
 
-    if (currency.length > 0) {
-      await this.$store.commit('market/updateSelectedCurrency', currency[0])
-      await this.$store.dispatch('global/saveWalletPreferences')
-    }
+      if (currency.length > 0) {
+        vm.$store.commit('market/updateSelectedCurrency', currency[0])
+      }
+    }, 1000)
 
     // set language
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
@@ -567,7 +572,6 @@ export default {
 
     this.currencySelectorRerender = true
 
-    const vm = this
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(response => {
       if (response.status !== 200) return Promise.reject()
       vm.serverOnline = true
