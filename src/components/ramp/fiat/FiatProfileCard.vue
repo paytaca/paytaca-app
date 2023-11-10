@@ -13,106 +13,108 @@
           @click="$emit('back')"
         />
       </div>
-      <div class="text-center q-pt-none">
-        <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-        <div class="bold-text lg-font-size q-pt-sm">
-          {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
-        </div>
-      </div>
-
-      <!-- Edit Payment Methods -->
-      <div class="row q-mx-lg q-px-md q-pt-md" v-if="type === 'self'">
-        <q-btn
-          rounded
-          no-caps
-          label="Edit Payment Methods"
-          color="blue-8"
-          class="q-space"
-          @click="state= 'edit-pm'"
-          icon="o_payments"
-          >
-        </q-btn>
-      </div>
-
-      <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
-        <q-btn
-          rounded
-          no-caps
-          label="See User Ads"
-          color="blue-8"
-          class="q-space"
-          icon="sym_o_sell"
-          @click="fetchUserAds()"
-          >
-        </q-btn>
-      </div> -->
-
-      <!-- User Stats -->
-      <div class="text-center md-font-size subtext bold-text q-pt-md">
-          <span>{{ user.trade_count }} total trades</span>&nbsp;&nbsp;
-          <span>|</span>&nbsp;&nbsp;
-          <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
-      </div>
-      <div class="row justify-center q-px-sm q-pt-sm">
-        <q-rating
-          readonly
-          :model-value="user.rating ? user.rating : 0"
-          :v-model="user.rating"
-          size="1.5em"
-          color="yellow-9"
-          icon="star"
-        />
-        <span class="q-mx-sm">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
-      </div>
-
-      <div class="q-px-sm q-pt-sm">
-        <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
-      </div>
-
-      <!-- Comments -->
-      <div>
-        <div>
-          <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'ad' }" @click="reviewType='ad'">Ad Review</button>
-            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'user'}" @click="reviewType='user'">User Review</button>
+      <q-scroll-area :style="`height: ${minHeight - 100}px`" style="overflow-y:auto;">
+        <div class="text-center q-pt-none">
+          <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+          <div class="bold-text lg-font-size q-pt-sm">
+            {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
           </div>
         </div>
-        <div v-if="reviewList.length !== 0"  class="text-center q-py-lg xm-font-size bold-text">
-          Reviews
+
+        <!-- Edit Payment Methods -->
+        <div class="row q-mx-lg q-px-md q-pt-md" v-if="type === 'self'">
+          <q-btn
+            rounded
+            no-caps
+            label="Edit Payment Methods"
+            color="blue-8"
+            class="q-space"
+            @click="state= 'edit-pm'"
+            icon="o_payments"
+            >
+          </q-btn>
         </div>
-        <div v-else class="text-center q-pt-md text-italized bold-text xm-font-size">
-          No Reviews Yet
+
+        <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
+          <q-btn
+            rounded
+            no-caps
+            label="See User Ads"
+            color="blue-8"
+            class="q-space"
+            icon="sym_o_sell"
+            @click="fetchUserAds()"
+            >
+          </q-btn>
+        </div> -->
+
+        <!-- User Stats -->
+        <div class="text-center md-font-size subtext bold-text q-pt-md">
+            <span>{{ user.trade_count }} total trades</span>&nbsp;&nbsp;
+            <span>|</span>&nbsp;&nbsp;
+            <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
         </div>
-        <div class="q-mx-lg q-px-md">
-          <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;">
-            <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
-              <div class="md-font-size bold-text">
-                {{  review.from_peer.name }}
-              </div>
-              <div class="sm-font-text">
-                <q-rating
-                  readonly
-                  v-model="review.rating"
-                  size="2em"
-                  color="yellow-9"
-                  icon="star"
-                />
-              </div>
-              <div class="q-pt-sm q-px-xs">
-                <q-input
-                  v-model="review.comment"
-                  :dark="darkMode"
-                  dense
-                  disable
-                  outlined
-                  autogrow
-                />
-              </div>
-              <q-separator :dark="darkMode" class="q-mt-md"/>
+        <div class="row justify-center q-px-sm q-pt-sm">
+          <q-rating
+            readonly
+            :model-value="user.rating ? user.rating : 0"
+            :v-model="user.rating"
+            size="1.5em"
+            color="yellow-9"
+            icon="star"
+          />
+          <span class="q-mx-sm">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
+        </div>
+
+        <div class="q-px-sm q-pt-sm">
+          <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
+        </div>
+
+        <!-- Comments -->
+        <div>
+          <div>
+            <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
+              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'ad' }" @click="reviewType='ad'">Ad Review</button>
+              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'user'}" @click="reviewType='user'">User Review</button>
             </div>
-          </q-scroll-area>
+          </div>
+          <div v-if="reviewList.length !== 0"  class="text-center q-py-lg xm-font-size bold-text">
+            Reviews
+          </div>
+          <div v-else class="text-center q-pt-md text-italized bold-text xm-font-size">
+            No Reviews Yet
+          </div>
+          <div class="q-mx-lg q-px-md">
+            <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;">
+              <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
+                <div class="md-font-size bold-text">
+                  {{  review.from_peer.name }}
+                </div>
+                <div class="sm-font-text">
+                  <q-rating
+                    readonly
+                    v-model="review.rating"
+                    size="2em"
+                    color="yellow-9"
+                    icon="star"
+                  />
+                </div>
+                <div class="q-pt-sm q-px-xs">
+                  <q-input
+                    v-model="review.comment"
+                    :dark="darkMode"
+                    dense
+                    disable
+                    outlined
+                    autogrow
+                  />
+                </div>
+                <q-separator :dark="darkMode" class="q-mt-md"/>
+              </div>
+            </q-scroll-area>
+          </div>
         </div>
-      </div>
+      </q-scroll-area>
     </div>
     <div v-if="!isloaded">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -150,8 +152,8 @@ export default {
       userId: null,
       editNickname: false,
       state: 'initial',
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      // minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
       reviewList: [],

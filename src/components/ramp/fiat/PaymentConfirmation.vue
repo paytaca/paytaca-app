@@ -6,7 +6,7 @@
     </div>
     <div style="opacity: .5;" class="text-center q-pb-sm sm-font-size bold-text">(ORDER ID: {{ order.id }})</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
-    <q-scroll-area :style="`height: ${minHeight - minHeight * 0.2}px`" style="overflow-y:auto;">
+    <q-scroll-area :style="`height: ${minHeight - 175}px`" style="overflow-y:auto;">
       <div class="q-mt-md q-mx-lg q-px-md">
         <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs">Please pay the seller</div>
         <div v-else class="sm-font-size q-pb-xs">Expect fiat payment of</div>
