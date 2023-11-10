@@ -522,21 +522,27 @@ export default {
 
     // Adjust paytaca language according to phone's language (if supported by paytaca)
     let deviceLang = null
-    try {
-      deviceLang = await Device.getLanguageCode()
-      deviceLang = deviceLang.value.toLowerCase()
-
-      /**
-      *  https://capacitorjs.com/docs/apis/device#getlanguagecoderesult
-      *  Since Device.getLanguageCode() returns a two-char language code,
-      *  we set chinese default to "zh-cn" (Chinese - Simplified)
-      */
-      if (deviceLang === 'zh') {
-        deviceLang = 'zh-cn'
-      }
-    } catch (error) {
+    if (this.$q.platform.is.ios) {
+      // Getting language code from device seems to be crashing in iOS 17.x
+      // we just default to english for iOS for now
       deviceLang = supportedLangs[0]
-      console.error(error)
+    } else {
+      try {
+        deviceLang = await Device.getLanguageCode()
+        deviceLang = deviceLang.value.toLowerCase()
+
+        /**
+        *  https://capacitorjs.com/docs/apis/device#getlanguagecoderesult
+        *  Since Device.getLanguageCode() returns a two-char language code,
+        *  we set chinese default to "zh-cn" (Chinese - Simplified)
+        */
+        if (deviceLang === 'zh') {
+          deviceLang = 'zh-cn'
+        }
+      } catch (error) {
+        deviceLang = supportedLangs[0]
+        console.error(error)
+      }
     }
 
     // defaults to english if device lang is unsupported by app
