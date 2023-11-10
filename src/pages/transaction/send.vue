@@ -29,14 +29,7 @@
         </div>
         <div v-else class="q-mt-xl">
           <div class="q-pa-md" style="padding-top: 20px;">
-            <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
-              <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
-                <template v-slot:avatar>
-                  <q-icon name="signal_wifi_off" color="primary" />
-                </template>
-                You cannot send funds while offline. Please connect to the internet.
-              </q-banner>
-            </v-offline>
+            <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
             <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
@@ -86,6 +79,7 @@
           </div>
           <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
             <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
+              <q-btn label="test hehe" @click="handleSubmit" />
               <div class="row">
                 <div class="col q-mt-sm se recipient-input-qr">
                   <q-input
@@ -200,8 +194,8 @@
                   </a>
                 </div>
               </div>
-              <div class="add-recipient-button">
-                <q-btn label="Add another recipient" class="button" />
+              <div class="add-recipient-button" v-if="showAddRecipientButton">
+                <q-btn :label="$t('AddAnotherRecipient')" class="button" />
               </div>
               <div class="row" v-if="sendData.sending">
                 <div class="col-12 text-center">
@@ -245,16 +239,6 @@
             <footer-menu />
           </template>
 
-          <div class="row" v-if="sendErrors.length > 0">
-            <div class="col">
-              <ul style="margin-left: -40px; list-style: none;">
-                <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
-                  <q-icon name="error" left/>
-                  {{ error }}
-                </li>
-              </ul>
-            </div>
-          </div>
           <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
             <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
             <div
@@ -477,9 +461,9 @@ export default {
         rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
         paymentAckMemo: '',
-        fixedRecipientAddress: false
+        fixedRecipientAddress: false,
+        recipients: []
       },
-      sendErrors: [],
       pinDialogAction: '',
       leftX: 0,
       slider: 0,
@@ -584,7 +568,6 @@ export default {
       return (
         this.sendData.sending !== true &&
         this.sendData.sent !== true &&
-        this.sendErrors.length === 0 &&
         this.sliderStatus === true &&
         this.sendData.amount > 0
       )
@@ -593,6 +576,9 @@ export default {
       if (this.sendData.responseOTP) return this.sendData.responseOTP
 
       return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
+    },
+    showAddRecipientButton () {
+      return (this.showSlider && this.sendData.recipients.length < 5)
     }
   },
 
@@ -688,11 +674,21 @@ export default {
       } catch (error) {
         console.error(error)
         if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
-          this.sendErrors.push('Invalid address format')
+          this.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t('InvalidAddressFormat')
+          })
           return
         }
         if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
-          this.sendErrors.push('Multiple recipients not yet supported')
+          this.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t('MultipleRecipientsUnsupported')
+          })
           return
         }
       }
@@ -727,7 +723,12 @@ export default {
           if (newSelectedCurrency?.symbol) {
             amount = (amountValue / this.selectedAssetMarketPrice).toFixed(8)
           } else if (!newSelectedCurrency?.symbol && amount) {
-            this.sendErrors.push(`Detected unknown currency: ${currency}`)
+            this.$q.notify({
+              type: 'negative',
+              color: 'red-4',
+              timeout: 3000,
+              message: this.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
+            })
             // reset some data updated above on error
             this.sendData.recipientAddress = ''
             this.sendData.rawPaymentUri = ''
@@ -981,7 +982,12 @@ export default {
           this.sendData.amount = spendable
           this.computingMax = false
           if (spendable < 0) {
-            this.sendErrors.push('Not enough balance to cover the gas fee')
+            this.$q.notify({
+              type: 'negative',
+              color: 'red-4',
+              timeout: 3000,
+              message: this.$t('NotEnoughForGasFee')
+            })
           }
         } else {
           this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
@@ -1021,10 +1027,14 @@ export default {
       const addressValidation = this.validateAddress(address)
       if (addressValidation.valid) {
         this.sendData.recipientAddress = addressValidation.address
-        this.sendErrors = []
         return true
       } else {
-        this.sendErrors.push(this.$t('InvalidAddress'))
+        this.$q.notify({
+          type: 'negative',
+          color: 'red-4',
+          timeout: 3000,
+          message: this.$t('InvalidAddress')
+        })
         return false
       }
     },
@@ -1104,6 +1114,7 @@ export default {
       const vm = this
       let address = this.sendData.recipientAddress
       const addressObj = new Address(address)
+      console.log(addressObj)
       const addressValidation = this.validateAddress(address)
       const addressIsValid = addressValidation.valid
       const amountIsValid = this.validateAmount(this.sendData.amount)
@@ -1120,7 +1131,6 @@ export default {
             const tokenId = vm.assetId.match(erc721IdRegexp)[2]
             promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
           } else {
-            // change to recipients array
             promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
           }
           if (promise) {
@@ -1135,9 +1145,19 @@ export default {
                 }
               } else {
                 if (result.error) {
-                  vm.sendErrors.push(result.error)
+                  vm.$q.notify({
+                    type: 'negative',
+                    color: 'red-4',
+                    timeout: 3000,
+                    message: result.error
+                  })
                 } else {
-                  vm.sendErrors.push('Unknown error')
+                  vm.$q.notify({
+                    type: 'negative',
+                    color: 'red-4',
+                    timeout: 3000,
+                    message: vm.$t('UnknownError')
+                  })
                 }
               }
             })
@@ -1155,6 +1175,7 @@ export default {
             bch: vm.getChangeAddress('bch'),
             slp: vm.getChangeAddress('slp')
           }
+          // change to recipients array
           vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, this.tokenType, address, feeFunder, changeAddresses).then(function (result) {
             if (result.success) {
               vm.sendData.txid = result.txid
@@ -1163,11 +1184,26 @@ export default {
               vm.sendData.sent = true
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
-                vm.sendErrors.push('Not enough balance to cover the send amount')
+                vm.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: vm.$t('NotEnoughForSendAmount')
+                })
               } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
-                vm.sendErrors.push('Not enough BCH to cover for transaction fee')
+                this.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: this.$t('NotEnoughBchForFee')
+                })
               } else {
-                vm.sendErrors.push(result.error)
+                vm.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: vm.$t('result.error')
+                })
               }
               vm.sendData.sending = false
             }
@@ -1223,11 +1259,26 @@ export default {
               }
             } else {
               if (result.error.indexOf('not enough balance in sender') > -1) {
-                vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
+                vm.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: vm.$t('NotEnoughForBoth')
+                })
               } else if (result.error.indexOf('has insufficient priority') > -1) {
-                vm.sendErrors.push('Not enough balance to cover the transaction fee')
+                vm.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: vm.$t('NotEnoughForTransactionFee')
+                })
               } else {
-                vm.sendErrors.push(result.error)
+                vm.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: result.error
+                })
               }
             }
           })
@@ -1245,22 +1296,53 @@ export default {
             vm.sendData.sent = true
             vm.playSound(true)
           } catch (e) {
-            vm.sendErrors.push(e.message)
+            vm.$q.notify({
+              type: 'negative',
+              color: 'red-4',
+              timeout: 3000,
+              message: e.message
+            })
           }
           vm.sendData.sending = false
         }
       } else {
         vm.sendData.sending = false
         if (!addressIsValid) {
-          vm.sendErrors.push(`Recipient should be a valid ${vm.walletType.toUpperCase()} address`)
+          vm.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t(
+              'InvalidRecipient',
+              { walletType: vm.walletType.toUpperCase() },
+              `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
+            )
+          })
         }
         if (!amountIsValid) {
-          vm.sendErrors.push('Send amount should be greater than zero')
+          vm.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: vm.$t('SendAmountGreaterThanZero')
+          })
         }
       }
     },
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
+      const offlineNotif = this.$q.notify({
+        type: 'negative',
+        icon: 'signal_wifi_off',
+        iconColor: 'primary',
+        color: 'red-4',
+        timeout: 0,
+        message: this.$t('SendPageOffline')
+      })
+
+      if (online) {
+        offlineNotif()
+      }
     },
     onSelectedDenomination (value) {
       this.selectedDenomination = value
@@ -1539,7 +1621,7 @@ export default {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    align-items: stretch;
+    align-items: center;
 
     .recipient-input {
       flex: 1;
@@ -1549,6 +1631,6 @@ export default {
   .add-recipient-button {
     display: flex;
     justify-content: center;
-    margin-top: 10px
+    margin-top: 20px
   }
 </style>
