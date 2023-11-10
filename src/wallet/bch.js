@@ -326,6 +326,7 @@ export class BchWallet {
         mnemonic: this.mnemonic,
         derivationPath: this.derivationPath
       },
+      // adjust to now accept array
       recipients: [
         {
           address: recipient,
