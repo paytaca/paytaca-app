@@ -1470,6 +1470,7 @@ export class ChatMessage {
     try {
       if (this?.decryptedAttachmentFile?.url) return this.decryptedAttachmentFile
       if (!this.encryptedAttachmentFile) await this.fetchEncryptedAttachment()
+      if (!this.encryptedAttachmentFile) return
       this.$state.decryptingAttachment = true
       const decryptOpts = await decompressEncryptedImage(this.encryptedAttachmentFile)
       const opts = { privkey, ...decryptOpts }

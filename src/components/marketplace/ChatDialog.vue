@@ -122,6 +122,7 @@
             borderless
             v-model="attachment"
             :filter="files => files.filter(file => file.type?.match(/image\/.*/))"
+            @update:model-value="() => resizeAttachment()"
           />
           <div v-if="attachmentUrl" class="row items-start no-wrap q-my-sm">
             <img
@@ -150,6 +151,7 @@ import { backend } from 'src/marketplace/backend'
 import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
 import { formatDateRelative } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
+import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
 import { useDialogPluginComponent, debounce } from 'quasar'
@@ -330,7 +332,6 @@ export default defineComponent({
     const message = ref('')
     const attachment = ref(null)
     watch(attachment, (newVal, oldVal) => {
-      console.log(newVal)
       if (newVal) attachmentUrl.value = URL.createObjectURL(newVal)
       else attachmentUrl.value = ''
       if (oldVal) URL.revokeObjectURL(oldVal)
@@ -339,6 +340,13 @@ export default defineComponent({
     const fileAttachmentField = ref()
     function openFileAttachementField(evt) {
       fileAttachmentField.value?.pickFiles?.(evt)
+    }
+
+    async function resizeAttachment() {
+      attachment.value = await resizeImage({
+        file: attachment.value,
+        maxWidthHeight: 640, // based on recommended dimensions for mobile
+      })
     }
 
     const sendMessage = debounce(async function() {
@@ -529,6 +537,7 @@ export default defineComponent({
       attachmentUrl,
       fileAttachmentField,
       openFileAttachementField,
+      resizeAttachment,
       sendMessage,
 
       chatMember,
