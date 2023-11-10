@@ -11,7 +11,7 @@
         </div>
         <div class="row column no-wrap" style="height:calc(75vh - 4rem);">
           <q-space/>
-          <div ref="messagesPanel" class="q-pa-sm" style="overflow:auto;">
+          <div ref="messagesPanel" class="q-pa-sm messages-panel" style="overflow:auto;">
             <div class="row justify-center">
               <q-btn
                 v-if="hasMoreMessages"
@@ -42,8 +42,13 @@
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
               >
                 <template v-slot:stamp>
-                  {{ formatDateRelative(message?.createdAt) }}
-                  <q-icon v-if="message?.encrypted" name="lock"/>
+                  <div>
+                    {{ formatDateRelative(message?.createdAt) }}
+                    <q-icon v-if="message?.encrypted" name="lock"/>
+                    <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-py-xs q-px-sm']">
+                      {{ formatTimestampToText(message?.createdAt) }}
+                    </q-menu>
+                  </div>
                 </template>
                 <span
                   v-if="message?.encrypted && !message?.decryptedMessage"
@@ -78,6 +83,7 @@
                     <div
                       class="text-grey encrypted-attachment-text"
                       @click="() => decryptMessageAttachment(message)"
+                      v-element-visibility="() => decryptMessageAttachment(message)"
                     >
                       Attachment encrypted
                       <q-spinner v-if="message?.$state?.decryptingAttachment"/>
@@ -86,6 +92,7 @@
                 </template>
               </div>
             </q-virtual-scroll>
+            <div class="bottom-anchor"></div>
           </div>
           <q-input
             outlined
@@ -149,7 +156,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
-import { formatDateRelative } from 'src/marketplace/utils'
+import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
@@ -226,10 +233,10 @@ export default defineComponent({
       return sortedMessages
     })
 
-    onMounted(() => getMessages())
+    onMounted(() => innerVal.value ? getMessages() : null)
     watch(() => [props.chatRef], () => {
       messages.value = []
-      getMessages()
+      innerVal.value ? getMessages() : null
     })
     watch(innerVal, () => innerVal.value ? getMessages({ prepend: true }) : null)
     const getMessages = debounce(function (opts={limit: 0, offset: 0, append: false, prepend: false}) {
@@ -262,7 +269,7 @@ export default defineComponent({
           const newLength = messages.value?.length 
 
           if (!opts?.append && prevLength !== newLength) {
-            setTimeout(() => moveMessagesToBottom(), 250)
+            moveMessagesToBottom({ delay: 250 })
             fetchChatMember()
           }
           return response
@@ -303,7 +310,7 @@ export default defineComponent({
       if (index < 0) {
         messages.value.unshift(newMessage)
         decryptMessages()
-        setTimeout(() => moveMessagesToBottom(), 250)
+        moveMessagesToBottom({ delay: 250 })
       }
 
       if (newMessage.chatSessionRef == chatSession.value?.ref) {
@@ -322,9 +329,12 @@ export default defineComponent({
     const messagesPanel = ref()
     watch(innerVal, () => {
       if (!innerVal.value) return
-      setTimeout(() => moveMessagesToBottom(), 250)
+      moveMessagesToBottom({ delay: 250 })
     })
-    function moveMessagesToBottom() {
+
+    const asyncSleep = duration => new Promise(resolve => setTimeout(resolve, duration))
+    async function moveMessagesToBottom(opts={ delay: 250 }) {
+      if (Number.isFinite(opts?.delay) && opts?.delay) await asyncSleep(opts?.delay)
       messagesPanel.value?.scrollTo(0, messagesPanel.value?.scrollHeight)
     }
 
@@ -437,7 +447,6 @@ export default defineComponent({
     }
     function onMessageVisibility(chatMessage=ChatMessage.parse(), visible) {
       if (!visible) return
-      decryptMessageAttachment(chatMessage) // lazy loading
 
       if (chatMessage !== parsedMessages.value.at(-1)) return
 
@@ -546,6 +555,7 @@ export default defineComponent({
       onMessageVisibility,
 
       formatDateRelative,
+      formatTimestampToText,
     }
   },
 })
@@ -557,5 +567,15 @@ export default defineComponent({
   border: 0.5px solid $grey;
   border-radius: map-get($space-xs, 'x');
   padding: map-get($space-xs, 'y') map-get($space-sm, 'x');
+}
+.messages-panel {
+  overscroll-behavior: contain;
+}
+.messages-panel * {
+  overflow-anchor: none;
+}
+.messages-panel .bottom-anchor {
+  overflow-anchor: auto;
+  height: 1px;
 }
 </style>
