@@ -97,10 +97,7 @@ export async function fetchAds (context, { component = null, params = null, over
   if (!state.authHeaders) {
     throw new Error('Ramp authentication headers not initialized')
   }
-  /**
-   * Setup pagination parameters based on
-   * component & transaction type.
-   **/
+  // Setup pagination parameters based on component & transaction type
   let pageNumber = null
   let totalPages = null
   switch (component) {
@@ -138,23 +135,39 @@ export async function fetchAds (context, { component = null, params = null, over
     if (pageNumber !== null) pageNumber++
 
     let apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad/'
-    params.page = pageNumber
-    params.limit = state.itemsPerPage
-    let paymentMethodFilter = false
-    if (params.payment_methods.length > 0) {
-      const paymentMethods = params.payment_methods.join('&payment_methods=')
-      apiURL = `${apiURL}?payment_methods=${paymentMethods}`
-      paymentMethodFilter = true
+
+    // Build request parameters
+    const parameters = {
+      page: pageNumber,
+      limit: state.itemsPerPage,
+      price_order: params.price_order,
+      currency: params.currency,
+      owned: params.owned,
+      trade_type: params.trade_type
     }
-    if (params.time_limits.length > 0) {
+    let appendParam = false
+    if (params.payment_types && params.payment_types.length > 0) {
+      const paymentTypes = params.payment_types.join('&payment_types=')
+      apiURL = `${apiURL}?payment_types=${paymentTypes}`
+      appendParam = true
+    }
+    if (params.time_limits && params.time_limits.length > 0) {
       const timeLimits = params.time_limits.join('&time_limits=')
-      const prefix = paymentMethodFilter ? '&' : '?'
+      const prefix = appendParam ? '&' : '?'
       apiURL = `${apiURL}${prefix}time_limits=${timeLimits}`
+      appendParam = true
     }
+    if (params.time_limits && params.price_types.length > 0) {
+      const priceTypes = params.price_types.join('&price_types=')
+      const prefix = appendParam ? '&' : '?'
+      apiURL = `${apiURL}${prefix}price_types=${priceTypes}`
+    }
+
+    // Build request headers
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
-    console.log('params: ', params)
-    const response = await axiosInstance.get(apiURL, { params: params, headers: headers })
+
+    const response = await axiosInstance.get(apiURL, { params: parameters, headers: headers })
     switch (params.trade_type) {
       case 'BUY':
         switch (component) {
