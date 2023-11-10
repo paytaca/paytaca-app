@@ -65,10 +65,14 @@ export function decryptMessage(opts={data: '', iv: '', privkey: '', authorPubkey
 
   const ourPubkey = privToPub(privkey)
   const ivBytes = Buffer.from(iv, 'base64')
+  const sortedPubkeys = pubkeys.sort(pkData => {
+    const pubkey = pkData.split('|', 2)[0]
+    return pubkey == ourPubkey ? -1 : 0
+  })
 
-  for(var i = 0; i < pubkeys.length; i++) {
+  for(var i = 0; i < sortedPubkeys.length; i++) {
     try {
-      const pubkeyData = pubkeys[i]
+      const pubkeyData = sortedPubkeys[i]
       let [pubkey, sharedSecret, ..._] = pubkeyData.split('|', 2)
       if (pubkey == ourPubkey) pubkey = authorPubkey
       const ourPriv = secp.etc.hexToBytes(privkey)
@@ -225,12 +229,16 @@ export async function decryptImage(opts={ file: null, privkey: '', pubkeys: '' }
 
   const ourPubkey = privToPub(privkey)
   const ivBytes = Buffer.from(iv, 'base64')
+  const sortedPubkeys = pubkeys.sort(pkData => {
+    const pubkey = pkData.split('|', 2)[0]
+    return pubkey == ourPubkey ? -1 : 0
+  })
 
   const arrayBuffer = await file?.arrayBuffer()
 
-  for(var i = 0; i < pubkeys.length; i++) {
+  for(var i = 0; i < sortedPubkeys.length; i++) {
     try {
-      const pubkeyData = pubkeys[i]
+      const pubkeyData = sortedPubkeys[i]
       let [pubkey, sharedSecret, ..._] = pubkeyData.split('|', 2)
 
       if (pubkey == ourPubkey) {
