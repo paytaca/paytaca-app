@@ -199,6 +199,7 @@ import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 function countWords(str) {
   if (str) {
@@ -501,9 +502,9 @@ export default {
 
     // auto-detect country
     const apiKey = process.env.IPGEO_API_KEY
-    const [countryFromIP, currencyFromIP] = await this.$axios.get(`https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`)
+    const [countryFromIP, currencyFromIP, langsFromIP] = await this.$axios
+      .get(`https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`)
       .then(response => {
-        console.log(response.data)
         return [
           {
             name: response.data?.country_name,
@@ -512,27 +513,58 @@ export default {
           {
             symbol: response.data?.currency.code,
             name: response.data?.currency?.name
-          }
+          },
+          response.data?.languages?.toLowerCase().split(',')
         ]
-      }).catch((error) => console.error(error))
-    // console.log('currencyFromIP', currencyFromIP)
+      }).catch((error) => {
+        console.error(error)
+        // return default values
+        return [
+          {
+            name: 'United States',
+            code: 'US'
+          },
+          {
+            symbol: 'USD',
+            name: 'United States Dollar'
+          },
+          'en-us'
+        ]
+      })
+    // set country
     this.$store.commit('global/setCountry', countryFromIP)
-    // this.$store.commit('market/updateSelectedCurrency', currencyFromIP)
-    // this.$store.dispatch('global/saveWalletPreferences')
 
+    // set currency
     const currencyOptions = this.$store.getters['market/currencyOptions']
-    let currency = currencyOptions.filter(o => o.symbol === currencyFromIP.symbol)
-    console.log('currencyOptions', currencyOptions)
-    console.log('currency', currency)
+    const currency = currencyOptions.filter(o => o.symbol === currencyFromIP.symbol)
 
-    if (currency.length !== 0) {
-      console.log('entered hereeee')
-      currency = currency[0]
-      await this.$store.commit('market/updateSelectedCurrency', currency)
+    if (currency.length > 0) {
+      await this.$store.commit('market/updateSelectedCurrency', currency[0])
       await this.$store.dispatch('global/saveWalletPreferences')
     }
 
-    console.log('now currency', this.$store.getters['market/selectedCurrency'])
+    // set language
+    const eng = ['en-us', 'en-uk', 'en-gb', 'en']
+    const supportedLangs = [
+      { value: 'en-us', label: this.$t('English') },
+      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
+      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+      { value: 'de', label: this.$t('German') },
+      { value: 'es', label: this.$t('Spanish') }
+    ]
+    const supportedLangsValue = supportedLangs.map(a => a.value)
+    let ipFinalLang = 'en-us'
+
+    supportedLangsValue.forEach(lang => {
+      if (langsFromIP.includes(lang) && ipFinalLang === 'en-us') {
+        ipFinalLang = lang
+      }
+    })
+
+    this.$i18n.locale = ipFinalLang
+    const newLocale = { value: ipFinalLang, label: this.$t(supportedLangsI18n[ipFinalLang]) }
+    this.$store.commit('global/setLanguage', newLocale)
+
     this.currencySelectorRerender = true
 
     const vm = this
@@ -547,14 +579,6 @@ export default {
       return
     }
 
-    const eng = ['en-us', 'en-uk', 'en-gb', 'en']
-    const supportedLangs = [
-      { value: 'en-us', label: this.$t('English') },
-      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
-      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
-      { value: 'de', label: this.$t('German') },
-      { value: 'es', label: this.$t('Spanish') },
-    ]
     let finalLang = ''
 
     // Adjust paytaca language according to phone's language (if supported by paytaca)
