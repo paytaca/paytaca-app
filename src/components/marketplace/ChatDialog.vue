@@ -464,8 +464,12 @@ export default defineComponent({
     watch(() => [props.chatRef], () => initWebsocket())
     function initWebsocket() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
+      const backendUrl = new URL(backend.defaults.baseURL)
+      const host = backendUrl.host
+      const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
+      const url = `${scheme}://${host}/ws/chat/sessions/${props.chatRef}/`
 
-      return connectWebsocket(`ws://localhost:8000/ws/chat/sessions/${props.chatRef}/`)
+      return connectWebsocket(url)
         .then(ws => {
           console.log('Websocket connected')
           websocket.value?.close?.()
