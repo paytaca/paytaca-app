@@ -171,10 +171,13 @@ export default {
         .then(response => {
           this.isArbiter = response.data.is_arbiter
           this.user = response.data.user
-          this.usernickname = this.user.name
+
           if (this.user) {
+            this.usernickname = this.user.name
             this.$store.commit('ramp/updateUser', this.user)
             this.$store.dispatch('ramp/loadAuthHeaders')
+          } else {
+            this.register = true
           }
           const token = getCookie('token')
           if (token) {
@@ -182,7 +185,7 @@ export default {
           }
         })
         .catch(error => {
-          console.error(error.response)
+          console.error(error)
           if (error.response) {
             if (error.response.status === 404) {
               this.register = true
