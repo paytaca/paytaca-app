@@ -1,22 +1,17 @@
-import crypto from 'crypto'
-import { getKeypair, savePrivkey, privToPub, updatePubkey } from './keys'
+import { updatePubkey, generateKeypair, sha256 } from './keys'
+import { loadWallet } from 'src/wallet'
+import { Store } from 'src/store'
+
+async function getKeypairSeed() {
+  const wallet = await loadWallet('BCH', Store.getters['global/getWalletIndex'])
+  const privkey = await wallet.BCH.getPrivateKey('0')
+  return privkey
+}
 
 export async function updateOrCreateKeypair() {
-  const keypair = await getKeypair()
-    .catch(error => {
-      console.error(error)
-      return { privkey: '', pubkey: '' }
-    })
+  const seed = await getKeypairSeed()
+  const keypair = generateKeypair({ seed })
 
-  if (!keypair?.privkey) {
-    const newPrivkey = crypto.randomFillSync(new Uint8Array(32))
-    keypair.privkey = Buffer.from(newPrivkey).toString('hex')
-    keypair.pubkey = privToPub(keypair.privkey)
-
-    await savePrivkey(keypair.privkey)
-      .then(success => success || Promise.reject())
-      .catch(() => Promise.reject('Failed to save privkey locally'))
-  }
   await updatePubkey(keypair.pubkey)
     .catch(error => {
       console.error(error)
@@ -26,11 +21,7 @@ export async function updateOrCreateKeypair() {
   return keypair
 }
 
-/**
- * @param {String} data 
- */
-export function sha256(data) {
-  const _sha256 = crypto.createHash('sha256')
-  _sha256.update(Buffer.from(data, 'utf8'))
-  return _sha256.digest().toString('hex')
+
+export {
+  sha256,
 }
