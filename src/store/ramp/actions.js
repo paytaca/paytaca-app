@@ -96,7 +96,8 @@ export async function fetchAds (context, { component = null, params = null, over
   if (!state.authHeaders) {
     throw new Error('Ramp authentication headers not initialized')
   }
-  // Setup pagination parameters based on component & transaction type
+  // Setup pagination parameters based on
+  // component & transaction type
   let pageNumber = null
   let totalPages = null
   switch (component) {
@@ -297,42 +298,16 @@ export async function fetchAppeals (context, { appealState = null, params = null
   }
 }
 
-export async function fetchOwnedAds (context, params, headers) {
-  const state = context.state
-
-  // Setup pagination parameters based on transaction type
-  let storeCurrentPage = state.storeBuyPageNumber
-  let storeTotalPages = state.storeBuyTotalPages
-  if (params.trade_type === 'SELL') {
-    storeCurrentPage = state.storeSellPageNumber
-    storeTotalPages = state.storeSellTotalPages
-  }
-
-  if (storeCurrentPage <= storeTotalPages) {
-    // Increment page by 1 if not fetching data for the first time
-    if (storeCurrentPage !== null) storeCurrentPage++
-
-    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
-    params.page = storeCurrentPage
-    params.limit = state.itemsPerPage
-
-    try {
-      const data = await axiosInstance.get(apiURL, { params: params })
-
-      switch (params.trade_type) {
-        case 'BUY':
-          context.commit('updateStoreBuyListings', data.data)
-          context.commit('incStoreBuyPage')
-          break
-        case 'SELL':
-          context.commit('updateStoreSellListings', data.data)
-          context.commit('incStoreSellPage')
-          break
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-      throw error
-    }
+export async function fetchPaymentTypes (context) {
+  try {
+    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/payment-type'
+    const headers = { ...context.state.authHeaders }
+    headers.Authorization = `Token ${getCookie('token')}`
+    const { data: paymentTypes } = await axiosInstance.get(apiURL, { headers: headers })
+    context.commit('updatePaymentTypes', paymentTypes)
+    console.log('paymentTypes:', paymentTypes)
+  } catch (error) {
+    console.error('Error fetching data:', error)
+    throw error
   }
 }
-

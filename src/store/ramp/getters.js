@@ -220,3 +220,7 @@ export function authHeaders (state) {
   headers.Authorization = `Token ${getCookie('token')}`
   return headers
 }
+
+export function paymentTypes (state) {
+  return state.paymentTypes
+}

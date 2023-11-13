@@ -246,36 +246,19 @@ export default {
   },
   async mounted () {
     const vm = this
-    if (!vm.listings || vm.listings.length === 0) {
-      vm.loading = true
-    }
-    vm.getStoreFilters()
     await vm.fetchFiatCurrencies()
     await vm.fetchPaymentTypes()
-    await vm.resetAndRefetchListings()
+    vm.getStoreFilters()
+    if (!vm.listings || vm.listings.length === 0) {
+      await vm.resetAndRefetchListings()
+    }
     vm.loading = false
   },
   methods: {
     async fetchPaymentTypes () {
       const vm = this
-      await vm.$axios.get(vm.apiURL + '/payment-type', { headers: vm.authHeaders })
-        .then(response => {
-          const paymentTypes = response.data
-          vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
-          if (vm.storeFilters.payment_types && vm.storeFilters.payment_types.length === 0) {
-            vm.storeFilters.payment_types = vm.defaultFilters.payment_types
-          }
-          vm.$store.commit('ramp/updateFilterPaymentTypes', vm.defaultFilters.payment_types)
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          }
-        })
+      const paymentTypes = vm.$store.getters['ramp/paymentTypes']
+      vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
     },
     async fetchFiatCurrencies () {
       const vm = this
@@ -451,7 +434,7 @@ export default {
       }
       this.storeFilters = filters
       this.defaultFiltersOn = this.isdefaultFiltersOn(filters)
-    },
+    }
   }
 }
 </script>

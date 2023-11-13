@@ -557,7 +557,7 @@ export default {
 
       },
       ptl: [5, 15, 30, 60, 300, 720, 1440],
-      paymentTypes: [],
+      paymentTypes: this.$store.getters['ramp/paymentTypes'],
       paymentMethodOpts: [],
       selectedPaymentMethods: [],
 
@@ -600,7 +600,6 @@ export default {
   },
   async mounted () {
     const vm = this
-    await vm.fetchPaymentTypes()
     vm.checkDialogType()
     if (vm.addPaymentMethod) {
       vm.selectedPaymentMethods = vm.currentPaymentMethods.map((element) => {
@@ -622,7 +621,6 @@ export default {
       this.storeFilters.priceTypes = filters.price_types
       this.storeFilters.selectedPaymentTypes = filters.payment_types
       this.storeFilters.selectedPTL = filters.time_limits
-      console.log('storeFilters:', this.storeFilters)
     },
     addFilterInfo (data, type = '') {
       let temp = null
@@ -859,22 +857,15 @@ export default {
       }
     },
     resetFilters () {
-      this.fetchPaymentTypes()
-      console.log('updated paymentTypes:', this.paymentTypes)
       let filters = null
       if (this.$parent.transactionType === 'SELL') {
         this.$store.commit('ramp/resetStoreSellFilters')
-        const paymentTypeIds = this.paymentTypes.map(p => p.id)
-        this.$store.commit('ramp/updateSellFilterPaymentTypes', paymentTypeIds)
         filters = this.$store.getters['ramp/storeSellFilters']
       }
       if (this.$parent.transactionType === 'BUY') {
         this.$store.commit('ramp/resetStoreBuyFilters')
-        const paymentTypeIds = this.paymentTypes.map(p => p.id)
-        this.$store.commit('ramp/updateBuyFilterPaymentTypes', paymentTypeIds)
         filters = this.$store.getters['ramp/storeBuyFilters']
       }
-      console.log('filters:', filters)
       this.updateStoreFilters(filters)
     },
     submitData () {
@@ -902,22 +893,6 @@ export default {
       })
 
       this.paymentTypes = match
-    },
-    async fetchPaymentTypes () {
-      const vm = this
-      await vm.$axios.get(vm.apiURL + '/payment-type', { headers: vm.authHeaders })
-        .then(response => {
-          vm.paymentTypes = response.data
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          }
-        })
     },
     onProceedAppeal () {
       this.appeal = false

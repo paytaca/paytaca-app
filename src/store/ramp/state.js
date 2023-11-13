@@ -58,6 +58,7 @@ export default function () {
       price_types: ['FIXED', 'FLOATING'],
       payment_types: [],
       time_limits: [5, 15, 30, 60, 300, 720, 1440]
-    }
+    },
+    paymentTypes: []
   }
 }

@@ -28,20 +28,18 @@ export function resetStoreBuyFilters (state) {
   state.storeBuyFilters = {
     price_order: 'descending',
     price_types: ['FIXED', 'FLOATING'],
-    payment_types: [],
+    payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440]
   }
-  console.log('--storeBuyFilters:', state.storeBuyFilters)
 }
 
 export function resetStoreSellFilters (state) {
   state.storeSellFilters = {
     price_order: 'ascending',
     price_types: ['FIXED', 'FLOATING'],
-    payment_types: [],
+    payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440]
   }
-  console.log('--storeBuyFilters:', state.storeSellFilters)
 }
 
 export function updateUser (state, user) {
@@ -236,4 +234,12 @@ export function updateWallet (state, wallet) {
 
 export function updateAuthHeaders (state, headers) {
   state.authHeaders = headers
+}
+
+export function updatePaymentTypes (state, paymentTypes) {
+  state.paymentTypes = paymentTypes
+}
+
+export function resetPaymentTypes (state) {
+  state.paymentTypes = []
 }

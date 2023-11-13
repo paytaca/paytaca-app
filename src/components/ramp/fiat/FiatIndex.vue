@@ -57,10 +57,12 @@ export default {
     ProgressLoader
   },
   async mounted () {
+    await this.$store.dispatch('ramp/fetchPaymentTypes')
     this.isLoading = false
   },
   async beforeUnmount () {
     this.$store.commit('ramp/resetStoreFilters')
+    this.$store.commit('ramp/resetPaymentTypes')
   },
   watch: {
     menu (val) {
