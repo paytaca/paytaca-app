@@ -27,7 +27,7 @@
             @paid="onJppPaymentSucess()"
           />
         </div>
-        <div v-else class="q-mt-xl">
+        <div v-else class="q-mt-xl send-form-container">
           <div class="q-pa-md" style="padding-top: 20px;">
             <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
             <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
@@ -85,119 +85,122 @@
                 </q-expansion-item>
               </q-list>
             </div> -->
-            <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -100px;">
+            <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
               <!-- <q-btn label="test hehe" @click="handleSubmit" /> -->
-              <q-list>
+              <q-list v-for="(recipient, index) in sendData.recipients" v-bind:key="index">
                 <q-expansion-item
                   default-opened
                   dense
                   dense-toggle
-                  label="RECIPIENT #1"
                   class="q-expansion-item-recipient"
+                  v-model="expandedItems[`R${index + 1}`]"
+                  :label="`Recipient #${index + 1}`"
                 >
-                  <div class="row">
-                    <div class="col q-mt-sm se recipient-input-qr">
-                      <q-input
-                        filled
-                        v-model="sendData.recipientAddress"
-                        label-slot
-                        :disabled="disableRecipientInput"
-                        :readonly="disableRecipientInput"
-                        :dark="darkMode"
-                        class="recipient-input"
-                      >
-                        <template v-slot:label>
-                          {{ $t('Recipient') }}
-                        </template>
-                      </q-input>
-                      <q-btn
-                        round
-                        size="lg"
-                        class="btn-scan button text-white bg-grad"
-                        icon="mdi-qrcode"
-                        @click="showQrScanner = true"
-                      />
-                    </div>
-                  </div>
-                  <template v-if="$store.state.global.online !== false">
-                    <div class="row" v-if="!isNFT">
-                      <div class="col q-mt-md">
-                        <q-input
-                          type="text"
-                          inputmode="none"
-                          @focus="readonlyState(true)"
-                          @blur="readonlyState(false)"
-                          filled
-                          v-model="amountFormatted"
-                          :label="$t('Amount')"
-                          :loading="computingMax"
-                          :disabled="disableAmountInput || setAmountInFiat"
-                          :readonly="disableAmountInput || setAmountInFiat"
-                          :dark="darkMode"
-                          :error="balanceExceeded"
-                          :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
-                        >
-                          <template v-slot:append>
-                            {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
-                            <DenominatorTextDropdown
-                              v-if="!sendData.fixedAmount"
-                              @on-selected-denomination="onSelectedDenomination"
-                              :selectedNetwork="asset.symbol"
-                              :darkMode="darkMode"
-                              :theme="theme"
-                              :currentCountry="currentCountry"
-                            />
-                          </template>
-                        </q-input>
-                        <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                          {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-                        </div>
-                      </div>
-                    </div>
-                    <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
-                      <div class="col q-mt-md">
-                        <q-input
-                          type="text"
-                          inputmode="none"
-                          @focus="readonlyState(true)"
-                          @blur="readonlyState(false)"
-                          filled
-                          v-model="sendAmountInFiat"
-                          :label="$t('Amount')"
-                          :disabled="disableAmountInput"
-                          :readonly="disableAmountInput"
-                          :dark="darkMode"
-                        >
-                          <template v-slot:append>
-                            {{ String(currentSendPageCurrency()).toUpperCase() }}
-                          </template>
-                        </q-input>
-                        <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                          {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-                        </div>
-                      </div>
-                    </div>
-                  </template>
-                  <div class="row" v-if="!isNFT && !sendData.fixedAmount">
-                    <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                      {{ parseAssetDenomination(selectedDenomination, asset) }}
-                      <template v-if="asset.id === 'bch' && setAmountInFiat">
-                        {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), currentSendPageCurrency())}` }}
-                      </template>
-                      <a
-                        href="#"
-                        v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
-                        @click.prevent="setMaximumSendAmount"
-                        style="float: right; text-decoration: none; color: #3b7bf6;"
-                        class="button button-text-primary"
-                        :class="getDarkModeClass(darkMode)"
-                      >
-                        {{ $t('MAX') }}
-                      </a>
-                    </div>
-                  </div>
+                  <SendPageForm />
                 </q-expansion-item>
               </q-list>
+
+              <div class="row">
+                <div class="col q-mt-sm se recipient-input-qr">
+                  <q-input
+                    filled
+                    v-model="sendData.recipientAddress"
+                    label-slot
+                    :disabled="disableRecipientInput"
+                    :readonly="disableRecipientInput"
+                    :dark="darkMode"
+                    class="recipient-input"
+                  >
+                    <template v-slot:label>
+                      {{ $t('Recipient') }}
+                    </template>
+                  </q-input>
+                  <q-btn
+                    round
+                    size="lg"
+                    class="btn-scan button text-white bg-grad"
+                    icon="mdi-qrcode"
+                    @click="showQrScanner = true"
+                  />
+                </div>
+              </div>
+              <template v-if="$store.state.global.online !== false">
+                <div class="row" v-if="!isNFT">
+                  <div class="col q-mt-md">
+                    <q-input
+                      type="text"
+                      inputmode="none"
+                      @focus="readonlyState(true), onInputFocus(index)"
+                      @blur="readonlyState(false)"
+                      filled
+                      v-model="amountFormatted"
+                      :label="$t('Amount')"
+                      :loading="computingMax"
+                      :disabled="disableAmountInput || setAmountInFiat"
+                      :readonly="disableAmountInput || setAmountInFiat"
+                      :dark="darkMode"
+                      :error="balanceExceeded"
+                      :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
+                    >
+                      <template v-slot:append>
+                        {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
+                        <DenominatorTextDropdown
+                          v-if="!sendData.fixedAmount"
+                          @on-selected-denomination="onSelectedDenomination"
+                          :selectedNetwork="asset.symbol"
+                          :darkMode="darkMode"
+                          :theme="theme"
+                          :currentCountry="currentCountry"
+                        />
+                      </template>
+                    </q-input>
+                    <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
+                    </div>
+                  </div>
+                </div>
+                <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
+                  <div class="col q-mt-md">
+                    <q-input
+                      type="text"
+                      inputmode="none"
+                      @focus="readonlyState(true), onInputFocus(index)"
+                      @blur="readonlyState(false)"
+                      filled
+                      v-model="sendAmountInFiat"
+                      :label="$t('Amount')"
+                      :disabled="disableAmountInput"
+                      :readonly="disableAmountInput"
+                      :dark="darkMode"
+                    >
+                      <template v-slot:append>
+                        {{ String(currentSendPageCurrency()).toUpperCase() }}
+                      </template>
+                    </q-input>
+                    <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div class="row" v-if="!isNFT && !sendData.fixedAmount" style="padding-bottom: 15px">
+                <div class="col q-mt-md" style="font-size: 18px; color: gray;">
+                  {{ parseAssetDenomination(selectedDenomination, asset) }}
+                  <template v-if="asset.id === 'bch' && setAmountInFiat">
+                    {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), currentSendPageCurrency())}` }}
+                  </template>
+                  <a
+                    href="#"
+                    v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
+                    @click.prevent="setMaximumSendAmount(), onInputFocus(index)"
+                    style="float: right; text-decoration: none; color: #3b7bf6;"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    {{ $t('MAX') }}
+                  </a>
+                </div>
+              </div>
               <div class="row" v-if="!sendData.fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
                 <div class="col q-mt-md">
                   <a
@@ -366,6 +369,7 @@ import {
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
+import SendPageForm from 'src/components/SendPageForm.vue'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -384,7 +388,8 @@ export default {
     customKeyboard,
     QrScanner,
     VOffline,
-    DenominatorTextDropdown
+    DenominatorTextDropdown,
+    SendPageForm
   },
   props: {
     network: {
@@ -503,7 +508,10 @@ export default {
       amountFormatted: null,
       selectedDenomination: 'BCH',
       paymentCurrency: null,
-      payloadAmount: 0
+      payloadAmount: 0,
+      expandedItems: {},
+      currentActiveRecipientIndex: 0,
+      inputExtras: []
     }
   },
 
@@ -754,6 +762,7 @@ export default {
         } else {
           amount = amountValue
         }
+
         if (amountValue !== null) {
           this.sliderStatus = true
           this.amountFormatted = amount
@@ -769,6 +778,10 @@ export default {
           address,
           amount,
           tokenAmount: 0
+        })
+        this.inputExtras.push({
+          amountFormatted: parseFloat(getAssetDenomination(this.selectedDenomination, amount, true)),
+          sendAmountInFiat: 0
         })
       }
     },
@@ -1138,7 +1151,6 @@ export default {
       const vm = this
       let address = this.sendData.recipientAddress
       const addressObj = new Address(address)
-      console.log(addressObj)
       const addressValidation = this.validateAddress(address)
       const addressIsValid = addressValidation.valid
       const amountIsValid = this.validateAmount(this.sendData.amount)
@@ -1376,12 +1388,19 @@ export default {
       return this.paymentCurrency ?? this.selectedMarketCurrency
     },
     addAnotherRecipient () {
-      if (this.sendData.recipients.length < 5) {
+      const recipientsLength = this.sendData.recipients.length
+
+      if (recipientsLength < 5) {
         this.sendData.recipients.push({
           address: '',
           amount: 0,
           tokenAmount: 0
         })
+        this.inputExtras.push({
+          amountFormatted: 100,
+          sendAmountInFiat: 0
+        })
+        this.expandedItems[`R${recipientsLength}`] = false
       } else {
         this.$q.notify({
           type: 'negative',
@@ -1391,6 +1410,9 @@ export default {
           message: 'Cannot add more than 5 recipients.'
         })
       }
+    },
+    onInputFocus (value) {
+      this.currentActiveRecipientIndex = value
     }
   },
 
@@ -1676,5 +1698,15 @@ export default {
   }
   .q-expansion-item-recipient {
     font-size: 18px;
+  }
+  .send-form-container {
+    max-height: 65vh;
+    overflow-y: scroll;
+
+    .send-form {
+      font-size: 26px !important;
+      margin-top: -100px;
+      padding-top: 20px;
+    }
   }
 </style>
