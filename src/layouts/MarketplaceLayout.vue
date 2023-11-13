@@ -160,16 +160,23 @@ export default {
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
     onUnmounted(() => marketplaceRpc.disconnect())
+
+    /**
+     * Use loadAppPromise to ensure other initialization
+     * processes have the correct data (e.g. request signer, customer id, etc)
+     * 
+     * Best use setTimeout inside an onMounted hook to prevent race conditions, for example:
+     *  onMounted(setTimeout(() => {
+     *    // code here
+     *  }, 100))
+     */
     const loadingApp = ref(false)
-    onMounted(async () => {
-      try {
+    const loadAppPromise = ref(null)
+    onMounted(() => loadApp())
+    async function loadApp() {
+      if (loadAppPromise.value) return loadAppPromise.value
+      loadAppPromise.value = new Promise(async resolve => {
         loadingApp.value = true
-        await $store.dispatch('marketplace/refetchCustomerData')
-          .then(() => {
-            const customerId = $store.getters['marketplace/customer']?.id
-            marketplacePushNotificationsManager.subscribe(customerId)
-          })
-        $store.dispatch('marketplace/refetchCustomerLocations')
         const signerData = await getSignerData()
         const walletHash = signerData?.value?.split(':')[0]
         const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash
@@ -180,17 +187,32 @@ export default {
           })
         }
 
-        if (!window.$promptedMarketplaceCustomerDetails) {
-          promptUserDetails()
-            .then(response => {
-              console.log(response)
-              window.$promptedMarketplaceCustomerDetails = true
-            })
-        }
-      } finally {
-        loadingApp.value = false
+        await $store.dispatch('marketplace/refetchCustomerData')
+          .then(() => {
+            const customerId = $store.getters['marketplace/customer']?.id
+            marketplacePushNotificationsManager.subscribe(customerId)
+          })
+        $store.dispatch('marketplace/refetchCustomerLocations')
+        resolve()
+      })
+
+      return loadAppPromise.value
+        .finally(() => {
+          loadingApp.value = false
+          loadAppPromise.value = null
+        })
+    }
+
+    onMounted(() => setTimeout(async () => {
+      await loadAppPromise.value?.catch?.(console.error)
+      if (!window.$promptedMarketplaceCustomerDetails) {
+        promptUserDetails()
+          .then(response => {
+            console.log(response)
+            window.$promptedMarketplaceCustomerDetails = true
+          })
       }
-    })
+    }, 100))
 
     function promptUserDetails() {
       if (customer.value?.defaultLocation?.validCoordinates) return Promise.resolve('valid_coordinates')
@@ -242,7 +264,10 @@ export default {
       $store.dispatch('marketplace/saveCart', cart)
     }
 
-    onMounted(() => updateOrCreateKeypair())
+    onMounted(() => setTimeout(async () => {
+      await loadAppPromise.value?.catch?.(console.error)
+      updateOrCreateKeypair()
+    }, 100))
     watch(() => [customer?.id], () => updateOrCreateKeypair())
 
     return {
