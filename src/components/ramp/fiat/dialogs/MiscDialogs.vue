@@ -404,7 +404,16 @@
         </div>
 
         <div class="text-center q-pt-sm q-px-sm q-pb-lg">
-          <div class="row q-pt-md">
+          <div class="row q-gutter-sm q-pt-md">
+            <q-btn
+              rounded
+              no-caps
+              label='Reset'
+              class="q-space text-white"
+              color="blue-6"
+              outline
+              @click="resetFilters()"
+            />
             <q-btn
               rounded
               no-caps
@@ -607,17 +616,13 @@ export default {
     vm.fetchPaymentMethod()
   },
   methods: {
-    getStoreFilters () {
-      const filters = JSON.parse(JSON.stringify(this.filters))
+    updateStoreFilters (filters) {
       if (!filters) return
-      if (filters.price_order) {
-        this.storeFilters.priceOrder = filters.price_order
-      } else {
-        this.storeFilters.priceOrder = this.$parent.transactionType === 'SELL' ? 'ascending' : 'descending'
-      }
+      this.storeFilters.priceOrder = filters.price_order
       this.storeFilters.priceTypes = filters.price_types
       this.storeFilters.selectedPaymentTypes = filters.payment_types
       this.storeFilters.selectedPTL = filters.time_limits
+      console.log('storeFilters:', this.storeFilters)
     },
     addFilterInfo (data, type = '') {
       let temp = null
@@ -780,7 +785,7 @@ export default {
           break
         case 'filterAd':
           vm.filterAd = true
-          vm.getStoreFilters()
+          vm.updateStoreFilters(JSON.parse(JSON.stringify(vm.filters)))
           break
         case 'appeal':
           vm.appeal = true
@@ -852,6 +857,25 @@ export default {
           return 'submit'
         // TODO: Add case for 'filterAd'
       }
+    },
+    resetFilters () {
+      this.fetchPaymentTypes()
+      console.log('updated paymentTypes:', this.paymentTypes)
+      let filters = null
+      if (this.$parent.transactionType === 'SELL') {
+        this.$store.commit('ramp/resetStoreSellFilters')
+        const paymentTypeIds = this.paymentTypes.map(p => p.id)
+        this.$store.commit('ramp/updateSellFilterPaymentTypes', paymentTypeIds)
+        filters = this.$store.getters['ramp/storeSellFilters']
+      }
+      if (this.$parent.transactionType === 'BUY') {
+        this.$store.commit('ramp/resetStoreBuyFilters')
+        const paymentTypeIds = this.paymentTypes.map(p => p.id)
+        this.$store.commit('ramp/updateBuyFilterPaymentTypes', paymentTypeIds)
+        filters = this.$store.getters['ramp/storeBuyFilters']
+      }
+      console.log('filters:', filters)
+      this.updateStoreFilters(filters)
     },
     submitData () {
       const vm = this

@@ -336,34 +336,3 @@ export async function fetchOwnedAds (context, params, headers) {
   }
 }
 
-// export function resetStorePagination (context) {
-//   context.commit('resetStorePagination')
-// }
-
-// export function resetAdsPagination (context) {
-//   context.commit('resetAdsPagination')
-// }
-
-// export function resetOrdersPagination (context) {
-//   context.commit('resetOrdersPagination')
-// }
-
-// export function resetAppealsPagination (context) {
-//   context.commit('resetAppealsPagination')
-// }
-
-// export function resetPagination (context) {
-//   context.commit('resetPagination')
-// }
-
-// export function resetData (context) {
-//   context.commit('resetData')
-// }
-
-// export function saveTxid (context, data) {
-//   context.commit('saveTxid', data)
-// }
-
-// export function clearOrderTxids (context, id) {
-//   context.commit('clearOrderTxids', id)
-// }

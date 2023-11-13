@@ -7,8 +7,16 @@ export function updateStoreSellFilters (state, filters) {
 }
 
 export function updateFilterPaymentTypes (state, paymentTypes) {
-  state.storeBuyFilters.payment_types = paymentTypes
+  updateSellFilterPaymentTypes(state, paymentTypes)
+  updateBuyFilterPaymentTypes(state, paymentTypes)
+}
+
+export function updateSellFilterPaymentTypes (state, paymentTypes) {
   state.storeSellFilters.payment_types = paymentTypes
+}
+
+export function updateBuyFilterPaymentTypes (state, paymentTypes) {
+  state.storeBuyFilters.payment_types = paymentTypes
 }
 
 export function resetStoreFilters (state) {
