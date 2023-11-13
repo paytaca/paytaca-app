@@ -169,27 +169,26 @@ export default {
       const url = `${this.apiURL}/ramp-p2p/user`
       await this.$axios.get(url, { headers: { 'wallet-hash': this.wallet.walletHash } })
         .then(response => {
-          this.isArbiter = response.data.is_arbiter
-          this.user = response.data.user
-
-          if (this.user) {
+          if (response.data.user) {
+            this.isArbiter = response.data.is_arbiter
+            this.user = response.data.user
             this.usernickname = this.user.name
-            this.$store.commit('ramp/updateUser', this.user)
-            this.$store.dispatch('ramp/loadAuthHeaders')
+            if (this.user) {
+              this.$store.commit('ramp/updateUser', this.user)
+              this.$store.dispatch('ramp/loadAuthHeaders')
+            }
+            const token = getCookie('token')
+            if (token) {
+              this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
+            }
           } else {
             this.register = true
-          }
-          const token = getCookie('token')
-          if (token) {
-            this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
           }
         })
         .catch(error => {
           console.error(error)
           if (error.response) {
-            if (error.response.status === 404) {
-              this.register = true
-            }
+            console.error(error.response)
           }
         })
     },
@@ -248,7 +247,7 @@ export default {
           'public-key': this.wallet.publicKey
         }
         const body = {
-          name: this.nickname,
+          name: this.usernickname,
           address: this.wallet.address
         }
         const { data: user } = await this.$axios.post(url, body, { headers: headers })
