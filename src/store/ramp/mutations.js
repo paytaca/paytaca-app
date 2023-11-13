@@ -1,11 +1,14 @@
 export function updateStoreBuyFilters (state, filters) {
   state.storeBuyFilters = filters
-  console.log('Updated BUY Filters:', state.storeBuyFilters)
 }
 
 export function updateStoreSellFilters (state, filters) {
   state.storeSellFilters = filters
-  console.log('Updated SELL Filters:', state.storeSellFilters)
+}
+
+export function updateFilterPaymentTypes (state, paymentTypes) {
+  state.storeBuyFilters.payment_types = paymentTypes
+  state.storeSellFilters.payment_types = paymentTypes
 }
 
 export function resetStoreFilters (state) {

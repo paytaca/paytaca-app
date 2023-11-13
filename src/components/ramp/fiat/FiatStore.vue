@@ -210,7 +210,6 @@ export default {
       }
       vm.defaultFilters.price_order = val === 'SELL' ? 'ascending' : 'descending'
       vm.getStoreFilters()
-      console.log('ggggg storeFilters:', vm.storeFilters)
     },
     async selectedCurrency () {
       this.loading = true
@@ -266,12 +265,12 @@ export default {
     },
     receiveDialog (data) {
       this.openDialog = false
-      this.$store.commit('ramp/updateStoreFilters', data)
+      const mutationName = this.transactionType === 'SELL' ? 'ramp/updateStoreSellFilters' : 'ramp/updateStoreBuyFilters'
+      this.$store.commit(mutationName, data)
+      this.getStoreFilters()
       this.filterAds()
     },
     isdefaultFiltersOn (storedFilters) {
-      console.log('storedFilters:', storedFilters)
-      console.log('defaultFilters:', this.defaultFilters)
       if ((storedFilters.price_order && this.defaultFilters.price_order !== storedFilters.price_order) ||
           (JSON.stringify(this.defaultFilters.price_types.sort()) !== JSON.stringify(storedFilters.price_types.sort())) ||
           JSON.stringify(this.defaultFilters.payment_types.sort()) !== JSON.stringify(storedFilters.payment_types.sort()) ||
@@ -286,15 +285,19 @@ export default {
         .then(response => {
           const paymentTypes = response.data
           vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
-          if (vm.storeFilters.payment_types.length === 0) {
+          if (vm.storeFilters.payment_types && vm.storeFilters.payment_types.length === 0) {
             vm.storeFilters.payment_types = vm.defaultFilters.payment_types
           }
-          // console.log('>> storeFilters:', vm.storeFilters)
-          // console.log('>> defaultFilters:', vm.defaultFilters)
+          vm.$store.commit('ramp/updateFilterPaymentTypes', vm.defaultFilters.payment_types)
         })
         .catch(error => {
           console.error(error)
-          console.error(error.response)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
         })
     },
     getStoreFilters () {
@@ -304,7 +307,6 @@ export default {
       if (paymentTypes.length === 0) {
         paymentTypes = Array.from(this.defaultFilters.payment_types)
       }
-      console.log('defaultFiltersOn:', this.defaultFiltersOn)
       const filters = {
         owned: false,
         currency: this.selectedCurrency.symbol,
@@ -314,7 +316,7 @@ export default {
         price_order: storedFilters.price_order,
         price_types: storedFilters.price_types
       }
-      this.storedFilters = filters
+      this.storeFilters = filters
       this.defaultFiltersOn = this.isdefaultFiltersOn(storedFilters)
     },
     async fetchFiatCurrencies () {
@@ -328,15 +330,15 @@ export default {
         })
         .catch(error => {
           console.error(error)
-          console.error(error.response)
-
           vm.fiatCurrencies = vm.availableFiat
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
-
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
     },
@@ -349,9 +351,11 @@ export default {
           await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
         } catch (error) {
           console.error(error)
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         }
         vm.loading = false
@@ -405,7 +409,6 @@ export default {
       }
     },
     onOrderCanceled () {
-      // console.log('onOrderCanceled')
       this.$emit('orderCanceled')
     },
     selectCurrency (index) {
@@ -413,7 +416,6 @@ export default {
     },
     selectListing (listing) {
       const vm = this
-
       vm.selectedListing = listing
       vm.state = vm.transactionType
     },
@@ -435,9 +437,12 @@ export default {
       try {
         await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: true })
       } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        console.error(error)
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         }
       }
       vm.updatePaginationValues()

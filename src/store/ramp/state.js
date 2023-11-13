@@ -48,13 +48,13 @@ export default function () {
 
     // store filters
     storeBuyFilters: {
-      price_order: null,
+      price_order: 'descending',
       price_types: ['FIXED', 'FLOATING'],
       payment_types: [],
       time_limits: [5, 15, 30, 60, 300, 720, 1440]
     },
     storeSellFilters: {
-      price_order: null,
+      price_order: 'ascending',
       price_types: ['FIXED', 'FLOATING'],
       payment_types: [],
       time_limits: [5, 15, 30, 60, 300, 720, 1440]

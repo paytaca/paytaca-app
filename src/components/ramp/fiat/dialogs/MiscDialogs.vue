@@ -348,7 +348,7 @@
           </div>
         </div>
         <div v-if="storeFilters.selectedPaymentTypes" class="q-pt-md">
-          <div class="sm-font-size bold-text">Payment Method</div>
+          <div class="sm-font-size bold-text">Payment Type</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -489,6 +489,7 @@
 <script>
 import { debounce } from 'quasar'
 import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   emits: ['back', 'submit'],
@@ -607,38 +608,35 @@ export default {
   },
   methods: {
     getStoreFilters () {
-      const filters = this.filters
+      const filters = JSON.parse(JSON.stringify(this.filters))
       if (!filters) return
-
       if (filters.price_order) {
         this.storeFilters.priceOrder = filters.price_order
       } else {
         this.storeFilters.priceOrder = this.$parent.transactionType === 'SELL' ? 'ascending' : 'descending'
       }
-      console.log('this.storeFilters.priceOrder:', this.storeFilters.priceOrder)
       this.storeFilters.priceTypes = filters.price_types
       this.storeFilters.selectedPaymentTypes = filters.payment_types
       this.storeFilters.selectedPTL = filters.time_limits
     },
     addFilterInfo (data, type = '') {
       let temp = null
-
       if (data === 'all') {
         if (type === 'all-payment-type') {
-          this.storeFilters.selectedPaymentTypes = this.paymentTypes
+          this.storeFilters.selectedPaymentTypes = this.paymentTypes.map(p => p.id)
         }
         if (type === 'all-time-limits') {
           this.storeFilters.selectedPTL = this.ptl
         }
       } else {
         if (type === 'payment-types') {
-          temp = this.storeFilters.selectedPaymentTypes.map(p => p.name)
-          if (temp.includes(data.name)) {
+          temp = this.storeFilters.selectedPaymentTypes
+          if (temp.includes(data.id)) {
             if (temp.length > 1) {
-              this.storeFilters.selectedPaymentTypes = this.storeFilters.selectedPaymentTypes.filter(p => p.name !== data.name)
+              this.storeFilters.selectedPaymentTypes = this.storeFilters.selectedPaymentTypes.filter(p => p !== data.id)
             }
           } else {
-            this.storeFilters.selectedPaymentTypes.push(data)
+            this.storeFilters.selectedPaymentTypes.push(data.id)
           }
         }
         if (type === 'time-limits') {
@@ -656,19 +654,15 @@ export default {
               this.storeFilters.priceTypes = this.storeFilters.priceTypes.filter(p => p !== data)
             }
           } else {
-            console.log('hee')
             this.storeFilters.priceTypes.push(data)
-            console.log('hoo')
           }
         }
       }
     },
     isOutlined (data, type = '') {
-      let temp = null
-
       if (type === 'payment-types') {
-        temp = this.storeFilters.selectedPaymentTypes.map(p => p.name)
-        return !temp.includes(data.name)
+        const temp = this.storeFilters.selectedPaymentTypes
+        return !temp.includes(data.id)
       }
       if (type === 'time-limits') {
         return !this.storeFilters.selectedPTL.includes(data)
@@ -707,7 +701,13 @@ export default {
           vm.loading = false
         })
         .catch(error => {
-          console.log(error.response)
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
           vm.loading = false
         })
     },
@@ -726,7 +726,6 @@ export default {
       } else {
         vm.selectedPaymentMethods = vm.selectedPaymentMethods.filter((element) => element.id !== paymentMethod.id)
       }
-      // console.log('selectedPaymentMethods:', vm.selectedPaymentMethods)
     },
     checkDialogType () {
       const vm = this
@@ -830,8 +829,7 @@ export default {
             price_order: vm.storeFilters.priceOrder
           }
           if (vm.storeFilters.selectedPaymentTypes) {
-            console.log('????selectedPaymentTypes: ', vm.storeFilters.selectedPaymentTypes)
-            vm.info.payment_types = vm.storeFilters.selectedPaymentTypes.map(e => e.id)
+            vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
           }
           if (vm.storeFilters.selectedPTL) {
             vm.info.time_limits = vm.storeFilters.selectedPTL
@@ -889,7 +887,12 @@ export default {
         })
         .catch(error => {
           console.error(error)
-          console.error(error.response)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
         })
     },
     onProceedAppeal () {
@@ -905,7 +908,6 @@ export default {
       } else {
         this.selectedReasons.push(reason)
       }
-      console.log('selectedReasons:', this.selectedReasons)
     }
   }
 }

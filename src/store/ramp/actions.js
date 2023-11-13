@@ -34,7 +34,6 @@ export async function fetchArbiter (context) {
   headers.Authorization = `Token ${getCookie('token')}`
   try {
     const response = await axiosInstance.get(url, { headers: headers, params: params })
-    console.log('response:', response)
     context.commit('updateArbiter', response.data.arbiter)
     return response.data.arbiter
   } catch (error) {
@@ -280,7 +279,6 @@ export async function fetchAppeals (context, { appealState = null, params = null
     headers.Authorization = `Token ${getCookie('token')}`
     try {
       const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
-      console.log('data:', data)
       switch (appealState) {
         case 'PENDING':
           context.commit('updatePendingAppeals', { overwrite: overwrite, data: data.data })
