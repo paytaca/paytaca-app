@@ -11,6 +11,7 @@ export async function handleOpenedNotification(context) {
 export function getOpenedNotificationRoute(context) {
   const $router = this.$router
   const openedNotification = context.getters['openedNotification']
+  console.log('openedNotification', openedNotification)
 
   let route = null
   switch(openedNotification?.data?.type) {
@@ -28,6 +29,7 @@ export function getOpenedNotificationRoute(context) {
       break
     case (NotificationTypes.MARKETPLACE_ORDER_STATUS_UPDATE):
     case (NotificationTypes.MARKETPLACE_ORDER_INCOMING_CALL):
+    case (NotificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES):
       route = {
         name: 'app-marketplace-order',
         params: { orderId: openedNotification?.data?.order_id },
@@ -36,6 +38,7 @@ export function getOpenedNotificationRoute(context) {
   }
 
   try {
+    console.log('route', route)
     return $router.resolve(route)
   } catch (error) { console.error(error) }
   return null

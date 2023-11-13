@@ -462,6 +462,7 @@ export default defineComponent({
       websocket.value?.close?.()
     })
     watch(() => [props.chatRef], () => initWebsocket())
+    watch(innerVal, () => innerVal.value ? initWebsocket() : null)
     function initWebsocket() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
       const backendUrl = new URL(backend.defaults.baseURL)

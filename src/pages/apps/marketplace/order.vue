@@ -492,6 +492,9 @@ watch(
 )
 
 const chatButton = ref()
+function openChatDialog() {
+  chatButton.value.openChatDialog = true
+}
 
 const showOrderCallDialog = ref(false)
 watch(showOrderCallDialog, () => fetchOrderCallSession())
@@ -1122,6 +1125,9 @@ function handleOpenedNotification() {
   if (type == notificationTypes.MARKETPLACE_ORDER_INCOMING_CALL) {
     fetchOrderCallSession()
     showOrderCallDialog.value = true
+    $store.commit('notification/clearOpenedNotification')
+  } else if (type == notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES) {
+    openChatDialog()
     $store.commit('notification/clearOpenedNotification')
   }
 }
