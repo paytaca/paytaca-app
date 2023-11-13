@@ -1,8 +1,17 @@
 import { getCookie } from 'src/wallet/ramp'
 
+export function storeBuyFilters (state) {
+  return state.storeBuyFilters
+}
+
+export function storeSellFilters (state) {
+  return state.storeSellFilters
+}
+
 export function getArbiter (state) {
   return state.arbiter
 }
+
 export function getUser (state) {
   return state.user
 }
@@ -209,6 +218,9 @@ export function wallet (state) {
 export function authHeaders (state) {
   const headers = { ...state.authHeaders }
   headers.Authorization = `Token ${getCookie('token')}`
-  console.log('headers:', headers)
   return headers
+}
+
+export function paymentTypes (state) {
+  return state.paymentTypes
 }

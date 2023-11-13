@@ -1,6 +1,49 @@
+export function updateStoreBuyFilters (state, filters) {
+  state.storeBuyFilters = filters
+}
+
+export function updateStoreSellFilters (state, filters) {
+  state.storeSellFilters = filters
+}
+
+export function updateFilterPaymentTypes (state, paymentTypes) {
+  updateSellFilterPaymentTypes(state, paymentTypes)
+  updateBuyFilterPaymentTypes(state, paymentTypes)
+}
+
+export function updateSellFilterPaymentTypes (state, paymentTypes) {
+  state.storeSellFilters.payment_types = paymentTypes
+}
+
+export function updateBuyFilterPaymentTypes (state, paymentTypes) {
+  state.storeBuyFilters.payment_types = paymentTypes
+}
+
+export function resetStoreFilters (state) {
+  resetStoreBuyFilters(state)
+  resetStoreSellFilters(state)
+}
+
+export function resetStoreBuyFilters (state) {
+  state.storeBuyFilters = {
+    price_order: 'descending',
+    price_types: ['FIXED', 'FLOATING'],
+    payment_types: state.paymentTypes.map(p => p.id),
+    time_limits: [5, 15, 30, 60, 300, 720, 1440]
+  }
+}
+
+export function resetStoreSellFilters (state) {
+  state.storeSellFilters = {
+    price_order: 'ascending',
+    price_types: ['FIXED', 'FLOATING'],
+    payment_types: state.paymentTypes.map(p => p.id),
+    time_limits: [5, 15, 30, 60, 300, 720, 1440]
+  }
+}
+
 export function updateUser (state, user) {
   state.user = user
-  // console.log('updated user:', state.user)
 }
 
 export function resetUser (state) {
@@ -187,10 +230,16 @@ export function resetData (state) {
 
 export function updateWallet (state, wallet) {
   state.wallet = wallet
-  // console.log('Updated wallet:', state.wallet)
 }
 
 export function updateAuthHeaders (state, headers) {
   state.authHeaders = headers
-  // console.log('Updated authHeaders: ', state.authHeaders)
+}
+
+export function updatePaymentTypes (state, paymentTypes) {
+  state.paymentTypes = paymentTypes
+}
+
+export function resetPaymentTypes (state) {
+  state.paymentTypes = []
 }

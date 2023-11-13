@@ -25,7 +25,9 @@
         </div>
         <q-space />
         <div class="q-pr-md">
-          <q-icon size="sm" name='sym_o_filter_list' @click="openFilter()"/>
+          <q-btn unelevated ripple dense size="md" icon="filter_list" @click="openFilter()">
+            <q-badge v-if="!defaultFiltersOn" floating color="red"/>
+          </q-btn>
         </div>
       </div>
       <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
@@ -35,7 +37,7 @@
       <div v-if="!loading" class="q-mt-md">
         <q-pull-to-refresh
           @refresh="refreshData">
-          <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+          <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
           </div>
@@ -130,6 +132,7 @@
   <div v-if="openDialog">
     <MiscDialogs
       :type="dialogType"
+      :filters="storeFilters"
       @back="openDialog = false"
       @submit="receiveDialog"
     />
@@ -186,11 +189,18 @@ export default {
       dialogType: '',
       // minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-      adFilter: {}
+      defaultFilters: {
+        price_order: 'ascending',
+        price_types: ['FIXED', 'FLOATING'],
+        payment_types: [],
+        time_limits: [5, 15, 30, 60, 300, 720, 1440]
+      },
+      storeFilters: {},
+      defaultFiltersOn: true
     }
   },
   watch: {
-    transactionType () {
+    transactionType (val) {
       const vm = this
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
@@ -198,6 +208,8 @@ export default {
         vm.loading = true
         vm.resetAndRefetchListings()
       }
+      vm.defaultFilters.price_order = val === 'SELL' ? 'ascending' : 'descending'
+      vm.getStoreFilters()
     },
     async selectedCurrency () {
       this.loading = true
@@ -234,28 +246,22 @@ export default {
   },
   async mounted () {
     const vm = this
-    if (!vm.listings || vm.listings.length === 0) {
-      vm.loading = true
-    }
     await vm.fetchFiatCurrencies()
-    await vm.resetAndRefetchListings()
+    await vm.fetchPaymentTypes()
+    vm.getStoreFilters()
+    if (!vm.listings || vm.listings.length === 0) {
+      await vm.resetAndRefetchListings()
+    }
     vm.loading = false
   },
   methods: {
-    maxAmount (tradeAmount, tradeCeiling) {
-      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
-        return parseFloat(tradeAmount)
-      } else {
-        return parseFloat(tradeCeiling)
-      }
-    },
-    receiveDialog (data) {
-      this.openDialog = false
-      this.filterAds(data)
+    async fetchPaymentTypes () {
+      const vm = this
+      const paymentTypes = vm.$store.getters['ramp/paymentTypes']
+      vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
     },
     async fetchFiatCurrencies () {
       const vm = this
-      console.log('FiatStore authHeaders:', vm.authHeaders)
       vm.$axios.get(vm.apiURL + '/currency/fiat', { headers: vm.authHeaders })
         .then(response => {
           vm.fiatCurrencies = response.data
@@ -265,31 +271,32 @@ export default {
         })
         .catch(error => {
           console.error(error)
-          console.error(error.response)
-
           vm.fiatCurrencies = vm.availableFiat
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
-
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
     },
     async fetchStoreListings (overwrite = false) {
       const vm = this
       if (this.selectedCurrency) {
-        const params = {
-          currency: vm.selectedCurrency.symbol,
-          trade_type: vm.transactionType
-        }
+        vm.loading = true
+        const params = vm.storeFilters
         try {
           await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
         } catch (error) {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         }
         vm.loading = false
@@ -317,6 +324,25 @@ export default {
       await vm.fetchStoreListings(true)
       vm.updatePaginationValues()
     },
+    async filterAds () {
+      const vm = this
+      vm.loading = true
+      const params = vm.storeFilters
+      await vm.$store.commit('ramp/resetStorePagination')
+      try {
+        await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: true })
+      } catch (error) {
+        console.error(error)
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        }
+      }
+      vm.updatePaginationValues()
+      vm.loading = false
+    },
     updatePaginationValues () {
       const vm = this
       vm.totalPages = vm.$store.getters['ramp/getStoreTotalPages'](this.transactionType)
@@ -343,7 +369,6 @@ export default {
       }
     },
     onOrderCanceled () {
-      // console.log('onOrderCanceled')
       this.$emit('orderCanceled')
     },
     selectCurrency (index) {
@@ -351,7 +376,6 @@ export default {
     },
     selectListing (listing) {
       const vm = this
-
       vm.selectedListing = listing
       vm.state = vm.transactionType
     },
@@ -364,31 +388,52 @@ export default {
         name: user,
         is_owner: data.is_owned
       }
-      console.log('selected user: ', this.selectedUser)
     },
-    async filterAds (params) {
-      const vm = this
-      vm.loading = true
-      console.log('filtering ads')
-      params.currency = vm.selectedCurrency.symbol
-      params.trade_type = vm.transactionType
-      console.log('params:', params)
-      vm.loading = true
-      await vm.$store.commit('ramp/resetStorePagination')
-      try {
-        await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: true })
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
+    maxAmount (tradeAmount, tradeCeiling) {
+      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
+        return parseFloat(tradeAmount)
+      } else {
+        return parseFloat(tradeCeiling)
       }
-      vm.updatePaginationValues()
-      vm.loading = false
+    },
+    receiveDialog (data) {
+      this.openDialog = false
+      const mutationName = this.transactionType === 'SELL' ? 'ramp/updateStoreSellFilters' : 'ramp/updateStoreBuyFilters'
+      this.$store.commit(mutationName, data)
+      this.getStoreFilters()
+      this.filterAds()
+    },
+    isdefaultFiltersOn (filters) {
+      if ((this.defaultFilters.price_order !== filters.price_order) ||
+          (JSON.stringify(this.defaultFilters.price_types.sort()) !== JSON.stringify(filters.price_types.sort())) ||
+          JSON.stringify(this.defaultFilters.payment_types.sort()) !== JSON.stringify(filters.payment_types.sort()) ||
+          JSON.stringify(this.defaultFilters.time_limits.sort()) !== JSON.stringify(filters.time_limits.sort())) {
+        return false
+      }
+      return true
     },
     openFilter () {
       this.openDialog = true
       this.dialogType = 'filterAd'
+    },
+    getStoreFilters () {
+      const getterName = this.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
+      const savedFilters = JSON.parse(JSON.stringify(this.$store.getters[getterName]))
+      let paymentTypes = savedFilters.payment_types
+      if (paymentTypes.length === 0) {
+        paymentTypes = Array.from(this.defaultFilters.payment_types)
+      }
+      const filters = {
+        owned: false,
+        currency: this.selectedCurrency.symbol,
+        trade_type: this.transactionType,
+        payment_types: paymentTypes,
+        time_limits: savedFilters.time_limits,
+        price_order: savedFilters.price_order,
+        price_types: savedFilters.price_types
+      }
+      this.storeFilters = filters
+      this.defaultFiltersOn = this.isdefaultFiltersOn(filters)
     }
   }
 }
@@ -456,4 +501,5 @@ export default {
 .subtext {
   opacity: .5;
 }
+
 </style>

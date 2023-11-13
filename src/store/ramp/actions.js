@@ -34,7 +34,6 @@ export async function fetchArbiter (context) {
   headers.Authorization = `Token ${getCookie('token')}`
   try {
     const response = await axiosInstance.get(url, { headers: headers, params: params })
-    console.log('response:', response)
     context.commit('updateArbiter', response.data.arbiter)
     return response.data.arbiter
   } catch (error) {
@@ -97,10 +96,8 @@ export async function fetchAds (context, { component = null, params = null, over
   if (!state.authHeaders) {
     throw new Error('Ramp authentication headers not initialized')
   }
-  /**
-   * Setup pagination parameters based on
-   * component & transaction type.
-   **/
+  // Setup pagination parameters based on
+  // component & transaction type
   let pageNumber = null
   let totalPages = null
   switch (component) {
@@ -138,23 +135,39 @@ export async function fetchAds (context, { component = null, params = null, over
     if (pageNumber !== null) pageNumber++
 
     let apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad/'
-    params.page = pageNumber
-    params.limit = state.itemsPerPage
-    let paymentMethodFilter = false
-    if (params.payment_methods.length > 0) {
-      const paymentMethods = params.payment_methods.join('&payment_methods=')
-      apiURL = `${apiURL}?payment_methods=${paymentMethods}`
-      paymentMethodFilter = true
+
+    // Build request parameters
+    const parameters = {
+      page: pageNumber,
+      limit: state.itemsPerPage,
+      price_order: params.price_order,
+      currency: params.currency,
+      owned: params.owned,
+      trade_type: params.trade_type
     }
-    if (params.time_limits.length > 0) {
+    let appendParam = false
+    if (params.payment_types && params.payment_types.length > 0) {
+      const paymentTypes = params.payment_types.join('&payment_types=')
+      apiURL = `${apiURL}?payment_types=${paymentTypes}`
+      appendParam = true
+    }
+    if (params.time_limits && params.time_limits.length > 0) {
       const timeLimits = params.time_limits.join('&time_limits=')
-      const prefix = paymentMethodFilter ? '&' : '?'
+      const prefix = appendParam ? '&' : '?'
       apiURL = `${apiURL}${prefix}time_limits=${timeLimits}`
+      appendParam = true
     }
+    if (params.time_limits && params.price_types.length > 0) {
+      const priceTypes = params.price_types.join('&price_types=')
+      const prefix = appendParam ? '&' : '?'
+      apiURL = `${apiURL}${prefix}price_types=${priceTypes}`
+    }
+
+    // Build request headers
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
-    console.log('params: ', params)
-    const response = await axiosInstance.get(apiURL, { params: params, headers: headers })
+
+    const response = await axiosInstance.get(apiURL, { params: parameters, headers: headers })
     switch (params.trade_type) {
       case 'BUY':
         switch (component) {
@@ -267,7 +280,6 @@ export async function fetchAppeals (context, { appealState = null, params = null
     headers.Authorization = `Token ${getCookie('token')}`
     try {
       const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
-      console.log('data:', data)
       switch (appealState) {
         case 'PENDING':
           context.commit('updatePendingAppeals', { overwrite: overwrite, data: data.data })
@@ -286,73 +298,16 @@ export async function fetchAppeals (context, { appealState = null, params = null
   }
 }
 
-export async function fetchOwnedAds (context, params, headers) {
-  const state = context.state
-
-  // Setup pagination parameters based on transaction type
-  let storeCurrentPage = state.storeBuyPageNumber
-  let storeTotalPages = state.storeBuyTotalPages
-  if (params.trade_type === 'SELL') {
-    storeCurrentPage = state.storeSellPageNumber
-    storeTotalPages = state.storeSellTotalPages
-  }
-
-  if (storeCurrentPage <= storeTotalPages) {
-    // Increment page by 1 if not fetching data for the first time
-    if (storeCurrentPage !== null) storeCurrentPage++
-
-    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/ad'
-    params.page = storeCurrentPage
-    params.limit = state.itemsPerPage
-
-    try {
-      const data = await axiosInstance.get(apiURL, { params: params })
-
-      switch (params.trade_type) {
-        case 'BUY':
-          context.commit('updateStoreBuyListings', data.data)
-          context.commit('incStoreBuyPage')
-          break
-        case 'SELL':
-          context.commit('updateStoreSellListings', data.data)
-          context.commit('incStoreSellPage')
-          break
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-      throw error
-    }
+export async function fetchPaymentTypes (context) {
+  try {
+    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/payment-type'
+    const headers = { ...context.state.authHeaders }
+    headers.Authorization = `Token ${getCookie('token')}`
+    const { data: paymentTypes } = await axiosInstance.get(apiURL, { headers: headers })
+    context.commit('updatePaymentTypes', paymentTypes)
+    console.log('paymentTypes:', paymentTypes)
+  } catch (error) {
+    console.error('Error fetching data:', error)
+    throw error
   }
 }
-
-// export function resetStorePagination (context) {
-//   context.commit('resetStorePagination')
-// }
-
-// export function resetAdsPagination (context) {
-//   context.commit('resetAdsPagination')
-// }
-
-// export function resetOrdersPagination (context) {
-//   context.commit('resetOrdersPagination')
-// }
-
-// export function resetAppealsPagination (context) {
-//   context.commit('resetAppealsPagination')
-// }
-
-// export function resetPagination (context) {
-//   context.commit('resetPagination')
-// }
-
-// export function resetData (context) {
-//   context.commit('resetData')
-// }
-
-// export function saveTxid (context, data) {
-//   context.commit('saveTxid', data)
-// }
-
-// export function clearOrderTxids (context, id) {
-//   context.commit('clearOrderTxids', id)
-// }

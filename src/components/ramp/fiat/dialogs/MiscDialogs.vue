@@ -318,7 +318,7 @@
 
   <!-- Filter Ads -->
   <q-dialog v-model="filterAd" @before-hide="$emit('back')">
-    <q-card class="br-15" style="width: 90%;">
+    <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <div class="q-mt-md q-pl-md">
         <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
       </div>
@@ -326,22 +326,35 @@
       <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
       <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-        <div class="q-pt-md">
+        <div v-if="storeFilters.priceTypes" class="q-pt-md">
           <div class="sm-font-size bold-text">Price Type</div>
           <div class="q-gutter-sm q-pt-sm">
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceType !== 'all'" @click="priceType='all'">All</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceType !== 'fixed' && priceType !== 'all'" @click="priceType='fixed'">Fixed</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceType !== 'floating' && priceType !== 'all'" @click="priceType='floating'">Floating</q-badge>
+            <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="isOutlined('FIXED','price-types')"
+              @click="addFilterInfo('FIXED', 'price-types')">
+              Fixed
+            </q-badge>
+            <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="isOutlined('FLOATING','price-types')"
+              @click="addFilterInfo('FLOATING', 'price-types')">
+              Floating
+            </q-badge>
           </div>
         </div>
-        <div class="q-pt-md">
-          <div class="sm-font-size bold-text">Payment Method</div>
+        <div v-if="storeFilters.selectedPaymentTypes" class="q-pt-md">
+          <div class="sm-font-size bold-text">Payment Type</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
               color="blue-grey-6"
               rounded
-              :outline="selectedPaymentTypes.length < paymentTypes.length"
+              :outline="storeFilters.selectedPaymentTypes.length < paymentTypes.length"
               @click="addFilterInfo('all', 'all-payment-type')">
               All
             </q-badge>
@@ -349,8 +362,8 @@
               class="q-pa-sm"
               color="blue-grey-6"
               rounded
-              :outline="isOutlined(method,'payment-type')"
-              @click="addFilterInfo(method, 'payment-type')"
+              :outline="isOutlined(method,'payment-types')"
+              @click="addFilterInfo(method, 'payment-types')"
               v-for="method in paymentTypes"
               :key="method.id">
               {{ method.name }}
@@ -358,23 +371,23 @@
           </div>
         </div>
 
-        <div class="q-pt-md">
+        <div v-if="storeFilters.selectedPTL" class="q-pt-md">
           <div class="sm-font-size bold-text">Time Limit</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
               color="blue-grey-6"
               rounded
-              :outline="selectedPTL.length < ptl.length"
-              @click="addFilterInfo('all')">
+              :outline="storeFilters.selectedPTL.length < ptl.length"
+              @click="addFilterInfo('all', 'all-time-limits')">
               All
             </q-badge>
             <q-badge
               class="q-pa-sm"
               color="blue-grey-6"
               rounded
-              :outline="isOutlined(method)"
-              @click="addFilterInfo(method)"
+              :outline="isOutlined(method, 'time-limits')"
+              @click="addFilterInfo(method, 'time-limits')"
               v-for="(method, index) in ptl"
               :key="index">
               {{ paymentTimeLimit(method) }}
@@ -382,16 +395,25 @@
           </div>
         </div>
 
-        <div class="q-pt-md">
+        <div v-if="storeFilters.priceOrder" class="q-pt-md">
           <div class="sm-font-size bold-text">Price Order</div>
           <div class="q-pt-xs q-gutter-sm">
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceOrder !== 'ascending'" @click="priceOrder = 'ascending'">Ascending</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="priceOrder !== 'descending'" @click="priceOrder = 'descending'">Descending</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'ascending'" @click="storeFilters.priceOrder = 'ascending'">Ascending</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'descending'" @click="storeFilters.priceOrder = 'descending'">Descending</q-badge>
           </div>
         </div>
 
         <div class="text-center q-pt-sm q-px-sm q-pb-lg">
-          <div class="row q-pt-md">
+          <div class="row q-gutter-sm q-pt-md">
+            <q-btn
+              rounded
+              no-caps
+              label='Reset'
+              class="q-space text-white"
+              color="blue-6"
+              outline
+              @click="resetFilters()"
+            />
             <q-btn
               rounded
               no-caps
@@ -476,6 +498,7 @@
 <script>
 import { debounce } from 'quasar'
 import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   emits: ['back', 'submit'],
@@ -493,7 +516,8 @@ export default {
       type: String,
       default: ''
     },
-    currentPaymentMethods: Array
+    currentPaymentMethods: Array,
+    filters: {}
   },
   data () {
     return {
@@ -533,13 +557,18 @@ export default {
 
       },
       ptl: [5, 15, 30, 60, 300, 720, 1440],
-      paymentTypes: [],
+      paymentTypes: this.$store.getters['ramp/paymentTypes'],
       paymentMethodOpts: [],
       selectedPaymentMethods: [],
-      selectedPaymentTypes: [],
-      selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
-      priceOrder: null,
-      priceType: 'all',
+
+      priceTypeOpts: ['FIXED', 'FLOATING'],
+      storeFilters: {
+        selectedPaymentTypes: [],
+        selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
+        priceOrder: null,
+        priceTypes: ['FIXED', 'FLOATING']
+      },
+
       appealTypeOpts: [
         {
           label: 'Release',
@@ -571,8 +600,6 @@ export default {
   },
   async mounted () {
     const vm = this
-    vm.priceOrder = this.$parent.transactionType === 'SELL' ? 'ascending' : 'descending'
-    await vm.fetchPaymentTypes()
     vm.checkDialogType()
     if (vm.addPaymentMethod) {
       vm.selectedPaymentMethods = vm.currentPaymentMethods.map((element) => {
@@ -588,41 +615,63 @@ export default {
     vm.fetchPaymentMethod()
   },
   methods: {
+    updateStoreFilters (filters) {
+      if (!filters) return
+      this.storeFilters.priceOrder = filters.price_order
+      this.storeFilters.priceTypes = filters.price_types
+      this.storeFilters.selectedPaymentTypes = filters.payment_types
+      this.storeFilters.selectedPTL = filters.time_limits
+    },
     addFilterInfo (data, type = '') {
       let temp = null
-
       if (data === 'all') {
         if (type === 'all-payment-type') {
-          this.selectedPaymentTypes = this.paymentTypes
-        } else {
-          this.selectedPTL = this.ptl
+          this.storeFilters.selectedPaymentTypes = this.paymentTypes.map(p => p.id)
+        }
+        if (type === 'all-time-limits') {
+          this.storeFilters.selectedPTL = this.ptl
         }
       } else {
-        if (type === 'payment-type') {
-          temp = this.selectedPaymentTypes.map(p => p.name)
-          if (temp.includes(data.name)) {
-            this.selectedPaymentTypes = this.selectedPaymentTypes.filter(p => p.name !== data.name)
+        if (type === 'payment-types') {
+          temp = this.storeFilters.selectedPaymentTypes
+          if (temp.includes(data.id)) {
+            if (temp.length > 1) {
+              this.storeFilters.selectedPaymentTypes = this.storeFilters.selectedPaymentTypes.filter(p => p !== data.id)
+            }
           } else {
-            this.selectedPaymentTypes.push(data)
+            this.storeFilters.selectedPaymentTypes.push(data.id)
           }
-        } else {
-          temp = this.selectedPTL
+        }
+        if (type === 'time-limits') {
+          temp = this.storeFilters.selectedPTL
           if (temp.includes(data)) {
-            this.selectedPTL = this.selectedPTL.filter(p => p !== data)
+            this.storeFilters.selectedPTL = this.storeFilters.selectedPTL.filter(p => p !== data)
           } else {
-            this.selectedPTL.push(data)
+            this.storeFilters.selectedPTL.push(data)
+          }
+        }
+        if (type === 'price-types') {
+          temp = this.storeFilters.priceTypes
+          if (temp.includes(data)) {
+            if (temp.length > 1) {
+              this.storeFilters.priceTypes = this.storeFilters.priceTypes.filter(p => p !== data)
+            }
+          } else {
+            this.storeFilters.priceTypes.push(data)
           }
         }
       }
     },
     isOutlined (data, type = '') {
-      let temp = null
-
-      if (type === 'payment-type') {
-        temp = this.selectedPaymentTypes.map(p => p.name)
-        return !temp.includes(data.name)
-      } else {
-        return !this.selectedPTL.includes(data)
+      if (type === 'payment-types') {
+        const temp = this.storeFilters.selectedPaymentTypes
+        return !temp.includes(data.id)
+      }
+      if (type === 'time-limits') {
+        return !this.storeFilters.selectedPTL.includes(data)
+      }
+      if (type === 'price-types') {
+        return !this.storeFilters.priceTypes.includes(data)
       }
     },
     paymentTimeLimit (timeValue) {
@@ -655,7 +704,13 @@ export default {
           vm.loading = false
         })
         .catch(error => {
-          console.log(error.response)
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
           vm.loading = false
         })
     },
@@ -674,7 +729,6 @@ export default {
       } else {
         vm.selectedPaymentMethods = vm.selectedPaymentMethods.filter((element) => element.id !== paymentMethod.id)
       }
-      // console.log('selectedPaymentMethods:', vm.selectedPaymentMethods)
     },
     checkDialogType () {
       const vm = this
@@ -729,6 +783,7 @@ export default {
           break
         case 'filterAd':
           vm.filterAd = true
+          vm.updateStoreFilters(JSON.parse(JSON.stringify(vm.filters)))
           break
         case 'appeal':
           vm.appeal = true
@@ -774,16 +829,16 @@ export default {
           return 'submit'
         case 'filterAd':
           vm.info = {
-            price_order: vm.priceOrder
+            price_order: vm.storeFilters.priceOrder
           }
-          if (vm.selectedPaymentTypes) {
-            vm.info.payment_methods = vm.selectedPaymentTypes.map(e => e.id)
+          if (vm.storeFilters.selectedPaymentTypes) {
+            vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
           }
-          if (vm.selectedPTL) {
-            vm.info.time_limits = vm.selectedPTL
+          if (vm.storeFilters.selectedPTL) {
+            vm.info.time_limits = vm.storeFilters.selectedPTL
           }
-          if (vm.priceType && vm.priceType !== 'all') {
-            vm.info.price_type = vm.priceType.toUpperCase()
+          if (vm.storeFilters.priceTypes) {
+            vm.info.price_types = vm.storeFilters.priceTypes
           }
           return 'submit'
         case 'confirmCancelOrder':
@@ -800,6 +855,18 @@ export default {
           return 'submit'
         // TODO: Add case for 'filterAd'
       }
+    },
+    resetFilters () {
+      let filters = null
+      if (this.$parent.transactionType === 'SELL') {
+        this.$store.commit('ramp/resetStoreSellFilters')
+        filters = this.$store.getters['ramp/storeSellFilters']
+      }
+      if (this.$parent.transactionType === 'BUY') {
+        this.$store.commit('ramp/resetStoreBuyFilters')
+        filters = this.$store.getters['ramp/storeBuyFilters']
+      }
+      this.updateStoreFilters(filters)
     },
     submitData () {
       const vm = this
@@ -827,18 +894,6 @@ export default {
 
       this.paymentTypes = match
     },
-    async fetchPaymentTypes () {
-      const vm = this
-      await vm.$axios.get(vm.apiURL + '/payment-type', { headers: vm.authHeaders })
-        .then(response => {
-          vm.paymentTypes = response.data
-          vm.selectedPaymentTypes = vm.paymentTypes
-        })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response)
-        })
-    },
     onProceedAppeal () {
       this.appeal = false
       this.appealForm = true
@@ -852,7 +907,6 @@ export default {
       } else {
         this.selectedReasons.push(reason)
       }
-      console.log('selectedReasons:', this.selectedReasons)
     }
   }
 }
