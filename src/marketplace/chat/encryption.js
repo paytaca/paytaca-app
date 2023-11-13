@@ -55,17 +55,23 @@ export function encryptMessage(opts={ data: '', privkey: '', pubkeys: '' }) {
  * @param {String} opts.privkey 32bit hex encoded privkey
  * @param {String} opts.authorPubkey 33bit hex encoded pubkey of the author
  * @param {String[]} opts.pubkeys combined pubkey & sharedSecret delimited by a bar '|'. Use pubkey directly if no sharedSecret is provided
+ * @param {Boolean} opts.tryAllKeys will attempt to decrypt using other pubkeys instead of using only matching pubkey
  */
-export function decryptMessage(opts={data: '', iv: '', privkey: '', authorPubkey: '', pubkeys: []}) {
+export function decryptMessage(opts={data: '', iv: '', privkey: '', authorPubkey: '', pubkeys: [], tryAllKeys: false }) {
   const data = opts?.data
   const iv = opts?.iv
   const privkey = opts?.privkey
   const authorPubkey =  opts?.authorPubkey
   const pubkeys = opts?.pubkeys
+  const tryAllKeys = opts?.tryAllKeys
 
   const ourPubkey = privToPub(privkey)
   const ivBytes = Buffer.from(iv, 'base64')
   const sortedPubkeys = pubkeys.sort(pkData => {
+    const pubkey = pkData.split('|', 2)[0]
+    return pubkey == ourPubkey ? -1 : 0
+  }).filter(pkData => {
+    if (tryAllKeys) return true
     const pubkey = pkData.split('|', 2)[0]
     return pubkey == ourPubkey ? -1 : 0
   })
@@ -219,17 +225,23 @@ export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) 
  * @param {String} opts.privkey 32bit hex encoded privkey
  * @param {String} opts.authorPubkey 33bit hex encoded pubkey of the author
  * @param {String[]} opts.pubkeys combined pubkey & sharedSecret delimited by a bar '|'. Use pubkey directly if no sharedSecret is provided
+ * @param {Boolean} opts.tryAllKeys will attempt to decrypt using other pubkeys instead of using only matching pubkey
  */
-export async function decryptImage(opts={ file: null, privkey: '', pubkeys: '' }) {
+export async function decryptImage(opts={ file: null, privkey: '', pubkeys: '', tryAllKeys: false }) {
   const file = opts?.file
   const iv = opts?.iv
   const privkey = opts?.privkey
   const authorPubkey =  opts?.authorPubkey
   const pubkeys = opts?.pubkeys
+  const tryAllKeys = opts?.tryAllKeys
 
   const ourPubkey = privToPub(privkey)
   const ivBytes = Buffer.from(iv, 'base64')
   const sortedPubkeys = pubkeys.sort(pkData => {
+    const pubkey = pkData.split('|', 2)[0]
+    return pubkey == ourPubkey ? -1 : 0
+  }).filter(pkData => {
+    if (tryAllKeys) return true
     const pubkey = pkData.split('|', 2)[0]
     return pubkey == ourPubkey ? -1 : 0
   })

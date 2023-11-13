@@ -52,9 +52,9 @@
                 </template>
                 <span
                   v-if="message?.encrypted && !message?.decryptedMessage"
-                  @click="() => decryptMessage(message)"
+                  @click="() => decryptMessage(message, true)"
                 >
-                  Message is decrypted
+                  Message is encrypted
                 </span>
                 <span v-else-if="message?.decryptedMessage">
                   {{ message?.decryptedMessage }}
@@ -82,7 +82,7 @@
                   <div v-else class="row items-center">
                     <div
                       class="text-grey encrypted-attachment-text"
-                      @click="() => decryptMessageAttachment(message)"
+                      @click="() => decryptMessageAttachment(message, true)"
                       v-element-visibility="() => decryptMessageAttachment(message)"
                     >
                       Attachment encrypted
@@ -287,21 +287,21 @@ export default defineComponent({
     async function decryptMessages() {
       if (!keypair.value?.privkey) await loadKeypair()
       if (!keypair.value?.privkey) return
-      await Promise.all(messages.value.map(decryptMessage))
+      await Promise.all(messages.value.map(message => decryptMessage(message, false)))
     }
 
-    async function decryptMessage(message=ChatMessage.parse()) {
+    async function decryptMessage(message=ChatMessage.parse(), tryAllKeys=false) {
       if (!keypair.value?.privkey) await loadKeypair()
       if (!keypair.value?.privkey) return
       if (message.decryptedMessage) return
-      return message.decryptMessage(keypair.value?.privkey)
+      return message.decryptMessage(keypair.value?.privkey, tryAllKeys)
     }
 
-    async function decryptMessageAttachment(chatMessage = ChatMessage.parse()) {
+    async function decryptMessageAttachment(chatMessage = ChatMessage.parse(), tryAllKeys=false) {
       if (!keypair.value?.privkey) await loadKeypair()
       if (!keypair.value?.privkey) return
       if (chatMessage?.decryptedAttachmentFile?.url) return
-      return chatMessage.decryptAttachment(keypair.value?.privkey)
+      return chatMessage.decryptAttachment(keypair.value?.privkey, tryAllKeys)
     }
 
     function onNewMessage(newMessage=ChatMessage.parse()) {
@@ -508,7 +508,7 @@ export default defineComponent({
         })
       } else if (parsedData?.type == 'pubkey') {
         if (typeof parsedData?.data === 'string' && !membersPubkeys.value?.includes(parsedData?.data)) {
-          membersPubkeys.value.push(pubkey)
+          membersPubkeys.value.push(parsedData?.data)
         }
       }
     }

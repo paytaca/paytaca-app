@@ -1427,10 +1427,10 @@ export class ChatMessage {
     this._decryptedMessage = value
   }
 
-  async decryptMessage(privkey) {
+  async decryptMessage(privkey, tryAllKeys=false) {
     if (!this.encrypted) return
     const parsedEncryptedMessage = decompressEncryptedMessage(this.message)
-    const opts = { privkey, ...parsedEncryptedMessage}
+    const opts = { privkey, tryAllKeys, ...parsedEncryptedMessage}
     this.decryptedMessage = decryptMessage(opts)
   }
 
@@ -1457,23 +1457,23 @@ export class ChatMessage {
     }
   }
 
-  async decryptAttachment(privkey) {
+  async decryptAttachment(privkey, tryAllKeys=false) {
     if (this.decryptAttachmentPromise) return this.decryptAttachmentPromise
-    this.decryptAttachmentPromise = this._decryptAttachment(privkey)
+    this.decryptAttachmentPromise = this._decryptAttachment(privkey, tryAllKeys)
     return this.decryptAttachmentPromise
       .finally(() => {
         delete this.decryptAttachmentPromise
       })
   }
 
-  async _decryptAttachment(privkey) {
+  async _decryptAttachment(privkey, tryAllKeys=false) {
     try {
       if (this?.decryptedAttachmentFile?.url) return this.decryptedAttachmentFile
       if (!this.encryptedAttachmentFile) await this.fetchEncryptedAttachment()
       if (!this.encryptedAttachmentFile) return
       this.$state.decryptingAttachment = true
       const decryptOpts = await decompressEncryptedImage(this.encryptedAttachmentFile)
-      const opts = { privkey, ...decryptOpts }
+      const opts = { privkey, tryAllKeys, ...decryptOpts }
       this.decryptedAttachmentFile = await decryptImage(opts)
       return this.decryptedAttachmentFile
     } finally {
