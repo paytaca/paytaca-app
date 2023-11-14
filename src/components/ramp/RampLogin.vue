@@ -250,6 +250,7 @@ export default {
           name: this.usernickname,
           address: this.wallet.address
         }
+        console.log('body: ', body)
         const { data: user } = await this.$axios.post(url, body, { headers: headers })
         this.user = user
         this.$store.commit('ramp/updateUser', user)
