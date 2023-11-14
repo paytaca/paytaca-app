@@ -79,7 +79,7 @@
           </div>
           <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
             <!-- <div>
-              <q-list v-for="(recipient, index) in sendData.recipients">
+              <q-list v-for="(recipient, index) in sendDataMultiple">
                 <q-expansion-item expand-separator :label="`Recipient ${index + 1}`">
                   <q-btn label="test 2 yey" />
                 </q-expansion-item>
@@ -87,7 +87,7 @@
             </div> -->
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
               <!-- <q-btn label="test hehe" @click="handleSubmit" /> -->
-              <q-list v-for="(recipient, index) in sendData.recipients" v-bind:key="index">
+              <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
                 <q-expansion-item
                   default-opened
                   dense
@@ -96,7 +96,21 @@
                   v-model="expandedItems[`R${index + 1}`]"
                   :label="`Recipient #${index + 1}`"
                 >
-                  <SendPageForm />
+                  <!-- pass recipient array -->
+                  <SendPageForm
+                    :recipient="sendDataMultiple[index]"
+                    :inputExtras="inputExtras[index]"
+                    :asset="asset"
+                    :selectedDenomination="selectedDenomination"
+                    :index="index"
+                    :showQrScanner="showQrScanner"
+                    :computingMax="computingMax"
+                    :isNFT="isNFT"
+                    :currentSendPageCurrency="currentSendPageCurrency"
+                    :convertToFiatAmount="convertToFiatAmount"
+                    @on-qr-scanner-click="onQRScannerClick"
+                    @read-only-state="readonlyState"
+                  />
                 </q-expansion-item>
               </q-list>
 
@@ -474,7 +488,6 @@ export default {
         sent: false,
         sending: false,
         success: false,
-        error: '',
         txid: '',
         amount: null,
         fixedAmount: false,
@@ -484,8 +497,10 @@ export default {
         responseOTP: '',
         paymentAckMemo: '',
         fixedRecipientAddress: false,
-        recipients: []
       },
+
+      sendDataMultiple: [],
+
       pinDialogAction: '',
       leftX: 0,
       slider: 0,
@@ -603,7 +618,7 @@ export default {
       return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
     },
     showAddRecipientButton () {
-      return (this.showSlider && this.sendData.recipients.length < 5)
+      return (this.showSlider && this.sendDataMultiple.length < 5)
     }
   },
 
@@ -682,6 +697,7 @@ export default {
         'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
       ).format(dateObj)
     },
+    // adjust for multiple recipient
     onScannerDecode (content) {
       this.showQrScanner = false
       let address = content
@@ -774,10 +790,21 @@ export default {
           this.sendData.fixedAmount = true
         }
 
-        this.sendData.recipients.push({
-          address,
-          amount,
-          tokenAmount: 0
+        // adjust for scanning qr of another recipient
+        this.sendDataMultiple.push({
+          sent: false,
+          sending: false,
+          success: false,
+          error: '',
+          txid: '',
+          amount: amount,
+          fixedAmount: false,
+          recipientAddress: address,
+          posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
+          rawPaymentUri,
+          responseOTP: '',
+          paymentAckMemo: '',
+          fixedRecipientAddress: true,
         })
         this.inputExtras.push({
           amountFormatted: parseFloat(getAssetDenomination(this.selectedDenomination, amount, true)),
@@ -1388,13 +1415,23 @@ export default {
       return this.paymentCurrency ?? this.selectedMarketCurrency
     },
     addAnotherRecipient () {
-      const recipientsLength = this.sendData.recipients.length
+      const recipientsLength = this.sendDataMultiple.length
 
       if (recipientsLength < 5) {
-        this.sendData.recipients.push({
-          address: '',
+        this.sendDataMultiple.push({
+          sent: false,
+          sending: false,
+          success: false,
+          error: '',
+          txid: '',
           amount: 0,
-          tokenAmount: 0
+          fixedAmount: false,
+          recipientAddress: '',
+          posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
+          rawPaymentUri: '', // for scanning qr data
+          responseOTP: '',
+          paymentAckMemo: '',
+          fixedRecipientAddress: false,
         })
         this.inputExtras.push({
           amountFormatted: 100,
@@ -1413,6 +1450,9 @@ export default {
     },
     onInputFocus (value) {
       this.currentActiveRecipientIndex = value
+    },
+    onQRScannerClick (value) {
+      this.showQrScanner = value
     }
   },
 
