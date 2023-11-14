@@ -7,8 +7,9 @@
     transition-hide="slide-down"
     no-backdrop-dismiss
     no-shake
+    seamless
   >
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;margin-bottom:3rem;">
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;margin-bottom:3rem;">
       <div class="row no-wrap items-center justify-center q-pl-md q-mb-md">
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="isPositionOffer">
@@ -39,7 +40,7 @@
                 {{ formatUnits(contractValues.hedge.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
               <div>
-                {{ contractValues.hedge.satoshis / (10**8) }} BCH
+                {{ getAssetDenomination(denomination, contractValues.hedge.satoshis / (10**8)) }}
               </div>
             </div>
             <div class="col-6">
@@ -49,7 +50,7 @@
               </div>
               <div>
                 {{ contractValues.priceValue ? '' : '~' }}
-                {{ contractValues.long.satoshis / (10**8) }} BCH
+                {{ getAssetDenomination(denomination, contractValues.long.satoshis / (10**8)) }}
                 <q-icon
                   v-if="!contractValues.priceValue"
                   :color="darkMode ? 'grey-7' : 'black'"
@@ -57,7 +58,7 @@
                   name="help"
                 >
                   <q-popup-proxy :breakpoint="0">
-                    <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                    <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label info-banner pt-dark' : 'text-black']" class="text-caption">
                       Long amount is only an approximation without a starting price value on the asset
                     </div>
                   </q-popup-proxy>
@@ -86,19 +87,25 @@
                 />
               </div>
               <div class="text-body1 text-grey">Hedge</div>
-              <div class="q-space text-body1 text-right">{{ fundingAmounts?.hedge?.total / (10**8) }} BCH</div>
+              <div class="q-space text-body1 text-right">
+                {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.total / (10**8)) }}
+              </div>
             </div>
             <q-slide-transition>
               <div v-if="expandFundingAmounts.hedge" class="q-pl-md">
                 <div class="row items-start q-pr-md">
                   <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
-                  <div class="q-space text-right">{{ fundingAmounts?.hedge?.sats / (10**8) }} BCH</div>
+                  <div class="q-space text-right">
+                    {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.sats / (10**8)) }}
+                  </div>
                 </div>
                 <div class="text-caption text-grey" style="margin-bottom:-0.5em">Fees</div>
                 <div class="q-pl-md">
                   <div class="row items-start q-pr-md">
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
-                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.network / (10**8) }} BCH</div>
+                    <div class="q-space text-right">
+                      {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.fees?.network / (10**8)) }}
+                    </div>
                   </div>
                   <div>
                     <div
@@ -116,9 +123,11 @@
                         <q-icon v-if="fee?.description" name="description"/>
                       </div>
                       <q-space/>
-                      <div class="text-right q-ml-xs" style="white-space:nowrap">{{ fee?.satoshis / (10**8) }} BCH</div>
+                      <div class="text-right q-ml-xs" style="white-space:nowrap">
+                        {{ getAssetDenomination(denomination, fee?.satoshis / (10**8)) }}
+                      </div>
                       <q-popup-proxy v-if="fee?.description || fee?.stats?.pctg" :breakpoint="0">
-                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
                           <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
                           <div v-if="fee?.stats?.pctg" class="text-caption" style="margin-top:-0.25em">
                             <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
@@ -146,8 +155,8 @@
                         size="1.5em"
                       >
                         <q-popup-proxy :breakpoint="0">
-                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
-                            Premium is 
+                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
+                            Premium is
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.hedge?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.hedge?.pctg, 2) }}%
                             </span>
@@ -156,7 +165,9 @@
                         </q-popup-proxy>
                       </q-icon>
                     </div>
-                    <div class="q-space text-right">{{ fundingAmounts?.hedge?.fees?.premium / (10**8) }} BCH</div>
+                    <div class="q-space text-right">
+                      {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.fees?.premium / (10**8)) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -179,19 +190,25 @@
                 />
               </div>
               <div class="text-body1 text-grey">Long</div>
-              <div class="q-space text-body1 text-right">{{ fundingAmounts?.long?.total / (10**8) }} BCH</div>
+              <div class="q-space text-body1 text-right">
+                {{ getAssetDenomination(denomination, fundingAmounts?.long?.total / (10**8)) }}
+              </div>
             </div>
             <q-slide-transition>
               <div v-if="expandFundingAmounts.long" class="q-pl-md">
                 <div class="row items-start q-pr-md">
                   <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
-                  <div class="q-space text-right">{{ fundingAmounts?.long?.sats / (10**8) }} BCH</div>
+                  <div class="q-space text-right">
+                    {{ getAssetDenomination(denomination, fundingAmounts?.long?.sats / (10**8)) }}
+                  </div>
                 </div>
                 <div class="text-caption text-grey" style="margin-bottom:-0.5em">Fees</div>
                 <div class="q-pl-md">
                   <div class="row items-start q-pr-md">
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
-                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.network / (10**8) }} BCH</div>
+                    <div class="q-space text-right">
+                      {{ getAssetDenomination(denomination, fundingAmounts?.long?.fees?.network / (10**8)) }}
+                    </div>
                   </div>
                   <div>
                     <div
@@ -209,9 +226,11 @@
                         <q-icon v-if="fee?.description" name="description"/>
                       </div>
                       <q-space/>
-                      <div class="text-right q-ml-xs" style="white-space:nowrap">{{ fee?.satoshis / (10**8) }} BCH</div>
+                      <div class="text-right q-ml-xs" style="white-space:nowrap">
+                        {{ getAssetDenomination(denomination, fee?.satoshis / (10**8)) }}
+                      </div>
                       <q-popup-proxy v-if="fee?.description || fee?.stats?.pctg" :breakpoint="0">
-                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
                           <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
                           <div v-if="fee?.stats?.pctg" class="text-caption" style="margin-top:-0.25em">
                             <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
@@ -238,8 +257,8 @@
                         size="1.5em"
                       >
                         <q-popup-proxy :breakpoint="0">
-                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
-                            Premium is 
+                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
+                            Premium is
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.long?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.long?.pctg, 2) }}%
                             </span>
@@ -248,7 +267,9 @@
                         </q-popup-proxy>
                       </q-icon>
                     </div>
-                    <div class="q-space text-right">{{ fundingAmounts?.long?.fees?.premium / (10**8) }} BCH</div>
+                    <div class="q-space text-right">
+                      {{ getAssetDenomination(denomination, fundingAmounts?.long?.fees?.premium / (10**8)) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -287,8 +308,8 @@
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.low.price, oracleInfo?.assetDecimals || 0) }}
-                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
-                    <template v-else="oracleInfo?.assetCurrency">units/BCH</template>
+                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/{{ denomination }}</template>
+                    <template v-else="oracleInfo?.assetCurrency">units/{{ denomination }}</template>
                   </template>
                   {{ liquidationData.priceValue ? `(${liquidationData.low.pctg}%)` : `${liquidationData.low.pctg}%` }}
                 </div>
@@ -298,8 +319,8 @@
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.high.price, oracleInfo?.assetDecimals || 0) }}
-                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/BCH</template>
-                    <template v-else="oracleInfo?.assetCurrency">units/BCH</template>
+                    <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/{{ denomination }}</template>
+                    <template v-else="oracleInfo?.assetCurrency">units/{{ denomination }}</template>
                   </template>
                   {{ liquidationData.priceValue ? `(${liquidationData.high.pctg}%)` : `${liquidationData.high.pctg}%` }}
                 </div>
@@ -325,25 +346,38 @@
       </q-card-section>
     </q-card>
     <q-list v-if="showSlider" class="absolute-bottom">
-      <q-slide-item left-color="blue" @left="onSliderSwipe()">
-        <template v-slot:left>
-          <div style="font-size: 15px" class="text-body1">
-          <q-icon class="material-icons q-mr-md" size="lg">
-            task_alt
-          </q-icon>
-          Security Check
-          </div>
-        </template>
+      <!-- <DragSlide
+      :style="{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1500,
+      }"
+      @swiped="onSliderSwipe()"
+      text="Swipe To Confirm"
+    /> -->
+      <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
+        <q-slide-item left-color="blue" @left="onSliderSwipe()" style="background-color: transparent; border-radius: 40px;">
+          <template v-slot:left>
+            <div style="font-size: 15px" class="text-body1">
+            <q-icon class="material-icons q-mr-md" size="lg">
+              task_alt
+            </q-icon>
+            Security Check
+            </div>
+          </template>
 
-        <q-item class="bg-grad text-white q-py-md">
-          <q-item-section avatar>
-            <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
-          </q-item-section>
-          <q-item-section class="text-right">
-            <h5 class="q-my-sm text-grey-4">SWIPE TO CONFIRM</h5>
-          </q-item-section>
-        </q-item>
-      </q-slide-item>
+          <q-item class="bg-grad text-white q-py-md">
+            <q-item-section avatar>
+              <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+            </q-item-section>
+            <q-item-section class="text-right">
+              <h5 class="q-my-sm text-grey-4" style="font-size: large;">SWIPE TO CONFIRM</h5>
+            </q-item-section>
+          </q-item>
+        </q-slide-item>
+      </div>
     </q-list>
   </q-dialog>
 </template>
@@ -353,6 +387,8 @@ import { formatDuration, formatUnits, formatTimestampToText, ellipsisText } from
 import { useDialogPluginComponent } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
+import { getAssetDenomination } from 'src/utils/denomination-utils'
+import DragSlide from '../drag-slide.vue'
 
 // dialog plugins requirement
 defineEmits([
@@ -364,15 +400,16 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginC
 
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
+const denomination = computed(() => store.getters['global/denomination'])
 
 /**
- * 
+ *
  * @typedef {Object} IntentProp
  * @property {Number} amount
  * @property {Number} lowPriceMult
  * @property {Number} highPriceMult
  * @property {Number} duration
- * 
+ *
  * @typedef {Object} PubkeysProp
  * @property {String} hedgeAddress
  * @property {String} hedgePubkey
@@ -380,7 +417,7 @@ const darkMode = computed(() => store.getters['darkmode/getStatus'])
  * @property {String} longAddress
  * @property {String} longPubkey
  * @property {String} longAddressPath
- * 
+ *
  * @typedef {Object} PriceDataProp
  * @property {String} [oraclePubkey]
  * @property {Number} [priceValue]
@@ -388,19 +425,19 @@ const darkMode = computed(() => store.getters['darkmode/getStatus'])
  * @property {Number} [messageSequence]
  * @property {String} [message]
  * @property {String} [signature]
- * 
+ *
  * @typedef {Object} FundingProp
  * @property {Number} liquidityFee
  * @property {Object} [fee]
  * @property {String} fee.address
  * @property {Number} fee.satoshis
- * 
+ *
  * @typedef {Object} OracleInfoProp
  * @property {String} [oraclePubkey]
  * @property {String} [assetName]
  * @property {Number} [assetDecimals]
  * @property {String} [assetCurrency]
- * 
+ *
 */
 const props = defineProps({
   /** @type {IntentProp} */

@@ -166,9 +166,7 @@ function resolvePaymentUriAssetParam(paramValue='') {
  * @param {'main' | 'smart'} opts.chain
  */
 export function parsePaymentUri(content, opts) {
-  console.log('Parsing payment URI:', content)
   if (content.startsWith('paytaca:')) {
-    console.log('Parsing content using in-app protocol')
     return parsePaytacaPaymentUri(content)
   }
 
@@ -202,14 +200,13 @@ export function parsePaymentUri(content, opts) {
   }
 
   if ((!opts?.chain || opts?.chain === 'main') && bip0021Decoded) {
-    console.log('Parsing content using BIP0021')
     data.outputs[0].address = bip0021Decoded.address
     data.name = bip0021Decoded.label
     data.message = bip0021Decoded.message
 
     if (bip0021Decoded.amount) data.outputs[0].amount.value = bip0021Decoded.amount
     if (bip0021Decoded.parameters?.currency) data.outputs[0].amount.currency = bip0021Decoded?.parameters?.currency
-    if (bip0021Decoded.parameters?.POS) data.pos = parsePOSLabel(bip0021Decoded.parameters?.POS)
+    if (bip0021Decoded.parameters?.POS) data.posId = bip0021Decoded.parameters?.POS
     if (bip0021Decoded.parameters?.ts) data.timestamp = Number(bip0021Decoded.parameters?.ts)
 
     data.otherParams = bip0021Decoded.parameters
@@ -218,7 +215,6 @@ export function parsePaymentUri(content, opts) {
   }
 
   if ((!opts?.chain || opts.chain === 'smart') && eip681Decoded) {
-    console.log('Parsing content using EIP681')
     data.outputs[0].address = eip681Decoded.target_address
     data.outputs[0].address = eip681Decoded.target_address
     if (eip681Decoded.parsedValue) data.outputs[0].amount.value = eip681Decoded.parsedValue
@@ -375,10 +371,43 @@ export class JSONPaymentProtocol {
       throw JsonPaymentProtocolError('Invalid recipient address')
     }
 
+    const utxoOpts = {
+      confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
+    }
     const bchUtxos = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.getBchUtxos(
       `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`,
       totalSendAmountSats,
+      utxoOpts,
     )
+
+    if (bchUtxos.cumulativeValue < totalSendAmountSats && utxoOpts.confirmed) {
+      console.log('Insufficient balance from confirmed utxos, checking usable unconfirmed utxos')
+      const unconfirmedBchUtxos = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.getBchUtxos(
+        `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`,
+        totalSendAmountSats,
+        { confirmed: false },
+      )
+      const confirmedTxHashes = {}
+      for (let i = 0; i < unconfirmedBchUtxos.utxos.length; i++ ) {
+        const utxo = unconfirmedBchUtxos.utxos[i];
+        const txHash = utxo.tx_hash
+        console.log('Checking unconfirmed utxo', utxo)
+        if (!confirmedTxHashes[txHash]) {
+          const txStatus = await JSONPaymentProtocol.isTxConfirmed(utxo.tx_hash)
+            .catch(() => Object({ confirmed: false }))
+          confirmedTxHashes[txHash] = txStatus.confirmed
+        }
+
+        console.log('Is', txHash, 'confirmed', confirmedTxHashes[txHash])
+        if (!confirmedTxHashes[txHash]) continue
+
+        bchUtxos.utxos.push(utxo)
+        bchUtxos.cumulativeValue += utxo.value
+        console.log('Added utxo', utxo)
+        console.log('New cumulative value', bchUtxos.cumulativeValue)
+        if (bchUtxos.cumulativeValue >= totalSendAmountSats) break
+      }
+    }
 
     if (bchUtxos.cumulativeValue < totalSendAmountSats) {
       throw JsonPaymentProtocolError('Not enough balance')
@@ -432,9 +461,11 @@ export class JSONPaymentProtocol {
     const txFee = Math.ceil(byteCount * feeRate)
 
     const senderRemainder = totalInput.minus(totalOutput.plus(txFee))
-    if (senderRemainder.isGreaterThanOrEqualTo(getWalletByNetwork(wallet, 'bch').watchtower.BCH.dustLimit)) {
+    const dustLimit = getWalletByNetwork(wallet, 'bch').watchtower.BCH.getDustLimit()
+    if (senderRemainder.isGreaterThanOrEqualTo(dustLimit)) {
       // generate change address if no change address provided
       if (!changeAddress) changeAddress = (await getWalletByNetwork(wallet, 'bch').getAddressSetAt(0)).change
+      console.log(changeAddress)
       txBuilder.addOutput(
         bchjs.Address.toLegacyAddress(changeAddress),
         parseInt(senderRemainder)
@@ -525,6 +556,7 @@ export class JSONPaymentProtocol {
       console.error(error)
       if (typeof error?.response?.data === 'string') throw JsonPaymentProtocolError(error?.response?.data)
       if (typeof error?.response?.data?.error === 'string') throw JsonPaymentProtocolError(error?.response?.data?.error)
+      if (typeof error?.response?.data?.msg === 'string') throw JsonPaymentProtocolError(error?.response?.data?.msg)
       throw error
     }
   }
@@ -776,5 +808,26 @@ export class JSONPaymentProtocol {
       return true
     }
     return false
+  }
+
+  static async isTxConfirmed(txid='') {
+    const query = {
+      v: 3,
+      q: {
+        find: {
+          "tx.h": txid,
+        },
+        "project": { "tx.h": 1  },
+        "limit": 10
+      }
+    }
+    const serializedQuery = btoa(JSON.stringify(query))
+    const response = await axios.get(`https://bitdb.bch.sx/q/${serializedQuery}`)
+    if (Array.isArray(response.data?.c) && response.data?.c.some(record => record?.tx?.h === txid)) {
+      return { exists: true, confirmed: true }
+    } else if(Array.isArray(response.data?.u) && response.data?.u.some(record => record?.tx?.h === txid)) {
+      return { exists: true, confirmed: false }
+    }
+    return { exists: false, confirmed: false }
   }
 }

@@ -37,7 +37,7 @@ export default {
     color () {
       const type = this.tokenType
       if ([this.$t('CashTokens'), 'CT'].includes(type))
-        return 'green-7'
+        return 'teal-5'
       return 'blue-5'
     },
   }

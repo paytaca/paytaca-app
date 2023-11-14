@@ -4,29 +4,37 @@
       <div class="col col-transaction">
         <div>
           <p
-            :class="{'pt-dark-label': darkMode}"
-            class="q-mb-none transactions-wallet ib-text text-uppercase"
+            class="q-mb-none transactions-wallet type ib-text text-uppercase"
             style="font-size: 15px;"
+            :class="getDarkModeClass(darkMode)"
           >
             {{ recordTypeText }}
           </p>
           <p
-            :class="{'text-grey': darkMode, 'q-mt-sm': !marketValueData?.marketValue }"
-            class="q-mb-none transactions-wallet float-right ib-text text-right"
+            class="q-mb-none transactions-wallet amount float-right ib-text text-right"
+            :class="[getDarkModeClass(darkMode), {'q-mt-sm': !marketValueData?.marketValue }]"
           >
-            <div>{{ +(formatAmount(transaction?.amount, asset?.decimals, isBCH=asset?.id === 'bch', isSLP=asset?.id.startsWith('slp/'))) }} {{ asset?.symbol }}</div>
-            <div 
+            <div>
+              {{
+                parseAssetDenomination(
+                  denomination === $t('DEEM') ? denominationTabSelected : denomination, {
+                  ...asset,
+                  balance: transaction?.amount
+                })
+              }}
+            </div>
+            <div
               v-if="marketValueData?.marketValue"
-              class="text-caption text-grey"
-              :class="[darkMode ? 'text-weight-light' : '']"
+              class="transactions-wallet market-value"
+              :class="getDarkModeClass(darkMode, 'text-weight-light', '')"
               style="margin-top:-0.25em;"
             >
-              {{ marketValueData?.marketValue }} {{ selectedMarketCurrency }}
+              {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
             </div>
           </p>
         </div>
         <div class="col">
-            <span class="float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;">
+            <span class="float-left transactions-wallet date" :class="getDarkModeClass(darkMode)">
               <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
               <template v-else>{{ formatDate(transaction.date_created) }}</template>
             </span>
@@ -62,14 +70,18 @@ import ago from 's-ago'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $store = useStore()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 
 const props = defineProps({
   transaction: Object,
   selectedAsset: Object,
+  denominationTabSelected: String
 })
 
 const asset = computed(() => {
@@ -124,30 +136,38 @@ const marketValueData = computed(() => {
 const badges = computed(() => {
   if (!Array.isArray(props.transaction?.attributes)) return []
   const badges = []
+  const icons = {
+    anyhedge: 'img:anyhedge-logo.png',
+    voucher_claim: 'mdi-ticket-confirmation',
+  }
+  const pushBadge = (icon, text, value) => {
+    badges.push({
+      icon,
+      text,
+      data: {
+        address: value
+      }
+    })
+  }
 
   props.transaction?.attributes.forEach(attribute => {
-    switch(attribute?.key) {
+    const key = attribute?.key.includes('anyhedge') ? 'anyhedge' : attribute?.key
+    const value = attribute?.value
+    const icon = icons[key]
+    
+    switch(key) {
       case('anyhedge_funding_tx'):
-        badges.push({
-          icon: 'img:anyhedge-logo.png',
-          text: 'AnyHedge funding transaction',
-          data: { address: attribute?.value },
-        })
+        pushBadge(icon, 'AnyHedge funding transaction', value)
         break
       case('anyhedge_hedge_funding_utxo'):
       case('anyhedge_long_funding_utxo'):
-        badges.push({
-          icon: 'img:anyhedge-logo.png',
-          text: 'AnyHedge funding UTXO',
-          data: { address: attribute?.value },
-        })
+        pushBadge(icon, 'AnyHedge funding UTXO', value)
         break
       case('anyhedge_settlement_tx'):
-        badges.push({
-          icon: 'img:anyhedge-logo.png',
-          text: 'AnyHedge settlement transaction',
-          data: { address: attribute?.value },
-        })
+        pushBadge(icon, 'AnyHedge settlement transaction', value)
+        break
+      case('voucher_claim'):
+        pushBadge(icon, value, value)
         break
     }
   })
@@ -157,31 +177,13 @@ const badges = computed(() => {
 function formatDate (date) {
   return ago(new Date(date))
 }
-
-function formatAmount (amount, decimals, isBCH=false, isSLP=false) {
-  if (isBCH || isSLP) {
-    return amount
-  } else {
-    return amount / (10 ** decimals)
-  }
-}
-
 </script>
 <style scoped>
 .col-transaction {
   padding-top: 2px;
   font-weight: 500;
 }
-.transactions-wallet {
-  color: #4C4F4F;
-}
 .ib-text {
   display: inline-block;
-}
-
-.subtext {
-  font-size: 11px;
-  color: #4C4F4F;
-  opacity: .5;
 }
 </style>

@@ -1,9 +1,7 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm"
-    :class="[
-      darkMode ? 'text-white pt-dark-card' : 'text-black',
-    ]"
+    class="br-15 q-pt-sm pt-card"
+    :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
   >
     <q-card-section v-if="!stagedSwapDetails.show">
       <div class="row items-center justify-end q-mb-md">
@@ -12,7 +10,7 @@
           color="blue-9"
           padding="xs"
           icon="refresh"
-          class="q-ml-md"
+          class="q-ml-md button"
           @click="function(){
             updateNetworkData()
             updateTokenListBalances()
@@ -23,7 +21,7 @@
           color="blue-9"
           padding="xs"
           icon="settings"
-          class="q-ml-md"
+          class="q-ml-md button"
           @click="showSettingsDialogForm = true"
         />
       </div>
@@ -116,16 +114,28 @@
             <div>
               <q-skeleton v-if="networkData.loading" type="text"/>
               <template v-else>
-                1 {{ formData.sourceToken.symbol}} ~=
-                {{ formatNumber(networkData.exchangeRate, 10) }}
-                {{ formData.destToken.symbol }}
+                1 {{ formData.sourceToken.symbol === 'BCH' ? denomination : formData.sourceToken.symbol}} ~=
+                {{
+                  formData.destToken.symbol === 'BCH'
+                    ? getAssetDenomination(denomination, networkData.exchangeRate)
+                    : `${formatNumber(networkData.exchangeRate, 10)} ${formData.destToken.symbol}`
+                }}
               </template>
             </div>
           </q-item-label>
         </q-item-section>
       </q-item>
       <div class="q-px-sm row items-center justify-end q-mt-md">
-        <q-btn icon="launch" color="blue-9" flat padding="xs" size="sm" @click="showSettingsDialogForm = true"/>
+        <q-btn
+          icon="launch"
+          color="blue-9"
+          flat
+          padding="xs"
+          size="sm"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          @click="showSettingsDialogForm = true"
+        />
       </div>
       <q-item class="q-mt-sm">
         <q-item-section side>
@@ -151,7 +161,12 @@
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else-if="computedFormData.parsedDistribution.steps > 0">
               {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" :color="darkMode ? 'blue-5' : 'blue-9'" />
+              <q-icon
+                name="launch"
+                :color="darkMode ? 'blue-5' : 'blue-9'"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+              />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedFormData.parsedDistribution.steps"
@@ -168,8 +183,11 @@
           <q-item-label>
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else>
-              ~ {{ formatNumber(computedFormData.minimumReturn, 6) }}
-              {{ formData.destToken.symbol }}
+              ~ {{ 
+                  formData.destToken.symbol === 'BCH'
+                    ? getAssetDenomination(denomination, computedFormData.minimumReturn)
+                    : `${formatNumber(computedFormData.minimumReturn, 6)} ${formData.destToken.symbol}`
+                }}
             </template>
           </q-item-label>
         </q-item-section>
@@ -185,7 +203,7 @@
           :loading="networkData.approvingToken"
           :label="$t('Approve') + ' ' + formData.sourceToken.symbol"
           color="brandblue"
-          class="q-space"
+          class="q-space button"
           rounded
           @click="confirmApproveToken()"
         />
@@ -196,7 +214,7 @@
           no-caps
           :label="$t('EnterAmount')"
           color="brandblue"
-          class="q-space"
+          class="q-space button"
         />
         <q-btn
           v-else
@@ -205,7 +223,7 @@
           rounded
           :label="insufficientBalance ? $t('InsufficientBalance') : $t('Swap')"
           color="brandblue"
-          class="q-space"
+          class="q-space button"
           @click="moveSwapDetailsToStaging()"
         />
       </div>
@@ -260,7 +278,12 @@
           <q-item-label @click="showRouteDialog = computedStagedSwapDetails.parsedDistribution.steps > 0" style="cursor:pointer;">
             <template v-if="computedStagedSwapDetails.parsedDistribution.steps > 0">
               {{ `${computedStagedSwapDetails.parsedDistribution.steps} step${computedStagedSwapDetails.parsedDistribution.steps > 1 ? 's' : ''}` }}
-              <q-icon name="launch" color="blue-9" />
+              <q-icon
+                name="launch"
+                color="blue-9"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+              />
                 <SmartSwapRouteDialog
                   v-model="showRouteDialog"
                   :steps="computedStagedSwapDetails.parsedDistribution.steps"
@@ -303,7 +326,7 @@
       </div>
       <q-separator />
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
-        <ProgressLoader/>
+        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div class="row justify-center" style="margin-top: 20px; color: gray;">
         <span>{{ $t('PoweredBy') }} SmartSwap.fi</span>
@@ -320,16 +343,23 @@
         @swiped="confirmSwiped()"
       />
     </q-card-section>
-    <q-dialog v-model="showSettingsDialogForm" persistent>
-      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" style="min-width:75vw;" class="br-15">
+    <q-dialog v-model="showSettingsDialogForm" persistent seamless>
+      <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')" style="min-width:75vw;">
         <div class="row no-wrap items-center justify-center q-pl-md">
-          <div class="text-subtitle1 text-weight-medium q-space q-pt-sm" :class="darkMode ? 'text-blue-5' : ''">{{ $t('Settings') }}</div>
+          <div
+            class="text-subtitle1 text-weight-medium q-space q-pt-sm text-section"
+            :class="darkMode ? 'text-blue-5' : ''"
+          >
+            {{ $t('Settings') }}
+          </div>
           <q-btn
               flat
               color="blue-9"
               icon="refresh"
               round
               padding="sm"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               @click="function(){
                 formData.transactionDeadline = 20
                 formData.slippageTolerance = 1
@@ -341,6 +371,7 @@
             color="grey"
             padding="sm"
             icon="close"
+            class="close-button"
             v-close-popup
           />
         </div>
@@ -349,7 +380,7 @@
             {{ $t('SlippageTolerance') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
                   {{ $t('SlippageToleranceDescription') }}
                 </div>
               </q-popup-proxy>
@@ -359,9 +390,9 @@
             <q-btn-toggle
               v-model="formData.slippageTolerance"
               rounded
-              toggle-color="grad"
+              :toggle-color="isDefaultTheme(theme) ? 'toggle-active' : 'grad'"
               :toggle-text-color="darkMode ? 'dark' : 'white'"
-              :color="darkMode ? 'blue-9' : 'grey-3'"
+              :color="isDefaultTheme(theme) ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
               :text-color="darkMode ? 'pt-dark-label' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
@@ -381,7 +412,7 @@
             {{ $t('TransactionDeadline') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
+                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
                   {{ $t('SwapTransactionDeadlineDescription') }}
                 </div>
               </q-popup-proxy>
@@ -392,6 +423,7 @@
             <q-slider
               :min="5"
               :max="30"
+              color="slider"
               v-model="formData.transactionDeadline"
             />
           </div>
@@ -422,6 +454,8 @@ import ProgressLoader from '../ProgressLoader.vue'
 import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SmartSwapTokenSelectorDialog from './SmartSwapTokenSelectorDialog.vue'
 import SmartSwapRouteDialog from './SmartSwapRouteDialog.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SmartSwapForm',
@@ -434,7 +468,9 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
-    }
+    },
+    currentCountry: { type: String },
+    denomination: { type: String }
   },
   data () {
     return {
@@ -509,6 +545,9 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     insufficientBalance () {
       const hasValidBalance = this.formData.sourceToken.balance >= 0
       if (!hasValidBalance) return true
@@ -575,6 +614,10 @@ export default {
     }
   },
   methods: {
+    getAssetDenomination,
+    getDarkModeClass,
+    isDefaultTheme,
+    isHongKong,
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },
@@ -586,9 +629,10 @@ export default {
         address: this.formData.sourceToken.address
       }
       this.$q.dialog({
-        title: this.$t('ApproveToken'),
+        title: this.$t(isHongKong(this.currentCountry) ? 'ApprovePoint' : 'ApproveToken'),
         message: `You are approving SmartSwap's contract to transfer your ${tokenInfo.name}. Are you sure you want to proceed?`,
         persistent: true,
+        seamless: true,
         ok: {
           rounded: true
         },
@@ -611,13 +655,14 @@ export default {
 
       this.approvingToken = true
       const dialog = this.$q.dialog({
-        title: this.$t('ApprovingToken'),
+        title: this.$t(isHongKong(this.currentCountry) ? 'ApprovingPoint' : 'ApprovingToken'),
         message: this.$t(
           'ApprovingTokenName',
           { tokenInfoName: tokenInfo.name },
           `Approving ${tokenInfo.name}`
         ),
         progress: true,
+        seamless: true,
         persistent: false,
         ok: false, // we want the user to not be able to close it
         class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
@@ -625,7 +670,7 @@ export default {
 
       const onApproveSuccess = () => {
         dialog.update({
-          message: this.$t('TokenApproved') + '!',
+          message: this.$t(isHongKong(this.currentCountry) ? 'PointApproved' : 'TokenApproved') + '!',
           progress: false,
           ok: true
         })
@@ -644,7 +689,7 @@ export default {
         })
         .catch((error) => {
           dialog.update({
-            message: 'Failed to approve token' + ((error && error.error) ? `. ${error.error}` : ''),
+            message: `Failed to approve ${isHongKong(this.currentCountry) ? 'point' : 'token'}. ${error?.error ? error.error : ''}`,
             progress: false,
             ok: true
           })
@@ -730,8 +775,9 @@ export default {
         component: SmartSwapTokenSelectorDialog,
         componentProps: {
           tokensList: this.tokensList,
-          title: this.$t('SelectToken'),
-          darkMode: this.darkMode
+          title: this.$t(isHongKong(this.currentCountry) ? 'SelectPoint' : 'SelectToken'),
+          darkMode: this.darkMode,
+          currentCountry: this.currentCountry
         }
       })
         .onOk(token => {
@@ -748,7 +794,8 @@ export default {
         component: SmartSwapTokenSelectorDialog,
         componentProps: {
           tokensList: this.tokensList,
-          darkMode: this.darkMode
+          darkMode: this.darkMode,
+          currentCountry: this.currentCountry
         }
       })
         .onOk(token => {
@@ -847,6 +894,7 @@ export default {
             rounded: true
           },
           persisted: true,
+          seamless: true,
           class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
         })
       } catch (err) {

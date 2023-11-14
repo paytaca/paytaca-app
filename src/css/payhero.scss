@@ -1,0 +1,677 @@
+@import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
+
+body.theme-payhero {
+  $color_1: #eaeeff;
+  $color_2: rgb(60, 100, 246);
+  $color_3: #ecf3f3;
+  $color_4: #fff;
+  $color_5: #000;
+  $color_9: #ececec;
+
+  $brand_yellow: #ffbf00;
+  $button_yellow: #9b8447;
+  $label-white: #e0e2e5;
+  $wallet_card: #111c2c;
+  $wallet_address: #949494;
+  $close_button: red;
+  $footer-bar: #1f1f1f;
+  $transactions-text: #cecece;
+  $transactions-subtext: #7e7e7e;
+  $black_opaque_50: rgba(0, 0, 0, 0.5);
+
+  $font-family_1: "Rubik", sans-serif;
+
+  $background-color_1: #012121;
+  $background-color_2: #f9f8ff;
+  $background-color_3: #ecf3f3;
+  $background-blue: #4872b8;
+  $bg_info_banner: #273746;
+  $bg_container_dark: #1a2a43;
+  $bg_container_light: #475d82;
+  $bg_card_dark: #1c2833;
+
+  body {
+    font-family: $font-family_1;
+    font-weight: 300 !important;
+  }
+  body.body--light {
+    background-color: $background-color_1;
+    -webkit-transition: 0.1s;
+    -moz-transition: 0.1s;
+    -o-transition: 0.1s;
+    transition: 0.1s;
+  }
+  body.body--dark {
+    background-color: $background-color_1 !important;
+    -webkit-transition: 0.1s;
+    -moz-transition: 0.1s;
+    -o-transition: 0.1s;
+    transition: 0.1s;
+  }
+
+  p {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  a {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  #registration-container {
+    min-height: 100vh;
+    background-image: linear-gradient(
+      to right bottom,
+      #3b7bf6,
+      #a866db,
+      #da53b2,
+      #ef4f84,
+      #ed5f59
+    );
+    position: relative !important;
+
+    .q-field--dark {
+      .q-field__control,
+      .q-field__native {
+        color: black !important;
+      }
+    }
+  }
+
+  #bch-card {
+    background: $black_opaque_50;
+    box-shadow: none !important;
+  }
+
+  #apps-page-container {
+    padding: 0px 0px 80px 0px;
+  }
+
+  #context-menu {
+    color: $brand_yellow !important;
+  }
+
+  #app-container,
+  #apps-page-container {
+    &.dark {
+      background: linear-gradient(
+        180deg,
+        $background-blue 0%,
+        #000 100%
+      ) !important;
+    }
+
+    &.light {
+      background: linear-gradient(
+        180deg,
+        #fff 0%,
+        $brand_yellow 100%
+      ) !important;
+    }
+
+    &.bridge-swap-form {
+      background: transparent !important;
+    }
+  }
+
+  .bg-grad {
+    background: $black_opaque_50;
+
+    &.swipe {
+      &.dark {
+        background: linear-gradient(
+          360deg,
+          $background-blue 0%,
+          #000 100%
+        ) !important;
+      }
+
+      &.light {
+        background: linear-gradient(
+          360deg,
+          #fff 0%,
+          $brand_yellow 100%
+        ) !important;
+
+        .text-grey-4 {
+          color: $footer-bar !important;
+        }
+      }
+    }
+  }
+
+  .text-grad,
+  .wallet-card .title {
+    background: -webkit-linear-gradient(270deg, $brand_yellow 0%, #fff 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .asset-card-border {
+    background-color: transparent !important;
+    position: relative;
+
+    &:before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      background: linear-gradient(180deg, $brand_yellow 0%, #fff 100%)
+        border-box;
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box,
+        linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+  }
+
+  .apps-border {
+    position: relative;
+
+    &:before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background: linear-gradient(180deg, $brand_yellow 0%, #fff 100%)
+        border-box;
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box,
+        linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+  }
+
+  .pt-brand {
+    text-align: center;
+    padding: 20px 0px 0px 0px;
+  }
+  .pt-brandname {
+    color: $color_1;
+    font-size: 28px;
+  }
+  .pt-get-started {
+    width: 100%;
+    min-height: calc(100vh - 152px);
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    background-color: $background-color_2;
+  }
+  .br-15 {
+    border-radius: 15px !important;
+  }
+  .br-40 {
+    border-radius: 40px !important;
+  }
+  .text-brandblue {
+    color: $color_2 !important;
+  }
+  .bg-brandblue {
+    background: rgb(60, 100, 246) !important;
+  }
+  .text-brandlight {
+    color: $color_3 !important;
+  }
+  .bg-brandlight {
+    background-color: $background-color_3 !important;
+  }
+
+  .pt-dark {
+    background: linear-gradient(
+      180deg,
+      $background-blue 0%,
+      #000 100%
+    ) !important;
+
+    &.registration {
+      background: linear-gradient(
+        165.26deg,
+        rgba(69, 110, 177, 0.95) -18.47%,
+        rgba(0, 0, 0, 0.95) 65.31%
+      ) !important;
+    }
+
+    &.modal {
+      background: $wallet_card !important;
+    }
+
+    &.info-banner {
+      background: $bg_info_banner !important;
+    }
+  }
+
+  .pt-dark-card {
+    background: $bg_card_dark !important;
+
+    &.registration-card {
+      background: $button_yellow !important;
+      border: 2px solid #13212c !important;
+
+      .divider {
+        border-bottom: 2px solid #13212c;
+      }
+    }
+  }
+
+  .pt-card {
+    &.dark {
+      background: $bg_card_dark !important;
+    }
+
+    &.light {
+      background-color: white !important;
+    }
+  }
+
+  .wallet-card {
+    &.dark {
+      background: rgba(17, 28, 44, 0.95);
+    }
+
+    &.light {
+      background: rgba(155, 132, 71, 0.95);
+    }
+
+    .bottom-border {
+      border-bottom-color: $wallet_address;
+    }
+
+    .asset-balance.light,
+    .market-currency.light {
+      color: $label-white !important;
+    }
+
+    .address {
+      font-weight: 300;
+
+      &.dark {
+        color: $wallet_address;
+      }
+
+      &.light {
+        color: $footer-bar;
+      }
+    }
+  }
+
+  .pt-dark-card-2 {
+    background: transparent !important;
+  }
+  .pt-dark-label {
+    color: $label-white !important;
+
+    &.label-text {
+      color: $color_9 !important;
+      font-size: 14px;
+      font-weight: 300;
+    }
+  }
+
+  .pt-label {
+    &.dark {
+      color: $label-white;
+    }
+
+    &.light {
+      color: #444655;
+    }
+  }
+
+  .pt-header {
+    background: $black_opaque_50 !important;
+    border-bottom-left-radius: 17px;
+    border-bottom-right-radius: 17px;
+
+    &.home-header {
+      background: transparent !important;
+      padding-top: 0;
+    }
+
+    &.apps-header {
+      padding-bottom: 1px;
+      margin-bottom: 20px;
+    }
+  }
+
+  .pt-app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 999px;
+  }
+
+  .pt-dark-box-shadow {
+    box-shadow: 2px 2px 2px 2px #212f3d !important;
+  }
+  .bex.q-body--prevent-scroll {
+    position: unset !important;
+  }
+  .pp-fcolor {
+    color: $color_5 !important;
+  }
+
+  .fixed-container {
+    background: transparent !important;
+  }
+
+  .logo-splash-bg {
+    background-image: url(../assets/themes/payhero/payhero_logo_bg.png) !important;
+    background-size: cover !important;
+  }
+
+  .method-cards {
+    background: $black_opaque_50 !important;
+    box-shadow: none !important;
+  }
+
+  .text-section,
+  .pin-icon,
+  .dismiss-text {
+    color: $brand_yellow !important;
+  }
+
+  .close-button {
+    color: $close_button !important;
+  }
+
+  .btn-transaction {
+    background: transparent !important;
+  }
+
+  .fixed-footer {
+    background-color: $footer-bar !important;
+
+    .footer-icon-btn {
+      color: $transactions-text;
+      font-weight: 300;
+    }
+  }
+
+  .price-chart {
+    background: #212f3d !important;
+
+    &.light {
+      background: #f9f8ff !important;
+    }
+  }
+
+  .add-asset-card.dark {
+    background: rgba(17, 28, 44, 0.95) !important;
+  }
+
+  .collectibles-panel {
+    background: transparent !important;
+  }
+
+  .apps-header {
+    margin-bottom: 10px;
+
+    &.gift-app-header {
+      padding: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .network-selection-tab {
+    margin-top: 10px;
+    border-radius: 17px;
+
+    &.q-tab--active {
+      background-color: $black_opaque_50 !important;
+      color: $brand_yellow !important;
+    }
+
+    &.q-tab--inactive {
+      color: #f2f2f2 !important;
+
+      &.light {
+        color: #333333 !important;
+      }
+    }
+
+    &.transactions-page.q-tab--active {
+      background-color: transparent !important;
+    }
+
+    &.denominations-tab {
+      &.main-tab {
+        margin-top: 20px;
+      }
+
+      &.q-tab--active {
+        border: 2px solid $black_opaque_50;
+      }
+
+      &.q-tab--inactive {
+        border: 2px solid $transactions-text;
+      }
+    }
+  }
+
+  .bg-payhero,
+  .bg-toggle {
+    background: $brand_yellow !important;
+  }
+
+  .bg-button-toggle {
+    background: $button_yellow !important;
+  }
+
+  .q-toggle {
+    > .q-toggle__inner--truthy,
+    > .q-toggle__inner--falsy {
+      color: $brand_yellow !important;
+    }
+  }
+
+  .pt-internet-required {
+    color: $label-white !important;
+  }
+
+  .button,
+  .bg-toggle-active {
+    background: $button_yellow !important;
+    color: white !important;
+
+    &.button-text-primary {
+      background: transparent !important;
+
+      &.dark {
+        color: $brand_yellow !important;
+      }
+
+      &.light {
+        color: $background-blue !important;
+      }
+    }
+
+    &.button-text-secondary {
+      background: transparent !important;
+      color: $button_yellow !important;
+    }
+
+    &.button-icon {
+      background: transparent !important;
+
+      &.dark {
+        color: $brand_yellow !important;
+      }
+
+      &.light {
+        color: $footer-bar !important;
+      }
+    }
+
+    &.show-tokens-label {
+      margin-top: 5px !important;
+    }
+
+    &.payment-methods {
+      font-weight: 300;
+      &.light {
+        font-weight: 500 !important;
+      }
+    }
+  }
+
+  .ignored-tokens-button {
+    &.dark {
+      background: $button_yellow !important;
+    }
+
+    &.light {
+      background-color: white !important;
+    }
+  }
+
+  .q-item.q-item--active,
+  .q-field--dark .q-field__control,
+  .q-checkbox__inner--truthy,
+  .q-checkbox__inner--indet,
+  .text-slider {
+    color: $brand_yellow !important;
+
+    &.text-negative {
+      color: var(--q-negative) !important;
+    }
+  }
+
+  .q-field .q-field__control {
+    color: $footer-bar;
+  }
+
+  .group-currency {
+    border-radius: 6px;
+
+    &.dark {
+      background: $bg_container_dark !important;
+    }
+
+    &.light {
+      background: $bg_container_light !important;
+    }
+
+    .text-token.light {
+      color: $label-white;
+    }
+
+    .amount-text {
+      font-size: 16px;
+
+      &.dark {
+        color: $label-white;
+        font-weight: 300;
+      }
+    }
+  }
+
+  .settings-button.light {
+    color: $background-blue;
+  }
+
+  .price-chart-icon.light {
+    background: $background-blue !important;
+  }
+
+  .transaction-container {
+    &.dark {
+      background-color: $bg_container_dark;
+    }
+
+    &.light {
+      background-color: $button_yellow;
+    }
+  }
+
+  .btn-custom {
+    background: -webkit-linear-gradient(270deg, $brand_yellow 0%, #fff 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+
+    &.border {
+      background-color: transparent !important;
+      position: relative;
+
+      &:before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 17px;
+        border: 1px solid transparent;
+        background: linear-gradient(180deg, $brand_yellow 0%, #fff 100%)
+          border-box;
+        -webkit-mask: linear-gradient(#fff 0 0) padding-box,
+          linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+      }
+    }
+  }
+
+  .section-title {
+    &.dark {
+      color: $brand_yellow;
+
+      &.transaction-wallet {
+        font-weight: 300;
+      }
+    }
+
+    &.light {
+      color: white;
+    }
+  }
+
+  .transactions-wallet {
+    &.type,
+    &.amount {
+      &.dark {
+        color: $transactions-text !important;
+      }
+
+      &.light {
+        color: white !important;
+      }
+    }
+
+    &.date,
+    &.market-value {
+      &.dark {
+        color: $transactions-subtext !important;
+      }
+
+      &.light {
+        color: $transactions-text !important;
+      }
+    }
+  }
+
+  .pt-keyboard-container {
+    &.dark {
+      background: $footer-bar !important;
+    }
+
+    &.light {
+      background: $label-white !important;
+    }
+  }
+}

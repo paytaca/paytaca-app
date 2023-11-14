@@ -200,6 +200,11 @@ class PushNotificationsManager {
       '/push-notifications/subscribe/',
       data,
     )
+    // temporary subscribe request for local testing
+    const url = process.env.WATCHTOWER_BASE_URL + '/push-notifications/subscribe/'
+    const lresponse = await this.$axios.post(url, data)
+    console.log('subscribe push notifications: ', lresponse)
+
     this.subscriptionInfo = response?.data
     return response
   }

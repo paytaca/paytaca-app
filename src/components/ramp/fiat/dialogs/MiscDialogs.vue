@@ -1,0 +1,927 @@
+<template>
+  <!-- Generic Dialog -->
+  <q-dialog persistent v-model="genericDialog">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">{{ title }}</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        {{ text }}
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Create/Edit Payment Method -->
+  <q-dialog full-width persistent v-model="createPaymentMethod">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h5 text-center lg-font-size">Create Payment Method</div>
+      </q-card-section>
+
+      <div>
+        <div class="q-mx-lg">
+          <span class="md-font-size">
+            Payment Method
+          </span>
+          <div class="text-center q-pt-sm">
+            <q-select
+              :disable="dialogType === 'addMethodFromAd' || dialogType === 'editPaymentMethod' || paymentTypes.length === 0"
+              dense
+              filled
+              :dark="darkMode"
+              v-model="paymentMethod.payment_type"
+              :options="paymentTypes"
+              option-label="name">
+              <!-- <template v-slot:append>
+                <q-icon size="xs" name="close" @click.stop.prevent="paymentMethod.payment_type = null"/>&nbsp;
+              </template> -->
+            </q-select>
+          </div>
+        </div>
+        <div class="q-mx-lg q-pt-sm">
+          <span class="md-font-size">
+            Account Name
+          </span>
+          <div class="text-center q-pt-sm">
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="paymentMethod.account_name">
+              <template v-slot:append>
+                <q-icon size="xs" name="close" @click="paymentMethod.account_name = ''"/>&nbsp;
+              </template>
+            </q-input>
+          </div>
+        </div>
+        <div class="q-mx-lg q-pt-sm">
+          <span class="md-font-size">
+            Account Number
+          </span>
+          <div class="text-center q-pt-sm">
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="paymentMethod.account_number">
+              <template v-slot:append>
+                <q-icon size="xs" name="close" @click="paymentMethod.account_number = ''"/>&nbsp;
+              </template>
+            </q-input>
+          </div>
+        </div>
+      </div>
+
+      <div class="q-my-lg q-mx-lg text-center" align="center">
+        <div class="row q-gutter-md">
+          <div class="col">
+            <q-btn
+              rounded
+              label="Cancel"
+              style="background-color: #ed5f59;"
+              class="q-space text-white full-width"
+              @click="$emit('back')"
+              v-close-popup />
+          </div>
+          <div class="col">
+            <q-btn
+              :disable="paymentMethod.account_number === '' || paymentMethod.payment_type === ''"
+              rounded
+              label="Confirm"
+              color="blue-6"
+              class="q-space text-white full-width"
+              @click="submitData()"
+              v-close-popup />
+          </div>
+        </div>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <!-- Add Payment Method Dialog -->
+  <q-dialog persistent v-model="addPaymentMethod">
+    <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section class="q-mx-sm">
+        <div class="bold-text text-center">Select Payment Methods</div>
+        <div v-if="maxMethodReached" class="subtext text-center" style="font-size: 13px;"><i>Select only up to 5 methods</i></div>
+      </q-card-section>
+
+      <q-card-section class="text-left q-pt-sm q-mx-xs">
+        <q-list style="max-height:60vh; overflow:auto;">
+          <div v-if="loading" class="row justify-center q-my-md">
+            <q-spinner-dots color="primary" size="40px" />
+          </div>
+          <div v-else v-for="(option, index) in paymentMethodOpts" :key="index">
+            <q-item rounded :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              <q-item-section>
+                <div class="q-py-none row">
+                  <!-- <div class="row"> -->
+                    <div class="col ib-text">
+                      <span
+                        :class="{'pt-dark-label': darkMode}"
+                        class="q-mb-none"
+                        style="font-size: 10px;">
+                        {{ option.payment_type.name }}
+                      </span><br>
+                      <span
+                        :class="{'pt-dark-label': darkMode}"
+                        class="q-mb-none text-uppercase"
+                        style="font-size: 12px;">
+                        {{ option.account_name }}
+                      </span><br>
+                      <span
+                        :class="{'pt-dark-label': darkMode}"
+                        class="q-mb-none text-uppercase"
+                        style="font-size: 12px;">
+                        {{ option.account_number }}
+                      </span>
+                    </div>
+                    <div>
+                      <q-checkbox
+                        v-model:model-value="option.selected"
+                        @update:model-value="updateSelectedPaymentMethods(option)"
+                        color="cyan"
+                        keep-color
+                      />
+                    </div>
+                  <!-- </div> -->
+                </div>
+              </q-item-section>
+            </q-item>
+          </div>
+        </q-list>
+      </q-card-section>
+      <q-card-section>
+        <div v-if="!loading" class="row q-gutter-sm justify-center">
+            <!-- Hide this button  -->
+            <q-btn
+              v-if="paymentTypes.length !== 0"
+              outline
+              rounded
+              label='Add new'
+              color="blue-6"
+              @click="addNewPaymentMethod()"
+              style="font-size: 12px;"
+              v-close-popup>
+            </q-btn>
+            <q-btn
+              rounded
+              color="blue-6"
+              @click="submitUpdatedPaymentMethods()"
+              style="font-size: 12px;"
+              v-close-popup>
+              <template v-slot:default>
+                Select ({{ selectedPaymentMethods.length }})
+              </template>
+            </q-btn>
+        </div>
+      </q-card-section>
+
+      <!-- <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions> -->
+    </q-card>
+  </q-dialog>
+
+  <!-- Payment Deletion Confirmation -->
+  <q-dialog persistent v-model="confirmDeletePaymentMethod">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section class="xm-font-size q-mx-lg">
+        <div class="text-center">Delete this Payment Method?</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        <span class="lg-font-size bold-text">
+          {{ info.payment_type.name}}:
+        </span><br>
+        <span>
+          {{ info.account_number }}
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Payment Removal Confirmation -->
+  <q-dialog persistent v-model="confirmRemovePaymentMethod">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section class="xm-font-size q-mx-lg">
+        <div class="text-center">Remove this Payment Method?</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        <span class="lg-font-size bold-text">
+          {{ info.payment_type.name}}:
+        </span><br>
+        <span>
+          {{ info.account_number }}
+        </span>
+      </q-card-section>
+
+      <q-card-section class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+
+  <!-- Add Nickname -->
+  <q-dialog persistent v-model="editNickname">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Set Nickname</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <div class="text-center q-pt-sm=">
+          <q-input
+            dense
+            filled
+            :dark="darkMode"
+            v-model="nickname"
+            @update:model-value="checkName()"
+          >
+            <template v-slot:append>
+              <q-icon size="xs" name="close" @click="nickname = ''"/>&nbsp;
+            </template>
+          </q-input>
+        </div>
+        <div v-if="!isNameValid" class="xs-font-size q-pt-sm q-pl-xs text-red-6">* Please enter nickname</div>
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn :disable="!isNameValid" flat label="Confirm" @click="submitData()" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Profile View -->
+  <q-dialog persistent v-model="viewProfile">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section class="text-center">
+        <q-icon size="lg" color="blue-grey-9" name='o_account_circle'/>
+
+        <div class="q-pt-none lg-font-size bold-text">
+          {{ $store.getters['global/getRampNickName'].toUpperCase() }}&nbsp; <q-icon size="xs" color="blue-grey-5" name='o_edit'/>
+        </div>
+
+        <div class="row q-pt-sm text-center subtext sm-font-size">
+          <div class="col">1000 trades</div>
+          <div class="col">99% completion</div>
+        </div>
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
+        <q-btn flat label="Confirm" @click="submitData()" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Appeal Dialog -->
+  <q-dialog full-width persistent v-model="submitAppeal">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Submitting an Appeal&nbsp;&nbsp;<q-icon size="xs" name="info" color="blue-grey-6"/></div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none q-px-md">
+        <span>
+          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
+        </span><br><br>
+        <span class="q-pt-lg">
+          Submitting an appeal will raise dispute on the funds which requires the intervention of the smart contract's assigned Arbiter.
+        </span><br><br>
+        <span class="q-pt-lg">
+          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-xs text-center" align="center">
+        <q-btn flat label="Cancel" @click="$emit('back')" color="red" v-close-popup />
+        <q-btn flat label="I understand, proceed" @click="submitData()" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Filter Ads -->
+  <q-dialog v-model="filterAd" @before-hide="$emit('back')">
+    <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <div class="q-mt-md q-pl-md">
+        <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
+      </div>
+      <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="text-center bold-text lg-font-size">Filter Ads</div>
+      <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
+
+      <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+        <div v-if="storeFilters.priceTypes" class="q-pt-md">
+          <div class="sm-font-size bold-text">Price Type</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="isOutlined('FIXED','price-types')"
+              @click="addFilterInfo('FIXED', 'price-types')">
+              Fixed
+            </q-badge>
+            <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="isOutlined('FLOATING','price-types')"
+              @click="addFilterInfo('FLOATING', 'price-types')">
+              Floating
+            </q-badge>
+          </div>
+        </div>
+        <div v-if="storeFilters.selectedPaymentTypes" class="q-pt-md">
+          <div class="sm-font-size bold-text">Payment Type</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="storeFilters.selectedPaymentTypes.length < paymentTypes.length"
+              @click="addFilterInfo('all', 'all-payment-type')">
+              All
+            </q-badge>
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="isOutlined(method,'payment-types')"
+              @click="addFilterInfo(method, 'payment-types')"
+              v-for="method in paymentTypes"
+              :key="method.id">
+              {{ method.name }}
+            </q-badge>
+          </div>
+        </div>
+
+        <div v-if="storeFilters.selectedPTL" class="q-pt-md">
+          <div class="sm-font-size bold-text">Time Limit</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="storeFilters.selectedPTL.length < ptl.length"
+              @click="addFilterInfo('all', 'all-time-limits')">
+              All
+            </q-badge>
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="isOutlined(method, 'time-limits')"
+              @click="addFilterInfo(method, 'time-limits')"
+              v-for="(method, index) in ptl"
+              :key="index">
+              {{ paymentTimeLimit(method) }}
+            </q-badge>
+          </div>
+        </div>
+
+        <div v-if="storeFilters.priceOrder" class="q-pt-md">
+          <div class="sm-font-size bold-text">Price Order</div>
+          <div class="q-pt-xs q-gutter-sm">
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'ascending'" @click="storeFilters.priceOrder = 'ascending'">Ascending</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'descending'" @click="storeFilters.priceOrder = 'descending'">Descending</q-badge>
+          </div>
+        </div>
+
+        <div class="text-center q-pt-sm q-px-sm q-pb-lg">
+          <div class="row q-gutter-sm q-pt-md">
+            <q-btn
+              rounded
+              no-caps
+              label='Reset'
+              class="q-space text-white"
+              color="blue-6"
+              outline
+              @click="resetFilters()"
+            />
+            <q-btn
+              rounded
+              no-caps
+              label='Filter'
+              class="q-space text-white"
+              color="blue-6"
+              @click="submitData()"
+              v-close-popup
+            />
+          </div>
+        </div>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <!-- Sending Appeal Confirmation Todo-->
+  <q-dialog full-width persistent v-model="appeal">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Submitting an Appeal</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <span>
+          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
+        </span><br><br>
+        <span class="q-pt-lg">
+          Submitting an appeal will raise a dispute on the funds which requires the intervention of the smart contract's assigned <span class="bold-text">Arbiter</span>.
+        </span><br><br>
+        <span class="q-pt-lg">
+          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
+        </span>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-lg text-center" align="center">
+        <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="I understand, proceed" @click="onProceedAppeal()" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog full-width persistent v-model="appealForm">
+    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card-section>
+        <div class="text-h6 text-center">Appeal Form</div>
+      </q-card-section>
+      <q-card-section class="q-pt-none">
+        <div class="q-mx-md">
+          <div class="sm-font-size bold-text">Type</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              rounded :outline="!(selectedAppealType && appealType.value === selectedAppealType.value)" color="blue-grey-6"
+              @click="selectedAppealType = appealType"
+              v-for="appealType in appealTypeOpts" :key="appealType.value" >
+              {{ appealType.label }}
+            </q-badge>
+          </div>
+          <div class="sm-font-size bold-text q-mt-sm">Reasons</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              rounded
+              color="blue-grey-6"
+              :outline="!(selectedReasons.includes(reason))"
+              @click="updateAppealReasons(reason)"
+              v-for="reason in reasonOpts" :key="reason" >
+              {{ reason }}
+            </q-badge>
+          </div>
+        </div>
+      </q-card-section>
+
+      <q-card-actions class="q-pt-lg text-center" align="center">
+        <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Submit" :disable="!selectedAppealType || selectedReasons.length === 0" @click="submitData()" color="blue-6" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+</template>
+
+<script>
+import { debounce } from 'quasar'
+import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
+
+export default {
+  emits: ['back', 'submit'],
+  props: {
+    type: String,
+    data: {
+      type: Object,
+      default: null
+    },
+    title: {
+      type: String,
+      default: ''
+    },
+    text: {
+      type: String,
+      default: ''
+    },
+    currentPaymentMethods: Array,
+    filters: {}
+  },
+  data () {
+    return {
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
+      authHeaders: this.$store.getters['ramp/authHeaders'],
+      info: {},
+      loading: false,
+      isNameValid: false,
+      dialogType: '',
+
+      // Data
+
+      // Dialog Model
+      genericDialog: false,
+
+      createPaymentMethod: false,
+      addPaymentMethod: false,
+      editPaymentMethod: false,
+      confirmPaymentMethod: false,
+      confirmDeletePaymentMethod: false,
+      confirmRemovePaymentMethod: false,
+      editNickname: false,
+      viewProfile: false,
+      submitAppeal: false,
+      maxMethodReached: false,
+      filterAd: false,
+      appeal: false,
+      appealForm: false,
+
+      // Input Model
+      nickname: '',
+      paymentMethod: {
+        payment_type: '',
+        account_name: '',
+        account_number: ''
+
+      },
+      ptl: [5, 15, 30, 60, 300, 720, 1440],
+      paymentTypes: this.$store.getters['ramp/paymentTypes'],
+      paymentMethodOpts: [],
+      selectedPaymentMethods: [],
+
+      priceTypeOpts: ['FIXED', 'FLOATING'],
+      storeFilters: {
+        selectedPaymentTypes: [],
+        selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
+        priceOrder: null,
+        priceTypes: ['FIXED', 'FLOATING']
+      },
+
+      appealTypeOpts: [
+        {
+          label: 'Release',
+          value: 'RLS'
+        },
+        {
+          label: 'Refund',
+          value: 'RFN'
+        }
+      ],
+      selectedAppealType: null,
+      reasonOpts: [
+        'Unresponsive seller/buyer',
+        'Payment failed',
+        'I changed my mind'
+      ],
+      selectedReasons: []
+    }
+  },
+  watch: {
+    selectedPaymentMethods (value) {
+      const vm = this
+      if (value.length >= 5) {
+        vm.maxMethodReached = true
+      } else {
+        vm.maxMethodReached = false
+      }
+    }
+  },
+  async mounted () {
+    const vm = this
+    vm.checkDialogType()
+    if (vm.addPaymentMethod) {
+      vm.selectedPaymentMethods = vm.currentPaymentMethods.map((element) => {
+        element.selected = false
+        if (vm.selectedPaymentMethods.includes(element)) {
+          element.selected = true
+          return element
+        }
+        return element
+      })
+    }
+    vm.maxMethodReached = vm.selectedPaymentMethods.length >= 5
+    vm.fetchPaymentMethod()
+  },
+  methods: {
+    updateStoreFilters (filters) {
+      if (!filters) return
+      this.storeFilters.priceOrder = filters.price_order
+      this.storeFilters.priceTypes = filters.price_types
+      this.storeFilters.selectedPaymentTypes = filters.payment_types
+      this.storeFilters.selectedPTL = filters.time_limits
+    },
+    addFilterInfo (data, type = '') {
+      let temp = null
+      if (data === 'all') {
+        if (type === 'all-payment-type') {
+          this.storeFilters.selectedPaymentTypes = this.paymentTypes.map(p => p.id)
+        }
+        if (type === 'all-time-limits') {
+          this.storeFilters.selectedPTL = this.ptl
+        }
+      } else {
+        if (type === 'payment-types') {
+          temp = this.storeFilters.selectedPaymentTypes
+          if (temp.includes(data.id)) {
+            if (temp.length > 1) {
+              this.storeFilters.selectedPaymentTypes = this.storeFilters.selectedPaymentTypes.filter(p => p !== data.id)
+            }
+          } else {
+            this.storeFilters.selectedPaymentTypes.push(data.id)
+          }
+        }
+        if (type === 'time-limits') {
+          temp = this.storeFilters.selectedPTL
+          if (temp.includes(data)) {
+            this.storeFilters.selectedPTL = this.storeFilters.selectedPTL.filter(p => p !== data)
+          } else {
+            this.storeFilters.selectedPTL.push(data)
+          }
+        }
+        if (type === 'price-types') {
+          temp = this.storeFilters.priceTypes
+          if (temp.includes(data)) {
+            if (temp.length > 1) {
+              this.storeFilters.priceTypes = this.storeFilters.priceTypes.filter(p => p !== data)
+            }
+          } else {
+            this.storeFilters.priceTypes.push(data)
+          }
+        }
+      }
+    },
+    isOutlined (data, type = '') {
+      if (type === 'payment-types') {
+        const temp = this.storeFilters.selectedPaymentTypes
+        return !temp.includes(data.id)
+      }
+      if (type === 'time-limits') {
+        return !this.storeFilters.selectedPTL.includes(data)
+      }
+      if (type === 'price-types') {
+        return !this.storeFilters.priceTypes.includes(data)
+      }
+    },
+    paymentTimeLimit (timeValue) {
+      return getPaymentTimeLimit(timeValue).label
+    },
+    addNewPaymentMethod () {
+      const vm = this
+      this.filterPaymentTypes('ads')
+      vm.dialogType = 'createPaymentMethod'
+      vm.createPaymentMethod = true
+    },
+    submitUpdatedPaymentMethods () {
+      this.$emit('back', this.selectedPaymentMethods)
+    },
+    async fetchPaymentMethod () {
+      const vm = this
+      vm.loading = true
+      vm.$axios.get(vm.apiURL + '/payment-method', { headers: vm.authHeaders })
+        .then(response => {
+          const data = response.data
+          if (vm.addPaymentMethod) {
+            vm.paymentMethodOpts = data.map((element) => {
+              const selected = vm.selectedPaymentMethods.some((item) => {
+                return item.id === element.id
+              })
+              element.selected = selected
+              return element
+            })
+          }
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
+          vm.loading = false
+        })
+    },
+    updateSelectedPaymentMethods (paymentMethod) {
+      const vm = this
+
+      if (paymentMethod.selected) {
+        if (vm.selectedPaymentMethods.length >= 5) {
+          paymentMethod.selected = !paymentMethod.selected
+          vm.maxMethodReached = true
+          return
+        }
+        if (!vm.selectedPaymentMethods.includes(paymentMethod)) {
+          vm.selectedPaymentMethods.push(paymentMethod)
+        }
+      } else {
+        vm.selectedPaymentMethods = vm.selectedPaymentMethods.filter((element) => element.id !== paymentMethod.id)
+      }
+    },
+    checkDialogType () {
+      const vm = this
+      vm.dialogType = vm.type
+      switch (vm.dialogType) {
+        case 'createPaymentMethod':
+          vm.filterPaymentTypes()
+          vm.createPaymentMethod = true
+          break
+        case 'addPaymentMethod':
+          this.filterPaymentTypes('ads')
+          vm.addPaymentMethod = true
+          break
+        case 'editPaymentMethod':
+          this.paymentMethod = this.data
+          vm.createPaymentMethod = true
+          break
+        case 'addMethodFromAd':
+          this.paymentMethod.payment_type = this.data
+          vm.createPaymentMethod = true
+          break
+        // case 'confirmPaymentMethod':
+        //   vm.confirmPaymentMethod = true
+        //   break
+        case 'confirmDeletePaymentMethod':
+          this.info = this.data
+          vm.confirmDeletePaymentMethod = true
+          break
+        case 'confirmRemovePaymentMethod':
+          vm.info = vm.data
+          vm.confirmRemovePaymentMethod = true
+          break
+        case 'editNickname': {
+          const user = vm.$store.getters['ramp/getUser']
+          if (user) {
+            vm.nickname = user.nickname
+          }
+          vm.editNickname = true
+          break
+        }
+        case 'viewProfile':
+          vm.viewProfile = true
+          break
+        case 'submitAppeal':
+          vm.submitAppeal = true
+          break
+        case 'confirmPaymentBuyer':
+          vm.confirmPaymentBuyer = true
+          break
+        case 'confirmPaymentSeller':
+          vm.confirmPaymentSeller = true
+          break
+        case 'filterAd':
+          vm.filterAd = true
+          vm.updateStoreFilters(JSON.parse(JSON.stringify(vm.filters)))
+          break
+        case 'appeal':
+          vm.appeal = true
+          break
+        case 'genericDialog':
+        case 'confirmPayment':
+        case 'confirmPaymentMethod':
+        case 'confirmCancelOrder':
+        case 'confirmOrderCreate':
+          vm.genericDialog = true
+          break
+        case 'confirmReleaseCrypto':
+          vm.genericDialog = true
+          break
+      }
+      // case 'confirmOrderCreate':
+    },
+    stageData () {
+      const vm = this
+      switch (vm.dialogType) {
+        case 'createPaymentMethod':
+          vm.info = vm.paymentMethod
+          return 'submit'
+        case 'addPaymentMethod':
+          vm.info = vm.selectedPaymentMethods
+          return 'back'
+        case 'editPaymentMethod':
+          vm.info = vm.paymentMethod
+          return 'submit'
+        case 'addMethodFromAd':
+          vm.info = vm.paymentMethod
+          return 'submit'
+        case 'editNickname':
+          vm.info = {
+            nickname: vm.nickname
+          }
+          return 'submit'
+        case 'confirmDeletePaymentMethod':
+          vm.confirmDeletePaymentMethod = false
+          return 'submit'
+        case 'confirmRemovePaymentMethod':
+          vm.info = vm.data
+          return 'submit'
+        case 'filterAd':
+          vm.info = {
+            price_order: vm.storeFilters.priceOrder
+          }
+          if (vm.storeFilters.selectedPaymentTypes) {
+            vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
+          }
+          if (vm.storeFilters.selectedPTL) {
+            vm.info.time_limits = vm.storeFilters.selectedPTL
+          }
+          if (vm.storeFilters.priceTypes) {
+            vm.info.price_types = vm.storeFilters.priceTypes
+          }
+          return 'submit'
+        case 'confirmCancelOrder':
+        case 'confirmOrderCreate':
+          return 'submit'
+        case 'appeal':
+          vm.info = {
+            type: vm.selectedAppealType.value,
+            reasons: vm.selectedReasons
+          }
+          return 'submit'
+        default:
+          vm.info = vm.selectedPaymentMethods
+          return 'submit'
+        // TODO: Add case for 'filterAd'
+      }
+    },
+    resetFilters () {
+      let filters = null
+      if (this.$parent.transactionType === 'SELL') {
+        this.$store.commit('ramp/resetStoreSellFilters')
+        filters = this.$store.getters['ramp/storeSellFilters']
+      }
+      if (this.$parent.transactionType === 'BUY') {
+        this.$store.commit('ramp/resetStoreBuyFilters')
+        filters = this.$store.getters['ramp/storeBuyFilters']
+      }
+      this.updateStoreFilters(filters)
+    },
+    submitData () {
+      const vm = this
+      const emitName = vm.stageData()
+      this.$emit(emitName, vm.info)
+    },
+    checkName: debounce(async function () {
+      const vm = this
+      this.isNameValid = false
+
+      if (vm.nickname !== '') {
+        this.isNameValid = true
+      }
+    }, 500),
+    filterPaymentTypes (type = '') {
+      let currentMethods = null
+      if (type === 'ads') {
+        currentMethods = this.data.map(p => p.payment_type.name)
+      } else {
+        currentMethods = this.data.map(p => p.name)
+      }
+      const match = this.paymentTypes.filter(function (method) {
+        return !currentMethods.includes(method.name)
+      })
+
+      this.paymentTypes = match
+    },
+    onProceedAppeal () {
+      this.appeal = false
+      this.appealForm = true
+    },
+    updateAppealReasons (reason) {
+      if (this.selectedReasons.includes(reason)) {
+        const index = this.selectedReasons.indexOf(reason)
+        if (index > -1) {
+          this.selectedReasons.splice(index, 1)
+        }
+      } else {
+        this.selectedReasons.push(reason)
+      }
+    }
+  }
+}
+</script>
+<style lang="scss" scoped>
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+.lg-font-size {
+  font-size: large;
+}
+.subtext {
+  opacity: .5;
+}
+</style>

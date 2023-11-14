@@ -5,6 +5,9 @@
 <script>
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { useStore } from "vuex"
+import { useQuasar } from 'quasar'
+import { computed, watchEffect } from "@vue/runtime-core"
 
 // Handle JSON serialization of BigInt
 // Source: https://github.com/GoogleChromeLabs/jsbi/issues/30#issuecomment-1006086291
@@ -14,6 +17,26 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
+  setup () {
+    const store = useStore()
+    const $q = useQuasar()
+    const theme = computed(() => store?.state?.global?.theme)
+    const darkMode = computed(() => store?.state?.darkmode?.darkmode)
+
+    watchEffect(() => {
+      // Set the theme
+      const classes = document.body.classList
+      classes.forEach(function (cl) {
+        if (cl.startsWith('theme-')) {
+          document.body.classList.remove(cl)
+        }
+      })
+      document.body.classList.add(`theme-${theme.value}`)
+      
+      // Set quasar dark mode true/false
+      $q.dark.set(darkMode.value)
+    })
+  },
   data () {
     return {
       subscribedPushNotifications: false,
@@ -114,7 +137,7 @@ export default {
         const isChipnet = true
 
         // save BCH_CHIP
-        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity }) {
+        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses, pgpIdentity, purelypeerVaultSigner }) {
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'bch',
@@ -122,7 +145,8 @@ export default {
             derivationPath: bchChipWallet.derivationPath,
             lastAddress: addresses !== null ? addresses.receiving : '',
             lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
+            lastAddressIndex: 0,
+            purelypeerVaultSigner
           })
           vm.$store.dispatch('chat/addIdentity', pgpIdentity)
           try {
@@ -166,7 +190,7 @@ export default {
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
     if (mnemonic) {
-      vm.$i18n.locale =  vm.$store.getters['global/language'].value
+      vm.$q.lang.set(vm.$store.getters['global/language'].value)
       await vm.savingInitialChipnet(mnemonic)
       // first check if vaults are empty
       this.$store.dispatch('global/saveExistingWallet')
@@ -174,7 +198,6 @@ export default {
 
       if (this.$q.platform.is.mobile) {
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
-          console.log('Notification:', notification)
           if (notification?.title || notification?.body) {
             this.$q.notify({
               color: 'brandblue',

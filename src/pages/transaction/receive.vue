@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
@@ -24,7 +24,7 @@
       </q-menu>
     </q-icon>
     <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <template v-else>
       <div class="row">
@@ -89,6 +89,7 @@ import {
   convertCashAddress,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -109,8 +110,7 @@ export default {
       legacy: false,
       lnsName: '',
       generatingAddress: false,
-      copying: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      copying: false
     }
   },
   props: {
@@ -125,6 +125,12 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -143,6 +149,8 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
     updateLnsName () {
       if (!this.isSep20) return
       if (!this.address) return
@@ -364,7 +372,6 @@ export default {
 
       // Stop listener if another listener already exists
       vm.stopSbchListener()
-      console.log('starting listener')
       watchTransactions(
         address,
         opts,
@@ -384,7 +391,6 @@ export default {
 
     stopSbchListener () {
       if (this.sBCHListener && this.sBCHListener.stop && this.sBCHListener.stop.call) {
-        console.log('stopping listener')
         this.sBCHListener.stop()
       }
     }
@@ -416,10 +422,15 @@ export default {
     }
     this.updateLnsName()
 
+    let path = 'send-success.mp3'
+    if (this.$q.platform.is.ios) {
+      path = 'public/assets/send-success.mp3'
+    }
     NativeAudio.preload({
       assetId: 'send-success',
-      assetPath: 'send-success.wav',
+      assetPath: path,
       audioChannelNum: 1,
+      volume: 1.0,
       isUrl: false
     })
   },

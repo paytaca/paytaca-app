@@ -158,7 +158,7 @@
       />
     </div>
   </q-card>
-  <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded && !error">
+  <div class="row justify-center q-py-lg" style="margin-top: 50%" v-if="!isloaded && !error">
     <ProgressLoader/>
   </div>
   <div v-if="state === 'confirmation'">
@@ -190,11 +190,11 @@ import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampDisplayConfirmation from './RampDisplayConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
 import RampHistoryDialog from './RampHistoryDialog.vue'
-import ProgressLoader from '../ProgressLoader.vue'
-import QrScanner from '../qr-scanner.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
-import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
-import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
+// import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
+// import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
 export default {
   components: {

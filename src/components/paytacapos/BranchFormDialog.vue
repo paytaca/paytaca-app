@@ -1,6 +1,6 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading">
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" class="br-15" style="width:min(350px, 90vw)">
+  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" seamless>
+    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="width:min(350px, 90vw)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm">
           <template v-if="newBranch">
@@ -14,6 +14,7 @@
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -149,9 +150,8 @@
             <q-btn
               no-caps
               :disable="loading"
-              color="brandblue"
+              class="button col"
               :label="branchInfo?.id ? $t('Update', {}, 'Update') : $t('Set', {}, 'Set')"
-              class="col"
               type="submit"
             />
           </div>
@@ -303,6 +303,8 @@ function confirmDeleteBranch() {
   $q.dialog({
     title: $t('RemoveBranch', {}, 'Remove branch'),
     message: $t('RemoveBranchConfirm', {}, 'Remove branch. Are you sure?'),
+    seamless: true,
+    cancel: true,
     ok: true,
     class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
   })
@@ -311,6 +313,8 @@ function confirmDeleteBranch() {
         .then(() => {
           $q.dialog({
             message: $t('BranchRemoved', {}, 'Branch removed'),
+            seamless: true,
+            ok: true,
             class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
           })
           onDialogCancel()
@@ -323,6 +327,8 @@ function confirmDeleteBranch() {
           $q.dialog({
             message: errorMessage || $t('FailedRemoveBranch', {}, 'Failed to remove branch'),
             class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+            seamless: true,
+            ok: true
           })
         })
     })

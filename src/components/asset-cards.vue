@@ -4,7 +4,7 @@
     <div
       v-for="(asset, index) in assets"
       :key="index"
-      class="method-cards q-pa-md q-mr-none"
+      class="method-cards asset-card-border q-pa-md q-mr-none"
       :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
       @click="(event) => {
         selectAsset(event, asset)
@@ -13,7 +13,11 @@
     >
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
-        <p class="col q-pl-sm" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;">
+        <p
+          class="col q-pl-sm"
+          :class="{'text-grad' : isDefaultTheme}"
+          style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;"
+        >
           {{ asset.symbol }}
         </p>
       </div>
@@ -69,7 +73,9 @@ export default {
     manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
     balanceLoaded: { type: Boolean },
-    isCashToken: { type: Boolean }
+    isCashToken: { type: Boolean },
+    currentLanguage: { type: String },
+    currentCountry: { type: String }
   },
   data () {
     return {
@@ -85,6 +91,9 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
+    },
+    isDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   methods: {
@@ -125,25 +134,6 @@ export default {
         }, 200)
       }
     },
-    addSep20Asset (contractAddress) {
-      const vm = this
-      this.wallet.sBCH.getSep20ContractDetails(contractAddress).then(response => {
-        if (response.success && response.token) {
-          const commitName = 'sep20/addNewAsset'
-          const asset = {
-            id: `sep20/${response.token.address}`,
-            symbol: response.token.symbol,
-            name: response.token.name,
-            decimals: response.token.decimals,
-            logo: '',
-            balance: 0
-          }
-          vm.$store.commit(commitName, asset)
-          vm.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
-          vm.$store.dispatch('sep20/updateTokenIcon', { assetId: asset.id })
-        }
-      })
-    },
     addNewAsset () {
       const vm = this
       vm.$q.dialog({
@@ -152,13 +142,12 @@ export default {
           network: vm.network,
           darkMode: vm.darkMode,
           isCashToken: vm.isCashToken,
-          wallet: vm.$parent.$parent.wallet
+          wallet: vm.$parent.$parent.wallet,
+          currentCountry: vm.currentCountry
         },
         component: AddNewAsset
       }).onOk((asset) => {
-        if (vm.isSep20) return vm.addSep20Asset(asset.tokenId)
-        vm.selectAsset(null, asset.data)
-      }).onCancel(() => {
+        if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
     },
     removeAsset (asset) {
@@ -202,20 +191,11 @@ export default {
     margin-left: 2px;
     margin-right: 12px;
   }
+
   .method-cards {
     height: 78px;
     min-width: 150px;
     border-radius: 16px;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-    box-shadow: 2px 2px 2px 2px #f2f2fc;
-  }
-  .method-cards-dark {
-    background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
-    /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
-    /* background: #717D7E; */
-  }
-  .selected {
-    box-shadow: 1px 2px 2px 2px rgba(83, 87, 87, 0.2) !important;
   }
 
   .text-num-lg {

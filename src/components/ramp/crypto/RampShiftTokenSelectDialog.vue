@@ -1,16 +1,22 @@
 <template>
-   <q-dialog ref="dialog" persistent full-width>
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'" class="br-15">
+   <q-dialog ref="dialog" persistent full-width seamless>
+    <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">
       <div class="row no-wrap items-center justify-center q-pl-md q-px-sm q-pt-sm">
-        <div class="text-subtitle1 q-space q-mt-sm">{{ title }}</div>
+        <div class="text-subtitle1 q-space q-mt-sm pt-label" :class="getDarkModeClass(darkMode)">{{ title }}</div>
         <q-btn
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
-      <q-tab-panels v-model="panel" animated :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+      <q-tab-panels
+        v-model="panel"
+        animated
+        class="pt-card"
+        :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+      >
         <q-tab-panel name="list" class="q-pa-md">
           <q-card-section>
             <q-input
@@ -56,11 +62,11 @@
    </q-dialog>
 </template>
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       panel: 'list',
       searchText: '',
       coin: '',
@@ -73,6 +79,7 @@ export default {
     title: String
   },
   methods: {
+    getDarkModeClass,
     hide () {
       this.$refs.dialog.hide()
     },
@@ -98,6 +105,9 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     filteredCoinList () {
       if (!this.searchText) return this.tokenList
 

@@ -1,12 +1,12 @@
 <template>
-  <div id="registration-container">
+  <div :class="theme" id="registration-container">
     <div class="row q-pb-sm">
       <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
         <img src="~/assets/paytaca_logo.png" height="60">
         <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm justify-center" :class="{'pt-dark': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
+    <div class="row pt-wallet q-mt-sm justify-center" :class="{'pt-dark info-banner': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
       <div v-if="serverOnline" v-cloak>
         <div class="col-12 q-mt-md q-px-lg q-py-none">
           <div class="row">
@@ -43,7 +43,7 @@
       </div>
     </div>
     <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
-      <ProgressLoader/>
+      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">
@@ -59,90 +59,115 @@
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
-      <div class="pt-get-started q-mt-sm q-pa-lg" :class="{ 'pt-dark': darkMode }">
-        <div class="row justify-center" v-if="openSettings">
-          <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5>
-          <p class="dim-text" style="margin-top: 10px;">
-            {{ $t('OnBoardSettingDescription') }}
-          </p>
-
-          <q-list bordered separator style="border-radius: 14px;" :class="{'pt-dark-card': darkMode}">
-            <q-item>
-              <q-item-section>
-                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <CountrySelector :darkMode="darkMode" />
-              </q-item-section>
-            </q-item>
-
-            <q-item>
-              <q-item-section>
-                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <LanguageSelector :darkMode="darkMode" />
-              </q-item-section>
-            </q-item>
-
-            <q-item>
-              <q-item-section>
-                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <CurrencySelector :darkMode="darkMode" />
-              </q-item-section>
-            </q-item>
-          </q-list>
-
-          <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width bg-blue-9 text-white" @click="choosePreferedSecurity"/>
-        </div>
-        
-        <div v-else>
-          <template v-if="steps === totalSteps">
-            <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('MnemonicBackupPhrase') }}</h5>
-            <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-              {{ $t('MnemonicBackupPhraseDescription1') }}
-            </p>
-            <p v-else class="dim-text" style="margin-top: 10px;">
-              {{ $t('MnemonicBackupPhraseDescription2') }}
-            </p>
-          </template>
-          <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
-
-          <div class="row" id="mnemonic">
-            <template v-if="steps === totalSteps">
-              <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-                <ul>
-                  <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
-                    <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
-                  </li>
-                </ul>
-              </div>
-              <div v-else>
-                <div>
-                  <q-btn
-                    flat
-                    no-caps
-                    padding="xs sm"
-                    icon="arrow_back"
-                    color="black"
-                    class="text-blue"
-                    :label="$t('MnemonicBackupPhrase')"
-                    @click="showMnemonicTest = false"
-                  />
+      <div class="pt-get-started q-mt-sm" :class="{ 'pt-dark': darkMode, 'registration' : theme }">
+        <div :class="{'logo-splash-bg' : isDefaultTheme(theme)}">
+          <div class="q-pa-lg" style="padding-top: 28px;">
+            <div class="row" v-if="openSettings">
+              <div class="col">
+                <div class="row justify-center">
+                  <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5><br />
                 </div>
-                <MnemonicTest
-                  :mnemonic="mnemonic"
-                  @matched="mnemonicVerified = true"
-                  class="q-mb-md"
-                />
+                <div class="row justify-center">
+                  <p class="dim-text" style="margin-top: 10px;">
+                    {{ $t('OnBoardSettingDescription') }}
+                  </p>
+                </div>
+                <div class="row justify-center q-mt-md">
+                  <q-list bordered separator style="border-radius: 14px;" :class="{'pt-dark-card': darkMode, 'registration-card' : theme}">
+                    <q-item :class="{'divider' : theme}">
+                      <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <CountrySelector :darkMode="darkMode" />
+                      </q-item-section>
+                    </q-item>
+
+                    <q-item :class="{'divider' : theme}">
+                      <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <LanguageSelector :darkMode="darkMode" />
+                      </q-item-section>
+                    </q-item>
+
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <CurrencySelector :darkMode="darkMode" :key="currencySelectorRerender" />
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </div>
+                <div class="row justify-center">
+                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width bg-blue-9 text-white" @click="choosePreferedSecurity"/>
+                </div>
+                <div class="row justify-center">
+                  <transition appear enter-active-class="animated fadeIn">
+                    <div v-if="theme === 'payhero'" class="q-mt-lg q-pt-sm text-center">
+                      <p style="font-size: 16px;">in partnership with</p>
+                      <img src="~/assets/themes/payhero/payhero_logo.png" width="130">
+                    </div>
+                  </transition>
+                </div>
               </div>
-            </template>
-          </div>
-          <div class="row" v-if="steps === totalSteps">
-            <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="openSettings = true" :label="$t('Continue')" rounded />
-            <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+            </div>
+
+            <div v-else>
+              <template v-if="steps === totalSteps">
+                <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('MnemonicBackupPhrase') }}</h5>
+                <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+                  {{ $t('MnemonicBackupPhraseDescription1') }}
+                </p>
+                <p v-else class="dim-text" style="margin-top: 10px;">
+                  {{ $t('MnemonicBackupPhraseDescription2') }}
+                </p>
+              </template>
+              <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
+
+              <div class="row" id="mnemonic">
+                <template v-if="steps === totalSteps">
+                  <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
+                    <ul>
+                      <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
+                        <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div v-else>
+                    <div>
+                      <q-btn
+                        flat
+                        no-caps
+                        padding="xs sm"
+                        icon="arrow_back"
+                        color="black"
+                        class="text-blue"
+                        :label="$t('MnemonicBackupPhrase')"
+                        @click="showMnemonicTest = false"
+                      />
+                    </div>
+                    <MnemonicTest
+                      :mnemonic="mnemonic"
+                      @matched="mnemonicVerified = true"
+                      class="q-mb-md"
+                    />
+                  </div>
+                </template>
+              </div>
+              <div class="row q=mt-md" v-if="steps === totalSteps">
+                <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="openSettings = true" :label="$t('Continue')" rounded />
+                <template v-else>
+                  <q-btn v-if="showMnemonicTest" class="full-width q-mt-md" @click="confirmSkipVerification" no-caps rounded>
+                    {{ $t('SkipVerification') }}
+                  </q-btn>
+                  <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                </template>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -173,6 +198,8 @@ import { Device } from '@capacitor/device'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
+import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 function countWords(str) {
   if (str) {
@@ -214,7 +241,7 @@ export default {
       pin: '',
       securityOptionDialogStatus: 'dismiss',
       walletIndex: 0,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      currencySelectorRerender: false
     }
   },
   watch: {
@@ -227,7 +254,16 @@ export default {
       this.seedPhraseBackup = this.cleanUpSeedPhrase(val)
     }
   },
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    }
+  },
   methods: {
+    isDefaultTheme,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
         return utils.isValidMnemonic(this.seedPhraseBackup)
@@ -241,6 +277,17 @@ export default {
         .replace(/[^\x00-\x7F]/g, '') // Remove non-ascii characters
         .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuations
         .replace(/(\r\n|\n|\r)/gm, ' ') // Remove newlines
+    },
+    confirmSkipVerification () {
+      const vm = this
+      this.$q.dialog({
+        title: this.$t('SkipVerification'),
+        message: this.$t('SkipVerificationMessage'),
+        ok: true,
+        cancel: true,
+        seamless: true,
+        class: 'text-white br-15 pt-dark-card'
+      }).onOk(() => { vm.openSettings = true })
     },
     saveToVault () {
       // saving to wallet vault
@@ -268,7 +315,8 @@ export default {
     },
     continueToDashboard () {
       const vm = this
-      this.$store.dispatch('global/updateOnboardingStep', this.steps).then(function () {
+      vm.$store.dispatch('global/saveWalletPreferences')
+      vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
         vm.saveToVault()
         vm.$router.push('/')
       })
@@ -303,6 +351,8 @@ export default {
         await bchWallet.getNewAddressSet(0).then(function (response) {
           const addresses = response?.addresses || null
           const pgpIdentity = response?.pgpIdentity || null
+          const purelypeerVaultSigner = response?.purelypeerVaultSigner || null
+
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'bch',
@@ -310,7 +360,8 @@ export default {
             derivationPath: bchWallet.derivationPath,
             lastAddress: addresses !== null ? addresses.receiving : '',
             lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
+            lastAddressIndex: 0,
+            purelypeerVaultSigner
           })
           vm.$store.dispatch('chat/addIdentity', pgpIdentity)
           vm.steps += 1
@@ -425,7 +476,6 @@ export default {
       }
     },
     executeActionTaken (action) {
-      console.log('ACTION:', action)
       const vm = this
       if (action === 'proceed') {
         vm.continueToDashboard()
@@ -452,6 +502,76 @@ export default {
     }
 
     const vm = this
+    await vm.$store.dispatch('market/updateSupportedCurrencies', {})
+    // auto-detect country
+    const apiKey = process.env.IPGEO_API_KEY
+    const [countryFromIP, currencyFromIP, langsFromIP] = await this.$axios
+      .get(`https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`)
+      .then(response => {
+        return [
+          {
+            name: response.data?.country_name,
+            code: response.data?.country_code2
+          },
+          {
+            symbol: response.data?.currency.code,
+            name: response.data?.currency?.name
+          },
+          response.data?.languages?.toLowerCase().split(',')
+        ]
+      }).catch((error) => {
+        console.error(error)
+        // return default values
+        return [
+          {
+            name: 'United States',
+            code: 'US'
+          },
+          {
+            symbol: 'USD',
+            name: 'United States Dollar'
+          },
+          'en-us'
+        ]
+      })
+    
+    setTimeout(function () {
+      // set country
+      vm.$store.commit('global/setCountry', countryFromIP)
+
+      // set currency
+      const currencyOptions = vm.$store.getters['market/currencyOptions']
+      const currency = currencyOptions.filter(o => o.symbol === currencyFromIP.symbol)
+
+      if (currency.length > 0) {
+        vm.$store.commit('market/updateSelectedCurrency', currency[0])
+      }
+    }, 1000)
+
+    // set language
+    const eng = ['en-us', 'en-uk', 'en-gb', 'en']
+    const supportedLangs = [
+      { value: 'en-us', label: this.$t('English') },
+      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
+      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+      { value: 'de', label: this.$t('German') },
+      { value: 'es', label: this.$t('Spanish') }
+    ]
+    const supportedLangsValue = supportedLangs.map(a => a.value)
+    let ipFinalLang = 'en-us'
+
+    supportedLangsValue.forEach(lang => {
+      if (langsFromIP.includes(lang) && ipFinalLang === 'en-us') {
+        ipFinalLang = lang
+      }
+    })
+
+    this.$i18n.locale = ipFinalLang
+    const newLocale = { value: ipFinalLang, label: this.$t(supportedLangsI18n[ipFinalLang]) }
+    this.$store.commit('global/setLanguage', newLocale)
+
+    this.currencySelectorRerender = true
+
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(response => {
       if (response.status !== 200) return Promise.reject()
       vm.serverOnline = true
@@ -463,33 +583,31 @@ export default {
       return
     }
 
-    const eng = ['en-us', 'en-uk', 'en-gb', 'en']
-    const supportedLangs = [
-      { value: 'en-us', label: this.$t('English') },
-      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
-      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
-      { value: 'de', label: this.$t('German') },
-      { value: 'es', label: this.$t('Spanish') },
-    ]
     let finalLang = ''
 
     // Adjust paytaca language according to phone's language (if supported by paytaca)
     let deviceLang = null
-    try {
-      deviceLang = await Device.getLanguageCode()
-      deviceLang = deviceLang.value.toLowerCase()
-
-      /**
-      *  https://capacitorjs.com/docs/apis/device#getlanguagecoderesult
-      *  Since Device.getLanguageCode() returns a two-char language code,
-      *  we set chinese default to "zh-cn" (Chinese - Simplified)
-      */
-      if (deviceLang === 'zh') {
-        deviceLang = 'zh-cn'
-      }
-    } catch (error) {
+    if (this.$q.platform.is.ios) {
+      // Getting language code from device seems to be crashing in iOS 17.x
+      // we just default to english for iOS for now
       deviceLang = supportedLangs[0]
-      console.error(error)
+    } else {
+      try {
+        deviceLang = await Device.getLanguageCode()
+        deviceLang = deviceLang.value.toLowerCase()
+
+        /**
+        *  https://capacitorjs.com/docs/apis/device#getlanguagecoderesult
+        *  Since Device.getLanguageCode() returns a two-char language code,
+        *  we set chinese default to "zh-cn" (Chinese - Simplified)
+        */
+        if (deviceLang === 'zh') {
+          deviceLang = 'zh-cn'
+        }
+      } catch (error) {
+        deviceLang = supportedLangs[0]
+        console.error(error)
+      }
     }
 
     // defaults to english if device lang is unsupported by app

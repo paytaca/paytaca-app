@@ -1,34 +1,42 @@
 <template>
-  <q-dialog v-model="val" ref="dialogRef">
-    <q-card class="q-dialog-plugin pp-text br-15" :class="{'pt-dark': darkMode}">
-      <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-        <strong class="text-h6" :class="darkMode ? 'text-grad' : ''">SEP721 Token</strong>
+  <q-dialog v-model="val" ref="dialogRef" seamless>
+    <q-card class="q-dialog-plugin pp-text br-15" :class="{'pt-dark info-banner': darkMode}">
+      <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
+        <strong class="text-h6" :class="darkMode ? 'text-grad' : ''">
+          {{ `SEP721 ${isHongKong(currentCountry) ? 'Point' : 'Token'}` }}
+        </strong>
       </q-card-section>
       <q-card-section v-if="asset">
         <div class="q-mb-lg">
           <div :class="darkMode ? 'text-grad' : ''">Name:</div>
-          <div class="text-caption" :class="darkMode ? 'text-white' : ''">{{ asset.name }}</div>
+          <div class="text-caption pt-label" :class="getDarkModeClass(darkMode)">{{ asset.name }}</div>
         </div>
         <div v-if="asset.symbol" class="q-mb-lg">
           <div :class="darkMode ? 'text-grad' : ''">Symbol:</div>
-          <div class="text-caption" :class="darkMode ? 'text-white' : ''">{{ asset.symbol }}</div>
+          <div class="text-caption pt-label" :class="getDarkModeClass(darkMode)">{{ asset.symbol }}</div>
         </div>
         <div class="q-mb-sm">
           <div :class="darkMode ? 'text-grad' : ''">Address:</div>
-          <div class="text-caption q-mb-sm" :class="darkMode ? 'text-white' : ''" style="word-break: break-all;">
+          <div class="text-caption pt-label q-mb-sm" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
             {{ asset.address }}
             <q-icon
               name="mdi-content-copy"
               size="1.25em"
-              class="q-px-sm"
               role="button"
-              :color="darkMode ? 'blue-5' : 'blue-9'"
+              class="q-px-sm button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               @click="copyToClipboard(asset.address)"
             />
           </div>
           <q-separator class="q-my-md" />
 
-          <a :href="`https://sonar.cash/tx/${asset.address}`" target="_blank" style="text-decoration: none" :class="darkMode ? 'text-blue-5' : 'text-blue-9'">
+          <a
+            :href="`https://sonar.cash/tx/${asset.address}`"
+            target="_blank"
+            style="text-decoration: none"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
+          >
             {{ $t('ViewInExplorer') }}
           </a>
         </div>
@@ -37,6 +45,8 @@
   </q-dialog>
 </template>
 <script>
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+
 export default {
   name: 'ERC721AssetDetailDialog',
   props: {
@@ -52,6 +62,8 @@ export default {
   },
 
   methods: {
+    getDarkModeClass,
+    isHongKong,
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
@@ -60,6 +72,12 @@ export default {
         icon: 'mdi-clipboard-check',
         color: 'blue-9'
       })
+    }
+  },
+
+  computed: {
+    currentCountry () {
+      return this.$store.getters['global/country'].code
     }
   },
 

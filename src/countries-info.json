@@ -219,7 +219,7 @@
     "language": "es"
   },
   {
-    "name": "China",
+    "name": "People's Republic of China",
     "code": "CN",
     "currency": "CNY",
     "language": "zh-cn"
@@ -1057,6 +1057,12 @@
     "currency": "SYP"
   },
   {
+    "name": "Taiwan - Republic of China",
+    "code": "TW",
+    "currency": "TWD",
+    "language": "zh-cn"
+  },
+  {
     "name": "Tajikistan",
     "code": "TJ",
     "currency": "TJS"
@@ -1135,6 +1141,11 @@
     "name": "United Arab Emirates",
     "code": "AE",
     "currency": "AED"
+  },
+  {
+    "name": "United Kingdom",
+    "code": "GB",
+    "currency": "GBP"
   },
   {
     "name": "United States",

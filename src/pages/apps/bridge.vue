@@ -1,13 +1,13 @@
 <template>
-  <div id="app-container" :class="{'pt-dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('Bridge')"
       backnavpath="/apps"
     />
 
-    <q-icon class="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
-        <q-list :class="{'pt-dark': darkMode}" style="min-width: 100px">
+        <q-list :class="{'pt-dark info-banner': darkMode}" style="min-width: 100px">
           <q-item
             :disable="waiting"
             clickable
@@ -63,6 +63,7 @@ import HeaderNav from '../../components/header-nav'
 import HopCashSwapForm from '../../components/bridge/HopCashSwapForm.vue'
 import HopCashSwapWait from '../../components/bridge/HopCashSwapWait.vue'
 import SpicebotBridgeForm from '../../components/bridge/SpicebotBridgeForm.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Bridge',
@@ -84,11 +85,13 @@ export default {
         // incomingTxid: '6f4f020193146fb711e64977917753d1f927da2815a6e350ce470c114b123b57',
         amount: '0.02306408',
         expectedAmount: '0.02295788'
-      },
-      darkMode: this.$store.getters['darkmode/getStatus']
+      }
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     waiting () {
       return Boolean(this.parsedWaitInfo.incomingTxid)
     },
@@ -102,6 +105,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     onNewIncoming (info) {
       let message = this.$t('TransactionSent') + '! '
       if (info && info.transferType === 'c2s') message += this.$t('WaitingSmartBchTransaction')
@@ -110,6 +114,8 @@ export default {
       this.$q.dialog({
         title: this.$t('SwapUpdate'),
         message: message,
+        seamless: true,
+        ok: true,
         class: dialogStyleClass
       })
       this.waitInfo = info
@@ -131,6 +137,7 @@ export default {
       message: this.$t('BridgeLeavingPageMsg'),
       cancel: true,
       persistent: true,
+      seamless: true,
       class: dialogStyleClass
     }).onOk(() => {
       next()
@@ -139,7 +146,7 @@ export default {
 }
 </script>
 <style scoped>
-.context-menu {
+#context-menu {
   position: relative;
   top: -55px;
   right: -330px;

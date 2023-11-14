@@ -1,6 +1,6 @@
 <template>
   <div class="pt-custom-keyboard" v-if="keyboard">
-    <div class="pt-keyboard-container shadow-2 br-top-15" :class="{'pt-dark-card-2': $store.getters['darkmode/getStatus']}">
+    <div class="pt-keyboard-container shadow-2 br-top-15" :class="getDarkModeClass('pt-dark-card-2')">
       <div class="row q-px-sm q-mb-none q-py-sm pt-custom-keyboard-row br-top-15 full-height bg-grad q-pb-lg q-pt-md">
         <div class="col-3 pt-col-key" v-for="(key, index) in 15" :key="index">
           <q-btn
@@ -9,7 +9,7 @@
             @click="makeKeyAction(key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'ready to submit' : '')"
             class="pt-key-del"
             style="width: 95%; height: 95%"
-            :class="[key === 12 ? 'pt-check-key' : 'pt-remove-key', {'bg-grey-9 text-white': $store.getters['darkmode/getStatus'] && key !== 12}]"
+            :class="[key === 12 ? 'pt-check-key' : 'pt-remove-key', {'bg-grey-9 text-white': darkMode && key !== 12}]"
             :icon="key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'done' : ''" />
           <q-btn
             push
@@ -17,7 +17,7 @@
             color="white"
             text-color="dark"
             style="width: 95%; height: 95%; font-weight: 400; line-height: 200%"
-            :class="{'pt-bg-dark': $store.getters['darkmode/getStatus']}"
+            :class="{'pt-bg-dark': darkMode}"
             v-else-if="key !== 13" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key"
             @click="enterKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key)" />
         </div>
@@ -37,7 +37,8 @@ export default {
   data () {
     return {
       val: this.modelValue,
-      keyboard: this.customKeyboardState === 'show'
+      keyboard: this.customKeyboardState === 'show',
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   computed: {
@@ -75,6 +76,9 @@ export default {
         // Delete
         this.val = ''
       }
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   watch: {

@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" persistent v-show="showDialog">
+  <q-dialog ref="dialog" @hide="onDialogHide" persistent v-show="showDialog" seamless>
     <q-card class="br-15" :class="{'pt-dark text-white': darkMode, 'text-black': !darkMode}">
       <q-card-section>
         <div class="text-center q-mb-sm">

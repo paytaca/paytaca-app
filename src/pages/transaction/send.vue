@@ -4,12 +4,18 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="{'pt-dark': darkMode}">
+    <div id="app-container" :class="getDarkModeClass(darkMode)">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || $route.query.name)"
         :backnavpath="backPath"
       ></header-nav>
-      <q-banner v-if="assetId.startsWith('slp/')" inline-actions class="text-white bg-red text-center q-mt-lg" :class="darkMode ? 'text-white' : 'text-black'" style="width: 90%; margin-left: auto; margin-right: auto;">
+      <q-banner
+        v-if="assetId.startsWith('slp/')"
+        inline-actions
+        class="text-white bg-red text-center q-mt-lg"
+        :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+        style="width: 90%; margin-left: auto; margin-right: auto;"
+      >
         Sending of SLP tokens is temporarily disabled until further notice.
       </q-banner>
       <template v-else>
@@ -22,7 +28,7 @@
           />
         </div>
         <div v-else class="q-mt-xl">
-          <div class="q-pa-md" style="padding-top: 70px;">
+          <div class="q-pa-md" style="padding-top: 20px;">
             <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
               <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
                 <template v-slot:avatar>
@@ -34,7 +40,11 @@
             <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
-              <div class="q-mt-md text-center" :class="darkMode ? 'text-white' : 'text-black'" v-if="$route.query.tokenType === 'CT-NFT'">
+              <div
+                class="q-mt-md text-center"
+                :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+                v-if="$route.query.tokenType === 'CT-NFT'"
+              >
                 <span>Name: {{ $route.query.name }}</span>
                 <p>Commitment: {{ $route.query.commitment }}</p>
               </div>
@@ -50,43 +60,24 @@
                   filled
                   :dark="darkMode"
                   v-model="manualAddress"
-                  :label="canUseLNS ? $t('PasteAddressOrLnsHere') : $t('PasteAddressHere')"
-                  @update:model-value="resolveLnsName"
+                  :label="$t('PasteAddressHere')"
                 >
                   <template v-slot:append>
-                    <q-icon name="arrow_forward_ios" style="color: #3b7bf6;" @click="!lns.loading ? checkAddress(manualAddress) : null" />
+                    <q-icon
+                      name="arrow_forward_ios"
+                      style="color: #3b7bf6;"
+                      class="button button-icon"
+                      :class="getDarkModeClass(darkMode)"
+                      @click="onScannerDecode(manualAddress)"
+                    />
                   </template>
-                  <q-menu v-model="lns.show" fit :no-parent-event="!isValidLNSName(manualAddress) && (!lns.name || lns.name !== manualAddress) && !lns.loading" no-focus>
-                    <q-item v-if="lns.loading">
-                      <q-item-section class="items-center">
-                        <q-spinner color="black"/>
-                        <q-item-label caption>{{ $t('ResolvingLnsAddress') }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item v-else-if="lns.address" clickable @click="useResolvedLnsName()" class="text-black">
-                      <q-item-section>
-                        <q-item-label :class="darkMode ? '' : 'text-black'" caption>{{ lns.name }}</q-item-label>
-                        <q-item-label style="word-break:break-all;" :class="darkMode ? '' : 'text-black'">{{ lns.address }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item v-else :class="[darkMode ? 'pt-dark-label' : 'text-grey']">
-                      <q-item-section side>
-                        <q-icon name="error"/>
-                      </q-item-section>
-                      <q-item-section>
-                        <q-item-label caption>
-                          {{ $t('UnableToResolveLnsAddress') }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-menu>
                 </q-input>
               </div>
               <div class="col-12 text-uppercase" style="text-align: center; font-size: 15px; color: grey;">
                 {{ $t('or') }}
               </div>
               <div class="col-12 q-mt-lg text-center">
-                <q-btn round size="lg" class="btn-scan text-white" icon="mdi-qrcode" @click.once="showQrScanner = true" />
+                <q-btn round size="lg" class="btn-scan button text-white bg-grad" icon="mdi-qrcode" @click.once="showQrScanner = true" />
               </div>
             </div>
             <div class="q-pa-md text-center text-weight-medium">
@@ -95,15 +86,6 @@
           </div>
           <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
             <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
-              <div v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0" :class="darkMode ? 'text-white': 'text-black'">
-                POS:
-                {{ sendData.posDevice.walletHash.substring(0, 5) }}
-                ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
-                <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
-                <div v-if="sendData.posDevice?.paymentTimestamp" class="text-caption text-grey">
-                  {{ formatTimestampToText(sendData.posDevice?.paymentTimestamp * 1000) }}
-                </div>
-              </div>
               <div class="row">
                 <div class="col q-mt-sm se">
                   <q-input
@@ -116,9 +98,6 @@
                   >
                     <template v-slot:label>
                       {{ $t('Recipient') }}
-                      <template v-if="Boolean(sendData.lnsName) && sendData.recipientAddress === sendData._lnsAddress">
-                        ({{ sendData.lnsName }})
-                      </template>
                     </template>
                   </q-input>
                 </div>
@@ -132,7 +111,7 @@
                       @focus="readonlyState(true)"
                       @blur="readonlyState(false)"
                       filled
-                      v-model="sendData.amount"
+                      v-model="amountFormatted"
                       :label="$t('Amount')"
                       :loading="computingMax"
                       :disabled="disableAmountInput || setAmountInFiat"
@@ -142,11 +121,19 @@
                       :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
                     >
                       <template v-slot:append>
-                        {{ asset.symbol }}
+                        {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
+                        <DenominatorTextDropdown
+                          v-if="!sendData.fixedAmount"
+                          @on-selected-denomination="onSelectedDenomination"
+                          :selectedNetwork="asset.symbol"
+                          :darkMode="darkMode"
+                          :theme="theme"
+                          :currentCountry="currentCountry"
+                        />
                       </template>
                     </q-input>
                     <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                      ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
                     </div>
                   </div>
                 </div>
@@ -165,46 +152,49 @@
                       :dark="darkMode"
                     >
                       <template v-slot:append>
-                        {{ String(selectedMarketCurrency).toUpperCase() }}
+                        {{ String(currentSendPageCurrency()).toUpperCase() }}
                       </template>
                     </q-input>
                     <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                      ~ {{ sendAmountMarketValue }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
                     </div>
                   </div>
                 </div>
               </template>
-              <div class="row" v-if="!isNFT">
+              <div class="row" v-if="!isNFT && !sendData.fixedAmount">
                 <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                  {{ $t('Balance') }}: {{ convertTokenAmount(asset.balance, asset.decimals, isBCH=asset.symbol.toLowerCase() === 'bch', isSLP=isSLP=asset.id.startsWith('slp/')) }}
-                  {{ asset.symbol }}
+                  {{ parseAssetDenomination(selectedDenomination, asset) }}
                   <template v-if="asset.id === 'bch' && setAmountInFiat">
-                    = {{ convertToFiatAmount(asset.balance) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+                    {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), currentSendPageCurrency())}` }}
                   </template>
                   <a
                     href="#"
                     v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
                     @click.prevent="setMaximumSendAmount"
                     style="float: right; text-decoration: none; color: #3b7bf6;"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
                   >
                     {{ $t('MAX') }}
                   </a>
                 </div>
               </div>
-              <div class="row" v-if="!sliderStatus && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+              <div class="row" v-if="!sendData.fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
                 <div class="col q-mt-md">
                   <a
                     style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
                     href="#"
-                    @click.prevent="() => {sendData.amount = 0; setAmountInFiat = true}"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    @click.prevent="() => {sendData.amount = 0; amountFormatted = 0; setAmountInFiat = true}"
                   >
-                    Set amount in {{ String(selectedMarketCurrency).toUpperCase() }}
+                    Set amount in {{ String(currentSendPageCurrency()).toUpperCase() }}
                   </a>
                 </div>
               </div>
               <div class="row" v-if="sendData.sending">
                 <div class="col-12 text-center">
-                  <ProgressLoader/>
+                  <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
                 </div>
               </div>
             </form>
@@ -218,25 +208,27 @@
           />
 
           <q-list v-if="showSlider" class="absolute-bottom">
-            <q-slide-item left-color="blue" @left="slideToSubmit">
-              <template v-slot:left>
-                <div style="font-size: 15px" class="text-body1">
-                <q-icon class="material-icons q-mr-md" size="lg">
-                  task_alt
-                </q-icon>
-                {{ $t('SecurityCheck') }}
-                </div>
-              </template>
+            <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
+              <q-slide-item left-color="blue" @left="slideToSubmit" style="background-color: transparent; border-radius: 40px;">
+                <template v-slot:left>
+                  <div style="font-size: 15px" class="text-body1">
+                  <q-icon class="material-icons q-mr-md" size="lg">
+                    task_alt
+                  </q-icon>
+                  {{ $t('SecurityCheck') }}
+                  </div>
+                </template>
 
-              <q-item class="bg-grad text-white q-py-md">
+              <q-item class="bg-grad swipe text-white q-py-md" :class="getDarkModeClass(darkMode)">
                 <q-item-section avatar>
                   <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
                 </q-item-section>
                 <q-item-section class="text-right">
-                  <h5 class="q-my-sm text-grey-4 text-uppercase">{{ $t('SwipeToSend') }}</h5>
+                  <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ $t('SwipeToSend') }}</h5>
                 </q-item-section>
               </q-item>
             </q-slide-item>
+            </div>
           </q-list>
           <template v-if="showFooter">
             <footer-menu />
@@ -254,7 +246,10 @@
           </div>
           <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
             <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
-            <div :class="darkMode ? 'text-white' : 'pp-text'" :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}">
+            <div
+              :class="getDarkModeClass(darkMode, 'text-white', 'pp-text')"
+              :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}"
+            >
               <p style="font-size: 26px;">{{ $t('SuccessfullySent') }}</p>
               <template v-if="isNFT">
                 <p style="font-size: 28px; margin-top: -10px;">{{ $route.query.name }}</p>
@@ -262,7 +257,7 @@
               <template v-else>
                 <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
                 <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
-                  ({{ sendAmountInFiat }} {{ String(selectedMarketCurrency).toUpperCase() }})
+                  ({{ parseFiatCurrency(sendAmountInFiat, currentSendPageCurrency()) }})
                 </p>
               </template>
 
@@ -270,17 +265,10 @@
               <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
                 {{ this.sendData.recipientAddress }}
               </div>
-              <div v-if="sendData?.posDevice?.walletHash && sendData?.posDevice?.posId >= 0">
-                POS:
-                {{ sendData.posDevice.walletHash.substring(0, 5) }}
-                ...{{ sendData.posDevice.walletHash.substring(sendData.posDevice.walletHash.length - 5) }}
-                <span class="text-grey">#{{ sendData.posDevice.posId }}</span>
-
-                <div v-if="paymentOTP" class="text-center q-mt-md">
-                  <div class="text-grey">{{ $t('PaymentOTP', {}, 'Payment OTP')}}</div>
-                  <div class="text-h3" style="letter-spacing:1rem;">{{ paymentOTP }}</div>
-                  <q-separator color="grey"/>
-                </div>
+              <div class="text-center q-mt-lg">
+                <div class="text-grey">{{ $t('ReferenceId')}}</div>
+                <div class="text-h4" style="letter-spacing: 6px;">{{ sendData.txid.substring(0, 6).toUpperCase() }}</div>
+                <q-separator color="grey"/>
               </div>
               <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
                 txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
@@ -306,9 +294,9 @@
                 <div
                   class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1"
                   style="min-width:50vw;border: 1px solid grey;background-color: inherit;"
-                  :class="darkMode ? 'text-white': ''"
+                  :class="getDarkModeClass(darkMode, 'text-white', '')"
                 >
-                  <span :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Memo:</span>
+                  <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">Memo:</span>
                   {{ sendData.paymentAckMemo }}
                 </div>
               </div>
@@ -339,8 +327,6 @@
 
 <script>
 import { markRaw } from '@vue/reactivity'
-import { debounce } from 'quasar'
-import { isNameLike } from '../../wallet/lns'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
 import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
@@ -360,6 +346,14 @@ import {
   getWalletByNetwork,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
+import {
+  parseAssetDenomination,
+  getAssetDenomination,
+  parseFiatCurrency,
+  convertToBCH
+} from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -377,7 +371,8 @@ export default {
     biometricWarningAttmepts,
     customKeyboard,
     QrScanner,
-    VOffline
+    VOffline,
+    DenominatorTextDropdown
   },
   props: {
     network: {
@@ -467,19 +462,11 @@ export default {
         amount: null,
         fixedAmount: false,
         recipientAddress: '',
-        lnsName: '',
-        _lnsAddress: '', // in case recipient address is edited in form will check if name still matches the address
         posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
         rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
         paymentAckMemo: '',
         fixedRecipientAddress: false
-      },
-      lns: {
-        show: false,
-        loading: false,
-        name: '',
-        address: ''
       },
       sendErrors: [],
       pinDialogAction: '',
@@ -495,17 +482,32 @@ export default {
       amountInputState: false,
       customKeyboardState: 'dismiss',
       sliderStatus: false,
-      darkMode: this.$store.getters['darkmode/getStatus'],
       showQrScanner: false,
       setAmountInFiat: false,
       sendAmountInFiat: null,
       balanceExceeded: false,
       setMax: false,
-      computingMax: false
+      computingMax: false,
+      amountFormatted: null,
+      selectedDenomination: 'BCH',
+      paymentCurrency: null,
+      payloadAmount: 0
     }
   },
 
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
+    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -543,7 +545,7 @@ export default {
     selectedAssetMarketPrice () {
       if (!this.assetId) return
 
-      return this.$store.getters['market/getAssetPrice'](this.assetId, this.selectedMarketCurrency)
+      return this.$store.getters['market/getAssetPrice'](this.assetId, this.currentSendPageCurrency())
     },
     currencyOptions () {
       return this.$store.getters['market/currencyOptions']
@@ -560,12 +562,6 @@ export default {
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
-    },
-    canUseLNS () {
-      if (this.isSep20) return true // if smartchain
-      if (this.assetId === 'bch') return true // if not smartchain but BCH only (EIP2304 doesnt seem to support SLP addresses)
-
-      return false
     },
     disableRecipientInput () {
       return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
@@ -618,13 +614,32 @@ export default {
     },
     sendAmountInFiat: function (amount) {
       if (!this.setMax) {
-        this.sendData.amount = this.convertFiatToSelectedAsset(amount)
+        let fiatToAsset = this.convertFiatToSelectedAsset(amount)
+        fiatToAsset = fiatToAsset || 0
+        this.sendData.amount = fiatToAsset
+        this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
+      }
+    },
+    selectedAssetMarketPrice () {
+      if (!this.selectedAssetMarketPrice) {
+        this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
+      }
+      if (this.payloadAmount && this.payloadAmount > 0) {
+        this.sendAmountInFiat = this.payloadAmount
+        this.sendData.amount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
+        this.amountFormatted = this.sendData.amount
       }
     }
   },
 
   methods: {
     convertTokenAmount,
+    parseAssetDenomination,
+    getAssetDenomination,
+    parseFiatCurrency,
+    convertToBCH,
+    getDarkModeClass,
+    isDefaultTheme,
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
@@ -650,13 +665,13 @@ export default {
       let address = content
       let amount = null
       let rawPaymentUri = ''
-      let posDevice = { walletHash: '', posId: -1, paymentTimestamp: -1 }
+      let posDevice = { posId: -1, paymentTimestamp: -1 }
+      let amountValue = null
       let currency = null
 
       let paymentUriData
       try {
         paymentUriData = parsePaymentUri(content, { chain: this.isSep20 ? 'smart' : 'main' })
-        console.log(paymentUriData)
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
@@ -672,14 +687,19 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0]) {
+        const payloadAmountValue = paymentUriData.outputs[0].amount?.value
+        const payloadAmountCurrency = paymentUriData.outputs[0].amount?.currency
+
+        currency = payloadAmountCurrency ?? this.selectedMarketCurrency
+        this.paymentCurrency = currency
+        this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
+
+        amountValue = payloadAmountCurrency === null && payloadAmountValue !== null
+          ? this.convertToFiatAmount(payloadAmountValue)
+          : payloadAmountValue
+        this.payloadAmount = payloadAmountValue
         address = paymentUriData.outputs[0].address
-        amount = paymentUriData.outputs[0].amount?.value
-        currency = paymentUriData.outputs[0].amount?.currency
-      }
-      if (paymentUriData?.pos) {
-        posDevice.walletHash = paymentUriData.pos.walletHash
-        posDevice.posId = paymentUriData.pos.posId
-        if (paymentUriData.timestamp) posDevice.paymentTimestamp = paymentUriData.timestamp
+        this.sendData.fixedRecipientAddress = true
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -690,13 +710,11 @@ export default {
         this.sendData.recipientAddress = address
         this.sendData.rawPaymentUri = rawPaymentUri
         this.scannedRecipientAddress = true
-
-        if (currency) this.setAmountInFiat = true
-        if (typeof currency === 'string' && this.selectedMarketCurrency !== currency) {
+        if (typeof currency === 'string') {
           const newSelectedCurrency = this.currencyOptions
             .find(_currency => _currency?.symbol === currency)
           if (newSelectedCurrency?.symbol) {
-            this.$store.commit('market/updateSelectedCurrency', newSelectedCurrency)
+            amount = (amountValue / this.selectedAssetMarketPrice).toFixed(8)
           } else if (!newSelectedCurrency?.symbol && amount) {
             this.sendErrors.push(`Detected unknown currency: ${currency}`)
             // reset some data updated above on error
@@ -704,23 +722,18 @@ export default {
             this.sendData.rawPaymentUri = ''
             return
           }
+        } else {
+          amount = amountValue
         }
-
-        if (amount !== null) {
+        if (amountValue !== null) {
           this.sliderStatus = true
+          this.amountFormatted = amount
           if (this.setAmountInFiat) {
             this.sendAmountInFiat = amount
           } else {
             this.sendData.amount = amount
           }
-        }
-
-        if (posDevice.walletHash && posDevice.posId >= 0) {
-          this.sendData.posDevice = posDevice
-          if (amount) {
-            this.sendData.fixedAmount = true
-            this.sliderStatus = true
-          }
+          this.sendData.fixedAmount = true
         }
       }
     },
@@ -730,6 +743,7 @@ export default {
         message: 'Fetching invoice data',
         progress: true,
         persistent: true,
+        seamless: true,
         ok: false,
         class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
       })
@@ -765,42 +779,11 @@ export default {
       this.sendData.sending = false
       this.sendData.sent = true
     },
-    isValidLNSName: isNameLike,
     readonlyState (state) {
       this.amountInputState = state
       if (this.amountInputState && this.$store.getters['global/getConnectivityStatus']) {
         this.customKeyboardState = 'show'
       }
-    },
-    resolveLnsName: debounce(function (name) {
-      if (!name) return
-      if (!this.canUseLNS) return
-      if (!this.isValidLNSName(name)) return
-
-      this.lns.loading = true
-      this.lns.show = true
-      this.clearLnsName()
-      this.$store.dispatch('lns/resolveName', { name: name, coinType: this.isSep20 ? 60 : 145 })
-        .then(response => {
-          if (response && response.address) {
-            this.lns.name = name
-            this.lns.address = response.address
-            this.lns.show = true
-          }
-        })
-        .finally(() => {
-          this.lns.loading = false
-        })
-    }, 500),
-    useResolvedLnsName () {
-      if (!this.lns.address) return
-      this.sendData.lnsName = this.lns.name
-      this.sendData.recipientAddress = this.lns.address
-      this.sendData._lnsAddress = this.lns.address
-    },
-    clearLnsName () {
-      this.lns.name = ''
-      this.lns.address = ''
     },
     convertToFiatAmount (amount) {
       const parsedAmount = Number(amount)
@@ -823,38 +806,45 @@ export default {
       return computedBalance.toFixed(8)
     },
     setAmount (key) {
-      let sendAmount, amount
+      let sendAmount, amount, tempAmountFormatted = ''
       if (this.setAmountInFiat) {
         sendAmount = this.sendAmountInFiat
       } else {
         sendAmount = this.sendData.amount
+        tempAmountFormatted = this.amountFormatted === null ? '' : this.amountFormatted
       }
       sendAmount = sendAmount === null ? '' : sendAmount
       if (key === '.' && sendAmount === '') {
         amount = '0.'
+        tempAmountFormatted = '0.'
       } else {
-        amount = sendAmount.toString()
+        amount = this.setAmountInFiat ? sendAmount.toString() : tempAmountFormatted.toString()
         const hasPeriod = amount.indexOf('.')
         if (hasPeriod < 1) {
           if (Number(amount) === 0 && Number(key) > 0) {
             amount = key
+            tempAmountFormatted = key
           } else {
             // Check amount if still zero
             if (Number(amount) === 0 && Number(amount) === Number(key)) {
               amount = 0
+              tempAmountFormatted = 0
             } else {
               amount += key.toString()
+              tempAmountFormatted += key.toString()
             }
           }
         } else {
           amount += key !== '.' ? key.toString() : ''
+          tempAmountFormatted += key !== '.' ? key.toString() : ''
         }
       }
       // Set the new amount
       if (this.setAmountInFiat) {
         this.sendAmountInFiat = amount
       } else {
-        this.sendData.amount = amount
+        this.sendData.amount = convertToBCH(this.denomination, amount)
+        this.amountFormatted = tempAmountFormatted
       }
     },
     makeKeyAction (action) {
@@ -864,6 +854,7 @@ export default {
           this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
         } else {
           this.sendData.amount = String(this.sendData.amount).slice(0, -1)
+          this.amountFormatted = String(this.amountFormatted).slice(0, -1)
         }
       } else if (action === 'delete') {
         // Delete
@@ -871,6 +862,7 @@ export default {
           this.sendAmountInFiat = ''
         } else {
           this.sendData.amount = ''
+          this.amountFormatted = ''
         }
       } else {
         // Enabled submit slider
@@ -981,10 +973,11 @@ export default {
             this.sendErrors.push('Not enough balance to cover the gas fee')
           }
         } else {
+          this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
           this.sendData.amount = this.asset.spendable
         }
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = this.convertToFiatAmount(this.sendData.amount)
+          this.sendAmountInFiat = this.convertToFiatAmount(this.asset.spendable)
         }
       } else {
         if (this.asset.id.startsWith('ct/')) {
@@ -1011,7 +1004,7 @@ export default {
         if (!Number.isNaN(amount))
           this.sendData.amount = amount
 
-        if (amount > 0) 
+        if (amount > 0)
           this.sliderStatus = true
       }
       const addressValidation = this.validateAddress(address)
@@ -1116,11 +1109,11 @@ export default {
             const tokenId = vm.assetId.match(erc721IdRegexp)[2]
             promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
           } else {
+            // change to recipients array
             promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
           }
           if (promise) {
             promise.then(function (result) {
-              console.log('Result:', result)
               if (result.success) {
                 vm.sendData.txid = result.txid
                 vm.playSound(true)
@@ -1173,7 +1166,7 @@ export default {
           const tokenId = vm.assetId.split('ct/')[1]
           const changeAddress = vm.getChangeAddress('bch')
           let sendPromise
-          if (vm.sendData?.posDevice?.walletHash && vm.sendData?.posDevice?.posId >= 0) {
+          if (vm.sendData?.posDevice?.posId >= 0) {
             sendPromise = vm.wallet.BCH.sendBchToPOS(
               vm.sendData.amount,address, changeAddress,
               vm.sendData.posDevice,
@@ -1181,12 +1174,14 @@ export default {
           } else {
             if (tokenId) {
               vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
+              // change to recipients array
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: vm.commitment || undefined,
                 capability: vm.capability || undefined
               }, (vm.ctTokenAmount * (10 ** vm.asset.decimals)))
             } else {
+              // change to recipients array
               sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: undefined,
@@ -1255,6 +1250,13 @@ export default {
     },
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
+    },
+    onSelectedDenomination (value) {
+      this.selectedDenomination = value
+      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount, true))
+    },
+    currentSendPageCurrency () {
+      return this.paymentCurrency ?? this.selectedMarketCurrency
     }
   },
 
@@ -1272,10 +1274,15 @@ export default {
       vm.walletType = 'bch'
     }
 
+    let path = 'send-success.mp3'
+    if (this.$q.platform.is.ios) {
+      path = 'public/assets/send-success.mp3'
+    }
     NativeAudio.preload({
       assetId: 'send-success',
-      assetPath: 'send-success.wav',
+      assetPath: path,
       audioChannelNum: 1,
+      volume: 1.0,
       isUrl: false
     })
 
@@ -1291,6 +1298,8 @@ export default {
     }
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+
+    this.selectedDenomination = this.denomination
   },
 
   unmounted () {
@@ -1322,7 +1331,6 @@ export default {
     border: 2px solid #3b7bf6;
   }
   .btn-scan {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
     color: white;
   }
   .btn-scan-dark {

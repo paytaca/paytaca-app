@@ -1,6 +1,14 @@
 <template>
-  <q-dialog ref="dialog" full-width>
-    <q-card :class="darkmode ? 'text-white pt-dark  ' : 'text-black'" class="br-15" style="padding-bottom: 10px; background-color: #ECF3F3">
+  <q-dialog ref="dialog" full-width seamless>
+    <q-card
+      :class="getDarkModeClass(darkMode, 'text-white pt-dark modal', 'text-black')"
+      class="br-15"
+      style="padding-bottom: 10px; background-color: #ECF3F3"
+    >
+      <q-card-section v-if="isloaded" class="row items-center q-pb-none" style="float: right;">
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
       <div class="row no-wrap items-center justify-center">
         <div v-if="isloaded && !networkError" style="">
           <img src="../../../assets/bch-logo.png" style="height: 40px; position: absolute; top: 12px; left: 25px; z-index: 1;"/>
@@ -9,21 +17,23 @@
           </span>
         </div>
       </div>
-      <div class="row justify-center q-pb-lg" v-if="!isloaded">
-        <ProgressLoader/>
+      <div class="row justify-center q-pb-lg q-pt-lg" v-if="!isloaded">
+        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div class="text-center col pt-internet-required" v-if="networkError && isloaded">
         {{ $t('NoInternetConnectionNotice') }} &#128533;
       </div>
       <div v-if="isloaded && !networkError">
         <div class="full-width q-pb-sm q-pt-lg" style="font-size: 18px; padding-left: 40px; margin-top: 40px;">
-          {{ bchPrice[bchPrice.length - 1].toFixed(2) }}
-          {{ selectedCurrency.toUpperCase() }}&nbsp;
+          {{ parseFiatCurrency(bchPrice[bchPrice.length - 1], selectedCurrency) }}&nbsp;
           <span style="font-size: 13px;" :class="ishigher ? 'inc-text-color' : 'dec-text-color'">
             <q-icon size="sm" :name="ishigher ? 'mdi-menu-up':'mdi-menu-down'"/><b>{{ percentage }} %</b>
           </span>
         </div>
-        <q-card class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 light-bg"  :class="[ darkmode ? 'pt-dark-card-2' : '']">
+        <q-card
+          class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 price-chart"
+          :class="getDarkModeClass(darkMode, 'pt-dark-card-2', '')"
+        >
           <div style="width: 100%; height: 200px; margin-left: 3%; margin-right: 3%; margin-top: 15px; margin-bottom: 15px;" >
             <canvas ref="chart"></canvas>
           </div>
@@ -34,14 +44,14 @@
 </template>
 <script>
 import { load } from 'dotenv'
-import darkmode from 'src/store/darkmode'
 import Chart from 'chart.js/auto'
 import ProgressLoader from '../../../components/ProgressLoader'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
-      darkmode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: this.$store.getters['market/selectedCurrency'].symbol.toLowerCase(),
       isloaded: false,
       date: [],
@@ -58,6 +68,9 @@ export default {
     ProgressLoader
   },
   methods: {
+    getDarkModeClass,
+    isDefaultTheme,
+    parseFiatCurrency,
     async loadData () {
       const vm = this
       // vm.isloaded = false
@@ -80,10 +93,8 @@ export default {
         const temp2 = vm.bchPrice.toString()
 
         if (temp === temp2) {
-          // console.log('same')
           vm.updateChart = false
         } else {
-          // console.log('different')
           vm.updateChart = true
         }
 
@@ -129,7 +140,6 @@ export default {
         await this.loadData()
 
         if (this.updateChart) {
-          // console.log('updating chart')
           this.priceChart.destroy()
           this.createChart()
         }
@@ -139,7 +149,7 @@ export default {
       clearInterval(this.timer)
     },
     async createChart () {
-      Chart.defaults.color = this.darkmode ? '#ffffff' : '#000'
+      Chart.defaults.color = this.darkMode ? '#ffffff' : '#000'
       const plugin = {
         id: 'canvasBackgroundColor',
         beforeDraw: (chart, args, options) => {
@@ -224,7 +234,7 @@ export default {
                   display: false
                 },
                 canvasBackgroundColor: {
-                  color: this.darkmode ? '#212F3D' : '#F9F8FF'
+                  color: this.darkMode ? '#212F3D' : '#F9F8FF'
                 }
               }
             },
@@ -236,15 +246,21 @@ export default {
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     priceText () {
-      if (this.darkmode === true) {
+      if (this.darkMode === true) {
         return '#ffffff'
       } else {
         return '#000000'
       }
     },
     bgColor () {
-      if (this.darkmode === true) {
+      if (this.darkMode === true) {
         return '#212f3d'
       } else {
         return '#f2f5f5'

@@ -12,7 +12,7 @@
     </div>
     <div class="row">
       <div class="col">
-        <div>{{ hedgePositionOffer?.satoshis / (10**8) }} BCH</div>
+        <div>{{ getAssetDenomination(denomination, hedgePositionOffer?.satoshis / (10**8)) }}</div>
       </div>
       <div class="col" style="text-align:right">
         {{ hedgePositionOffer?.lowLiquidationPriceMultiplier * 100 }}% -
@@ -78,10 +78,12 @@ import { useStore } from 'vuex'
 import { format, useQuasar } from 'quasar'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from './HedgeContractDetailDialog.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 const { capitalize } = format
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
+const denomination = computed(() => store.getters['global/denomination'])
 const $q = useQuasar()
 
 const $emit = defineEmits([
@@ -142,6 +144,7 @@ function openUpdateExpirationForm() {
       ]
     },
     cancel: true,
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
     .onOk(updateExpiration)
@@ -155,6 +158,7 @@ function updateExpiration(expirationTime) {
     title: expirationTime ? 'Updating expiration' : 'Removing expiration',
     progress: true,
     persistent: true,
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
   anyhedgeBackend.patch(`anyhedge/hedge-position-offers/${props.hedgePositionOffer?.id}/`, data)
@@ -178,6 +182,7 @@ function confirmRemoveHedgeOffer() {
     message: `Removing ${props.hedgePositionOffer.position} position offer. Are you sure?`,
     ok: true,
     cancel: true,
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
     .onOk(() => removeHedgePositionOffer())
@@ -188,6 +193,7 @@ function removeHedgePositionOffer() {
     message: `Removing ${props.hedgePositionOffer.position} position offer`,
     persistent: true,
     progress: true,
+    seamless: true,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
   anyhedgeBackend.delete(`anyhedge/hedge-position-offers/${props.hedgePositionOffer.id}/`)

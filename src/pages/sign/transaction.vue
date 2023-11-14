@@ -173,7 +173,6 @@ export default defineComponent({
   methods: {
     parsedOpReturn(bytecode) {
       const decoded = decodeAuthenticationInstructions(bytecode);
-      console.log(decoded)
       return (decoded.slice(1) as AuthenticationInstructionPush[]).map(val => "0x" + binToHex(val.data))
     },
 
@@ -267,7 +266,9 @@ export default defineComponent({
       if (typeof decodeResult === "string") {
         this.$q.dialog({
           message: "Not enough information provided, please include contract redeemScript",
-          title: "Error"
+          title: "Error",
+          seamless: true,
+          ok: true
         });
         return;
       }
@@ -277,6 +278,8 @@ export default defineComponent({
         this.$q.dialog({
           message: pubkeyCompressed,
           title: "Error",
+          seamless: true,
+          ok: true
         });
         return;
       }
@@ -299,7 +302,9 @@ export default defineComponent({
             if (!coveredBytecode) {
               this.$q.dialog({
                 message: "Not enough information provided, please include contract redeemScript",
-                title: "Error"
+                title: "Error",
+                seamless: true,
+                ok: true
               });
               return;
             }
@@ -310,6 +315,8 @@ export default defineComponent({
               this.$q.dialog({
                 message: signature,
                 title: "Error",
+                seamless: true,
+                ok: true
               });
               return;
             }
