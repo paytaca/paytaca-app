@@ -4,7 +4,7 @@
       <span v-if="type === 'buyer'">PAY BY FIAT</span>
       <span v-else>RECEIVE FIAT</span>
     </div>
-    <div style="opacity: .5;" class="text-center q-pb-sm sm-font-size bold-text">(ORDER ID: {{ order.id }})</div>
+    <div style="opacity: .5;" class="text-center q-pb-sm sm-font-size bold-text">(ORDER #{{ order.id }})</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
     <q-scroll-area :style="`height: ${minHeight - 175}px`" style="overflow-y:auto;">
       <div class="q-mt-md q-mx-lg q-px-md">

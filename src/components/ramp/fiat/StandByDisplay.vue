@@ -5,27 +5,25 @@
         <div class="lg-font-size">
           <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
         </div>
+        <div class="text-center subtext xs-font-size bold-text">ORDER #{{ order.id }}</div>
         <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
-      <div class="text-center subtext xs-font-size bold-text">(ORDER ID: {{ order.id }})</div>
       <div class="q-px-sm q-pt-sm">
-        <div class="sm-font-size q-pb-xs">Fiat Amount</div>
-        <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
-          <template v-slot:prepend>
-            <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+        <div class="sm-font-size q-pb-xs">Amount</div>
+        <q-input
+          class="q-pb-xs md-font-size"
+          readonly
+          dense
+          filled
+          :dark="darkMode"
+          v-model="cryptoAmount">
+          <template v-slot:append>
+            <span class="md-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
           </template>
         </q-input>
-
-        <div class="text-center q-py-xs">
-          <q-icon size="md" name="mdi-swap-vertical" />
+        <div class="col text-right md-font-size q-pl-sm">
+          = {{ formattedCurrency($parent.fiatAmount) }} {{ order.fiat_currency.symbol }}
         </div>
-
-        <div class="sm-font-size q-pb-xs">Crypto Amount</div>
-        <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="cryptoAmount">
-          <template v-slot:prepend>
-            <span class="sm-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
-          </template>
-        </q-input>
       </div>
       <!-- Countdown Timer -->
       <div v-if="order.status.value !== 'APL'" class="q-mt-md q-px-md q-mb-sm">
@@ -178,6 +176,7 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { formatCurrency } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -348,6 +347,13 @@ export default {
             vm.countDown = 'Expired'
           }
         }, 1000)
+      }
+    },
+    formattedCurrency (value, currency = null) {
+      if (currency) {
+        return formatCurrency(value, currency)
+      } else {
+        return formatCurrency(value)
       }
     }
   }

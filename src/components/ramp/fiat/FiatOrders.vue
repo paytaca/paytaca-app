@@ -45,8 +45,8 @@
                             <div class="col ib-text">
                               <div
                                 :class="{'pt-dark-label': darkMode}"
-                                class="q-mb-none xs-font-size">
-                                ORDER ID: {{ listing.id }}
+                                class="q-mb-none sm-font-size">
+                                ORDER #{{ listing.id }}
                               </div>
                               <span
                                 :class="{'pt-dark-label': darkMode}"
@@ -59,9 +59,9 @@
                               </div>
                               <div class="sm-font-size">
                                 {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                              <div class="row sm-font-size">
-                                <span class="col-3 q-pr-sm">Price</span>
-                                <span class="col">{{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}/BCH</span>
+                              <div class="sm-font-size">
+                                <span class="q-pr-sm">Price</span>
+                                <span>{{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}/BCH</span>
                               </div>
                               <!-- <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div> -->
                               <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
