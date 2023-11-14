@@ -823,6 +823,9 @@ export default {
           }, 250)
           if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
         })
+        .catch(error => {
+          console.error('error:', error.response)
+        })
         .finally(() => {
           vm.transactionsAppending = false
         })

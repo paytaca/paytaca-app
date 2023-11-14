@@ -4,16 +4,17 @@
     @decode="onScannerDecode"
   />
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mb-lg pt-card"
-    :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+    class="br-15 q-pt-sm q-mx-md q-mb-lg"
+    :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
     v-if="isloaded && state === 'form' && !error"
   >
     <div class="row items-center justify-end q-mt-md q-mr-lg">
       <q-btn
         round
+        color="blue-9"
         padding="xs"
         icon="mdi-history"
-        class="q-ml-md button"
+        class="q-ml-md"
         @click="openHistory"
       />
     </div>
@@ -33,15 +34,13 @@
       </q-item-section>
       <q-item-section>
         <q-input
-          type="text"
-          inputmode="none"
-          @focus="readonlyState(true)"
-          @blur="readonlyState(false)"
           dense
           filled
           :dark="darkMode"
           v-model="shiftAmount"
-          :readonly="amountInputState"
+          @update:modelValue="function(){
+              updateConvertionRate()
+            }"
         />
         <q-item-label
           class="text-right q-mt-sm"
@@ -103,17 +102,7 @@
             :class="darkMode ? 'text-grey-6' : ''"
             v-if="settleAmount && shiftAmount"
           >
-            <i>
-              {{
-                `1 ${deposit.coin === 'BCH' ? denomination : deposit.coin} =
-                  ${
-                    settle.coin === 'BCH'
-                      ? getAssetDenomination(denomination, convertionRate)
-                      : `${convertionRate} ${settle.coin}`
-                  }
-                `
-               }}
-            </i>
+            <i>1 {{ deposit.coin }} = {{ convertionRate }} {{ settle.coin }}</i>
           </q-item-label>
       </q-item-section>
     </q-item>
@@ -163,21 +152,14 @@
         rounded
         no-caps
         :label="$t('Submit')"
-        class="q-space button"
+        color="brandblue"
+        class="q-space"
         @click="checkData()"
       />
     </div>
   </q-card>
-
-  <CustomKeyboard
-    v-if="showCustomKeyboard"
-    :custom-keyboard-state="customKeyboardState"
-    @addKey="setAmount"
-    @makeKeyAction="makeKeyAction"
-  />
-
-  <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded && !error">
-    <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+  <div class="row justify-center q-py-lg" style="margin-top: 50%" v-if="!isloaded && !error">
+    <ProgressLoader/>
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
@@ -208,14 +190,11 @@ import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampDisplayConfirmation from './RampDisplayConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
 import RampHistoryDialog from './RampHistoryDialog.vue'
-import ProgressLoader from '../ProgressLoader.vue'
-import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
-import QrScanner from '../qr-scanner.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
-import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
-import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
-import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+// import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
+// import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
 export default {
   components: {
@@ -223,8 +202,7 @@ export default {
     RampDisplayConfirmation,
     RampDepositInfo,
     RampHistoryDialog,
-    QrScanner,
-    CustomKeyboard
+    QrScanner
   },
   data () {
     return {
@@ -235,6 +213,7 @@ export default {
       isloaded: false,
       state: 'form', // confirmation, deposit,
       showQrScanner: false,
+      darkMode: this.$store.getters['darkmode/getStatus'],
       deposit: {
         coin: 'BTC',
         network: 'bitcoin',
@@ -258,16 +237,10 @@ export default {
       shiftData: {},
       convertionRate: '',
       addrType: '',
-      depositInfoState: 'created',
-      showCustomKeyboard: false,
-      amountInputState: false,
-      customKeyboardState: 'dismiss'
+      depositInfoState: 'created'
     }
   },
   methods: {
-    getAssetDenomination,
-    getDarkModeClass,
-    isDefaultTheme,
     selectSourceToken () {
       if (!this.isFromBCH) {
         this.$q.dialog({
@@ -442,16 +415,10 @@ export default {
       }
       const amount = parseFloat(vm.shiftAmount)
       if (min > amount) {
-        const amount = vm.deposit.coin === 'BCH'
-          ? getAssetDenomination(this.denomination, min)
-          : `${vm.minimum} ${vm.deposit.coin}`
-        vm.errorMsg = `Minimum ${amount}`
+        vm.errorMsg = 'Minimum ' + vm.minimum + ' ' + vm.deposit.coin
       }
       if (max < amount) {
-        const amount = vm.deposit.coin === 'BCH'
-          ? getAssetDenomination(this.denomination, max)
-          : `${vm.maximum} ${vm.deposit.coin}`
-        vm.errorMsg = `Maximum ${amount}`
+        vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
       }
       // balance checking
       if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {
@@ -612,68 +579,9 @@ export default {
       }
 
       return icon
-    },
-    readonlyState (state) {
-      this.amountInputState = state
-      if (this.amountInputState) {
-        this.customKeyboardState = 'show'
-      }
-      this.showCustomKeyboard = true
-    },
-    setAmount (key) {
-      let tempAmount, amount
-
-      tempAmount = this.shiftAmount
-      tempAmount = tempAmount === 0 ? '' : tempAmount
-      if (key === '.' && tempAmount === '') {
-        amount = '0.'
-      } else {
-        amount = tempAmount.toString()
-        const hasPeriod = amount.indexOf('.')
-        if (hasPeriod < 1) {
-          if (Number(amount) === 0 && Number(key) > 0) {
-            amount = key
-          } else {
-            // Check amount if still zero
-            if (Number(amount) === 0 && Number(amount) === Number(key)) {
-              amount = 0
-            } else {
-              amount += key.toString()
-            }
-          }
-        } else {
-          amount += key !== '.' ? key.toString() : ''
-        }
-      }
-      // Set the new amount
-      this.shiftAmount = amount
-      this.updateConvertionRate()
-    },
-    makeKeyAction (action) {
-      if (action === 'backspace') {
-        // Backspace
-        this.shiftAmount = String(this.shiftAmount).slice(0, -1)
-        this.updateConvertionRate()
-      } else if (action === 'delete') {
-        // Delete
-        this.shiftAmount = ''
-        this.updateConvertionRate()
-      } else {
-        // Hide Custom Keyboard
-        this.showCustomKeyboard = false
-      }
     }
   },
   computed: {
-    darkMode () {
-      return this.$store.getters['darkmode/getStatus']
-    },
-    denomination () {
-      return this.$store.getters['global/denomination']
-    },
-    theme () {
-      return this.$store.getters['global/theme']
-    },
     bchAddress () {
       return this.$store.getters['global/getAddress']('bch')
     },

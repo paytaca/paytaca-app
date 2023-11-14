@@ -1,4 +1,5 @@
 export function addIdentity (state, data) {
+	if (!data) return
 	const identities = Object.assign({}, state.identities)
 	identities[data.address] = data
 	state.identities = identities

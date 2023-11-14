@@ -43,9 +43,9 @@
   />
 </template>
 <script>
-import { getMnemonic, Wallet } from '../../wallet'
-import ProgressLoader from '../ProgressLoader.vue'
-import DragSlide from '../drag-slide.vue'
+import { getMnemonic, Wallet } from 'src/wallet'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import DragSlide from 'src/components/drag-slide.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
 import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 

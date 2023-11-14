@@ -109,7 +109,6 @@
 import { objectTypeAnnotation } from '@babel/types';
 import RampDepositInfo from './RampDepositInfo.vue'
 
-
 export default {
   data () {
     return {
