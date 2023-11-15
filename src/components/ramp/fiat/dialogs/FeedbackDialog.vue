@@ -8,18 +8,20 @@
         @click="$emit('back')"
       />
       <div v-if="isloaded">
-        <div v-if="reviewList.length !== 0"  class="text-center q-pb-lg xm-font-size bold-text">
-          Reviews
+        <div style="font-weight: 500; font-size: 15px;">
+          <div v-if="reviewList.length !== 0"  class="text-center q-pb-md xm-font-size bold-text">
+            Reviews
+          </div>
+          <div v-else class="text-center text-italized bold-text xm-font-size">
+            No Reviews Yet
+          </div>
         </div>
-        <div v-else class="text-center text-italized bold-text xm-font-size">
-          No Reviews Yet
-        </div>
-
         <q-pull-to-refresh @refresh="refreshReviews">
           <q-scroll-area :style="`height: ${maxHeight - (maxHeight*.2)}px`" style="overflow:auto;">
 
-            <div class="q-pt-md q-mx-lg q-pb-lg q-px-md" v-for="(review, index) in reviewList" :key="index">
-              <div class="bold-text">{{  review.from_peer.name }}</div>
+            <div style="font-weight: 500;" class="q-pt-md q-mx-lg q-pb-sm q-px-md" v-for="(review, index) in reviewList" :key="index">
+              <div>{{  review.from_peer.name }}</div>
+              <div style="font-size: 12px; opacity: .5;">Order #{{  review.order }}</div>
               <div class="q-py-xs q-pb-sm">
                   <q-rating
                     readonly
@@ -28,6 +30,7 @@
                     color="yellow-9"
                     icon="star"
                   />
+                  <span style="font-size: 12px; opacity: .5; ">({{ review.rating }})</span>
                 </div>
                 <div>
                   <q-input
@@ -68,12 +71,21 @@ export default {
   },
   props: {
     openReviews: Boolean,
-    adID: Number
+    adID: {
+      type: Number,
+      default: null
+    },
+    orderID: {
+      type: Number,
+      default: null
+    },
+    type: {
+      type: String,
+      default: 'ad-reviews'
+    }
   },
   emits: ['back'],
   async mounted () {
-    console.log(this.darkMode)
-    console.log(this.authHeaders)
     // console.log('token', getCookie('token'))
     await this.fetchReviews()
     this.isloaded = true
@@ -87,11 +99,19 @@ export default {
       const vm = this
 
       const url = `${vm.apiURL}/order/feedback/peer`
-
-      await vm.$axios.get(url, {
-        params: {
+      console.log(this.authHeaders)
+      let params = null
+      if (this.type === 'ad-reviews') {
+        params = {
           ad_id: vm.adID
-        },
+        }
+      } else {
+        params = {
+          order_id: vm.orderID
+        }
+      }
+      await vm.$axios.get(url, {
+        params: params,
         headers: this.authHeaders
       })
         .then(response => {

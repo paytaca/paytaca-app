@@ -22,7 +22,7 @@
         </div>
       </div>
       <div class="q-pt-sm" v-else>
-        <q-scroll-area :style="`height: ${minHeight - minHeight * 0.2}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - 135}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm bold-text">
               Price Setting

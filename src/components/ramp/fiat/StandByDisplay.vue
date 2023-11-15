@@ -1,6 +1,6 @@
 <template>
   <div v-if="isloaded" class="q-mb-sm q-pb-sm">
-    <q-scroll-area :style="`height: ${minHeight - minHeight*0.2}px`" style="overflow-y:auto;">
+
       <div class="q-mx-lg text-center bold-text">
         <div class="lg-font-size">
           <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
@@ -8,143 +8,145 @@
         <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
       <div class="text-center subtext xs-font-size bold-text">(ORDER ID: {{ order.id }})</div>
-      <div class="q-px-sm q-pt-sm">
-        <div class="sm-font-size q-pb-xs">Fiat Amount</div>
-        <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
-          <template v-slot:prepend>
-            <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
-          </template>
-        </q-input>
+      <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
+        <div class="q-px-sm q-pt-sm">
+          <div class="sm-font-size q-pb-xs">Fiat Amount</div>
+          <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="$parent.fiatAmount">
+            <template v-slot:prepend>
+              <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+            </template>
+          </q-input>
 
-        <div class="text-center q-py-xs">
-          <q-icon size="md" name="mdi-swap-vertical" />
-        </div>
-
-        <div class="sm-font-size q-pb-xs">Crypto Amount</div>
-        <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="cryptoAmount">
-          <template v-slot:prepend>
-            <span class="sm-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
-          </template>
-        </q-input>
-      </div>
-      <!-- Countdown Timer -->
-      <div v-if="order.status.value !== 'APL'" class="q-mt-md q-px-md q-mb-sm">
-        <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
-          <div v-if="hasLabel && !forRelease" class="row">
-            <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-            <span class="col text-left q-ml-sm">{{ label }}</span>
+          <div class="text-center q-py-xs">
+            <q-icon size="md" name="mdi-swap-vertical" />
           </div>
-        </div>
 
-        <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
-          {{ countDown }}
+          <div class="sm-font-size q-pb-xs">Crypto Amount</div>
+          <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="cryptoAmount">
+            <template v-slot:prepend>
+              <span class="sm-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
+            </template>
+          </q-input>
         </div>
+        <!-- Countdown Timer -->
+        <div v-if="order.status.value !== 'APL'" class="q-mt-md q-px-md q-mb-sm">
+          <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
+            <div v-if="hasLabel && !forRelease" class="row">
+              <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+              <span class="col text-left q-ml-sm">{{ label }}</span>
+            </div>
+          </div>
 
-        <!-- Cancel Button -->
-        <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
-          <q-btn
-            rounded
-            no-caps
-            label='Cancel Order'
-            class="q-space text-white"
-            style="background-color: #ed5f59;"
-            @click="$parent.cancellingOrder()"
-          />
-        </div>
+          <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
+            {{ countDown }}
+          </div>
 
-        <!-- Appeal Button -->
-        <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired">
-          <div class="row q-pt-md">
+          <!-- Cancel Button -->
+          <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
             <q-btn
               rounded
               no-caps
-              label='Appeal'
+              label='Cancel Order'
+              class="q-space text-white"
+              style="background-color: #ed5f59;"
+              @click="$parent.cancellingOrder()"
+            />
+          </div>
+
+          <!-- Appeal Button -->
+          <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired">
+            <div class="row q-pt-md">
+              <q-btn
+                rounded
+                no-caps
+                label='Appeal'
+                class="q-space text-white"
+                color="blue-6"
+                @click="openDialog = true"
+              />
+            </div>
+          </div>
+        </div>
+        <div v-else>
+          <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+            <q-card-section>
+              <div class="bold-text md-font-size">Appeal reasons</div>
+              <div v-if="appeal">
+                <q-badge
+                  v-for="reason in appeal.reasons"
+                  :key="reason"
+                  rounded
+                  size="sm"
+                  outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                  :label="reason" />
+              </div>
+            </q-card-section>
+          </q-card>
+          <!-- <div class="row q-pt-md q-mx-lg">
+            <q-btn
+              rounded
+              no-caps
+              label='Chat'
               class="q-space text-white"
               color="blue-6"
-              @click="openDialog = true"
+              @click="onChat"
             />
-          </div>
+          </div> -->
         </div>
-      </div>
-      <div v-else>
-        <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
-          <q-card-section>
-            <div class="bold-text md-font-size">Appeal reasons</div>
-            <div v-if="appeal">
-              <q-badge
-                v-for="reason in appeal.reasons"
-                :key="reason"
-                rounded
-                size="sm"
-                outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-                :label="reason" />
+        <!-- Feedback -->
+        <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
+          <div class="md-font-size text-center">
+            <span v-if="!feedback.is_posted">Rate your experience</span>
+            <span v-else>Your Review</span>
+          </div>
+          <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
+          <div>
+            <div class="q-py-xs text-center">
+              <q-rating
+                :readonly="feedback.is_posted"
+                v-model="feedback.rating"
+                size="2em"
+                color="yellow-9"
+                icon="star"
+              />
             </div>
-          </q-card-section>
-        </q-card>
-        <!-- <div class="row q-pt-md q-mx-lg">
-          <q-btn
-            rounded
-            no-caps
-            label='Chat'
-            class="q-space text-white"
-            color="blue-6"
-            @click="onChat"
-          />
-        </div> -->
-      </div>
-      <!-- Feedback -->
-      <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
-        <div class="md-font-size text-center">
-          <span v-if="!feedback.is_posted">Rate your experience</span>
-          <span v-else>Your Review</span>
+            <div class="q-pt-sm q-px-xs">
+              <q-input
+                v-if="!feedback.is_posted || (feedback.is_posted && feedback.comment)"
+                v-model="feedback.comment"
+                :dark="darkMode"
+                :readonly="feedback.is_posted"
+                placeholder="Add comment here..."
+                dense
+                outlined
+                autogrow
+                :counter="!feedback.is_posted"
+                maxlength="200"
+              />
+            </div>
+            <div class="row q-pt-xs q-px-xs">
+              <q-btn
+                v-if="!feedback.is_posted"
+                :disable="!feedback.rating"
+                rounded
+                label='Post Review'
+                class="q-space text-white"
+                color="blue-8"
+                @click="postingFeedback"
+              />
+              <!-- <q-btn
+                v-else
+                rounded
+                label='Edit Review'
+                class="q-space text-white"
+                color="blue-8"
+              /> -->
+            </div>
+            <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div>
+          </div>
         </div>
-        <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
-        <div>
-          <div class="q-py-xs text-center">
-            <q-rating
-              :readonly="feedback.is_posted"
-              v-model="feedback.rating"
-              size="2em"
-              color="yellow-9"
-              icon="star"
-            />
-          </div>
-          <div class="q-pt-sm q-px-xs">
-            <q-input
-              v-if="!feedback.is_posted || (feedback.is_posted && feedback.comment)"
-              v-model="feedback.comment"
-              :dark="darkMode"
-              :readonly="feedback.is_posted"
-              placeholder="Add comment here..."
-              dense
-              outlined
-              autogrow
-              :counter="!feedback.is_posted"
-              maxlength="200"
-            />
-          </div>
-          <div class="row q-pt-xs q-px-xs">
-            <q-btn
-              v-if="!feedback.is_posted"
-              :disable="!feedback.rating"
-              rounded
-              label='Post Review'
-              class="q-space text-white"
-              color="blue-8"
-              @click="postingFeedback"
-            />
-            <!-- <q-btn
-              v-else
-              rounded
-              label='Edit Review'
-              class="q-space text-white"
-              color="blue-8"
-            /> -->
-          </div>
-          <!-- <div class="text-right text-blue md-font-size q-mt-sm" @click="openReviews = true">See all reviews</div> -->
-        </div>
-      </div>
-    </q-scroll-area>
+      </q-scroll-area>
+    <!-- </q-scroll-area> -->
   </div>
 
   <!-- Dialogs -->
@@ -169,7 +171,8 @@
   <div v-if="openReviews">
     <FeedbackDialog
       :openReviews="openReviews"
-      :adID="order.ad.id"
+      :orderID="order.id"
+      :type="'order-review'"
       @back="openReviews = false"
     />
   </div>

@@ -10,72 +10,74 @@
       </div> -->
       <div class="text-center lg-font-size bold-text">VERIFYING TRANSFER</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
-      <div class="q-mx-lg q-px-md q-pt-md">
-        <!-- <div class="row q-mt-md"> -->
-        <div class="sm-font-size q-pl-sm q-pb-xs">Contract Address</div>
-          <q-input
-            class="q-pb-sm"
-            readonly
-            :dark="darkMode"
-            filled
-            dense
-            v-model="contract.address"
-            :loading="!contract">
-            <template v-slot:append v-if="contract.address">
-              <div @click="$parent.copyToClipboard(contract.address)">
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-              </div>
-            </template>
-          </q-input>
-        <!-- </div> -->
-        <!-- <div class="row q-mt-md"> -->
+      <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
+        <div class="q-mx-lg q-px-md q-pt-md">
+          <!-- <div class="row q-mt-md"> -->
+          <div class="sm-font-size q-pl-sm q-pb-xs">Contract Address</div>
+            <q-input
+              class="q-pb-sm"
+              readonly
+              :dark="darkMode"
+              filled
+              dense
+              v-model="contract.address"
+              :loading="!contract">
+              <template v-slot:append v-if="contract.address">
+                <div @click="$parent.copyToClipboard(contract.address)">
+                  <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+                </div>
+              </template>
+            </q-input>
+          <!-- </div> -->
+          <!-- <div class="row q-mt-md"> -->
 
-        <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
-          <q-input
-            readonly
-            :dark="darkMode"
-            filled
-            dense
-            :loading="!transactionId"
-            v-model="transactionId">
-            <template v-slot:append v-if="transactionId">
-              <div @click="$parent.copyToClipboard(transactionId)">
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-              </div>
-            </template>
-          </q-input>
-        <!-- </div> -->
-        <div class="row q-mt-sm sm-font-size" style="color: grey">
-          Contract balance: {{ contract.balance ? contract.balance : 0 }} BCH
-        </div>
-        <div class="row" v-if="errorMessages.length > 0">
-          <div class="col">
-            <ul style="margin-left: -40px; list-style: none;">
-              <li v-for="(error, index) in errorMessages" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
-                <q-icon name="error" left/>
-                {{ error }}
-              </li>
-            </ul>
+          <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
+            <q-input
+              readonly
+              :dark="darkMode"
+              filled
+              dense
+              :loading="!transactionId"
+              v-model="transactionId">
+              <template v-slot:append v-if="transactionId">
+                <div @click="$parent.copyToClipboard(transactionId)">
+                  <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+                </div>
+              </template>
+            </q-input>
+          <!-- </div> -->
+          <div class="row q-mt-sm sm-font-size" style="color: grey">
+            Contract balance: {{ contract.balance ? contract.balance : 0 }} BCH
+          </div>
+          <div class="row" v-if="errorMessages.length > 0">
+            <div class="col">
+              <ul style="margin-left: -40px; list-style: none;">
+                <li v-for="(error, index) in errorMessages" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
+                  <q-icon name="error" left/>
+                  {{ error }}
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="row q-mb-md">
+            <q-btn
+              v-if="!loading && !hideBtn"
+              rounded
+              :disable="hideBtn"
+              label="Verify"
+              color="blue-6"
+              class="col q-mx-lg q-mb-md q-py-sm q-my-md"
+              @click="onVerify">
+            </q-btn>
+            <div v-if="hideBtn" class="q-mt-md">
+              <span v-if="state === 'verifying'">
+                Verifying transaction, please wait... <!--<span v-if="waitSeconds">({{ waitSeconds }}s)</span>-->
+              </span>
+              <span v-if="state === 'sending'">Sending bch, please wait...</span>
+            </div>
           </div>
         </div>
-        <div class="row q-mb-md">
-          <q-btn
-            v-if="!loading && !hideBtn"
-            rounded
-            :disable="hideBtn"
-            label="Verify"
-            color="blue-6"
-            class="col q-mx-lg q-mb-md q-py-sm q-my-md"
-            @click="onVerify">
-          </q-btn>
-          <div v-if="hideBtn" class="q-mt-md">
-            <span v-if="state === 'verifying'">
-              Verifying transaction, please wait... <!--<span v-if="waitSeconds">({{ waitSeconds }}s)</span>-->
-            </span>
-            <span v-if="state === 'sending'">Sending bch, please wait...</span>
-          </div>
-        </div>
-      </div>
+      </q-scroll-area>
     </div>
     <!-- else progress loader -->
   </template>
@@ -100,7 +102,8 @@ export default {
       waitSeconds: null,
       hideBtn: true,
       errorMessages: [],
-      state: ''
+      state: '',
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
     }
   },
   emits: ['back', 'success'],
