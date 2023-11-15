@@ -78,15 +78,7 @@
             </div>
           </div>
           <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
-            <!-- <div>
-              <q-list v-for="(recipient, index) in sendDataMultiple">
-                <q-expansion-item expand-separator :label="`Recipient ${index + 1}`">
-                  <q-btn label="test 2 yey" />
-                </q-expansion-item>
-              </q-list>
-            </div> -->
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
-              <!-- <q-btn label="test hehe" @click="handleSubmit" /> -->
               <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
                 <q-expansion-item
                   default-opened
@@ -96,7 +88,6 @@
                   v-model="expandedItems[`R${index + 1}`]"
                   :label="`Recipient #${index + 1}`"
                 >
-                  <!-- pass recipient array -->
                   <SendPageForm
                     :recipient="sendDataMultiple[index]"
                     :inputExtras="inputExtras[index]"
@@ -105,16 +96,21 @@
                     :index="index"
                     :showQrScanner="showQrScanner"
                     :computingMax="computingMax"
+                    :setAmountInFiat="setAmountInFiat"
+                    :sendAmountMarketValue="sendAmountMarketValue"
                     :isNFT="isNFT"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :convertToFiatAmount="convertToFiatAmount"
+                    :setMaximumSendAmount="setMaximumSendAmount"
                     @on-qr-scanner-click="onQRScannerClick"
                     @read-only-state="readonlyState"
+                    @on-input-focus="onInputFocus"
+                    :key="[sendDataMultiple[index], inputExtras[index]]"
                   />
                 </q-expansion-item>
               </q-list>
 
-              <div class="row">
+              <!-- <div class="row">
                 <div class="col q-mt-sm se recipient-input-qr">
                   <q-input
                     filled
@@ -168,7 +164,10 @@
                         />
                       </template>
                     </q-input>
-                    <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                    <div
+                      v-if="sendAmountMarketValue && !setAmountInFiat"
+                      class="text-body2 text-grey q-mt-sm q-px-sm"
+                    >
                       {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
                     </div>
                   </div>
@@ -191,7 +190,10 @@
                         {{ String(currentSendPageCurrency()).toUpperCase() }}
                       </template>
                     </q-input>
-                    <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
+                    <div
+                      v-if="sendAmountMarketValue && !setAmountInFiat"
+                      class="text-body2 text-grey q-mt-sm q-px-sm"
+                    >
                       {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
                     </div>
                   </div>
@@ -214,15 +216,19 @@
                     {{ $t('MAX') }}
                   </a>
                 </div>
-              </div>
-              <div class="row" v-if="!sendData.fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+              </div> -->
+              <div
+                class="row"
+                style="margin-top: -10px;"
+                v-if="!sendData.fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'"
+              >
                 <div class="col q-mt-md">
                   <a
                     style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
                     href="#"
                     class="button button-text-primary"
                     :class="getDarkModeClass(darkMode)"
-                    @click.prevent="() => {sendData.amount = 0; amountFormatted = 0; setAmountInFiat = true}"
+                    @click.prevent="onSetAmountToFiatClick"
                   >
                     Set amount in {{ String(currentSendPageCurrency()).toUpperCase() }}
                   </a>
@@ -499,7 +505,20 @@ export default {
         fixedRecipientAddress: false,
       },
 
-      sendDataMultiple: [],
+      sendDataMultiple: [{
+        sent: false,
+        sending: false,
+        success: false,
+        txid: '',
+        amount: null,
+        fixedAmount: false,
+        recipientAddress: '',
+        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
+        rawPaymentUri: '', // for scanning qr data
+        responseOTP: '',
+        paymentAckMemo: '',
+        fixedRecipientAddress: false
+      }],
 
       pinDialogAction: '',
       leftX: 0,
@@ -526,7 +545,10 @@ export default {
       payloadAmount: 0,
       expandedItems: {},
       currentActiveRecipientIndex: 0,
-      inputExtras: []
+      inputExtras: [{
+        amountFormatted: 0,
+        sendAmountInFiat: 0
+      }]
     }
   },
 
@@ -590,6 +612,7 @@ export default {
       return currency && currency.symbol
     },
     sendAmountMarketValue () {
+      // change to sendDataMultiple
       const parsedAmount = Number(this.sendData.amount)
       if (!parsedAmount) return ''
       if (!this.selectedAssetMarketPrice) return ''
@@ -654,7 +677,10 @@ export default {
         let fiatToAsset = this.convertFiatToSelectedAsset(amount)
         fiatToAsset = fiatToAsset || 0
         this.sendData.amount = fiatToAsset
-        this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
+
+        const fiatAsset = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
+        this.amountFormatted = fiatAsset
+        this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = fiatAsset
       }
     },
     selectedAssetMarketPrice () {
@@ -665,6 +691,7 @@ export default {
         this.sendAmountInFiat = this.payloadAmount
         this.sendData.amount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
         this.amountFormatted = this.sendData.amount
+        this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = this.sendData.amount
       }
     }
   },
@@ -706,6 +733,8 @@ export default {
       let posDevice = { posId: -1, paymentTimestamp: -1 }
       let amountValue = null
       let currency = null
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
 
       let paymentUriData
       try {
@@ -748,6 +777,7 @@ export default {
         this.payloadAmount = payloadAmountValue
         address = paymentUriData.outputs[0].address
         this.sendData.fixedRecipientAddress = true
+        currentRecipient.fixedRecipientAddress = true
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -758,6 +788,10 @@ export default {
         this.sendData.recipientAddress = address
         this.sendData.rawPaymentUri = rawPaymentUri
         this.scannedRecipientAddress = true
+
+        currentRecipient.recipientAddress = address
+        currentRecipient.rawPaymentUri = rawPaymentUri
+
         if (typeof currency === 'string') {
           const newSelectedCurrency = this.currencyOptions
             .find(_currency => _currency?.symbol === currency)
@@ -773,6 +807,10 @@ export default {
             // reset some data updated above on error
             this.sendData.recipientAddress = ''
             this.sendData.rawPaymentUri = ''
+
+            currentRecipient.recipientAddress = ''
+            currentRecipient.rawPaymentUri = ''
+
             return
           }
         } else {
@@ -782,34 +820,17 @@ export default {
         if (amountValue !== null) {
           this.sliderStatus = true
           this.amountFormatted = amount
+          currentInputExtras.amountFormatted = amount
           if (this.setAmountInFiat) {
             this.sendAmountInFiat = amount
+            currentInputExtras.sendAmountInFiat = amount
           } else {
             this.sendData.amount = amount
+            currentRecipient.amount = amount
           }
           this.sendData.fixedAmount = true
+          currentRecipient.fixedAmount = true
         }
-
-        // adjust for scanning qr of another recipient
-        this.sendDataMultiple.push({
-          sent: false,
-          sending: false,
-          success: false,
-          error: '',
-          txid: '',
-          amount: amount,
-          fixedAmount: false,
-          recipientAddress: address,
-          posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
-          rawPaymentUri,
-          responseOTP: '',
-          paymentAckMemo: '',
-          fixedRecipientAddress: true,
-        })
-        this.inputExtras.push({
-          amountFormatted: parseFloat(getAssetDenomination(this.selectedDenomination, amount, true)),
-          sendAmountInFiat: 0
-        })
       }
     },
     handleJPP(paymentUri) {
@@ -881,63 +902,111 @@ export default {
       return computedBalance.toFixed(8)
     },
     setAmount (key) {
-      let sendAmount, amount, tempAmountFormatted = ''
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+      // let sendAmount, amount, tempAmountFormatted = ''
+      let currentSendAmount, currentAmount, currentTempAmountFormatted
+
       if (this.setAmountInFiat) {
-        sendAmount = this.sendAmountInFiat
+        // sendAmount = this.sendAmountInFiat
+        currentSendAmount = currentInputExtras.sendAmountInFiat
       } else {
-        sendAmount = this.sendData.amount
-        tempAmountFormatted = this.amountFormatted === null ? '' : this.amountFormatted
+        // sendAmount = this.sendData.amount
+        // tempAmountFormatted = this.amountFormatted ?? ''
+        currentSendAmount = currentRecipient.amount
+        currentTempAmountFormatted = currentInputExtras.amountFormatted ?? ''
       }
-      sendAmount = sendAmount === null ? '' : sendAmount
-      if (key === '.' && sendAmount === '') {
-        amount = '0.'
-        tempAmountFormatted = '0.'
+
+      // sendAmount = sendAmount === null ? '' : sendAmount
+      currentSendAmount = currentSendAmount ?? ''
+
+      // remove
+      // if (key === '.' && sendAmount === '') {
+      //   amount = '0.'
+      //   tempAmountFormatted = '0.'
+      // } else {
+      //   amount = this.setAmountInFiat ? sendAmount.toString() : tempAmountFormatted.toString()
+      //   const hasPeriod = amount.indexOf('.')
+      //   if (hasPeriod < 1) {
+      //     if (Number(amount) === 0) {
+      //       if (Number(key) > 0) {
+      //         amount = key
+      //         tempAmountFormatted = key
+      //       } else if (Number(amount) === Number(key)) { // Check amount if still zero
+      //         amount = 0
+      //         tempAmountFormatted = 0
+      //       } else {
+      //         amount += key.toString()
+      //         tempAmountFormatted += key.toString()
+      //       }
+      //     }
+      //   } else {
+      //     amount += key !== '.' ? key.toString() : ''
+      //     tempAmountFormatted += key !== '.' ? key.toString() : ''
+      //   }
+      // }
+
+      if (key === '.' && currentSendAmount === '') {
+        currentAmount = '0.'
+        currentTempAmountFormatted = '0.'
       } else {
-        amount = this.setAmountInFiat ? sendAmount.toString() : tempAmountFormatted.toString()
-        const hasPeriod = amount.indexOf('.')
+        currentAmount = this.setAmountInFiat ? currentSendAmount.toString() : currentTempAmountFormatted.toString()
+        const hasPeriod = currentAmount.indexOf('.')
         if (hasPeriod < 1) {
-          if (Number(amount) === 0 && Number(key) > 0) {
-            amount = key
-            tempAmountFormatted = key
-          } else {
-            // Check amount if still zero
-            if (Number(amount) === 0 && Number(amount) === Number(key)) {
-              amount = 0
-              tempAmountFormatted = 0
+          if (Number(currentAmount) === 0) {
+            if (Number(key) > 0) {
+              currentAmount = key
+              currentTempAmountFormatted = key
+            } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
+              currentAmount = 0
+              currentTempAmountFormatted = 0
             } else {
-              amount += key.toString()
-              tempAmountFormatted += key.toString()
+              currentAmount += key.toString()
+              currentTempAmountFormatted += key.toString()
             }
           }
         } else {
-          amount += key !== '.' ? key.toString() : ''
-          tempAmountFormatted += key !== '.' ? key.toString() : ''
+          currentAmount += key !== '.' ? key.toString() : ''
+          currentTempAmountFormatted += key !== '.' ? key.toString() : ''
         }
       }
+
       // Set the new amount
       if (this.setAmountInFiat) {
-        this.sendAmountInFiat = amount
+        // this.sendAmountInFiat = amount
+        currentInputExtras.sendAmountInFiat = currentAmount
       } else {
-        this.sendData.amount = convertToBCH(this.denomination, amount)
-        this.amountFormatted = tempAmountFormatted
+        // this.sendData.amount = convertToBCH(this.denomination, amount)
+        // this.amountFormatted = tempAmountFormatted
+        currentRecipient.amount = convertToBCH(this.denomination, currentAmount)
+        currentInputExtras.amountFormatted = currentTempAmountFormatted
       }
     },
     makeKeyAction (action) {
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+
       if (action === 'backspace') {
         // Backspace
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
+          // this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
+          currentInputExtras.sendAmountInFiat = String(currentInputExtras.sendAmountInFiat).slice(0, -1)
         } else {
-          this.sendData.amount = String(this.sendData.amount).slice(0, -1)
-          this.amountFormatted = String(this.amountFormatted).slice(0, -1)
+          // this.sendData.amount = String(this.sendData.amount).slice(0, -1)
+          // this.amountFormatted = String(this.amountFormatted).slice(0, -1)
+          currentRecipient.amount = String(currentRecipient.amount).slice(0, -1)
+          currentInputExtras.amountFormatted = String(currentInputExtras.amountFormatted).slice(0, -1)
         }
       } else if (action === 'delete') {
         // Delete
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = ''
+          // this.sendAmountInFiat = ''
+          currentInputExtras.sendAmountInFiat = ''
         } else {
-          this.sendData.amount = ''
-          this.amountFormatted = ''
+          // this.sendData.amount = ''
+          // this.amountFormatted = ''
+          currentRecipient.amount = ''
+          currentInputExtras.amountFormatted = ''
         }
       } else {
         // Enabled submit slider
@@ -1034,7 +1103,11 @@ export default {
       }
     },
     async setMaximumSendAmount () {
+      // adjust balance from previously-entered amounts
       this.setMax = true
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+
       if (this.asset.id === 'bch') {
         if (this.isSep20) {
           this.computingMax = true
@@ -1043,6 +1116,7 @@ export default {
             this.sendData.recipient
           )
           this.sendData.amount = spendable
+          currentRecipient.amount = spendable
           this.computingMax = false
           if (spendable < 0) {
             this.$q.notify({
@@ -1053,19 +1127,26 @@ export default {
             })
           }
         } else {
-          this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+          const spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+          this.amountFormatted = spendableAsset
+          currentInputExtras.amountFormatted = spendableAsset
           this.sendData.amount = this.asset.spendable
+          currentRecipient.amount = this.asset.spendable
         }
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = this.convertToFiatAmount(this.asset.spendable)
+          const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
+          this.sendAmountInFiat = convertedFiat
+          currentInputExtras.sendAmountInFiat = convertedFiat
         }
       } else {
+        // additional testing
         if (this.asset.id.startsWith('ct/')) {
           this.sendData.amount = this.asset.balance / (10 ** this.asset.decimals)
         } else {
           this.sendData.amount = this.asset.balance
         }
         this.amountFormatted = this.sendData.amount
+        currentInputExtras.amountFormatted = this.sendData.amount
       }
       this.sliderStatus = true
     },
@@ -1175,6 +1256,9 @@ export default {
     },
 
     async handleSubmit () {
+      // adjust for multiple recipients
+      console.log(this.sendDataMultiple)
+      return
       const vm = this
       let address = this.sendData.recipientAddress
       const addressObj = new Address(address)
@@ -1431,13 +1515,16 @@ export default {
           rawPaymentUri: '', // for scanning qr data
           responseOTP: '',
           paymentAckMemo: '',
-          fixedRecipientAddress: false,
+          fixedRecipientAddress: false
         })
         this.inputExtras.push({
-          amountFormatted: 100,
+          amountFormatted: 0,
           sendAmountInFiat: 0
         })
-        this.expandedItems[`R${recipientsLength}`] = false
+        for (let i = 1; i <= recipientsLength; i++) {
+          this.expandedItems[`R${i}`] = false
+        }
+        this.sliderStatus = false
       } else {
         this.$q.notify({
           type: 'negative',
@@ -1453,6 +1540,18 @@ export default {
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
+    },
+    onSetAmountToFiatClick () {
+      // this.sendData.amount = 0
+      // this.amountFormatted = 0
+      this.setAmountInFiat = true
+      this.sliderStatus = false
+      this.sendDataMultiple.forEach((data) => {
+        data.amount = 0
+      })
+      this.inputExtras.forEach((input) => {
+        input.amountFormatted = 0
+      })
     }
   },
 
