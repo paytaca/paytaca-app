@@ -6,7 +6,9 @@
         label-slot
         class="recipient-input"
         v-model="recipientAddress"
+        @focus="readonlyState(false)"
         :dark="darkMode"
+        :key="recipient.recipientAddress"
       >
         <template v-slot:label>
           {{ $t('Recipient') }}
@@ -39,6 +41,7 @@
           :readonly="setAmountInFiat"
           :error="balanceExceeded"
           :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
+          :key="inputExtras.amountFormatted"
         >
           <template v-slot:append>
             {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
@@ -72,6 +75,7 @@
           @blur="readonlyState(false)"
           :label="$t('Amount')"
           :dark="darkMode"
+          :key="inputExtras.sendAmountInFiat"
         >
           <template v-slot:append>
             {{ String(currentSendPageCurrency()).toUpperCase() }}
@@ -110,7 +114,11 @@
 <script>
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 
-import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import {
+  parseAssetDenomination,
+  getAssetDenomination,
+  parseFiatCurrency
+} from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -129,10 +137,6 @@ export default {
     },
     asset: {
       type: Object,
-      required: true
-    },
-    selectedDenomination: {
-      type: String,
       required: true
     },
     index: { type: Number },
@@ -159,7 +163,8 @@ export default {
       amount: 0,
       amountFormatted: 0,
       sendAmountInFiat: 0,
-      balanceExceeded: false
+      balanceExceeded: false,
+      selectedDenomination: 'BCH'
     }
   },
 
@@ -168,6 +173,7 @@ export default {
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
     this.sendAmountInFiat = this.inputExtras.sendAmountInFiat
+    this.selectedDenomination = this.denomination
   },
 
   computed: {
@@ -179,11 +185,15 @@ export default {
     },
     currentCountry () {
       return this.$store.getters['global/country'].code
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
     }
   },
 
   methods: {
     parseAssetDenomination,
+    getAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
     onQRScannerClick (value) {
@@ -194,6 +204,10 @@ export default {
     },
     onInputFocus (value) {
       this.$emit('on-input-focus', value)
+    },
+    onSelectedDenomination (value) {
+      this.selectedDenomination = value
+      this.amountFormatted = parseFloat(getAssetDenomination(value, this.amount, true))
     }
   },
 

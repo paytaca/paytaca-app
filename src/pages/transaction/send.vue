@@ -92,7 +92,6 @@
                     :recipient="sendDataMultiple[index]"
                     :inputExtras="inputExtras[index]"
                     :asset="asset"
-                    :selectedDenomination="selectedDenomination"
                     :index="index"
                     :showQrScanner="showQrScanner"
                     :computingMax="computingMax"
@@ -105,7 +104,7 @@
                     @on-qr-scanner-click="onQRScannerClick"
                     @read-only-state="readonlyState"
                     @on-input-focus="onInputFocus"
-                    :key="[sendDataMultiple[index], inputExtras[index]]"
+                    :key="generateKeys(index)"
                   />
                 </q-expansion-item>
               </q-list>
@@ -628,11 +627,14 @@ export default {
       return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
     },
     showSlider () {
+      // add condition for when entered amount has exceeded remaining balance
       return (
-        this.sendData.sending !== true &&
-        this.sendData.sent !== true &&
-        this.sliderStatus === true &&
-        this.sendData.amount > 0
+        !this.sendData.sending &&
+        !this.sendData.sent &&
+        this.sliderStatus &&
+        this.sendDataMultiple
+          .map(data => data.amount > 0)
+          .findIndex(i => !i) < 0
       )
     },
     paymentOTP () {
@@ -677,6 +679,7 @@ export default {
         let fiatToAsset = this.convertFiatToSelectedAsset(amount)
         fiatToAsset = fiatToAsset || 0
         this.sendData.amount = fiatToAsset
+        this.sendDataMultiple[this.currentActiveRecipientIndex].amount = fiatToAsset
 
         const fiatAsset = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
         this.amountFormatted = fiatAsset
@@ -905,20 +908,19 @@ export default {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       // let sendAmount, amount, tempAmountFormatted = ''
-      let currentSendAmount, currentAmount, currentTempAmountFormatted
+      let currentSendAmount, currentAmount
 
       if (this.setAmountInFiat) {
         // sendAmount = this.sendAmountInFiat
-        currentSendAmount = currentInputExtras.sendAmountInFiat
+        currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
       } else {
         // sendAmount = this.sendData.amount
         // tempAmountFormatted = this.amountFormatted ?? ''
-        currentSendAmount = currentRecipient.amount
-        currentTempAmountFormatted = currentInputExtras.amountFormatted ?? ''
+        currentSendAmount = currentInputExtras.amountFormatted ?? ''
       }
 
       // sendAmount = sendAmount === null ? '' : sendAmount
-      currentSendAmount = currentSendAmount ?? ''
+      // currentSendAmount = currentSendAmount ?? ''
 
       // remove
       // if (key === '.' && sendAmount === '') {
@@ -935,10 +937,10 @@ export default {
       //       } else if (Number(amount) === Number(key)) { // Check amount if still zero
       //         amount = 0
       //         tempAmountFormatted = 0
-      //       } else {
-      //         amount += key.toString()
-      //         tempAmountFormatted += key.toString()
       //       }
+      //     } else {
+      //       amount += key.toString()
+      //       tempAmountFormatted += key.toString()
       //     }
       //   } else {
       //     amount += key !== '.' ? key.toString() : ''
@@ -948,43 +950,39 @@ export default {
 
       if (key === '.' && currentSendAmount === '') {
         currentAmount = '0.'
-        currentTempAmountFormatted = '0.'
       } else {
-        currentAmount = this.setAmountInFiat ? currentSendAmount.toString() : currentTempAmountFormatted.toString()
+        currentAmount = currentSendAmount.toString()
         const hasPeriod = currentAmount.indexOf('.')
         if (hasPeriod < 1) {
           if (Number(currentAmount) === 0) {
             if (Number(key) > 0) {
               currentAmount = key
-              currentTempAmountFormatted = key
             } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
               currentAmount = 0
-              currentTempAmountFormatted = 0
             } else {
               currentAmount += key.toString()
-              currentTempAmountFormatted += key.toString()
             }
+          } else {
+            currentAmount += key.toString()
           }
         } else {
           currentAmount += key !== '.' ? key.toString() : ''
-          currentTempAmountFormatted += key !== '.' ? key.toString() : ''
         }
       }
 
       // Set the new amount
       if (this.setAmountInFiat) {
-        // this.sendAmountInFiat = amount
         currentInputExtras.sendAmountInFiat = currentAmount
       } else {
         // this.sendData.amount = convertToBCH(this.denomination, amount)
         // this.amountFormatted = tempAmountFormatted
         currentRecipient.amount = convertToBCH(this.denomination, currentAmount)
-        currentInputExtras.amountFormatted = currentTempAmountFormatted
+        currentInputExtras.amountFormatted = currentAmount
       }
     },
     makeKeyAction (action) {
-      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
-      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex] ?? ''
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex] ?? ''
 
       if (action === 'backspace') {
         // Backspace
@@ -1011,6 +1009,7 @@ export default {
       } else {
         // Enabled submit slider
         this.sliderStatus = true
+        this.customKeyboardState = 'dismiss'
       }
     },
     slideToSubmit ({ reset }) {
@@ -1491,10 +1490,14 @@ export default {
         offlineNotif()
       }
     },
-    onSelectedDenomination (value) {
-      this.selectedDenomination = value
-      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount, true))
-    },
+    // onSelectedDenomination (value) {
+    //   const [newDenom, currentIndex] = value
+    //   const newAmount = parseFloat(getAssetDenomination(newDenom, this.sendData.amount, true))
+
+    //   this.selectedDenomination = newDenom
+    //   this.amountFormatted = newAmount
+    //   this.inputExtras[currentIndex].amountFormatted = newAmount
+    // },
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
     },
@@ -1552,6 +1555,12 @@ export default {
       this.inputExtras.forEach((input) => {
         input.amountFormatted = 0
       })
+    },
+    generateKeys (index) {
+      const keys = []
+      keys.push(...Object.entries(this.sendDataMultiple[index]))
+      keys.push(...Object.entries(this.inputExtras[index]))
+      return keys
     }
   },
 
