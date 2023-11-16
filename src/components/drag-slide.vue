@@ -1,5 +1,5 @@
 <template>
-  <q-list v-if="!swiped" class="absolute-bottom br-15">
+  <q-list v-if="!swiped" :class="{ 'absolute-bottom': !disableAbsoluteBottom, 'br-15': true }">
     <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
       <q-slide-item left-color="blue" @left="slide" style="background-color: transparent; border-radius: 40px;">
         <template v-slot:left>
@@ -24,8 +24,6 @@
   </q-list>
 </template>
 <script>
-import { addressContentsToLockingBytecode } from '@bitauth/libauth'
-import { runInThisContext } from 'vm'
 
 export default {
   name: 'drag-slide',
