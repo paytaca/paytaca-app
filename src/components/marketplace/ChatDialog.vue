@@ -37,7 +37,7 @@
                 :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
                 :name="message?.name"
-                :sent="isOwnMessage(message)"
+                :sent="!isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
               >
@@ -66,7 +66,7 @@
               <div
                 :class="[
                   'row q-mb-xs',
-                  isOwnMessage(message) ? 'justify-end' : 'justify-start'
+                  !isOwnMessage(message) ? 'justify-end' : 'justify-start'
                 ]"
               >
                 <img
