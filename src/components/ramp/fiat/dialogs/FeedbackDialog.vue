@@ -79,9 +79,17 @@ export default {
       type: Number,
       default: null
     },
+    fromPeerID: {
+      type: Number,
+      default: null
+    },
+    toPeerID: {
+      type: Number,
+      default: null
+    },
     type: {
       type: String,
-      default: 'ad-reviews'
+      default: 'ad-review'
     }
   },
   emits: ['back'],
@@ -99,16 +107,21 @@ export default {
       const vm = this
 
       const url = `${vm.apiURL}/order/feedback/peer`
-      console.log(this.authHeaders)
-      let params = null
-      if (this.type === 'ad-reviews') {
-        params = {
-          ad_id: vm.adID
-        }
-      } else {
-        params = {
-          order_id: vm.orderID
-        }
+      let params = {}
+
+      switch (this.type) {
+        case 'ad-review':
+          params.ad_id = vm.adID
+          break
+        case 'order-review':
+          params.order_id = vm.orderID
+          break
+        case 'to-peer-review':
+          params.to_peer = vm.toPeerID
+          break
+        case 'from-peer-review':
+          params.from_peer = vm.fromPeerID
+          break
       }
       await vm.$axios.get(url, {
         params: params,
