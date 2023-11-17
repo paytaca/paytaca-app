@@ -1,69 +1,60 @@
 <template>
-    <q-card
-    class="position-relative br-15 q-pt-md q-mx-md q-mx-none q-mb-lg"
-    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`height: ${minHeight}px; position: relative;`">
-
+  <q-card
+  class="q-pt-md q-mx-md q-mb-lg"
+  :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
+  :style="`height: ${minHeight}px;`">
     <div v-if="isLoading">
       <div class="row justify-center q-py-lg" style="margin-top: 50%">
         <ProgressLoader/>
       </div>
     </div>
-    <div v-else class="row justify-center" style="margin-top: 5%">
-        <div>
-            <div class="q-mt-md">
-                <div class="row justify-center q-mx-lg q-mb-sm" style="margin-top: 30%; font-weight: 200; font-size: 20px;">
-                    {{ register ? "Sign up" : "Sign in"}} as {{ isArbiter ? "Arbiter" : "Peer"}}
-                </div>
-                <q-input
-                    :dark="darkMode"
-                    :readonly="!register || isArbiter"
-                    rounded
-                    standout
-                    dense
-                    placeholder="Enter nickname"
-                    v-model="usernickname"
-                    class="row q-mx-lg q-px-lg">
-                    <template v-slot:append>
-                        <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
-                        <q-btn v-if="!register" round dense flat icon="swap_horiz" />
-                        <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname && isArbiter" @click="createRampUser" />
-                    </template>
-                </q-input>
-            </div>
-
-            <div v-if="!register" class="row justify-center q-mt-lg q-px-lg q-mx-lg">
-                <q-btn dense stack class="col q-mx-sm" :disable="loggingIn" @click="onLoginClick('biometric')" v-if="hasBiometric">
-                    <div class="q-ma-sm text-center">
-                        <div class="row justify-center">
-                            <q-icon size="50px" name="fingerprint" />
-                        </div>
-                        <div class="text-center q-mt-sm">
-                            Biometrics
-                        </div>
-                    </div>
-                </q-btn>
-                <q-btn dense stack :class="hasBiometric ? 'col q-mx-sm' : 'col q-mx-lg'" :disable="loggingIn" @click="onLoginClick('pin')">
-                    <div class="q-ma-xs">
-                        <div class="row justify-center">
-                            <q-icon size="50px" name="apps" />
-                        </div>
-                        <div class="text-center q-mt-sm">MPIN</div>
-                    </div>
-                </q-btn>
-            </div>
-            <div v-if="errorMessage" class="row q-mx-lg q-px-md q-my-md">
-                <q-card flat class="col q-mx-md q-pa-md bg-red-1 pp-text">
-                    <q-icon name="error" left/>
-                    Error: {{ errorMessage }}
-                </q-card>
-            </div>
-            <div class="row justify-center align-center q-pb-md q-mb-lg" style="position:absolute; margin-bottom: 5%; font-weight: 300; font-size: 20px; left: 50%; bottom: 0; transform: translate(-50%, 0);">
-                <span>{{ isArbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
-            </div>
+    <div v-else class="row justify-center q-gutter-sm" style="margin-top: 5%">
+      <div>
+        <div class="q-mt-md">
+          <div
+            class="row justify-center q-mx-lg q-mb-sm"
+            style="margin-top: 30%; font-weight: 400; font-size: 20px;">
+              {{ register ? "Sign up" : "Sign in"}} as {{ isArbiter ? "Arbiter" : "Peer"}}
+          </div>
+          <q-input
+            :dark="darkMode"
+            :readonly="!register || isArbiter"
+            rounded
+            standout
+            dense
+            :placeholder="register ? 'Enter nickname' : ''"
+            v-model="usernickname"
+            :loading="!usernickname"
+            class="row q-mx-md">
+            <template v-slot:append>
+              <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
+              <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" />
+              <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname && isArbiter" @click="createRampUser" />
+            </template>
+          </q-input>
         </div>
+        <div v-if="!register" class="row justify-center q-mt-lg">
+          <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
+            <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
+            <span class="text-center q-my-sm q-mx-md">Biometrics</span>
+          </q-btn>
+          <q-btn dense stack class="q-px-lg" :class="hasBiometric ? 'q-mx-sm' : 'q-mx-lg'" :disable="loggingIn  || !usernickname" @click="onLoginClick('pin')">
+            <q-icon class="q-mt-sm" size="50px" name="apps" />
+            <span class="text-center q-my-sm q-mx-md">MPIN</span>
+          </q-btn>
+        </div>
+        <div v-if="errorMessage" class="row q-mx-lg q-px-md q-my-md">
+            <q-card flat class="col q-mx-md q-pa-md bg-red-1 pp-text">
+                <q-icon name="error" left/>
+                Error: {{ errorMessage }}
+            </q-card>
+        </div>
+        <div class="row justify-center align-center q-pb-md q-mb-lg" style="position:absolute; margin-bottom: 5%; font-weight: 300; font-size: 20px; left: 50%; bottom: 0; transform: translate(-50%, 0);">
+            <span>{{ isArbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
+        </div>
+      </div>
     </div>
-    </q-card>
+  </q-card>
 </template>
 <script>
 import { signMessage } from 'src/wallet/ramp/signature'
@@ -82,7 +73,7 @@ export default {
       dialog: false,
       user: null,
       usernickname: '',
-      wallet: this.$store.getters['ramp/wallet'],
+      wallet: null,
       isLoading: true,
       register: false,
       isArbiter: false,
@@ -103,25 +94,27 @@ export default {
       return this.usernickname && this.usernickname.length > 0
     }
   },
-  async mounted () {
+  mounted () {
     // check if has Biometric
-    await NativeBiometric.isAvailable()
-      .then(result => {
-        // console.log(result)
-        this.hasBiometric = true
-      },
-      (error) => {
-        console.log('Implementation error: ', error)
-      })
-
+    this.checkBiometric()
     this.dialog = true
-    await this.getProfile()
-    this.isLoading = false
     if (this.error) {
       this.errorMessage = this.error
     }
+    this.getProfile()
+    this.isLoading = false
   },
   methods: {
+    async checkBiometric () {
+      NativeBiometric.isAvailable()
+        .then(result => {
+          console.log(result)
+          this.hasBiometric = true
+        },
+        (error) => {
+          console.log('Implementation error: ', error)
+        })
+    },
     onLoginClick (type) {
       if (type === 'pin') {
         this.showSecurityDialog()
@@ -166,30 +159,39 @@ export default {
         )
     },
     async getProfile () {
-      const url = `${this.apiURL}/ramp-p2p/user`
-      await this.$axios.get(url, { headers: { 'wallet-hash': this.wallet.walletHash } })
-        .then(response => {
-          if (response.data.user) {
-            this.isArbiter = response.data.is_arbiter
-            this.user = response.data.user
-            this.usernickname = this.user.name
-            if (this.user) {
-              this.$store.commit('ramp/updateUser', this.user)
-              this.$store.dispatch('ramp/loadAuthHeaders')
-            }
-            const token = getCookie('token')
-            if (token) {
-              this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
-            }
-          } else {
-            this.register = true
-          }
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-          }
+      this.$store.dispatch('ramp/loadWallet')
+        .then(() => {
+          this.wallet = this.$store.getters['ramp/wallet']
+          const url = `${this.apiURL}/ramp-p2p/user`
+          this.$axios.get(url, { headers: { 'wallet-hash': this.wallet.walletHash } })
+            .then(response => {
+              console.log('response:', JSON.stringify(response))
+              if (response.data && response.data.user) {
+                console.log(JSON.stringify(response.data))
+                this.isArbiter = response.data.is_arbiter
+                this.user = response.data.user
+                this.usernickname = this.user.name
+                if (this.user) {
+                  this.$store.commit('ramp/updateUser', this.user)
+                  this.$store.dispatch('ramp/loadAuthHeaders')
+                }
+                // const token = getCookie('token')
+                // if (token) {
+                //   this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
+                // }
+              } else {
+                this.register = true
+              }
+            })
+            .catch(error => {
+              console.log('error:', JSON.stringify(error))
+              console.error(error)
+              if (error.response) {
+                console.log('error.response:', JSON.stringify(error.response))
+                console.error(error.response)
+                this.errorMessage = error.response.data
+              }
+            })
         })
     },
     async login () {

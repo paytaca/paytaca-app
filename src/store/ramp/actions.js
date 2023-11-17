@@ -15,9 +15,7 @@ export async function loadAuthHeaders (context) {
 }
 
 export async function loadWallet (context) {
-  const walletInfo = Store.getters['global/getWallet']('bch')
-  const index = Store.getters['global/getWalletIndex']
-  const wallet = await loadP2PWalletInfo(walletInfo, index)
+  const wallet = Store.getters['global/getWallet']('bch')
   context.commit('updateWallet', wallet)
   return wallet
 }

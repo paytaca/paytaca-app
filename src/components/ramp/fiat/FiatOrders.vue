@@ -148,8 +148,8 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      // minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - this.$q.screen.height * 0.17,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       viewProfile: false
     }
   },

@@ -1,42 +1,43 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg"
-    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`height: ${minHeight}px;`"
-    v-if="state === 'SELECT' && !viewProfile">
-    <div class="q-mb-lg q-pb-lg">
-      <div class="row no-wrap items-center q-pa-sm q-pt-md">
-        <div>
-          <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
-            {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
+    <q-card
+      class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg"
+      :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
+      style="overflow:hidden;"
+      :style="`height: ${minHeight}px;`"
+      v-if="state === 'SELECT' && !viewProfile">
+      <div class="q-mb-lg q-pb-lg">
+        <q-pull-to-refresh @refresh="refreshData">
+        <div class="row no-wrap items-center q-pa-sm q-pt-md">
+          <div>
+            <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
+              {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
+            </div>
+            <q-menu anchor="bottom left" self="top left" >
+              <q-list class="md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px">
+                <q-item
+                  v-for="(currency, index) in fiatCurrencies"
+                  :key="index"
+                  clickable
+                  v-close-popup
+                  @click="selectCurrency(index)">
+                  <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.symbol }})</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
           </div>
-          <q-menu anchor="bottom left" self="top left" >
-            <q-list class="md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px">
-              <q-item
-                v-for="(currency, index) in fiatCurrencies"
-                :key="index"
-                clickable
-                v-close-popup
-                @click="selectCurrency(index)">
-                <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.symbol }})</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
+          <q-space />
+          <div class="q-pr-md">
+            <q-btn unelevated ripple dense size="md" icon="filter_list" @click="openFilter()">
+              <q-badge v-if="!defaultFiltersOn" floating color="red"/>
+            </q-btn>
+          </div>
         </div>
-        <q-space />
-        <div class="q-pr-md">
-          <q-btn unelevated ripple dense size="md" icon="filter_list" @click="openFilter()">
-            <q-badge v-if="!defaultFiltersOn" floating color="red"/>
-          </q-btn>
+        <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
+          <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
+          <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
         </div>
-      </div>
-      <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-        <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
-        <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
-      </div>
-      <div v-if="!loading" class="q-mt-md">
-        <q-pull-to-refresh
-          @refresh="refreshData">
+        </q-pull-to-refresh>
+        <div v-if="!loading" class="q-mt-md">
           <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
@@ -54,95 +55,92 @@
                     <q-spinner-dots color="primary" size="40px" />
                   </div>
                 </template>
-                <div v-for="(listing, index) in listings" :key="index">
-                  <q-item clickable @click="selectListing(listing)">
-                    <q-item-section>
-                      <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                        <div class="row">
-                          <div class="col ib-text">
-                            <div class="">
-                              <span
-                                :class="{'pt-dark-label': darkMode}"
-                                class="md-font-size"
-                                @click.stop.prevent="viewUserProfile(listing.owner, listing)">
-                                {{ listing.owner.name }}
-                              </span>
-                              <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
+                <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
+                  <q-item-section>
+                    <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                      <div class="row">
+                        <div class="col ib-text">
+                          <div class="">
+                            <span
+                              :class="{'pt-dark-label': darkMode}"
+                              class="md-font-size"
+                              @click.stop.prevent="viewUserProfile(listing.owner, listing)">
+                              {{ listing.owner.name }}
+                            </span>
+                            <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
+                          </div>
+                          <div class="row">
+                            <q-rating
+                              readonly
+                              :model-value="listing.owner.rating"
+                              :v-model="listing.owner.rating"
+                              size="1.1em"
+                              color="yellow-9"
+                              icon="star"/>
+                            <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
+                          </div>
+                          <div class="sm-font-size">
+                            <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
+                            <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
+                          </div>
+                          <span :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase bold-text lg-font-size">
+                            {{ formattedCurrency(listing.price) }}
+                          </span>
+                          <span class="sm-font-size">/BCH</span><br>
+                          <div class="sm-font-size">
+                            <div class="row">
+                              <span class="col-3">Quantity</span>
+                              <span class="col">{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
                             </div>
                             <div class="row">
-                              <q-rating
-                                readonly
-                                :model-value="listing.owner.rating"
-                                :v-model="listing.owner.rating"
-                                size="1.1em"
-                                color="yellow-9"
-                                icon="star"/>
-                              <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
-                            </div>
-                            <div class="sm-font-size">
-                              <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
-                              <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
-                            </div>
-                            <span :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase bold-text lg-font-size">
-                              {{ formattedCurrency(listing.price) }}
-                            </span>
-                            <span class="sm-font-size">/BCH</span><br>
-                            <div class="sm-font-size">
-                              <div class="row">
-                                <span class="col-3">Quantity</span>
-                                <span class="col">{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
-                              </div>
-                              <div class="row">
-                                <span class="col-3">Limit</span>
-                                <span class="col"> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_amount) }} {{ listing.crypto_currency.symbol }}</span>
-                              </div>
+                              <span class="col-3">Limit</span>
+                              <span class="col"> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_amount) }} {{ listing.crypto_currency.symbol }}</span>
                             </div>
                           </div>
                         </div>
-                        <div class="q-gutter-sm q-pt-xs">
-                          <q-badge v-for="method in listing.payment_methods" :key="method.id"
-                          rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
-                          {{ method.payment_type }}
-                          </q-badge>
-                        </div>
                       </div>
-                    </q-item-section>
-                  </q-item>
-                </div>
+                      <div class="q-gutter-sm q-pt-xs">
+                        <q-badge v-for="method in listing.payment_methods" :key="method.id"
+                        rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
+                        {{ method.payment_type }}
+                        </q-badge>
+                      </div>
+                    </div>
+                  </q-item-section>
+                </q-item>
               </q-infinite-scroll>
             </q-list>
           </div>
-        </q-pull-to-refresh>
-      </div>
-      <div v-else>
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader/>
+        </div>
+        <div v-else>
+          <div class="row justify-center q-py-lg" style="margin-top: 50px">
+            <ProgressLoader/>
+          </div>
         </div>
       </div>
+    </q-card>
+    <!-- Buy/Sell Form Here -->
+    <div v-if="state !== 'SELECT' && !viewProfile">
+      <FiatOrderForm
+        :ad-id="selectedListing.id"
+        v-on:back="state = 'SELECT'"
+        @order-canceled="onOrderCanceled"
+      />
     </div>
-  </q-card>
-  <!-- Buy/Sell Form Here -->
-  <div v-if="state !== 'SELECT' && !viewProfile">
-    <FiatOrderForm
-      :ad-id="selectedListing.id"
-      v-on:back="state = 'SELECT'"
-      @order-canceled="onOrderCanceled"
+    <div v-if="openDialog">
+      <MiscDialogs
+        :type="dialogType"
+        :filters="storeFilters"
+        @back="openDialog = false"
+        @submit="receiveDialog"
+      />
+    </div>
+    <FiatProfileCard
+      v-if="viewProfile"
+      :userInfo="selectedUser"
+      :type="selectedUser.is_owner ? 'self' : 'peer'"
+      v-on:back="viewProfile = false"
     />
-  </div>
-  <div v-if="openDialog">
-    <MiscDialogs
-      :type="dialogType"
-      :filters="storeFilters"
-      @back="openDialog = false"
-      @submit="receiveDialog"
-    />
-  </div>
-  <FiatProfileCard
-    v-if="viewProfile"
-    :userInfo="selectedUser"
-    :type="selectedUser.is_owner ? 'self' : 'peer'"
-    v-on:back="viewProfile = false"
-  />
 </template>
 <script>
 // import FiatStoreForm from './FiatStoreForm.vue'
@@ -187,8 +185,8 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      // minHeight: this.$q.screen.height - this.$q.screen.height * 0.25,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - this.$q.screen.height * 0.17,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       defaultFilters: {
         price_order: 'ascending',
         price_types: ['FIXED', 'FLOATING'],
@@ -218,6 +216,12 @@ export default {
     }
   },
   computed: {
+    onScrollTop () {
+      if (!this.$refs.scrollTargetRef) return true
+      const scrollElement = this.$refs.scrollTargetRef.$el
+      console.log(scrollElement.scrollTop)
+      return scrollElement.scrollTop === 0
+    },
     listings () {
       const vm = this
       switch (vm.transactionType) {
@@ -439,14 +443,12 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-
 .sm-font-size {
   font-size: small;
 }
 .md-font-size {
   font-size: medium;
 }
-
 .lg-font-size {
   font-size: large;
 }

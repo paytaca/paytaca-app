@@ -28,16 +28,24 @@
         </div>
       </div>
     </div>
-
     <footer-menu />
   </div>
+  <appSelectionDialog
+    v-if="rampAppSelection"
+    @back="rampAppSelection=false"
+    @submit="rampSelectApp"
+  />
 </template>
 
 <script>
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import appSelectionDialog from 'src/components/ramp/appSelectionDialog.vue'
 
 export default {
   name: 'apps',
+  components: {
+    appSelectionDialog
+  },
   data () {
     return {
       apps: [
@@ -135,7 +143,9 @@ export default {
         }
       ],
       filteredApps: [],
-      appHeight: null
+      appHeight: null,
+      rampAppSelection: false,
+      disableRampSelection: false
     }
   },
   computed: {
@@ -153,6 +163,17 @@ export default {
     }
   },
   methods: {
+    rampSelectApp (app) {
+      console.log('rampSelectApp:', app)
+      this.rampAppSelection = false
+      this.rampSelectedApp = app
+      if (app === 'fiat') {
+        this.$router.push('/apps/ramp/fiat')
+      }
+      if (app === 'crypto') {
+        this.$router.push('/apps/ramp/crypto')
+      }
+    },
     getDarkModeClass,
     isDefaultTheme,
     buttonClassByState (active) {
@@ -160,7 +181,12 @@ export default {
     },
     openApp (app) {
       if (app.active) {
-        this.$router.push(app.path)
+        console.log('app:', app)
+        if (app.name === 'Ramp') {
+          this.rampAppSelection = true
+        } else {
+          this.$router.push(app.path)
+        }
       }
     }
   },
