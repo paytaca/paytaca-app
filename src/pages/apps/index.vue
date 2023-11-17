@@ -164,7 +164,6 @@ export default {
   },
   methods: {
     rampSelectApp (app) {
-      console.log('rampSelectApp:', app)
       this.rampAppSelection = false
       this.rampSelectedApp = app
       if (app === 'fiat') {
@@ -181,7 +180,6 @@ export default {
     },
     openApp (app) {
       if (app.active) {
-        console.log('app:', app)
         if (app.name === 'Ramp') {
           this.rampAppSelection = true
         } else {

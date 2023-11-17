@@ -94,53 +94,41 @@ const routes = [
       {
         path: 'ramp/fiat',
         component: () => import('src/pages/apps/ramp-fiat.vue'),
-        name: 'ramp-fiat'
-        // children: [
-        //   {
-        //     path: 'login/',
-        //     name: 'ramp-login',
-        //     component: () => import('src/components/ramp/fiat/RampLogin.vue')
-        //   },
-        //   {
-        //     path: 'fiat',
-        //     name: 'ramp-fiat',
-        //     component: () => import('src/components/ramp/fiat/FiatIndex.vue'),
-        //     children: [
-        //       {
-        //         path: 'store/',
-        //         name: 'ramp-fiat-store',
-        //         component: () => import('src/components/ramp/fiat/FiatStore.vue')
-        //       },
-        //       {
-        //         path: 'ads/',
-        //         name: 'ramp-fiat-ads',
-        //         component: () => import('src/components/ramp/fiat/FiatAds.vue'),
-        //         children: [
-        //           {
-        //             path: 'create/',
-        //             name: 'ads-create',
-        //             component: () => import('src/components/ramp/fiat/FiatAdsForm.vue')
-        //           }
-        //         ]
-        //       },
-        //       {
-        //         path: 'orders/',
-        //         name: 'ramp-fiat-orders',
-        //         component: () => import('src/components/ramp/fiat/FiatOrders.vue')
-        //       },
-        //       {
-        //         path: 'profile/',
-        //         name: 'ramp-fiat-profile',
-        //         component: () => import('src/components/ramp/fiat/FiatProfileCard.vue')
-        //       }
-        //     ]
-        //   },
-        //   {
-        //     path: 'appeal/',
-        //     name: 'ramp-appeal',
-        //     component: () => import('src/components/ramp/appeal/AppealIndex.vue')
-        //   }
-        // ]
+        name: 'ramp-fiat',
+        children: [
+          {
+            path: 'store/',
+            name: 'ramp-fiat-store',
+            component: () => import('src/components/ramp/fiat/FiatStore.vue')
+          },
+          {
+            path: 'ads/',
+            name: 'ramp-fiat-ads',
+            component: () => import('src/components/ramp/fiat/FiatAds.vue'),
+            children: [
+              {
+                path: 'create/',
+                name: 'ads-create',
+                component: () => import('src/components/ramp/fiat/FiatAdsForm.vue')
+              }
+            ]
+          },
+          {
+            path: 'orders/',
+            name: 'ramp-fiat-orders',
+            component: () => import('src/components/ramp/fiat/FiatOrders.vue')
+          },
+          {
+            path: 'profile/',
+            name: 'ramp-fiat-profile',
+            component: () => import('src/components/ramp/fiat/FiatProfileCard.vue')
+          },
+          {
+            path: 'appeal/',
+            name: 'ramp-appeal',
+            component: () => import('src/components/ramp/appeal/AppealIndex.vue')
+          }
+        ]
       }
     ]
   },

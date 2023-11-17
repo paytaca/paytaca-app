@@ -12,9 +12,16 @@
       <div>
         <div class="q-mt-md">
           <div
+            v-if="!loggingIn"
             class="row justify-center q-mx-lg q-mb-sm"
             style="margin-top: 30%; font-weight: 400; font-size: 20px;">
               {{ register ? "Sign up" : "Sign in"}} as {{ isArbiter ? "Arbiter" : "Peer"}}
+          </div>
+          <div
+            v-else
+            class="row justify-center q-mx-lg q-mb-sm"
+            style="margin-top: 30%; font-weight: 400; font-size: 20px;">
+              {{ register ? "Signing up" : "Signing in"}}...
           </div>
           <q-input
             :dark="darkMode"
@@ -24,16 +31,16 @@
             dense
             :placeholder="register ? 'Enter nickname' : ''"
             v-model="usernickname"
-            :loading="!usernickname"
+            :loading="!usernickname && !register"
             class="row q-mx-md">
             <template v-slot:append>
               <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
               <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" />
-              <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname && isArbiter" @click="createRampUser" />
+              <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname || isArbiter" @click="createRampUser" />
             </template>
           </q-input>
         </div>
-        <div v-if="!register" class="row justify-center q-mt-lg">
+        <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
           <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
             <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
             <span class="text-center q-my-sm q-mx-md">Biometrics</span>
@@ -43,15 +50,15 @@
             <span class="text-center q-my-sm q-mx-md">MPIN</span>
           </q-btn>
         </div>
-        <div v-if="errorMessage" class="row q-mx-lg q-px-md q-my-md">
-            <q-card flat class="col q-mx-md q-pa-md bg-red-1 pp-text">
-                <q-icon name="error" left/>
-                Error: {{ errorMessage }}
-            </q-card>
-        </div>
-        <div class="row justify-center align-center q-pb-md q-mb-lg" style="position:absolute; margin-bottom: 5%; font-weight: 300; font-size: 20px; left: 50%; bottom: 0; transform: translate(-50%, 0);">
-            <span>{{ isArbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
-        </div>
+      </div>
+      <div v-if="errorMessage" class="row justify-center q-mx-lg q-px-md q-my-md">
+        <q-card flat class="col q-mx-md q-pa-md bg-red-1 pp-text">
+            <q-icon name="error" left/>
+            {{ errorMessage }}
+        </q-card>
+      </div>
+      <div class="col row justify-evenly" style="position: fixed; margin-bottom: 25%; width: 100%; font-weight: 300; font-size: 20px;  bottom: 0;">
+          <span>{{ isArbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
       </div>
     </div>
   </q-card>
@@ -62,7 +69,7 @@ import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
-import { getCookie } from 'src/wallet/ramp'
+import { getCookie, getWalletKeypair } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -79,7 +86,8 @@ export default {
       isArbiter: false,
       loggingIn: false,
       errorMessage: null,
-      hasBiometric: false
+      hasBiometric: false,
+      securityDialogUp: false
     }
   },
   components: {
@@ -102,20 +110,20 @@ export default {
       this.errorMessage = this.error
     }
     this.getProfile()
-    this.isLoading = false
   },
   methods: {
     async checkBiometric () {
       NativeBiometric.isAvailable()
-        .then(result => {
-          console.log(result)
+        .then(() => {
           this.hasBiometric = true
-        },
-        (error) => {
-          console.log('Implementation error: ', error)
+        })
+        .catch((error) => {
+          console.error('Implementation error: ', error)
         })
     },
     onLoginClick (type) {
+      if (this.securityDialogUp) return
+      this.securityDialogUp = true
       if (type === 'pin') {
         this.showSecurityDialog()
       } else if (type === 'biometric') {
@@ -130,9 +138,11 @@ export default {
           this.loggingIn = true
           this.login()
           securityDialog.hide()
+          this.securityDialogUp = false
         })
         .onCancel(() => {
           this.loggingIn = false
+          this.securityDialogUp = false
         })
     },
     verifyBiometric () {
@@ -149,14 +159,17 @@ export default {
             this.loggingIn = true
             this.login()
           }, 1000)
-        },
-        (error) => {
+          this.securityDialogUp = false
+        })
+        .catch((error) => {
           // Failed to authenticate
+          console.error(error)
           this.loggingIn = false
-          this.errorMessage = 'Failed to Authenticate'
-          console.log(error)
-        }
-        )
+          if (!String(error).toLocaleLowerCase().includes('cancel')) {
+            this.errorMessage = 'Failed to authenticate'
+          }
+          this.securityDialogUp = false
+        })
     },
     async getProfile () {
       this.$store.dispatch('ramp/loadWallet')
@@ -165,9 +178,7 @@ export default {
           const url = `${this.apiURL}/ramp-p2p/user`
           this.$axios.get(url, { headers: { 'wallet-hash': this.wallet.walletHash } })
             .then(response => {
-              console.log('response:', JSON.stringify(response))
               if (response.data && response.data.user) {
-                console.log(JSON.stringify(response.data))
                 this.isArbiter = response.data.is_arbiter
                 this.user = response.data.user
                 this.usernickname = this.user.name
@@ -175,26 +186,36 @@ export default {
                   this.$store.commit('ramp/updateUser', this.user)
                   this.$store.dispatch('ramp/loadAuthHeaders')
                 }
-                // const token = getCookie('token')
-                // if (token) {
-                //   this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
-                // }
               } else {
                 this.register = true
               }
             })
             .catch(error => {
-              console.log('error:', JSON.stringify(error))
               console.error(error)
+              this.errorMessage = String(error)
               if (error.response) {
                 console.log('error.response:', JSON.stringify(error.response))
                 console.error(error.response)
                 this.errorMessage = error.response.data
               }
             })
+            .finally(() => {
+              this.isLoading = false
+              if (this.user) {
+                if (this.hasBiometric) {
+                  this.verifyBiometric()
+                } else {
+                  this.showSecurityDialog()
+                }
+              }
+            })
         })
     },
     async login () {
+      const token = getCookie('token')
+      if (token) {
+        return this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
+      }
       try {
         let otpUrl = `${this.apiURL}/auth/otp/`
         let loginUrl = `${this.apiURL}/auth/login/`
@@ -205,62 +226,76 @@ export default {
           otpUrl += 'peer'
           loginUrl += 'peer'
         }
-
-        const { data } = await this.$axios.get(otpUrl, { headers: { 'wallet-hash': this.wallet.walletHash } })
-        const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
-        const body = {
-          wallet_hash: this.wallet.walletHash,
-          signature: signature,
-          public_key: this.wallet.publicKey
-        }
-        await this.$axios.post(loginUrl, body)
-          .then(response => {
-            // save token as cookie and set to expire 1h later
-            document.cookie = `token=${response.data.token}; expires=${new Date(response.data.expires_at).toUTCString()}; path=/`
-            this.user = response.data.user
-            if (this.user) {
-              this.$store.commit('ramp/updateUser', this.user)
-              this.$store.dispatch('ramp/loadAuthHeaders')
-            }
-
-            let userType
-            if (this.isArbiter) userType = 'arbiter'
-            else userType = 'peer'
-
-            this.$emit('loggedIn', userType)
+        this.$axios.get(otpUrl, { headers: { 'wallet-hash': this.wallet.walletHash } })
+          .then((response) => {
+            getWalletKeypair()
+              .then((keypair) => {
+                signMessage(keypair.privateKey, response.data.otp)
+                  .then((signature) => {
+                    const body = {
+                      wallet_hash: this.wallet.walletHash,
+                      signature: signature,
+                      public_key: keypair.publicKey
+                    }
+                    this.$axios.post(loginUrl, body)
+                      .then((response) => {
+                        // save token as cookie and set to expire 1h later
+                        document.cookie = `token=${response.data.token}; expires=${new Date(response.data.expires_at).toUTCString()}; path=/`
+                        this.user = response.data.user
+                        if (this.user) {
+                          this.$store.commit('ramp/updateUser', this.user)
+                          this.$store.dispatch('ramp/loadAuthHeaders')
+                        }
+                        let userType
+                        if (this.isArbiter) userType = 'arbiter'
+                        else userType = 'peer'
+                        this.$emit('loggedIn', userType)
+                      })
+                  })
+              })
           })
       } catch (error) {
-        console.log(error)
-        console.log(error.response)
-        if (!('data' in error.response)) {
-          console.log('network error')
+        console.error(error)
+        if (error.response) {
+          console.log(error.response)
+          if (!('data' in error.response)) {
+            console.log('network error')
+          }
         }
       }
     },
     async createRampUser () {
       const timestamp = Date.now()
       const url = `${this.apiURL}/ramp-p2p/peer/create`
-      try {
-        const signature = await signMessage(this.wallet.privateKeyWif, 'PEER_CREATE', timestamp)
-        const headers = {
-          'wallet-hash': this.wallet.walletHash,
-          timestamp: timestamp,
-          signature: signature,
-          'public-key': this.wallet.publicKey
-        }
-        const body = {
-          name: this.usernickname,
-          address: this.wallet.address
-        }
-        console.log('body: ', body)
-        const { data: user } = await this.$axios.post(url, body, { headers: headers })
-        this.user = user
-        this.$store.commit('ramp/updateUser', user)
-      } catch (error) {
-        console.error(error)
-        console.error(error.response)
-      }
-      this.login()
+      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      getWalletKeypair()
+        .then((keypair) => {
+          signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
+            .then((signature) => {
+              const headers = {
+                'wallet-hash': this.wallet.walletHash,
+                timestamp: timestamp,
+                signature: signature,
+                'public-key': keypair.publicKey
+              }
+              const body = {
+                name: this.usernickname,
+                address: this.wallet.address
+              }
+              this.$axios.post(url, body, { headers: headers })
+                .then((response) => {
+                  this.user = response.data.user
+                  this.$store.commit('ramp/updateUser', this.user)
+                  this.login()
+                })
+            })
+        })
+        .catch((error) => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+          }
+        })
     },
     async revokeAuth () {
       const url = `${this.apiURL}/auth/revoke`

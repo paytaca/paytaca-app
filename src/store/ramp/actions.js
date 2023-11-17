@@ -16,8 +16,15 @@ export async function loadAuthHeaders (context) {
 
 export async function loadWallet (context) {
   const wallet = Store.getters['global/getWallet']('bch')
-  context.commit('updateWallet', wallet)
-  return wallet
+  console.log('wallet:', wallet)
+  const { connectedAddressIndex } = Store.getters['global/getWallet']('bch')
+  const walletInfo = {
+    walletHash: wallet.walletHash,
+    connectedAddressIndex: connectedAddressIndex,
+    address: Store.getters['global/getAddress']('bch')
+  }
+  context.commit('updateWallet', walletInfo)
+  return walletInfo
 }
 
 export async function fetchArbiter (context) {
