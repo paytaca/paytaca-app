@@ -8,7 +8,6 @@
         <div class="text-center subtext xs-font-size bold-text">ORDER #{{ order.id }}</div>
         <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
-      <div class="text-center subtext xs-font-size bold-text">(ORDER ID: {{ order.id }})</div>
       <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
       <div class="q-px-sm q-pt-sm">
         <div class="sm-font-size q-pb-xs">Amount</div>
