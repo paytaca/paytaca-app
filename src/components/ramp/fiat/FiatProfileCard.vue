@@ -78,7 +78,7 @@
               <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'from-peer-review'}" @click="switchReviewType('from-peer-review')">User Review</button>
             </div>
           </div>
-          <div v-if="reviewList.length !== 0"  class="text-center q-py-lg xm-font-size bold-text">
+          <div v-if="reviewList.length !== 0"  class="text-center q-pt-lg xm-font-size bold-text">
             Reviews
           </div>
           <div v-else class="text-center q-pt-md text-italized bold-text xm-font-size">
@@ -239,9 +239,12 @@ export default {
       this.editNickname = false
     },
     switchReviewType (type) {
-      this.reviewType = type
-
-      this.fetchTopReview()
+      if (this.reviewType !== type) {
+        this.reviewType = type
+        this.fetchTopReview()
+      } else {
+        console.log('not switch')
+      }
     },
     async fetchTopReview () {
       const vm = this
