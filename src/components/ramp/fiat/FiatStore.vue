@@ -72,7 +72,7 @@
                           <div class="row">
                             <q-rating
                               readonly
-                              :model-value="listing.owner.rating"
+                              :model-value="listing.owner.rating ? listing.owner.rating : 0"
                               :v-model="listing.owner.rating"
                               size="1.1em"
                               color="yellow-9"
@@ -207,11 +207,11 @@ export default {
         vm.resetAndRefetchListings()
       }
       vm.defaultFilters.price_order = val === 'SELL' ? 'ascending' : 'descending'
-      vm.getStoreFilters()
+      vm.updateFilters()
     },
     async selectedCurrency () {
       this.loading = true
-      await this.resetAndRefetchListings()
+      this.resetAndRefetchListings()
       this.loading = false
     }
   },
@@ -219,7 +219,6 @@ export default {
     onScrollTop () {
       if (!this.$refs.scrollTargetRef) return true
       const scrollElement = this.$refs.scrollTargetRef.$el
-      console.log(scrollElement.scrollTop)
       return scrollElement.scrollTop === 0
     },
     listings () {
@@ -250,21 +249,29 @@ export default {
   },
   async mounted () {
     const vm = this
-    await vm.fetchFiatCurrencies()
-    await vm.fetchPaymentTypes()
-    vm.getStoreFilters()
+    vm.fetchFiatCurrencies()
+    vm.updateFilters()
     if (!vm.listings || vm.listings.length === 0) {
-      await vm.resetAndRefetchListings()
+      vm.resetAndRefetchListings()
     }
     vm.loading = false
   },
   methods: {
-    async fetchPaymentTypes () {
+    fetchPaymentTypes () {
       const vm = this
-      const paymentTypes = vm.$store.getters['ramp/paymentTypes']
-      vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
+      return new Promise((resolve, reject) => {
+        vm.$store.dispatch('ramp/fetchPaymentTypes')
+          .then(() => {
+            const paymentTypes = vm.$store.getters['ramp/paymentTypes']
+            vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
+            resolve(paymentTypes)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
     },
-    async fetchFiatCurrencies () {
+    fetchFiatCurrencies () {
       const vm = this
       vm.$axios.get(vm.apiURL + '/currency/fiat', { headers: vm.authHeaders })
         .then(response => {
@@ -287,26 +294,29 @@ export default {
           }
         })
     },
-    async fetchStoreListings (overwrite = false) {
+    fetchStoreListings (overwrite = false) {
       const vm = this
       if (this.selectedCurrency) {
         vm.loading = true
         const params = vm.storeFilters
-        try {
-          await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
-        } catch (error) {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
+        vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
+          .then(() => {
+            vm.updatePaginationValues()
+            vm.loading = false
+          })
+          .catch(error => {
+            vm.loading = false
+            console.error(error)
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
             }
-          }
-        }
-        vm.loading = false
+          })
       }
     },
-    async loadMoreData (_, done) {
+    loadMoreData (_, done) {
       const vm = this
       if (!vm.hasMoreData) {
         done(true)
@@ -314,38 +324,38 @@ export default {
       }
       vm.updatePaginationValues()
       if (vm.pageNumber < vm.totalPages) {
-        await vm.fetchStoreListings()
+        vm.fetchStoreListings()
       }
       done()
     },
-    async refreshData (done) {
-      await this.resetAndRefetchListings()
+    refreshData (done) {
+      this.resetAndRefetchListings()
       done()
     },
-    async resetAndRefetchListings () {
+    resetAndRefetchListings () {
       const vm = this
-      await vm.$store.commit('ramp/resetStorePagination')
-      await vm.fetchStoreListings(true)
-      vm.updatePaginationValues()
+      vm.$store.commit('ramp/resetStorePagination')
+      vm.fetchStoreListings(true)
     },
-    async filterAds () {
+    filterAds () {
       const vm = this
-      vm.loading = true
       const params = vm.storeFilters
-      await vm.$store.commit('ramp/resetStorePagination')
-      try {
-        await vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: true })
-      } catch (error) {
-        console.error(error)
-        if (error.response) {
-          console.error(error.response)
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
+      vm.loading = true
+      vm.$store.commit('ramp/resetStorePagination')
+      vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: true })
+        .then(() => {
+          vm.loading = false
+          vm.updatePaginationValues()
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
-        }
-      }
-      vm.updatePaginationValues()
-      vm.loading = false
+        })
     },
     updatePaginationValues () {
       const vm = this
@@ -400,12 +410,13 @@ export default {
         return parseFloat(tradeCeiling)
       }
     },
-    receiveDialog (data) {
-      this.openDialog = false
+    async receiveDialog (data) {
+      const vm = this
       const mutationName = this.transactionType === 'SELL' ? 'ramp/updateStoreSellFilters' : 'ramp/updateStoreBuyFilters'
-      this.$store.commit(mutationName, data)
-      this.getStoreFilters()
-      this.filterAds()
+      vm.openDialog = false
+      vm.$store.commit(mutationName, data)
+      await vm.updateFilters()
+      vm.filterAds()
     },
     isdefaultFiltersOn (filters) {
       if ((this.defaultFilters.price_order !== filters.price_order) ||
@@ -420,24 +431,40 @@ export default {
       this.openDialog = true
       this.dialogType = 'filterAd'
     },
-    getStoreFilters () {
-      const getterName = this.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
-      const savedFilters = JSON.parse(JSON.stringify(this.$store.getters[getterName]))
-      let paymentTypes = savedFilters.payment_types
-      if (paymentTypes.length === 0) {
-        paymentTypes = Array.from(this.defaultFilters.payment_types)
-      }
-      const filters = {
-        owned: false,
-        currency: this.selectedCurrency.symbol,
-        trade_type: this.transactionType,
-        payment_types: paymentTypes,
-        time_limits: savedFilters.time_limits,
-        price_order: savedFilters.price_order,
-        price_types: savedFilters.price_types
-      }
-      this.storeFilters = filters
-      this.defaultFiltersOn = this.isdefaultFiltersOn(filters)
+    updateFilters () {
+      const vm = this
+      return new Promise((resolve, reject) => {
+        vm.fetchPaymentTypes()
+          .then(() => {
+            const getterName = vm.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
+            const savedFilters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
+            let paymentTypes = savedFilters.payment_types
+            if (paymentTypes.length === 0) {
+              paymentTypes = Array.from(vm.defaultFilters.payment_types)
+            }
+            const filters = {
+              owned: false,
+              currency: vm.selectedCurrency.symbol,
+              trade_type: vm.transactionType,
+              payment_types: paymentTypes,
+              time_limits: savedFilters.time_limits,
+              price_order: savedFilters.price_order,
+              price_types: savedFilters.price_types
+            }
+            vm.storeFilters = filters
+            vm.defaultFiltersOn = vm.isdefaultFiltersOn(filters)
+            resolve(filters)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            }
+            reject(error)
+          })
+      })
     }
   }
 }

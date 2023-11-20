@@ -31,11 +31,11 @@
             dense
             :placeholder="register ? 'Enter nickname' : ''"
             v-model="usernickname"
-            :loading="!usernickname && !register"
+            :loading="loggingIn || (!usernickname && !register)"
             class="row q-mx-md">
             <template v-slot:append>
               <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
-              <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" />
+              <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
               <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname || isArbiter" @click="createRampUser" />
             </template>
           </q-input>

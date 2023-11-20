@@ -252,7 +252,6 @@ export function makeid (length) {
 }
 
 export function getCookie (name) {
-  console.log('document.cookie:', document.cookie)
   const cookieArr = document.cookie.split('; ')
   for (let i = 0; i < cookieArr.length; i++) {
     const cookiePair = cookieArr[i].split('=')
