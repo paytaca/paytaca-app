@@ -101,7 +101,7 @@ export default {
   },
   computed: {
     backNavPath () {
-      return this.$route.query.backNavPath
+      return this.$route.query.backNavPath || '/apps/settings'
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
