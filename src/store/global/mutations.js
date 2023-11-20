@@ -221,3 +221,7 @@ export function updateConnectivityStatus (state, online) {
 export function setDenomination (state, denomination) {
   state.denomination = denomination
 }
+
+export function setTheme (state, theme) {
+  state.theme = theme
+}

@@ -46,23 +46,25 @@
         >
           <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode, '', 'bg-white')" v-if="isCashToken">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
-              <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50"></div>
+              <div>
+                <img
+                  :src="denomination === $t('DEEM') && asset.symbol === 'BCH'
+                    ? 'assets/img/theme/payhero/deem-logo.png'
+                    : asset.logo || getFallbackAssetLogo(asset)
+                  "
+                  width="50"
+                >
+              </div>
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
                   :class="darkMode ? isDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
                 >
-                  {{ isHongKong(currentCountry) ? asset.name.replace('Token', 'Point') : asset.name }}
+                  {{ asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
-                  <span v-if="asset.balance">{{ parseAssetDenomination(denomination, asset, false, 16) }}</span>
-                  {{
-                      asset.name.includes('New')
-                        ? isHongKong(currentCountry)
-                          ? asset.symbol.replace('Token', 'Point')
-                          : asset.symbol
-                        : ''
-                  }}
+                  <span v-if="!asset.name.includes('New')">{{ parseAssetDenomination(denomination, asset, false, 16) }}</span>
+                  {{ asset.name.includes('New') ? asset.symbol : '' }}
                 </p>
               </div>
             </div>
@@ -158,7 +160,7 @@ export default {
         const unlistedAsset = {
           id: 'sep20/unlisted',
           name: this.$t('NewUnlisted'),
-          symbol: `SEP20 ${isHongKong(this.currentCountry) ? 'point' : 'token'}`,
+          symbol: 'SEP20 token',
           logo: themedNewTokenIcon
         }
         _assets.push(unlistedAsset)

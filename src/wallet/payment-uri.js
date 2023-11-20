@@ -206,7 +206,7 @@ export function parsePaymentUri(content, opts) {
 
     if (bip0021Decoded.amount) data.outputs[0].amount.value = bip0021Decoded.amount
     if (bip0021Decoded.parameters?.currency) data.outputs[0].amount.currency = bip0021Decoded?.parameters?.currency
-    if (bip0021Decoded.parameters?.POS) data.pos = parsePOSLabel(bip0021Decoded.parameters?.POS)
+    if (bip0021Decoded.parameters?.POS) data.posId = bip0021Decoded.parameters?.POS
     if (bip0021Decoded.parameters?.ts) data.timestamp = Number(bip0021Decoded.parameters?.ts)
 
     data.otherParams = bip0021Decoded.parameters

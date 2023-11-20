@@ -354,7 +354,7 @@ export class BchWallet {
    * @param {Number|String} amount
    * @param {String} recipient
    * @param {String} changeAddress
-   * @param {{ walletHash: String, posId: Number, paymentTimestamp: Number }} posDevice
+   * @param {{ posId: Number, paymentTimestamp: Number }} posDevice
    */
   async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
     const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
@@ -374,12 +374,12 @@ export class BchWallet {
       transaction: sendResponse.transaction,
       payment_timestamp: posDevice?.paymentTimestamp,
       pos_device: {
-        wallet_hash: posDevice?.walletHash,
+        receiving_address: recipient,
         posid: posDevice?.posId,
       }
     }
 
-    if (!broadcastData?.pos_device?.wallet_hash || isNaN(parseInt(broadcastData?.pos_device?.posid))) {
+    if (isNaN(parseInt(broadcastData?.pos_device?.posid))) {
       response.success = false
       response.error = 'Unable to resolve POS device info'
       return response

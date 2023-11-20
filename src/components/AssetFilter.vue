@@ -6,17 +6,17 @@
     :style="{color: darkMode ? 'white' : 'black'}"
   >
     <template v-slot:label>
-      <TokenTypeBadge :assetId="assetId" :currentCountry="currentCountry" />
+      <TokenTypeBadge :assetId="assetId" />
     </template>
     <q-list>
       <q-item clickable v-close-popup @click="filterTokens('ct')">
         <q-item-section>
-          <q-item-label>{{ $t(this.isHongKong() ? 'CashPoints' : 'CashTokens') }}</q-item-label>
+          <q-item-label>{{ $t('CashTokens') }}</q-item-label>
         </q-item-section>
       </q-item>
       <q-item clickable v-close-popup @click="filterTokens('slp')">
         <q-item-section>
-          <q-item-label>{{ $t(this.isHongKong() ? 'SLPPoints' : 'SLPTokens') }}</q-item-label>
+          <q-item-label>{{ $t('SLPTokens') }}</q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
@@ -33,17 +33,13 @@ export default {
   data () {
     return {
       assetId: 'ct',
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      currentCountry: this.$store.getters['global/country'].code
+      darkMode: this.$store.getters['darkmode/getStatus']
     }
   },
   methods: {
     filterTokens (tokenType) {
       this.assetId = tokenType
       this.$emit('filterTokens', tokenType === 'ct')
-    },
-    isHongKong () {
-      return this.currentCountry === 'HK'
     }
   },
   computed: {

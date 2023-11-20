@@ -124,6 +124,16 @@
               </q-item-section>
             </q-item>
 
+            <!-- <# Temporarily disable the theme switcher #>
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Theme') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <ThemeSelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item> -->
+
             <q-item clickable v-ripple @click="darkMode = !darkMode">
                 <q-item-section>
                     <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('DarkMode') }}</q-item-label>
@@ -178,6 +188,7 @@ import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import DenominatorSelector from 'src/components/settings/DenominatorSelector'
+import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
@@ -206,7 +217,8 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
-    DenominatorSelector
+    DenominatorSelector,
+    ThemeSelector
   },
   watch: {
     isChipnet (n, o) {

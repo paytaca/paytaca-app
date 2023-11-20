@@ -16,7 +16,8 @@
           >
             <div>
               {{
-                parseAssetDenomination(denomination, {
+                parseAssetDenomination(
+                  denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                   ...asset,
                   balance: transaction?.amount
                 })
@@ -80,6 +81,7 @@ const denomination = computed(() => $store.getters['global/denomination'])
 const props = defineProps({
   transaction: Object,
   selectedAsset: Object,
+  denominationTabSelected: String
 })
 
 const asset = computed(() => {

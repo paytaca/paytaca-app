@@ -46,13 +46,21 @@
         >
           <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode, '', 'bg-white')">
             <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
-              <div><img :src="asset.logo || getFallbackAssetLogo(asset)" width="50" /></div>
+              <div>
+                <img
+                  :src="denomination === $t('DEEM') && asset.symbol === 'BCH'
+                    ? 'assets/img/theme/payhero/deem-logo.png'
+                    : asset.logo || getFallbackAssetLogo(asset)
+                  "
+                  width="50"
+                />
+              </div>
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
                   :class="darkMode ? isDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
                 >
-                  {{ isHongKong(currentCountry) ? asset.name.replace('Token', 'Point') : asset.name }}
+                  {{ asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
                   {{ parseAssetDenomination(denomination, asset) }}
