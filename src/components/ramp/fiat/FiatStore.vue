@@ -210,9 +210,7 @@ export default {
       vm.updateFilters()
     },
     async selectedCurrency () {
-      this.loading = true
       this.resetAndRefetchListings()
-      this.loading = false
     }
   },
   computed: {
@@ -250,11 +248,7 @@ export default {
   async mounted () {
     const vm = this
     vm.fetchFiatCurrencies()
-    vm.updateFilters()
-    if (!vm.listings || vm.listings.length === 0) {
-      vm.resetAndRefetchListings()
-    }
-    vm.loading = false
+    vm.updateFilters().then(() => { vm.resetAndRefetchListings() })
   },
   methods: {
     fetchPaymentTypes () {
@@ -300,7 +294,7 @@ export default {
         vm.loading = true
         const params = vm.storeFilters
         vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
-          .then(() => {
+          .then(response => {
             vm.updatePaginationValues()
             vm.loading = false
           })
