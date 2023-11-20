@@ -7,8 +7,14 @@
         class="recipient-input"
         v-model="recipientAddress"
         @focus="readonlyState(false)"
+        :disabled="disableRecipientInput || setAmountInFiat"
+        :readonly="disableRecipientInput || setAmountInFiat"
         :dark="darkMode"
-        :key="recipient.recipientAddress"
+        :key="[
+          recipient.recipientAddress,
+          recipient.fixedRecipientAddress,
+          inputExtras.scannedRecipientAddress
+        ]"
       >
         <template v-slot:label>
           {{ $t('Recipient') }}
@@ -154,7 +160,8 @@ export default {
   emits: [
     'on-qr-scanner-click',
     'read-only-state',
-    'on-input-focus'
+    'on-input-focus',
+    'on-balance-exceeded'
   ],
 
   data () {
@@ -188,6 +195,11 @@ export default {
     },
     denomination () {
       return this.$store.getters['global/denomination']
+    },
+    disableRecipientInput () {
+      return this.recipient.sent ||
+        this.recipient.fixedRecipientAddress ||
+        this.inputExtras.scannedRecipientAddress
     }
   },
 
@@ -215,6 +227,7 @@ export default {
     amount: function (value) {
       // adjust balance from previously-entered amounts
       this.balanceExceeded = value > this.asset.balance
+      this.$emit('on-balance-exceeded', this.balanceExceeded)
     }
   }
 }

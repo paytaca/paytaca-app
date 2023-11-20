@@ -73,6 +73,7 @@ export default {
   Cancel: "Cancel",
   CancelUnlinkRequestError: "Cancel unlink request error",
   CancellingUnlinkRequest: "Cancelling unlink request",
+  CannotAddRecipient: "Cannot add more than 5 recipients.",
   Capability: "Capability",
   CashPoints: "CashPoints",
   CashTokens: "CashTokens",

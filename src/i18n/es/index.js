@@ -67,6 +67,7 @@ export default {
   Cancel: "Cancelar",
   CancelUnlinkRequestError: "Cancelar un error de solicitud Unlink",
   CancellingUnlinkRequest: "Cancelar la solicitud Unlink",
+  CannotAddRecipient: "No se puede agregar más de 5 destinatarios.",
   Capability: "Capacidad",
   CashTokens: "Cashtokens",
   CategoryID: "categoria ID",

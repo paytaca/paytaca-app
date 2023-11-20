@@ -73,6 +73,7 @@ export default {
   Cancel: "取消",
   CancelUnlinkRequestError: "取消未鏈接請求錯誤",
   CancellingUnlinkRequest: "取消UNLINK請求",
+  CannotAddRecipient: "不能增加5個以上的收件人。",
   Capability: "能力",
   CashPoints: "CASHPOINTS",
   CashTokens: "CASHTOKENS",

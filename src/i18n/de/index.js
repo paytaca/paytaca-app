@@ -67,6 +67,7 @@ export default {
   Cancel: "Stornieren",
   CancelUnlinkRequestError: "Unglücksanforderungsfehler abbrechen",
   CancellingUnlinkRequest: "Abbrechen der Unglücksanfrage",
+  CannotAddRecipient: "Kann nicht mehr als 5 Empfänger hinzufügen.",
   Capability: "Fähigkeit",
   CashTokens: "Cashtokens",
   CategoryID: "Kategorie ID",
