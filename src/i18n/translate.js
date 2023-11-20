@@ -498,7 +498,8 @@ const additional = [
     NotEnoughForBoth: "Not enough balance to cover the send amount and transaction fee",
     SendAmountGreaterThanZero: "Send amount should be greater than zero",
     UnknownError: "Unknown error",
-    CannotAddRecipient: "Cannot add more than 5 recipients."
+    CannotAddRecipient: "Cannot add more than 5 recipients.",
+    TotalAmountError: "Total amount being sent is greater than your current balance"
   }
 ]
 

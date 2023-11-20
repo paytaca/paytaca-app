@@ -1112,7 +1112,7 @@ export default {
       }
     },
     async setMaximumSendAmount () {
-      // TODO adjust balance from previously-entered amounts
+      // TODO adjust balance from previously-entered amounts (reconfirm)
       // this.setMax = true
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
@@ -1267,9 +1267,22 @@ export default {
 
     async handleSubmit () {
       // TODO adjust for multiple recipients
-      console.log(this.sendDataMultiple)
-      return
       const vm = this
+      const toSendData = vm.sendDataMultiple
+
+      // check if total amount being sent is greater than current wallet amount
+      const totalAmount = toSendData.map(a => a.amount).reduce((acc, curr) => acc + curr, 0)
+      if (totalAmount > vm.asset.balance) {
+        vm.$q.notify({
+          type: 'negative',
+          color: 'red-4',
+          timeout: 3000,
+          message: vm.$t('Total amount being sent is greater than your current balance')
+        })
+        return
+      }
+
+      return
       let address = this.sendData.recipientAddress
       const addressObj = new Address(address)
       const addressValidation = this.validateAddress(address)
@@ -1520,7 +1533,6 @@ export default {
           sent: false,
           sending: false,
           success: false,
-          error: '',
           txid: '',
           amount: 0,
           fixedAmount: false,
@@ -1533,7 +1545,10 @@ export default {
         })
         this.inputExtras.push({
           amountFormatted: 0,
-          sendAmountInFiat: 0
+          sendAmountInFiat: 0,
+          balanceExceeded: false,
+          scannedRecipientAddress: false,
+          setMax: false
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false

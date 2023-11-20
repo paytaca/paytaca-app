@@ -376,6 +376,7 @@ export default {
   TokenApproved: "Token genehmigt",
   TokenId: "Token ID",
   Tokens: "Token",
+  TotalAmountError: "Der Gesamtbetrag ist größer als Ihr aktueller Saldo",
   TotalHedgeValue: "Gesamtabsicherungswert",
   TotalLongPositions: "Gesamt lange Positionen",
   Transaction: "Transaktion",

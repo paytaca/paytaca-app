@@ -376,6 +376,7 @@ export default {
   TokenApproved: "令牌批准",
   TokenId: "令牌ID",
   Tokens: "令牌",
+  TotalAmountError: "发送的总金额大于您当前的余额",
   TotalHedgeValue: "对冲价值",
   TotalLongPositions: "总长位置",
   Transaction: "交易",

@@ -406,6 +406,7 @@ export default {
   TokenApproved: "Token approved",
   TokenId: "Token ID",
   Tokens: "Tokens",
+  TotalAmountError: "Total amount being sent is greater than your current balance",
   TotalHedgeValue: "Total hedge value",
   TotalLongPositions: "Total Long Positions",
   Transaction: "Transaction",
