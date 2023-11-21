@@ -83,9 +83,8 @@
             <div class="q-mx-lg q-px-md">
               <!-- <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;"> -->
                 <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
-                  <div class="sm-font-size bold-text">
-                    {{  review.from_peer.name }}
-                  </div>
+                  <div class="sm-font-size bold-text">{{  review.from_peer.name }}</div>
+                  <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
                   <div class="sm-font-text">
                     <q-rating
                       readonly
@@ -150,6 +149,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
+import { formatDate } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
@@ -196,6 +196,10 @@ export default {
     this.isloaded = true
   },
   methods: {
+    formattedDate (value) {
+      const relative = true
+      return formatDate(value, relative)
+    },
     processUserData () {
       if (this.type === 'self') {
         this.userId = this.$store.getters['ramp/getUser'].id
@@ -250,7 +254,9 @@ export default {
     fetchTopReview () {
       const vm = this
       const url = `${vm.apiURL}/order/feedback/peer`
-      const params = {}
+      const params = {
+        limit: 3
+      }
 
       if (vm.reviewType === 'to-peer-review') {
         params.to_peer = this.userId
@@ -263,7 +269,7 @@ export default {
       })
         .then(response => {
           if (response.data) {
-            vm.reviewList = response.data
+            vm.reviewList = response.data.feedbacks
             // top 5 review
             if (vm.reviewList.length !== 0) {
               vm.reviewList = vm.reviewList.slice(0, 5)
