@@ -210,6 +210,7 @@ import { backend } from 'src/marketplace/backend'
 import { errorParser } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wrapper.vue'
@@ -217,12 +218,29 @@ import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import CustomerLocationsDialog from 'src/components/marketplace/CustomerLocationsDialog.vue'
 
+const props = defineProps({
+  returnOnSave: [String, Boolean],
+})
+
+const $router = useRouter()
+window.router = $router
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 onMounted(() => resetFormData())
 const customer = computed(() => $store.getters['marketplace/customer'])
+
+const redirectRouteOnSave = computed(() => {
+  if (!props.returnOnSave) return
+  if (props.returnOnSave === true || props.returnOnSave === 'true') return -1
+  try {
+    const routeParamObj = JSON.parse(props.returnOnSave)
+    return $router.resolve(routeParamObj)
+  } catch {
+    return $router.resolve(props.returnOnSave)
+  }
+})
 
 const loading = ref(false)
 const form = ref()
@@ -343,6 +361,26 @@ async function updateCustomerData() {
       if (!response?.data?.id) return Promise.reject({ response })
       $store.commit('marketplace/setCustomerData', response?.data)
       resetFormData()
+      const dialog = $q.dialog({
+        title: 'Profile updated!',
+        ok: false,
+        cancel: false,
+        color: 'brandblue',
+        class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      })
+      if (redirectRouteOnSave.value) {
+        dialog.update({
+          ok: {
+            noCaps: true,
+            label: 'Return',
+          },
+          cancel: { noCaps: true, label: 'Stay on this page', flat: true, color: 'grey' }
+        }).onOk(() => {
+          if (typeof redirectRouteOnSave.value === 'number') $router.go(redirectRouteOnSave.value)
+          else if (redirectRouteOnSave.value) $router.push(redirectRouteOnSave.value)
+        })
+      }
+
       return response
     })
     .catch(error => {
