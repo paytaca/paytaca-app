@@ -1,6 +1,6 @@
 <template>
   <!-- Generic Dialog -->
-  <q-dialog persistent v-model="genericDialog">
+  <q-dialog v-model="genericDialog" @before-hide="$emit('back')">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h6 text-center">{{ title }}</div>
@@ -18,7 +18,7 @@
   </q-dialog>
 
   <!-- Create/Edit Payment Method -->
-  <q-dialog full-width persistent v-model="createPaymentMethod">
+  <q-dialog full-width v-model="createPaymentMethod" @before-hide="$emit('back')">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h5 text-center lg-font-size">Create Payment Method</div>
@@ -191,7 +191,7 @@
   </q-dialog>
 
   <!-- Payment Deletion Confirmation -->
-  <q-dialog persistent v-model="confirmDeletePaymentMethod">
+  <q-dialog v-model="confirmDeletePaymentMethod" @before-hide="$emit('back')">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section class="xm-font-size q-mx-lg">
         <div class="text-center">Delete this Payment Method?</div>
@@ -430,7 +430,7 @@
   </q-dialog>
 
   <!-- Sending Appeal Confirmation Todo-->
-  <q-dialog full-width persistent v-model="appeal">
+  <q-dialog full-width v-model="appeal" @before-hide="$emit('back')">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
         <div class="text-h6 text-center">Submitting an Appeal</div>

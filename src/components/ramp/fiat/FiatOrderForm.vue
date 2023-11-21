@@ -17,140 +17,142 @@
         <div class="q-mx-lg q-pt-xs text-h5 text-center bold-text lg-font-size" :class="ad.trade_type === 'SELL' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
           {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
         </div>
-        <div class="q-mx-md">
-          <!-- Ad Info -->
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md sm-font-size">
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Price Type</span>
-              <span class="text-nowrap q-ml-xs">
-                {{ ad.price_type }}
-              </span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Fiat Price</span>
-              <span class="text-nowrap q-ml-xs">
-                {{ formattedCurrency(ad.price, ad.fiat_currency.symbol) }}
-              </span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Min Trade Limit</span>
-              <span class="text-nowrap q-ml-xs">
-                {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}
-              </span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Max Trade Limit</span>
-              <span class="text-nowrap q-ml-xs">
-                {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency.symbol }}
-              </span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Time Limit</span>
-              <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
-            </div>
-          </div>
-
-          <!-- Input -->
-          <div class="q-mt-md q-mx-md" v-if="!isOwner">
-            <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
-            <q-input
-              class="q-pb-xs"
-              filled
-              dense
-              label="Amount"
-              :dark="darkMode"
-              v-model="amount"
-              :rules="[isValidInputAmount]"
-              @blur="resetInput">
-              <template v-slot:append>
-                <span class="sm-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
-              </template>
-            </q-input>
-            <div class="row justify-between">
-              <div class="col text-left bold-text subtext sm-font-size q-pl-sm">
-                = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad.fiat_currency.symbol : 'BCH' }}
-              </div>
-              <div class="justify-end q-gutter-sm q-pr-sm">
-                <q-btn
-                  class="sm-font-size"
-                  padding="none"
-                  flat
-                  dense
-                  color="primary"
-                  label="MIN"
-                  @click="updateInput(max=false, min=true)"/>
-                <q-btn
-                  class="sm-font-size"
-                  padding="none"
-                  flat
-                  color="primary"
-                  label="MAX"
-                  @click="updateInput(max=true, min=false)"/>
-              </div>
-            </div>
-            <div class="q-pl-sm">
-              <q-btn
-                class="sm-font-size"
-                padding="none"
-                flat
-                no-caps
-                color="primary"
-                @click="byFiat = !byFiat">
-                Set amount in {{ byFiat ? 'BCH' : ad.fiat_currency.symbol }}
-              </q-btn>
-            </div>
-            <div v-if="ad.trade_type === 'BUY'">
-              <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-              <div class="row justify-between no-wrap q-mx-lg sm-font-size bold-text subtext q-pt-sm">
-                <span>Balance:</span>
+        <q-scroll-area :style="`height: ${minHeight - 130}px`" style="overflow-y:auto;">
+          <div class="q-mx-md">
+            <!-- Ad Info -->
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md sm-font-size">
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Price Type</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ bchBalance }} BCH
+                  {{ ad.price_type }}
                 </span>
               </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Fiat Price</span>
+                <span class="text-nowrap q-ml-xs">
+                  {{ formattedCurrency(ad.price, ad.fiat_currency.symbol) }}
+                </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Min Trade Limit</span>
+                <span class="text-nowrap q-ml-xs">
+                  {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}
+                </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Max Trade Limit</span>
+                <span class="text-nowrap q-ml-xs">
+                  {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency.symbol }}
+                </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Time Limit</span>
+                <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
+              </div>
+            </div>
+
+            <!-- Input -->
+            <div class="q-mt-md q-mx-md" v-if="!isOwner">
+              <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
+              <q-input
+                class="q-pb-xs"
+                filled
+                dense
+                label="Amount"
+                :dark="darkMode"
+                v-model="amount"
+                :rules="[isValidInputAmount]"
+                @blur="resetInput">
+                <template v-slot:append>
+                  <span class="sm-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
+                </template>
+              </q-input>
+              <div class="row justify-between">
+                <div class="col text-left bold-text subtext sm-font-size q-pl-sm">
+                  = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad.fiat_currency.symbol : 'BCH' }}
+                </div>
+                <div class="justify-end q-gutter-sm q-pr-sm">
+                  <q-btn
+                    class="sm-font-size"
+                    padding="none"
+                    flat
+                    dense
+                    color="primary"
+                    label="MIN"
+                    @click="updateInput(max=false, min=true)"/>
+                  <q-btn
+                    class="sm-font-size"
+                    padding="none"
+                    flat
+                    color="primary"
+                    label="MAX"
+                    @click="updateInput(max=true, min=false)"/>
+                </div>
+              </div>
+              <div class="q-pl-sm">
+                <q-btn
+                  class="sm-font-size"
+                  padding="none"
+                  flat
+                  no-caps
+                  color="primary"
+                  @click="byFiat = !byFiat">
+                  Set amount in {{ byFiat ? 'BCH' : ad.fiat_currency.symbol }}
+                </q-btn>
+              </div>
+              <div v-if="ad.trade_type === 'BUY'">
+                <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
+                <div class="row justify-between no-wrap q-mx-lg sm-font-size bold-text subtext q-pt-sm">
+                  <span>Balance:</span>
+                  <span class="text-nowrap q-ml-xs">
+                    {{ bchBalance }} BCH
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- create order btn -->
+            <div class="row q-mx-lg q-py-md" v-if="!isOwner">
+              <q-btn
+                :disabled="!isValidInputAmount(amount)"
+                rounded
+                no-caps
+                :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
+                :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+                class="q-space"
+                @click="submit()">
+              </q-btn>
+            </div>
+
+            <!-- edit ad button: For ad owners only -->
+            <div class="row q-mx-lg q-py-md" v-if="isOwner">
+              <q-btn
+                rounded
+                no-caps
+                label="Edit Ad"
+                :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+                class="q-space"
+                @click="state = 'edit-ad'">
+              </q-btn>
+            </div>
+
+            <div class="text-center q-pt-sm">
+              <!-- <div class="bold-text" style="font-size: medium;">Average Rating</div>
+              <div class="row justify-center q-py-xs q-pb-sm">
+                <q-rating
+                  readonly
+                  :model-value="feedback.rating"
+                  :v-model="feedback.rating"
+                  size="1.5em"
+                  color="yellow-9"
+                  icon="star"
+                />
+                <span class="q-mx-sm" style="font-size: medium;">({{ ad.owner.rating }})</span>
+              </div> -->
+              <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
             </div>
           </div>
-
-          <!-- create order btn -->
-          <div class="row q-mx-lg q-py-md" v-if="!isOwner">
-            <q-btn
-              :disabled="!isValidInputAmount(amount)"
-              rounded
-              no-caps
-              :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
-              :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-              class="q-space"
-              @click="submit()">
-            </q-btn>
-          </div>
-
-          <!-- edit ad button: For ad owners only -->
-          <div class="row q-mx-lg q-py-md" v-if="isOwner">
-            <q-btn
-              rounded
-              no-caps
-              label="Edit Ad"
-              :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-              class="q-space"
-              @click="state = 'edit-ad'">
-            </q-btn>
-          </div>
-
-          <div class="text-center q-pt-sm">
-            <!-- <div class="bold-text" style="font-size: medium;">Average Rating</div>
-            <div class="row justify-center q-py-xs q-pb-sm">
-              <q-rating
-                readonly
-                :model-value="feedback.rating"
-                :v-model="feedback.rating"
-                size="1.5em"
-                color="yellow-9"
-                icon="star"
-              />
-              <span class="q-mx-sm" style="font-size: medium;">({{ ad.owner.rating }})</span>
-            </div> -->
-            <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
-          </div>
-        </div>
+        </q-scroll-area>
       </div>
 
       <!-- Progress Loader -->

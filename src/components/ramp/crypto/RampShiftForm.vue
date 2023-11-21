@@ -603,6 +603,7 @@ export default {
     }
   },
   async mounted () {
+    console.log('mounted RampShiftForm')
     const vm = this
 
     //initial

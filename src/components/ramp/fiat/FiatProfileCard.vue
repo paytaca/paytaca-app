@@ -74,18 +74,18 @@
         <div>
           <div>
             <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'ad' }" @click="reviewType='ad'">Ad Review</button>
-              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'user'}" @click="reviewType='user'">User Review</button>
+              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'to-peer-review' }" @click="switchReviewType('to-peer-review')">Ad Review</button>
+              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'from-peer-review'}" @click="switchReviewType('from-peer-review')">User Review</button>
             </div>
           </div>
-          <div v-if="reviewList.length !== 0"  class="text-center q-py-lg xm-font-size bold-text">
+          <div v-if="reviewList.length !== 0"  class="text-center q-pt-lg xm-font-size bold-text">
             Reviews
           </div>
           <div v-else class="text-center q-pt-md text-italized bold-text xm-font-size">
             No Reviews Yet
           </div>
           <div class="q-mx-lg q-px-md">
-            <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;">
+            <!-- <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;"> -->
               <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
                 <div class="md-font-size bold-text">
                   {{  review.from_peer.name }}
@@ -111,7 +111,10 @@
                 </div>
                 <q-separator :dark="darkMode" class="q-mt-md"/>
               </div>
-            </q-scroll-area>
+            <!-- </q-scroll-area> -->
+          </div>
+          <div v-if="reviewList.length !== 0">
+            <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See All {{ reviewType === 'to-peer-review' ? 'Ad' : 'User' }} Reviews</div>
           </div>
         </div>
       </q-scroll-area>
@@ -134,11 +137,22 @@
     v-on:back="editNickname = false"
     v-on:submit="updateUserName"
   />
+  <!-- Feedback Dialog -->
+  <div v-if="openReviews">
+    <FeedbackDialog
+      :openReviews="openReviews"
+      :toPeerID="userId"
+      :fromPeerID="userId"
+      :type="reviewType"
+      @back="openReviews = false"
+    />
+  </div>
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
@@ -152,13 +166,14 @@ export default {
       userId: null,
       editNickname: false,
       state: 'initial',
-      // minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - this.$q.screen.height * 0.17,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       rating: 3,
       comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
       reviewList: [],
-      reviewType: 'ad', // 'user'
-      statusType: 'ONGOING'
+      reviewType: 'to-peer-review',
+      statusType: 'ONGOING',
+      openReviews: false
     }
   },
   props: {
@@ -175,26 +190,25 @@ export default {
   components: {
     MiscDialogs,
     AddPaymentMethods,
-    ProgressLoader
+    ProgressLoader,
+    FeedbackDialog
   },
   async mounted () {
-    this.processUserData()
+    await this.processUserData()
     await this.fetchTopReview()
     this.isloaded = true
   },
   methods: {
-    processUserData () {
+    async processUserData () {
       if (this.type === 'self') {
         this.userId = this.$store.getters['ramp/getUser'].id
       } else {
         this.userId = this.userInfo.id
       }
-      this.getUserInfo()
+      await this.getUserInfo()
     },
     getUserInfo () {
       const vm = this
-      console.log('authHeaders:', this.authHeaders)
-      console.log('userId:', this.userId)
       vm.$axios.get(vm.apiURL + '/peer/detail', { headers: vm.authHeaders, params: { id: vm.userId } })
         .then(response => {
           console.log(response.data)
@@ -209,7 +223,6 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      console.log('authHeaders:', this.authHeaders)
       vm.$axios.put(vm.apiURL + '/peer/detail', { name: info.nickname }, { headers: vm.authHeaders })
         .then(response => {
           // console.log(response.data)
@@ -225,20 +238,38 @@ export default {
 
       this.editNickname = false
     },
+    switchReviewType (type) {
+      if (this.reviewType !== type) {
+        this.reviewType = type
+        this.fetchTopReview()
+      } else {
+        console.log('not switch')
+      }
+    },
     async fetchTopReview () {
       const vm = this
       const url = `${vm.apiURL}/order/feedback/peer`
+      let params = {}
+
+      if (vm.reviewType === 'to-peer-review') {
+        params.to_peer = this.userId
+      } else {
+        params.from_peer = this.userId
+      }
       await vm.$axios.get(url, {
-        params: {
-          to_peer: this.$store.getters['ramp/getUser'].id
-        },
+        params: params,
         headers: vm.authHeaders
       })
         .then(response => {
           if (response.data) {
             // const data = response.data
             vm.reviewList = response.data
-            console.log('reviews: ', vm.reviewList)
+            //console.log('reviews: ', vm.reviewList)
+
+            // top 5 review
+            if (vm.reviewList.length !== 0) {
+              vm.reviewList = vm.reviewList.slice(0, 5)
+            }
           }
         })
         .catch(error => {
@@ -247,46 +278,6 @@ export default {
             bus.emit('session-expired')
           }
         })
-      // top 5 reviews
-      //   async fetchUserAds () {
-      //     const vm = this
-      //     vm.loading = true
-      //     console.log('filtering ads')
-      //     const walletInfo = vm.$store.getters['global/getWallet']('bch')
-      //     const wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
-      //     const timestamp = Date.now()
-      //     const signature = await signMessage(wallet.privateKeyWif, 'AD_LIST', timestamp)
-
-      //     const headers = {
-      //       'wallet-hash': wallet.walletHash,
-      //       signature: signature,
-      //       timestamp: timestamp
-      //     }
-
-      //     let ownerID = 1
-      //     if (this.user.hasOwnProperty('id')) {
-      //       ownerID = this.user.id
-      //     }
-
-      //     const params = {
-      //       currency: 'PHP',
-      //       limit: 20,
-      //       owner_id: ownerID
-      //     }
-      //     const url = `${vm.apiURL}/ad`
-      //     await this.$axios.get(url, {
-      //       headers: headers,
-      //       params: params
-      //     })
-      //       .then(response => {
-      //         console.log(response.data)
-      //       })
-      //       .catch(error => {
-      //         console.log(error)
-      //       })
-      //     vm.loading = false
-      //   }
-      // },
     }
   }
 }

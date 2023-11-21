@@ -15,11 +15,15 @@ export async function loadAuthHeaders (context) {
 }
 
 export async function loadWallet (context) {
-  const walletInfo = Store.getters['global/getWallet']('bch')
-  const index = Store.getters['global/getWalletIndex']
-  const wallet = await loadP2PWalletInfo(walletInfo, index)
-  context.commit('updateWallet', wallet)
-  return wallet
+  const wallet = Store.getters['global/getWallet']('bch')
+  const { connectedAddressIndex } = Store.getters['global/getWallet']('bch')
+  const walletInfo = {
+    walletHash: wallet.walletHash,
+    connectedAddressIndex: connectedAddressIndex,
+    address: Store.getters['global/getAddress']('bch')
+  }
+  context.commit('updateWallet', walletInfo)
+  return walletInfo
 }
 
 export async function fetchArbiter (context) {
@@ -91,7 +95,7 @@ export async function createUser (context, data) {
   }
 }
 
-export async function fetchAds (context, { component = null, params = null, overwrite = false }) {
+export function fetchAds (context, { component = null, params = null, overwrite = false }) {
   const state = context.state
   if (!state.authHeaders) {
     throw new Error('Ramp authentication headers not initialized')
@@ -157,43 +161,49 @@ export async function fetchAds (context, { component = null, params = null, over
       apiURL = `${apiURL}${prefix}time_limits=${timeLimits}`
       appendParam = true
     }
-    if (params.time_limits && params.price_types.length > 0) {
+    if (params.price_types && params.price_types.length > 0) {
       const priceTypes = params.price_types.join('&price_types=')
       const prefix = appendParam ? '&' : '?'
       apiURL = `${apiURL}${prefix}price_types=${priceTypes}`
     }
-
     // Build request headers
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
-
-    const response = await axiosInstance.get(apiURL, { params: parameters, headers: headers })
-    switch (params.trade_type) {
-      case 'BUY':
-        switch (component) {
-          case 'store':
-            context.commit('updateStoreBuyListings', { overwrite: overwrite, data: response.data })
-            context.commit('incStoreBuyPage')
-            break
-          case 'ads':
-            context.commit('updateAdsBuyListings', { overwrite: overwrite, data: response.data })
-            context.commit('incAdsBuyPage')
-            break
-        }
-        break
-      case 'SELL':
-        switch (component) {
-          case 'store':
-            context.commit('updateStoreSellListings', { overwrite: overwrite, data: response.data })
-            context.commit('incStoreSellPage')
-            break
-          case 'ads':
-            context.commit('updateAdsSellListings', { overwrite: overwrite, data: response.data })
-            context.commit('incAdsSellPage')
-            break
-        }
-        break
-    }
+    return new Promise((resolve, reject) => {
+      axiosInstance.get(apiURL, { params: parameters, headers: headers })
+        .then((response) => {
+          switch (params.trade_type) {
+            case 'BUY':
+              switch (component) {
+                case 'store':
+                  context.commit('updateStoreBuyListings', { overwrite: overwrite, data: response.data })
+                  context.commit('incStoreBuyPage')
+                  break
+                case 'ads':
+                  context.commit('updateAdsBuyListings', { overwrite: overwrite, data: response.data })
+                  context.commit('incAdsBuyPage')
+                  break
+              }
+              break
+            case 'SELL':
+              switch (component) {
+                case 'store':
+                  context.commit('updateStoreSellListings', { overwrite: overwrite, data: response.data })
+                  context.commit('incStoreSellPage')
+                  break
+                case 'ads':
+                  context.commit('updateAdsSellListings', { overwrite: overwrite, data: response.data })
+                  context.commit('incAdsSellPage')
+                  break
+              }
+              break
+          }
+          resolve(response.data)
+        })
+        .catch(error => {
+          reject(error)
+        })
+    })
   }
 }
 
@@ -305,7 +315,6 @@ export async function fetchPaymentTypes (context) {
     headers.Authorization = `Token ${getCookie('token')}`
     const { data: paymentTypes } = await axiosInstance.get(apiURL, { headers: headers })
     context.commit('updatePaymentTypes', paymentTypes)
-    console.log('paymentTypes:', paymentTypes)
   } catch (error) {
     console.error('Error fetching data:', error)
     throw error

@@ -57,7 +57,6 @@ export default {
     ProgressLoader
   },
   async mounted () {
-    await this.$store.dispatch('ramp/fetchPaymentTypes')
     this.isLoading = false
   },
   async beforeUnmount () {

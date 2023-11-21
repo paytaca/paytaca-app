@@ -2,6 +2,45 @@ import { loadWallet } from 'src/wallet'
 import { markRaw } from 'vue'
 import { Store } from '../../store'
 
+async function getRawWallet (index) {
+  const isChipnet = Store.getters['global/isChipnet']
+  const rawWallet = await markRaw(loadWallet('BCH', index))
+  let wallet = (rawWallet).BCH
+  if (isChipnet) wallet = rawWallet.BCH_CHIP
+  return wallet
+}
+
+export async function getWalletKeypair () {
+  const wallet = Store.getters['ramp/wallet']
+  const connectedAddressIndex = wallet.connectedAddressIndex
+  const index = Store.getters['global/getWalletIndex']
+  const rawWallet = await getRawWallet(index)
+  const privateKeyWif = await rawWallet.getPrivateKey(connectedAddressIndex)
+  const publicKey = await rawWallet.getPublicKey(connectedAddressIndex)
+  return {
+    privateKey: privateKeyWif,
+    publicKey: publicKey
+  }
+}
+
+export async function getWalletPrivateKey () {
+  const wallet = Store.getters['ramp/wallet']
+  const connectedAddressIndex = wallet.connectedAddressIndex
+  const index = Store.getters['global/getWalletIndex']
+  const rawWallet = await getRawWallet(index)
+  const privateKeyWif = await rawWallet.getPrivateKey(connectedAddressIndex)
+  return privateKeyWif
+}
+
+export async function getWalletPubKey () {
+  const wallet = Store.getters['ramp/wallet']
+  const connectedAddressIndex = wallet.connectedAddressIndex
+  const index = Store.getters['global/getWalletIndex']
+  const rawWallet = await getRawWallet(index)
+  const publicKey = await rawWallet.getPublicKey(connectedAddressIndex)
+  return publicKey
+}
+
 export async function loadP2PWalletInfo (walletInfo, index) {
   /**
    * Returns the wallet information needed for RampP2P processes
