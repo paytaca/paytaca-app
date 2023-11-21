@@ -1245,7 +1245,7 @@ export default {
     top: 0 !important;
     right: 0;
     left: 0;
-    
+
   }
   .transaction-row {
     position: relative;
