@@ -149,7 +149,7 @@ export default {
     showQrScanner: { type: Boolean },
     computingMax: { type: Boolean },
     setAmountInFiat: { type: Boolean },
-    sendAmountMarketValue: { type: Number },
+    selectedAssetMarketPrice: { type: Number },
 
     isNFT: { type: Function },
     currentSendPageCurrency: { type: Function },
@@ -200,6 +200,15 @@ export default {
       return this.recipient.sent ||
         this.recipient.fixedRecipientAddress ||
         this.inputExtras.scannedRecipientAddress
+    },
+    sendAmountMarketValue () {
+      const parsedAmount = Number(this.amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
+      if (!computedBalance) return ''
+
+      return computedBalance.toFixed(2)
     }
   },
 
@@ -219,7 +228,7 @@ export default {
     },
     onSelectedDenomination (value) {
       this.selectedDenomination = value
-      this.amountFormatted = parseFloat(getAssetDenomination(value, this.amount, true))
+      this.amountFormatted = parseFloat(getAssetDenomination(value, this.amount || 0, true))
     }
   },
 
