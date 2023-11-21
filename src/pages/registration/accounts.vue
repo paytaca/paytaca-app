@@ -97,7 +97,7 @@
                         <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side>
-                        <CurrencySelector :darkMode="darkMode" />
+                        <CurrencySelector :darkMode="darkMode" :key="currencySelectorRerender" />
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -199,6 +199,7 @@ import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 function countWords(str) {
   if (str) {
@@ -239,7 +240,8 @@ export default {
       pinDialogAction: '',
       pin: '',
       securityOptionDialogStatus: 'dismiss',
-      walletIndex: 0
+      walletIndex: 0,
+      currencySelectorRerender: false
     }
   },
   watch: {
@@ -258,7 +260,7 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
-    },
+    }
   },
   methods: {
     isDefaultTheme,
@@ -313,7 +315,8 @@ export default {
     },
     continueToDashboard () {
       const vm = this
-      this.$store.dispatch('global/updateOnboardingStep', this.steps).then(function () {
+      vm.$store.dispatch('global/saveWalletPreferences')
+      vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
         vm.saveToVault()
         vm.$router.push('/')
       })
@@ -499,6 +502,76 @@ export default {
     }
 
     const vm = this
+    await vm.$store.dispatch('market/updateSupportedCurrencies', {})
+    // auto-detect country
+    const apiKey = process.env.IPGEO_API_KEY
+    const [countryFromIP, currencyFromIP, langsFromIP] = await this.$axios
+      .get(`https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`)
+      .then(response => {
+        return [
+          {
+            name: response.data?.country_name,
+            code: response.data?.country_code2
+          },
+          {
+            symbol: response.data?.currency.code,
+            name: response.data?.currency?.name
+          },
+          response.data?.languages?.toLowerCase().split(',')
+        ]
+      }).catch((error) => {
+        console.error(error)
+        // return default values
+        return [
+          {
+            name: 'United States',
+            code: 'US'
+          },
+          {
+            symbol: 'USD',
+            name: 'United States Dollar'
+          },
+          'en-us'
+        ]
+      })
+    
+    setTimeout(function () {
+      // set country
+      vm.$store.commit('global/setCountry', countryFromIP)
+
+      // set currency
+      const currencyOptions = vm.$store.getters['market/currencyOptions']
+      const currency = currencyOptions.filter(o => o.symbol === currencyFromIP.symbol)
+
+      if (currency.length > 0) {
+        vm.$store.commit('market/updateSelectedCurrency', currency[0])
+      }
+    }, 1000)
+
+    // set language
+    const eng = ['en-us', 'en-uk', 'en-gb', 'en']
+    const supportedLangs = [
+      { value: 'en-us', label: this.$t('English') },
+      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
+      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+      { value: 'de', label: this.$t('German') },
+      { value: 'es', label: this.$t('Spanish') }
+    ]
+    const supportedLangsValue = supportedLangs.map(a => a.value)
+    let ipFinalLang = 'en-us'
+
+    supportedLangsValue.forEach(lang => {
+      if (langsFromIP.includes(lang) && ipFinalLang === 'en-us') {
+        ipFinalLang = lang
+      }
+    })
+
+    this.$i18n.locale = ipFinalLang
+    const newLocale = { value: ipFinalLang, label: this.$t(supportedLangsI18n[ipFinalLang]) }
+    this.$store.commit('global/setLanguage', newLocale)
+
+    this.currencySelectorRerender = true
+
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(response => {
       if (response.status !== 200) return Promise.reject()
       vm.serverOnline = true
@@ -510,14 +583,6 @@ export default {
       return
     }
 
-    const eng = ['en-us', 'en-uk', 'en-gb', 'en']
-    const supportedLangs = [
-      { value: 'en-us', label: this.$t('English') },
-      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
-      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
-      { value: 'de', label: this.$t('German') },
-      { value: 'es', label: this.$t('Spanish') },
-    ]
     let finalLang = ''
 
     // Adjust paytaca language according to phone's language (if supported by paytaca)
