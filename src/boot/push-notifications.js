@@ -1,6 +1,7 @@
 import { reactive, markRaw } from 'vue'
 import { boot } from 'quasar/wrappers'
 import { PushNotifications } from '@capacitor/push-notifications';
+import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
@@ -73,7 +74,9 @@ class PushNotificationsEventEmitter {
       .forEach(callback => {
         try {
           callback(data)
-        } catch(error) {}
+        } catch(error) {
+          console.error(error)
+        }
       })
   }
 }
@@ -84,6 +87,7 @@ class PushNotificationsManager {
     this.events = PushNotificationsEventEmitter.getInstance()
     this.registrationToken = ''
     this.deviceId = ''
+    this.appInfo = null
     this.registrationTokenError= 'no error'
     this.permissionStatus = null
 
@@ -94,6 +98,14 @@ class PushNotificationsManager {
     this.fetchDeviceId()
 
     this.subscriptionInfo = {}
+  }
+
+  fetchAppInfo() {
+    return App.getInfo()
+      .then(response => {
+        this.appInfo = response
+        return response
+      })
   }
 
   checkPermissions() {
@@ -194,11 +206,20 @@ class PushNotificationsManager {
   }
 }
 
+export const pushNotificationsManager = new PushNotificationsManager()
+
 export default boot(({ app, store }) => {
 
   if (Platform.is.mobile) {
     const manager = reactive(
-      markRaw(new PushNotificationsManager())
+      markRaw(pushNotificationsManager)
+    )
+
+    manager.events.addEventListener(
+      'pushNotificationReceived',
+      (notification) => {
+        console.log('Notification:', notification)
+      }
     )
   
     // Vuex notification module will act as the event bus for events when user opens app using

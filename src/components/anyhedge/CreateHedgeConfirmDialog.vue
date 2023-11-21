@@ -156,7 +156,7 @@
                       >
                         <q-popup-proxy :breakpoint="0">
                           <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
-                            Premium is 
+                            Premium is
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.hedge?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.hedge?.pctg, 2) }}%
                             </span>
@@ -258,7 +258,7 @@
                       >
                         <q-popup-proxy :breakpoint="0">
                           <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
-                            Premium is 
+                            Premium is
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.long?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.long?.pctg, 2) }}%
                             </span>
@@ -346,25 +346,38 @@
       </q-card-section>
     </q-card>
     <q-list v-if="showSlider" class="absolute-bottom">
-      <q-slide-item left-color="blue" @left="onSliderSwipe()">
-        <template v-slot:left>
-          <div style="font-size: 15px" class="text-body1">
-          <q-icon class="material-icons q-mr-md" size="lg">
-            task_alt
-          </q-icon>
-          Security Check
-          </div>
-        </template>
+      <!-- <DragSlide
+      :style="{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1500,
+      }"
+      @swiped="onSliderSwipe()"
+      text="Swipe To Confirm"
+    /> -->
+      <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
+        <q-slide-item left-color="blue" @left="onSliderSwipe()" style="background-color: transparent; border-radius: 40px;">
+          <template v-slot:left>
+            <div style="font-size: 15px" class="text-body1">
+            <q-icon class="material-icons q-mr-md" size="lg">
+              task_alt
+            </q-icon>
+            Security Check
+            </div>
+          </template>
 
-        <q-item class="bg-grad text-white q-py-md">
-          <q-item-section avatar>
-            <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
-          </q-item-section>
-          <q-item-section class="text-right">
-            <h5 class="q-my-sm text-grey-4">SWIPE TO CONFIRM</h5>
-          </q-item-section>
-        </q-item>
-      </q-slide-item>
+          <q-item class="bg-grad text-white q-py-md">
+            <q-item-section avatar>
+              <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+            </q-item-section>
+            <q-item-section class="text-right">
+              <h5 class="q-my-sm text-grey-4" style="font-size: large;">SWIPE TO CONFIRM</h5>
+            </q-item-section>
+          </q-item>
+        </q-slide-item>
+      </div>
     </q-list>
   </q-dialog>
 </template>
@@ -375,6 +388,7 @@ import { useDialogPluginComponent } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import DragSlide from '../drag-slide.vue'
 
 // dialog plugins requirement
 defineEmits([
@@ -389,13 +403,13 @@ const darkMode = computed(() => store.getters['darkmode/getStatus'])
 const denomination = computed(() => store.getters['global/denomination'])
 
 /**
- * 
+ *
  * @typedef {Object} IntentProp
  * @property {Number} amount
  * @property {Number} lowPriceMult
  * @property {Number} highPriceMult
  * @property {Number} duration
- * 
+ *
  * @typedef {Object} PubkeysProp
  * @property {String} hedgeAddress
  * @property {String} hedgePubkey
@@ -403,7 +417,7 @@ const denomination = computed(() => store.getters['global/denomination'])
  * @property {String} longAddress
  * @property {String} longPubkey
  * @property {String} longAddressPath
- * 
+ *
  * @typedef {Object} PriceDataProp
  * @property {String} [oraclePubkey]
  * @property {Number} [priceValue]
@@ -411,19 +425,19 @@ const denomination = computed(() => store.getters['global/denomination'])
  * @property {Number} [messageSequence]
  * @property {String} [message]
  * @property {String} [signature]
- * 
+ *
  * @typedef {Object} FundingProp
  * @property {Number} liquidityFee
  * @property {Object} [fee]
  * @property {String} fee.address
  * @property {Number} fee.satoshis
- * 
+ *
  * @typedef {Object} OracleInfoProp
  * @property {String} [oraclePubkey]
  * @property {String} [assetName]
  * @property {Number} [assetDecimals]
  * @property {String} [assetCurrency]
- * 
+ *
 */
 const props = defineProps({
   /** @type {IntentProp} */

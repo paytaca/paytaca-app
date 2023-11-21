@@ -1,5 +1,5 @@
 <template>
-  <q-list v-if="!swiped" class="absolute-bottom br-15">
+  <q-list v-if="!swiped" :class="{ 'absolute-bottom': !disableAbsoluteBottom, 'br-15': true }">
     <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
       <q-slide-item left-color="blue" @left="slide" style="background-color: transparent; border-radius: 40px;">
         <template v-slot:left>
@@ -16,7 +16,7 @@
             <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
           </q-item-section>
           <q-item-section class="text-right">
-            <h5 class="q-my-sm text-grey-4 text-uppercase">{{ sliderText }}</h5>
+            <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ sliderText }}</h5>
           </q-item-section>
         </q-item>
       </q-slide-item>
@@ -24,8 +24,6 @@
   </q-list>
 </template>
 <script>
-import { addressContentsToLockingBytecode } from '@bitauth/libauth'
-import { runInThisContext } from 'vm'
 
 export default {
   name: 'drag-slide',
@@ -36,6 +34,7 @@ export default {
     }
   },
   props: {
+    disableAbsoluteBottom: Boolean,
     text: {
       type: String,
       default: ''
@@ -49,7 +48,7 @@ export default {
         } catch {}
       }, 2000)
       this.swiped = true
-      this.$emit('swiped')
+      this.$emit('swiped', () => this.swiped = false)
     }
   },
   async mounted () {

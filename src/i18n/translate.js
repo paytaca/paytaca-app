@@ -369,7 +369,7 @@ const phrases = {
       UtxoScan: "UTXO Scan",
       BackendDown: "Our backend server is unreachable. This could be due to your internet connection or our server being temporarily down",
       ClickToReveal: "Click to Reveal",
-      SLPTokens: "SLP Tokens",
+      SLPTokens: "SLP",
       AddFungibleCashToken: "Add Fungible CashToken",
       AssetValueNote: "Asset value is based on prices at the time of transaction",
       CreateOrImportWallet: "Create/Import Wallet",
@@ -479,7 +479,10 @@ const hongKongSpecific = [
     ViewPoints: "View Points",
     Waiting_SEP20_PointSent: "Waiting for SEP20 point to be sent",
     Add_SEP721_Point: "Add SEP721 Point",
-    DEEM: "DEEM"
+    DEEM: "DEEM",
+    Theme: "Theme",
+    Default: "Default",
+    ReferenceId: "Reference ID"
   }
 ]
 

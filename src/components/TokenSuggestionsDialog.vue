@@ -186,8 +186,8 @@ export default {
       return this.$store.getters['global/enableSmartBCH']
     },
     parsedTokens () {
-      if (this.selectedNetwork === 'BCH') return this.parseTokenName(this.parsedMainchainTokens)
-      if (this.selectedNetwork === 'sBCH') return this.parseTokenName(this.parsedSmartchainTokens)
+      if (this.selectedNetwork === 'BCH') return this.parsedMainchainTokens
+      if (this.selectedNetwork === 'sBCH') return this.parsedSmartchainTokens
       return []
     },
     parsedMainchainTokens () {
@@ -344,19 +344,6 @@ export default {
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
-    },
-    parseTokenName (ignoredList) {
-      // copy to remove binding from state
-      const ignoredListCopy = JSON.parse(JSON.stringify(ignoredList))
-      if (ignoredListCopy.length > 0 && this.isHongKong(this.currentCountry)) {
-        ignoredListCopy.forEach(token => {
-          token.name = token.name.replace('Token', 'Point')
-        })
-      }
-      return ignoredListCopy
     }
   },
   watch: {

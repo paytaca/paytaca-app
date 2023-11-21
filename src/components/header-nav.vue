@@ -41,7 +41,7 @@ export default {
     },
     backnavpath: {
       type: String,
-      default: '/apps/settings'
+      default: '',
     }
   },
   computed: {

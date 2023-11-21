@@ -50,6 +50,12 @@ export default {
     return {
       apps: [
         {
+          name: 'Marketplace',
+          iconName: 'storefront',
+          path: '/apps/marketplace',
+          active: true
+        },
+        {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
