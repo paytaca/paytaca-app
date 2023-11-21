@@ -14,7 +14,7 @@
     </div>
     <div v-if="state === 'selection'"  class="q-mb-lg q-pb-lg">
       <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
-        <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' @click="openFilter()"/>
+        <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' />
         <q-btn
           rounded
           no-caps
@@ -184,13 +184,7 @@ export default {
     transactionType () {
       const vm = this
       vm.resetAndScrollToTop()
-      vm.updatePaginationValues()
-      if (vm.pageNumber === null || vm.totalPages === null) {
-        if (!vm.listings || vm.listings.length === 0) {
-          vm.loading = true
-          this.fetchAds()
-        }
-      }
+      vm.fetchAds()
     }
   },
   computed: {
@@ -217,10 +211,8 @@ export default {
       return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
     }
   },
-  async mounted () {
-    this.loading = true
-    await this.resetAndRefetchListings()
-    this.loading = false
+  mounted () {
+    this.resetAndRefetchListings()
   },
   methods: {
     maxAmount (tradeAmount, tradeCeiling) {
@@ -230,15 +222,17 @@ export default {
         return parseFloat(tradeCeiling)
       }
     },
-    async fetchAds (overwrite = false) {
+    fetchAds (overwrite = false) {
       const vm = this
       vm.loading = true
       const params = { trade_type: vm.transactionType, owned: true }
       vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, overwrite: overwrite })
-        .then(response => {
+        .then(() => {
           vm.loading = false
+          vm.updatePaginationValues()
         })
         .catch(error => {
+          vm.loading = false
           console.error(error)
           if (error.response) {
             console.error(error.response)
@@ -246,10 +240,9 @@ export default {
               bus.emit('session-expired')
             }
           }
-          vm.loading = false
         })
     },
-    async loadMoreData (_, done) {
+    loadMoreData (_, done) {
       const vm = this
       if (!vm.hasMoreData) {
         done(true)
@@ -257,37 +250,35 @@ export default {
       }
       vm.updatePaginationValues()
       if (vm.pageNumber < vm.totalPages) {
-        await vm.fetchAds()
+        vm.fetchAds()
       }
       done()
     },
-    async deleteAd () {
+    deleteAd () {
       const vm = this
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
-      try {
-        await vm.$axios.delete(url, { headers: vm.authHeaders })
-        setTimeout(() => {
-          vm.dialogName = 'notifyDeleteAd'
-          vm.openDialog = true
-        }, 50)
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
-      vm.loading = false
+      vm.$axios.delete(url, { headers: vm.authHeaders })
+        .then(() => {
+          setTimeout(() => {
+            vm.dialogName = 'notifyDeleteAd'
+            vm.openDialog = true
+          }, 50)
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        })
     },
-    async refreshData (done) {
-      console.log('refreshing ads')
-      await this.resetAndRefetchListings()
+    refreshData (done) {
+      this.resetAndRefetchListings()
       done()
     },
-    async resetAndRefetchListings () {
+    resetAndRefetchListings () {
       const vm = this
-      await vm.$store.commit('ramp/resetAdsPagination')
-      await vm.fetchAds(true)
-      vm.updatePaginationValues()
+      vm.$store.commit('ramp/resetAdsPagination')
+      vm.fetchAds(true)
     },
     updatePaginationValues () {
       const vm = this
