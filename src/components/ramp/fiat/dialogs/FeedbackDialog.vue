@@ -1,5 +1,10 @@
 <template>
-  <q-dialog position="bottom" v-model="openDialog" full-width :class="darkMode ? 'text-white' : 'text-black'">
+  <q-dialog
+    v-model="openDialog"
+    @before-hide="$emit('back')"
+    position="bottom"
+    full-width
+    :class="darkMode ? 'text-white' : 'text-black'">
     <q-card class="br-15" :style="`max-height: ${maxHeight}px;`">
       <q-btn
         flat
@@ -8,7 +13,7 @@
         @click="$emit('back')"
       />
       <div v-if="isloaded">
-        <div style="font-weight: 500; font-size: 15px;">
+        <div class="lg-font-size">
           <div v-if="reviewList.length !== 0"  class="text-center q-pb-md xm-font-size bold-text">
             Reviews
           </div>
@@ -18,31 +23,21 @@
         </div>
         <q-pull-to-refresh @refresh="refreshReviews">
           <q-scroll-area :style="`height: ${maxHeight - (maxHeight*.2)}px`" style="overflow:auto;">
-
-            <div style="font-weight: 500;" class="q-pt-md q-mx-lg q-pb-sm q-px-md" v-for="(review, index) in reviewList" :key="index">
-              <div>{{  review.from_peer.name }}</div>
-              <div style="font-size: 12px; opacity: .5;">Order #{{  review.order }}</div>
+            <div class="q-py-md q-mx-lg q-pb-sm q-px-md" v-for="(review, index) in reviewList" :key="index">
+              <div class="bold-text md-font-size">{{  review.from_peer.name }}</div>
               <div class="q-py-xs q-pb-sm">
-                  <q-rating
-                    readonly
-                    v-model="review.rating"
-                    size="1.5em"
-                    color="yellow-9"
-                    icon="star"
-                  />
-                  <span style="font-size: 12px; opacity: .5; ">({{ review.rating }})</span>
-                </div>
-                <div>
-                  <q-input
-                    v-model="review.comment"
-                    :dark="darkMode"
-                    readonly
-                    dense
-                    outlined
-                    autogrow
-                    maxlength="200"
-                  />
-                </div>
+                <q-rating
+                  readonly
+                  v-model="review.rating"
+                  size="1.5em"
+                  color="yellow-9"
+                  icon="star"
+                />
+                <span class="sm-font-size"> ({{ review.rating }})</span>
+              </div>
+              <div v-if="review.comment.length > 0" class="md-font-size q-mx-sm">
+                {{ review.comment }}
+              </div>
             </div>
           </q-scroll-area>
         </q-pull-to-refresh>
@@ -51,7 +46,6 @@
   </q-dialog>
 </template>
 <script>
-import { getCookie } from 'src/wallet/ramp'
 export default {
   data () {
     return {
@@ -141,3 +135,21 @@ export default {
   }
 }
 </script>
+<style scoped>
+.xs-font-size {
+  font-size: x-small;
+}
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+.bold-text {
+  font-weight: bold;
+}
+</style>

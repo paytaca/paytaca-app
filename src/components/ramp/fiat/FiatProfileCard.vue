@@ -14,107 +14,104 @@
         />
       </div>
       <q-scroll-area :style="`height: ${minHeight - 100}px`" style="overflow-y:auto;">
-        <div class="text-center q-pt-none">
-          <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-          <div class="bold-text lg-font-size q-pt-sm">
-            {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+        <div v-if="user">
+          <div class="text-center q-pt-none">
+            <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+            <div class="bold-text lg-font-size q-pt-sm">
+              {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+            </div>
+          </div>
+          <!-- Edit Payment Methods -->
+          <div class="row q-mx-lg q-px-md q-pt-md" v-if="type === 'self'">
+            <q-btn
+              rounded
+              no-caps
+              label="Edit Payment Methods"
+              color="blue-8"
+              class="q-space q-mx-lg"
+              @click="state= 'edit-pm'"
+              icon="o_payments"
+              >
+            </q-btn>
+          </div>
+
+          <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
+            <q-btn
+              rounded
+              no-caps
+              label="See User Ads"
+              color="blue-8"
+              class="q-space"
+              icon="sym_o_sell"
+              @click="fetchUserAds()"
+              >
+            </q-btn>
+          </div> -->
+
+          <!-- User Stats -->
+          <div class="row justify-center q-px-sm q-pt-sm">
+            <q-rating
+              readonly
+              :model-value="user.rating ? user.rating : 0"
+              :v-model="user.rating"
+              size="1.5em"
+              color="yellow-9"
+              icon="star"
+            />
+            <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
+          </div>
+          <div class="text-center sm-font-size q-pt-sm">
+              <span>{{ user.trade_count }} trades</span>&nbsp;&nbsp;
+              <span>|</span>&nbsp;&nbsp;
+              <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
           </div>
         </div>
-
-        <!-- Edit Payment Methods -->
-        <div class="row q-mx-lg q-px-md q-pt-md" v-if="type === 'self'">
-          <q-btn
-            rounded
-            no-caps
-            label="Edit Payment Methods"
-            color="blue-8"
-            class="q-space"
-            @click="state= 'edit-pm'"
-            icon="o_payments"
-            >
-          </q-btn>
-        </div>
-
-        <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
-          <q-btn
-            rounded
-            no-caps
-            label="See User Ads"
-            color="blue-8"
-            class="q-space"
-            icon="sym_o_sell"
-            @click="fetchUserAds()"
-            >
-          </q-btn>
-        </div> -->
-
-        <!-- User Stats -->
-        <div class="text-center md-font-size subtext bold-text q-pt-md">
-            <span>{{ user.trade_count }} total trades</span>&nbsp;&nbsp;
-            <span>|</span>&nbsp;&nbsp;
-            <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
-        </div>
-        <div class="row justify-center q-px-sm q-pt-sm">
-          <q-rating
-            readonly
-            :model-value="user.rating ? user.rating : 0"
-            :v-model="user.rating"
-            size="1.5em"
-            color="yellow-9"
-            icon="star"
-          />
-          <span class="q-mx-sm">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
-        </div>
-
         <div class="q-px-sm q-pt-sm">
           <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
         </div>
 
         <!-- Comments -->
         <div>
-          <div>
+          <div v-if="reviewList.length === 0" class="text-center q-pt-md text-italized bold-text xm-font-size">
+            No Reviews Yet
+          </div>
+          <div v-else>
             <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
               <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'to-peer-review' }" @click="switchReviewType('to-peer-review')">Ad Review</button>
               <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'from-peer-review'}" @click="switchReviewType('from-peer-review')">User Review</button>
             </div>
-          </div>
-          <div v-if="reviewList.length !== 0"  class="text-center q-pt-lg xm-font-size bold-text">
-            Reviews
-          </div>
-          <div v-else class="text-center q-pt-md text-italized bold-text xm-font-size">
-            No Reviews Yet
-          </div>
-          <div class="q-mx-lg q-px-md">
-            <!-- <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;"> -->
-              <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
-                <div class="md-font-size bold-text">
-                  {{  review.from_peer.name }}
+            <div class="q-mx-lg q-px-md">
+              <!-- <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;"> -->
+                <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
+                  <div class="sm-font-size bold-text">
+                    {{  review.from_peer.name }}
+                  </div>
+                  <div class="sm-font-text">
+                    <q-rating
+                      readonly
+                      v-model="review.rating"
+                      size="1.5em"
+                      color="yellow-9"
+                      icon="star"
+                    />
+                    <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating.toFixed(1) : 0}})</span>
+                  </div>
+                  <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
+                    {{ review.comment }}
+                  </div>
+                  <q-separator :dark="darkMode" class="q-mt-md"/>
                 </div>
-                <div class="sm-font-text">
-                  <q-rating
-                    readonly
-                    v-model="review.rating"
-                    size="2em"
-                    color="yellow-9"
-                    icon="star"
-                  />
-                </div>
-                <div class="q-pt-sm q-px-xs">
-                  <q-input
-                    v-model="review.comment"
-                    :dark="darkMode"
-                    dense
-                    disable
-                    outlined
-                    autogrow
-                  />
-                </div>
-                <q-separator :dark="darkMode" class="q-mt-md"/>
+              <!-- </q-scroll-area> -->
+              <div class="row">
+                <q-btn
+                  flat
+                  class="col text-center text-blue sm-font-size q-mt-md"
+                  @click="openReviews=true">
+                  view more
+                  <!-- See All {{ reviewType === 'to-peer-review' ? 'Ad' : 'User' }} Reviews -->
+                </q-btn>
               </div>
-            <!-- </q-scroll-area> -->
-          </div>
-          <div v-if="reviewList.length !== 0">
-            <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See All {{ reviewType === 'to-peer-review' ? 'Ad' : 'User' }} Reviews</div>
+            </div>
           </div>
         </div>
       </q-scroll-area>
@@ -193,31 +190,33 @@ export default {
     ProgressLoader,
     FeedbackDialog
   },
-  async mounted () {
-    await this.processUserData()
-    await this.fetchTopReview()
+  mounted () {
+    this.processUserData()
+    this.fetchTopReview()
     this.isloaded = true
   },
   methods: {
-    async processUserData () {
+    processUserData () {
       if (this.type === 'self') {
         this.userId = this.$store.getters['ramp/getUser'].id
       } else {
         this.userId = this.userInfo.id
       }
-      await this.getUserInfo()
+      this.getUserInfo()
     },
     getUserInfo () {
       const vm = this
       vm.$axios.get(vm.apiURL + '/peer/detail', { headers: vm.authHeaders, params: { id: vm.userId } })
         .then(response => {
-          console.log(response.data)
           vm.user = response.data
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
     },
@@ -225,14 +224,16 @@ export default {
       const vm = this
       vm.$axios.put(vm.apiURL + '/peer/detail', { name: info.nickname }, { headers: vm.authHeaders })
         .then(response => {
-          // console.log(response.data)
           vm.$store.commit('ramp/updateUser', response.data)
           this.processUserData()
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
 
@@ -246,26 +247,23 @@ export default {
         console.log('not switch')
       }
     },
-    async fetchTopReview () {
+    fetchTopReview () {
       const vm = this
       const url = `${vm.apiURL}/order/feedback/peer`
-      let params = {}
+      const params = {}
 
       if (vm.reviewType === 'to-peer-review') {
         params.to_peer = this.userId
       } else {
         params.from_peer = this.userId
       }
-      await vm.$axios.get(url, {
+      vm.$axios.get(url, {
         params: params,
         headers: vm.authHeaders
       })
         .then(response => {
           if (response.data) {
-            // const data = response.data
             vm.reviewList = response.data
-            //console.log('reviews: ', vm.reviewList)
-
             // top 5 review
             if (vm.reviewList.length !== 0) {
               vm.reviewList = vm.reviewList.slice(0, 5)
@@ -273,9 +271,12 @@ export default {
           }
         })
         .catch(error => {
-          console.log(error)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
     }
