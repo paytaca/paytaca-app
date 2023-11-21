@@ -4,7 +4,7 @@ const denomDecimalPlaces = {
   BCH: { convert: 1, decimal: 8 },
   mBCH: { convert: 10 ** 3, decimal: 5 },
   Satoshis: { convert: 10 ** 8, decimal: 0 },
-  DEEM: { convert: 10 ** 3, decimal: 0 }
+  DEEM: { convert: 10 ** 5, decimal: 0 }
 }
 
 export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0) {

@@ -843,7 +843,7 @@ export default {
       if (this.setAmountInFiat) {
         this.sendAmountInFiat = amount
       } else {
-        this.sendData.amount = convertToBCH(this.denomination, amount)
+        this.sendData.amount = convertToBCH(this.selectedDenomination, amount)
         this.amountFormatted = tempAmountFormatted
       }
     },
@@ -1253,7 +1253,7 @@ export default {
     },
     onSelectedDenomination (value) {
       this.selectedDenomination = value
-      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount, true))
+      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount || 0, true))
     },
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
