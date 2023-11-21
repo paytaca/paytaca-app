@@ -38,6 +38,10 @@
             :src="selectedVariant?.imageUrl || product?.displayImageUrl"
             style="max-height:max(50vh, 400px);"
             class="rounded-borders"
+            @click="() => openImage(
+              selectedVariant?.imageUrl || product?.displayImageUrl,
+              selectedVariant?.imageUrl ? selectedVariant?.name : product?.name,
+            )"
           />
         </div>
         <div class="q-space q-pa-xs">
@@ -90,9 +94,11 @@
 <script setup>
 import { Cart, Collection, Product } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
+import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
+import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 
 const props = defineProps({
   collectionId: [Number, String],
@@ -100,6 +106,7 @@ const props = defineProps({
   variantId: [Number, String]
 })
 
+const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -195,6 +202,17 @@ const selectedVariant = computed(() => {
 function selectVariantFromProps() {
   const index = product.value.variants.findIndex(variant => variant?.id == props.variantId)
   selectedVariantIndex.value = Math.max(index, 0)
+}
+
+function openImage(img, title) {
+  if (!img) return
+  $q.dialog({
+    component: ImageViewerDialog,
+    componentProps: {
+      image: img,
+      title: title,
+    }
+  })  
 }
 
 async function refreshPage(done=() => {}) {
