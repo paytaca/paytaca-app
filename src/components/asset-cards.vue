@@ -1,54 +1,52 @@
 <template>
   <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-show="assets">
     <button v-show="manageAssets" class="btn-add-payment-method q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
-    <div v-for="i in 15" :key="i">
-      <div
-        v-for="(asset, index) in assets"
-        :key="index"
-        class="method-cards asset-card-border q-pa-md q-mr-none"
-        :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
-        @click="(event) => {
-          selectAsset(event, asset)
-        }"
-        :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
-      >
-        <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
-          <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
-          <p
-            class="col q-pl-sm"
-            :class="{'text-grad' : isDefaultTheme}"
-            style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;"
-          >
-            {{ asset.symbol }}
-          </p>
-        </div>
-        <div class="row" style="margin-top: -7px;">
-          <q-space />
-          <div v-if="!balanceLoaded && !manageAssets && asset.id === selectedAsset.id" style="width: 100%;">
-            <q-skeleton type="rect"/>
-          </div>
-          <template v-else>
-            <p v-if="!manageAssets" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
-              {{ convertTokenAmount(asset.balance, asset.decimals) }}
-            </p>
-          </template>
-
-          <div
-            v-if="manageAssets && asset.symbol !== 'BCH'"
-            @click="() => removeAsset(asset)"
-            style="float: right; width: 20px; margin-top: -5px;">
-            <q-btn icon="close" style="background: red; color: white" size="8px" flat round dense v-close-popup />
-          </div>
-        </div>
-        <!-- <div v-if="balanceLoaded" style="margin-top: -16px;">
-          <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
-            <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
-              {{ num2shortStr(getAssetMarketBalance(asset)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
-            </template>
-          </div>
-        </div> -->
-        <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
+    <div
+      v-for="(asset, index) in assets"
+      :key="index"
+      class="method-cards asset-card-border q-pa-md q-mr-none"
+      :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
+      @click="(event) => {
+        selectAsset(event, asset)
+      }"
+      :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
+    >
+      <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
+        <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
+        <p
+          class="col q-pl-sm"
+          :class="{'text-grad' : isDefaultTheme}"
+          style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;"
+        >
+          {{ asset.symbol }}
+        </p>
       </div>
+      <div class="row" style="margin-top: -7px;">
+        <q-space />
+        <div v-if="!balanceLoaded && !manageAssets && asset.id === selectedAsset.id" style="width: 100%;">
+          <q-skeleton type="rect"/>
+        </div>
+        <template v-else>
+          <p v-if="!manageAssets" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
+            {{ convertTokenAmount(asset.balance, asset.decimals) }}
+          </p>
+        </template>
+
+        <div
+          v-if="manageAssets && asset.symbol !== 'BCH'"
+          @click="() => removeAsset(asset)"
+          style="float: right; width: 20px; margin-top: -5px;">
+          <q-btn icon="close" style="background: red; color: white" size="8px" flat round dense v-close-popup />
+        </div>
+      </div>
+      <!-- <div v-if="balanceLoaded" style="margin-top: -16px;">
+        <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
+          <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
+            {{ num2shortStr(getAssetMarketBalance(asset)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
+          </template>
+        </div>
+      </div> -->
+      <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
   </div>
 </template>
@@ -170,18 +168,14 @@ export default {
     }
   },
   async mounted () {
-    if (this.$q.platform.is.bex) {
-      this.scrollContainer = document.getElementById('asset-container')
+    if (!this.$q.platform.is.mobile) {
+      this.scrollContainer = document.querySelector('#asset-container')
 
-      // this.scrollContainer.addEventListener("wheel",
-      //   (evt) {
-      //     evt.preventDefault()
-      //     this.scrollContainer.scrollLeft += evt.deltaY
-      //   })
+      this.scrollContainer.addEventListener('wheel', (evt) => {
+        evt.preventDefault()
+        this.scrollContainer.scrollLeft += evt.deltaY
+      })
     }
-  },
-  async beforeUnmount () {
-
   }
 }
 </script>
