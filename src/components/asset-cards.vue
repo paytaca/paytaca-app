@@ -168,14 +168,14 @@ export default {
     }
   },
   async mounted () {
-    if (!this.$q.platform.is.mobile) {
-      this.scrollContainer = document.querySelector('#asset-container')
+    // if (!this.$q.platform.is.mobile) {
+    this.scrollContainer = document.querySelector('#asset-container')
 
-      this.scrollContainer.addEventListener('wheel', (evt) => {
-        evt.preventDefault()
-        this.scrollContainer.scrollLeft += evt.deltaY
-      })
-    }
+    this.scrollContainer.addEventListener('wheel', (evt) => {
+      evt.preventDefault()
+      this.scrollContainer.scrollLeft += evt.deltaY
+    })
+    // }
   }
 }
 </script>
