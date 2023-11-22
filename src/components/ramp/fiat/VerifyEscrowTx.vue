@@ -61,20 +61,20 @@
           </div>
           <div class="row q-mb-md">
             <q-btn
-              v-if="!loading && !hideBtn"
+              :loading="loading"
+              :disable="loading || !txid"
               rounded
-              :disable="hideBtn"
               label="Verify"
               color="blue-6"
               class="col q-mx-lg q-mb-md q-py-sm q-my-md"
               @click="onVerify">
             </q-btn>
-            <div v-if="hideBtn" class="q-mt-md">
+            <!-- <div v-if="hideBtn" class="q-mt-md">
               <span v-if="state === 'verifying'">
-                Verifying transaction, please wait... <!--<span v-if="waitSeconds">({{ waitSeconds }}s)</span>-->
+                Verifying transaction, please wait...
               </span>
               <span v-if="state === 'sending'">Sending bch, please wait...</span>
-            </div>
+            </div> -->
           </div>
         </div>
       </q-scroll-area>
@@ -138,7 +138,6 @@ export default {
       vm.transactionId = this.$store.getters['ramp/getOrderTxid'](vm.orderId, vm.action)
     }
     await vm.fetchOrderDetail()
-    console.log('rampContract:', this.rampContract)
     vm.loading = false
   },
   beforeUnmount () {
@@ -155,18 +154,13 @@ export default {
         // vm.contract.balance = await getBalanceByAddress(vm.contract.address)
         if (this.rampContract) {
           vm.contract.balance = await this.rampContract.getBalance()
-          console.log('balance:', vm.contract.balance)
         }
-        // console.log('contract:', response.data.contract)
         const transactions = response.data.contract.transactions
         let valid = false
         let verifying = true
-        // console.log('transactions:', transactions)
         if (transactions) {
           for (let i = 0; i < transactions.length; i++) {
             const tx = transactions[i]
-            // console.log('action:', vm.action)
-            // console.log('tx:', tx)
             verifying = tx.verifying
             if (tx.action === vm.action) {
               vm.txExists = true
@@ -178,11 +172,9 @@ export default {
             }
           }
         }
-        // console.log('txExists:', vm.txExists, 'valid:', valid, 'verifying:', verifying)
         if (vm.txExists && !valid && !verifying) {
           vm.hideBtn = false
         }
-        // if (!vm.txExists) {
         vm.waitSeconds = 60
         vm.timer = setInterval(function () {
           vm.waitSeconds--
@@ -191,7 +183,6 @@ export default {
             clearInterval(vm.timer)
           }
         }, 1000)
-        // }
       } catch (error) {
         console.error(error.response)
         if (error.response && error.response.status === 403) {
@@ -202,15 +193,11 @@ export default {
     async verifyRelease () {
       const vm = this
       vm.state = 'verifying'
-      console.log('Verifying Release: ', vm.transactionId)
       const url = `${vm.apiURL}/order/${vm.orderId}/verify-release`
       const body = {
         txid: this.transactionId
       }
       await vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .then(response => {
-          // console.log('response:', response)
-        })
         .catch(error => {
           console.error(error.response)
           if (error.response && error.response.status === 403) {
@@ -220,13 +207,10 @@ export default {
           vm.errorMessages.push(errorMsg)
           vm.hideBtn = false
         })
-
-      // await this.fetchOrderData()
     },
     async verifyEscrow () {
       const vm = this
       vm.state = 'verifying'
-      console.log('Verifying escrow:', vm.transactionId)
       const url = vm.apiURL + '/order/' + vm.orderId + '/verify-escrow'
       const body = {
         txid: vm.transactionId

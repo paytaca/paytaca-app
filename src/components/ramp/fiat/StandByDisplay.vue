@@ -1,16 +1,15 @@
 <template>
   <div v-if="isloaded" class="q-mb-sm q-pb-sm">
-
-      <div class="q-mx-lg text-center bold-text">
-        <div class="lg-font-size">
-          <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
-        </div>
-        <div class="text-center subtext xs-font-size bold-text">ORDER #{{ order.id }}</div>
-        <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
+    <div class="q-mx-lg text-center bold-text">
+      <div class="lg-font-size">
+        <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
       </div>
-      <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
+      <div class="text-center subtext xs-font-size bold-text">ORDER #{{ order.id }}</div>
+      <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
+    </div>
+    <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
       <div class="q-px-sm q-pt-sm">
-        <div class="sm-font-size q-pb-xs">Amount</div>
+        <div class="sm-font-size q-pb-xs text-italic">Amount</div>
         <q-input
           class="q-pb-xs md-font-size"
           readonly
@@ -22,23 +21,37 @@
             <span class="md-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
           </template>
         </q-input>
-        <div class="col text-right md-font-size q-pl-sm">
+        <div class="col text-right sm-font-size q-pl-sm">
           = {{ formattedCurrency($parent.fiatAmount) }} {{ order.fiat_currency.symbol }}
+        </div>
+      </div>
+      <div v-if="order.status.value !== 'SBM' && order.status.value !== 'CNCL'">
+        <div class="q-mx-sm">
+          <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
+          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+          </q-input>
+          <div class="sm-font-size q-py-xs text-italic">Balance</div>
+          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.balance">
+            <template v-slot:append>
+              <span class="sm-font-size bold-text">BCH</span>
+            </template>
+          </q-input>
         </div>
       </div>
       <!-- Countdown Timer -->
       <div v-if="order.status.value !== 'APL'" class="q-mt-md q-px-md q-mb-sm">
-        <div class="row q-px-sm text-center sm-font-size" style="overflow-wrap: break-word;" v-if="!$parent.isExpired">
+        <div
+          class="row q-px-sm text-center sm-font-size"
+          style="overflow-wrap: break-word;"
+          v-if="!$parent.isExpired">
           <div v-if="hasLabel && !forRelease" class="row">
             <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
             <span class="col text-left q-ml-sm">{{ label }}</span>
           </div>
         </div>
-
           <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
             {{ countDown }}
           </div>
-
           <!-- Cancel Button -->
           <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
             <q-btn
@@ -50,7 +63,6 @@
               @click="$parent.cancellingOrder()"
             />
           </div>
-
           <!-- Appeal Button -->
           <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired">
             <div class="row q-pt-md">
@@ -64,87 +76,86 @@
               />
             </div>
           </div>
+      </div>
+      <div v-else>
+        <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+          <q-card-section>
+            <div class="bold-text md-font-size">Appeal reasons</div>
+            <div v-if="appeal">
+              <q-badge
+                v-for="reason in appeal.reasons"
+                :key="reason"
+                rounded
+                size="sm"
+                outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                :label="reason" />
+            </div>
+          </q-card-section>
+        </q-card>
+        <!-- <div class="row q-pt-md q-mx-lg">
+          <q-btn
+            rounded
+            no-caps
+            label='Chat'
+            class="q-space text-white"
+            color="blue-6"
+            @click="onChat"
+          />
+        </div> -->
+      </div>
+      <!-- Feedback -->
+      <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
+        <div class="md-font-size text-center">
+          <span v-if="!feedback.is_posted">Rate your experience</span>
+          <span v-else>Your Review</span>
         </div>
-        <div v-else>
-          <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
-            <q-card-section>
-              <div class="bold-text md-font-size">Appeal reasons</div>
-              <div v-if="appeal">
-                <q-badge
-                  v-for="reason in appeal.reasons"
-                  :key="reason"
-                  rounded
-                  size="sm"
-                  outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-                  :label="reason" />
-              </div>
-            </q-card-section>
-          </q-card>
-          <!-- <div class="row q-pt-md q-mx-lg">
-            <q-btn
-              rounded
-              no-caps
-              label='Chat'
-              class="q-space text-white"
-              color="blue-6"
-              @click="onChat"
+        <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
+        <div>
+          <div class="q-py-xs text-center">
+            <q-rating
+              :readonly="feedback.is_posted"
+              v-model="feedback.rating"
+              size="2em"
+              color="yellow-9"
+              icon="star"
             />
-          </div> -->
-        </div>
-        <!-- Feedback -->
-        <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
-          <div class="md-font-size text-center">
-            <span v-if="!feedback.is_posted">Rate your experience</span>
-            <span v-else>Your Review</span>
           </div>
-          <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
-          <div>
-            <div class="q-py-xs text-center">
-              <q-rating
-                :readonly="feedback.is_posted"
-                v-model="feedback.rating"
-                size="2em"
-                color="yellow-9"
-                icon="star"
-              />
-            </div>
-            <div class="q-pt-sm q-px-xs">
-              <q-input
-                v-if="!feedback.is_posted || (feedback.is_posted && feedback.comment)"
-                v-model="feedback.comment"
-                :dark="darkMode"
-                :readonly="feedback.is_posted"
-                placeholder="Add comment here..."
-                dense
-                outlined
-                autogrow
-                :counter="!feedback.is_posted"
-                maxlength="200"
-              />
-            </div>
-            <div class="row q-pt-xs q-px-xs">
-              <q-btn
-                v-if="!feedback.is_posted"
-                :disable="!feedback.rating"
-                rounded
-                label='Post Review'
-                class="q-space text-white"
-                color="blue-8"
-                @click="postingFeedback"
-              />
-              <!-- <q-btn
-                v-else
-                rounded
-                label='Edit Review'
-                class="q-space text-white"
-                color="blue-8"
-              /> -->
-            </div>
-            <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div>
+          <div class="q-pt-sm q-px-xs">
+            <q-input
+              v-if="!feedback.is_posted || (feedback.is_posted && feedback.comment)"
+              v-model="feedback.comment"
+              :dark="darkMode"
+              :readonly="feedback.is_posted"
+              placeholder="Add comment here..."
+              dense
+              outlined
+              autogrow
+              :counter="!feedback.is_posted"
+              maxlength="200"
+            />
           </div>
+          <div class="row q-pt-xs q-px-xs">
+            <q-btn
+              v-if="!feedback.is_posted"
+              :disable="!feedback.rating"
+              rounded
+              label='Post Review'
+              class="q-space text-white"
+              color="blue-8"
+              @click="postingFeedback"
+            />
+            <!-- <q-btn
+              v-else
+              rounded
+              label='Edit Review'
+              class="q-space text-white"
+              color="blue-8"
+            /> -->
+          </div>
+          <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div>
         </div>
-      </q-scroll-area>
-    <!-- </q-scroll-area> -->
+      </div>
+    </q-scroll-area>
   </div>
 
   <!-- Dialogs -->
@@ -190,6 +201,10 @@ export default {
       nickname: this.$store.getters['ramp/getUser'].name,
       order: null,
       appeal: null,
+      contract: {
+        address: null,
+        balance: null
+      },
       isloaded: false,
       countDown: '',
       timer: null,
@@ -207,7 +222,8 @@ export default {
   },
   props: {
     orderId: Number,
-    feedbackData: Object
+    feedbackData: Object,
+    rampContract: Object
   },
   emits: ['sendFeedback', 'submitAppeal'],
   components: {
@@ -222,7 +238,6 @@ export default {
       return this.order.status.label.toUpperCase()
     },
     forRelease () {
-      // console.log('order:', this.order)
       let release = false
       if (this.order.status.value === 'PD' &&
         (this.order.trade_type === 'BUY' && this.order.is_ad_owner)) {
@@ -285,20 +300,29 @@ export default {
     this.timer = null
   },
   methods: {
-    // receiveAppeal () {
-    //   console.log('creating appeal')
-    //   this.openDialog = false
-    // },
+    getContractBalance () {
+      const vm = this
+      if (this.rampContract) {
+        vm.rampContract.getBalance()
+          .then(balance => {
+            vm.contract.balance = balance
+          })
+          .catch(error => {
+            console.error(error)
+          })
+      }
+    },
     async fetchOrderDetail () {
       const vm = this
       const url = vm.apiURL + '/order/' + vm.orderId
       try {
         const response = await vm.$axios.get(url, { headers: vm.authHeaders })
-        // console.log('response: ', response)
         vm.order = response.data.order
+        vm.contract.address = response.data.contract.address
         vm.appeal = response.data.appeal
-        console.log('order: ', vm.order)
-        console.log('appeal: ', vm.appeal)
+        if (vm.contract.address && vm.contract.balance === null) {
+          vm.getContractBalance()
+        }
       } catch (error) {
         console.error(error.response)
         if (error.response && error.response.status === 403) {
@@ -313,7 +337,6 @@ export default {
       }
     },
     postingFeedback () {
-      // console.log('feedback: ', this.feedback)
       this.$emit('sendFeedback', this.feedback)
     },
     async onSubmitAppeal (data) {

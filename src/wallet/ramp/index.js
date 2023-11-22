@@ -2,7 +2,7 @@ import { loadWallet } from 'src/wallet'
 import { markRaw } from 'vue'
 import { Store } from '../../store'
 
-async function getRawWallet (index) {
+export async function getRawWallet (index) {
   const isChipnet = Store.getters['global/isChipnet']
   const rawWallet = await markRaw(loadWallet('BCH', index))
   let wallet = (rawWallet).BCH

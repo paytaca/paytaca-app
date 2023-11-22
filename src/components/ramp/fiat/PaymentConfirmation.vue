@@ -8,19 +8,26 @@
     <q-separator :dark="darkMode" class="q-mx-lg"/>
     <q-scroll-area :style="`height: ${minHeight - 175}px`" style="overflow-y:auto;">
       <div class="q-mt-md q-mx-lg q-px-md">
-        <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs">Please pay the seller</div>
-        <div v-else class="sm-font-size q-pb-xs">Expect fiat payment of</div>
-        <div @click="$parent.copyToClipboard($parent.fiatAmount)">
-          <q-input class="q-pb-xs" dense disable filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
-            <template v-slot:prepend>
-              <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
-            </template>
-            <template v-slot:append v-if="type === 'buyer'">
-              <q-icon  class="q-pr-sm" size="sm" name='o_content_copy' color="blue-grey-6"/>
+        <div class="q-my-sm">
+          <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
+          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+          </q-input>
+          <div class="sm-font-size q-py-xs text-italic">Balance</div>
+          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.balance">
+            <template v-slot:append>
+              <span class="sm-font-size bold-text">BCH</span>
             </template>
           </q-input>
         </div>
-        <!-- <div class="text-right bold-text subtext sm-font-size q-pr-sm"> ≈ {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div> -->
+        <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs text-italic">Please pay the seller</div>
+        <div v-else class="sm-font-size q-pb-xs text-italic">Expect fiat payment of</div>
+        <div @click="$parent.copyToClipboard($parent.fiatAmount)">
+          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
+            <template v-slot:append>
+              <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+            </template>
+          </q-input>
+        </div>
       </div>
       <div class="q-pt-sm text-center">
         <span class="sm-font-size">within</span>
@@ -71,7 +78,7 @@
         <div class="q-mx-lg q-px-md">
           <div v-if="type === 'seller'">
             <q-checkbox size="sm" v-model="confirmRelease" :dark="darkMode"/>
-            <span class="sm-font-size text-center">I confirm that I received payment</span>
+            <span class="sm-font-size text-center">I confirm that I have received payment</span>
           </div>
 
           <div v-if="type === 'buyer'">
@@ -129,6 +136,10 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
+      contract: {
+        address: null,
+        balance: null
+      },
       order: null,
       isloaded: false,
       countDown: '',
@@ -144,7 +155,8 @@ export default {
   },
   props: {
     orderId: Number,
-    type: String
+    type: String,
+    contractInfo: Object
   },
   components: {
     RampDragSlide
@@ -152,6 +164,10 @@ export default {
   emits: ['confirm'],
   async mounted () {
     const vm = this
+    if (vm.contractInfo) {
+      vm.contract = vm.contractInfo
+    }
+    console.log('vm.contractInfo:', vm.contractInfo)
     await vm.fetchOrderDetail()
     vm.paymentCountdown()
 
