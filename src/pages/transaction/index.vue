@@ -474,7 +474,9 @@ export default {
         return this.$store.getters['sep20/getAssets'][0]
       }
 
-      return this.$store.getters['assets/getAssets'][0]
+      const asset = this.$store.getters['assets/getAssets'][0]
+      this.formatBCHCardBalance(this.denomination, asset.balance)
+      return asset
     },
     mainchainAssets () {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
@@ -1156,10 +1158,11 @@ export default {
           })
       }
     },
-    formatBCHCardBalance (currentDenomination) {
+    formatBCHCardBalance (currentDenomination, currentBalance = 0) {
+      const balance = currentBalance || this.bchAsset.balance
       this.parsedBCHBalance = parseAssetDenomination(currentDenomination, {
         id: '',
-        balance: this.bchAsset.balance,
+        balance,
         symbol: 'BCH',
         decimals: 0
       }, false, 10)
