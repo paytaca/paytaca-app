@@ -1065,7 +1065,6 @@ async function refreshPage(done=() => {}) {
       fetchOrder(),
       fetchDelivery(),
       fetchPayments(),
-      fetchOrderCallSession(),
       chatButton.value?.refresh?.()
     ])
   } finally {
