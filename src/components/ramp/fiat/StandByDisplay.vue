@@ -30,7 +30,7 @@
           <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
           <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
           </q-input>
-          <div class="sm-font-size q-py-xs text-italic">Balance</div>
+          <div class="sm-font-size q-py-xs text-italic">Contract Balance</div>
           <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.balance">
             <template v-slot:append>
               <span class="sm-font-size bold-text">BCH</span>
@@ -290,7 +290,6 @@ export default {
       this.feedback = this.feedbackData
     }
     await this.fetchOrderDetail()
-
     this.paymentCountdown()
     this.checkStatus()
     this.isloaded = true

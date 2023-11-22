@@ -325,6 +325,7 @@ export default {
     returnOrderList () {
       const vm = this
       vm.state = 'order-list'
+      vm.resetAndRefetchListings()
     },
     viewUserProfile (data) {
       this.selectedUser = {

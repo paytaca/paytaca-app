@@ -156,7 +156,7 @@ export default {
   props: {
     orderId: Number,
     type: String,
-    contractInfo: Object
+    rampContract: Object
   },
   components: {
     RampDragSlide
@@ -164,10 +164,6 @@ export default {
   emits: ['confirm'],
   async mounted () {
     const vm = this
-    if (vm.contractInfo) {
-      vm.contract = vm.contractInfo
-    }
-    console.log('vm.contractInfo:', vm.contractInfo)
     await vm.fetchOrderDetail()
     vm.paymentCountdown()
 
@@ -184,12 +180,29 @@ export default {
     this.timer = null
   },
   methods: {
+    getContractBalance () {
+      const vm = this
+      if (this.rampContract) {
+        vm.rampContract.getBalance()
+          .then(balance => {
+            vm.contract.balance = balance
+            console.log('balance:', vm.contract.balance)
+          })
+          .catch(error => {
+            console.error(error)
+          })
+      }
+    },
     async fetchOrderDetail () {
       const vm = this
       const url = vm.apiURL + '/order/' + vm.orderId
       try {
         const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.order = response.data.order
+        vm.contract.address = response.data.contract.address
+        if (vm.contract.address && vm.contract.balance === null) {
+          vm.getContractBalance()
+        }
         vm.paymentMethods = response.data.order.ad.payment_methods.map(method => {
           return { ...method, selected: false }
         })

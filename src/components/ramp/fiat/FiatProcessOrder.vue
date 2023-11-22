@@ -63,7 +63,7 @@
         :key="paymentConfirmationKey"
         :order-id="order.id"
         :type="confirmType"
-        :contract-info="contractInfo"
+        :ramp-contract="rampContract"
         @confirm="handleConfirmPayment"
       />
     </div>
@@ -153,12 +153,6 @@ export default {
     }
   },
   computed: {
-    contractInfo () {
-      return {
-        address: this.contract.address,
-        balance: this.contract.balance
-      }
-    },
     transferAmount () {
       return Number(this.order.crypto_amount)
     },
@@ -266,7 +260,6 @@ export default {
           } else if (this.order.trade_type === 'SELL') {
             state = vm.order.is_ad_owner ? 'standby-view' : nextState
           }
-          vm.updateContractBalance()
           vm.state = state
           break
         }
@@ -277,7 +270,6 @@ export default {
             vm.state = vm.order.is_ad_owner ? 'payment-confirmation' : 'standby-view'
           }
           vm.confirmType = 'buyer'
-          vm.updateContractBalance()
           break
         case 'PD_PN': // Paid Pending
           if (this.order.trade_type === 'BUY') {
@@ -305,13 +297,11 @@ export default {
           vm.state = 'standby-view'
           vm.standByDisplayKey++
           vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
-          vm.updateContractBalance()
           break
         case 'RLS': // Released
           vm.state = 'standby-view'
           vm.standByDisplayKey++
           vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
-          vm.updateContractBalance()
           break
         default:
           // includes status = CNCL, APL, RFN_PN, RLS_PN
@@ -323,16 +313,6 @@ export default {
         vm.state = 'standby-view'
       }
     },
-    updateContractBalance () {
-      const vm = this
-      if (!vm.rampContract) return
-      vm.rampContract.getBalance()
-        .then(balance => {
-          vm.contract.balance = balance
-          vm.paymentConfirmationKey++
-        })
-    },
-
     // API CALLS
     fetchOrderData () {
       const vm = this
@@ -534,7 +514,6 @@ export default {
           }
           const timestamp = contract.timestamp
           vm.rampContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
-          vm.updateContractBalance()
         })
         .catch(error => {
           console.error(error)
