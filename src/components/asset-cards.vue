@@ -81,7 +81,8 @@ export default {
     return {
       assetClickCounter: 0,
       assetClickTimer: null,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      scrollContainer: null
     }
   },
   computed: {
@@ -163,6 +164,16 @@ export default {
         }
         vm.$store.commit('assets/removeAsset', asset.id)
       }).onCancel(() => {
+      })
+    }
+  },
+  async mounted () {
+    if (!this.$q.platform.is.mobile) {
+      this.scrollContainer = document.querySelector('#asset-container')
+
+      this.scrollContainer.addEventListener('wheel', (evt) => {
+        evt.preventDefault()
+        this.scrollContainer.scrollLeft += evt.deltaY
       })
     }
   }
