@@ -24,13 +24,13 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
 
-    const newBalance = String(calculatedBalance).substring(0, setSubStringMaxLength)
+    const newBalance = String(parseFloat(calculatedBalance)).substring(0, setSubStringMaxLength)
 
     completeAsset = `${newBalance} ${denomination}`
   } else {
     const isSLP = asset.id?.startsWith('slp/')
     const newBalance = String(
-      convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP)
+      parseFloat(convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP))
     ).substring(0, setSubStringMaxLength)
     completeAsset = `${newBalance} ${asset.symbol}`
   }
