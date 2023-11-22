@@ -26,7 +26,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
 
     const newBalance = String(calculatedBalance).substring(0, setSubStringMaxLength)
 
-    completeAsset = `${parseFloat(newBalance)} ${denomination}`
+    completeAsset = `${parseFloat(newBalance).toFixed(8)} ${denomination}`
   } else {
     const isSLP = asset.id?.startsWith('slp/')
     const newBalance = String(
