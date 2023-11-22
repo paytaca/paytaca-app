@@ -79,6 +79,7 @@ export function getAllAssetList (context) {
 }
 
 export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null }) {
+  console.log('Updating asset prices...')
   const selectedCurrency = context.state.selectedCurrency?.symbol
   const assetList = await context.dispatch('getAllAssetList')
   const coinIds = [...assetList.mainchain, ...assetList.smartchain]
@@ -91,8 +92,12 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
   if (customCurrency && selectedCurrency !== customCurrency) vsCurrencies.push(customCurrency)
 
   const { data: prices } = await axios.get(
-    'https://api.coingecko.com/api/v3/simple/price',
+    // 'https://api.coingecko.com/api/v3/simple/price',
+    'https://pro-api.coingecko.com/api/v3/simple/price',
     {
+      headers: {
+        'x-cg-pro-api-key': process.env.COINGECKO_API_KEY
+      },
       params: {
         ids: coinIds.join(','),
         vs_currencies: vsCurrencies.join(','),
