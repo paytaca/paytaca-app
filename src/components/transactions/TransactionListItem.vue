@@ -14,13 +14,22 @@
             class="q-mb-none transactions-wallet amount float-right ib-text text-right"
             :class="[getDarkModeClass(darkMode), {'q-mt-sm': !marketValueData?.marketValue }]"
           >
-            <div>
+            <div v-if="transaction?.record_type === 'outgoing'">
               {{
-                parseAssetDenomination(
+                `-${parseAssetDenomination(
                   denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                   ...asset,
                   balance: transaction?.amount
-                })
+                })}`
+              }}
+            </div>
+            <div v-else>
+              {{
+                `${parseAssetDenomination(
+                  denomination === $t('DEEM') ? denominationTabSelected : denomination, {
+                  ...asset,
+                  balance: transaction?.amount
+                })}`
               }}
             </div>
             <div
