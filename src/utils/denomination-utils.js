@@ -8,7 +8,7 @@ const denomDecimalPlaces = {
 }
 
 export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0) {
-  const balanceCheck = asset.balance ?? 0
+  const balanceCheck = Math.abs(asset.balance ?? 0)
   const isBCH = asset.symbol === 'BCH'
   const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
   let completeAsset = ''
@@ -26,7 +26,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
 
     const newBalance = String(calculatedBalance).substring(0, setSubStringMaxLength)
 
-    completeAsset = `${parseFloat(newBalance).toFixed(8)} ${denomination}`
+    completeAsset = `${newBalance} ${denomination}`
   } else {
     const isSLP = asset.id?.startsWith('slp/')
     const newBalance = String(
