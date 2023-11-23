@@ -474,7 +474,9 @@ export default {
         return this.$store.getters['sep20/getAssets'][0]
       }
 
-      return this.$store.getters['assets/getAssets'][0]
+      const asset = this.$store.getters['assets/getAssets'][0]
+      this.formatBCHCardBalance(this.denomination, asset.balance)
+      return asset
     },
     mainchainAssets () {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
@@ -1156,10 +1158,11 @@ export default {
           })
       }
     },
-    formatBCHCardBalance (currentDenomination) {
+    formatBCHCardBalance (currentDenomination, currentBalance = 0) {
+      const balance = currentBalance || this.bchAsset.balance
       this.parsedBCHBalance = parseAssetDenomination(currentDenomination, {
         id: '',
-        balance: this.bchAsset.balance,
+        balance,
         symbol: 'BCH',
         decimals: 0
       }, false, 10)
@@ -1217,6 +1220,11 @@ export default {
       vm.onConnectivityChange(true)
     }
 
+    // If asset prices array is empty, immediately fetch asset prices
+    if (vm.$store.state.market.assetPrices.length === 0) {
+      vm.$store.dispatch('market/updateAssetPrices', {})
+    }
+
     const assets = this.$store.getters['assets/getAssets']
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
@@ -1245,7 +1253,7 @@ export default {
     top: 0 !important;
     right: 0;
     left: 0;
-    
+
   }
   .transaction-row {
     position: relative;

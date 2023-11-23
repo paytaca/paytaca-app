@@ -775,17 +775,12 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0]) {
-        const payloadAmountValue = paymentUriData.outputs[0].amount?.value
-        const payloadAmountCurrency = paymentUriData.outputs[0].amount?.currency
-
-        currency = payloadAmountCurrency ?? this.selectedMarketCurrency
+        currency = paymentUriData.outputs[0].amount?.currency
         this.paymentCurrency = currency
         this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
 
-        amountValue = payloadAmountCurrency === null && payloadAmountValue !== null
-          ? this.convertToFiatAmount(payloadAmountValue)
-          : payloadAmountValue
-        this.payloadAmount = payloadAmountValue
+        amountValue = paymentUriData.outputs[0].amount?.value
+        this.payloadAmount = paymentUriData.outputs[0].amount?.value
         address = paymentUriData.outputs[0].address
         // this.sendData.fixedRecipientAddress = true
         currentRecipient.fixedRecipientAddress = true
