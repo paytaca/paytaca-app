@@ -520,11 +520,13 @@ export default {
         })
     },
     submitAppeal (data) {
+      console.log('submitAppeal')
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
       vm.$axios.post(url, data, { headers: vm.authHeaders })
         .then(response => {
           this.updateStatus(response.data.status)
+          console.log('submitAppeal response:', response)
         })
         .catch(error => {
           console.error(error)

@@ -785,7 +785,7 @@ export default {
           vm.updateStoreFilters(JSON.parse(JSON.stringify(vm.filters)))
           break
         case 'appeal':
-          vm.appeal = true
+          vm.appealForm = true
           break
         case 'genericDialog':
         case 'confirmPayment':
@@ -870,6 +870,7 @@ export default {
     submitData () {
       const vm = this
       const emitName = vm.stageData()
+      console.log('submitData:', emitName)
       this.$emit(emitName, vm.info)
     },
     filterPaymentTypes (type = '') {
@@ -886,6 +887,7 @@ export default {
       this.paymentTypes = match
     },
     onProceedAppeal () {
+      console.log('onProceedAppeal')
       this.appeal = false
       this.appealForm = true
     },

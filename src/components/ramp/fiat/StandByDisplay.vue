@@ -8,6 +8,22 @@
       <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
     </div>
     <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
+      <div v-if="order.status.value === 'APL'">
+        <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+          <q-card-section>
+            <div class="bold-text md-font-size">Appeal reasons</div>
+            <div v-if="appeal">
+              <q-badge
+                v-for="reason in appeal.reasons"
+                :key="reason"
+                rounded
+                size="sm"
+                outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                :label="reason" />
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
       <div class="q-px-sm q-pt-sm">
         <div class="sm-font-size q-pb-xs text-italic">Amount</div>
         <q-input
@@ -29,6 +45,11 @@
         <div class="q-mx-sm">
           <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
           <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+            <template v-slot:append>
+              <div v-if="contract.address" @click="copyToClipboard(contract.address)">
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+              </div>
+            </template>
           </q-input>
           <div class="sm-font-size q-py-xs text-italic">Contract Balance</div>
           <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.balance">
@@ -37,6 +58,17 @@
             </template>
           </q-input>
         </div>
+      </div>
+      <div v-if="order.status.value === 'APL'" class="row q-pt-md q-mx-lg">
+        <q-btn
+          disable
+          rounded
+          no-caps
+          label='Chat'
+          class="q-space text-white"
+          color="blue-6"
+          @click="onChat"
+        />
       </div>
       <!-- Countdown Timer -->
       <div v-if="order.status.value !== 'APL'" class="q-mt-md q-px-md q-mb-sm">
@@ -76,32 +108,6 @@
               />
             </div>
           </div>
-      </div>
-      <div v-else>
-        <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
-          <q-card-section>
-            <div class="bold-text md-font-size">Appeal reasons</div>
-            <div v-if="appeal">
-              <q-badge
-                v-for="reason in appeal.reasons"
-                :key="reason"
-                rounded
-                size="sm"
-                outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-                :label="reason" />
-            </div>
-          </q-card-section>
-        </q-card>
-        <!-- <div class="row q-pt-md q-mx-lg">
-          <q-btn
-            rounded
-            no-caps
-            label='Chat'
-            class="q-space text-white"
-            color="blue-6"
-            @click="onChat"
-          />
-        </div> -->
       </div>
       <!-- Feedback -->
       <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
@@ -380,6 +386,15 @@ export default {
       } else {
         return formatCurrency(value)
       }
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        color: 'blue-9',
+        message: this.$t('CopiedToClipboard'),
+        icon: 'mdi-clipboard-check',
+        timeout: 200
+      })
     }
   }
 }
