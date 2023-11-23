@@ -64,7 +64,9 @@
         :order-id="order.id"
         :type="confirmType"
         :ramp-contract="rampContract"
-        @confirm="handleConfirmPayment"
+        :errors="errorMessages"
+        @expired="handleExpired"
+        @verify-release="handleVerifyRelease"
       />
     </div>
   </div>
@@ -86,7 +88,7 @@
   </div>
 </template>
 <script>
-import { formatCurrency, getWalletPrivateKey } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/wallet/ramp'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
@@ -203,12 +205,6 @@ export default {
           })
         vm.setupWebsocket()
       })
-    // if (!vm.order) {
-    //   vm.order = vm.orderData
-    // }
-    // if (vm.order.status.value === 'RLS') {
-    //   vm.getOrderFeedback()
-    // }
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -225,7 +221,7 @@ export default {
     checkStep () {
       const vm = this
       vm.openDialog = false
-      console.log('Checking step:', vm.status)
+      // console.log('Checking step:', vm.status)
       switch (vm.status.value) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
@@ -272,27 +268,30 @@ export default {
           vm.confirmType = 'buyer'
           break
         case 'PD_PN': // Paid Pending
-          if (this.order.trade_type === 'BUY') {
+          vm.txid = null
+          if (vm.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'payment-confirmation' : 'standby-view'
             vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
-          } else if (this.order.trade_type === 'SELL') {
+          } else if (vm.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'payment-confirmation'
             vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
           }
           break
-        case 'PD': // Paid
+        case 'PD': { // Paid
+          vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
           vm.state = 'standby-view'
           vm.verifyAction = 'RELEASE'
-          if (this.order.trade_type === 'BUY') {
-            vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
-          } else if (this.order.trade_type === 'SELL') {
-            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
-          }
-          this.txid = null
-          if (!this.rampContract) {
-            vm.generateContract()
+          let nextState = 'tx-confirmation'
+          if (vm.order.trade_type === 'BUY') {
+            if (!vm.txid) nextState = 'payment-confirmation'
+            vm.state = vm.order.is_ad_owner ? nextState : 'standby-view'
+            vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
+          } else if (vm.order.trade_type === 'SELL') {
+            vm.state = vm.order.is_ad_owner ? 'standby-view' : nextState
+            vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
           }
           break
+        }
         case 'RFN': // Refunded
           vm.state = 'standby-view'
           vm.standByDisplayKey++
@@ -324,6 +323,9 @@ export default {
             vm.contract = response.data.contract
             vm.fees = response.data.fees
             vm.updateStatus(vm.order.status)
+            if (vm.contract) {
+              vm.generateContract()
+            }
             resolve(response.data)
           })
           .catch(error => {
@@ -400,55 +402,6 @@ export default {
           }
         })
     },
-    sendConfirmPayment (type) {
-      const vm = this
-      vm.isloaded = false
-      const url = `${this.apiURL}/order/${vm.order.id}/confirm-payment/${type}`
-      const body = {
-        payment_methods: this.selectedPaymentMethods
-      }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .then(response => {
-          vm.updateStatus(response.data.status)
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          }
-        })
-      vm.isloaded = true
-    },
-    async releaseCrypto () {
-      const vm = this
-      vm.txid = null
-      const feContractAddr = await vm.rampContract.getAddress()
-      const beContractAddr = vm.contract.address
-      if (feContractAddr !== beContractAddr) {
-        vm.errorMessages.push('contract addresses mismatched')
-      }
-      const privateKeyWif = await getWalletPrivateKey()
-      vm.rampContract.release(privateKeyWif, vm.order.crypto_amount)
-        .then(result => {
-          vm.txid = result.txInfo.txid
-          vm.verifyEscrowTxKey++
-
-          const txidData = {
-            id: vm.order.id,
-            txidInfo: {
-              action: 'RELEASE',
-              txid: vm.txid
-            }
-          }
-          vm.$store.commit('ramp/saveTxid', txidData)
-        })
-        .catch(error => {
-          console.error('release error:', error.response)
-        })
-    },
     verifyRelease () {
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
@@ -491,6 +444,7 @@ export default {
     },
     generateContract () {
       const vm = this
+      if (vm.rampContract) return
       vm.fetchOrderData()
         .then(data => {
           const contract = data.contract
@@ -520,13 +474,11 @@ export default {
         })
     },
     submitAppeal (data) {
-      console.log('submitAppeal')
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
       vm.$axios.post(url, data, { headers: vm.authHeaders })
         .then(response => {
           this.updateStatus(response.data.status)
-          console.log('submitAppeal response:', response)
         })
         .catch(error => {
           console.error(error)
@@ -598,28 +550,23 @@ export default {
         })
     },
     // Recieve Dialogs
+    handleExpired () {
+      this.state = 'standby-view'
+    },
+    handleVerifyRelease (txid) {
+      this.txid = txid
+      this.checkStep()
+    },
     async handleDialogResponse () {
       const vm = this
       vm.isloaded = false
       switch (vm.dialogType) {
-        case 'confirmReleaseCrypto':
-          await this.releaseCrypto()
-          // await vm.verifyRelease()
-          break
         case 'confirmCancelOrder':
           vm.cancelOrder()
           vm.$emit('back')
           break
         case 'confirmOrder':
           vm.confirmOrder()
-          // vm.fetchOrderData()
-          // vm.checkStep()
-          break
-        case 'confirmPayment':
-          vm.sendConfirmPayment(vm.confirmType)
-          if (vm.confirmType === 'buyer') {
-            vm.fetchOrderData()
-          }
           break
       }
       vm.title = ''
@@ -638,24 +585,6 @@ export default {
       this.openDialog = true
       this.title = 'Cancel this order?'
     },
-    releasingCrypto () {
-      this.dialogType = 'confirmReleaseCrypto'
-      this.openDialog = true
-      this.title = 'Release crypto?'
-    },
-    async handleConfirmPayment (data) {
-      this.selectedPaymentMethods = data
-      if (this.confirmType === 'buyer') {
-        this.dialogType = 'confirmPayment'
-        this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
-        this.text = this.confirmType === 'buyer' ? 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.' : 'This will release the crypto held by the escrow account to the buyer.'
-        this.openDialog = true
-      } else {
-        this.sendConfirmPayment(this.confirmType)
-        this.releaseCrypto()
-      }
-    },
-
     // Others
     formattedCurrency (value, currency = null) {
       if (currency) {

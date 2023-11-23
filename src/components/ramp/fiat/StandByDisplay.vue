@@ -4,7 +4,7 @@
       <div class="lg-font-size">
         <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
       </div>
-      <div class="text-center subtext xs-font-size bold-text">ORDER #{{ order.id }}</div>
+      <div class="text-center subtext md-font-size bold-text">ORDER #{{ order.id }}</div>
       <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
     </div>
     <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
@@ -25,7 +25,7 @@
         </q-card>
       </div>
       <div class="q-px-sm q-pt-sm">
-        <div class="sm-font-size q-pb-xs text-italic">Amount</div>
+        <div class="sm-font-size q-pb-xs q-ml-xs">Amount</div>
         <q-input
           class="q-pb-xs md-font-size"
           readonly
@@ -41,9 +41,9 @@
           = {{ fiatAmount }} {{ order.fiat_currency.symbol }}
         </div>
       </div>
-      <div v-if="order.status.value !== 'SBM' && order.status.value !== 'CNCL'">
+      <div v-if="displayContractInfo">
         <div class="q-mx-sm">
-          <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
+          <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
           <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
             <template v-slot:append>
               <div v-if="contract.address" @click="copyToClipboard(contract.address)">
@@ -51,10 +51,10 @@
               </div>
             </template>
           </q-input>
-          <div class="sm-font-size q-py-xs text-italic">Contract Balance</div>
-          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.balance">
+          <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+          <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="contract.balance">
             <template v-slot:append>
-              <span class="sm-font-size bold-text">BCH</span>
+              <span class="sm-font-size bold-text md-font-size">BCH</span>
             </template>
           </q-input>
         </div>
@@ -96,8 +96,8 @@
             />
           </div>
           <!-- Appeal Button -->
-          <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired">
-            <div class="row q-pt-md">
+          <div v-if="countDown === 'Expired' || order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired">
+            <div class="row q-pt-xs">
               <q-btn
                 rounded
                 no-caps
@@ -236,6 +236,10 @@ export default {
     FeedbackDialog
   },
   computed: {
+    displayContractInfo () {
+      const status = this.order.status.value
+      return status !== 'SBM' && status !== 'CNF' && status !== 'CNCL'
+    },
     isCompletedOrder () {
       return (this.order.status.value === 'RLS' || this.order.status.value === 'RFN')
     },
@@ -263,7 +267,8 @@ export default {
       return this.$parent.formattedCurrency(this.order.crypto_amount)
     },
     fiatAmount () {
-      const amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
+      let amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+      if (amount > 1) amount = amount.toFixed(2)
       return this.$parent.formattedCurrency(amount)
     },
     statusColor () {
@@ -361,10 +366,8 @@ export default {
     },
     paymentCountdown () {
       const vm = this
-
       if (vm.order.expiration_date) {
         const expiryDate = new Date(vm.order.expiration_date)
-
         vm.timer = setInterval(function () {
           const now = new Date().getTime()
           const distance = expiryDate - now

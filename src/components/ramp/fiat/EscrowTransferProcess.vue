@@ -5,7 +5,7 @@
       <q-separator :dark="darkMode" class="q-mx-lg"/>
       <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
         <div class="q-mx-lg q-px-lg q-pt-md">
-          <div class="sm-font-size q-pl-sm q-pb-xs">Arbiter</div>
+          <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
           <q-select
             class="q-pb-sm"
             :dark="darkMode"
@@ -35,7 +35,7 @@
           <!-- </div> -->
           <!-- <div class="row q-mt-md"> -->
 
-          <div class="sm-font-size q-pl-sm q-pb-xs">Contract Address</div>
+          <div class="sm-font-size q-pl-xs q-pb-xs">Contract Address</div>
           <q-input
             class="q-pb-sm"
             readonly
@@ -51,8 +51,9 @@
             </template>
           </q-input>
 
-          <div class="sm-font-size q-pl-sm q-pb-xs">Transfer Amount</div>
+          <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
           <q-input
+            class="q-pb-xs md-font-size"
             readonly
             filled
             dense
@@ -61,9 +62,12 @@
             :error="balanceExceeded"
             :error-message="balanceExceeded? $t('Insufficient balance') : ''">
             <template #append>
-              <div class="sm-font-size">BCH</div>
+              <div class="md-font-size">BCH</div>
             </template>
           </q-input>
+          <div class="col text-right sm-font-size q-pl-sm">
+            = {{ fiatAmount }} {{ order.fiat_currency.symbol }}
+          </div>
           <!-- </div> -->
           <div class="row q-mb-md" v-if="sendErrors.length > 0">
             <div class="col">
@@ -80,10 +84,10 @@
               <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
             </div>
             <div v-else class="sm-font-size q-mt-sm">
-              <div v-if="fees" class="row q-ml-md">
+              <div v-if="fees" class="row q-ml-xs">
                 Fee: {{ fees.total / 100000000 }} BCH
               </div>
-              <div class="row q-ml-md q-mt-xs">
+              <div class="row q-ml-xs">
                 Balance: {{ balance }} BCH
               </div>
             </div>
@@ -126,7 +130,7 @@ export default {
       selectedArbiter: null,
       arbiterOptions: [],
       contractAddress: null,
-      transferAmount: ' ',
+      transferAmount: null,
       txid: null,
       fees: null,
       showDragSlide: true,
@@ -171,6 +175,11 @@ export default {
         return true
       }
       return false
+    },
+    fiatAmount () {
+      let amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+      if (amount > 1) amount = amount.toFixed(2)
+      return this.$parent.formattedCurrency(amount)
     }
   },
   async mounted () {
@@ -183,7 +192,6 @@ export default {
   methods: {
     async completePayment () {
       const vm = this
-      console.log('completePayment:', this.order)
       const status = vm.order.status.value
       vm.sendErrors = []
       if (status === 'CNF') {
@@ -242,7 +250,6 @@ export default {
         vm.loading = true
         vm.$axios.post(url, null, { headers: vm.authHeaders })
           .then(response => {
-            console.log('response:', response)
             resolve(response.data)
           })
           .catch(error => {
@@ -277,7 +284,6 @@ export default {
       const url = vm.apiURL + '/arbiter'
       vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
-          console.log('response:', response)
           vm.arbiterOptions = response.data
           vm.selectedArbiter = vm.order.arbiter
           if (vm.arbiterOptions.length > 0) {

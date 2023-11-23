@@ -62,7 +62,7 @@
           <div class="row q-mb-md">
             <q-btn
               :loading="loading"
-              :disable="loading || !txid"
+              :disable="loading || !transactionId"
               rounded
               label="Verify"
               color="blue-6"
@@ -138,6 +138,7 @@ export default {
       vm.transactionId = this.$store.getters['ramp/getOrderTxid'](vm.orderId, vm.action)
     }
     await vm.fetchOrderDetail()
+    console.log('rampContract:', vm.rampContract)
     vm.loading = false
   },
   beforeUnmount () {
