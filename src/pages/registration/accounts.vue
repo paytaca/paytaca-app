@@ -504,36 +504,34 @@ export default {
     const vm = this
     await vm.$store.dispatch('market/updateSupportedCurrencies', {})
     // auto-detect country
+    let countryFromIP = {
+      name: 'United States',
+      code: 'US'
+    }
+    let currencyFromIP = {
+      symbol: 'USD',
+      name: 'United States Dollar'
+    }
+    let langsFromIP = 'en-us'
     const apiKey = process.env.IPGEO_API_KEY
-    const [countryFromIP, currencyFromIP, langsFromIP] = await this.$axios
-      .get(`https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`)
-      .then(response => {
-        return [
-          {
-            name: response.data?.country_name,
-            code: response.data?.country_code2
-          },
-          {
-            symbol: response.data?.currency.code,
-            name: response.data?.currency?.name
-          },
-          response.data?.languages?.toLowerCase().split(',')
-        ]
-      }).catch((error) => {
-        console.error(error)
-        // return default values
-        return [
-          {
-            name: 'United States',
-            code: 'US'
-          },
-          {
-            symbol: 'USD',
-            name: 'United States Dollar'
-          },
-          'en-us'
-        ]
-      })
+    const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`
+    await this.$axios.get(url).then(response => {
+      if (response.data?.country_name) {
+        countryFromIP = {
+          name: response.data?.country_name,
+          code: response.data?.country_code2
+        }
+      }
+      if (response.data?.currency.code) {
+        currencyFromIP = {
+          symbol: response.data?.currency.code,
+          name: response.data?.currency?.name
+        }
+      }
+      if (response.data?.languages) {
+        langsFromIP = response.data?.languages?.toLowerCase().split(',')
+      }
+    })
     
     setTimeout(function () {
       // set country
