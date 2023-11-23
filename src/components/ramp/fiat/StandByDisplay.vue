@@ -38,7 +38,7 @@
           </template>
         </q-input>
         <div class="col text-right sm-font-size q-pl-sm">
-          = {{ formattedCurrency($parent.fiatAmount) }} {{ order.fiat_currency.symbol }}
+          = {{ fiatAmount }} {{ order.fiat_currency.symbol }}
         </div>
       </div>
       <div v-if="order.status.value !== 'SBM' && order.status.value !== 'CNCL'">
@@ -196,7 +196,6 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { formatCurrency } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -263,6 +262,10 @@ export default {
     cryptoAmount () {
       return this.$parent.formattedCurrency(this.order.crypto_amount)
     },
+    fiatAmount () {
+      const amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
+      return this.$parent.formattedCurrency(amount)
+    },
     statusColor () {
       const stat = this.order.status.value
 
@@ -323,15 +326,20 @@ export default {
       try {
         const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.order = response.data.order
-        vm.contract.address = response.data.contract.address
+        if (response.data.contract) {
+          vm.contract.address = response.data.contract.address
+        }
         vm.appeal = response.data.appeal
         if (vm.contract.address && vm.contract.balance === null) {
           vm.getContractBalance()
         }
       } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        console.error(error)
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
         }
       }
     },
@@ -378,13 +386,6 @@ export default {
             vm.countDown = 'Expired'
           }
         }, 1000)
-      }
-    },
-    formattedCurrency (value, currency = null) {
-      if (currency) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
       }
     },
     copyToClipboard (value) {

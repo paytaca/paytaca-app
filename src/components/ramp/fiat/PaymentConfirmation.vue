@@ -21,8 +21,8 @@
         </div>
         <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs text-italic">Please pay the seller</div>
         <div v-else class="sm-font-size q-pb-xs text-italic">Expect fiat payment of</div>
-        <div @click="$parent.copyToClipboard($parent.fiatAmount)">
-          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="$parent.fiatAmount" :rules="[$parent.isValidInputAmount]">
+        <div @click="$parent.copyToClipboard(fiatAmount)">
+          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="fiatAmount" :rules="[$parent.isValidInputAmount]">
             <template v-slot:append>
               <span class="sm-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
             </template>
@@ -162,6 +162,11 @@ export default {
     RampDragSlide
   },
   emits: ['confirm'],
+  computed: {
+    fiatAmount () {
+      return Number(this.$parent.formattedCurrency(this.$parent.fiatAmount)).toFixed(2)
+    }
+  },
   async mounted () {
     const vm = this
     await vm.fetchOrderDetail()

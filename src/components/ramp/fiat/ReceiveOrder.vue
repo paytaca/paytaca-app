@@ -111,10 +111,10 @@ export default {
   emits: ['confirm', 'cancel'],
   computed: {
     fiatAmount () {
-      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
     },
     cryptoAmount () {
-      return (this.fiatAmount / this.order.locked_price).toFixed(8)
+      return (this.fiatAmount / this.order.locked_price).toFixed(2)
     }
   },
   watch: {
@@ -134,11 +134,13 @@ export default {
       return getPaymentTimeLimit(value)
     },
     updateInput () {
+      let amount = 0
       if (this.byFiat) {
-        this.amount = parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+        amount = parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
       } else {
-        this.amount = parseFloat(this.order.crypto_amount)
+        amount = parseFloat(this.order.crypto_amount)
       }
+      this.amount = Number(amount)
     }
   }
 }

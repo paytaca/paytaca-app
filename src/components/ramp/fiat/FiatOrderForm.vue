@@ -60,8 +60,8 @@
                 dense
                 label="Amount"
                 :dark="darkMode"
-                v-model="amount"
                 :rules="[isValidInputAmount]"
+                v-model="amount"
                 @blur="resetInput">
                 <template v-slot:append>
                   <span class="sm-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
@@ -216,7 +216,6 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
-// import FiatStoreBuyProcess from './FiatStoreBuyProcess.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
@@ -269,12 +268,14 @@ export default {
       return getPaymentTimeLimit(this.ad.time_duration)
     },
     equivalentAmount () {
-      if (this.amount === '' || isNaN(this.amount)) return 0
+      let amount = this.amount
+      if (amount === '' || isNaN(amount)) return 0
       if (!this.byFiat) {
-        return parseFloat(this.amount) * parseFloat(this.ad.price)
+        amount = Number(parseFloat(amount) * parseFloat(this.ad.price))
       } else {
-        return (parseFloat(this.amount) / parseFloat(this.ad.price)).toFixed(8)
+        amount = Number(parseFloat(amount) / parseFloat(this.ad.price))
       }
+      return amount
     },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
@@ -315,9 +316,7 @@ export default {
       try {
         const response = await vm.$axios.get(url, { headers: vm.authHeaders })
         vm.ad = response.data
-        // console.log('ad:', vm.ad)
-        // set the minimum trade amount in form
-        this.amount = this.ad.trade_floor // remove later
+        this.amount = this.ad.trade_floor
       } catch (error) {
         console.log(error.response)
         if (error.response && error.response.status === 403) {
@@ -328,18 +327,14 @@ export default {
     async createOrder () {
       const vm = this
       const cryptoAmount = vm.getCryptoAmount()
-      // console.log('cryptoAmount:', cryptoAmount)
       const body = {
         ad: vm.ad.id,
         crypto_amount: cryptoAmount.toFixed(8)
       }
       if (vm.ad.trade_type === 'BUY') {
         const temp = this.paymentMethods.map(p => p.id)
-        // console.log(temp)
         body.payment_methods = temp
       }
-      // console.log('headers:', headers)
-      // console.log('body:', body)
       try {
         const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: vm.authHeaders })
         console.log('response:', response)
@@ -361,8 +356,6 @@ export default {
     },
     isValidInputAmount (value) {
       if (this.byFiat) {
-        // console.log(this.byFiat)
-        // console.log(this.equivalentAmount)
         value = this.equivalentAmount
       }
       if (value === undefined) return false
@@ -383,13 +376,15 @@ export default {
       }
     },
     updateInput (max = false, min = false) {
-      if (min) this.amount = parseFloat(this.ad.trade_floor)
-      if (max) this.amount = parseFloat(this.ad.trade_ceiling)
+      let amount = this.amount
+      if (min) amount = parseFloat(this.ad.trade_floor)
+      if (max) amount = parseFloat(this.ad.trade_amount)
       if (!this.byFiat) {
-        if (!max && !min) this.amount = parseFloat(this.amount) / parseFloat(this.ad.price)
+        if (!max && !min) amount = Number(parseFloat(amount) / parseFloat(this.ad.price))
       } else {
-        this.amount = parseFloat(this.amount) * parseFloat(this.ad.price)
+        amount = Number(amount * parseFloat(this.ad.price))
       }
+      this.amount = amount
     },
     getCryptoAmount () {
       if (!this.byFiat) {
@@ -406,7 +401,6 @@ export default {
     },
     recievePaymentMethods (item) {
       this.paymentMethods = item
-      // console.log(this.paymentMethods)
       this.createOrder()
     },
     recieveDialogsInfo (item) {
@@ -423,6 +417,10 @@ export default {
           vm.state = 'add-payment-method'
           break
       }
+    },
+    countDecimals (value) {
+      if (Math.floor(value) === value) return 0
+      return value.toString().split('.')[1].length || 0
     }
   }
 }
