@@ -280,6 +280,7 @@
             <footer-menu />
           </template>
 
+          <!-- TODO adjust for multiple recipient -->
           <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
             <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
             <div
@@ -298,9 +299,11 @@
               </template>
 
               <p style="font-size: 24px;">to</p>
-              <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
-                {{ this.sendData.recipientAddress }}
-              </div>
+              <template v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
+                <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
+                  {{ recipient.recipientAddress }}
+                </div>
+              </template>
               <div class="text-center q-mt-lg">
                 <div class="text-grey">{{ $t('ReferenceId')}}</div>
                 <div class="text-h4" style="letter-spacing: 6px;">{{ sendData.txid.substring(0, 6).toUpperCase() }}</div>
@@ -311,6 +314,8 @@
                 <template v-if="walletType === 'SmartBCH'">
                   <a
                     style="text-decoration: none; color: #3b7bf6;"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
                     :href="'https://sonar.cash/tx/' + sendData.txid" target="_blank"
                   >
                     {{ $t('ViewInExplorer') }}
@@ -319,6 +324,8 @@
                 <template v-else>
                   <a
                     style="text-decoration: none; color: #3b7bf6;"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
                     :href="getExplorerLink(sendData.txid)" target="_blank"
                   >
                     {{ $t('ViewInExplorer') }}
@@ -507,10 +514,10 @@ export default {
       },
 
       sendDataMultiple: [{
-        sent: false,
-        sending: false,
-        success: false,
-        txid: '',
+        sent: false, // transfer as a single variable
+        sending: false, // transfer as a single variable
+        success: false, // remove
+        txid: '', // transfer as a single variable
         amount: null,
         fixedAmount: false,
         recipientAddress: '',
@@ -1266,7 +1273,7 @@ export default {
       // TODO adjust for multiple recipients
       const vm = this
       const toSendData = vm.sendDataMultiple
-      const toSendRecipients = []
+      const toSendRecipients = [] // for bch but ideally for all
 
       // check if total amount being sent is greater than current wallet amount
       const totalAmount = toSendData
@@ -1279,23 +1286,24 @@ export default {
           type: 'negative',
           color: 'red-4',
           timeout: 3000,
-          message: vm.$t('Total amount being sent is greater than your current balance')
+          message: vm.$t('TotalAmountError')
         })
         return
       }
 
+      let token // bch token
       toSendData.forEach(sendData => {
+        console.log(sendData) //
         const address = sendData.recipientAddress
         const addressObj = new Address(address)
         const addressIsValid = this.validateAddress(address).valid
         const amountIsValid = this.validateAmount(sendData.amount)
 
-        console.log('addressObj', addressObj)
-        console.log('addressIsValid', addressIsValid)
-        console.log('amountIsValid', amountIsValid)
+        console.log('addressObj', addressObj) //
+        // console.log('addressIsValid', addressIsValid)
+        // console.log('amountIsValid', amountIsValid)
 
         if (addressIsValid && amountIsValid) {
-          // TODO
           sendData.sending = true
 
           switch (vm.walletType) {
@@ -1305,100 +1313,34 @@ export default {
             case 'slp':
               console.log('slp')
               break
-            case 'bch':
-              console.log('bch')
+            case 'bch': {
               const recipientAddress = addressObj.toCashAddress()
               const tokenId = vm.assetId.split('ct/')[1]
-              const changeAddress = vm.getChangeAddress('bch')
 
-              if (vm.sendData?.posDevice?.posId >= 0) {
-                // sendPromise = vm.wallet.BCH.sendBchToPOS(
-                //   vm.sendData.amount,address, changeAddress,
-                //   vm.sendData.posDevice,
-                // )
+              if (tokenId) {
+                const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
+                token = {
+                  tokenId: tokenId,
+                  commitment: vm.commitment || undefined,
+                  capability: vm.capability || undefined
+                }
+                toSendRecipients.push({
+                  address: recipientAddress,
+                  amount: sendData.amount,
+                  tokenAmount: tokenAmount * (10 ** vm.asset.decimals)
+                })
               } else {
-                console.log('tokenId', tokenId)
-                console.log('vm.commitment', vm.commitment)
-                console.log('vm.capability', vm.capability)
-                console.log(vm.commitment && vm.capability)
-                // address = addressObj.toCashAddress()
-                // const tokenId = vm.assetId.split('ct/')[1]
-                // const changeAddress = vm.getChangeAddress('bch')
-                // let sendPromise
-                // if (vm.sendData?.posDevice?.posId >= 0) {
-                //   sendPromise = vm.wallet.BCH.sendBchToPOS(
-                //     vm.sendData.amount,address, changeAddress,
-                //     vm.sendData.posDevice,
-                //   )
-                // } else {
-                //   if (tokenId) {
-                //     vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
-                //     // TODO change to recipients array
-                //     sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
-                //       tokenId: tokenId,
-                //       commitment: vm.commitment || undefined,
-                //       capability: vm.capability || undefined
-                //     }, (vm.ctTokenAmount * (10 ** vm.asset.decimals)))
-                //   } else {
-                //     // TODO change to recipients array
-                //     sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
-                //       tokenId: tokenId,
-                //       commitment: undefined,
-                //       capability: undefined
-                //     }, undefined)
-                //   }
-                // }
-                // sendPromise.then(function (result) {
-                //   vm.sendData.sending = false
-                //   if (result.success) {
-                //     vm.sendData.txid = result.txid
-                //     vm.playSound(true)
-                //     vm.sendData.sending = false
-                //     vm.sendData.sent = true
-                //     if (result.otp) vm.sendData.responseOTP = result.otp
-                //     if (!vm.sendAmountInFiat) {
-                //       vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
-                //     }
-
-                //     if (result?.otp) {
-                //       vm.$store.commit('paytacapos/saveOTPCache', {
-                //         txid: result.txid,
-                //         otp: result.otp,
-                //         otpTimestamp: result?.otpTimestamp,
-                //         rawPaymentUri: vm.sendData?.rawPaymentUri,
-                //       })
-                //       vm.$store.commit('paytacapos/removeOldPaymentOTPCache')
-                //     }
-                //   } else {
-                //     if (result.error.indexOf('not enough balance in sender') > -1) {
-                //       vm.$q.notify({
-                //         type: 'negative',
-                //         color: 'red-4',
-                //         timeout: 3000,
-                //         message: vm.$t('NotEnoughForBoth')
-                //       })
-                //     } else if (result.error.indexOf('has insufficient priority') > -1) {
-                //       vm.$q.notify({
-                //         type: 'negative',
-                //         color: 'red-4',
-                //         timeout: 3000,
-                //         message: vm.$t('NotEnoughForTransactionFee')
-                //       })
-                //     } else {
-                //       vm.$q.notify({
-                //         type: 'negative',
-                //         color: 'red-4',
-                //         timeout: 3000,
-                //         message: result.error
-                //       })
-                //     }
-                //   }
-                // })
+                toSendRecipients.push({
+                  address: recipientAddress,
+                  amount: sendData.amount,
+                  tokenAmount: undefined
+                })
               }
 
               break
+            }
             default:
-              console.log('token')
+              console.log('test')
               break
           }
         } else {
@@ -1428,6 +1370,50 @@ export default {
           throw new Error('Error in sending to recipient(s)')
         }
       })
+
+      if (toSendRecipients.length > 0) {
+        const changeAddress = vm.getChangeAddress('bch')
+        console.log(toSendRecipients) //
+        getWalletByNetwork(vm.wallet, 'bch') // can be used by slp (recheck)
+          .sendBch(0, '', changeAddress, token, undefined, toSendRecipients)
+          .then(function (result) {
+            vm.sendData.sending = false // TODO: adjust for multiple recipients
+            console.log(result) //
+            if (result.success) {
+              vm.sendData.txid = result.txid
+              vm.playSound(true)
+              vm.sendData.sending = false // TODO: adjust for multiple recipients
+              vm.sendData.sent = true // TODO: adjust for multiple recipients
+              if (!vm.sendAmountInFiat) {
+                // replace with total amount or move to before sending part
+                vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+              }
+            } else {
+              if (result.error.indexOf('not enough balance in sender') > -1) {
+                vm.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: vm.$t('NotEnoughForBoth')
+                })
+              } else if (result.error.indexOf('has insufficient priority') > -1) {
+                vm.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: vm.$t('NotEnoughForTransactionFee')
+                })
+              } else {
+                vm.$q.notify({
+                  type: 'negative',
+                  color: 'red-4',
+                  timeout: 3000,
+                  message: result.error
+                })
+              }
+            }
+          })
+      }
 
       return
       let address = this.sendData.recipientAddress
@@ -1677,9 +1663,9 @@ export default {
 
       if (recipientsLength < 5) {
         this.sendDataMultiple.push({
-          sent: false,
-          sending: false,
-          success: false,
+          sent: false, //
+          sending: false, //
+          success: false, //
           txid: '',
           amount: 0,
           fixedAmount: false,

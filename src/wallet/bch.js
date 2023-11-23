@@ -357,17 +357,16 @@ export class BchWallet {
    * @param {String} changeAddress
    * @param {{ posId: Number, paymentTimestamp: Number }} posDevice
    */
-  async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
+  async sendBchToPOS(amount, recipient, changeAddress, posDevice, recipients = []) {
     const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
-    const sendResponse = await this._sendBch(
-      changeAddress,
-      undefined, {
-        address: recipient,
-        amount,
-        tokenAmount: 0
-      },
-      false
-    )
+    const finalRecipients = []
+    if (recipients.length > 0) {
+      finalRecipients.push(...recipients)
+    } else {
+      finalRecipients.push({ address: recipient, amount, tokenAmount: 0 })
+    }
+
+    const sendResponse = await this._sendBch(changeAddress, undefined, finalRecipients, false)
 
     if (!sendResponse?.success) {
       response.success = false
