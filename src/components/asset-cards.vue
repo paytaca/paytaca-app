@@ -10,7 +10,7 @@
         selectAsset(event, asset)
       }"
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
-      v-touch-pan.prevent.mouse="handlePan"
+      v-touch-pan="handlePan"
     >
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
@@ -169,12 +169,14 @@ export default {
       })
     },
     handlePan (evt) {
-      this.scrollContainer = document.querySelector('#asset-container')
-      if (this.scrollContainerClientX) {
-        const deltaX = evt.evt.clientX - this.scrollContainerClientX
-        this.scrollContainer.scrollLeft -= deltaX
+      if (!this.$q.platform.is.mobile) {
+        this.scrollContainer = document.querySelector('#asset-container')
+        if (this.scrollContainerClientX) {
+          const deltaX = evt.evt.clientX - this.scrollContainerClientX
+          this.scrollContainer.scrollLeft -= deltaX
+        }
+        this.scrollContainerClientX = evt.evt.clientX
       }
-      this.scrollContainerClientX = evt.evt.clientX
     }
   }
 }
@@ -208,6 +210,7 @@ export default {
     min-width: 150px;
     border-radius: 16px;
     overflow-y: hidden;
+    overflow-x: scroll;
   }
 
   .text-num-lg {
