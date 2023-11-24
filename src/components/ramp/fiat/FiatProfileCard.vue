@@ -269,6 +269,7 @@ export default {
       })
         .then(response => {
           if (response.data) {
+            console.log('response:', response)
             vm.reviewList = response.data.feedbacks
             // top 5 review
             if (vm.reviewList.length !== 0) {

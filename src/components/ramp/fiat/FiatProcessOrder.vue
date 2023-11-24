@@ -221,8 +221,15 @@ export default {
     checkStep () {
       const vm = this
       vm.openDialog = false
-      // console.log('Checking step:', vm.status)
-      switch (vm.status.value) {
+      const status = vm.status.value
+      if (this.isExpired) {
+        if (!vm.isPdPendingRelease(status) && !vm.isStatusCompleted(status)) {
+          vm.state = 'standby-view'
+          return
+        }
+      }
+      console.log('Checking step:', status)
+      switch (status) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
             vm.state = 'order-confirm-decline'
@@ -232,25 +239,22 @@ export default {
           break
         case 'CNF': { // Confirmed
           let state = null
-          // console.log('>>>order:', vm.order)
           if (this.order.trade_type === 'BUY') {
             state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
           }
           vm.state = state
-          if (vm.state === 'standby-view') {
-            vm.standByDisplayKey++
-          }
           break
         }
         case 'ESCRW_PN': { // Escrow Pending
           vm.generateContract()
+          vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'ESCROW')
           vm.verifyAction = 'ESCROW'
           let state = 'standby-view'
           let nextState = 'tx-confirmation'
+          if (!vm.txid) nextState = 'escrow-bch'
           if (this.order.trade_type === 'BUY') {
-            if (!vm.txid) nextState = 'escrow-bch'
             state = vm.order.is_ad_owner ? nextState : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
             state = vm.order.is_ad_owner ? 'standby-view' : nextState
@@ -278,17 +282,19 @@ export default {
           break
         case 'PD': { // Paid
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-          vm.state = 'standby-view'
+          let state = 'standby-view'
           vm.verifyAction = 'RELEASE'
           let nextState = 'tx-confirmation'
+          if (!vm.txid) nextState = 'payment-confirmation'
           if (vm.order.trade_type === 'BUY') {
-            if (!vm.txid) nextState = 'payment-confirmation'
-            vm.state = vm.order.is_ad_owner ? nextState : 'standby-view'
+            state = vm.order.is_ad_owner ? nextState : 'standby-view'
             vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
           } else if (vm.order.trade_type === 'SELL') {
-            vm.state = vm.order.is_ad_owner ? 'standby-view' : nextState
+            state = vm.order.is_ad_owner ? 'standby-view' : nextState
             vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
           }
+          vm.state = state
+          if (state === 'tx-confirmation') vm.verifyEscrowTxKey++
           break
         }
         case 'RFN': // Refunded
@@ -307,9 +313,15 @@ export default {
           vm.standByDisplayKey++
           break
       }
-      if (this.isExpired) {
-        vm.state = 'standby-view'
+      if (vm.state === 'standby-view') {
+        vm.standByDisplayKey++
       }
+    },
+    isStatusCompleted (status) {
+      return (status === 'CNCL' || status === 'RLS' || status === 'RFN')
+    },
+    isPdPendingRelease (status) {
+      return status === 'PD'
     },
     // API CALLS
     fetchOrderData () {
@@ -444,7 +456,6 @@ export default {
     generateContract () {
       const vm = this
       if (vm.rampContract) return
-      console.log('generateContract')
       vm.fetchOrderData()
         .then(data => {
           const contract = data.contract

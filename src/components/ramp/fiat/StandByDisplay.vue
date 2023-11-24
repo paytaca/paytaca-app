@@ -96,7 +96,7 @@
             />
           </div>
           <!-- Appeal Button -->
-          <div v-if="countDown === 'Expired' || order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired">
+          <div v-if="showAppealBtn">
             <div class="row q-pt-xs">
               <q-btn
                 rounded
@@ -236,9 +236,18 @@ export default {
     FeedbackDialog
   },
   computed: {
+    showAppealBtn () {
+      const vm = this
+      return (
+        !vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.order.status.value) &&
+        (vm.$parent.isExpired || vm.countDown === 'Expired'))
+    },
     displayContractInfo () {
       const status = this.order.status.value
       return status !== 'SBM' && status !== 'CNF' && status !== 'CNCL'
+    },
+    isAppealed () {
+      return this.order.status.value === 'APL'
     },
     isCompletedOrder () {
       return (this.order.status.value === 'RLS' || this.order.status.value === 'RFN')

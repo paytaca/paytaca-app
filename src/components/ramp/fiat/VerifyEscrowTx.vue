@@ -138,7 +138,6 @@ export default {
       vm.transactionId = this.$store.getters['ramp/getOrderTxid'](vm.orderId, vm.action)
     }
     await vm.fetchOrderDetail()
-    console.log('rampContract:', vm.rampContract)
     vm.loading = false
   },
   beforeUnmount () {
