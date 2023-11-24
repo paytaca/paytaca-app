@@ -228,7 +228,6 @@ export default {
           return
         }
       }
-      console.log('Checking step:', status)
       switch (status) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {

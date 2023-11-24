@@ -1,54 +1,42 @@
 <template>
     <div class="q-pb-md">
-      <!-- <div>
-        <q-btn
-          flat
-          padding="md"
-          icon="close"
-          @click="$emit('back')"
-        />
-      </div> -->
-      <div class="text-center lg-font-size bold-text">VERIFYING TRANSFER</div>
+      <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
+        <span>VERIFYING TRANSFER</span>
+      </div>
+      <div class="subtext text-center q-pb-sm md-font-size">ORDER #{{ orderId }}</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
       <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
-        <div class="q-mx-lg q-px-md q-pt-md">
-          <!-- <div class="row q-mt-md"> -->
-          <div class="sm-font-size q-pl-sm q-pb-xs">Contract Address</div>
-            <q-input
-              class="q-pb-sm"
-              readonly
-              :dark="darkMode"
-              filled
-              dense
-              v-model="contract.address"
-              :loading="!contract">
-              <template v-slot:append v-if="contract.address">
-                <div @click="$parent.copyToClipboard(contract.address)">
+        <div class="q-mx-md q-px-md q-pt-md">
+          <div>
+            <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
+            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+              <template v-slot:append>
+                <div v-if="contract.address" @click="copyToClipboard(contract.address)">
                   <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
                 </div>
               </template>
             </q-input>
-          <!-- </div> -->
-          <!-- <div class="row q-mt-md"> -->
-
-          <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
-            <q-input
-              readonly
-              :dark="darkMode"
-              filled
-              dense
-              :loading="!transactionId"
-              v-model="transactionId">
-              <template v-slot:append v-if="transactionId">
-                <div @click="$parent.copyToClipboard(transactionId)">
-                  <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-                </div>
+            <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="contract.balance">
+              <template v-slot:append>
+                <span class="sm-font-size bold-text md-font-size">BCH</span>
               </template>
             </q-input>
-          <!-- </div> -->
-          <div class="row q-mt-sm sm-font-size" style="color: grey">
-            Contract balance: {{ contract.balance ? contract.balance : 0 }} BCH
           </div>
+          <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
+          <q-input
+            readonly
+            :dark="darkMode"
+            filled
+            dense
+            :loading="!transactionId"
+            v-model="transactionId">
+            <template v-slot:append v-if="transactionId">
+              <div @click="$parent.copyToClipboard(transactionId)">
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+              </div>
+            </template>
+          </q-input>
           <div class="row" v-if="errorMessages.length > 0">
             <div class="col">
               <ul style="margin-left: -40px; list-style: none;">
@@ -61,6 +49,7 @@
           </div>
           <div class="row q-mb-md">
             <q-btn
+              v-if="!hideBtn"
               :loading="loading"
               :disable="loading || !transactionId"
               rounded
@@ -69,17 +58,10 @@
               class="col q-mx-lg q-mb-md q-py-sm q-my-md"
               @click="onVerify">
             </q-btn>
-            <!-- <div v-if="hideBtn" class="q-mt-md">
-              <span v-if="state === 'verifying'">
-                Verifying transaction, please wait...
-              </span>
-              <span v-if="state === 'sending'">Sending bch, please wait...</span>
-            </div> -->
           </div>
         </div>
       </q-scroll-area>
     </div>
-    <!-- else progress loader -->
   </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
@@ -97,13 +79,13 @@ export default {
         address: ' '
       },
       transactionId: '',
-      txExists: false,
-      timer: null,
-      waitSeconds: null,
+      // txExists: false,
+      // timer: null,
+      // waitSeconds: null,
       hideBtn: true,
       errorMessages: [],
       state: '',
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2
     }
   },
   emits: ['back', 'success'],
@@ -137,95 +119,87 @@ export default {
     if (!vm.transactionId) {
       vm.transactionId = this.$store.getters['ramp/getOrderTxid'](vm.orderId, vm.action)
     }
-    await vm.fetchOrderDetail()
+    vm.fetchOrderDetail()
     vm.loading = false
   },
   beforeUnmount () {
     clearInterval(this.timer)
   },
   methods: {
-    async fetchOrderDetail () {
+    async getContractBalance () {
+      this.contract.balance = await this.rampContract.getBalance()
+    },
+    fetchOrderDetail () {
       const vm = this
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.orderId
-      try {
-        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
-        vm.contract.address = response.data.contract.address
-        // vm.contract.balance = await getBalanceByAddress(vm.contract.address)
-        if (this.rampContract) {
-          vm.contract.balance = await this.rampContract.getBalance()
-        }
-        const transactions = response.data.contract.transactions
-        let valid = false
-        let verifying = true
-        if (transactions) {
-          for (let i = 0; i < transactions.length; i++) {
-            const tx = transactions[i]
-            verifying = tx.verifying
-            if (tx.action === vm.action) {
-              vm.txExists = true
-              if (tx.txid) {
-                vm.transactionId = tx.txid
+      vm.$axios.get(url, { headers: vm.authHeaders })
+        .then(response => {
+          if (vm.rampContract) vm.getContractBalance()
+          vm.contract.address = response.data.contract.address
+          const transactions = response.data.contract.transactions
+
+          let pendingTxExists = false
+          if (transactions) {
+            for (let i = 0; i < transactions.length; i++) {
+              const tx = transactions[i]
+              if (tx.action === vm.action) {
+                if (!tx.txid) {
+                  pendingTxExists = true
+                }
+                break
               }
-              valid = tx.valid
-              break
             }
           }
-        }
-        if (vm.txExists && !valid && !verifying) {
-          vm.hideBtn = false
-        }
-        vm.waitSeconds = 60
-        vm.timer = setInterval(function () {
-          vm.waitSeconds--
-          if (vm.waitSeconds === 0) {
-            vm.hideBtn = false
-            clearInterval(vm.timer)
+          if (pendingTxExists) {
+            vm.onVerify()
           }
-        }, 1000)
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
+        })
     },
-    async verifyRelease () {
+    verifyRelease () {
       const vm = this
       vm.state = 'verifying'
       const url = `${vm.apiURL}/order/${vm.orderId}/verify-release`
-      const body = {
-        txid: this.transactionId
-      }
-      await vm.$axios.post(url, body, { headers: vm.authHeaders })
+      const body = { txid: this.transactionId }
+      vm.$axios.post(url, body, { headers: vm.authHeaders })
         .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            vm.errorMessages.push(error.response.data.error)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
-          const errorMsg = error.response.data.error
-          vm.errorMessages.push(errorMsg)
           vm.hideBtn = false
         })
     },
-    async verifyEscrow () {
+    verifyEscrow () {
       const vm = this
       vm.state = 'verifying'
       const url = vm.apiURL + '/order/' + vm.orderId + '/verify-escrow'
-      const body = {
-        txid: vm.transactionId
-      }
-      try {
-        await vm.$axios.post(url, body, { headers: vm.authHeaders })
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-        const errorMsg = error.response.data.error
-        vm.errorMessages.push(errorMsg)
-        vm.hideBtn = false
-      }
+      const body = { txid: vm.transactionId }
+      vm.$axios.post(url, body, { headers: vm.authHeaders })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            vm.errorMessages.push(error.response.data.error)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
+          vm.hideBtn = false
+        })
     },
     onVerify () {
       const vm = this
@@ -239,8 +213,29 @@ export default {
           vm.verifyRelease()
           break
       }
-      vm.fetchOrderDetail()
     }
   }
 }
 </script>
+<style lang="scss" scoped>
+.xs-font-size {
+  font-size: x-small;
+}
+.sm-font-size {
+  font-size: small;
+}
+.md-font-size {
+  font-size: medium;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.bold-text {
+  font-weight: bold;
+}
+.subtext {
+  opacity: .5;
+}
+</style>

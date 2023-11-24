@@ -71,7 +71,7 @@
         />
       </div>
       <!-- Countdown Timer -->
-      <div v-if="order.status.value !== 'APL'" class="q-mt-md q-px-md q-mb-sm">
+      <div v-else class="q-mt-md q-px-md q-mb-sm">
         <div
           class="row q-px-sm text-center sm-font-size"
           style="overflow-wrap: break-word;"

@@ -270,6 +270,7 @@ export default {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const privateKeyWif = await getWalletPrivateKey()
+      console.log('releasing Bch: ', vm.rampContract)
       vm.rampContract.release(privateKeyWif, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {
@@ -302,7 +303,7 @@ export default {
             vm.order = response.data.order
             vm.contract.address = response.data.contract.address
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-            if (vm.contract.address && vm.contract.balance === null) {
+            if (vm.contract.address) {
               vm.getContractBalance()
             }
             vm.paymentMethods = response.data.order.ad.payment_methods.map(method => {
