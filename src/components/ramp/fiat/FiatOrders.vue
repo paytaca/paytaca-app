@@ -88,8 +88,10 @@
       </div>
       <div v-if="state === 'view-order'">
         <FiatProcessOrder
+          :key="fiatProcessOrderKey"
           :order-data="selectedOrder"
           @back="returnOrderList()"
+          @refresh="refreshOrder"
         />
         <!-- check which step the order are in -->
       </div>
@@ -144,7 +146,8 @@ export default {
       totalPages: null,
       pageNumber: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-      viewProfile: false
+      viewProfile: false,
+      fiatProcessOrderKey: 0
     }
   },
   watch: {
@@ -220,6 +223,10 @@ export default {
     },
     refreshData (done) {
       this.resetAndRefetchListings()
+      if (done) done()
+    },
+    refreshOrder (done) {
+      this.fiatProcessOrderKey++
       if (done) done()
     },
     resetAndRefetchListings () {

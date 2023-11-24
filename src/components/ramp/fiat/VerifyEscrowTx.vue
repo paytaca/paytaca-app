@@ -1,5 +1,6 @@
 <template>
-    <div class="q-pb-md">
+  <div class="q-pb-md">
+    <q-pull-to-refresh @refresh="$emit('refresh')">
       <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
         <span>VERIFYING TRANSFER</span>
       </div>
@@ -61,8 +62,9 @@
           </div>
         </div>
       </q-scroll-area>
-    </div>
-  </template>
+    </q-pull-to-refresh>
+  </div>
+</template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 
@@ -88,7 +90,7 @@ export default {
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2
     }
   },
-  emits: ['back', 'success'],
+  emits: ['back', 'success', 'refresh'],
   components: {},
   props: {
     orderId: {

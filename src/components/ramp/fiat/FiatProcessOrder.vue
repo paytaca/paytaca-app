@@ -23,6 +23,7 @@
       :ad-data="ad"
       @confirm="confirmingOrder"
       @cancel="cancellingOrder"
+      @refresh="$emit('refresh')"
     />
     <EscrowTransferProcess
       v-if="state === 'escrow-bch'"
@@ -44,6 +45,7 @@
       :ramp-contract="rampContract"
       @back="onBack"
       @success="onVerifyTxSuccess"
+      @refresh="$emit('refresh')"
     />
     <!-- Waiting Page -->
     <div v-if="state === 'standby-view'" class="q-px-lg">
@@ -54,6 +56,7 @@
         :ramp-contract="rampContract"
         @send-feedback="sendFeedback"
         @submit-appeal="submitAppeal"
+        @refresh="$emit('refresh')"
       />
     </div>
 
@@ -67,13 +70,9 @@
         :errors="errorMessages"
         @expired="handleExpired"
         @verify-release="handleVerifyRelease"
+        @refresh="$emit('refresh')"
       />
     </div>
-  </div>
-
-  <!-- Completed transaction -->
-  <div v-if="state === 'completed'">
-    Completed Page
   </div>
 
   <!-- Dialogs -->
@@ -191,8 +190,8 @@ export default {
       }
     }
   },
-  emits: ['back'],
-  async mounted () {
+  emits: ['back', 'refresh'],
+  mounted () {
     const vm = this
     vm.fetchOrderData()
       .then(() => {
@@ -210,7 +209,6 @@ export default {
     this.closeWSConnection()
   },
   methods: {
-    // STEP CHECKER
     updateStatus (status) {
       const vm = this
       if (!status || vm.status === status) return
