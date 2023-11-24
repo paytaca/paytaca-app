@@ -48,10 +48,10 @@
     <!-- Waiting Page -->
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
+        :key="standByDisplayKey"
         :order-id="order.id"
         :feedback-data="feedback"
         :ramp-contract="rampContract"
-        :key="standByDisplayKey"
         @send-feedback="sendFeedback"
         @submit-appeal="submitAppeal"
       />
@@ -232,6 +232,7 @@ export default {
           break
         case 'CNF': { // Confirmed
           let state = null
+          // console.log('>>>order:', vm.order)
           if (this.order.trade_type === 'BUY') {
             state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
@@ -241,12 +242,10 @@ export default {
           if (vm.state === 'standby-view') {
             vm.standByDisplayKey++
           }
-          if (vm.order.is_ad_owner && !vm.rampContract) {
-            vm.generateContract()
-          }
           break
         }
         case 'ESCRW_PN': { // Escrow Pending
+          vm.generateContract()
           vm.verifyAction = 'ESCROW'
           let state = 'standby-view'
           let nextState = 'tx-confirmation'
@@ -445,6 +444,7 @@ export default {
     generateContract () {
       const vm = this
       if (vm.rampContract) return
+      console.log('generateContract')
       vm.fetchOrderData()
         .then(data => {
           const contract = data.contract
@@ -468,6 +468,8 @@ export default {
           }
           const timestamp = contract.timestamp
           vm.rampContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+          vm.paymentConfirmationKey++
+          vm.standByDisplayKey++
         })
         .catch(error => {
           console.error(error)
