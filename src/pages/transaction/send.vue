@@ -521,7 +521,7 @@ export default {
         amount: null,
         fixedAmount: false,
         recipientAddress: '',
-        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
+        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 }, // remove
         rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
         paymentAckMemo: '',
@@ -1273,47 +1273,60 @@ export default {
       // TODO adjust for multiple recipients
       const vm = this
       const toSendData = vm.sendDataMultiple
-      const toSendRecipients = [] // for bch but ideally for all
+      const toSendBCHRecipients = []
+      const toSendSLPRecipients = []
 
       // check if total amount being sent is greater than current wallet amount
       const totalAmount = toSendData
         .map(a => Number(a.amount))
         .reduce((acc, curr) => acc + curr, 0)
         .toFixed(8)
-      console.log('totalAmount', totalAmount) // remove
+
       if (totalAmount > vm.asset.balance) {
-        vm.$q.notify({
-          type: 'negative',
-          color: 'red-4',
-          timeout: 3000,
-          message: vm.$t('TotalAmountError')
-        })
+        vm.raiseNotifyError(vm.$t('TotalAmountError'))
         return
       }
 
       let token // bch token
-      toSendData.forEach(sendData => {
-        console.log(sendData) //
+      toSendData.forEach(async sendData => {
         const address = sendData.recipientAddress
         const addressObj = new Address(address)
         const addressIsValid = this.validateAddress(address).valid
         const amountIsValid = this.validateAmount(sendData.amount)
 
-        console.log('addressObj', addressObj) //
-        // console.log('addressIsValid', addressIsValid)
-        // console.log('amountIsValid', amountIsValid)
-
         if (addressIsValid && amountIsValid) {
           sendData.sending = true
 
           switch (vm.walletType) {
-            case sBCHWalletType:
-              console.log('smartbch')
+            case sBCHWalletType: {
+              await vm.wallet.sBCH.getOrInitWallet()
+              let promise = null
+              if (sep20IdRegexp.test(vm.assetId)) {
+                const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
+                promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
+              } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
+                const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
+                const tokenId = vm.assetId.match(erc721IdRegexp)[2]
+                promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
+              } else {
+                promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
+              }
+
+              if (promise) {
+                promise.then(result => vm.promiseResponseHandler(result, vm.walletType))
+              }
+
               break
-            case 'slp':
-              console.log('slp')
+            } case 'slp': {
+              const recipientAddress = addressObj.toSLPAddress()
+
+              toSendSLPRecipients.push({
+                address: recipientAddress,
+                amount: sendData.amount
+              })
+
               break
-            case 'bch': {
+            } case 'bch': {
               const recipientAddress = addressObj.toCashAddress()
               const tokenId = vm.assetId.split('ct/')[1]
 
@@ -1324,13 +1337,13 @@ export default {
                   commitment: vm.commitment || undefined,
                   capability: vm.capability || undefined
                 }
-                toSendRecipients.push({
+                toSendBCHRecipients.push({
                   address: recipientAddress,
                   amount: sendData.amount,
                   tokenAmount: tokenAmount * (10 ** vm.asset.decimals)
                 })
               } else {
-                toSendRecipients.push({
+                toSendBCHRecipients.push({
                   address: recipientAddress,
                   amount: sendData.amount,
                   tokenAmount: undefined
@@ -1338,84 +1351,69 @@ export default {
               }
 
               break
-            }
-            default:
-              console.log('test')
+            } default:
+              try {
+                const w = await window.TestNetWallet.named('mywallet')
+                const { txId } = await w.send([
+                  // eslint-disable-next-line no-undef
+                  new TokenSendRequest({
+                    cashaddr: address,
+                    amount: vm.sendData.amount,
+                    tokenId: vm.assetId.split('/')[1]
+                  })
+                ])
+                vm.sendData.txid = txId // TODO adjust to single variable
+                vm.sendData.sent = true // TODO adjust to single variable
+                vm.playSound(true)
+              } catch (e) {
+                vm.raiseNotifyError(e.message)
+              }
+              vm.sendData.sending = false
+
               break
           }
         } else {
           sendData.sending = false
           if (!addressIsValid) {
-            vm.$q.notify({
-              type: 'negative',
-              color: 'red-4',
-              timeout: 3000,
-              message: this.$t(
-                'InvalidRecipient',
-                { walletType: vm.walletType.toUpperCase() },
-                `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
-              )
-            })
+            vm.raiseNotifyError(vm.$t(
+              'InvalidRecipient',
+              { walletType: vm.walletType.toUpperCase() },
+              `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
+            ))
             throw new Error('Invalid recipient')
           }
           if (!amountIsValid) {
-            vm.$q.notify({
-              type: 'negative',
-              color: 'red-4',
-              timeout: 3000,
-              message: vm.$t('SendAmountGreaterThanZero')
-            })
+            vm.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
             throw new Error('Send amount greater than zero')
           }
           throw new Error('Error in sending to recipient(s)')
         }
       })
 
-      if (toSendRecipients.length > 0) {
+      if (toSendBCHRecipients.length > 0) {
         const changeAddress = vm.getChangeAddress('bch')
-        console.log(toSendRecipients) //
-        getWalletByNetwork(vm.wallet, 'bch') // can be used by slp (recheck)
-          .sendBch(0, '', changeAddress, token, undefined, toSendRecipients)
-          .then(function (result) {
-            vm.sendData.sending = false // TODO: adjust for multiple recipients
-            console.log(result) //
-            if (result.success) {
-              vm.sendData.txid = result.txid
-              vm.playSound(true)
-              vm.sendData.sending = false // TODO: adjust for multiple recipients
-              vm.sendData.sent = true // TODO: adjust for multiple recipients
-              if (!vm.sendAmountInFiat) {
-                // replace with total amount or move to before sending part
-                vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
-              }
-            } else {
-              if (result.error.indexOf('not enough balance in sender') > -1) {
-                vm.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: vm.$t('NotEnoughForBoth')
-                })
-              } else if (result.error.indexOf('has insufficient priority') > -1) {
-                vm.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: vm.$t('NotEnoughForTransactionFee')
-                })
-              } else {
-                vm.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: result.error
-                })
-              }
-            }
-          })
+        vm.wallet.BCH
+          .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
+          .then(result => vm.promiseResponseHandler(result, vm.walletType))
+      } else if (toSendSLPRecipients.length > 0) {
+        const tokenId = vm.assetId.split('slp/')[1]
+        const bchWallet = vm.getWallet('bch')
+        const feeFunder = {
+          walletHash: bchWallet.walletHash,
+          mnemonic: vm.wallet.mnemonic,
+          derivationPath: bchWallet.derivationPath
+        }
+        const changeAddresses = {
+          bch: vm.getChangeAddress('bch'),
+          slp: vm.getChangeAddress('slp')
+        }
+
+        vm.wallet.SLP
+          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
+          .then(result => vm.promiseResponseHandler(result, vm.walletType))
       }
 
-      return
+      /**
       let address = this.sendData.recipientAddress
       const addressObj = new Address(address)
       const addressValidation = this.validateAddress(address)
@@ -1511,7 +1509,7 @@ export default {
               vm.sendData.sending = false
             }
           })
-        } else if (vm.walletType === 'bch') {
+        } else if (vm.walletType === 'bch') { // check
           address = addressObj.toCashAddress()
           const tokenId = vm.assetId.split('ct/')[1]
           const changeAddress = vm.getChangeAddress('bch')
@@ -1631,6 +1629,43 @@ export default {
           })
         }
       }
+      */
+    },
+    promiseResponseHandler (result, walletType) {
+      const vm = this
+      vm.sendData.sending = false
+
+      if (result.success) {
+        vm.sendData.txid = result.txid // TODO move to single variable
+        vm.playSound(true)
+        vm.sendData.sending = false // TODO: adjust for multiple recipients
+        vm.sendData.sent = true // TODO: adjust for multiple recipients
+        if (!vm.sendAmountInFiat) { // remove entirely
+          // replace with total amount or move to before sending part
+          vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+        }
+      } else {
+        if (result.error.indexOf('not enough balance in sender') > -1) {
+          if (walletType === 'bch') vm.raiseNotifyError(vm.$t('NotEnoughForBoth'))
+          else if (walletType === 'slp') vm.raiseNotifyError(vm.$t('NotEnoughForSendAmount'))
+        } else if (result.error.indexOf('has insufficient priority') > -1) {
+          vm.raiseNotifyError(vm.$t('NotEnoughForTransactionFee'))
+        } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
+          vm.raiseNotifyError(vm.$t('NotEnoughBchForFee'))
+        } else if (result.error) {
+          vm.raiseNotifyError(result.error)
+        } else {
+          vm.raiseNotifyError(vm.$t('UnknownError'))
+        }
+      }
+    },
+    raiseNotifyError (message) {
+      this.$q.notify({
+        type: 'negative',
+        color: 'red-4',
+        timeout: 3000,
+        message: message
+      })
     },
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
@@ -1670,7 +1705,7 @@ export default {
           amount: 0,
           fixedAmount: false,
           recipientAddress: '',
-          posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
+          posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 }, //
           rawPaymentUri: '', // for scanning qr data
           responseOTP: '',
           paymentAckMemo: '',
