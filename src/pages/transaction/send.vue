@@ -687,17 +687,12 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0]) {
-        const payloadAmountValue = paymentUriData.outputs[0].amount?.value
-        const payloadAmountCurrency = paymentUriData.outputs[0].amount?.currency
-
-        currency = payloadAmountCurrency ?? this.selectedMarketCurrency
+        currency = paymentUriData.outputs[0].amount?.currency
         this.paymentCurrency = currency
         this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
 
-        amountValue = payloadAmountCurrency === null && payloadAmountValue !== null
-          ? this.convertToFiatAmount(payloadAmountValue)
-          : payloadAmountValue
-        this.payloadAmount = payloadAmountValue
+        amountValue = paymentUriData.outputs[0].amount?.value
+        this.payloadAmount = paymentUriData.outputs[0].amount?.value
         address = paymentUriData.outputs[0].address
         this.sendData.fixedRecipientAddress = true
       }
@@ -843,7 +838,7 @@ export default {
       if (this.setAmountInFiat) {
         this.sendAmountInFiat = amount
       } else {
-        this.sendData.amount = convertToBCH(this.denomination, amount)
+        this.sendData.amount = convertToBCH(this.selectedDenomination, amount)
         this.amountFormatted = tempAmountFormatted
       }
     },
@@ -1253,7 +1248,7 @@ export default {
     },
     onSelectedDenomination (value) {
       this.selectedDenomination = value
-      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount, true))
+      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount || 0, true))
     },
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency

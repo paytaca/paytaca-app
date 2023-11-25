@@ -4,11 +4,11 @@ const denomDecimalPlaces = {
   BCH: { convert: 1, decimal: 8 },
   mBCH: { convert: 10 ** 3, decimal: 5 },
   Satoshis: { convert: 10 ** 8, decimal: 0 },
-  DEEM: { convert: 10 ** 4, decimal: 0 }
+  DEEM: { convert: 10 ** 5, decimal: 0 }
 }
 
 export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0) {
-  const balanceCheck = asset.balance ?? 0
+  const balanceCheck = Math.abs(asset.balance ?? 0)
   const isBCH = asset.symbol === 'BCH'
   const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
   let completeAsset = ''
@@ -24,13 +24,13 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
 
-    const newBalance = String(calculatedBalance).substring(0, setSubStringMaxLength)
+    const newBalance = String(parseFloat(calculatedBalance)).substring(0, setSubStringMaxLength)
 
-    completeAsset = `${parseFloat(newBalance)} ${denomination}`
+    completeAsset = `${newBalance} ${denomination}`
   } else {
     const isSLP = asset.id?.startsWith('slp/')
     const newBalance = String(
-      convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP)
+      parseFloat(convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP))
     ).substring(0, setSubStringMaxLength)
     completeAsset = `${newBalance} ${asset.symbol}`
   }
