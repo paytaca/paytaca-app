@@ -16,7 +16,7 @@
           >
             <div v-if="transaction?.record_type === 'outgoing'">
               {{
-                `-${parseAssetDenomination(
+                `${parseAssetDenomination(
                   denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                   ...asset,
                   balance: transaction?.amount

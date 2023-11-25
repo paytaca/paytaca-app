@@ -980,6 +980,7 @@ export default {
         } else {
           this.sendData.amount = this.asset.balance
         }
+        this.amountFormatted = this.sendData.amount
       }
       this.sliderStatus = true
     },
